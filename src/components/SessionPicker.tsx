@@ -1,4 +1,5 @@
 import { useMeetings, useSessions } from '@/hooks/useSession'
+import { isAuthError } from '@/api/client'
 import { isSessionLive } from '@/utils/live'
 import { YEARS } from '@/constants'
 
@@ -19,9 +20,18 @@ export function SessionPicker({ year, meetingKey, sessionKey, onYear, onMeeting,
 
   const selectedSession = sessions.data?.find((s) => s.session_key === sessionKey)
   const live = isSessionLive(selectedSession)
+  const authFailed = isAuthError(meetings.error) || isAuthError(sessions.error)
 
   return (
-    <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 px-4 py-2 bg-surface border-b border-panel">
+    <div>
+      {authFailed && (
+        <div className="bg-f1red/15 border-b border-f1red/40 px-4 py-1.5 text-[11px] text-red-300 font-mono">
+          OpenF1 returned <span className="font-bold">401/403</span> — the API is rejecting requests.
+          Historical data is normally free; if it now requires a token, set{' '}
+          <span className="font-bold">VITE_OPENF1_API_KEY</span> in <span className="font-bold">.env.local</span> and restart.
+        </div>
+      )}
+      <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 px-4 py-2 bg-surface border-b border-panel">
       <span className="text-[10px] font-bold uppercase tracking-widest text-muted">Year</span>
       <select aria-label="Season year" value={year} onChange={(e) => onYear(Number(e.target.value))} className={SELECT}>
         {YEARS.map((y) => <option key={y} value={y}>{y}</option>)}
@@ -75,6 +85,7 @@ export function SessionPicker({ year, meetingKey, sessionKey, onYear, onMeeting,
       {(meetings.isPending || sessions.isPending) && (
         <span className="text-muted text-[10px] animate-pulse">Loading…</span>
       )}
+      </div>
     </div>
   )
 }

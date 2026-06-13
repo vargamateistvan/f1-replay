@@ -6,6 +6,24 @@ import {
 
 const BASE = 'https://api.openf1.org/v1'
 
+// Optional bearer token. OpenF1's historical tier is documented as free/no-auth,
+// but if the API starts gating requests (401/403) you can supply a token via the
+// VITE_OPENF1_API_KEY env var (.env.local) and it'll be sent on every request.
+const API_KEY = import.meta.env.VITE_OPENF1_API_KEY as string | undefined
+
+// Carries the HTTP status so callers can distinguish auth failures (401/403),
+// which are not retryable, from transient errors (429/5xx).
+export class OpenF1Error extends Error {
+  constructor(readonly status: number, readonly path: string) {
+    super(`OpenF1 ${path}: ${status}`)
+    this.name = 'OpenF1Error'
+  }
+}
+
+export function isAuthError(err: unknown): err is OpenF1Error {
+  return err instanceof OpenF1Error && (err.status === 401 || err.status === 403)
+}
+
 // ── Rate limiter ──────────────────────────────────────────────────────────────
 // OpenF1's free tier allows 3 req/s and 30 req/min, enforced with HTTP 429.
 // A naive concurrency cap is NOT enough: at high playback speed the chunk
@@ -96,17 +114,21 @@ export async function fetchEndpoint<T>(
   const query = qs ? `?${qs}` : ''
   const url = `${BASE}/${path}${query}`
 
+  const headers: Record<string, string> = {}
+  if (API_KEY) headers.Authorization = `Bearer ${API_KEY}`
+
   let attempt = 0
   for (;;) {
     await acquireSlot()
-    const res = await fetch(url)
+    const res = await fetch(url, { headers })
 
     if (res.ok) return res.json() as Promise<T[]>
 
     // Retry on 429 (rate limit) and 5xx (transient server) with backoff.
+    // Auth (401/403) and other 4xx are terminal — fail fast.
     const retryable = res.status === 429 || res.status >= 500
     if (!retryable || attempt >= RATE_MAX_RETRIES) {
-      throw new Error(`OpenF1 ${path}: ${res.status}`)
+      throw new OpenF1Error(res.status, path)
     }
 
     const backoff = parseRetryAfter(res) ?? 2 ** attempt * 500 // 0.5s,1s,2s,4s…
