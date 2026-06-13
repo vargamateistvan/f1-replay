@@ -22,16 +22,17 @@ export function SessionPicker({ year, meetingKey, sessionKey, onYear, onMeeting,
 
   return (
     <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 px-4 py-2 bg-surface border-b border-panel">
-      <label className="text-[10px] font-bold uppercase tracking-widest text-muted">Year</label>
-      <select value={year} onChange={(e) => onYear(Number(e.target.value))} className={SELECT}>
+      <span className="text-[10px] font-bold uppercase tracking-widest text-muted">Year</span>
+      <select aria-label="Season year" value={year} onChange={(e) => onYear(Number(e.target.value))} className={SELECT}>
         {YEARS.map((y) => <option key={y} value={y}>{y}</option>)}
       </select>
 
-      <label className="text-[10px] font-bold uppercase tracking-widest text-muted">Event</label>
+      <span className="text-[10px] font-bold uppercase tracking-widest text-muted">Event</span>
       {meetings.isError ? (
         <span className="text-red-400 font-mono text-[11px]">Failed to load events</span>
       ) : (
         <select
+          aria-label="Event"
           value={meetingKey ?? ''}
           onChange={(e) => onMeeting(Number(e.target.value))}
           disabled={meetings.isPending}
@@ -46,11 +47,12 @@ export function SessionPicker({ year, meetingKey, sessionKey, onYear, onMeeting,
         </select>
       )}
 
-      <label className="text-[10px] font-bold uppercase tracking-widest text-muted">Session</label>
+      <span className="text-[10px] font-bold uppercase tracking-widest text-muted">Session</span>
       {sessions.isError ? (
         <span className="text-red-400 font-mono text-[11px]">Failed to load sessions</span>
       ) : (
         <select
+          aria-label="Session"
           value={sessionKey ?? ''}
           onChange={(e) => onSession(Number(e.target.value))}
           disabled={sessions.isPending || !meetingKey}

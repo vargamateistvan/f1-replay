@@ -14,7 +14,7 @@ export interface TelemetrySample {
 }
 
 // Integrate speed (km/h) over time (s) → cumulative distance (m)
-function toTelemetrySamples(data: CarData[], lapStartMs: number): TelemetrySample[] {
+export function toTelemetrySamples(data: CarData[], lapStartMs: number): TelemetrySample[] {
   if (data.length === 0) return []
 
   // Sort by date ascending

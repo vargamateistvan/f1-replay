@@ -28,13 +28,29 @@ function fmtSector(sec: number | null) {
   return sec.toFixed(3)
 }
 
-// Sector colour based on how this sector compares to the session best
-function sectorClass(t: number | null, best: number | null): string {
-  if (t === null || best === null) return 'text-muted'
+type SectorTier = 'best' | 'fast' | 'slow' | 'none'
+
+function sectorTier(t: number | null, best: number | null): SectorTier {
+  if (t === null || best === null) return 'none'
   const delta = t - best
-  if (delta <= SECTOR_PURPLE_S) return 'text-[#b48ead]'   // personal best — purple
-  if (delta <= SECTOR_GREEN_S) return 'text-[#39d743]'     // faster — green
-  return 'text-[#ffd600]'                                   // slower — yellow
+  if (delta <= SECTOR_PURPLE_S) return 'best'
+  if (delta <= SECTOR_GREEN_S) return 'fast'
+  return 'slow'
+}
+
+// Colour + a non-colour cue (weight) so the session-best sector is distinguishable
+// for colourblind users; `title` gives a textual cue on hover.
+const SECTOR_STYLE: Record<SectorTier, string> = {
+  best: 'text-[#b48ead] font-bold underline decoration-dotted',
+  fast: 'text-[#39d743]',
+  slow: 'text-[#ffd600]',
+  none: 'text-muted',
+}
+const SECTOR_TITLE: Record<SectorTier, string> = {
+  best: 'Session best sector',
+  fast: 'Within 0.5s of best',
+  slow: 'Off the pace',
+  none: '',
 }
 
 export function LiveTiming({
@@ -160,6 +176,9 @@ export function LiveTiming({
             const s1 = fmtSector(lastLap?.duration_sector_1 ?? null)
             const s2 = fmtSector(lastLap?.duration_sector_2 ?? null)
             const s3 = fmtSector(lastLap?.duration_sector_3 ?? null)
+            const t1 = sectorTier(lastLap?.duration_sector_1 ?? null, bestSectors.s1)
+            const t2 = sectorTier(lastLap?.duration_sector_2 ?? null, bestSectors.s2)
+            const t3 = sectorTier(lastLap?.duration_sector_3 ?? null, bestSectors.s3)
             const gridPos = gridMap.get(num) ?? null
             const gained = gridPos !== null ? gridPos - pos : null
 
@@ -200,13 +219,13 @@ export function LiveTiming({
                 <td className="py-2 px-1 text-center font-mono text-xs tabular-nums text-muted">
                   {currentLap ?? '—'}
                 </td>
-                <td className={`py-2 px-1 text-right font-mono text-xs tabular-nums ${sectorClass(lastLap?.duration_sector_1 ?? null, bestSectors.s1)}`}>
+                <td title={SECTOR_TITLE[t1]} className={`py-2 px-1 text-right font-mono text-xs tabular-nums ${SECTOR_STYLE[t1]}`}>
                   {s1 ?? '—'}
                 </td>
-                <td className={`py-2 px-1 text-right font-mono text-xs tabular-nums ${sectorClass(lastLap?.duration_sector_2 ?? null, bestSectors.s2)}`}>
+                <td title={SECTOR_TITLE[t2]} className={`py-2 px-1 text-right font-mono text-xs tabular-nums ${SECTOR_STYLE[t2]}`}>
                   {s2 ?? '—'}
                 </td>
-                <td className={`py-2 px-1 text-right font-mono text-xs tabular-nums ${sectorClass(lastLap?.duration_sector_3 ?? null, bestSectors.s3)}`}>
+                <td title={SECTOR_TITLE[t3]} className={`py-2 px-1 text-right font-mono text-xs tabular-nums ${SECTOR_STYLE[t3]}`}>
                   {s3 ?? '—'}
                 </td>
                 <td className="py-2 px-2 text-right font-mono text-xs tabular-nums">

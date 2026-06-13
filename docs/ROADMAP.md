@@ -230,11 +230,13 @@ Service worker to cache immutable historical data — replays work offline once 
 10. ✅ 3.7 lap chart (position-by-lap, Map/Laps tab, `LapChart`) · ✅ 2.3 overtakes (endpoint + `useOvertakes`, "Passes" feed tab, Pass› jump chip, pulsing rings on the two cars on the map)
 11. ✅ 3.5 telemetry upgrades — A/B/C three-way compare, smoothing toggle, sector-splits table with fastest highlight. ⬜ *deferred:* track-position heat overlay (the one heavy sub-item — needs distance→track-position mapping)
 
-**Milestone D — Hardening**
-12. 6.1 Vitest suite (logic first)
-13. 5.1 / 5.2 render-loop perf
-14. 4.x accessibility pass
-15. 6.3 CI PR checks · 5.4 bundle trim
+**Milestone D — Hardening — 🟡 IN PROGRESS**
+12. ✅ 6.1 Vitest suite — pure logic extracted to `utils/telemetry.ts`, `utils/standings.ts`, exported `toTelemetrySamples`; tests for interpolate, events, color, live, telemetry, standings, distance-integration. Config: `vitest.config.ts`, `test`/`test:watch` scripts. ⚠️ *needs `yarn install` (vitest added to devDeps) then `yarn test` — the sandbox couldn't run install during this pass.*
+13. ✅ 4.x accessibility — ARIA on PlaybackBar (seek/jump/speed `aria-pressed`), SessionPicker selects (`aria-label`, decorative `<span>` captions), colourblind-safe session-best sectors (bold + dotted underline + `title` cue)
+14. ✅ 6.3 CI PR checks — `.github/workflows/ci.yml` runs tsc + lint + test on PRs/pushes
+15. ⬜ 5.1 render-loop perf (decouple 60 fps map updates from React — the L item) · ⬜ 5.2 scoped Zustand selectors (deferred: little benefit until 5.1, since current subscribers all need `t`) · ⬜ 5.4 bundle trim (drop Recharts)
+
+> **To finish D locally:** `yarn install` (picks up vitest) → `yarn test` (expect green) → `yarn build`.
 
 ---
 

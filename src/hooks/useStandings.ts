@@ -2,27 +2,10 @@ import { useMemo } from 'react'
 import { useQuery, useQueries } from '@tanstack/react-query'
 import { api } from '@/api/endpoints'
 import { teamColor } from '@/utils/color'
-import { RACE_POINTS, SPRINT_POINTS } from '@/constants'
+import { computeStandings, type DriverInfo } from '@/utils/standings'
 
-export interface DriverStanding {
-  position: number
-  driverNumber: number
-  acronym: string
-  fullName: string
-  team: string
-  color: string
-  points: number
-  wins: number
-  podiums: number
-}
-
-export interface ConstructorStanding {
-  position: number
-  name: string
-  color: string
-  points: number
-  wins: number
-}
+// Re-exported for existing import sites (pages/Standings.tsx).
+export type { DriverStanding, ConstructorStanding } from '@/utils/standings'
 
 export function useStandings(year: number) {
   // All sessions for the year
@@ -68,7 +51,7 @@ export function useStandings(year: number) {
   const totalRaces = raceSessions.length
 
   // Build lookup maps from driver data
-  const driverInfo = useMemo(() => {
+  const driverInfo = useMemo<DriverInfo>(() => {
     const acronym = new Map<number, string>()
     const fullName = new Map<number, string>()
     const team = new Map<number, string>()
@@ -82,73 +65,13 @@ export function useStandings(year: number) {
     return { acronym, fullName, team, color }
   }, [driversQ.data])
 
-  const { driverStandings, constructorStandings } = useMemo(() => {
-    const dPts = new Map<number, number>()
-    const dWins = new Map<number, number>()
-    const dPodiums = new Map<number, number>()
-    const cPts = new Map<string, number>()
-    const cWins = new Map<string, number>()
-    const cColor = new Map<string, string>()
-
-    raceSessions.forEach((session, i) => {
-      const result = resultQueries[i]?.data
-      if (!result || result.length === 0) return
-
-      const isSprint = session.session_type === 'Sprint'
-      const fallbackPts = isSprint ? SPRINT_POINTS : RACE_POINTS
-
-      for (const r of result) {
-        if (r.dns) continue // did not start → no entry
-        const num = r.driver_number
-        const pos = r.position
-        const classified = pos !== null && !r.dsq // finished and not disqualified
-        const won = classified && pos === 1
-        const onPodium = classified && pos <= 3
-        // Trust the API's points when present; otherwise derive from finishing slot.
-        const earned = r.points ?? (classified ? (fallbackPts[pos - 1] ?? 0) : 0)
-
-        dPts.set(num, (dPts.get(num) ?? 0) + earned)
-        if (won) dWins.set(num, (dWins.get(num) ?? 0) + 1)
-        if (onPodium) dPodiums.set(num, (dPodiums.get(num) ?? 0) + 1)
-
-        const t = driverInfo.team.get(num)
-        if (t) {
-          cPts.set(t, (cPts.get(t) ?? 0) + earned)
-          if (won) cWins.set(t, (cWins.get(t) ?? 0) + 1)
-          const c = driverInfo.color.get(num)
-          if (c) cColor.set(t, c)
-        }
-      }
-    })
-
-    const driverStandings: DriverStanding[] = [...dPts.entries()]
-      .map(([num, points]) => ({
-        position: 0,
-        driverNumber: num,
-        acronym: driverInfo.acronym.get(num) ?? `#${num}`,
-        fullName: driverInfo.fullName.get(num) ?? `Driver ${num}`,
-        team: driverInfo.team.get(num) ?? '—',
-        color: driverInfo.color.get(num) ?? '#888',
-        points,
-        wins: dWins.get(num) ?? 0,
-        podiums: dPodiums.get(num) ?? 0,
-      }))
-      .sort((a, b) => b.points - a.points || b.wins - a.wins || b.podiums - a.podiums)
-      .map((s, i) => ({ ...s, position: i + 1 }))
-
-    const constructorStandings: ConstructorStanding[] = [...cPts.entries()]
-      .map(([name, points]) => ({
-        position: 0,
-        name,
-        color: cColor.get(name) ?? '#888',
-        points,
-        wins: cWins.get(name) ?? 0,
-      }))
-      .sort((a, b) => b.points - a.points || b.wins - a.wins)
-      .map((s, i) => ({ ...s, position: i + 1 }))
-
-    return { driverStandings, constructorStandings }
-  }, [raceSessions, resultQueries, driverInfo])
+  // resultQueries is a new array each render; depend on the data identities instead.
+  const resultData = resultQueries.map((q) => q.data)
+  const { driverStandings, constructorStandings } = useMemo(
+    () => computeStandings(raceSessions, resultData, driverInfo),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [raceSessions, driverInfo, ...resultData],
+  )
 
   return {
     driverStandings,

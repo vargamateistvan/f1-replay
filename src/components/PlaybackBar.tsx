@@ -39,7 +39,7 @@ export function PlaybackBar({ durationMs, lapStarts = [], pitTimes = [], flagTim
   return (
     <div className="flex items-center gap-2 px-4 py-2.5 bg-track border-t border-panel">
       {/* Transport cluster: prev-lap · play · next-lap */}
-      <button onClick={() => jump(prevLap)} disabled={prevLap === null} className={JUMP_BTN} title="Previous lap ([)">
+      <button onClick={() => jump(prevLap)} disabled={prevLap === null} className={JUMP_BTN} aria-label="Previous lap" title="Previous lap ([)">
         ⏮
       </button>
       <button
@@ -50,18 +50,18 @@ export function PlaybackBar({ durationMs, lapStarts = [], pitTimes = [], flagTim
       >
         {playing ? '⏸' : '▶'}
       </button>
-      <button onClick={() => jump(nextLap)} disabled={nextLap === null} className={JUMP_BTN} title="Next lap (])">
+      <button onClick={() => jump(nextLap)} disabled={nextLap === null} className={JUMP_BTN} aria-label="Next lap" title="Next lap (])">
         ⏭
       </button>
 
       {/* Next pit / flag jumps */}
-      <button onClick={() => jump(nextPit)} disabled={nextPit === null} className={CHIP} title="Next pit stop">
+      <button onClick={() => jump(nextPit)} disabled={nextPit === null} className={CHIP} aria-label="Jump to next pit stop" title="Next pit stop">
         Pit›
       </button>
-      <button onClick={() => jump(nextFlag)} disabled={nextFlag === null} className={CHIP} title="Next flag / SC">
+      <button onClick={() => jump(nextFlag)} disabled={nextFlag === null} className={CHIP} aria-label="Jump to next flag or safety car" title="Next flag / SC">
         Flag›
       </button>
-      <button onClick={() => jump(nextPass)} disabled={nextPass === null} className={CHIP} title="Next overtake">
+      <button onClick={() => jump(nextPass)} disabled={nextPass === null} className={CHIP} aria-label="Jump to next overtake" title="Next overtake">
         Pass›
       </button>
 
@@ -76,6 +76,7 @@ export function PlaybackBar({ durationMs, lapStarts = [], pitTimes = [], flagTim
         value={Math.min(t, durationMs)}
         onChange={(e) => setT(Number(e.target.value))}
         className="flex-1 h-1 cursor-pointer"
+        aria-label="Seek"
       />
 
       <span className="text-muted font-mono text-xs tabular-nums w-16 shrink-0">
@@ -87,6 +88,8 @@ export function PlaybackBar({ durationMs, lapStarts = [], pitTimes = [], flagTim
           <button
             key={s}
             onClick={() => setSpeed(s)}
+            aria-pressed={speed === s}
+            aria-label={`${s}x speed`}
             className={`px-2.5 py-1 text-[10px] font-black uppercase tracking-widest transition-colors ${
               speed === s
                 ? 'bg-f1red text-white'

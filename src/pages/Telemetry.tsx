@@ -5,55 +5,9 @@ import { ErrorMessage } from '@/components/ErrorMessage'
 import { useDrivers, useLaps, useSessions } from '@/hooks/useSession'
 import { useCarDataForLap, type TelemetrySample } from '@/hooks/useCarDataForLap'
 import { useNumberParam, useStringParam } from '@/hooks/useSearchParamState'
+import { resampleToAxis, computeDelta, smooth } from '@/utils/telemetry'
 import { teamColor } from '@/utils/color'
 import { DEFAULT_YEAR } from '@/constants'
-
-// Resample a driver's samples onto the reference driver's distance axis.
-function resampleToAxis(ref: TelemetrySample[], other: TelemetrySample[]): TelemetrySample[] {
-  if (other.length === 0) return []
-  const maxDist = other[other.length - 1]!.distM
-  return ref.map((r) => {
-    const d = Math.min(r.distM, maxDist)
-    let lo = 0, hi = other.length - 1
-    while (lo < hi - 1) {
-      const mid = (lo + hi) >>> 1
-      if (other[mid]!.distM <= d) lo = mid; else hi = mid
-    }
-    const a = other[lo]!, b = other[hi]!
-    const alpha = b.distM === a.distM ? 0 : (d - a.distM) / (b.distM - a.distM)
-    const lerp = (av: number, bv: number) => av + (bv - av) * alpha
-    return {
-      distM: r.distM,
-      timeS: lerp(a.timeS, b.timeS),
-      speed: lerp(a.speed, b.speed),
-      throttle: lerp(a.throttle, b.throttle),
-      brake: lerp(a.brake, b.brake),
-      rpm: lerp(a.rpm, b.rpm),
-      gear: Math.round(lerp(a.gear, b.gear)),
-      drs: lerp(a.drs, b.drs),
-    }
-  })
-}
-
-// Δ time of a resampled driver vs the reference at each distance point (+ = ref ahead).
-function computeDelta(ref: TelemetrySample[], other: TelemetrySample[]): number[] {
-  return ref.map((s, i) => s.timeS - (other[i]?.timeS ?? s.timeS))
-}
-
-// Centred moving-average low-pass for noisy traces.
-function smooth(values: number[], window = 5): number[] {
-  if (values.length === 0) return values
-  const half = Math.floor(window / 2)
-  const out = new Array<number>(values.length)
-  for (let i = 0; i < values.length; i++) {
-    let sum = 0, cnt = 0
-    for (let j = i - half; j <= i + half; j++) {
-      if (j >= 0 && j < values.length) { sum += values[j]!; cnt++ }
-    }
-    out[i] = sum / cnt
-  }
-  return out
-}
 
 interface PlotSlot {
   num: number
