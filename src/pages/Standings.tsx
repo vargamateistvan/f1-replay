@@ -4,6 +4,7 @@ import {
   Tooltip, Cell, ResponsiveContainer,
 } from 'recharts'
 import { useStandings, type DriverStanding, type ConstructorStanding } from '@/hooks/useStandings'
+import { ErrorMessage } from '@/components/ErrorMessage'
 
 const YEARS = [2024, 2023]
 type Tab = 'drivers' | 'constructors'
@@ -64,10 +65,10 @@ function DriverTable({ standings }: { standings: DriverStanding[] }) {
           <tr className="text-muted border-b border-panel sticky top-0 bg-surface z-10">
             <th className="text-left py-1.5 px-2 w-8">P</th>
             <th className="text-left py-1.5 px-2">Driver</th>
-            <th className="text-left py-1.5 px-2">Team</th>
+            <th className="text-left py-1.5 px-2 hidden sm:table-cell">Team</th>
             <th className="text-right py-1.5 px-2 w-16">Pts</th>
-            <th className="text-right py-1.5 px-2 w-12">Wins</th>
-            <th className="text-right py-1.5 px-2 w-16">Podiums</th>
+            <th className="text-right py-1.5 px-2 w-12 hidden sm:table-cell">Wins</th>
+            <th className="text-right py-1.5 px-2 w-16 hidden sm:table-cell">Podiums</th>
           </tr>
         </thead>
         <tbody>
@@ -83,12 +84,12 @@ function DriverTable({ standings }: { standings: DriverStanding[] }) {
                   style={{ background: s.color }}
                 />
                 <span className="font-bold" style={{ color: s.color }}>{s.acronym}</span>
-                <span className="text-muted ml-1.5">{s.fullName}</span>
+                <span className="text-muted ml-1.5 hidden sm:inline">{s.fullName}</span>
               </td>
-              <td className="py-1.5 px-2 text-muted">{s.team}</td>
+              <td className="py-1.5 px-2 text-muted hidden sm:table-cell">{s.team}</td>
               <td className="py-1.5 px-2 text-right tabular-nums font-bold">{s.points}</td>
-              <td className="py-1.5 px-2 text-right tabular-nums text-muted">{s.wins}</td>
-              <td className="py-1.5 px-2 text-right tabular-nums text-muted">{s.podiums}</td>
+              <td className="py-1.5 px-2 text-right tabular-nums text-muted hidden sm:table-cell">{s.wins}</td>
+              <td className="py-1.5 px-2 text-right tabular-nums text-muted hidden sm:table-cell">{s.podiums}</td>
             </tr>
           ))}
         </tbody>
@@ -145,7 +146,7 @@ function ConstructorTable({ standings }: { standings: ConstructorStanding[] }) {
             <th className="text-left py-1.5 px-2 w-8">P</th>
             <th className="text-left py-1.5 px-2">Constructor</th>
             <th className="text-right py-1.5 px-2 w-16">Pts</th>
-            <th className="text-right py-1.5 px-2 w-12">Wins</th>
+            <th className="text-right py-1.5 px-2 w-12 hidden sm:table-cell">Wins</th>
           </tr>
         </thead>
         <tbody>
@@ -163,7 +164,7 @@ function ConstructorTable({ standings }: { standings: ConstructorStanding[] }) {
                 <span className="font-bold" style={{ color: s.color }}>{s.name}</span>
               </td>
               <td className="py-1.5 px-2 text-right tabular-nums font-bold">{s.points}</td>
-              <td className="py-1.5 px-2 text-right tabular-nums text-muted">{s.wins}</td>
+              <td className="py-1.5 px-2 text-right tabular-nums text-muted hidden sm:table-cell">{s.wins}</td>
             </tr>
           ))}
         </tbody>
@@ -215,13 +216,13 @@ export default function Standings() {
   const [year, setYear] = useState(2024)
   const [tab, setTab] = useState<Tab>('drivers')
 
-  const { driverStandings, constructorStandings, loadedRaces, totalRaces, isLoading, isFetching } =
+  const { driverStandings, constructorStandings, loadedRaces, totalRaces, isLoading, isFetching, isError } =
     useStandings(year)
 
   return (
     <div className="flex flex-col h-full overflow-hidden bg-track">
       {/* Header */}
-      <div className="flex items-center gap-4 px-4 py-2 bg-surface border-b border-panel text-sm font-mono">
+      <div className="flex flex-wrap items-center gap-4 px-4 py-2 bg-surface border-b border-panel text-sm font-mono">
         <span className="text-f1red font-black tracking-widest">STANDINGS</span>
 
         <label className="text-muted text-xs">Year</label>
@@ -257,33 +258,39 @@ export default function Standings() {
       {isFetching && <LoadingBar loaded={loadedRaces} total={totalRaces} />}
 
       {/* Content */}
-      <div className="flex-1 overflow-hidden flex gap-0">
-        {tab === 'drivers' ? (
-          <>
-            <div className="w-[420px] shrink-0 border-r border-panel overflow-auto">
-              <DriverTable standings={driverStandings} />
-            </div>
-            <div className="flex-1 overflow-auto p-4 bg-track">
-              <div className="text-xs text-muted font-mono mb-3 uppercase tracking-wider">
-                Points — {year} Driver Championship
+      {isError ? (
+        <div className="flex-1">
+          <ErrorMessage message="Failed to load championship data" />
+        </div>
+      ) : (
+        <div className="flex-1 overflow-hidden flex flex-col sm:flex-row gap-0">
+          {tab === 'drivers' ? (
+            <>
+              <div className="sm:w-[420px] shrink-0 sm:border-r border-b sm:border-b-0 border-panel overflow-auto max-h-[40%] sm:max-h-full">
+                <DriverTable standings={driverStandings} />
               </div>
-              <DriverChart standings={driverStandings} />
-            </div>
-          </>
-        ) : (
-          <>
-            <div className="w-[360px] shrink-0 border-r border-panel overflow-auto">
-              <ConstructorTable standings={constructorStandings} />
-            </div>
-            <div className="flex-1 overflow-auto p-4 bg-track">
-              <div className="text-xs text-muted font-mono mb-3 uppercase tracking-wider">
-                Points — {year} Constructor Championship
+              <div className="flex-1 overflow-auto p-4 bg-track">
+                <div className="text-xs text-muted font-mono mb-3 uppercase tracking-wider">
+                  Points — {year} Driver Championship
+                </div>
+                <DriverChart standings={driverStandings} />
               </div>
-              <ConstructorChart standings={constructorStandings} />
-            </div>
-          </>
-        )}
-      </div>
+            </>
+          ) : (
+            <>
+              <div className="sm:w-[360px] shrink-0 sm:border-r border-b sm:border-b-0 border-panel overflow-auto max-h-[40%] sm:max-h-full">
+                <ConstructorTable standings={constructorStandings} />
+              </div>
+              <div className="flex-1 overflow-auto p-4 bg-track">
+                <div className="text-xs text-muted font-mono mb-3 uppercase tracking-wider">
+                  Points — {year} Constructor Championship
+                </div>
+                <ConstructorChart standings={constructorStandings} />
+              </div>
+            </>
+          )}
+        </div>
+      )}
     </div>
   )
 }

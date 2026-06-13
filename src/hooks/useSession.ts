@@ -1,5 +1,6 @@
 import { useQuery } from '@tanstack/react-query'
 import { api } from '@/api/endpoints'
+import { LIVE_POLL_MS } from '@/utils/live'
 
 export function useMeetings(year: number) {
   return useQuery({
@@ -27,30 +28,33 @@ export function useDrivers(sessionKey: number | null) {
   })
 }
 
-export function usePositions(sessionKey: number | null) {
+export function usePositions(sessionKey: number | null, isLive = false) {
   return useQuery({
     queryKey: ['positions', sessionKey],
     queryFn: () => api.positions(sessionKey!),
     enabled: sessionKey !== null,
-    staleTime: Infinity,
+    staleTime: isLive ? 0 : Infinity,
+    refetchInterval: isLive ? LIVE_POLL_MS : false,
   })
 }
 
-export function useIntervals(sessionKey: number | null) {
+export function useIntervals(sessionKey: number | null, isLive = false) {
   return useQuery({
     queryKey: ['intervals', sessionKey],
     queryFn: () => api.intervals(sessionKey!),
     enabled: sessionKey !== null,
-    staleTime: Infinity,
+    staleTime: isLive ? 0 : Infinity,
+    refetchInterval: isLive ? LIVE_POLL_MS : false,
   })
 }
 
-export function useLaps(sessionKey: number | null, driverNumber?: number) {
+export function useLaps(sessionKey: number | null, driverNumber?: number, isLive = false) {
   return useQuery({
     queryKey: ['laps', sessionKey, driverNumber],
     queryFn: () => api.laps(sessionKey!, driverNumber),
     enabled: sessionKey !== null,
-    staleTime: Infinity,
+    staleTime: isLive ? 0 : Infinity,
+    refetchInterval: isLive ? LIVE_POLL_MS : false,
   })
 }
 
@@ -72,29 +76,32 @@ export function usePits(sessionKey: number | null) {
   })
 }
 
-export function useRaceControl(sessionKey: number | null) {
+export function useRaceControl(sessionKey: number | null, isLive = false) {
   return useQuery({
     queryKey: ['raceControl', sessionKey],
     queryFn: () => api.raceControl(sessionKey!),
     enabled: sessionKey !== null,
-    staleTime: Infinity,
+    staleTime: isLive ? 0 : Infinity,
+    refetchInterval: isLive ? LIVE_POLL_MS : false,
   })
 }
 
-export function useTeamRadio(sessionKey: number | null) {
+export function useTeamRadio(sessionKey: number | null, isLive = false) {
   return useQuery({
     queryKey: ['teamRadio', sessionKey],
     queryFn: () => api.teamRadio(sessionKey!),
     enabled: sessionKey !== null,
-    staleTime: Infinity,
+    staleTime: isLive ? 0 : Infinity,
+    refetchInterval: isLive ? LIVE_POLL_MS : false,
   })
 }
 
-export function useWeather(sessionKey: number | null) {
+export function useWeather(sessionKey: number | null, isLive = false) {
   return useQuery({
     queryKey: ['weather', sessionKey],
     queryFn: () => api.weather(sessionKey!),
     enabled: sessionKey !== null,
-    staleTime: Infinity,
+    staleTime: isLive ? 0 : Infinity,
+    refetchInterval: isLive ? LIVE_POLL_MS : false,
   })
 }

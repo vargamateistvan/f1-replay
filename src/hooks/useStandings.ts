@@ -153,5 +153,6 @@ export function useStandings(year: number) {
     totalRaces,
     isLoading: sessionsQ.isPending,
     isFetching: positionQueries.some((q) => q.isFetching),
+    isError: sessionsQ.isError || positionQueries.some((q) => q.isError),
   }
 }

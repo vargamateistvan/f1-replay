@@ -7,6 +7,7 @@ import { RaceControlFeed } from '@/components/RaceControl/RaceControl'
 import { WeatherPanel } from '@/components/Weather/WeatherPanel'
 import { StrategyBar } from '@/components/Strategy/StrategyBar'
 import { TeamRadioFeed } from '@/components/TeamRadio/TeamRadio'
+import { ErrorMessage } from '@/components/ErrorMessage'
 import {
   useDrivers, usePositions, useIntervals,
   useStints, useLaps, useRaceControl,
@@ -14,6 +15,7 @@ import {
 } from '@/hooks/useSession'
 import { useTimeline } from '@/timeline/clock'
 import { useLocationChunks, chunkIndexFor } from '@/hooks/useLocationChunks'
+import { isSessionLive } from '@/utils/live'
 
 const PANEL = 'bg-surface rounded border border-panel'
 const PANEL_TITLE = 'text-xs font-bold text-muted px-3 py-1 border-b border-panel uppercase tracking-wider'
@@ -27,19 +29,21 @@ export default function RaceWeekend() {
   const [rightTab, setRightTab] = useState<RightTab>('rc')
 
   const sessions = useSessions(meetingKey)
+  const session = sessions.data?.find((s) => s.session_key === sessionKey)
+  const live = isSessionLive(session)
+
   const drivers = useDrivers(sessionKey)
-  const positions = usePositions(sessionKey)
-  const intervals = useIntervals(sessionKey)
+  const positions = usePositions(sessionKey, live)
+  const intervals = useIntervals(sessionKey, live)
   const stints = useStints(sessionKey)
-  const laps = useLaps(sessionKey)
+  const laps = useLaps(sessionKey, undefined, live)
   const pits = usePits(sessionKey)
-  const raceControl = useRaceControl(sessionKey)
-  const teamRadio = useTeamRadio(sessionKey)
-  const weather = useWeather(sessionKey)
+  const raceControl = useRaceControl(sessionKey, live)
+  const teamRadio = useTeamRadio(sessionKey, live)
+  const weather = useWeather(sessionKey, live)
 
   const { t, setSessionStart } = useTimeline()
 
-  const session = sessions.data?.find((s) => s.session_key === sessionKey)
   const sessionStartMs = session ? new Date(session.date_start).getTime() : 0
   const sessionEndMs = session ? new Date(session.date_end).getTime() : 0
   const durationMs = sessionEndMs - sessionStartMs
@@ -67,11 +71,11 @@ export default function RaceWeekend() {
         onSession={setSessionKey}
       />
 
-      {/* Main grid: track map + right column | strategy strip */}
-      <div className="flex-1 grid grid-cols-[1fr_280px] grid-rows-[1fr_160px] gap-2 p-2 min-h-0">
+      {/* Main area: flex-col on mobile, 2-col grid on md+ */}
+      <div className="flex-1 min-h-0 flex flex-col md:grid md:grid-cols-[1fr_280px] md:grid-rows-[1fr_160px] gap-2 p-2 overflow-auto md:overflow-hidden">
 
         {/* Track map */}
-        <div className={`${PANEL} flex flex-col`}>
+        <div className={`${PANEL} flex flex-col min-h-[280px] md:min-h-0`}>
           <div className={PANEL_TITLE}>
             Track
             {session && (
@@ -79,17 +83,27 @@ export default function RaceWeekend() {
                 — {session.circuit_short_name} · {session.session_name}
               </span>
             )}
+            {live && (
+              <span className="ml-2 inline-flex items-center gap-1 text-red-400 font-bold">
+                <span className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse" />
+                LIVE
+              </span>
+            )}
             {isLoadingSessionData && (
               <span className="ml-2 text-f1red animate-pulse">Loading…</span>
             )}
           </div>
           <div className="flex-1 min-h-0">
-            <TrackMap
-              sessionKey={sessionKey}
-              drivers={drivers.data ?? []}
-              locationData={location.data}
-              sessionStartMs={sessionStartMs}
-            />
+            {drivers.isError ? (
+              <ErrorMessage message="Failed to load driver data" />
+            ) : (
+              <TrackMap
+                sessionKey={sessionKey}
+                drivers={drivers.data ?? []}
+                locationData={location.data}
+                sessionStartMs={sessionStartMs}
+              />
+            )}
           </div>
         </div>
 
@@ -97,34 +111,42 @@ export default function RaceWeekend() {
         <div className="flex flex-col gap-2 min-h-0">
 
           {/* Live timing — tall, scrollable */}
-          <div className={`${PANEL} flex flex-col flex-[3] min-h-0`}>
+          <div className={`${PANEL} flex flex-col md:flex-[3] min-h-[200px] md:min-h-0`}>
             <div className={PANEL_TITLE}>Live Timing</div>
             <div className="flex-1 overflow-hidden">
-              <LiveTiming
-                drivers={drivers.data ?? []}
-                positions={positions.data ?? []}
-                intervals={intervals.data ?? []}
-                pits={pits.data ?? []}
-                laps={laps.data ?? []}
-                sessionTimeMs={t}
-                sessionStartMs={sessionStartMs}
-                isLoading={positions.isPending && sessionKey !== null}
-              />
+              {positions.isError ? (
+                <ErrorMessage message="Failed to load timing data" />
+              ) : (
+                <LiveTiming
+                  drivers={drivers.data ?? []}
+                  positions={positions.data ?? []}
+                  intervals={intervals.data ?? []}
+                  pits={pits.data ?? []}
+                  laps={laps.data ?? []}
+                  sessionTimeMs={t}
+                  sessionStartMs={sessionStartMs}
+                  isLoading={positions.isPending && sessionKey !== null}
+                />
+              )}
             </div>
           </div>
 
           {/* Weather — fixed small strip */}
           <div className={`${PANEL} shrink-0`}>
             <div className={PANEL_TITLE}>Weather</div>
-            <WeatherPanel
-              entries={weather.data ?? []}
-              sessionTimeMs={t}
-              sessionStartMs={sessionStartMs}
-            />
+            {weather.isError ? (
+              <ErrorMessage message="Failed to load weather" compact />
+            ) : (
+              <WeatherPanel
+                entries={weather.data ?? []}
+                sessionTimeMs={t}
+                sessionStartMs={sessionStartMs}
+              />
+            )}
           </div>
 
           {/* Tabbed: Race Control | Team Radio */}
-          <div className={`${PANEL} flex flex-col flex-[2] min-h-0`}>
+          <div className={`${PANEL} flex flex-col md:flex-[2] min-h-[180px] md:min-h-0`}>
             <div className="flex border-b border-panel">
               {(['rc', 'radio'] as RightTab[]).map((tab) => (
                 <button
@@ -142,25 +164,33 @@ export default function RaceWeekend() {
             </div>
             <div className="flex-1 overflow-hidden">
               {rightTab === 'rc' ? (
-                <RaceControlFeed
-                  entries={raceControl.data ?? []}
-                  sessionTimeMs={t}
-                  sessionStartMs={sessionStartMs}
-                />
+                raceControl.isError ? (
+                  <ErrorMessage message="Failed to load race control" />
+                ) : (
+                  <RaceControlFeed
+                    entries={raceControl.data ?? []}
+                    sessionTimeMs={t}
+                    sessionStartMs={sessionStartMs}
+                  />
+                )
               ) : (
-                <TeamRadioFeed
-                  entries={teamRadio.data ?? []}
-                  drivers={drivers.data ?? []}
-                  sessionTimeMs={t}
-                  sessionStartMs={sessionStartMs}
-                />
+                teamRadio.isError ? (
+                  <ErrorMessage message="Failed to load team radio" />
+                ) : (
+                  <TeamRadioFeed
+                    entries={teamRadio.data ?? []}
+                    drivers={drivers.data ?? []}
+                    sessionTimeMs={t}
+                    sessionStartMs={sessionStartMs}
+                  />
+                )
               )}
             </div>
           </div>
         </div>
 
-        {/* Strategy strip — spans both columns */}
-        <div className={`${PANEL} col-span-2 flex flex-col`}>
+        {/* Strategy strip — spans both columns on desktop */}
+        <div className={`${PANEL} flex flex-col md:col-span-2`}>
           <div className={PANEL_TITLE}>Tyre Strategy</div>
           <div className="flex-1 overflow-auto">
             <StrategyBar

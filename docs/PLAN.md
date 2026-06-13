@@ -178,4 +178,4 @@ src/
 | 5 | Live timing · race control · weather · team radio · tyre strategy panels | ✅ Done |
 | 6 | Telemetry page — uPlot driver comparison charts | ✅ Done |
 | 7 | Standings page — driver + constructor championship | ✅ Done |
-| 8 | Polish — loading/error states · mobile layout · live session polling | — |
+| 8 | Polish — loading/error states · mobile layout · live session polling | ✅ Done |

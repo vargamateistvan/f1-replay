@@ -1,6 +1,7 @@
 import { useState, useMemo } from 'react'
 import { SessionPicker } from '@/components/SessionPicker'
 import { TelemetryChart } from '@/components/TelemetryChart/TelemetryChart'
+import { ErrorMessage } from '@/components/ErrorMessage'
 import { useDrivers, useLaps, useSessions } from '@/hooks/useSession'
 import { useCarDataForLap, type TelemetrySample } from '@/hooks/useCarDataForLap'
 import { teamColor } from '@/utils/color'
@@ -102,6 +103,8 @@ export default function Telemetry() {
   const isLoadingA = dataA.isPending && driverA !== null && lapNumber !== null
   const isLoadingB = dataB.isPending && driverB !== null && lapNumber !== null
 
+  const hasError = dataA.isError || dataB.isError
+
   return (
     <div className="flex flex-col h-full overflow-hidden">
       {/* Session picker */}
@@ -172,7 +175,17 @@ export default function Telemetry() {
 
       {/* Charts */}
       <div className="flex-1 overflow-auto p-3 space-y-2">
-        {!driverA || !lapNumber ? (
+        {hasError ? (
+          <ErrorMessage
+            message={
+              dataA.isError && dataB.isError
+                ? 'Failed to load telemetry for both drivers'
+                : dataA.isError
+                ? 'Failed to load telemetry for Driver A'
+                : 'Failed to load telemetry for Driver B'
+            }
+          />
+        ) : !driverA || !lapNumber ? (
           <div className="flex items-center justify-center h-full text-muted text-sm">
             Select a session, driver, and lap to view telemetry
           </div>
