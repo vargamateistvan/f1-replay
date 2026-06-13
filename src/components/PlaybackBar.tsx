@@ -1,8 +1,13 @@
 import { useTimeline } from '@/timeline/clock'
 import { SPEEDS } from '@/constants'
+import { nextAfter, prevBefore } from '@/timeline/events'
 
 interface Props {
   durationMs: number
+  // Session-relative ms marker arrays (sorted ascending) for jump-to-event.
+  lapStarts?: number[]
+  pitTimes?: number[]
+  flagTimes?: number[]
 }
 
 function fmtTime(ms: number) {
@@ -13,20 +18,49 @@ function fmtTime(ms: number) {
   return h > 0 ? `${h}:${pad(m % 60)}:${pad(s % 60)}` : `${pad(m)}:${pad(s % 60)}`
 }
 
-export function PlaybackBar({ durationMs }: Props) {
+const JUMP_BTN =
+  'w-7 h-8 flex items-center justify-center text-xs bg-panel text-muted hover:text-white hover:bg-[#38383f] transition-colors shrink-0 disabled:opacity-30 disabled:hover:bg-panel disabled:hover:text-muted'
+const CHIP =
+  'px-2 h-8 flex items-center text-[10px] font-black uppercase tracking-widest bg-panel text-muted hover:text-white hover:bg-[#38383f] transition-colors shrink-0 disabled:opacity-30 disabled:hover:bg-panel disabled:hover:text-muted'
+
+export function PlaybackBar({ durationMs, lapStarts = [], pitTimes = [], flagTimes = [] }: Props) {
   const { t, playing, speed, toggle, setT, setSpeed } = useTimeline()
 
+  const clamp = (v: number) => Math.max(0, durationMs > 0 ? Math.min(v, durationMs) : v)
+  const jump = (target: number | null) => { if (target !== null) setT(clamp(target)) }
+
+  const prevLap = prevBefore(lapStarts, t)
+  const nextLap = nextAfter(lapStarts, t)
+  const nextPit = nextAfter(pitTimes, t)
+  const nextFlag = nextAfter(flagTimes, t)
+
   return (
-    <div className="flex items-center gap-3 px-4 py-2.5 bg-track border-t border-panel">
+    <div className="flex items-center gap-2 px-4 py-2.5 bg-track border-t border-panel">
+      {/* Transport cluster: prev-lap · play · next-lap */}
+      <button onClick={() => jump(prevLap)} disabled={prevLap === null} className={JUMP_BTN} title="Previous lap ([)">
+        ⏮
+      </button>
       <button
         onClick={toggle}
         className="w-8 h-8 bg-f1red text-white font-bold flex items-center justify-center hover:bg-red-600 transition-colors shrink-0"
         aria-label={playing ? 'Pause' : 'Play'}
+        title="Play / pause (Space)"
       >
         {playing ? '⏸' : '▶'}
       </button>
+      <button onClick={() => jump(nextLap)} disabled={nextLap === null} className={JUMP_BTN} title="Next lap (])">
+        ⏭
+      </button>
 
-      <span className="text-muted font-mono text-xs tabular-nums w-16 text-right shrink-0">
+      {/* Next pit / flag jumps */}
+      <button onClick={() => jump(nextPit)} disabled={nextPit === null} className={CHIP} title="Next pit stop">
+        Pit›
+      </button>
+      <button onClick={() => jump(nextFlag)} disabled={nextFlag === null} className={CHIP} title="Next flag / SC">
+        Flag›
+      </button>
+
+      <span className="text-muted font-mono text-xs tabular-nums w-16 text-right shrink-0 ml-1">
         {fmtTime(t)}
       </span>
 

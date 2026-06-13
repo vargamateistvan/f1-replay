@@ -13,6 +13,8 @@ interface Props {
   readonly sessionTimeMs: number
   readonly sessionStartMs: number
   readonly isLoading?: boolean
+  readonly selectedDriver?: number | null
+  readonly onSelectDriver?: (driverNumber: number) => void
 }
 
 function fmtGap(val: number | null) {
@@ -38,6 +40,7 @@ function sectorClass(t: number | null, best: number | null): string {
 export function LiveTiming({
   drivers, positions, intervals, pits, laps, grid,
   sessionTimeMs, sessionStartMs, isLoading,
+  selectedDriver, onSelectDriver,
 }: Props) {
   const currentT = sessionStartMs + sessionTimeMs
 
@@ -160,8 +163,15 @@ export function LiveTiming({
             const gridPos = gridMap.get(num) ?? null
             const gained = gridPos !== null ? gridPos - pos : null
 
+            const selected = selectedDriver === num
             return (
-              <tr key={num} className="border-b border-[#2a2a35]">
+              <tr
+                key={num}
+                onClick={() => onSelectDriver?.(num)}
+                className={`border-b border-[#2a2a35] ${onSelectDriver ? 'cursor-pointer' : ''} ${
+                  selected ? 'bg-[#2a2a35]' : 'hover:bg-[#1f1f27]'
+                }`}
+              >
                 <td className="py-2 px-2 font-black text-sm tabular-nums">{pos}</td>
                 <td className="py-2 px-2">
                   <span className="flex items-center gap-2">

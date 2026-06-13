@@ -1,4 +1,4 @@
-import { useEffect } from 'react'
+import { useEffect, useMemo } from 'react'
 import { SessionPicker } from '@/components/SessionPicker'
 import { PlaybackBar } from '@/components/PlaybackBar'
 import { TrackMap } from '@/components/TrackMap/TrackMap'
@@ -7,6 +7,8 @@ import { RaceControlFeed } from '@/components/RaceControl/RaceControl'
 import { WeatherPanel } from '@/components/Weather/WeatherPanel'
 import { StrategyBar } from '@/components/Strategy/StrategyBar'
 import { TeamRadioFeed } from '@/components/TeamRadio/TeamRadio'
+import { FocusedTelemetry } from '@/components/FocusedTelemetry/FocusedTelemetry'
+import { LapChart } from '@/components/LapChart/LapChart'
 import { ErrorMessage } from '@/components/ErrorMessage'
 import {
   useDrivers, usePositions, useIntervals,
@@ -18,6 +20,8 @@ import { useTimeline } from '@/timeline/clock'
 import { useLocationChunks, chunkIndexFor } from '@/hooks/useLocationChunks'
 import { useNumberParam, useStringParam } from '@/hooks/useSearchParamState'
 import { useTimelineUrlSync } from '@/hooks/useTimelineUrlSync'
+import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts'
+import { lapStartTimes, pitTimes, flagTimes } from '@/timeline/events'
 import { isSessionLive } from '@/utils/live'
 import { DEFAULT_YEAR } from '@/constants'
 
@@ -25,6 +29,7 @@ const PANEL = 'bg-surface border border-panel'
 const PANEL_TITLE = 'text-[10px] font-bold text-muted px-3 py-2 border-b border-[#38383f] uppercase tracking-[0.12em] border-l-2 border-l-f1red bg-track'
 
 type RightTab = 'rc' | 'radio'
+type MainView = 'map' | 'laps'
 
 export default function RaceWeekend() {
   const [yearParam, setYear] = useNumberParam('year', DEFAULT_YEAR)
@@ -32,6 +37,8 @@ export default function RaceWeekend() {
   const [meetingKey, setMeetingKey] = useNumberParam('meeting', null)
   const [sessionKey, setSessionKey] = useNumberParam('session', null)
   const [rightTab, setRightTab] = useStringParam<RightTab>('tab', 'rc')
+  const [mainView, setMainView] = useStringParam<MainView>('view', 'map')
+  const [focusDriver, setFocusDriver] = useNumberParam('focus', null)
 
   const sessions = useSessions(meetingKey)
   const session = sessions.data?.find((s) => s.session_key === sessionKey)
@@ -69,6 +76,29 @@ export default function RaceWeekend() {
   const chunkIdx = chunkIndexFor(t)
   const location = useLocationChunks(sessionKey, sessionStartMs || null, chunkIdx)
 
+  // Jump-to-event markers (session-relative ms)
+  const lapMarks = useMemo(
+    () => lapStartTimes(laps.data ?? [], sessionStartMs),
+    [laps.data, sessionStartMs],
+  )
+  const pitMarks = useMemo(
+    () => pitTimes(pits.data ?? [], sessionStartMs),
+    [pits.data, sessionStartMs],
+  )
+  const flagMarks = useMemo(
+    () => flagTimes(raceControl.data ?? [], sessionStartMs),
+    [raceControl.data, sessionStartMs],
+  )
+
+  const effectiveDuration = durationMs || 7_200_000
+  useKeyboardShortcuts({
+    lapStarts: lapMarks,
+    durationMs: effectiveDuration,
+    enabled: sessionKey !== null,
+  })
+
+  const toggleFocus = (num: number) => setFocusDriver(focusDriver === num ? null : num)
+
   return (
     <div className="flex flex-col h-full overflow-hidden">
       <SessionPicker
@@ -83,13 +113,25 @@ export default function RaceWeekend() {
       {/* Main area: flex-col on mobile, 2-col grid on md+ */}
       <div className="flex-1 min-h-0 flex flex-col md:grid md:grid-cols-[1fr_280px] md:grid-rows-[1fr_160px] gap-2 p-2 overflow-auto md:overflow-hidden">
 
-        {/* Track map */}
+        {/* Track map / lap chart */}
         <div className={`${PANEL} flex flex-col min-h-[280px] md:min-h-0`}>
-          <div className={PANEL_TITLE}>
-            Track
+          <div className={`${PANEL_TITLE} flex items-center`}>
+            <div className="flex gap-px">
+              {(['map', 'laps'] as MainView[]).map((v) => (
+                <button
+                  key={v}
+                  onClick={() => setMainView(v)}
+                  className={`px-2 py-0.5 text-[10px] font-bold uppercase tracking-[0.12em] transition-colors ${
+                    mainView === v ? 'text-white' : 'text-[#636369] hover:text-muted'
+                  }`}
+                >
+                  {v === 'map' ? 'Track' : 'Lap Chart'}
+                </button>
+              ))}
+            </div>
             {session && (
-              <span className="ml-1 normal-case font-normal text-white">
-                — {session.circuit_short_name} · {session.session_name}
+              <span className="ml-2 normal-case font-normal text-white">
+                {session.circuit_short_name} · {session.session_name}
               </span>
             )}
             {live && (
@@ -103,17 +145,39 @@ export default function RaceWeekend() {
             )}
           </div>
           <div className="flex-1 min-h-0">
-            {drivers.isError ? (
-              <ErrorMessage message="Failed to load driver data" />
-            ) : (
-              <TrackMap
-                sessionKey={sessionKey}
-                drivers={drivers.data ?? []}
-                locationData={location.data}
-                sessionStartMs={sessionStartMs}
-              />
-            )}
+            {(() => {
+              if (drivers.isError) return <ErrorMessage message="Failed to load driver data" />
+              if (mainView === 'laps') {
+                return (
+                  <LapChart
+                    drivers={drivers.data ?? []}
+                    positions={positions.data ?? []}
+                    lapStarts={lapMarks}
+                    sessionStartMs={sessionStartMs}
+                    sessionTimeMs={t}
+                  />
+                )
+              }
+              return (
+                <TrackMap
+                  sessionKey={sessionKey}
+                  drivers={drivers.data ?? []}
+                  locationData={location.data}
+                  sessionStartMs={sessionStartMs}
+                  focusDriver={focusDriver}
+                />
+              )
+            })()}
           </div>
+          {/* Focused-driver live telemetry readout */}
+          {focusDriver !== null && (
+            <FocusedTelemetry
+              sessionKey={sessionKey}
+              driver={drivers.data?.find((d) => d.driver_number === focusDriver) ?? null}
+              sessionStartMs={sessionStartMs}
+              onClear={() => setFocusDriver(null)}
+            />
+          )}
         </div>
 
         {/* Right column */}
@@ -136,6 +200,8 @@ export default function RaceWeekend() {
                   sessionTimeMs={t}
                   sessionStartMs={sessionStartMs}
                   isLoading={positions.isPending && sessionKey !== null}
+                  selectedDriver={focusDriver}
+                  onSelectDriver={toggleFocus}
                 />
               )}
             </div>
@@ -216,7 +282,12 @@ export default function RaceWeekend() {
       </div>
 
       {/* Playback bar */}
-      <PlaybackBar durationMs={durationMs || 7_200_000} />
+      <PlaybackBar
+        durationMs={effectiveDuration}
+        lapStarts={lapMarks}
+        pitTimes={pitMarks}
+        flagTimes={flagMarks}
+      />
     </div>
   )
 }

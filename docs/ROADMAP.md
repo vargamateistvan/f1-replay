@@ -224,11 +224,11 @@ Service worker to cache immutable historical data — replays work offline once 
 6. ✅ 2.1 `session_result` + 2.1 types/endpoints → ✅ 1.2 standings now use authoritative classification (DNF/DNS/DSQ handled, API points trusted with positional fallback)
 7. ✅ 2.2 `starting_grid` → places gained/lost (▲/▼) per driver in Live Timing
 
-**Milestone C — Depth & delight**
-8. 3.3 jump-to-event + 3.8 keyboard shortcuts
-9. 3.4 driver spotlight · 2.4 live DRS/throttle
-10. 2.3 overtakes + 3.7 lap chart
-11. 3.5 telemetry upgrades
+**Milestone C — Depth & delight — 🟡 IN PROGRESS**
+8. ✅ 3.3 jump-to-event (prev/next lap, next pit, next flag in PlaybackBar) + ✅ 3.8 keyboard shortcuts (space/←→/↑↓/[ ]) — `timeline/events.ts`, `useKeyboardShortcuts`
+9. ✅ 3.4 driver spotlight (clickable Live Timing row → map highlight/dim, URL-backed `focus`) + ✅ 2.4 focused-driver live telemetry readout (chunked car_data, `FocusedTelemetry`)
+10. ✅ 3.7 lap chart (position-by-lap, Map/Laps tab in the main panel, `LapChart`) · ⬜ 2.3 overtakes (endpoint wired in 2.1-style; markers + map pulses still TODO)
+11. ⬜ 3.5 telemetry upgrades (3+ driver compare, track heat overlay, sector splits, smoothing) — not started
 
 **Milestone D — Hardening**
 12. 6.1 Vitest suite (logic first)

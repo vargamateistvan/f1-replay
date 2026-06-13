@@ -11,9 +11,10 @@ interface Props {
   readonly drivers: Driver[]
   readonly locationData: Location[]
   readonly sessionStartMs: number
+  readonly focusDriver?: number | null
 }
 
-export function TrackMap({ sessionKey, drivers, locationData, sessionStartMs }: Props) {
+export function TrackMap({ sessionKey, drivers, locationData, sessionStartMs, focusDriver = null }: Props) {
   // TrackMap owns its t subscription so the animation loop is isolated here
   const { t } = useTimeline()
 
@@ -100,20 +101,41 @@ export function TrackMap({ sessionKey, drivers, locationData, sessionStartMs }: 
       <path d={pathData} fill="none" stroke="#4a4a55" strokeWidth={7} strokeLinecap="round" strokeLinejoin="round" />
       <path d={pathData} fill="none" stroke="#ffffff" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" strokeOpacity={0.15} />
 
-      {/* Car dots */}
-      {carPositions.map(({ num, x, y }) => {
-        const driver = driverByNumber.get(num)
-        const color = teamColor(driver?.team_colour, '#ffffff')
-        const { sx, sy } = locationToSvg(x, y, bounds, innerW, innerH)
-        return (
-          <g key={num} transform={`translate(${(sx + PAD).toFixed(1)},${(sy + PAD).toFixed(1)})`}>
-            <circle r={4.5} fill={color} stroke="#ffffff" strokeWidth={1.2} strokeOpacity={0.6} />
-            <text x={7} y={-5} fontSize={8} fill={color} fontFamily="Inter, sans-serif" fontWeight="900" letterSpacing="0.04em">
-              {driver?.name_acronym ?? num}
-            </text>
-          </g>
-        )
-      })}
+      {/* Car dots — when a driver is focused, dim the rest and enlarge the pick */}
+      {carPositions
+        .slice()
+        .sort((a, b) => (a.num === focusDriver ? 1 : 0) - (b.num === focusDriver ? 1 : 0))
+        .map(({ num, x, y }) => {
+          const driver = driverByNumber.get(num)
+          const color = teamColor(driver?.team_colour, '#ffffff')
+          const { sx, sy } = locationToSvg(x, y, bounds, innerW, innerH)
+          const focused = focusDriver === num
+          const dimmed = focusDriver !== null && !focused
+          const showLabel = focusDriver === null || focused
+          return (
+            <g
+              key={num}
+              transform={`translate(${(sx + PAD).toFixed(1)},${(sy + PAD).toFixed(1)})`}
+              opacity={dimmed ? 0.3 : 1}
+            >
+              {focused && (
+                <circle r={9} fill="none" stroke={color} strokeWidth={1.5} strokeOpacity={0.5} />
+              )}
+              <circle
+                r={focused ? 6.5 : 4.5}
+                fill={color}
+                stroke="#ffffff"
+                strokeWidth={focused ? 1.6 : 1.2}
+                strokeOpacity={focused ? 0.9 : 0.6}
+              />
+              {showLabel && (
+                <text x={focused ? 10 : 7} y={-5} fontSize={focused ? 9 : 8} fill={color} fontFamily="Inter, sans-serif" fontWeight="900" letterSpacing="0.04em">
+                  {driver?.name_acronym ?? num}
+                </text>
+              )}
+            </g>
+          )
+        })}
 
       {/* No-data hint */}
       {locationIndexes.size === 0 && (
