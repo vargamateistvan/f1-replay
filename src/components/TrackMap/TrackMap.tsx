@@ -1,16 +1,17 @@
 import { useTrackOutline, locationToSvg } from '@/hooks/useTrackMap'
+import { teamColor } from '@/utils/color'
 import type { Driver } from '@/api/types'
 
 const SVG_W = 600
 const SVG_H = 400
 const PAD = 24
 
-interface CarPos { driverNumber: number; x: number; y: number }
+interface CarPos { readonly driverNumber: number; readonly x: number; readonly y: number }
 
 interface Props {
-  sessionKey: number | null
-  drivers: Driver[]
-  carPositions: CarPos[]
+  readonly sessionKey: number | null
+  readonly drivers: Driver[]
+  readonly carPositions: CarPos[]
 }
 
 export function TrackMap({ sessionKey, drivers, carPositions }: Props) {
@@ -83,7 +84,7 @@ export function TrackMap({ sessionKey, drivers, carPositions }: Props) {
       {/* Car dots */}
       {carPositions.map(({ driverNumber, x, y }) => {
         const driver = driverByNumber.get(driverNumber)
-        const color = driver ? `#${driver.team_colour}` : '#ffffff'
+        const color = teamColor(driver?.team_colour, '#ffffff')
         const { sx, sy } = locationToSvg(x, y, bounds, SVG_W - PAD * 2, SVG_H - PAD * 2)
         return (
           <g key={driverNumber} transform={`translate(${sx + PAD},${sy + PAD})`}>

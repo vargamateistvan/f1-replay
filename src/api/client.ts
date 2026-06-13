@@ -33,11 +33,13 @@ export async function fetchEndpoint<T>(
   params: Record<string, string | number | boolean>,
 ): Promise<T[]> {
   return enqueue(async () => {
-    const url = new URL(`${BASE}/${path}`)
-    for (const [k, v] of Object.entries(params)) {
-      url.searchParams.append(k, String(v))
-    }
-    const res = await fetch(url.toString())
+    // Build query string manually so comparison operators (>, <, >=, <=) in
+    // keys are NOT percent-encoded — OpenF1 expects raw `date>value` syntax.
+    const qs = Object.entries(params)
+      .map(([k, v]) => `${k}=${encodeURIComponent(String(v))}`)
+      .join('&')
+    const url = `${BASE}/${path}${qs ? `?${qs}` : ''}`
+    const res = await fetch(url)
     if (!res.ok) throw new Error(`OpenF1 ${path}: ${res.status}`)
     return res.json() as Promise<T[]>
   })

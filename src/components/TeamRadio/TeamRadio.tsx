@@ -1,0 +1,102 @@
+import { useState } from 'react'
+import type { TeamRadio as TeamRadioEntry, Driver } from '@/api/types'
+import { teamColor } from '@/utils/color'
+
+interface Props {
+  readonly entries: TeamRadioEntry[]
+  readonly drivers: Driver[]
+  readonly sessionTimeMs: number
+  readonly sessionStartMs: number
+}
+
+function fmtSessionTime(entryDateMs: number, sessionStartMs: number) {
+  const elapsed = Math.max(0, entryDateMs - sessionStartMs)
+  const s = Math.floor(elapsed / 1000)
+  const m = Math.floor(s / 60)
+  const h = Math.floor(m / 60)
+  const pad = (n: number) => String(n).padStart(2, '0')
+  return h > 0 ? `${h}:${pad(m % 60)}:${pad(s % 60)}` : `${pad(m)}:${pad(s % 60)}`
+}
+
+export function TeamRadioFeed({ entries, drivers, sessionTimeMs, sessionStartMs }: Props) {
+  const [playing, setPlaying] = useState<string | null>(null)
+  const currentT = sessionStartMs + sessionTimeMs
+
+  const driverByNumber = new Map(drivers.map((d) => [d.driver_number, d]))
+
+  const visible = entries
+    .filter((e) => new Date(e.date).getTime() <= currentT)
+    .slice(-30)
+    .reverse()
+
+  function play(url: string) {
+    if (playing === url) {
+      setPlaying(null)
+      return
+    }
+    setPlaying(url)
+  }
+
+  if (visible.length === 0) {
+    return (
+      <div className="text-muted text-xs p-3">
+        {sessionStartMs ? 'No radio messages yet — scrub forward' : 'Select a session'}
+      </div>
+    )
+  }
+
+  return (
+    <div className="overflow-auto h-full p-2 space-y-1">
+      {visible.map((e, i) => {
+        const driver = driverByNumber.get(e.driver_number)
+        const color = teamColor(driver?.team_colour)
+        const entryMs = new Date(e.date).getTime()
+        const isPlaying = playing === e.recording_url
+        return (
+          <div
+            key={i}
+            className="flex items-start gap-2 text-xs border-b border-panel/40 pb-1"
+          >
+            {/* Team colour bar */}
+            <span
+              className="w-1 self-stretch rounded-sm shrink-0 mt-0.5"
+              style={{ background: color }}
+            />
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-2">
+                <span className="font-bold" style={{ color }}>
+                  {driver?.name_acronym ?? e.driver_number}
+                </span>
+                <span className="text-muted tabular-nums">
+                  {fmtSessionTime(entryMs, sessionStartMs)}
+                </span>
+              </div>
+              {/* Audio player — native <audio> hidden, driven by a play button */}
+              <div className="mt-0.5">
+                <button
+                  onClick={() => play(e.recording_url)}
+                  className={`flex items-center gap-1 px-2 py-0.5 rounded text-xs transition-colors ${
+                    isPlaying
+                      ? 'bg-f1red text-white'
+                      : 'bg-panel text-muted hover:text-white'
+                  }`}
+                >
+                  {isPlaying ? '⏹ Stop' : '▶ Play'}
+                </button>
+                {isPlaying && (
+                  <audio
+                    key={e.recording_url}
+                    src={e.recording_url}
+                    autoPlay
+                    onEnded={() => setPlaying(null)}
+                    className="hidden"
+                  />
+                )}
+              </div>
+            </div>
+          </div>
+        )
+      })}
+    </div>
+  )
+}

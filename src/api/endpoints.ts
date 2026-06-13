@@ -18,13 +18,31 @@ export const api = {
   drivers: (sessionKey: number) =>
     fetchEndpoint<Driver>('drivers', { session_key: sessionKey }),
 
-  // Location for one lap to derive track outline
-  locationLap: (sessionKey: number, driverNumber: number, lapNumber: number) =>
-    fetchEndpoint<Location>('location', { session_key: sessionKey, driver_number: driverNumber, lap_number: lapNumber }),
+  // Location for one driver in a date window — used to derive track outline
+  locationForDriver: (sessionKey: number, driverNumber: number, dateGte: string, dateLte: string) =>
+    fetchEndpoint<Location>('location', {
+      session_key: sessionKey,
+      driver_number: driverNumber,
+      'date>': dateGte,
+      'date<': dateLte,
+    }),
 
-  // Location for all drivers in a time window (replay)
+  // Location for ALL drivers in a date window — used for replay animation
   locationWindow: (sessionKey: number, dateGte: string, dateLte: string) =>
-    fetchEndpoint<Location>('location', { session_key: sessionKey, 'date>': dateGte, 'date<': dateLte }),
+    fetchEndpoint<Location>('location', {
+      session_key: sessionKey,
+      'date>': dateGte,
+      'date<': dateLte,
+    }),
+
+  // Car data for one driver in a date window — used for telemetry page
+  carDataForDriver: (sessionKey: number, driverNumber: number, dateGte: string, dateLte: string) =>
+    fetchEndpoint<CarData>('car_data', {
+      session_key: sessionKey,
+      driver_number: driverNumber,
+      'date>': dateGte,
+      'date<': dateLte,
+    }),
 
   carData: (sessionKey: number, driverNumber: number) =>
     fetchEndpoint<CarData>('car_data', { session_key: sessionKey, driver_number: driverNumber }),
