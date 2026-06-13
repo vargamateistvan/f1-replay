@@ -167,6 +167,7 @@ export default function RaceWeekend() {
               stints={stints.data ?? []}
               drivers={drivers.data ?? []}
               laps={laps.data ?? []}
+              pits={pits.data ?? []}
               sessionTimeMs={t}
               sessionStartMs={sessionStartMs}
             />
