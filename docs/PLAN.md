@@ -173,7 +173,7 @@ src/
 |---|---|---|
 | 1 | Scaffold · config · folder structure · GH Actions pipeline | ✅ Done |
 | 2 | Session picker live · all React Query hooks wired · API tested | ✅ Done |
-| 3 | Timeline engine · playback bar · binary search / interp verified | — |
+| 3 | Timeline engine · playback bar · binary search / interp verified | ✅ Done |
 | 4 | Track map — derive outline · animate car dots against clock | — |
 | 5 | Live timing · race control · weather · team radio · tyre strategy panels | — |
 | 6 | Telemetry page — uPlot driver comparison charts | — |

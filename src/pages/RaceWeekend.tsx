@@ -13,6 +13,7 @@ import {
   useWeather, useSessions, usePits, useTeamRadio,
 } from '@/hooks/useSession'
 import { useTimeline } from '@/timeline/clock'
+import { useLocationChunks, chunkIndexFor } from '@/hooks/useLocationChunks'
 
 const PANEL = 'bg-surface rounded border border-panel'
 const PANEL_TITLE = 'text-xs font-bold text-muted px-3 py-1 border-b border-panel uppercase tracking-wider'
@@ -51,8 +52,9 @@ export default function RaceWeekend() {
     sessionKey !== null &&
     (drivers.isPending || positions.isPending || intervals.isPending)
 
-  // Placeholder — replaced in Phase 4 with timeline-driven positions
-  const carPositions: Array<{ driverNumber: number; x: number; y: number }> = []
+  // Location chunks for track animation — fetches the 5-min window around current t
+  const chunkIdx = chunkIndexFor(t)
+  const location = useLocationChunks(sessionKey, sessionStartMs || null, chunkIdx)
 
   return (
     <div className="flex flex-col h-full overflow-hidden">
@@ -85,7 +87,8 @@ export default function RaceWeekend() {
             <TrackMap
               sessionKey={sessionKey}
               drivers={drivers.data ?? []}
-              carPositions={carPositions}
+              locationData={location.data}
+              sessionStartMs={sessionStartMs}
             />
           </div>
         </div>
