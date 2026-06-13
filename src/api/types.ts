@@ -183,3 +183,14 @@ export interface StartingGrid {
   meeting_key: number
   session_key: number
 }
+
+// On-track pass: `overtaking_driver_number` moved ahead of `overtaken_driver_number`
+// at `date`, taking `position`.
+export interface Overtake {
+  date: string
+  overtaking_driver_number: number
+  overtaken_driver_number: number
+  position: number | null
+  meeting_key: number
+  session_key: number
+}

@@ -12,9 +12,10 @@ interface Props {
   readonly locationData: Location[]
   readonly sessionStartMs: number
   readonly focusDriver?: number | null
+  readonly pulseDrivers?: readonly number[]
 }
 
-export function TrackMap({ sessionKey, drivers, locationData, sessionStartMs, focusDriver = null }: Props) {
+export function TrackMap({ sessionKey, drivers, locationData, sessionStartMs, focusDriver = null, pulseDrivers }: Props) {
   // TrackMap owns its t subscription so the animation loop is isolated here
   const { t } = useTimeline()
 
@@ -90,6 +91,8 @@ export function TrackMap({ sessionKey, drivers, locationData, sessionStartMs, fo
     if (pos) carPositions.push({ num, ...pos })
   }
 
+  const pulseSet = new Set(pulseDrivers ?? [])
+
   return (
     <svg
       viewBox={`0 0 ${SVG_W} ${SVG_H}`}
@@ -112,12 +115,19 @@ export function TrackMap({ sessionKey, drivers, locationData, sessionStartMs, fo
           const focused = focusDriver === num
           const dimmed = focusDriver !== null && !focused
           const showLabel = focusDriver === null || focused
+          const pulsing = pulseSet.has(num)
           return (
             <g
               key={num}
               transform={`translate(${(sx + PAD).toFixed(1)},${(sy + PAD).toFixed(1)})`}
               opacity={dimmed ? 0.3 : 1}
             >
+              {pulsing && (
+                <circle r={6} fill="none" stroke="#ffffff" strokeWidth={1.5}>
+                  <animate attributeName="r" from="6" to="14" dur="0.8s" repeatCount="indefinite" />
+                  <animate attributeName="stroke-opacity" from="0.9" to="0" dur="0.8s" repeatCount="indefinite" />
+                </circle>
+              )}
               {focused && (
                 <circle r={9} fill="none" stroke={color} strokeWidth={1.5} strokeOpacity={0.5} />
               )}

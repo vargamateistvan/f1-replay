@@ -1,4 +1,4 @@
-import type { Lap, Pit, RaceControl } from '@/api/types'
+import type { Lap, Pit, RaceControl, Overtake } from '@/api/types'
 
 // Helpers for jump-to-event navigation. All times returned are session-relative
 // milliseconds (UTC date − sessionStartMs), matching the timeline clock's `t`.
@@ -32,6 +32,13 @@ export function flagTimes(entries: RaceControl[], sessionStartMs: number): numbe
   return entries
     .filter((e) => e.flag && e.flag !== '')
     .map((e) => relMs(e.date, sessionStartMs))
+    .filter((v) => v >= 0)
+    .sort((a, b) => a - b)
+}
+
+export function overtakeTimes(overtakes: Overtake[], sessionStartMs: number): number[] {
+  return overtakes
+    .map((o) => relMs(o.date, sessionStartMs))
     .filter((v) => v >= 0)
     .sort((a, b) => a - b)
 }

@@ -7,6 +7,7 @@ import { RaceControlFeed } from '@/components/RaceControl/RaceControl'
 import { WeatherPanel } from '@/components/Weather/WeatherPanel'
 import { StrategyBar } from '@/components/Strategy/StrategyBar'
 import { TeamRadioFeed } from '@/components/TeamRadio/TeamRadio'
+import { OvertakeFeed } from '@/components/Overtakes/OvertakeFeed'
 import { FocusedTelemetry } from '@/components/FocusedTelemetry/FocusedTelemetry'
 import { LapChart } from '@/components/LapChart/LapChart'
 import { ErrorMessage } from '@/components/ErrorMessage'
@@ -14,22 +15,25 @@ import {
   useDrivers, usePositions, useIntervals,
   useStints, useLaps, useRaceControl,
   useWeather, useSessions, usePits, useTeamRadio,
-  useStartingGrid,
+  useStartingGrid, useOvertakes,
 } from '@/hooks/useSession'
 import { useTimeline } from '@/timeline/clock'
 import { useLocationChunks, chunkIndexFor } from '@/hooks/useLocationChunks'
 import { useNumberParam, useStringParam } from '@/hooks/useSearchParamState'
 import { useTimelineUrlSync } from '@/hooks/useTimelineUrlSync'
 import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts'
-import { lapStartTimes, pitTimes, flagTimes } from '@/timeline/events'
+import { lapStartTimes, pitTimes, flagTimes, overtakeTimes } from '@/timeline/events'
 import { isSessionLive } from '@/utils/live'
 import { DEFAULT_YEAR } from '@/constants'
 
 const PANEL = 'bg-surface border border-panel'
 const PANEL_TITLE = 'text-[10px] font-bold text-muted px-3 py-2 border-b border-[#38383f] uppercase tracking-[0.12em] border-l-2 border-l-f1red bg-track'
 
-type RightTab = 'rc' | 'radio'
+type RightTab = 'rc' | 'radio' | 'passes'
 type MainView = 'map' | 'laps'
+
+// Pulse the cars involved in an overtake for this long after it happens.
+const OVERTAKE_PULSE_MS = 4_000
 
 export default function RaceWeekend() {
   const [yearParam, setYear] = useNumberParam('year', DEFAULT_YEAR)
@@ -51,6 +55,7 @@ export default function RaceWeekend() {
   const laps = useLaps(sessionKey, undefined, live)
   const pits = usePits(sessionKey)
   const grid = useStartingGrid(sessionKey)
+  const overtakes = useOvertakes(sessionKey, live)
   const raceControl = useRaceControl(sessionKey, live)
   const teamRadio = useTeamRadio(sessionKey, live)
   const weather = useWeather(sessionKey, live)
@@ -89,6 +94,23 @@ export default function RaceWeekend() {
     () => flagTimes(raceControl.data ?? [], sessionStartMs),
     [raceControl.data, sessionStartMs],
   )
+  const overtakeMarks = useMemo(
+    () => overtakeTimes(overtakes.data ?? [], sessionStartMs),
+    [overtakes.data, sessionStartMs],
+  )
+
+  // Cars to pulse on the map: those involved in an overtake within the last few
+  // seconds of the playhead.
+  const pulseDrivers = useMemo(() => {
+    const out: number[] = []
+    for (const o of overtakes.data ?? []) {
+      const ms = new Date(o.date).getTime() - sessionStartMs
+      if (ms <= t && t - ms <= OVERTAKE_PULSE_MS) {
+        out.push(o.overtaking_driver_number, o.overtaken_driver_number)
+      }
+    }
+    return out
+  }, [overtakes.data, sessionStartMs, t])
 
   const effectiveDuration = durationMs || 7_200_000
   useKeyboardShortcuts({
@@ -165,6 +187,7 @@ export default function RaceWeekend() {
                   locationData={location.data}
                   sessionStartMs={sessionStartMs}
                   focusDriver={focusDriver}
+                  pulseDrivers={pulseDrivers}
                 />
               )
             })()}
@@ -221,25 +244,27 @@ export default function RaceWeekend() {
             )}
           </div>
 
-          {/* Tabbed: Race Control | Team Radio */}
+          {/* Tabbed: Race Control | Team Radio | Passes */}
           <div className={`${PANEL} flex flex-col md:flex-[2] min-h-[180px] md:min-h-0`}>
             <div className="flex border-b border-panel">
-              {(['rc', 'radio'] as RightTab[]).map((tab) => (
-                <button
-                  key={tab}
-                  onClick={() => setRightTab(tab)}
-                  className={`flex-1 text-xs py-1 px-2 uppercase tracking-wider font-bold transition-colors ${
-                    rightTab === tab
-                      ? 'text-white border-b-2 border-f1red -mb-px'
-                      : 'text-muted hover:text-white'
-                  }`}
-                >
-                  {tab === 'rc' ? 'Race Control' : 'Team Radio'}
-                </button>
-              ))}
+              {([['rc', 'Race Control'], ['radio', 'Radio'], ['passes', 'Passes']] as [RightTab, string][]).map(
+                ([tab, label]) => (
+                  <button
+                    key={tab}
+                    onClick={() => setRightTab(tab)}
+                    className={`flex-1 text-xs py-1 px-2 uppercase tracking-wider font-bold transition-colors ${
+                      rightTab === tab
+                        ? 'text-white border-b-2 border-f1red -mb-px'
+                        : 'text-muted hover:text-white'
+                    }`}
+                  >
+                    {label}
+                  </button>
+                ),
+              )}
             </div>
             <div className="flex-1 overflow-hidden">
-              {rightTab === 'rc' ? (
+              {rightTab === 'rc' && (
                 raceControl.isError ? (
                   <ErrorMessage message="Failed to load race control" />
                 ) : (
@@ -249,12 +274,25 @@ export default function RaceWeekend() {
                     sessionStartMs={sessionStartMs}
                   />
                 )
-              ) : (
+              )}
+              {rightTab === 'radio' && (
                 teamRadio.isError ? (
                   <ErrorMessage message="Failed to load team radio" />
                 ) : (
                   <TeamRadioFeed
                     entries={teamRadio.data ?? []}
+                    drivers={drivers.data ?? []}
+                    sessionTimeMs={t}
+                    sessionStartMs={sessionStartMs}
+                  />
+                )
+              )}
+              {rightTab === 'passes' && (
+                overtakes.isError ? (
+                  <ErrorMessage message="Failed to load overtakes" />
+                ) : (
+                  <OvertakeFeed
+                    entries={overtakes.data ?? []}
                     drivers={drivers.data ?? []}
                     sessionTimeMs={t}
                     sessionStartMs={sessionStartMs}
@@ -287,6 +325,7 @@ export default function RaceWeekend() {
         lapStarts={lapMarks}
         pitTimes={pitMarks}
         flagTimes={flagMarks}
+        overtakeTimes={overtakeMarks}
       />
     </div>
   )

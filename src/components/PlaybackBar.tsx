@@ -8,6 +8,7 @@ interface Props {
   lapStarts?: number[]
   pitTimes?: number[]
   flagTimes?: number[]
+  overtakeTimes?: number[]
 }
 
 function fmtTime(ms: number) {
@@ -23,7 +24,7 @@ const JUMP_BTN =
 const CHIP =
   'px-2 h-8 flex items-center text-[10px] font-black uppercase tracking-widest bg-panel text-muted hover:text-white hover:bg-[#38383f] transition-colors shrink-0 disabled:opacity-30 disabled:hover:bg-panel disabled:hover:text-muted'
 
-export function PlaybackBar({ durationMs, lapStarts = [], pitTimes = [], flagTimes = [] }: Props) {
+export function PlaybackBar({ durationMs, lapStarts = [], pitTimes = [], flagTimes = [], overtakeTimes = [] }: Props) {
   const { t, playing, speed, toggle, setT, setSpeed } = useTimeline()
 
   const clamp = (v: number) => Math.max(0, durationMs > 0 ? Math.min(v, durationMs) : v)
@@ -33,6 +34,7 @@ export function PlaybackBar({ durationMs, lapStarts = [], pitTimes = [], flagTim
   const nextLap = nextAfter(lapStarts, t)
   const nextPit = nextAfter(pitTimes, t)
   const nextFlag = nextAfter(flagTimes, t)
+  const nextPass = nextAfter(overtakeTimes, t)
 
   return (
     <div className="flex items-center gap-2 px-4 py-2.5 bg-track border-t border-panel">
@@ -58,6 +60,9 @@ export function PlaybackBar({ durationMs, lapStarts = [], pitTimes = [], flagTim
       </button>
       <button onClick={() => jump(nextFlag)} disabled={nextFlag === null} className={CHIP} title="Next flag / SC">
         Flag›
+      </button>
+      <button onClick={() => jump(nextPass)} disabled={nextPass === null} className={CHIP} title="Next overtake">
+        Pass›
       </button>
 
       <span className="text-muted font-mono text-xs tabular-nums w-16 text-right shrink-0 ml-1">

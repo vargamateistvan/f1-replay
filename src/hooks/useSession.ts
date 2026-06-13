@@ -114,3 +114,13 @@ export function useWeather(sessionKey: number | null, isLive = false) {
     refetchInterval: isLive ? LIVE_POLL_MS : false,
   })
 }
+
+export function useOvertakes(sessionKey: number | null, isLive = false) {
+  return useQuery({
+    queryKey: ['overtakes', sessionKey],
+    queryFn: () => api.overtakes(sessionKey!),
+    enabled: sessionKey !== null,
+    staleTime: isLive ? 0 : Infinity,
+    refetchInterval: isLive ? LIVE_POLL_MS : false,
+  })
+}
