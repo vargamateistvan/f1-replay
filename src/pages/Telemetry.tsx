@@ -1,5 +1,4 @@
-import { useMemo } from 'react'
-import { SessionPicker } from '@/components/SessionPicker'
+import { useMemo, useEffect } from 'react'
 import { TelemetryChart } from '@/components/TelemetryChart/TelemetryChart'
 import { ErrorMessage } from '@/components/ErrorMessage'
 import { useDrivers, useLaps, useSessions } from '@/hooks/useSession'
@@ -23,10 +22,10 @@ const SELECT = 'bg-panel text-white border border-[#38383f] text-xs font-medium 
 const SLOT_COLORS = ['#e8002d', '#0067ff', '#23c552']
 
 export default function Telemetry() {
-  const [yearParam, setYear] = useNumberParam('year', DEFAULT_YEAR)
+  const [yearParam] = useNumberParam('year', DEFAULT_YEAR)
   const year = yearParam ?? DEFAULT_YEAR
-  const [meetingKey, setMeetingKey] = useNumberParam('meeting', null)
-  const [sessionKey, setSessionKey] = useNumberParam('session', null)
+  const [meetingKey] = useNumberParam('meeting', null)
+  const [sessionKey] = useNumberParam('session', null)
   const [driverA, setDriverA] = useNumberParam('a', null)
   const [driverB, setDriverB] = useNumberParam('b', null)
   const [driverC, setDriverC] = useNumberParam('c', null)
@@ -144,19 +143,14 @@ export default function Telemetry() {
     driverA !== null && lapNumber !== null && !dataA.isPending && !dataA.isError &&
     (dataA.data == null || dataA.data.length === 0)
 
-  const resetBelow = () => { setDriverA(null); setDriverB(null); setDriverC(null); setLapNumber(null) }
+  // When the session changes (driven by the global Nav picker), clear driver/lap state.
+  useEffect(() => {
+    setDriverA(null); setDriverB(null); setDriverC(null); setLapNumber(null)
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sessionKey])
 
   return (
     <div className="flex flex-col h-full overflow-hidden">
-      <SessionPicker
-        year={year}
-        meetingKey={meetingKey}
-        sessionKey={sessionKey}
-        onYear={(y) => { setYear(y); setMeetingKey(null); setSessionKey(null); resetBelow() }}
-        onMeeting={(k) => { setMeetingKey(k); setSessionKey(null); resetBelow() }}
-        onSession={(k) => { setSessionKey(k); resetBelow() }}
-      />
-
       {/* Driver + lap selectors */}
       <div className="flex items-center gap-x-4 gap-y-1.5 px-4 py-2 bg-surface border-b border-panel flex-wrap">
         <DriverSelect label="Driver A" value={driverA} onChange={setDriverA}

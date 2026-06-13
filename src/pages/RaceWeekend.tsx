@@ -1,5 +1,4 @@
 import { useEffect, useMemo } from 'react'
-import { SessionPicker } from '@/components/SessionPicker'
 import { PlaybackBar } from '@/components/PlaybackBar'
 import { TrackMap } from '@/components/TrackMap/TrackMap'
 import { LiveTiming } from '@/components/LiveTiming/LiveTiming'
@@ -10,6 +9,7 @@ import { TeamRadioFeed } from '@/components/TeamRadio/TeamRadio'
 import { OvertakeFeed } from '@/components/Overtakes/OvertakeFeed'
 import { FocusedTelemetry } from '@/components/FocusedTelemetry/FocusedTelemetry'
 import { LapChart } from '@/components/LapChart/LapChart'
+import { FlagBanner } from '@/components/FlagBanner'
 import { ErrorMessage } from '@/components/ErrorMessage'
 import {
   useDrivers, usePositions, useIntervals,
@@ -25,23 +25,32 @@ import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts'
 import { lapStartTimes, pitTimes, flagTimes, overtakeTimes } from '@/timeline/events'
 import { isSessionLive } from '@/utils/live'
 import { DEFAULT_YEAR } from '@/constants'
+import type { MainView } from '@/components/Nav'
+
+// Sub-tab options per view
+type TrackerTab = 'timing' | 'chart'
+type CommentaryTab = 'rc' | 'radio' | 'passes'
 
 const PANEL = 'bg-surface border border-panel'
 const PANEL_TITLE = 'text-[10px] font-bold text-muted px-3 py-2 border-b border-[#38383f] uppercase tracking-[0.12em] border-l-2 border-l-f1red bg-track'
-
-type RightTab = 'rc' | 'radio' | 'passes'
-type MainView = 'map' | 'laps'
-
-// Pulse the cars involved in an overtake for this long after it happens.
 const OVERTAKE_PULSE_MS = 4_000
 
 export default function RaceWeekend() {
-  const [yearParam, setYear] = useNumberParam('year', DEFAULT_YEAR)
+  // Session selection is driven by the URL — Nav writes these, we just read them
+  const [yearParam] = useNumberParam('year', DEFAULT_YEAR)
   const year = yearParam ?? DEFAULT_YEAR
-  const [meetingKey, setMeetingKey] = useNumberParam('meeting', null)
-  const [sessionKey, setSessionKey] = useNumberParam('session', null)
-  const [rightTab, setRightTab] = useStringParam<RightTab>('tab', 'rc')
-  const [mainView, setMainView] = useStringParam<MainView>('view', 'map')
+  const [meetingKey] = useNumberParam('meeting', null)
+  const [sessionKey] = useNumberParam('session', null)
+
+  // Main view driven by the Nav's view tab buttons.
+  // Clamp to valid values so old `?view=map` deep links fall back gracefully.
+  const [view] = useStringParam<MainView>('view', 'leaderboard')
+  const VALID_VIEWS: MainView[] = ['leaderboard', 'tracker', 'commentary']
+  const currentView: MainView = VALID_VIEWS.includes(view as MainView) ? (view as MainView) : 'leaderboard'
+
+  // Sub-tab state for tracker + commentary views
+  const [trackerTab, setTrackerTab] = useStringParam<TrackerTab>('ttab', 'timing')
+  const [commentaryTab, setCommentaryTab] = useStringParam<CommentaryTab>('ctab', 'rc')
   const [focusDriver, setFocusDriver] = useNumberParam('focus', null)
 
   const sessions = useSessions(meetingKey)
@@ -70,18 +79,15 @@ export default function RaceWeekend() {
     if (sessionStartMs) setSessionStart(sessionStartMs)
   }, [sessionStartMs, setSessionStart])
 
-  // Persist playhead + speed to the URL and restore from a shared link
   useTimelineUrlSync(sessionKey, sessionStartMs > 0)
 
   const isLoadingSessionData =
     sessionKey !== null &&
     (drivers.isPending || positions.isPending || intervals.isPending)
 
-  // Location chunks for track animation — fetches the 5-min window around current t
   const chunkIdx = chunkIndexFor(t)
   const location = useLocationChunks(sessionKey, sessionStartMs || null, chunkIdx)
 
-  // Jump-to-event markers (session-relative ms)
   const lapMarks = useMemo(
     () => lapStartTimes(laps.data ?? [], sessionStartMs),
     [laps.data, sessionStartMs],
@@ -99,8 +105,6 @@ export default function RaceWeekend() {
     [overtakes.data, sessionStartMs],
   )
 
-  // Cars to pulse on the map: those involved in an overtake within the last few
-  // seconds of the playhead.
   const pulseDrivers = useMemo(() => {
     const out: number[] = []
     for (const o of overtakes.data ?? []) {
@@ -121,118 +125,175 @@ export default function RaceWeekend() {
 
   const toggleFocus = (num: number) => setFocusDriver(focusDriver === num ? null : num)
 
+  // ── Shared sub-components ────────────────────────────────────────────────────
+
+  const timingTower = (
+    <LiveTiming
+      drivers={drivers.data ?? []}
+      positions={positions.data ?? []}
+      intervals={intervals.data ?? []}
+      pits={pits.data ?? []}
+      laps={laps.data ?? []}
+      stints={stints.data ?? []}
+      grid={grid.data ?? []}
+      sessionTimeMs={t}
+      sessionStartMs={sessionStartMs}
+      isLoading={positions.isPending && sessionKey !== null}
+      selectedDriver={focusDriver}
+      onSelectDriver={toggleFocus}
+    />
+  )
+
+  const trackMap = (
+    <TrackMap
+      sessionKey={sessionKey}
+      drivers={drivers.data ?? []}
+      locationData={location.data}
+      sessionStartMs={sessionStartMs}
+      focusDriver={focusDriver}
+      pulseDrivers={pulseDrivers}
+    />
+  )
+
+  // ── View layouts ─────────────────────────────────────────────────────────────
+
   return (
     <div className="flex flex-col h-full overflow-hidden">
-      <SessionPicker
-        year={year}
-        meetingKey={meetingKey}
-        sessionKey={sessionKey}
-        onYear={(y) => { setYear(y); setMeetingKey(null); setSessionKey(null) }}
-        onMeeting={(k) => { setMeetingKey(k); setSessionKey(null) }}
-        onSession={setSessionKey}
-      />
+      {/* Flag banner — spans full width below nav */}
+      {sessionStartMs > 0 && (
+        <FlagBanner
+          entries={raceControl.data ?? []}
+          sessionTimeMs={t}
+          sessionStartMs={sessionStartMs}
+        />
+      )}
 
-      {/* Main area: flex-col on mobile, 2-col grid on md+ */}
-      <div className="flex-1 min-h-0 flex flex-col md:grid md:grid-cols-[1fr_280px] md:grid-rows-[1fr_160px] gap-2 p-2 overflow-auto md:overflow-hidden">
-
-        {/* Track map / lap chart */}
-        <div className={`${PANEL} flex flex-col min-h-[280px] md:min-h-0`}>
-          <div className={`${PANEL_TITLE} flex items-center`}>
-            <div className="flex gap-px">
-              {(['map', 'laps'] as MainView[]).map((v) => (
-                <button
-                  key={v}
-                  onClick={() => setMainView(v)}
-                  className={`px-2 py-0.5 text-[10px] font-bold uppercase tracking-[0.12em] transition-colors ${
-                    mainView === v ? 'text-white' : 'text-[#636369] hover:text-muted'
-                  }`}
-                >
-                  {v === 'map' ? 'Track' : 'Lap Chart'}
-                </button>
-              ))}
+      {/* ── LEADERBOARD VIEW ──────────────────────────────────────────── */}
+      {currentView === 'leaderboard' && (
+        <div className="flex-1 min-h-0 flex flex-col overflow-hidden">
+          {/* Loading indicator */}
+          {isLoadingSessionData && (
+            <div className="text-f1red text-[10px] px-4 py-1 animate-pulse border-b border-panel bg-track">
+              Loading session data…
             </div>
-            {session && (
-              <span className="ml-2 normal-case font-normal text-white">
-                {session.circuit_short_name} · {session.session_name}
-              </span>
-            )}
-            {live && (
-              <span className="ml-2 inline-flex items-center gap-1 text-red-400 font-bold">
-                <span className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse" />
-                LIVE
-              </span>
-            )}
-            {isLoadingSessionData && (
-              <span className="ml-2 text-f1red animate-pulse">Loading…</span>
-            )}
-          </div>
-          <div className="flex-1 min-h-0">
-            {(() => {
-              if (drivers.isError) return <ErrorMessage message="Failed to load driver data" />
-              if (mainView === 'laps') {
-                return (
-                  <LapChart
-                    drivers={drivers.data ?? []}
-                    positions={positions.data ?? []}
-                    lapStarts={lapMarks}
-                    sessionStartMs={sessionStartMs}
-                    sessionTimeMs={t}
-                  />
-                )
-              }
-              return (
-                <TrackMap
-                  sessionKey={sessionKey}
-                  drivers={drivers.data ?? []}
-                  locationData={location.data}
-                  sessionStartMs={sessionStartMs}
-                  focusDriver={focusDriver}
-                  pulseDrivers={pulseDrivers}
-                />
-              )
-            })()}
-          </div>
-          {/* Focused-driver live telemetry readout */}
-          {focusDriver !== null && (
-            <FocusedTelemetry
-              sessionKey={sessionKey}
-              driver={drivers.data?.find((d) => d.driver_number === focusDriver) ?? null}
-              sessionStartMs={sessionStartMs}
-              onClear={() => setFocusDriver(null)}
-            />
           )}
+
+          {/* Full-width timing tower */}
+          <div className="flex-1 min-h-0 overflow-hidden">
+            {positions.isError ? (
+              <ErrorMessage message="Failed to load timing data" />
+            ) : (
+              timingTower
+            )}
+          </div>
+
+          {/* Strategy strip */}
+          <div className={`${PANEL} shrink-0 max-h-40`}>
+            <div className={PANEL_TITLE}>Tyre Strategy</div>
+            <div className="overflow-auto" style={{ maxHeight: 120 }}>
+              <StrategyBar
+                stints={stints.data ?? []}
+                drivers={drivers.data ?? []}
+                laps={laps.data ?? []}
+                pits={pits.data ?? []}
+                sessionTimeMs={t}
+                sessionStartMs={sessionStartMs}
+              />
+            </div>
+          </div>
         </div>
+      )}
 
-        {/* Right column */}
-        <div className="flex flex-col gap-2 min-h-0">
+      {/* ── DRIVER TRACKER VIEW ───────────────────────────────────────── */}
+      {currentView === 'tracker' && (
+        <div className="flex-1 min-h-0 flex overflow-hidden">
+          {/* Left data panel */}
+          <div className="w-72 shrink-0 flex flex-col border-r border-panel overflow-hidden">
+            {/* Sub-tabs */}
+            <div className="flex border-b border-panel shrink-0">
+              {([['timing', 'Timing'], ['chart', 'Lap Chart']] as [TrackerTab, string][]).map(
+                ([tab, label]) => (
+                  <button
+                    key={tab}
+                    onClick={() => setTrackerTab(tab)}
+                    className={`flex-1 py-1.5 text-[10px] font-bold uppercase tracking-wider transition-colors ${
+                      (trackerTab ?? 'timing') === tab
+                        ? 'text-white border-b-2 border-f1red -mb-px bg-surface'
+                        : 'text-muted hover:text-white bg-track'
+                    }`}
+                  >
+                    {label}
+                  </button>
+                ),
+              )}
+            </div>
 
-          {/* Live timing — tall, scrollable */}
-          <div className={`${PANEL} flex flex-col md:flex-[3] min-h-[200px] md:min-h-0`}>
-            <div className={PANEL_TITLE}>Live Timing</div>
-            <div className="flex-1 overflow-hidden">
-              {positions.isError ? (
-                <ErrorMessage message="Failed to load timing data" />
+            {/* Panel content */}
+            <div className="flex-1 min-h-0 overflow-hidden">
+              {(trackerTab ?? 'timing') === 'timing' ? (
+                positions.isError ? (
+                  <ErrorMessage message="Failed to load timing data" />
+                ) : (
+                  timingTower
+                )
               ) : (
-                <LiveTiming
+                <LapChart
                   drivers={drivers.data ?? []}
                   positions={positions.data ?? []}
-                  intervals={intervals.data ?? []}
-                  pits={pits.data ?? []}
-                  laps={laps.data ?? []}
-                  grid={grid.data ?? []}
+                  lapStarts={lapMarks}
+                  sessionStartMs={sessionStartMs}
+                  sessionTimeMs={t}
+                />
+              )}
+            </div>
+
+            {/* Focused driver telemetry */}
+            {focusDriver !== null && (
+              <div className="shrink-0 border-t border-panel">
+                <FocusedTelemetry
+                  sessionKey={sessionKey}
+                  driver={drivers.data?.find((d) => d.driver_number === focusDriver) ?? null}
+                  sessionStartMs={sessionStartMs}
+                  onClear={() => setFocusDriver(null)}
+                />
+              </div>
+            )}
+
+            {/* Weather strip */}
+            <div className={`shrink-0 border-t border-panel`}>
+              {weather.isError ? (
+                <ErrorMessage message="Failed to load weather" compact />
+              ) : (
+                <WeatherPanel
+                  entries={weather.data ?? []}
                   sessionTimeMs={t}
                   sessionStartMs={sessionStartMs}
-                  isLoading={positions.isPending && sessionKey !== null}
-                  selectedDriver={focusDriver}
-                  onSelectDriver={toggleFocus}
                 />
               )}
             </div>
           </div>
 
-          {/* Weather — fixed small strip */}
-          <div className={`${PANEL} shrink-0`}>
-            <div className={PANEL_TITLE}>Weather</div>
+          {/* Track map — fills remaining width */}
+          <div className="flex-1 min-w-0 bg-[#10101a] relative">
+            {drivers.isError ? (
+              <ErrorMessage message="Failed to load driver data" />
+            ) : (
+              trackMap
+            )}
+            {isLoadingSessionData && (
+              <span className="absolute top-2 right-2 text-f1red text-[10px] animate-pulse">
+                Loading…
+              </span>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* ── COMMENTARY VIEW ───────────────────────────────────────────── */}
+      {currentView === 'commentary' && (
+        <div className="flex-1 min-h-0 flex flex-col overflow-hidden">
+          {/* Compact weather strip */}
+          <div className="shrink-0 border-b border-panel">
             {weather.isError ? (
               <ErrorMessage message="Failed to load weather" compact />
             ) : (
@@ -244,82 +305,69 @@ export default function RaceWeekend() {
             )}
           </div>
 
-          {/* Tabbed: Race Control | Team Radio | Passes */}
-          <div className={`${PANEL} flex flex-col md:flex-[2] min-h-[180px] md:min-h-0`}>
-            <div className="flex border-b border-panel">
-              {([['rc', 'Race Control'], ['radio', 'Radio'], ['passes', 'Passes']] as [RightTab, string][]).map(
-                ([tab, label]) => (
-                  <button
-                    key={tab}
-                    onClick={() => setRightTab(tab)}
-                    className={`flex-1 text-xs py-1 px-2 uppercase tracking-wider font-bold transition-colors ${
-                      rightTab === tab
-                        ? 'text-white border-b-2 border-f1red -mb-px'
-                        : 'text-muted hover:text-white'
-                    }`}
-                  >
-                    {label}
-                  </button>
-                ),
-              )}
-            </div>
-            <div className="flex-1 overflow-hidden">
-              {rightTab === 'rc' && (
-                raceControl.isError ? (
-                  <ErrorMessage message="Failed to load race control" />
-                ) : (
-                  <RaceControlFeed
-                    entries={raceControl.data ?? []}
-                    sessionTimeMs={t}
-                    sessionStartMs={sessionStartMs}
-                  />
-                )
-              )}
-              {rightTab === 'radio' && (
-                teamRadio.isError ? (
-                  <ErrorMessage message="Failed to load team radio" />
-                ) : (
-                  <TeamRadioFeed
-                    entries={teamRadio.data ?? []}
-                    drivers={drivers.data ?? []}
-                    sessionTimeMs={t}
-                    sessionStartMs={sessionStartMs}
-                  />
-                )
-              )}
-              {rightTab === 'passes' && (
-                overtakes.isError ? (
-                  <ErrorMessage message="Failed to load overtakes" />
-                ) : (
-                  <OvertakeFeed
-                    entries={overtakes.data ?? []}
-                    drivers={drivers.data ?? []}
-                    sessionTimeMs={t}
-                    sessionStartMs={sessionStartMs}
-                  />
-                )
-              )}
-            </div>
+          {/* Sub-tabs */}
+          <div className="flex border-b border-panel shrink-0 bg-track">
+            {([
+              ['rc', 'Race Control'],
+              ['radio', 'Team Radio'],
+              ['passes', 'Overtakes'],
+            ] as [CommentaryTab, string][]).map(([tab, label]) => (
+              <button
+                key={tab}
+                onClick={() => setCommentaryTab(tab)}
+                className={`px-5 py-2 text-[11px] font-bold uppercase tracking-wider transition-colors border-b-2 ${
+                  (commentaryTab ?? 'rc') === tab
+                    ? 'text-white border-f1red -mb-px'
+                    : 'text-muted border-transparent hover:text-white'
+                }`}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+
+          {/* Content */}
+          <div className="flex-1 min-h-0 overflow-hidden">
+            {(commentaryTab ?? 'rc') === 'rc' && (
+              raceControl.isError ? (
+                <ErrorMessage message="Failed to load race control" />
+              ) : (
+                <RaceControlFeed
+                  entries={raceControl.data ?? []}
+                  sessionTimeMs={t}
+                  sessionStartMs={sessionStartMs}
+                />
+              )
+            )}
+            {commentaryTab === 'radio' && (
+              teamRadio.isError ? (
+                <ErrorMessage message="Failed to load team radio" />
+              ) : (
+                <TeamRadioFeed
+                  entries={teamRadio.data ?? []}
+                  drivers={drivers.data ?? []}
+                  sessionTimeMs={t}
+                  sessionStartMs={sessionStartMs}
+                />
+              )
+            )}
+            {commentaryTab === 'passes' && (
+              overtakes.isError ? (
+                <ErrorMessage message="Failed to load overtakes" />
+              ) : (
+                <OvertakeFeed
+                  entries={overtakes.data ?? []}
+                  drivers={drivers.data ?? []}
+                  sessionTimeMs={t}
+                  sessionStartMs={sessionStartMs}
+                />
+              )
+            )}
           </div>
         </div>
+      )}
 
-        {/* Strategy strip — spans both columns on desktop */}
-        <div className={`${PANEL} flex flex-col md:col-span-2`}>
-          <div className={PANEL_TITLE}>Tyre Strategy</div>
-          <div className="flex-1 overflow-auto">
-            <StrategyBar
-              stints={stints.data ?? []}
-              drivers={drivers.data ?? []}
-              laps={laps.data ?? []}
-              pits={pits.data ?? []}
-              sessionTimeMs={t}
-              sessionStartMs={sessionStartMs}
-            />
-          </div>
-        </div>
-      </div>
-
-      {/* Playback bar */}
+      {/* Playback bar — always visible */}
       <PlaybackBar
         durationMs={effectiveDuration}
         lapStarts={lapMarks}
