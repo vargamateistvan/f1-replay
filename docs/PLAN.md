@@ -177,5 +177,5 @@ src/
 | 4 | Track map — derive outline · animate car dots against clock | ✅ Done |
 | 5 | Live timing · race control · weather · team radio · tyre strategy panels | ✅ Done |
 | 6 | Telemetry page — uPlot driver comparison charts | ✅ Done |
-| 7 | Standings page — driver + constructor championship | — |
+| 7 | Standings page — driver + constructor championship | ✅ Done |
 | 8 | Polish — loading/error states · mobile layout · live session polling | — |
