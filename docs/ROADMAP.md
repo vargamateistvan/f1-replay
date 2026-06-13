@@ -213,11 +213,11 @@ Service worker to cache immutable historical data — replays work offline once 
 
 ## 7. Suggested execution order
 
-**Milestone A — Correctness & trust (do first)**
-1. 1.1 Real rate limiter + 429 backoff 🔴
-2. 1.3 Null-safety guards 🔴
-3. 1.4 Clock drift clamp 🟠
-4. 6.2 Constants file 🟢 · 3.2 dynamic years 🟢
+**Milestone A — Correctness & trust (do first) — ✅ DONE**
+1. ✅ 1.1 Real rate limiter + 429 backoff 🔴 — sliding-window (3/s, 30/min) limiter + `Retry-After`/exponential backoff in `client.ts`
+2. ✅ 1.3 Null-safety 🔴 — render paths already `?.`-guarded; added explicit "no telemetry for this lap" empty state
+3. ✅ 1.4 Clock drift clamp 🟠 — per-frame real delta capped at `MAX_FRAME_STEP_MS` (250 ms) in `clock.ts`
+4. ✅ 6.2 Constants file 🟢 (`src/constants.ts`) · ✅ 3.2 dynamic years 🟢 (single `YEARS`/`DEFAULT_YEAR` source)
 
 **Milestone B — Shareability & data quality**
 5. 3.1 URL state persistence 🔵 (highest UX leverage)

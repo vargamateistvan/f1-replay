@@ -1,6 +1,7 @@
 import { useQuery } from '@tanstack/react-query'
 import { api } from '@/api/endpoints'
 import type { Location } from '@/api/types'
+import { TRACK_OUTLINE_LAP } from '@/constants'
 
 export interface TrackBounds {
   minX: number; maxX: number; minY: number; maxY: number
@@ -28,7 +29,7 @@ export function locationToSvg(x: number, y: number, bounds: TrackBounds, svgW: n
 // Derives track outline via two sequential calls:
 //   1. Fetch laps to get the date range of a clean lap
 //   2. Fetch location data for that driver within that window
-export function useTrackOutline(sessionKey: number | null, driverNumber: number | null, preferredLap = 2) {
+export function useTrackOutline(sessionKey: number | null, driverNumber: number | null, preferredLap = TRACK_OUTLINE_LAP) {
   return useQuery({
     queryKey: ['trackOutline', sessionKey, driverNumber, preferredLap],
     queryFn: async () => {

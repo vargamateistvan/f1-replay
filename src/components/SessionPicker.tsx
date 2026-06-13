@@ -1,7 +1,6 @@
 import { useMeetings, useSessions } from '@/hooks/useSession'
 import { isSessionLive } from '@/utils/live'
-
-const YEARS = [2024, 2023, 2022]
+import { YEARS } from '@/constants'
 
 interface Props {
   year: number

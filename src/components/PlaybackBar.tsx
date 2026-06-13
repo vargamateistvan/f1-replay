@@ -1,6 +1,5 @@
 import { useTimeline } from '@/timeline/clock'
-
-const SPEEDS = [1, 2, 4, 8, 16]
+import { SPEEDS } from '@/constants'
 
 interface Props {
   durationMs: number

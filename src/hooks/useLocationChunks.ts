@@ -2,9 +2,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useEffect } from 'react'
 import { api } from '@/api/endpoints'
 import type { Location } from '@/api/types'
-
-// 5-minute windows keep each fetch ≤ ~22k rows (20 drivers × 3.7 Hz × 300 s)
-const CHUNK_MS = 5 * 60 * 1000
+import { CHUNK_MS } from '@/constants'
 
 function chunkKey(sessionKey: number, idx: number) {
   return ['location-chunk', sessionKey, idx] as const

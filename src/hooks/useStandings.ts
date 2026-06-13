@@ -2,9 +2,7 @@ import { useMemo } from 'react'
 import { useQuery, useQueries } from '@tanstack/react-query'
 import { api } from '@/api/endpoints'
 import { teamColor } from '@/utils/color'
-
-const RACE_POINTS = [25, 18, 15, 12, 10, 8, 6, 4, 2, 1]
-const SPRINT_POINTS = [8, 7, 6, 5, 4, 3, 2, 1]
+import { RACE_POINTS, SPRINT_POINTS } from '@/constants'
 
 export interface DriverStanding {
   position: number

@@ -1,4 +1,5 @@
 import { create } from 'zustand'
+import { MAX_FRAME_STEP_MS } from '@/constants'
 
 export interface TimelineStore {
   // Session-relative time in milliseconds from session start
@@ -39,8 +40,11 @@ export function startClock() {
   function tick(now: number) {
     const store = useTimeline.getState()
     if (store.playing && lastTs !== null) {
-      const delta = (now - lastTs) * store.speed
-      store.setT(store.t + delta)
+      // Clamp the real elapsed time before scaling by speed. A backgrounded tab
+      // throttles RAF, so on refocus `now - lastTs` can be many seconds — without
+      // this clamp the playhead would jump forward and skip a whole location chunk.
+      const realDelta = Math.min(now - lastTs, MAX_FRAME_STEP_MS)
+      store.setT(store.t + realDelta * store.speed)
     }
     lastTs = now
     rafId = requestAnimationFrame(tick)

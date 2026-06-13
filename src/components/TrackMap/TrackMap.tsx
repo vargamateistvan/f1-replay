@@ -4,10 +4,7 @@ import { buildIndex, interpolateXY } from '@/timeline/interpolate'
 import { useTimeline } from '@/timeline/clock'
 import { teamColor } from '@/utils/color'
 import type { Driver, Location } from '@/api/types'
-
-const SVG_W = 600
-const SVG_H = 400
-const PAD = 24
+import { TRACK_SVG_W as SVG_W, TRACK_SVG_H as SVG_H, TRACK_SVG_PAD as PAD } from '@/constants'
 
 interface Props {
   readonly sessionKey: number | null

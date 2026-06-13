@@ -5,8 +5,8 @@ import {
 } from 'recharts'
 import { useStandings, type DriverStanding, type ConstructorStanding } from '@/hooks/useStandings'
 import { ErrorMessage } from '@/components/ErrorMessage'
+import { YEARS, DEFAULT_YEAR } from '@/constants'
 
-const YEARS = [2024, 2023]
 type Tab = 'drivers' | 'constructors'
 
 // ── Loading progress bar ──────────────────────────────────────────────────────
@@ -205,7 +205,7 @@ function ConstructorChart({ standings }: { standings: ConstructorStanding[] }) {
 
 // ── Page ──────────────────────────────────────────────────────────────────────
 export default function Standings() {
-  const [year, setYear] = useState(2024)
+  const [year, setYear] = useState<number>(DEFAULT_YEAR)
   const [tab, setTab] = useState<Tab>('drivers')
 
   const { driverStandings, constructorStandings, loadedRaces, totalRaces, isLoading, isFetching, isError } =

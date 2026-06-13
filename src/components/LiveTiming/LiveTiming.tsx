@@ -1,6 +1,7 @@
 import { useMemo } from 'react'
 import type { Driver, Position, Interval, Pit, Lap } from '@/api/types'
 import { teamColor } from '@/utils/color'
+import { SECTOR_PURPLE_S, SECTOR_GREEN_S } from '@/constants'
 
 interface Props {
   readonly drivers: Driver[]
@@ -28,9 +29,9 @@ function fmtSector(sec: number | null) {
 function sectorClass(t: number | null, best: number | null): string {
   if (t === null || best === null) return 'text-muted'
   const delta = t - best
-  if (delta <= 0.05) return 'text-[#b48ead]'   // personal best — purple
-  if (delta <= 0.5) return 'text-[#39d743]'     // faster — green
-  return 'text-[#ffd600]'                        // slower — yellow
+  if (delta <= SECTOR_PURPLE_S) return 'text-[#b48ead]'   // personal best — purple
+  if (delta <= SECTOR_GREEN_S) return 'text-[#39d743]'     // faster — green
+  return 'text-[#ffd600]'                                   // slower — yellow
 }
 
 export function LiveTiming({

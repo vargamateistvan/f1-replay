@@ -16,6 +16,7 @@ import {
 import { useTimeline } from '@/timeline/clock'
 import { useLocationChunks, chunkIndexFor } from '@/hooks/useLocationChunks'
 import { isSessionLive } from '@/utils/live'
+import { DEFAULT_YEAR } from '@/constants'
 
 const PANEL = 'bg-surface border border-panel'
 const PANEL_TITLE = 'text-[10px] font-bold text-muted px-3 py-2 border-b border-[#38383f] uppercase tracking-[0.12em] border-l-2 border-l-f1red bg-track'
@@ -23,7 +24,7 @@ const PANEL_TITLE = 'text-[10px] font-bold text-muted px-3 py-2 border-b border-
 type RightTab = 'rc' | 'radio'
 
 export default function RaceWeekend() {
-  const [year, setYear] = useState(2024)
+  const [year, setYear] = useState<number>(DEFAULT_YEAR)
   const [meetingKey, setMeetingKey] = useState<number | null>(null)
   const [sessionKey, setSessionKey] = useState<number | null>(null)
   const [rightTab, setRightTab] = useState<RightTab>('rc')

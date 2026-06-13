@@ -5,6 +5,7 @@ import { ErrorMessage } from '@/components/ErrorMessage'
 import { useDrivers, useLaps, useSessions } from '@/hooks/useSession'
 import { useCarDataForLap, type TelemetrySample } from '@/hooks/useCarDataForLap'
 import { teamColor } from '@/utils/color'
+import { DEFAULT_YEAR } from '@/constants'
 
 // Resample driver B's data onto driver A's distance axis via linear interpolation
 function resampleToAxis(
@@ -47,7 +48,7 @@ const PANEL_TITLE = 'text-[10px] font-bold text-muted px-3 py-2 border-b border-
 const LABEL = 'text-[10px] font-bold uppercase tracking-widest text-muted'
 
 export default function Telemetry() {
-  const [year, setYear] = useState(2024)
+  const [year, setYear] = useState<number>(DEFAULT_YEAR)
   const [meetingKey, setMeetingKey] = useState<number | null>(null)
   const [sessionKey, setSessionKey] = useState<number | null>(null)
   const [driverA, setDriverA] = useState<number | null>(null)
@@ -105,6 +106,11 @@ export default function Telemetry() {
   const isLoadingB = dataB.isPending && driverB !== null && lapNumber !== null
 
   const hasError = dataA.isError || dataB.isError
+  // Lap + driver chosen and the fetch settled, but no telemetry came back for it
+  // (sparse/old session, or a lap with no car_data window).
+  const noTelemetry =
+    driverA !== null && lapNumber !== null && !isLoadingA && !dataA.isError &&
+    (dataA.data == null || dataA.data.length === 0)
 
   return (
     <div className="flex flex-col h-full overflow-hidden">
@@ -189,6 +195,10 @@ export default function Telemetry() {
         ) : !driverA || !lapNumber ? (
           <div className="flex items-center justify-center h-full text-muted text-sm">
             Select a session, driver, and lap to view telemetry
+          </div>
+        ) : noTelemetry ? (
+          <div className="flex items-center justify-center h-full text-muted text-sm">
+            No telemetry available for this lap — try another lap or driver
           </div>
         ) : (
           <>
