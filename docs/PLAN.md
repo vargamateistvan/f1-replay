@@ -176,6 +176,6 @@ src/
 | 3 | Timeline engine · playback bar · binary search / interp verified | ✅ Done |
 | 4 | Track map — derive outline · animate car dots against clock | ✅ Done |
 | 5 | Live timing · race control · weather · team radio · tyre strategy panels | ✅ Done |
-| 6 | Telemetry page — uPlot driver comparison charts | — |
+| 6 | Telemetry page — uPlot driver comparison charts | ✅ Done |
 | 7 | Standings page — driver + constructor championship | — |
 | 8 | Polish — loading/error states · mobile layout · live session polling | — |
