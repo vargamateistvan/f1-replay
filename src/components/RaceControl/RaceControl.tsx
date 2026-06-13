@@ -15,7 +15,7 @@ const FLAG_CONFIG: Record<string, { label: string; bar: string; text: string }> 
   CLEAR:           { label: 'CLEAR',       bar: 'bg-green-600',   text: 'text-green-300' },
 }
 
-const DEFAULT_CONFIG = { label: '', bar: 'bg-panel', text: 'text-muted' }
+const DEFAULT_CONFIG = { label: '', bar: 'bg-[#2a2a35]', text: 'text-muted' }
 
 interface Props {
   readonly entries: RaceControlEntry[]
@@ -46,10 +46,10 @@ export function RaceControlFeed({ entries, sessionTimeMs, sessionStartMs }: Prop
 
   return (
     <div className="flex flex-col h-full">
-      {/* Persistent status banner */}
+      {/* Persistent status banner — slim full-width strip */}
       {flagConfig && (
-        <div className={`flex items-center gap-2 px-3 py-1 ${flagConfig.bar} shrink-0`}>
-          <span className={`font-black text-xs tracking-widest ${flagConfig.text}`}>
+        <div className={`flex items-center gap-2 px-3 h-7 ${flagConfig.bar} shrink-0`}>
+          <span className={`font-black text-[10px] tracking-widest uppercase ${flagConfig.text}`}>
             {flagConfig.label}
           </span>
         </div>
@@ -65,16 +65,15 @@ export function RaceControlFeed({ entries, sessionTimeMs, sessionStartMs }: Prop
         {feed.map((e, i) => {
           const cfg = FLAG_CONFIG[e.flag ?? ''] ?? DEFAULT_CONFIG
           return (
-            <div key={i} className="flex gap-2 text-xs border-b border-panel/30 pb-1">
-              {/* Flag badge */}
+            <div key={i} className="flex gap-2 text-xs border-b border-[#2a2a35] pb-1.5 pt-0.5">
               {e.flag && (
-                <span className={`shrink-0 font-bold text-[10px] uppercase ${cfg.text}`}>
+                <span className={`shrink-0 font-black text-[10px] uppercase tracking-widest ${cfg.text}`}>
                   {cfg.label || e.flag}
                 </span>
               )}
-              <span className="flex-1 text-white/90 leading-snug">{e.message}</span>
+              <span className="flex-1 text-white/90 leading-snug text-[11px]">{e.message}</span>
               {e.lap_number && (
-                <span className="shrink-0 text-muted tabular-nums">L{e.lap_number}</span>
+                <span className="shrink-0 text-muted tabular-nums font-mono text-[10px]">L{e.lap_number}</span>
               )}
             </div>
           )

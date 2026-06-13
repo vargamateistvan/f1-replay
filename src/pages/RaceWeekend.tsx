@@ -17,8 +17,8 @@ import { useTimeline } from '@/timeline/clock'
 import { useLocationChunks, chunkIndexFor } from '@/hooks/useLocationChunks'
 import { isSessionLive } from '@/utils/live'
 
-const PANEL = 'bg-surface rounded border border-panel'
-const PANEL_TITLE = 'text-xs font-bold text-muted px-3 py-1 border-b border-panel uppercase tracking-wider'
+const PANEL = 'bg-surface border border-panel'
+const PANEL_TITLE = 'text-[10px] font-bold text-muted px-3 py-2 border-b border-[#38383f] uppercase tracking-[0.12em] border-l-2 border-l-f1red bg-track'
 
 type RightTab = 'rc' | 'radio'
 

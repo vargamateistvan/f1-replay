@@ -28,9 +28,9 @@ function fmtSector(sec: number | null) {
 function sectorClass(t: number | null, best: number | null): string {
   if (t === null || best === null) return 'text-muted'
   const delta = t - best
-  if (delta <= 0.05) return 'text-purple-400'   // within 50 ms of best → purple
-  if (delta <= 0.5) return 'text-green-400'      // within 0.5 s → green
-  return 'text-yellow-300'                        // slower → yellow
+  if (delta <= 0.05) return 'text-[#b48ead]'   // personal best — purple
+  if (delta <= 0.5) return 'text-[#39d743]'     // faster — green
+  return 'text-[#ffd600]'                        // slower — yellow
 }
 
 export function LiveTiming({
@@ -124,17 +124,17 @@ export function LiveTiming({
   }
 
   return (
-    <div className="text-xs font-mono h-full overflow-auto">
+    <div className="h-full overflow-auto">
       <table className="w-full border-collapse">
         <thead>
-          <tr className="text-muted border-b border-panel sticky top-0 bg-surface z-10">
-            <th className="text-left py-1 px-1 w-6">P</th>
-            <th className="text-left py-1 px-1">Driver</th>
-            <th className="text-center py-1 px-1 w-7">Lap</th>
-            <th className="text-right py-1 px-1 w-12">S1</th>
-            <th className="text-right py-1 px-1 w-12">S2</th>
-            <th className="text-right py-1 px-1 w-12">S3</th>
-            <th className="text-right py-1 px-1 w-16">Gap</th>
+          <tr className="sticky top-0 bg-track z-10 border-b border-[#38383f]">
+            <th className="text-left py-2 px-2 text-[10px] font-bold uppercase tracking-widest text-[#636369] w-6">P</th>
+            <th className="text-left py-2 px-2 text-[10px] font-bold uppercase tracking-widest text-[#636369]">Driver</th>
+            <th className="text-center py-2 px-1 text-[10px] font-bold uppercase tracking-widest text-[#636369] w-7">Lap</th>
+            <th className="text-right py-2 px-1 text-[10px] font-bold uppercase tracking-widest text-[#636369] w-12">S1</th>
+            <th className="text-right py-2 px-1 text-[10px] font-bold uppercase tracking-widest text-[#636369] w-12">S2</th>
+            <th className="text-right py-2 px-1 text-[10px] font-bold uppercase tracking-widest text-[#636369] w-12">S3</th>
+            <th className="text-right py-2 px-2 text-[10px] font-bold uppercase tracking-widest text-[#636369] w-16">Gap</th>
           </tr>
         </thead>
         <tbody>
@@ -150,31 +150,37 @@ export function LiveTiming({
             const s3 = fmtSector(lastLap?.duration_sector_3 ?? null)
 
             return (
-              <tr key={num} className="border-b border-panel/40 hover:bg-panel/30 transition-colors">
-                <td className="py-1 px-1 text-muted tabular-nums">{pos}</td>
-                <td className="py-1 px-1">
-                  <span
-                    className="inline-block w-0.5 h-3.5 mr-1 rounded-sm align-middle"
-                    style={{ background: color }}
-                  />
-                  <span className={inPit ? 'text-yellow-400 font-bold' : ''}>
-                    {driver?.name_acronym ?? num}
+              <tr key={num} className="border-b border-[#2a2a35]">
+                <td className="py-2 px-2 font-black text-sm tabular-nums">{pos}</td>
+                <td className="py-2 px-2">
+                  <span className="flex items-center gap-2">
+                    <span
+                      className="w-[3px] h-4 shrink-0"
+                      style={{ background: color }}
+                    />
+                    <span className="font-black text-xs" style={{ color }}>
+                      {driver?.name_acronym ?? num}
+                    </span>
+                    {inPit && (
+                      <span className="bg-[#2a2a35] text-[#a3a3a3] text-[10px] font-black uppercase tracking-widest px-1.5 py-0.5">
+                        PIT
+                      </span>
+                    )}
                   </span>
-                  {inPit && <span className="ml-1 text-yellow-400 text-[10px]">●PIT</span>}
                 </td>
-                <td className="py-1 px-1 text-center tabular-nums text-muted">
+                <td className="py-2 px-1 text-center font-mono text-xs tabular-nums text-muted">
                   {currentLap ?? '—'}
                 </td>
-                <td className={`py-1 px-1 text-right tabular-nums ${sectorClass(lastLap?.duration_sector_1 ?? null, bestSectors.s1)}`}>
+                <td className={`py-2 px-1 text-right font-mono text-xs tabular-nums ${sectorClass(lastLap?.duration_sector_1 ?? null, bestSectors.s1)}`}>
                   {s1 ?? '—'}
                 </td>
-                <td className={`py-1 px-1 text-right tabular-nums ${sectorClass(lastLap?.duration_sector_2 ?? null, bestSectors.s2)}`}>
+                <td className={`py-2 px-1 text-right font-mono text-xs tabular-nums ${sectorClass(lastLap?.duration_sector_2 ?? null, bestSectors.s2)}`}>
                   {s2 ?? '—'}
                 </td>
-                <td className={`py-1 px-1 text-right tabular-nums ${sectorClass(lastLap?.duration_sector_3 ?? null, bestSectors.s3)}`}>
+                <td className={`py-2 px-1 text-right font-mono text-xs tabular-nums ${sectorClass(lastLap?.duration_sector_3 ?? null, bestSectors.s3)}`}>
                   {s3 ?? '—'}
                 </td>
-                <td className="py-1 px-1 text-right tabular-nums">
+                <td className="py-2 px-2 text-right font-mono text-xs tabular-nums">
                   {fmtGap(intData?.gap_to_leader ?? null)}
                 </td>
               </tr>

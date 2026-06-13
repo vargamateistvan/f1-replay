@@ -60,36 +60,32 @@ function DriverTable({ standings }: { standings: DriverStanding[] }) {
   if (standings.length === 0) return <div className="text-muted text-xs p-4">No data yet</div>
   return (
     <div className="overflow-auto">
-      <table className="w-full text-xs font-mono border-collapse">
+      <table className="w-full border-collapse">
         <thead>
-          <tr className="text-muted border-b border-panel sticky top-0 bg-surface z-10">
-            <th className="text-left py-1.5 px-2 w-8">P</th>
-            <th className="text-left py-1.5 px-2">Driver</th>
-            <th className="text-left py-1.5 px-2 hidden sm:table-cell">Team</th>
-            <th className="text-right py-1.5 px-2 w-16">Pts</th>
-            <th className="text-right py-1.5 px-2 w-12 hidden sm:table-cell">Wins</th>
-            <th className="text-right py-1.5 px-2 w-16 hidden sm:table-cell">Podiums</th>
+          <tr className="sticky top-0 bg-track z-10 border-b border-[#38383f]">
+            <th className="text-left py-2 px-3 text-[10px] font-bold uppercase tracking-widest text-[#636369] w-8">P</th>
+            <th className="text-left py-2 px-3 text-[10px] font-bold uppercase tracking-widest text-[#636369]">Driver</th>
+            <th className="text-left py-2 px-3 text-[10px] font-bold uppercase tracking-widest text-[#636369] hidden sm:table-cell">Team</th>
+            <th className="text-right py-2 px-3 text-[10px] font-bold uppercase tracking-widest text-[#636369] w-16">Pts</th>
+            <th className="text-right py-2 px-3 text-[10px] font-bold uppercase tracking-widest text-[#636369] w-12 hidden sm:table-cell">Wins</th>
+            <th className="text-right py-2 px-3 text-[10px] font-bold uppercase tracking-widest text-[#636369] w-16 hidden sm:table-cell">Podiums</th>
           </tr>
         </thead>
         <tbody>
           {standings.map((s) => (
-            <tr
-              key={s.driverNumber}
-              className="border-b border-panel/40 hover:bg-panel/30 transition-colors"
-            >
-              <td className="py-1.5 px-2 text-muted tabular-nums">{s.position}</td>
-              <td className="py-1.5 px-2">
-                <span
-                  className="inline-block w-0.5 h-3.5 mr-1.5 rounded-sm align-middle"
-                  style={{ background: s.color }}
-                />
-                <span className="font-bold" style={{ color: s.color }}>{s.acronym}</span>
-                <span className="text-muted ml-1.5 hidden sm:inline">{s.fullName}</span>
+            <tr key={s.driverNumber} className="border-b border-[#2a2a35]">
+              <td className="py-2 px-3 font-black text-sm tabular-nums">{s.position}</td>
+              <td className="py-2 px-3">
+                <span className="flex items-center gap-2">
+                  <span className="w-[3px] h-4 shrink-0" style={{ background: s.color }} />
+                  <span className="font-black text-xs" style={{ color: s.color }}>{s.acronym}</span>
+                  <span className="text-muted text-xs hidden sm:inline">{s.fullName}</span>
+                </span>
               </td>
-              <td className="py-1.5 px-2 text-muted hidden sm:table-cell">{s.team}</td>
-              <td className="py-1.5 px-2 text-right tabular-nums font-bold">{s.points}</td>
-              <td className="py-1.5 px-2 text-right tabular-nums text-muted hidden sm:table-cell">{s.wins}</td>
-              <td className="py-1.5 px-2 text-right tabular-nums text-muted hidden sm:table-cell">{s.podiums}</td>
+              <td className="py-2 px-3 text-muted text-xs hidden sm:table-cell">{s.team}</td>
+              <td className="py-2 px-3 text-right font-mono tabular-nums font-bold text-sm">{s.points}</td>
+              <td className="py-2 px-3 text-right font-mono tabular-nums text-muted text-xs hidden sm:table-cell">{s.wins}</td>
+              <td className="py-2 px-3 text-right font-mono tabular-nums text-muted text-xs hidden sm:table-cell">{s.podiums}</td>
             </tr>
           ))}
         </tbody>
@@ -108,18 +104,18 @@ function DriverChart({ standings }: { standings: DriverStanding[] }) {
         margin={{ top: 4, right: 48, left: 56, bottom: 4 }}
         barSize={14}
       >
-        <CartesianGrid horizontal={false} stroke="#1e2d4a" />
+        <CartesianGrid horizontal={false} stroke="#2a2a35" />
         <XAxis
           type="number"
           domain={[0, maxPts]}
-          tick={{ fill: '#6b7280', fontSize: 10 }}
+          tick={{ fill: '#636369', fontSize: 10 }}
           axisLine={{ stroke: '#1e2d4a' }}
           tickLine={false}
         />
         <YAxis
           type="category"
           dataKey="acronym"
-          tick={{ fill: '#9ca3af', fontSize: 10 }}
+          tick={{ fill: '#a3a3a3', fontSize: 10 }}
           axisLine={false}
           tickLine={false}
           width={44}
@@ -140,31 +136,27 @@ function ConstructorTable({ standings }: { standings: ConstructorStanding[] }) {
   if (standings.length === 0) return <div className="text-muted text-xs p-4">No data yet</div>
   return (
     <div className="overflow-auto">
-      <table className="w-full text-xs font-mono border-collapse">
+      <table className="w-full border-collapse">
         <thead>
-          <tr className="text-muted border-b border-panel sticky top-0 bg-surface z-10">
-            <th className="text-left py-1.5 px-2 w-8">P</th>
-            <th className="text-left py-1.5 px-2">Constructor</th>
-            <th className="text-right py-1.5 px-2 w-16">Pts</th>
-            <th className="text-right py-1.5 px-2 w-12 hidden sm:table-cell">Wins</th>
+          <tr className="sticky top-0 bg-track z-10 border-b border-[#38383f]">
+            <th className="text-left py-2 px-3 text-[10px] font-bold uppercase tracking-widest text-[#636369] w-8">P</th>
+            <th className="text-left py-2 px-3 text-[10px] font-bold uppercase tracking-widest text-[#636369]">Constructor</th>
+            <th className="text-right py-2 px-3 text-[10px] font-bold uppercase tracking-widest text-[#636369] w-16">Pts</th>
+            <th className="text-right py-2 px-3 text-[10px] font-bold uppercase tracking-widest text-[#636369] w-12 hidden sm:table-cell">Wins</th>
           </tr>
         </thead>
         <tbody>
           {standings.map((s) => (
-            <tr
-              key={s.name}
-              className="border-b border-panel/40 hover:bg-panel/30 transition-colors"
-            >
-              <td className="py-1.5 px-2 text-muted tabular-nums">{s.position}</td>
-              <td className="py-1.5 px-2">
-                <span
-                  className="inline-block w-2 h-2 rounded-sm mr-2 align-middle"
-                  style={{ background: s.color }}
-                />
-                <span className="font-bold" style={{ color: s.color }}>{s.name}</span>
+            <tr key={s.name} className="border-b border-[#2a2a35]">
+              <td className="py-2 px-3 font-black text-sm tabular-nums">{s.position}</td>
+              <td className="py-2 px-3">
+                <span className="flex items-center gap-2">
+                  <span className="w-[3px] h-4 shrink-0" style={{ background: s.color }} />
+                  <span className="font-black text-xs" style={{ color: s.color }}>{s.name}</span>
+                </span>
               </td>
-              <td className="py-1.5 px-2 text-right tabular-nums font-bold">{s.points}</td>
-              <td className="py-1.5 px-2 text-right tabular-nums text-muted hidden sm:table-cell">{s.wins}</td>
+              <td className="py-2 px-3 text-right font-mono tabular-nums font-bold text-sm">{s.points}</td>
+              <td className="py-2 px-3 text-right font-mono tabular-nums text-muted text-xs hidden sm:table-cell">{s.wins}</td>
             </tr>
           ))}
         </tbody>
@@ -183,18 +175,18 @@ function ConstructorChart({ standings }: { standings: ConstructorStanding[] }) {
         margin={{ top: 4, right: 48, left: 8, bottom: 4 }}
         barSize={18}
       >
-        <CartesianGrid horizontal={false} stroke="#1e2d4a" />
+        <CartesianGrid horizontal={false} stroke="#2a2a35" />
         <XAxis
           type="number"
           domain={[0, maxPts]}
-          tick={{ fill: '#6b7280', fontSize: 10 }}
+          tick={{ fill: '#636369', fontSize: 10 }}
           axisLine={{ stroke: '#1e2d4a' }}
           tickLine={false}
         />
         <YAxis
           type="category"
           dataKey="name"
-          tick={{ fill: '#9ca3af', fontSize: 10 }}
+          tick={{ fill: '#a3a3a3', fontSize: 10 }}
           axisLine={false}
           tickLine={false}
           width={0}
@@ -222,14 +214,14 @@ export default function Standings() {
   return (
     <div className="flex flex-col h-full overflow-hidden bg-track">
       {/* Header */}
-      <div className="flex flex-wrap items-center gap-4 px-4 py-2 bg-surface border-b border-panel text-sm font-mono">
-        <span className="text-f1red font-black tracking-widest">STANDINGS</span>
+      <div className="flex flex-wrap items-center gap-4 px-4 py-2.5 bg-surface border-b border-panel h-11">
+        <span className="text-f1red font-black text-sm tracking-[0.18em] uppercase">STANDINGS</span>
 
-        <label className="text-muted text-xs">Year</label>
+        <label className="text-[10px] font-bold uppercase tracking-widest text-muted">Year</label>
         <select
           value={year}
           onChange={(e) => setYear(Number(e.target.value))}
-          className="bg-panel text-white border border-panel rounded px-2 py-1 text-xs"
+          className="bg-panel text-white border border-[#38383f] text-xs font-medium px-3 py-1.5 focus:outline-none"
         >
           {YEARS.map((y) => <option key={y} value={y}>{y}</option>)}
         </select>
@@ -237,15 +229,15 @@ export default function Standings() {
         {isLoading && <span className="text-muted text-xs animate-pulse">Loading sessions…</span>}
 
         {/* Tabs */}
-        <div className="ml-auto flex">
+        <div className="ml-auto flex h-11">
           {(['drivers', 'constructors'] as Tab[]).map((t) => (
             <button
               key={t}
               onClick={() => setTab(t)}
-              className={`px-4 py-1 text-xs font-bold uppercase tracking-wider transition-colors ${
+              className={`h-11 flex items-center px-4 text-xs font-bold uppercase tracking-[0.12em] transition-colors border-b-2 ${
                 tab === t
-                  ? 'text-white border-b-2 border-f1red'
-                  : 'text-muted hover:text-white'
+                  ? 'text-white border-f1red'
+                  : 'text-muted border-transparent hover:text-white'
               }`}
             >
               {t}
@@ -270,7 +262,7 @@ export default function Standings() {
                 <DriverTable standings={driverStandings} />
               </div>
               <div className="flex-1 overflow-auto p-4 bg-track">
-                <div className="text-xs text-muted font-mono mb-3 uppercase tracking-wider">
+                <div className="text-[10px] text-muted font-bold mb-3 uppercase tracking-[0.12em]">
                   Points — {year} Driver Championship
                 </div>
                 <DriverChart standings={driverStandings} />
@@ -282,7 +274,7 @@ export default function Standings() {
                 <ConstructorTable standings={constructorStandings} />
               </div>
               <div className="flex-1 overflow-auto p-4 bg-track">
-                <div className="text-xs text-muted font-mono mb-3 uppercase tracking-wider">
+                <div className="text-[10px] text-muted font-bold mb-3 uppercase tracking-[0.12em]">
                   Points — {year} Constructor Championship
                 </div>
                 <ConstructorChart standings={constructorStandings} />

@@ -18,15 +18,18 @@ export function PlaybackBar({ durationMs }: Props) {
   const { t, playing, speed, toggle, setT, setSpeed } = useTimeline()
 
   return (
-    <div className="flex items-center gap-3 px-4 py-2 bg-surface border-t border-panel text-sm">
+    <div className="flex items-center gap-3 px-4 py-2.5 bg-track border-t border-panel">
       <button
         onClick={toggle}
-        className="w-8 h-8 rounded bg-f1red text-white font-bold flex items-center justify-center hover:bg-red-600 transition-colors"
+        className="w-8 h-8 bg-f1red text-white font-bold flex items-center justify-center hover:bg-red-600 transition-colors shrink-0"
+        aria-label={playing ? 'Pause' : 'Play'}
       >
         {playing ? '⏸' : '▶'}
       </button>
 
-      <span className="text-muted w-24 text-right tabular-nums">{fmtTime(t)}</span>
+      <span className="text-muted font-mono text-xs tabular-nums w-16 text-right shrink-0">
+        {fmtTime(t)}
+      </span>
 
       <input
         type="range"
@@ -34,18 +37,22 @@ export function PlaybackBar({ durationMs }: Props) {
         max={durationMs}
         value={Math.min(t, durationMs)}
         onChange={(e) => setT(Number(e.target.value))}
-        className="flex-1 accent-f1red"
+        className="flex-1 h-1 cursor-pointer"
       />
 
-      <span className="text-muted w-24 tabular-nums">{fmtTime(durationMs)}</span>
+      <span className="text-muted font-mono text-xs tabular-nums w-16 shrink-0">
+        {fmtTime(durationMs)}
+      </span>
 
-      <div className="flex gap-1 ml-2">
+      <div className="flex gap-px shrink-0">
         {SPEEDS.map((s) => (
           <button
             key={s}
             onClick={() => setSpeed(s)}
-            className={`px-2 py-0.5 rounded text-xs transition-colors ${
-              speed === s ? 'bg-f1red text-white' : 'bg-panel text-muted hover:text-white'
+            className={`px-2.5 py-1 text-[10px] font-black uppercase tracking-widest transition-colors ${
+              speed === s
+                ? 'bg-f1red text-white'
+                : 'bg-panel text-muted hover:text-white hover:bg-[#38383f]'
             }`}
           >
             {s}×

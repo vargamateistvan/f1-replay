@@ -8,18 +8,20 @@ const links = [
 
 export function Nav() {
   return (
-    <nav className="flex items-center gap-1 px-4 py-2 bg-surface border-b border-panel">
-      <span className="text-f1red font-bold text-lg tracking-widest mr-6">F1 REPLAY</span>
+    <nav className="flex items-center h-11 px-4 bg-track border-b border-panel">
+      <span className="text-f1red font-black text-sm tracking-[0.18em] uppercase mr-8 select-none">
+        F1 REPLAY
+      </span>
       {links.map(({ to, label }) => (
         <NavLink
           key={to}
           to={to}
           end={to === '/'}
           className={({ isActive }) =>
-            `px-3 py-1 rounded text-sm transition-colors ${
+            `h-11 flex items-center px-4 text-xs font-bold uppercase tracking-[0.12em] transition-colors border-b-2 ${
               isActive
-                ? 'bg-f1red text-white font-semibold'
-                : 'text-muted hover:text-white hover:bg-panel'
+                ? 'text-white border-f1red'
+                : 'text-muted border-transparent hover:text-white hover:border-[#38383f]'
             }`
           }
         >

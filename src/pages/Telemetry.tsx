@@ -42,8 +42,9 @@ function computeDelta(a: TelemetrySample[], bResampled: TelemetrySample[]): numb
   return a.map((s, i) => s.timeS - (bResampled[i]?.timeS ?? s.timeS))
 }
 
-const PANEL = 'bg-surface rounded border border-panel'
-const LABEL = 'text-xs text-muted font-mono'
+const PANEL = 'bg-surface border border-panel'
+const PANEL_TITLE = 'text-[10px] font-bold text-muted px-3 py-2 border-b border-[#38383f] uppercase tracking-[0.12em] border-l-2 border-l-f1red bg-track'
+const LABEL = 'text-[10px] font-bold uppercase tracking-widest text-muted'
 
 export default function Telemetry() {
   const [year, setYear] = useState(2024)
@@ -118,13 +119,13 @@ export default function Telemetry() {
       />
 
       {/* Driver + lap selectors */}
-      <div className="flex items-center gap-3 px-4 py-2 bg-surface border-b border-panel text-xs font-mono flex-wrap">
+      <div className="flex items-center gap-x-4 gap-y-1.5 px-4 py-2 bg-surface border-b border-panel flex-wrap">
         <span className={LABEL}>Driver A</span>
         <select
           value={driverA ?? ''}
           onChange={(e) => { setDriverA(Number(e.target.value) || null); setLapNumber(null) }}
           disabled={!sessionKey}
-          className="bg-panel text-white border border-panel rounded px-2 py-1"
+          className="bg-panel text-white border border-[#38383f] text-xs font-medium px-3 py-1.5 focus:outline-none"
         >
           <option value="">— select —</option>
           {drivers.data?.map((d) => (
@@ -139,7 +140,7 @@ export default function Telemetry() {
           value={driverB ?? ''}
           onChange={(e) => setDriverB(Number(e.target.value) || null)}
           disabled={!sessionKey}
-          className="bg-panel text-white border border-panel rounded px-2 py-1"
+          className="bg-panel text-white border border-[#38383f] text-xs font-medium px-3 py-1.5 focus:outline-none"
         >
           <option value="">(none)</option>
           {drivers.data?.filter((d) => d.driver_number !== driverA).map((d) => (
@@ -154,7 +155,7 @@ export default function Telemetry() {
           value={lapNumber ?? ''}
           onChange={(e) => setLapNumber(Number(e.target.value) || null)}
           disabled={!driverA}
-          className="bg-panel text-white border border-panel rounded px-2 py-1"
+          className="bg-panel text-white border border-[#38383f] text-xs font-medium px-3 py-1.5 focus:outline-none"
         >
           <option value="">— select —</option>
           {availableLaps.map((n) => (
@@ -163,13 +164,13 @@ export default function Telemetry() {
         </select>
 
         {session && (
-          <span className="text-muted ml-2">
+          <span className="text-muted text-xs">
             {session.circuit_short_name} · {session.session_name} · {session.year}
           </span>
         )}
 
         {(isLoadingA || isLoadingB) && (
-          <span className="text-f1red animate-pulse ml-2">Loading telemetry…</span>
+          <span className="text-f1red text-xs animate-pulse">Loading telemetry…</span>
         )}
       </div>
 
@@ -273,7 +274,7 @@ export default function Telemetry() {
             {/* Delta time — only when two drivers selected */}
             {driverB && delta && (
               <div className={PANEL}>
-                <div className="text-xs font-bold text-muted px-3 py-1 border-b border-panel uppercase tracking-wider">
+                <div className={PANEL_TITLE}>
                   Delta — {driverByNumber.get(driverA)?.name_acronym} vs {driverByNumber.get(driverB)?.name_acronym}
                   <span className="ml-2 font-normal text-muted">(+ = A ahead)</span>
                 </div>

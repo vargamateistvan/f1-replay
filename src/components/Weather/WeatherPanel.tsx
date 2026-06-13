@@ -17,13 +17,13 @@ export function WeatherPanel({ entries, sessionTimeMs, sessionStartMs }: Props) 
   const currentT = sessionStartMs + sessionTimeMs
 
   const w = useMemo(
-    () => [...entries].filter((e) => new Date(e.date).getTime() <= currentT).at(-1),
+    () => entries.findLast((e) => new Date(e.date).getTime() <= currentT),
     [entries, currentT],
   )
 
   // Previous reading (for trend arrows)
   const prev = useMemo(
-    () => [...entries].filter((e) => new Date(e.date).getTime() <= currentT - 60_000).at(-1),
+    () => entries.findLast((e) => new Date(e.date).getTime() <= currentT - 60_000),
     [entries, currentT],
   )
 
@@ -33,32 +33,37 @@ export function WeatherPanel({ entries, sessionTimeMs, sessionStartMs }: Props) 
 
   const isRaining = w.rainfall > 0
   const trackDelta = prev ? w.track_temperature - prev.track_temperature : 0
-  const trend = (delta: number) => delta > 0.2 ? '▲' : delta < -0.2 ? '▼' : ''
+
+  function trend(delta: number): string {
+    if (delta > 0.2) return '▲'
+    if (delta < -0.2) return '▼'
+    return ''
+  }
 
   return (
-    <div className={`p-2 text-xs font-mono transition-colors ${isRaining ? 'bg-blue-950/40' : ''}`}>
+    <div className={`px-3 py-2 text-xs transition-colors ${isRaining ? 'bg-blue-950/30' : ''}`}>
       {isRaining && (
-        <div className="text-blue-300 font-bold text-[10px] tracking-widest mb-1 uppercase">
+        <span className="inline-block mb-1.5 bg-blue-600 text-white text-[10px] font-black uppercase tracking-widest px-2 py-0.5">
           Rain
-        </div>
-      )}
-      <div className="grid grid-cols-[auto_1fr_auto_1fr] gap-x-3 gap-y-0.5">
-        <span className="text-muted">Track</span>
-        <span className="tabular-nums">
-          {w.track_temperature.toFixed(1)}°C
-          <span className="text-yellow-400 ml-0.5 text-[10px]">{trend(trackDelta)}</span>
         </span>
-        <span className="text-muted">Air</span>
-        <span className="tabular-nums">{w.air_temperature.toFixed(1)}°C</span>
+      )}
+      <div className="grid grid-cols-[auto_1fr_auto_1fr] gap-x-4 gap-y-1">
+        <span className="text-[10px] font-bold uppercase tracking-widest text-muted">Track</span>
+        <span className="font-mono tabular-nums text-xs">
+          {w.track_temperature.toFixed(1)}°C
+          <span className="text-[#ffd600] ml-0.5 text-[10px]">{trend(trackDelta)}</span>
+        </span>
+        <span className="text-[10px] font-bold uppercase tracking-widest text-muted">Air</span>
+        <span className="font-mono tabular-nums text-xs">{w.air_temperature.toFixed(1)}°C</span>
 
-        <span className="text-muted">Humidity</span>
-        <span className="tabular-nums">{w.humidity}%</span>
-        <span className="text-muted">Pressure</span>
-        <span className="tabular-nums">{w.pressure.toFixed(0)} hPa</span>
+        <span className="text-[10px] font-bold uppercase tracking-widest text-muted">Humidity</span>
+        <span className="font-mono tabular-nums text-xs">{w.humidity}%</span>
+        <span className="text-[10px] font-bold uppercase tracking-widest text-muted">Pressure</span>
+        <span className="font-mono tabular-nums text-xs">{w.pressure.toFixed(0)} hPa</span>
 
-        <span className="text-muted">Wind</span>
-        <span className="tabular-nums col-span-3">
-          {w.wind_speed.toFixed(1)} m/s {windDir(w.wind_direction)} ({w.wind_direction}°)
+        <span className="text-[10px] font-bold uppercase tracking-widest text-muted">Wind</span>
+        <span className="font-mono tabular-nums text-xs col-span-3">
+          {w.wind_speed.toFixed(1)} m/s {windDir(w.wind_direction)}
         </span>
       </div>
     </div>

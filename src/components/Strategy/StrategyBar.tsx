@@ -3,12 +3,12 @@ import type { Stint, Driver, Lap, Pit } from '@/api/types'
 import { teamColor } from '@/utils/color'
 
 const COMPOUND_COLOR: Record<string, string> = {
-  SOFT: '#e8002d',
-  MEDIUM: '#ffd700',
-  HARD: '#e0e0e0',
-  INTERMEDIATE: '#39b54a',
-  WET: '#0067ff',
-  UNKNOWN: '#888',
+  SOFT:         '#E8002D',
+  MEDIUM:       '#ffd600',
+  HARD:         '#f0f0f0',
+  INTERMEDIATE: '#39d743',
+  WET:          '#0067ff',
+  UNKNOWN:      '#555',
 }
 
 const COMPOUND_LABEL: Record<string, string> = {
@@ -96,14 +96,14 @@ export function StrategyBar({ stints, drivers, laps, pits, sessionTimeMs, sessio
   }
 
   return (
-    <div className="p-2 text-xs font-mono space-y-0.5 overflow-auto h-full">
+    <div className="px-3 py-2 space-y-0.5 overflow-auto h-full">
 
       {/* Lap axis */}
       <div className="flex items-center mb-1 pl-10 pr-1 relative h-4">
         {axisTicks.map((lap) => (
           <span
             key={lap}
-            className="absolute text-[10px] text-muted -translate-x-1/2"
+            className="absolute text-[10px] font-mono text-muted -translate-x-1/2"
             style={{ left: `calc(2.5rem + ${(lap / maxLap) * 100}% * (100% - 2.5rem) / 100%)` }}
           >
             {lap}
@@ -121,28 +121,34 @@ export function StrategyBar({ stints, drivers, laps, pits, sessionTimeMs, sessio
         return (
           <div key={num} className="flex items-center gap-1 h-5">
             {/* Driver label */}
-            <span className="w-9 text-right shrink-0 text-muted text-[10px] truncate" style={{ color }}>
+            <span className="w-9 text-right shrink-0 text-[10px] font-black truncate" style={{ color }}>
               {driver?.name_acronym ?? num}
             </span>
 
             {/* Timeline bar */}
-            <div className="relative flex flex-1 h-4 rounded overflow-hidden bg-track">
+            <div className="relative flex flex-1 h-4 overflow-hidden bg-[#15151e]">
 
               {/* Stint segments */}
               {dStints.map((s) => {
                 const left = ((s.lap_start - 1) / maxLap) * 100
                 const width = ((s.lap_end - s.lap_start + 1) / maxLap) * 100
-                const bg = COMPOUND_COLOR[s.compound] ?? '#888'
+                const bg = COMPOUND_COLOR[s.compound] ?? '#555'
+                const isHard = s.compound === 'HARD'
                 return (
                   <div
                     key={s.stint_number}
                     title={`${s.compound} (new+${s.tyre_age_at_start}) L${s.lap_start}–${s.lap_end}`}
-                    className="absolute top-0 h-full flex items-center justify-center border-r border-track/50 last:border-r-0"
-                    style={{ left: `${left}%`, width: `${width}%`, background: bg }}
+                    className="absolute top-0 h-full flex items-center justify-center"
+                    style={{
+                      left: `${left}%`,
+                      width: `${width}%`,
+                      background: bg,
+                      borderRight: '1px solid #15151e',
+                      outline: isHard ? '1px solid #555' : undefined,
+                    }}
                   >
-                    {/* Show compound letter if wide enough */}
                     {width > 8 && (
-                      <span className="text-[9px] font-black text-black/60 leading-none select-none">
+                      <span className="text-[9px] font-black leading-none select-none text-black/70">
                         {COMPOUND_LABEL[s.compound] ?? '?'}
                       </span>
                     )}
@@ -150,14 +156,14 @@ export function StrategyBar({ stints, drivers, laps, pits, sessionTimeMs, sessio
                 )
               })}
 
-              {/* Pit stop markers — small dark triangles on the bar */}
+              {/* Pit stop markers */}
               {dPits.map((p, i) => {
                 const left = ((p.lap_number - 1) / maxLap) * 100
                 return (
                   <div
                     key={i}
                     title={`Pit L${p.lap_number}${p.pit_duration ? ` (${p.pit_duration.toFixed(1)}s)` : ''}`}
-                    className="absolute top-0 h-full w-0.5 bg-white/80 z-10"
+                    className="absolute top-0 h-full w-px bg-[#636369] z-10"
                     style={{ left: `${left}%` }}
                   />
                 )
@@ -166,7 +172,7 @@ export function StrategyBar({ stints, drivers, laps, pits, sessionTimeMs, sessio
               {/* Current-lap marker */}
               {currentLap > 0 && (
                 <div
-                  className="absolute top-0 h-full w-px bg-white z-20 pointer-events-none"
+                  className="absolute top-0 h-full w-px bg-f1red z-20 pointer-events-none"
                   style={{ left: `${currentLapPct}%` }}
                 />
               )}
@@ -176,22 +182,22 @@ export function StrategyBar({ stints, drivers, laps, pits, sessionTimeMs, sessio
       })}
 
       {/* Legend */}
-      <div className="flex flex-wrap gap-x-3 gap-y-0.5 mt-1 pt-1 border-t border-panel">
+      <div className="flex flex-wrap gap-x-3 gap-y-0.5 mt-1.5 pt-1.5 border-t border-[#2a2a35]">
         {Object.entries(COMPOUND_COLOR)
           .filter(([c]) => c !== 'UNKNOWN')
           .map(([c, color]) => (
             <span key={c} className="flex items-center gap-1">
-              <span className="w-2.5 h-2.5 rounded-sm inline-block" style={{ background: color }} />
-              <span className="text-muted text-[10px]">{c[0]}</span>
+              <span className="w-2.5 h-2.5 inline-block" style={{ background: color }} />
+              <span className="text-muted text-[10px] font-bold uppercase">{c[0]}</span>
             </span>
           ))}
         <span className="flex items-center gap-1 ml-2">
-          <span className="w-px h-3 bg-white inline-block" />
-          <span className="text-muted text-[10px]">Pit</span>
+          <span className="w-px h-3 bg-[#636369] inline-block" />
+          <span className="text-muted text-[10px] font-bold uppercase">Pit</span>
         </span>
         <span className="flex items-center gap-1">
-          <span className="w-px h-3 bg-white/80 inline-block" />
-          <span className="text-muted text-[10px]">Now</span>
+          <span className="w-px h-3 bg-f1red inline-block" />
+          <span className="text-muted text-[10px] font-bold uppercase">Now</span>
         </span>
       </div>
     </div>

@@ -55,30 +55,29 @@ export function TeamRadioFeed({ entries, drivers, sessionTimeMs, sessionStartMs 
         return (
           <div
             key={i}
-            className="flex items-start gap-2 text-xs border-b border-panel/40 pb-1"
+            className="flex items-start gap-2 border-b border-[#2a2a35] pb-1.5 pt-0.5"
           >
             {/* Team colour bar */}
             <span
-              className="w-1 self-stretch rounded-sm shrink-0 mt-0.5"
+              className="w-[3px] self-stretch shrink-0"
               style={{ background: color }}
             />
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2">
-                <span className="font-bold" style={{ color }}>
+                <span className="font-black text-xs" style={{ color }}>
                   {driver?.name_acronym ?? e.driver_number}
                 </span>
-                <span className="text-muted tabular-nums">
+                <span className="text-muted font-mono tabular-nums text-[10px]">
                   {fmtSessionTime(entryMs, sessionStartMs)}
                 </span>
               </div>
-              {/* Audio player — native <audio> hidden, driven by a play button */}
-              <div className="mt-0.5">
+              <div className="mt-1">
                 <button
                   onClick={() => play(e.recording_url)}
-                  className={`flex items-center gap-1 px-2 py-0.5 rounded text-xs transition-colors ${
+                  className={`flex items-center gap-1.5 px-2.5 py-0.5 text-[10px] font-black uppercase tracking-widest transition-colors ${
                     isPlaying
                       ? 'bg-f1red text-white'
-                      : 'bg-panel text-muted hover:text-white'
+                      : 'bg-panel text-muted hover:text-white hover:bg-[#38383f]'
                   }`}
                 >
                   {isPlaying ? '⏹ Stop' : '▶ Play'}

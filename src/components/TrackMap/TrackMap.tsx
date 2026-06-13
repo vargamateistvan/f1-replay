@@ -96,12 +96,12 @@ export function TrackMap({ sessionKey, drivers, locationData, sessionStartMs }: 
     <svg
       viewBox={`0 0 ${SVG_W} ${SVG_H}`}
       className="w-full h-full"
-      style={{ background: '#0b1120' }}
+      style={{ background: '#15151e' }}
     >
-      {/* Track surface — wide dark stroke + thinner lighter stroke for edge contrast */}
-      <path d={pathData} fill="none" stroke="#1e2d4a" strokeWidth={12} strokeLinecap="round" strokeLinejoin="round" />
-      <path d={pathData} fill="none" stroke="#2e4268" strokeWidth={7} strokeLinecap="round" strokeLinejoin="round" />
-      <path d={pathData} fill="none" stroke="#3d5580" strokeWidth={3} strokeLinecap="round" strokeLinejoin="round" />
+      {/* Track surface: thick grey base + thin white highlight */}
+      <path d={pathData} fill="none" stroke="#38383f" strokeWidth={11} strokeLinecap="round" strokeLinejoin="round" />
+      <path d={pathData} fill="none" stroke="#4a4a55" strokeWidth={7} strokeLinecap="round" strokeLinejoin="round" />
+      <path d={pathData} fill="none" stroke="#ffffff" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" strokeOpacity={0.15} />
 
       {/* Car dots */}
       {carPositions.map(({ num, x, y }) => {
@@ -110,17 +110,17 @@ export function TrackMap({ sessionKey, drivers, locationData, sessionStartMs }: 
         const { sx, sy } = locationToSvg(x, y, bounds, innerW, innerH)
         return (
           <g key={num} transform={`translate(${(sx + PAD).toFixed(1)},${(sy + PAD).toFixed(1)})`}>
-            <circle r={5} fill={color} stroke="#000" strokeWidth={1} />
-            <text x={7} y={4} fontSize={8} fill={color} fontFamily="monospace" fontWeight="bold">
+            <circle r={4.5} fill={color} stroke="#ffffff" strokeWidth={1.2} strokeOpacity={0.6} />
+            <text x={7} y={-5} fontSize={8} fill={color} fontFamily="Inter, sans-serif" fontWeight="900" letterSpacing="0.04em">
               {driver?.name_acronym ?? num}
             </text>
           </g>
         )
       })}
 
-      {/* No-data hint when location window hasn't loaded yet */}
+      {/* No-data hint */}
       {locationIndexes.size === 0 && (
-        <text x={SVG_W / 2} y={SVG_H / 2} textAnchor="middle" fill="#4a5568" fontSize={11} fontFamily="monospace">
+        <text x={SVG_W / 2} y={SVG_H / 2} textAnchor="middle" fill="#636369" fontSize={11} fontFamily="Inter, sans-serif">
           Press ▶ to start replay
         </text>
       )}
