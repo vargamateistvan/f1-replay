@@ -53,16 +53,18 @@ export function useStandings(year: number) {
     staleTime: Infinity,
   })
 
-  // Final positions for every race session (batched, rate-limited by our client queue)
-  const positionQueries = useQueries({
+  // Authoritative classification for every race session (batched, rate-limited by
+  // our client queue). session_result gives finishing position, points, and
+  // DNF/DNS/DSQ flags directly — far more accurate than scraping the last position.
+  const resultQueries = useQueries({
     queries: raceSessions.map((s) => ({
-      queryKey: ['positions', s.session_key],
-      queryFn: () => api.positions(s.session_key),
+      queryKey: ['sessionResult', s.session_key],
+      queryFn: () => api.sessionResult(s.session_key),
       staleTime: Infinity,
     })),
   })
 
-  const loadedRaces = positionQueries.filter((q) => q.data !== undefined).length
+  const loadedRaces = resultQueries.filter((q) => q.data !== undefined).length
   const totalRaces = raceSessions.length
 
   // Build lookup maps from driver data
@@ -89,26 +91,30 @@ export function useStandings(year: number) {
     const cColor = new Map<string, string>()
 
     raceSessions.forEach((session, i) => {
-      const result = positionQueries[i]?.data
+      const result = resultQueries[i]?.data
       if (!result || result.length === 0) return
 
       const isSprint = session.session_type === 'Sprint'
-      const pts = isSprint ? SPRINT_POINTS : RACE_POINTS
+      const fallbackPts = isSprint ? SPRINT_POINTS : RACE_POINTS
 
-      // Last known position per driver = finishing position
-      const finalPos = new Map<number, number>()
-      for (const p of result) finalPos.set(p.driver_number, p.position)
+      for (const r of result) {
+        if (r.dns) continue // did not start → no entry
+        const num = r.driver_number
+        const pos = r.position
+        const classified = pos !== null && !r.dsq // finished and not disqualified
+        const won = classified && pos === 1
+        const onPodium = classified && pos <= 3
+        // Trust the API's points when present; otherwise derive from finishing slot.
+        const earned = r.points ?? (classified ? (fallbackPts[pos - 1] ?? 0) : 0)
 
-      for (const [num, pos] of finalPos) {
-        const p = pts[pos - 1] ?? 0
-        dPts.set(num, (dPts.get(num) ?? 0) + p)
-        if (pos === 1) dWins.set(num, (dWins.get(num) ?? 0) + 1)
-        if (pos <= 3) dPodiums.set(num, (dPodiums.get(num) ?? 0) + 1)
+        dPts.set(num, (dPts.get(num) ?? 0) + earned)
+        if (won) dWins.set(num, (dWins.get(num) ?? 0) + 1)
+        if (onPodium) dPodiums.set(num, (dPodiums.get(num) ?? 0) + 1)
 
         const t = driverInfo.team.get(num)
         if (t) {
-          cPts.set(t, (cPts.get(t) ?? 0) + p)
-          if (pos === 1) cWins.set(t, (cWins.get(t) ?? 0) + 1)
+          cPts.set(t, (cPts.get(t) ?? 0) + earned)
+          if (won) cWins.set(t, (cWins.get(t) ?? 0) + 1)
           const c = driverInfo.color.get(num)
           if (c) cColor.set(t, c)
         }
@@ -142,7 +148,7 @@ export function useStandings(year: number) {
       .map((s, i) => ({ ...s, position: i + 1 }))
 
     return { driverStandings, constructorStandings }
-  }, [raceSessions, positionQueries, driverInfo])
+  }, [raceSessions, resultQueries, driverInfo])
 
   return {
     driverStandings,
@@ -150,7 +156,7 @@ export function useStandings(year: number) {
     loadedRaces,
     totalRaces,
     isLoading: sessionsQ.isPending,
-    isFetching: positionQueries.some((q) => q.isFetching),
-    isError: sessionsQ.isError || positionQueries.some((q) => q.isError),
+    isFetching: resultQueries.some((q) => q.isFetching),
+    isError: sessionsQ.isError || resultQueries.some((q) => q.isError),
   }
 }

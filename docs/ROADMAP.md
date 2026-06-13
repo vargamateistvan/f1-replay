@@ -219,10 +219,10 @@ Service worker to cache immutable historical data — replays work offline once 
 3. ✅ 1.4 Clock drift clamp 🟠 — per-frame real delta capped at `MAX_FRAME_STEP_MS` (250 ms) in `clock.ts`
 4. ✅ 6.2 Constants file 🟢 (`src/constants.ts`) · ✅ 3.2 dynamic years 🟢 (single `YEARS`/`DEFAULT_YEAR` source)
 
-**Milestone B — Shareability & data quality**
-5. 3.1 URL state persistence 🔵 (highest UX leverage)
-6. 2.1 `session_result` → 1.2 correct standings
-7. 2.2 `starting_grid` (positions gained/lost)
+**Milestone B — Shareability & data quality — ✅ DONE**
+5. ✅ 3.1 URL state persistence 🔵 — `useSearchParamState` (year/meeting/session/driver/lap/tab) + `useTimelineUrlSync` (playhead `t` + speed, restore-once from a deep link, reset on manual session switch)
+6. ✅ 2.1 `session_result` + 2.1 types/endpoints → ✅ 1.2 standings now use authoritative classification (DNF/DNS/DSQ handled, API points trusted with positional fallback)
+7. ✅ 2.2 `starting_grid` → places gained/lost (▲/▼) per driver in Live Timing
 
 **Milestone C — Depth & delight**
 8. 3.3 jump-to-event + 3.8 keyboard shortcuts

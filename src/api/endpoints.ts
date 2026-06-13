@@ -2,7 +2,7 @@ import { fetchEndpoint } from './client'
 import type {
   Meeting, Session, Driver, Location, CarData,
   Lap, Position, Interval, Pit, Stint,
-  RaceControl, TeamRadio, Weather,
+  RaceControl, TeamRadio, Weather, SessionResult, StartingGrid,
 } from './types'
 
 export const api = {
@@ -72,4 +72,10 @@ export const api = {
 
   weather: (sessionKey: number) =>
     fetchEndpoint<Weather>('weather', { session_key: sessionKey }),
+
+  sessionResult: (sessionKey: number) =>
+    fetchEndpoint<SessionResult>('session_result', { session_key: sessionKey }),
+
+  startingGrid: (sessionKey: number) =>
+    fetchEndpoint<StartingGrid>('starting_grid', { session_key: sessionKey }),
 }

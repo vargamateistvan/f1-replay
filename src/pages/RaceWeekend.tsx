@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useEffect } from 'react'
 import { SessionPicker } from '@/components/SessionPicker'
 import { PlaybackBar } from '@/components/PlaybackBar'
 import { TrackMap } from '@/components/TrackMap/TrackMap'
@@ -12,9 +12,12 @@ import {
   useDrivers, usePositions, useIntervals,
   useStints, useLaps, useRaceControl,
   useWeather, useSessions, usePits, useTeamRadio,
+  useStartingGrid,
 } from '@/hooks/useSession'
 import { useTimeline } from '@/timeline/clock'
 import { useLocationChunks, chunkIndexFor } from '@/hooks/useLocationChunks'
+import { useNumberParam, useStringParam } from '@/hooks/useSearchParamState'
+import { useTimelineUrlSync } from '@/hooks/useTimelineUrlSync'
 import { isSessionLive } from '@/utils/live'
 import { DEFAULT_YEAR } from '@/constants'
 
@@ -24,10 +27,11 @@ const PANEL_TITLE = 'text-[10px] font-bold text-muted px-3 py-2 border-b border-
 type RightTab = 'rc' | 'radio'
 
 export default function RaceWeekend() {
-  const [year, setYear] = useState<number>(DEFAULT_YEAR)
-  const [meetingKey, setMeetingKey] = useState<number | null>(null)
-  const [sessionKey, setSessionKey] = useState<number | null>(null)
-  const [rightTab, setRightTab] = useState<RightTab>('rc')
+  const [yearParam, setYear] = useNumberParam('year', DEFAULT_YEAR)
+  const year = yearParam ?? DEFAULT_YEAR
+  const [meetingKey, setMeetingKey] = useNumberParam('meeting', null)
+  const [sessionKey, setSessionKey] = useNumberParam('session', null)
+  const [rightTab, setRightTab] = useStringParam<RightTab>('tab', 'rc')
 
   const sessions = useSessions(meetingKey)
   const session = sessions.data?.find((s) => s.session_key === sessionKey)
@@ -39,6 +43,7 @@ export default function RaceWeekend() {
   const stints = useStints(sessionKey)
   const laps = useLaps(sessionKey, undefined, live)
   const pits = usePits(sessionKey)
+  const grid = useStartingGrid(sessionKey)
   const raceControl = useRaceControl(sessionKey, live)
   const teamRadio = useTeamRadio(sessionKey, live)
   const weather = useWeather(sessionKey, live)
@@ -52,6 +57,9 @@ export default function RaceWeekend() {
   useEffect(() => {
     if (sessionStartMs) setSessionStart(sessionStartMs)
   }, [sessionStartMs, setSessionStart])
+
+  // Persist playhead + speed to the URL and restore from a shared link
+  useTimelineUrlSync(sessionKey, sessionStartMs > 0)
 
   const isLoadingSessionData =
     sessionKey !== null &&
@@ -67,7 +75,7 @@ export default function RaceWeekend() {
         year={year}
         meetingKey={meetingKey}
         sessionKey={sessionKey}
-        onYear={setYear}
+        onYear={(y) => { setYear(y); setMeetingKey(null); setSessionKey(null) }}
         onMeeting={(k) => { setMeetingKey(k); setSessionKey(null) }}
         onSession={setSessionKey}
       />
@@ -124,6 +132,7 @@ export default function RaceWeekend() {
                   intervals={intervals.data ?? []}
                   pits={pits.data ?? []}
                   laps={laps.data ?? []}
+                  grid={grid.data ?? []}
                   sessionTimeMs={t}
                   sessionStartMs={sessionStartMs}
                   isLoading={positions.isPending && sessionKey !== null}

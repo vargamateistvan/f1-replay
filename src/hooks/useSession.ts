@@ -67,6 +67,15 @@ export function useStints(sessionKey: number | null) {
   })
 }
 
+export function useStartingGrid(sessionKey: number | null) {
+  return useQuery({
+    queryKey: ['startingGrid', sessionKey],
+    queryFn: () => api.startingGrid(sessionKey!),
+    enabled: sessionKey !== null,
+    staleTime: Infinity,
+  })
+}
+
 export function usePits(sessionKey: number | null) {
   return useQuery({
     queryKey: ['pits', sessionKey],

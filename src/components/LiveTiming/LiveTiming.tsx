@@ -1,5 +1,5 @@
 import { useMemo } from 'react'
-import type { Driver, Position, Interval, Pit, Lap } from '@/api/types'
+import type { Driver, Position, Interval, Pit, Lap, StartingGrid } from '@/api/types'
 import { teamColor } from '@/utils/color'
 import { SECTOR_PURPLE_S, SECTOR_GREEN_S } from '@/constants'
 
@@ -9,6 +9,7 @@ interface Props {
   readonly intervals: Interval[]
   readonly pits: Pit[]
   readonly laps: Lap[]
+  readonly grid?: StartingGrid[]
   readonly sessionTimeMs: number
   readonly sessionStartMs: number
   readonly isLoading?: boolean
@@ -35,7 +36,7 @@ function sectorClass(t: number | null, best: number | null): string {
 }
 
 export function LiveTiming({
-  drivers, positions, intervals, pits, laps,
+  drivers, positions, intervals, pits, laps, grid,
   sessionTimeMs, sessionStartMs, isLoading,
 }: Props) {
   const currentT = sessionStartMs + sessionTimeMs
@@ -46,6 +47,13 @@ export function LiveTiming({
       if (new Date(p.date).getTime() <= currentT) m.set(p.driver_number, p.position)
     return m
   }, [positions, currentT])
+
+  // Grid slot per driver → lets us show places gained/lost vs the start.
+  const gridMap = useMemo(() => {
+    const m = new Map<number, number>()
+    for (const g of grid ?? []) m.set(g.driver_number, g.position)
+    return m
+  }, [grid])
 
   const intMap = useMemo(() => {
     const m = new Map<number, Interval>()
@@ -149,6 +157,8 @@ export function LiveTiming({
             const s1 = fmtSector(lastLap?.duration_sector_1 ?? null)
             const s2 = fmtSector(lastLap?.duration_sector_2 ?? null)
             const s3 = fmtSector(lastLap?.duration_sector_3 ?? null)
+            const gridPos = gridMap.get(num) ?? null
+            const gained = gridPos !== null ? gridPos - pos : null
 
             return (
               <tr key={num} className="border-b border-[#2a2a35]">
@@ -162,6 +172,14 @@ export function LiveTiming({
                     <span className="font-black text-xs" style={{ color }}>
                       {driver?.name_acronym ?? num}
                     </span>
+                    {gained !== null && gained !== 0 && (
+                      <span
+                        className={`text-[9px] font-bold tabular-nums ${gained > 0 ? 'text-[#39d743]' : 'text-[#ff5252]'}`}
+                        title={`${gained > 0 ? 'Gained' : 'Lost'} ${Math.abs(gained)} since start (P${gridPos})`}
+                      >
+                        {gained > 0 ? '▲' : '▼'}{Math.abs(gained)}
+                      </span>
+                    )}
                     {inPit && (
                       <span className="bg-[#2a2a35] text-[#a3a3a3] text-[10px] font-black uppercase tracking-widest px-1.5 py-0.5">
                         PIT

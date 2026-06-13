@@ -158,3 +158,28 @@ export interface Weather {
   wind_direction: number
   wind_speed: number
 }
+
+// Final classification for a session. `position` is null for cars that did not
+// take the start (DNS). `points` is provided by the API for points-paying sessions.
+export interface SessionResult {
+  position: number | null
+  driver_number: number
+  number_of_laps: number | null
+  points: number | null
+  dnf: boolean
+  dns: boolean
+  dsq: boolean
+  duration: number | number[] | null
+  gap_to_leader: number | string | number[] | null
+  meeting_key: number
+  session_key: number
+}
+
+// Grid order at lights-out. `lap_duration` is the qualifying time that set the slot.
+export interface StartingGrid {
+  position: number
+  driver_number: number
+  lap_duration: number | null
+  meeting_key: number
+  session_key: number
+}

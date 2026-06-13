@@ -1,9 +1,10 @@
-import { useState, useMemo } from 'react'
+import { useMemo } from 'react'
 import { SessionPicker } from '@/components/SessionPicker'
 import { TelemetryChart } from '@/components/TelemetryChart/TelemetryChart'
 import { ErrorMessage } from '@/components/ErrorMessage'
 import { useDrivers, useLaps, useSessions } from '@/hooks/useSession'
 import { useCarDataForLap, type TelemetrySample } from '@/hooks/useCarDataForLap'
+import { useNumberParam } from '@/hooks/useSearchParamState'
 import { teamColor } from '@/utils/color'
 import { DEFAULT_YEAR } from '@/constants'
 
@@ -48,12 +49,13 @@ const PANEL_TITLE = 'text-[10px] font-bold text-muted px-3 py-2 border-b border-
 const LABEL = 'text-[10px] font-bold uppercase tracking-widest text-muted'
 
 export default function Telemetry() {
-  const [year, setYear] = useState<number>(DEFAULT_YEAR)
-  const [meetingKey, setMeetingKey] = useState<number | null>(null)
-  const [sessionKey, setSessionKey] = useState<number | null>(null)
-  const [driverA, setDriverA] = useState<number | null>(null)
-  const [driverB, setDriverB] = useState<number | null>(null)
-  const [lapNumber, setLapNumber] = useState<number | null>(null)
+  const [yearParam, setYear] = useNumberParam('year', DEFAULT_YEAR)
+  const year = yearParam ?? DEFAULT_YEAR
+  const [meetingKey, setMeetingKey] = useNumberParam('meeting', null)
+  const [sessionKey, setSessionKey] = useNumberParam('session', null)
+  const [driverA, setDriverA] = useNumberParam('a', null)
+  const [driverB, setDriverB] = useNumberParam('b', null)
+  const [lapNumber, setLapNumber] = useNumberParam('lap', null)
 
   const sessions = useSessions(meetingKey)
   const drivers = useDrivers(sessionKey)
@@ -119,7 +121,7 @@ export default function Telemetry() {
         year={year}
         meetingKey={meetingKey}
         sessionKey={sessionKey}
-        onYear={setYear}
+        onYear={(y) => { setYear(y); setMeetingKey(null); setSessionKey(null); setDriverA(null); setDriverB(null); setLapNumber(null) }}
         onMeeting={(k) => { setMeetingKey(k); setSessionKey(null); setDriverA(null); setDriverB(null); setLapNumber(null) }}
         onSession={(k) => { setSessionKey(k); setDriverA(null); setDriverB(null); setLapNumber(null) }}
       />

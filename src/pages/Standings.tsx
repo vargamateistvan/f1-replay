@@ -1,10 +1,10 @@
-import { useState } from 'react'
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid,
   Tooltip, Cell, ResponsiveContainer,
 } from 'recharts'
 import { useStandings, type DriverStanding, type ConstructorStanding } from '@/hooks/useStandings'
 import { ErrorMessage } from '@/components/ErrorMessage'
+import { useNumberParam, useStringParam } from '@/hooks/useSearchParamState'
 import { YEARS, DEFAULT_YEAR } from '@/constants'
 
 type Tab = 'drivers' | 'constructors'
@@ -205,8 +205,9 @@ function ConstructorChart({ standings }: { standings: ConstructorStanding[] }) {
 
 // ── Page ──────────────────────────────────────────────────────────────────────
 export default function Standings() {
-  const [year, setYear] = useState<number>(DEFAULT_YEAR)
-  const [tab, setTab] = useState<Tab>('drivers')
+  const [yearParam, setYear] = useNumberParam('year', DEFAULT_YEAR)
+  const year = yearParam ?? DEFAULT_YEAR
+  const [tab, setTab] = useStringParam<Tab>('tab', 'drivers')
 
   const { driverStandings, constructorStandings, loadedRaces, totalRaces, isLoading, isFetching, isError } =
     useStandings(year)
