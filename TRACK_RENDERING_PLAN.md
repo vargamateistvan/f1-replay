@@ -99,6 +99,10 @@ per session. **This must be validated against real data first (see §4, Phase 0)
 | **Keep GPS-derived, just polish rendering** | Doesn't fix reliability, cold-start, coverage, or accuracy. Lipstick on the noisy source. |
 | **f1-circuits GeoJSON as primary** | Accurate shapes but lat/lng needs projection *and* alignment to OpenF1's arbitrary cartesian — strictly harder than MultiViewer, which is already in-family. Use only as fallback. |
 
+## Status: IMPLEMENTED (June 2026)
+
+All phases complete. Run `node scripts/fetch-circuits.mjs` once to bake circuit data, then commit `src/data/circuit-geometry/*.json`.
+
 ## 4. Implementation phases
 
 **Phase 0 — Validate (do first, blocks everything):**

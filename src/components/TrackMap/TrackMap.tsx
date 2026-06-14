@@ -15,6 +15,7 @@ import {
   FOLLOW_ZOOM_H,
 } from "@/constants";
 import { getCircuitLayout } from "@/data/circuits";
+import { getCircuitGeometry } from "@/data/circuitGeometry";
 
 // Speed → HSL color: 0 km/h = blue (240°), 150 = green (120°), 300+ = red (0°).
 // Matches the F1 broadcast "speed trace" convention.
@@ -74,6 +75,7 @@ interface Props {
   readonly focusDriver?: number | null;
   readonly pulseDrivers?: readonly number[];
   readonly circuitShortName?: string | null;
+  readonly circuitKey?: number | null;
   readonly activeCompounds?: ReadonlyMap<number, { compound: Stint["compound"]; age: number }>;
   readonly battlingDrivers?: ReadonlySet<number>;
   readonly focusDriverLap?: number | null;
@@ -89,34 +91,37 @@ export function TrackMap({
   focusDriver = null,
   pulseDrivers,
   circuitShortName,
+  circuitKey = null,
   activeCompounds,
   battlingDrivers,
   focusDriverLap = null,
   leaderboard,
   activeSectorFlag = null,
 }: Props) {
-  // TrackMap owns its t subscription so the animation loop is isolated here
   const { t } = useTimeline();
 
-  // Try drivers in order until one yields a valid track outline. A driver who
-  // retired on lap 1 may have no clean laps; trying the next avoids a blank map.
+  // Baked official geometry — available immediately when the bake script has run.
+  const circuitGeom = circuitKey != null ? getCircuitGeometry(circuitKey) : null;
+  const hasBaked = circuitGeom != null;
+
+  // Driver fallback loop: only needed for the GPS path (no baked data).
   const [driverFallbackIdx, setDriverFallbackIdx] = useState(0);
   useEffect(() => {
     setDriverFallbackIdx(0);
   }, [sessionKey]);
 
-  const candidateDriver = drivers[driverFallbackIdx] ?? drivers[0] ?? null;
+  const candidateDriver = hasBaked ? null : (drivers[driverFallbackIdx] ?? drivers[0] ?? null);
   const { data: outline, isPending } = useTrackOutline(
     sessionKey,
     candidateDriver?.driver_number ?? null,
+    circuitKey,
   );
 
-  // If this driver has no valid laps and there are more to try, advance the index.
   useEffect(() => {
-    if (!isPending && outline === null && driverFallbackIdx < drivers.length - 1) {
+    if (!hasBaked && !isPending && outline === null && driverFallbackIdx < drivers.length - 1) {
       setDriverFallbackIdx((i) => i + 1);
     }
-  }, [outline, isPending, driverFallbackIdx, drivers.length]);
+  }, [outline, isPending, driverFallbackIdx, drivers.length, hasBaked]);
 
   const driverByNumber = useMemo(
     () => new Map(drivers.map((d) => [d.driver_number, d])),
@@ -226,87 +231,101 @@ export function TrackMap({
     });
   }, [trackGeometry, heatData.data]);
 
-  // Memoize sector + DRS overlay elements — pure geometry, session-static.
-  const staticOverlays = useMemo(() => {
-    if (!trackGeometry || !circuitLayout) return null;
+  // Corner number labels from baked geometry — placed at each corner's trackPosition.
+  const cornerOverlays = useMemo(() => {
+    if (!trackGeometry || !circuitGeom || !circuitGeom.corners.length) return null;
     const { bounds, innerW, innerH } = trackGeometry;
     return (
       <>
-        {circuitLayout.sectors.map((sector) => {
-          const { sx: sx1, sy: sy1 } = locationToSvg(
-            sector.bounds.minX,
-            sector.bounds.minY,
-            bounds,
-            innerW,
-            innerH,
-          );
-          const { sx: sx2, sy: sy2 } = locationToSvg(
-            sector.bounds.maxX,
-            sector.bounds.maxY,
-            bounds,
-            innerW,
-            innerH,
-          );
-          const x = Math.min(sx1, sx2) + PAD;
-          const y = Math.min(sy1, sy2) + PAD;
-          const w = Math.abs(sx2 - sx1);
-          const h = Math.abs(sy2 - sy1);
+        {circuitGeom.corners.map((corner) => {
+          const { sx, sy } = locationToSvg(corner.trackPosition.x, corner.trackPosition.y, bounds, innerW, innerH);
+          const cx = sx + PAD, cy = sy + PAD;
           return (
-            <g key={`sector-${sector.number}`} opacity={0.15}>
-              <rect x={x} y={y} width={w} height={h} fill={SECTOR_COLORS[sector.number]} />
+            <g key={`corner-${corner.number}`} opacity={0.55}>
+              <circle cx={cx} cy={cy} r={5} fill="none" stroke="#6b6b7a" strokeWidth={0.8} />
               <text
-                x={x + w / 2}
-                y={y + h / 2}
+                x={cx}
+                y={cy + 0.5}
                 textAnchor="middle"
                 dominantBaseline="middle"
-                fontSize={9}
-                fill={SECTOR_COLORS[sector.number]}
-                fontWeight="bold"
+                fontSize={4.5}
+                fill="#9b9baa"
                 fontFamily="Inter, sans-serif"
+                fontWeight="700"
               >
-                S{sector.number}
+                {corner.number}{corner.letter}
               </text>
-            </g>
-          );
-        })}
-        {circuitLayout.drsZones.map((zone, idx) => {
-          const { sx: sx1, sy: sy1 } = locationToSvg(
-            zone.line.x1,
-            zone.line.y1,
-            bounds,
-            innerW,
-            innerH,
-          );
-          const { sx: sx2, sy: sy2 } = locationToSvg(
-            zone.line.x2,
-            zone.line.y2,
-            bounds,
-            innerW,
-            innerH,
-          );
-          return (
-            <g key={`drs-${idx}`}>
-              <line
-                x1={sx1 + PAD}
-                y1={sy1 + PAD}
-                x2={sx2 + PAD}
-                y2={sy2 + PAD}
-                stroke="#4da6ff"
-                strokeWidth={3}
-                opacity={0.8}
-              />
-              <circle cx={sx1 + PAD} cy={sy1 + PAD} r={2.5} fill="#4da6ff" />
             </g>
           );
         })}
       </>
     );
-  }, [trackGeometry, circuitLayout]);
+  }, [trackGeometry, circuitGeom]);
 
-  // Flag tint overlaid on top of sector boxes when a flag is active.
-  // Separate from staticOverlays so flag changes don't regenerate the static geometry.
+  // Marshal sector tick marks from baked geometry.
+  // Coloured by timing-sector (S1/S2/S3) based on which third of the circuit each belongs to.
+  const marshalSectorOverlays = useMemo(() => {
+    if (!trackGeometry || !circuitGeom || !circuitGeom.marshalSectors.length) return null;
+    const { bounds, innerW, innerH } = trackGeometry;
+    const total = circuitGeom.marshalSectors.length;
+    return (
+      <>
+        {circuitGeom.marshalSectors.map((ms, i) => {
+          const { sx, sy } = locationToSvg(ms.trackPosition.x, ms.trackPosition.y, bounds, innerW, innerH);
+          const cx = sx + PAD, cy = sy + PAD;
+          const sector = (i < total / 3 ? 1 : i < (2 * total) / 3 ? 2 : 3) as 1 | 2 | 3;
+          const color = SECTOR_COLORS[sector];
+          return (
+            <circle key={`ms-${ms.number}`} cx={cx} cy={cy} r={2.5}
+              fill={color} fillOpacity={0.35} stroke={color} strokeWidth={0.6} strokeOpacity={0.6} />
+          );
+        })}
+      </>
+    );
+  }, [trackGeometry, circuitGeom]);
+
+  // Memoize DRS + legacy sector rectangles (shown only when no baked geometry).
+  const staticOverlays = useMemo(() => {
+    if (!trackGeometry) return null;
+    const { bounds, innerW, innerH } = trackGeometry;
+    const drsElements = circuitLayout?.drsZones.map((zone, idx) => {
+      const { sx: sx1, sy: sy1 } = locationToSvg(zone.line.x1, zone.line.y1, bounds, innerW, innerH);
+      const { sx: sx2, sy: sy2 } = locationToSvg(zone.line.x2, zone.line.y2, bounds, innerW, innerH);
+      return (
+        <g key={`drs-${idx}`}>
+          <line x1={sx1 + PAD} y1={sy1 + PAD} x2={sx2 + PAD} y2={sy2 + PAD}
+            stroke="#4da6ff" strokeWidth={3} opacity={0.8} />
+          <circle cx={sx1 + PAD} cy={sy1 + PAD} r={2.5} fill="#4da6ff" />
+        </g>
+      );
+    }) ?? [];
+
+    // Legacy sector rectangles — only when no baked marshal sectors available.
+    const sectorRects = (!hasBaked && circuitLayout) ? circuitLayout.sectors.map((sector) => {
+      const { sx: sx1, sy: sy1 } = locationToSvg(sector.bounds.minX, sector.bounds.minY, bounds, innerW, innerH);
+      const { sx: sx2, sy: sy2 } = locationToSvg(sector.bounds.maxX, sector.bounds.maxY, bounds, innerW, innerH);
+      const x = Math.min(sx1, sx2) + PAD, y = Math.min(sy1, sy2) + PAD;
+      const w = Math.abs(sx2 - sx1), h = Math.abs(sy2 - sy1);
+      return (
+        <g key={`sector-${sector.number}`} opacity={0.15}>
+          <rect x={x} y={y} width={w} height={h} fill={SECTOR_COLORS[sector.number]} />
+          <text x={x + w / 2} y={y + h / 2} textAnchor="middle" dominantBaseline="middle"
+            fontSize={9} fill={SECTOR_COLORS[sector.number]} fontWeight="bold" fontFamily="Inter, sans-serif">
+            S{sector.number}
+          </text>
+        </g>
+      );
+    }) : [];
+
+    if (!drsElements.length && !sectorRects.length) return null;
+    return <>{sectorRects}{drsElements}</>;
+  }, [trackGeometry, circuitLayout, hasBaked]);
+
+  // Flag tint overlaid when a flag is active.
+  // With baked geometry: precise colored dots at each marshal sector position.
+  // Fallback: rectangle tints over legacy sector boxes.
   const sectorFlagTints = useMemo(() => {
-    if (!trackGeometry || !circuitLayout || !activeSectorFlag) return null;
+    if (!trackGeometry || !activeSectorFlag) return null;
     const TINT: Record<string, string> = {
       YELLOW:        '#f5d400',
       DOUBLE_YELLOW: '#f5d400',
@@ -318,20 +337,34 @@ export function TrackMap({
     const tint = TINT[activeSectorFlag];
     if (!tint) return null;
     const { bounds, innerW, innerH } = trackGeometry;
+
+    if (hasBaked && circuitGeom && circuitGeom.marshalSectors.length) {
+      return (
+        <>
+          {circuitGeom.marshalSectors.map((ms) => {
+            const { sx, sy } = locationToSvg(ms.trackPosition.x, ms.trackPosition.y, bounds, innerW, innerH);
+            return (
+              <circle key={`flag-ms-${ms.number}`} cx={sx + PAD} cy={sy + PAD}
+                r={4} fill={tint} fillOpacity={0.7} />
+            );
+          })}
+        </>
+      );
+    }
+
+    if (!circuitLayout) return null;
     return (
       <>
         {circuitLayout.sectors.map((sector) => {
           const { sx: sx1, sy: sy1 } = locationToSvg(sector.bounds.minX, sector.bounds.minY, bounds, innerW, innerH);
           const { sx: sx2, sy: sy2 } = locationToSvg(sector.bounds.maxX, sector.bounds.maxY, bounds, innerW, innerH);
-          const x = Math.min(sx1, sx2) + PAD;
-          const y = Math.min(sy1, sy2) + PAD;
-          const w = Math.abs(sx2 - sx1);
-          const h = Math.abs(sy2 - sy1);
+          const x = Math.min(sx1, sx2) + PAD, y = Math.min(sy1, sy2) + PAD;
+          const w = Math.abs(sx2 - sx1), h = Math.abs(sy2 - sy1);
           return <rect key={`flag-tint-${sector.number}`} x={x} y={y} width={w} height={h} fill={tint} opacity={0.28} />;
         })}
       </>
     );
-  }, [trackGeometry, circuitLayout, activeSectorFlag]);
+  }, [trackGeometry, circuitLayout, circuitGeom, hasBaked, activeSectorFlag]);
 
   // Current-moment car telemetry for the focused driver — binary search on date.
   // Runs at 60 fps but O(log n) on ~1000-sample arrays so cost is negligible.
@@ -458,8 +491,14 @@ export function TrackMap({
       {/* Sectors + DRS overlays (session-static, memoized) */}
       {staticOverlays}
 
-      {/* Active flag tint over sector boxes */}
+      {/* Marshal sector dots (baked geometry only) */}
+      {marshalSectorOverlays}
+
+      {/* Active flag tint over marshal sectors / sector boxes */}
       {sectorFlagTints}
+
+      {/* Corner numbers (baked geometry only) */}
+      {cornerOverlays}
 
       {/* Car dots — when a driver is focused, dim the rest and enlarge the pick */}
       {carPositions
