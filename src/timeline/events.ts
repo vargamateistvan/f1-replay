@@ -2,14 +2,15 @@ import type { Lap, Pit, RaceControl, Overtake, TeamRadio } from '@/api/types'
 
 // ─── Normalized toast events ────────────────────────────────────────────────
 
-export type ToastKind = 'radio' | 'flag' | 'overtake' | 'pit'
+export type ToastKind = 'radio' | 'flag' | 'overtake' | 'pit' | 'fastest_lap'
 
-export interface RadioPayload { driverNumber: number; recordingUrl: string }
-export interface FlagPayload  { flag: string; message: string; lapNumber: number | null }
-export interface OvertakePayload { overtaking: number; overtaken: number; position: number | null }
-export interface PitPayload  { driverNumber: number; lapNumber: number; pitDuration: number | null }
+export interface RadioPayload      { driverNumber: number; recordingUrl: string }
+export interface FlagPayload       { flag: string; message: string; lapNumber: number | null }
+export interface OvertakePayload   { overtaking: number; overtaken: number; position: number | null }
+export interface PitPayload        { driverNumber: number; lapNumber: number; pitDuration: number | null }
+export interface FastestLapPayload { driverNumber: number; lapNumber: number; lapTime: number }
 
-export type ToastPayload = RadioPayload | FlagPayload | OvertakePayload | PitPayload
+export type ToastPayload = RadioPayload | FlagPayload | OvertakePayload | PitPayload | FastestLapPayload
 
 export interface ToastEvent {
   id: string
@@ -27,6 +28,7 @@ export function buildToastEvents(
   overtakes: Overtake[],
   pits: Pit[],
   sessionStartMs: number,
+  laps: Lap[] = [],
 ): ToastEvent[] {
   const events: ToastEvent[] = []
 
@@ -77,6 +79,35 @@ export function buildToastEvents(
     })
   }
 
+  // Fastest lap: emit a toast each time a new session-best is set.
+  // Sort laps by completion time (date_start + lap_duration) and track running best.
+  const lapsByEnd = laps
+    .filter((l): l is Lap & { date_start: string; lap_duration: number } =>
+      l.date_start !== null && l.lap_duration !== null && l.lap_duration > 0)
+    .map((l) => ({
+      ...l,
+      endMs: new Date(l.date_start).getTime() - sessionStartMs + l.lap_duration * 1_000,
+    }))
+    .sort((a, b) => a.endMs - b.endMs)
+
+  let sessionBest = Infinity
+  for (const lap of lapsByEnd) {
+    if (lap.endMs < 0) continue
+    if (lap.lap_duration < sessionBest) {
+      sessionBest = lap.lap_duration
+      events.push({
+        id: `fastest-lap-${lap.driver_number}-${lap.lap_number}`,
+        ms: lap.endMs,
+        kind: 'fastest_lap',
+        payload: {
+          driverNumber: lap.driver_number,
+          lapNumber: lap.lap_number,
+          lapTime: lap.lap_duration,
+        } satisfies FastestLapPayload,
+      })
+    }
+  }
+
   return events.sort((a, b) => a.ms - b.ms)
 }
 
@@ -85,6 +116,13 @@ export function buildToastEvents(
 
 function relMs(dateIso: string, sessionStartMs: number): number {
   return new Date(dateIso).getTime() - sessionStartMs
+}
+
+export function radioTimes(entries: TeamRadio[], sessionStartMs: number): number[] {
+  return entries
+    .map((r) => relMs(r.date, sessionStartMs))
+    .filter((v) => v >= 0)
+    .sort((a, b) => a - b)
 }
 
 // Distinct lap boundaries (one per lap number, earliest start across drivers =

@@ -6,6 +6,7 @@ import type {
   FlagPayload,
   OvertakePayload,
   PitPayload,
+  FastestLapPayload,
 } from '@/timeline/events'
 import { teamColor } from '@/utils/color'
 
@@ -75,6 +76,9 @@ function ToastCard({
   }
   if (event.kind === 'pit') {
     return <PitToast at={at} driverMap={driverMap} onDismiss={onDismiss} />
+  }
+  if (event.kind === 'fastest_lap') {
+    return <FastestLapToast at={at} driverMap={driverMap} onDismiss={onDismiss} />
   }
   return null
 }
@@ -252,6 +256,56 @@ function PitToast({
       >
         ×
       </button>
+    </div>
+  )
+}
+
+// ─── Fastest lap ─────────────────────────────────────────────────────────────
+
+function fmtLapTime(sec: number): string {
+  const m = Math.floor(sec / 60)
+  const s = (sec % 60).toFixed(3).padStart(6, '0')
+  return m > 0 ? `${m}:${s}` : s
+}
+
+function FastestLapToast({
+  at,
+  driverMap,
+  onDismiss,
+}: {
+  at: ActiveToast
+  driverMap: Map<number, Driver>
+  onDismiss: (id: string) => void
+}) {
+  const p = at.event.payload as FastestLapPayload
+  const driver = driverMap.get(p.driverNumber)
+
+  return (
+    <div
+      className="toast-in pointer-events-auto shadow-xl overflow-hidden"
+      style={{ minWidth: 200, background: '#1a0e2e', border: '1px solid #9b59f5' }}
+    >
+      <div className="flex items-center gap-2 px-2.5 py-1" style={{ background: '#9b59f5' }}>
+        <span className="text-[10px] font-black uppercase tracking-widest text-white">
+          Fastest Lap
+        </span>
+        <span className="text-[9px] font-mono text-white/75 ml-auto">L{p.lapNumber}</span>
+      </div>
+      <div className="flex items-center justify-between px-2.5 py-2">
+        <span className="font-black text-[13px]" style={{ color: '#9b59f5' }}>
+          {driver?.name_acronym ?? p.driverNumber}
+        </span>
+        <span className="font-mono text-[12px] tabular-nums" style={{ color: '#9b59f5' }}>
+          {fmtLapTime(p.lapTime)}
+        </span>
+        <button
+          onClick={() => onDismiss(at.event.id)}
+          className="text-[#9b59f5]/60 hover:text-[#9b59f5] text-xs ml-2"
+          aria-label="Dismiss"
+        >
+          ×
+        </button>
+      </div>
     </div>
   )
 }

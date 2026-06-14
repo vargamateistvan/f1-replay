@@ -10,6 +10,7 @@ interface Props {
   pitTimes?: number[];
   flagTimes?: number[];
   overtakeTimes?: number[];
+  radioTimes?: number[];
 }
 
 function fmtTime(ms: number) {
@@ -33,6 +34,7 @@ export function PlaybackBar({
   pitTimes = [],
   flagTimes = [],
   overtakeTimes = [],
+  radioTimes = [],
 }: Props) {
   const { t, playing, speed, toggle, setT, setSpeed } = useTimeline();
   const [showChips, setShowChips] = useState(false);
@@ -48,6 +50,7 @@ export function PlaybackBar({
   const nextPit = nextAfter(pitTimes, t);
   const nextFlag = nextAfter(flagTimes, t);
   const nextPass = nextAfter(overtakeTimes, t);
+  const nextRadio = nextAfter(radioTimes, t);
 
   return (
     <div className="flex flex-col sm:flex-row sm:items-center gap-2 px-4 py-2.5 bg-track border-t border-panel">
@@ -159,6 +162,15 @@ export function PlaybackBar({
           title="Next overtake"
         >
           Pass›
+        </button>
+        <button
+          onClick={() => jump(nextRadio)}
+          disabled={nextRadio === null}
+          className={CHIP}
+          aria-label="Jump to next radio message"
+          title="Next radio"
+        >
+          Radio›
         </button>
       </div>
     </div>

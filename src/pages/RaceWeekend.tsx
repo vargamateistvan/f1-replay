@@ -38,6 +38,7 @@ import {
   pitTimes,
   flagTimes,
   overtakeTimes,
+  radioTimes,
   buildToastEvents,
 } from "@/timeline/events";
 import { useEventToasts } from "@/hooks/useEventToasts";
@@ -142,6 +143,11 @@ export default function RaceWeekend() {
     [overtakes.data, sessionStartMs],
   );
 
+  const radioMarks = useMemo(
+    () => radioTimes(teamRadio.data ?? [], sessionStartMs),
+    [teamRadio.data, sessionStartMs],
+  );
+
   const pulseDrivers = useMemo(() => {
     const out: number[] = [];
     for (const o of overtakes.data ?? []) {
@@ -223,9 +229,10 @@ export default function RaceWeekend() {
             overtakes.data ?? [],
             pits.data ?? [],
             sessionStartMs,
+            laps.data ?? [],
           )
         : [],
-    [teamRadio.data, raceControl.data, overtakes.data, pits.data, sessionStartMs],
+    [teamRadio.data, raceControl.data, overtakes.data, pits.data, sessionStartMs, laps.data],
   );
   const { toasts, dismiss } = useEventToasts(toastEvents, t);
 
@@ -626,6 +633,7 @@ export default function RaceWeekend() {
         pitTimes={pitMarks}
         flagTimes={flagMarks}
         overtakeTimes={overtakeMarks}
+        radioTimes={radioMarks}
       />
     </div>
   );
