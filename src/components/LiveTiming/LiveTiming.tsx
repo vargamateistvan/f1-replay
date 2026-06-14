@@ -180,11 +180,11 @@ export function LiveTiming({
             <th className={`${TH} text-left`}>Driver</th>
             <th className={`${TH} text-right`}>Best Lap</th>
             <th className={`${TH} text-right`}>Gap</th>
-            <th className={`${TH} text-center`}>S1</th>
-            <th className={`${TH} text-center`}>S2</th>
-            <th className={`${TH} text-center`}>S3</th>
+            <th className={`${TH} hidden sm:table-cell text-center`}>S1</th>
+            <th className={`${TH} hidden sm:table-cell text-center`}>S2</th>
+            <th className={`${TH} hidden sm:table-cell text-center`}>S3</th>
             <th className={`${TH} text-left`}>Tyre</th>
-            <th className={`${TH} text-center w-10`}>Lap</th>
+            <th className={`${TH} hidden sm:table-cell text-center w-10`}>Lap</th>
           </tr>
         </thead>
         <tbody>
@@ -218,10 +218,10 @@ export function LiveTiming({
                 className={`border-b border-[#1e1e28] transition-colors ${onSelectDriver ? 'cursor-pointer' : ''} ${rowBg}`}
               >
                 {/* Position */}
-                <td className="py-2 px-2 font-black text-sm tabular-nums text-white/90">{pos}</td>
+                <td className="py-3 px-2 font-black text-sm tabular-nums text-white/90">{pos}</td>
 
                 {/* Driver */}
-                <td className="py-2 px-2">
+                <td className="py-3 px-2">
                   <span className="flex items-center gap-2">
                     {/* Team colour bar */}
                     <span className="w-[3px] h-4 shrink-0 rounded-sm" style={{ background: color }} />
@@ -247,34 +247,34 @@ export function LiveTiming({
                 </td>
 
                 {/* Best lap time */}
-                <td className={`py-2 px-2 text-right font-mono text-[12px] tabular-nums ${LAP_TIME_COLOUR[lapTier]}`}>
+                <td className={`py-3 px-2 text-right font-mono text-[12px] tabular-nums ${LAP_TIME_COLOUR[lapTier]}`}>
                   {fmtTime(lastLap?.lap_duration ?? null)}
                 </td>
 
                 {/* Gap to leader */}
-                <td className="py-2 px-2 text-right font-mono text-[11px] tabular-nums text-muted">
+                <td className="py-3 px-2 text-right font-mono text-[11px] tabular-nums text-muted">
                   {fmtGap(intData?.gap_to_leader ?? null)}
                 </td>
 
                 {/* Sector bars */}
-                <td className="py-2 px-1">
+                <td className="hidden sm:table-cell py-3 px-1">
                   <div className="flex justify-center">
                     <SectorBar tier={t1} title={`S1: ${lastLap?.duration_sector_1?.toFixed(3) ?? '—'}`} />
                   </div>
                 </td>
-                <td className="py-2 px-1">
+                <td className="hidden sm:table-cell py-3 px-1">
                   <div className="flex justify-center">
                     <SectorBar tier={t2} title={`S2: ${lastLap?.duration_sector_2?.toFixed(3) ?? '—'}`} />
                   </div>
                 </td>
-                <td className="py-2 px-1">
+                <td className="hidden sm:table-cell py-3 px-1">
                   <div className="flex justify-center">
                     <SectorBar tier={t3} title={`S3: ${lastLap?.duration_sector_3?.toFixed(3) ?? '—'}`} />
                   </div>
                 </td>
 
                 {/* Tyre badge */}
-                <td className="py-2 px-2">
+                <td className="py-3 px-2">
                   <TyreBadge
                     stints={stints ?? []}
                     driverNumber={num}
@@ -283,7 +283,7 @@ export function LiveTiming({
                 </td>
 
                 {/* Current lap */}
-                <td className="py-2 px-2 text-center font-mono text-[11px] tabular-nums text-muted">
+                <td className="hidden sm:table-cell py-3 px-2 text-center font-mono text-[11px] tabular-nums text-muted">
                   {currentLap ?? '—'}
                 </td>
               </tr>

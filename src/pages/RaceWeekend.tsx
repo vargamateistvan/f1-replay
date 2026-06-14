@@ -216,7 +216,7 @@ export default function RaceWeekend() {
           </div>
 
           {/* Strategy strip */}
-          <div className={`${PANEL} shrink-0 max-h-40`}>
+          <div className={`${PANEL} shrink-0 max-h-24 sm:max-h-40`}>
             <div className={PANEL_TITLE}>Tyre Strategy</div>
             <div className="overflow-auto" style={{ maxHeight: 120 }}>
               <StrategyBar
