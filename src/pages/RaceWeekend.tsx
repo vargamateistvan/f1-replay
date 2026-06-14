@@ -552,6 +552,7 @@ export default function RaceWeekend() {
       leaderboard={mapShowLeaderboard ? mapLeaderboard : undefined}
       activeSectorFlag={mapShowSectorFlags ? activeSectorFlag : null}
       retiredDrivers={retiredDrivers}
+      onSelectDriver={toggleFocus}
     />
   );
 

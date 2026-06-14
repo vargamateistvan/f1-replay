@@ -1,10 +1,12 @@
 import { useMemo, useState, useEffect, useRef } from "react";
 import { useCarDataForLap } from "@/hooks/useCarDataForLap";
+import { useCarDataWindow } from "@/hooks/useCarDataWindow";
+import { chunkIndexFor } from "@/hooks/useLocationChunks";
 import { useTrackOutline, locationToSvg } from "@/hooks/useTrackMap";
 import { buildIndex, interpolateXY } from "@/timeline/interpolate";
 import { useTimeline } from "@/timeline/clock";
 import { teamColor } from "@/utils/color";
-import type { Driver, Location, Stint } from "@/api/types";
+import type { CarData, Driver, Location, Stint } from "@/api/types";
 import {
   TRACK_SVG_W as SVG_W,
   TRACK_SVG_H as SVG_H,
@@ -82,6 +84,7 @@ interface Props {
   readonly focusDriverLap?: number | null;
   readonly leaderboard?: readonly LeaderboardRow[];
   readonly activeSectorFlag?: string | null;
+  readonly onSelectDriver?: (driverNumber: number) => void;
 }
 
 export function TrackMap({
@@ -99,8 +102,13 @@ export function TrackMap({
   focusDriverLap = null,
   leaderboard,
   activeSectorFlag = null,
+  onSelectDriver,
 }: Props) {
   const { t } = useTimeline();
+
+  // Rolling 5-min car_data window for the focused driver — drives the live HUD overlay.
+  const chunkIdx = chunkIndexFor(t);
+  const { data: hudRawData } = useCarDataWindow(sessionKey, focusDriver, sessionStartMs, chunkIdx);
 
   // Baked official geometry — available immediately when the bake script has run.
   const circuitGeom = circuitKey != null ? getCircuitGeometry(circuitKey) : null;
@@ -368,22 +376,21 @@ export function TrackMap({
     );
   }, [trackGeometry, circuitLayout, circuitGeom, hasBaked, activeSectorFlag]);
 
-  // Current-moment car telemetry for the focused driver — binary search on date.
-  // Runs at 60 fps but O(log n) on ~1000-sample arrays so cost is negligible.
-  const hudData = useMemo(() => {
-    if (focusDriver === null || !heatData.data?.length) return null;
-    const data = heatData.data;
+  // Current-moment car telemetry for the focused driver — binary search on the rolling
+  // 5-min window (same source as FocusedTelemetry). Runs at 60 fps, O(log n).
+  const hudData = useMemo((): CarData | null => {
+    if (focusDriver === null || !hudRawData.length) return null;
     const targetMs = sessionStartMs + t;
-    let lo = 0, hi = data.length - 1;
+    let lo = 0, hi = hudRawData.length - 1;
     while (lo < hi) {
       const mid = (lo + hi) >>> 1;
-      if ((data[mid]!.absMs ?? 0) < targetMs) lo = mid + 1;
+      if (new Date(hudRawData[mid]!.date).getTime() < targetMs) lo = mid + 1;
       else hi = mid;
     }
-    const sample = data[lo] ?? data[data.length - 1]!;
-    const diff = Math.abs((sample.absMs ?? 0) - targetMs);
-    return diff < 120_000 ? sample : null;
-  }, [heatData.data, sessionStartMs, t, focusDriver]);
+    const s = hudRawData[lo] ?? hudRawData[hudRawData.length - 1]!;
+    const diff = Math.abs(new Date(s.date).getTime() - targetMs);
+    return diff < 30_000 ? s : null;
+  }, [hudRawData, sessionStartMs, t, focusDriver]);
 
   const svgRef = useRef<SVGSVGElement>(null);
 
@@ -525,6 +532,8 @@ export function TrackMap({
               key={num}
               transform={`translate(${(sx + PAD).toFixed(1)},${(sy + PAD).toFixed(1)})`}
               opacity={dimmed ? 0.3 : 1}
+              onClick={() => onSelectDriver?.(num)}
+              style={onSelectDriver ? { cursor: "pointer" } : undefined}
             >
               {/* Battle ring: dashed amber ring for cars within 1 s of the car ahead */}
               {isBattling && !pulsing && (
@@ -654,9 +663,9 @@ export function TrackMap({
             <span className="text-[9px] text-muted uppercase tracking-widest leading-none self-end pb-0.5">km/h</span>
             <span
               className="ml-auto text-[18px] font-black tabular-nums leading-none"
-              style={{ color: hudData.gear === 0 ? '#ff5252' : color }}
+              style={{ color: hudData.n_gear === 0 ? '#ff5252' : color }}
             >
-              {hudData.gear === 0 ? 'N' : hudData.gear}
+              {hudData.n_gear === 0 ? 'N' : hudData.n_gear}
             </span>
           </div>
           {/* Throttle bar */}
