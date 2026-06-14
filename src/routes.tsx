@@ -1,8 +1,9 @@
-import { HashRouter, Routes, Route } from 'react-router-dom'
-import { Nav } from '@/components/Nav'
-import RaceWeekend from '@/pages/RaceWeekend'
-import Telemetry from '@/pages/Telemetry'
-import Standings from '@/pages/Standings'
+import { HashRouter, Routes, Route } from "react-router-dom";
+import { Nav } from "@/components/Nav";
+import { MobileNav } from "@/components/MobileNav";
+import RaceWeekend from "@/pages/RaceWeekend";
+import Telemetry from "@/pages/Telemetry";
+import Standings from "@/pages/Standings";
 
 export function AppRouter() {
   return (
@@ -16,7 +17,8 @@ export function AppRouter() {
             <Route path="/standings" element={<Standings />} />
           </Routes>
         </main>
+        <MobileNav />
       </div>
     </HashRouter>
-  )
+  );
 }
