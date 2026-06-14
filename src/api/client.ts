@@ -124,6 +124,10 @@ export async function fetchEndpoint<T>(
 
     if (res.ok) return res.json() as Promise<T[]>
 
+    // 404 = endpoint not available for this session (e.g. no starting grid for
+    // practice, no location data for some sessions). Treat as empty, not an error.
+    if (res.status === 404) return []
+
     // Retry on 429 (rate limit) and 5xx (transient server) with backoff.
     // Auth (401/403) and other 4xx are terminal — fail fast.
     const retryable = res.status === 429 || res.status >= 500

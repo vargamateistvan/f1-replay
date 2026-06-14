@@ -20,8 +20,9 @@ interface Props {
   readonly onSelectDriver?: (driverNumber: number) => void
 }
 
-function fmtGap(val: number | null) {
+function fmtGap(val: number | string | null) {
   if (val === null) return '—'
+  if (typeof val === 'string') return val
   if (val === 0) return 'LEAD'
   return `+${val.toFixed(3)}`
 }

@@ -85,7 +85,7 @@ export function StrategyBar({ stints, drivers, laps, pits, sessionTimeMs, sessio
     const ticks: number[] = [1]
     const step = maxLap <= 30 ? 5 : maxLap <= 60 ? 10 : 15
     for (let l = step; l < maxLap; l += step) ticks.push(l)
-    ticks.push(maxLap)
+    if (ticks[ticks.length - 1] !== maxLap) ticks.push(maxLap)
     return ticks
   }, [maxLap])
 
