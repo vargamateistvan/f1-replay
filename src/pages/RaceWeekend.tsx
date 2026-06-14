@@ -42,7 +42,7 @@ import { DEFAULT_YEAR } from "@/constants";
 import type { MainView } from "@/components/Nav";
 
 // Sub-tab options per view
-type TrackerTab = "timing" | "chart";
+type TrackerTab = "timing" | "chart" | "map";
 type CommentaryTab = "rc" | "radio" | "passes";
 
 const PANEL = "bg-surface border border-panel";
@@ -241,15 +241,16 @@ export default function RaceWeekend() {
             sessionTimeMs={t}
             sessionStartMs={sessionStartMs}
           />
-          <div className="flex-1 min-h-0 flex overflow-hidden">
-            {/* Left data panel — hidden on phone, shown md+ */}
-            <div className="hidden md:flex md:w-[480px] shrink-0 flex-col border-r border-panel overflow-hidden">
-              {/* Sub-tabs */}
-              <div className="flex border-b border-panel shrink-0">
+          <div className="flex-1 min-h-0 flex flex-col md:flex overflow-hidden">
+            {/* Phone layout: tab-switched (md:hidden) */}
+            <div className="md:hidden flex-1 min-h-0 flex flex-col overflow-hidden w-full">
+              {/* Tab chips */}
+              <div className="flex border-b border-panel shrink-0 bg-track">
                 {(
                   [
                     ["timing", "Timing"],
-                    ["chart", "Lap Chart"],
+                    ["map", "Map"],
+                    ["chart", "Chart"],
                   ] as [TrackerTab, string][]
                 ).map(([tab, label]) => (
                   <button
@@ -257,8 +258,8 @@ export default function RaceWeekend() {
                     onClick={() => setTrackerTab(tab)}
                     className={`flex-1 py-1.5 text-[10px] font-bold uppercase tracking-wider transition-colors ${
                       (trackerTab ?? "timing") === tab
-                        ? "text-white border-b-2 border-f1red -mb-px bg-surface"
-                        : "text-muted hover:text-white bg-track"
+                        ? "text-white border-b-2 border-f1red -mb-px"
+                        : "text-muted hover:text-white border-b-2 border-transparent"
                     }`}
                   >
                     {label}
@@ -266,15 +267,64 @@ export default function RaceWeekend() {
                 ))}
               </div>
 
-              {/* Panel content */}
-              <div className="flex-1 min-h-0 overflow-hidden">
-                {(trackerTab ?? "timing") === "timing" ? (
-                  positions.isError ? (
-                    <ErrorMessage message="Failed to load timing data" />
-                  ) : (
-                    timingTower
-                  )
-                ) : (
+              {/* Tab content */}
+              <div className="flex-1 min-h-0 flex flex-col overflow-hidden">
+                {(trackerTab ?? "timing") === "timing" && (
+                  <>
+                    {/* Weather accordion */}
+                    <div className="shrink-0 border-b border-panel">
+                      {weather.isError ? (
+                        <ErrorMessage message="Failed to load weather" compact />
+                      ) : (
+                        <WeatherPanel
+                          entries={weather.data ?? []}
+                          sessionTimeMs={t}
+                          sessionStartMs={sessionStartMs}
+                        />
+                      )}
+                    </div>
+                    {/* Timing tower */}
+                    <div className="flex-1 min-h-0 overflow-hidden">
+                      {positions.isError ? (
+                        <ErrorMessage message="Failed to load timing data" />
+                      ) : (
+                        timingTower
+                      )}
+                    </div>
+                    {/* Focused telemetry */}
+                    {focusDriver !== null && (
+                      <div className="shrink-0 border-t border-panel">
+                        <FocusedTelemetry
+                          sessionKey={sessionKey}
+                          driver={
+                            drivers.data?.find(
+                              (d) => d.driver_number === focusDriver,
+                            ) ?? null
+                          }
+                          sessionStartMs={sessionStartMs}
+                          onClear={() => setFocusDriver(null)}
+                        />
+                      </div>
+                    )}
+                  </>
+                )}
+
+                {(trackerTab ?? "timing") === "map" && (
+                  <div className="flex-1 min-w-0 bg-[#10101a] relative">
+                    {drivers.isError ? (
+                      <ErrorMessage message="Failed to load driver data" />
+                    ) : (
+                      trackMap
+                    )}
+                    {isLoadingSessionData && (
+                      <span className="absolute top-2 right-2 text-f1red text-[10px] animate-pulse">
+                        Loading…
+                      </span>
+                    )}
+                  </div>
+                )}
+
+                {(trackerTab ?? "timing") === "chart" && (
                   <LapChart
                     drivers={drivers.data ?? []}
                     positions={positions.data ?? []}
@@ -284,49 +334,96 @@ export default function RaceWeekend() {
                   />
                 )}
               </div>
-
-              {/* Focused driver telemetry */}
-              {focusDriver !== null && (
-                <div className="shrink-0 border-t border-panel">
-                  <FocusedTelemetry
-                    sessionKey={sessionKey}
-                    driver={
-                      drivers.data?.find(
-                        (d) => d.driver_number === focusDriver,
-                      ) ?? null
-                    }
-                    sessionStartMs={sessionStartMs}
-                    onClear={() => setFocusDriver(null)}
-                  />
-                </div>
-              )}
-
-              {/* Weather strip */}
-              <div className={`shrink-0 border-t border-panel`}>
-                {weather.isError ? (
-                  <ErrorMessage message="Failed to load weather" compact />
-                ) : (
-                  <WeatherPanel
-                    entries={weather.data ?? []}
-                    sessionTimeMs={t}
-                    sessionStartMs={sessionStartMs}
-                  />
-                )}
-              </div>
             </div>
 
-            {/* Track map — fills remaining width */}
-            <div className="flex-1 min-w-0 bg-[#10101a] relative">
-              {drivers.isError ? (
-                <ErrorMessage message="Failed to load driver data" />
-              ) : (
-                trackMap
-              )}
-              {isLoadingSessionData && (
-                <span className="absolute top-2 right-2 text-f1red text-[10px] animate-pulse">
-                  Loading…
-                </span>
-              )}
+            {/* Desktop layout: split panel (hidden md:flex) */}
+            <div className="hidden md:flex flex-1 min-h-0 overflow-hidden">
+              {/* Left data panel */}
+              <div className="md:w-[480px] shrink-0 flex flex-col border-r border-panel overflow-hidden">
+                {/* Sub-tabs */}
+                <div className="flex border-b border-panel shrink-0">
+                  {(
+                    [
+                      ["timing", "Timing"],
+                      ["chart", "Lap Chart"],
+                    ] as [TrackerTab, string][]
+                  ).map(([tab, label]) => (
+                    <button
+                      key={tab}
+                      onClick={() => setTrackerTab(tab)}
+                      className={`flex-1 py-1.5 text-[10px] font-bold uppercase tracking-wider transition-colors ${
+                        (trackerTab ?? "timing") === tab
+                          ? "text-white border-b-2 border-f1red -mb-px bg-surface"
+                          : "text-muted hover:text-white bg-track"
+                      }`}
+                    >
+                      {label}
+                    </button>
+                  ))}
+                </div>
+
+                {/* Panel content */}
+                <div className="flex-1 min-h-0 overflow-hidden">
+                  {(trackerTab ?? "timing") === "timing" ? (
+                    positions.isError ? (
+                      <ErrorMessage message="Failed to load timing data" />
+                    ) : (
+                      timingTower
+                    )
+                  ) : (
+                    <LapChart
+                      drivers={drivers.data ?? []}
+                      positions={positions.data ?? []}
+                      lapStarts={lapMarks}
+                      sessionStartMs={sessionStartMs}
+                      sessionTimeMs={t}
+                    />
+                  )}
+                </div>
+
+                {/* Focused driver telemetry */}
+                {focusDriver !== null && (
+                  <div className="shrink-0 border-t border-panel">
+                    <FocusedTelemetry
+                      sessionKey={sessionKey}
+                      driver={
+                        drivers.data?.find(
+                          (d) => d.driver_number === focusDriver,
+                        ) ?? null
+                      }
+                      sessionStartMs={sessionStartMs}
+                      onClear={() => setFocusDriver(null)}
+                    />
+                  </div>
+                )}
+
+                {/* Weather strip */}
+                <div className={`shrink-0 border-t border-panel`}>
+                  {weather.isError ? (
+                    <ErrorMessage message="Failed to load weather" compact />
+                  ) : (
+                    <WeatherPanel
+                      entries={weather.data ?? []}
+                      sessionTimeMs={t}
+                      sessionStartMs={sessionStartMs}
+                    />
+                  )}
+                </div>
+              </div>
+
+              {/* Track map — fills remaining width */}
+              <div className="flex-1 min-w-0 bg-[#10101a] relative">
+                {drivers.isError ? (
+                  <ErrorMessage message="Failed to load driver data" />
+                ) : (
+                  trackMap
+                )}
+                {isLoadingSessionData && (
+                  <span className="absolute top-2 right-2 text-f1red text-[10px] animate-pulse">
+                    Loading…
+                  </span>
+                )}
+              </div>
             </div>
           </div>
         </div>
