@@ -76,13 +76,24 @@ export function TrackMap({ sessionKey, drivers, locationData, sessionStartMs, fo
   const innerW = SVG_W - PAD * 2
   const innerH = SVG_H - PAD * 2
 
-  const pathData =
-    points
-      .map((p, i) => {
-        const { sx, sy } = locationToSvg(p.x, p.y, bounds, innerW, innerH)
-        return `${i === 0 ? 'M' : 'L'}${(sx + PAD).toFixed(1)},${(sy + PAD).toFixed(1)}`
-      })
-      .join(' ') + ' Z'
+  // Catmull-Rom → cubic Bézier: fit smooth curves through every GPS point.
+  // Wraps around so the lap join is also smooth.
+  const svgPts = points.map((p) => {
+    const { sx, sy } = locationToSvg(p.x, p.y, bounds, innerW, innerH)
+    return { sx: sx + PAD, sy: sy + PAD }
+  })
+  const n = svgPts.length
+  const get = (i: number) => svgPts[((i % n) + n) % n]
+  let pathData = `M${get(0).sx.toFixed(1)},${get(0).sy.toFixed(1)}`
+  for (let i = 0; i < n; i++) {
+    const p0 = get(i - 1), p1 = get(i), p2 = get(i + 1), p3 = get(i + 2)
+    const cp1x = p1.sx + (p2.sx - p0.sx) / 6
+    const cp1y = p1.sy + (p2.sy - p0.sy) / 6
+    const cp2x = p2.sx - (p3.sx - p1.sx) / 6
+    const cp2y = p2.sy - (p3.sy - p1.sy) / 6
+    pathData += ` C${cp1x.toFixed(1)},${cp1y.toFixed(1)} ${cp2x.toFixed(1)},${cp2y.toFixed(1)} ${p2.sx.toFixed(1)},${p2.sy.toFixed(1)}`
+  }
+  pathData += ' Z'
 
   // Interpolate each driver's position at the current playhead time t (session-relative ms)
   const carPositions: Array<{ num: number; x: number; y: number }> = []
