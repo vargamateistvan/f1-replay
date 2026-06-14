@@ -208,6 +208,28 @@ export function LiveTiming({
     return m;
   }, [laps, currentT]);
 
+  // Detect retirements: a driver whose last position update (at/before currentT) is
+  // more than 5 min earlier than the most recent update from any driver is considered
+  // retired at the current playhead. Works without session_result — purely from
+  // the position stream stopping, which is how OpenF1 signals a retirement.
+  const retiredDrivers = useMemo(() => {
+    const lastMs = new Map<number, number>();
+    for (const p of positions) {
+      const ms = new Date(p.date).getTime();
+      if (ms > currentT) continue;
+      const prev = lastMs.get(p.driver_number) ?? 0;
+      if (ms > prev) lastMs.set(p.driver_number, ms);
+    }
+    let maxMs = 0;
+    for (const ms of lastMs.values()) if (ms > maxMs) maxMs = ms;
+    const RETIREMENT_GAP_MS = 5 * 60_000;
+    const retired = new Set<number>();
+    for (const [num, ms] of lastMs) {
+      if (maxMs - ms > RETIREMENT_GAP_MS) retired.add(num);
+    }
+    return retired;
+  }, [positions, currentT]);
+
   const driverByNumber = useMemo(
     () => new Map(drivers.map((d) => [d.driver_number, d])),
     [drivers],
@@ -289,12 +311,15 @@ export function LiveTiming({
 
             const gridPos = gridMap.get(num) ?? null;
             const gained = gridPos !== null ? gridPos - pos : null;
+            const retired = retiredDrivers.has(num);
             const selected = selectedDriver === num;
             const rowBg = selected
               ? "bg-[#2a2a35]"
-              : idx % 2 === 1
-                ? "bg-white/[0.02] hover:bg-white/[0.06]"
-                : "hover:bg-white/[0.06]";
+              : retired
+                ? "opacity-50"
+                : idx % 2 === 1
+                  ? "bg-white/[0.02] hover:bg-white/[0.06]"
+                  : "hover:bg-white/[0.06]";
 
             return (
               <tr
@@ -329,7 +354,12 @@ export function LiveTiming({
                         {Math.abs(gained)}
                       </span>
                     )}
-                    {inPit && (
+                    {retired && (
+                      <span className="bg-[#3a1010] text-[#ff5252] text-[9px] font-black uppercase tracking-widest px-1.5 py-0.5">
+                        RET
+                      </span>
+                    )}
+                    {!retired && inPit && (
                       <span className="bg-panel text-muted text-[9px] font-black uppercase tracking-widest px-1.5 py-0.5">
                         PIT
                       </span>

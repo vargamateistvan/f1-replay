@@ -23,6 +23,11 @@ export function chunkIndexFor(tMs: number): number {
   return Math.max(0, Math.floor(tMs / CHUNK_MS))
 }
 
+// How many chunks to keep on each side of the current position.
+// current-1 (for reverse scrub) + current + current+1 + current+2 (lookahead) = 4 live.
+// Chunks beyond this window are removed from the React Query cache to bound memory.
+const EVICT_RADIUS = 3
+
 // Returns merged Location[] for the current 5-min window + the next (prefetched).
 // chunkIdx should be computed by the caller as chunkIndexFor(t).
 export function useLocationChunks(
@@ -59,6 +64,24 @@ export function useLocationChunks(
       staleTime: Infinity,
     })
   }, [qc, enabled, sessionKey, sessionStartMs, chunkIdx])
+
+  // Evict chunks outside the keep window to bound memory on long replays.
+  // We inspect the cache for all location-chunk queries for this session and
+  // remove any whose index falls outside [chunkIdx - EVICT_RADIUS, chunkIdx + EVICT_RADIUS].
+  useEffect(() => {
+    if (!enabled) return
+    const queries = qc.getQueryCache().findAll({
+      queryKey: ['location-chunk', sessionKey!],
+      exact: false,
+    })
+    for (const query of queries) {
+      const key = query.queryKey as ['location-chunk', number, number]
+      const idx = key[2]
+      if (Math.abs(idx - chunkIdx) > EVICT_RADIUS) {
+        qc.removeQueries({ queryKey: key, exact: true })
+      }
+    }
+  }, [qc, enabled, sessionKey, chunkIdx])
 
   // Stable reference: only rebuilds when a chunk actually arrives, not every render.
   // Without this memo, RaceWeekend's t-subscription causes a new array every frame,
