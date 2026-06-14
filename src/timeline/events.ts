@@ -167,11 +167,14 @@ export function nextAfter(sorted: number[], t: number, eps = 1): number | null {
   return null
 }
 
-// Last marker before `t` (1s epsilon so "prev" steps back rather than sticking).
+// Last marker at or before `t - eps` (1s epsilon so "prev" steps back rather
+// than sticking when you're right at a boundary). Uses <= so that the marker
+// at exactly t - eps is included — without this, pressing ⏮ one second into
+// a lap would skip past the current lap start and jump to the previous one.
 export function prevBefore(sorted: number[], t: number, eps = 1000): number | null {
   let best: number | null = null
   for (const v of sorted) {
-    if (v < t - eps) best = v
+    if (v <= t - eps) best = v
     else break
   }
   return best
