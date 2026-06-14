@@ -1,10 +1,10 @@
-import type { CatchupSummary } from "@/hooks/useCatchupSummary";
+import type { CatchupSummary as CatchupSummaryData } from "@/hooks/useCatchupSummary";
 import type { Driver } from "@/api/types";
-import type { RadioPayload, OvertakePayload, PitPayload, FastestLapPayload } from "@/timeline/events";
+import type { OvertakePayload, FastestLapPayload } from "@/timeline/events";
 import { teamColor } from "@/utils/color";
 
 interface Props {
-  summary: CatchupSummary;
+  summary: CatchupSummaryData;
   drivers: Driver[];
   onDismiss: () => void;
 }

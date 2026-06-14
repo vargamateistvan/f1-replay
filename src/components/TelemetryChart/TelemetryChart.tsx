@@ -78,7 +78,6 @@ export function TelemetryChart({ title, xData, series, yMin, yMax, height = 120 
       plotRef.current?.destroy()
       plotRef.current = null
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [xData, series, height, title, yMin, yMax])
 
   // Resize observer

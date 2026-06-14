@@ -6,7 +6,6 @@ import { useCarDataForLap, type TelemetrySample } from '@/hooks/useCarDataForLap
 import { useNumberParam, useStringParam } from '@/hooks/useSearchParamState'
 import { resampleToAxis, computeDelta, smooth } from '@/utils/telemetry'
 import { teamColor } from '@/utils/color'
-import { DEFAULT_YEAR } from '@/constants'
 
 interface PlotSlot {
   num: number
@@ -22,8 +21,6 @@ const SELECT = 'bg-panel text-white border border-[#38383f] text-xs font-medium 
 const SLOT_COLORS = ['#e8002d', '#0067ff', '#23c552']
 
 export default function Telemetry() {
-  const [yearParam] = useNumberParam('year', DEFAULT_YEAR)
-  const year = yearParam ?? DEFAULT_YEAR
   const [meetingKey] = useNumberParam('meeting', null)
   const [sessionKey] = useNumberParam('session', null)
   const [driverA, setDriverA] = useNumberParam('a', null)

@@ -49,7 +49,7 @@ import { CatchupSummary } from "@/components/CatchupSummary/CatchupSummary";
 import type { FastestLapPayload } from "@/timeline/events";
 import { isSessionLive } from "@/utils/live";
 import { teamColor } from "@/utils/color";
-import { DEFAULT_YEAR, DEFAULT_SESSION_MS } from "@/constants";
+import { DEFAULT_SESSION_MS } from "@/constants";
 import type { MainView } from "@/components/Nav";
 import type { Stint } from "@/api/types";
 
@@ -72,8 +72,6 @@ const OVERTAKE_PULSE_MS = 4_000;
 
 export default function RaceWeekend() {
   // Session selection is driven by the URL — Nav writes these, we just read them
-  const [yearParam] = useNumberParam("year", DEFAULT_YEAR);
-  const year = yearParam ?? DEFAULT_YEAR;
   const [meetingKey] = useNumberParam("meeting", null);
   const [sessionKey] = useNumberParam("session", null);
 

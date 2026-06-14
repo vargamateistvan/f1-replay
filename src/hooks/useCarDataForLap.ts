@@ -5,6 +5,7 @@ import type { CarData, Lap } from '@/api/types'
 export interface TelemetrySample {
   distM: number   // distance along lap in metres (integrated from speed)
   timeS: number   // session-relative seconds from lap start
+  absMs?: number  // absolute wall-clock ms (for binary search by playhead time; absent on interpolated samples)
   speed: number   // km/h
   throttle: number // 0–100
   brake: number    // 0–100
@@ -41,6 +42,7 @@ export function toTelemetrySamples(data: CarData[], lapStartMs: number): Telemet
     samples.push({
       distM,
       timeS,
+      absMs: new Date(row.date).getTime(),
       speed: row.speed,
       throttle: row.throttle,
       brake: row.brake,

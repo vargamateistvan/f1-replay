@@ -9,7 +9,7 @@ import type {
   Stint,
 } from "@/api/types";
 import { teamColor } from "@/utils/color";
-import { SECTOR_PURPLE_S, SECTOR_GREEN_S } from "@/constants";
+import { SECTOR_GREEN_S } from "@/constants";
 import { SectorBar, type SectorTier } from "./SectorBar";
 import { TyreBadge } from "./TyreBadge";
 

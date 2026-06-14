@@ -342,13 +342,15 @@ export function TrackMap({
     let lo = 0, hi = data.length - 1;
     while (lo < hi) {
       const mid = (lo + hi) >>> 1;
-      if (new Date(data[mid]!.date).getTime() < targetMs) lo = mid + 1;
+      if ((data[mid]!.absMs ?? 0) < targetMs) lo = mid + 1;
       else hi = mid;
     }
     const sample = data[lo] ?? data[data.length - 1]!;
-    const diff = Math.abs(new Date(sample.date).getTime() - targetMs);
+    const diff = Math.abs((sample.absMs ?? 0) - targetMs);
     return diff < 120_000 ? sample : null;
   }, [heatData.data, sessionStartMs, t, focusDriver]);
+
+  const svgRef = useRef<SVGSVGElement>(null);
 
   if (!sessionKey) {
     return (
@@ -386,7 +388,6 @@ export function TrackMap({
   }
 
   const pulseSet = new Set(pulseDrivers ?? []);
-  const svgRef = useRef<SVGSVGElement>(null);
 
   // Follow-cam: zoom in on the focused driver, clamped to the SVG boundary.
   let viewBox = `0 0 ${SVG_W} ${SVG_H}`;
@@ -611,9 +612,9 @@ export function TrackMap({
             <span className="text-[9px] text-muted uppercase tracking-widest leading-none self-end pb-0.5">km/h</span>
             <span
               className="ml-auto text-[18px] font-black tabular-nums leading-none"
-              style={{ color: hudData.n_gear === 0 ? '#ff5252' : color }}
+              style={{ color: hudData.gear === 0 ? '#ff5252' : color }}
             >
-              {hudData.n_gear === 0 ? 'N' : hudData.n_gear}
+              {hudData.gear === 0 ? 'N' : hudData.gear}
             </span>
           </div>
           {/* Throttle bar */}
