@@ -62,12 +62,16 @@ export const useSettings = create<SettingsStore>()(
       name: "f1-replay-settings",
       // Only persist the AppSettings fields, not the modal state or actions.
       partialize: (state) => {
-         
         const {
+          // eslint-disable-next-line @typescript-eslint/no-unused-vars
           isOpen,
+          // eslint-disable-next-line @typescript-eslint/no-unused-vars
           openModal,
+          // eslint-disable-next-line @typescript-eslint/no-unused-vars
           closeModal,
+          // eslint-disable-next-line @typescript-eslint/no-unused-vars
           setSetting,
+          // eslint-disable-next-line @typescript-eslint/no-unused-vars
           reset,
           ...settings
         } = state;
