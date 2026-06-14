@@ -158,16 +158,16 @@ export function Nav() {
           aria-label="Settings"
           title="Settings"
         >
-          <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-            <path
-              d="M8 5a3 3 0 1 0 0 6A3 3 0 0 0 8 5zm0 1a2 2 0 1 1 0 4A2 2 0 0 1 8 6z"
-              fill="currentColor"
-            />
-            <path
-              d="M6.26 2.57V1.75a.75.75 0 0 1 1.5 0v.82a5.26 5.26 0 0 1 1.86.77l.58-.58a.75.75 0 1 1 1.06 1.06l-.58.58c.33.57.57 1.2.77 1.86h.82a.75.75 0 0 1 0 1.5h-.82a5.26 5.26 0 0 1-.77 1.86l.58.58a.75.75 0 1 1-1.06 1.06l-.58-.58a5.26 5.26 0 0 1-1.86.77v.82a.75.75 0 0 1-1.5 0v-.82a5.26 5.26 0 0 1-1.86-.77l-.58.58a.75.75 0 1 1-1.06-1.06l.58-.58A5.26 5.26 0 0 1 2.57 8.75H1.75a.75.75 0 0 1 0-1.5h.82a5.26 5.26 0 0 1 .77-1.86l-.58-.58A.75.75 0 1 1 3.82 3.75l.58.58a5.26 5.26 0 0 1 1.86-.77z"
-              fill="currentColor"
-              opacity="0.6"
-            />
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" strokeLinecap="round">
+            {/* Top slider — high */}
+            <line x1="2" y1="4" x2="14" y2="4" stroke="currentColor" strokeWidth="1.5"/>
+            <circle cx="10" cy="4" r="2" fill="currentColor"/>
+            {/* Middle slider — low */}
+            <line x1="2" y1="8" x2="14" y2="8" stroke="currentColor" strokeWidth="1.5"/>
+            <circle cx="5" cy="8" r="2" fill="currentColor"/>
+            {/* Bottom slider — mid */}
+            <line x1="2" y1="12" x2="14" y2="12" stroke="currentColor" strokeWidth="1.5"/>
+            <circle cx="11" cy="12" r="2" fill="currentColor"/>
           </svg>
         </button>
 
