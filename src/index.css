@@ -21,3 +21,16 @@ body {
 input[type='range'] {
   accent-color: #E8002D;
 }
+
+/* Larger thumb for touch targets */
+input[type='range']::-webkit-slider-thumb {
+  width: 20px;
+  height: 20px;
+  border-radius: 2px;
+}
+
+input[type='range']::-moz-range-thumb {
+  width: 20px;
+  height: 20px;
+  border-radius: 2px;
+}
