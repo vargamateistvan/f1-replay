@@ -51,7 +51,7 @@ export function buildToastEvents(
     if (!e.flag && !isPenalty) continue
     if (e.flag && !TOAST_FLAGS.has(e.flag) && !isPenalty) continue
     events.push({
-      id: `flag-${e.date}-${e.message.slice(0, 20)}`,
+      id: `flag-${e.date}-${e.message}`,
       ms,
       kind: 'flag',
       payload: { flag: e.flag ?? '', message: e.message, lapNumber: e.lap_number } satisfies FlagPayload,
