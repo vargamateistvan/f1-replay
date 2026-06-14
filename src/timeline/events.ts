@@ -61,7 +61,7 @@ export function buildToastEvents(
     const ms = new Date(o.date).getTime() - sessionStartMs
     if (ms < 0) continue
     events.push({
-      id: `overtake-${o.date}-${o.overtaking_driver_number}`,
+      id: `overtake-${o.date}-${o.overtaking_driver_number}-${o.overtaken_driver_number}`,
       ms,
       kind: 'overtake',
       payload: { overtaking: o.overtaking_driver_number, overtaken: o.overtaken_driver_number, position: o.position } satisfies OvertakePayload,
