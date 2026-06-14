@@ -1,6 +1,7 @@
 import { HashRouter, Routes, Route } from "react-router-dom";
 import { Nav } from "@/components/Nav";
 import { MobileNav } from "@/components/MobileNav";
+import { SettingsModal } from "@/components/SettingsModal/SettingsModal";
 import RaceWeekend from "@/pages/RaceWeekend";
 import Telemetry from "@/pages/Telemetry";
 import Standings from "@/pages/Standings";
@@ -18,6 +19,7 @@ export function AppRouter() {
           </Routes>
         </main>
         <MobileNav />
+        <SettingsModal />
       </div>
     </HashRouter>
   );

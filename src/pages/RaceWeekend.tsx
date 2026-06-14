@@ -52,6 +52,7 @@ import type { FastestLapPayload } from "@/timeline/events";
 import { isSessionLive } from "@/utils/live";
 import { teamColor } from "@/utils/color";
 import { DEFAULT_SESSION_MS } from "@/constants";
+import { useSettings } from "@/stores/settings";
 import type { MainView } from "@/components/Nav";
 import type { Stint } from "@/api/types";
 
@@ -278,6 +279,29 @@ export default function RaceWeekend() {
     return flag;
   }, [raceControl.data, sessionStartMs, t]);
 
+  const {
+    toastsEnabled,
+    toastRadio: settingToastRadio,
+    toastFlag: settingToastFlag,
+    toastOvertake: settingToastOvertake,
+    toastPit: settingToastPit,
+    toastFastestLap: settingToastFastestLap,
+    mapShowLeaderboard,
+    mapShowCompoundBadges,
+    mapShowBattleRings,
+    mapShowDriverHud,
+    mapShowSectorFlags,
+    defaultSpeed,
+    catchupSummaryEnabled,
+  } = useSettings();
+
+  // Apply default speed when a new session loads.
+  useEffect(() => {
+    if (!sessionKey) return;
+    useTimeline.getState().setSpeed(defaultSpeed);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sessionKey]);
+
   const toastEvents = useMemo(
     () =>
       sessionStartMs
@@ -292,8 +316,21 @@ export default function RaceWeekend() {
         : [],
     [teamRadio.data, raceControl.data, overtakes.data, pits.data, sessionStartMs, laps.data],
   );
-  const { toasts, dismiss } = useEventToasts(toastEvents, t);
-  const { summary: catchupSummary, dismiss: dismissCatchup } = useCatchupSummary(toastEvents, t);
+
+  const filteredToastEvents = useMemo(() => {
+    if (!toastsEnabled) return [];
+    return toastEvents.filter((ev) => {
+      if (ev.kind === "radio") return settingToastRadio;
+      if (ev.kind === "flag") return settingToastFlag;
+      if (ev.kind === "overtake") return settingToastOvertake;
+      if (ev.kind === "pit") return settingToastPit;
+      if (ev.kind === "fastest_lap") return settingToastFastestLap;
+      return true;
+    });
+  }, [toastEvents, toastsEnabled, settingToastRadio, settingToastFlag, settingToastOvertake, settingToastPit, settingToastFastestLap]);
+
+  const { toasts, dismiss } = useEventToasts(filteredToastEvents, t);
+  const { summary: catchupSummary, dismiss: dismissCatchup } = useCatchupSummary(filteredToastEvents, t);
 
   // Key moments: lead changes + fastest laps (from toastEvents) + SC/Red flag events.
   const keyMoments = useMemo((): KeyMoment[] => {
@@ -406,11 +443,11 @@ export default function RaceWeekend() {
       focusDriver={focusDriver}
       pulseDrivers={pulseDrivers}
       circuitShortName={session?.circuit_short_name}
-      activeCompounds={activeCompounds}
-      battlingDrivers={battlingDrivers}
-      focusDriverLap={focusDriverLap}
-      leaderboard={mapLeaderboard}
-      activeSectorFlag={activeSectorFlag}
+      activeCompounds={mapShowCompoundBadges ? activeCompounds : undefined}
+      battlingDrivers={mapShowBattleRings ? battlingDrivers : undefined}
+      focusDriverLap={mapShowDriverHud ? focusDriverLap : null}
+      leaderboard={mapShowLeaderboard ? mapLeaderboard : undefined}
+      activeSectorFlag={mapShowSectorFlags ? activeSectorFlag : null}
     />
   );
 
@@ -778,7 +815,7 @@ export default function RaceWeekend() {
       )}
 
       {/* Catch-up summary — appears over the whole layout after a big scrub-forward */}
-      {catchupSummary && (
+      {catchupSummaryEnabled && catchupSummary && (
         <CatchupSummary
           summary={catchupSummary}
           drivers={drivers.data ?? []}
