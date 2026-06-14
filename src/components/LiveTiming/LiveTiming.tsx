@@ -81,6 +81,20 @@ const LAP_TIME_COLOUR: Record<string, string> = {
 const TH =
   "py-1.5 px-2 text-[9px] font-bold uppercase tracking-[0.12em] text-[#636369] select-none";
 
+function MiniBar({ value, color }: { value: number; color: string }) {
+  return (
+    <span className="block h-1.5 bg-panel overflow-hidden rounded-sm">
+      <span
+        className="block h-full"
+        style={{
+          width: `${Math.max(0, Math.min(100, value))}%`,
+          background: color,
+        }}
+      />
+    </span>
+  );
+}
+
 function isRaceSession(sessionName?: string) {
   if (!sessionName) return false;
   const n = sessionName.toLowerCase();
@@ -550,17 +564,3 @@ export function LiveTiming({
   );
 }
 
-// Thin 0–100 % bar for throttle / brake in the telemetry columns.
-function MiniBar({ value, color }: { value: number; color: string }) {
-  return (
-    <span className="block h-1.5 bg-panel overflow-hidden rounded-sm">
-      <span
-        className="block h-full"
-        style={{
-          width: `${Math.max(0, Math.min(100, value))}%`,
-          background: color,
-        }}
-      />
-    </span>
-  );
-}
