@@ -9,6 +9,7 @@ import { TeamRadioFeed } from "@/components/TeamRadio/TeamRadio";
 import { OvertakeFeed } from "@/components/Overtakes/OvertakeFeed";
 import { FocusedTelemetry } from "@/components/FocusedTelemetry/FocusedTelemetry";
 import { LapChart } from "@/components/LapChart/LapChart";
+import { GapChart } from "@/components/GapChart/GapChart";
 import { FlagBanner } from "@/components/FlagBanner";
 import { SessionInfoBar } from "@/components/SessionInfoBar";
 import { ErrorMessage } from "@/components/ErrorMessage";
@@ -44,7 +45,7 @@ import type { MainView } from "@/components/Nav";
 import type { Stint } from "@/api/types";
 
 // Sub-tab options per view
-type TrackerTab = "timing" | "chart" | "map";
+type TrackerTab = "timing" | "chart" | "gap" | "map";
 type CommentaryTab = "rc" | "radio" | "passes";
 
 const PANEL = "bg-surface border border-panel";
@@ -308,6 +309,7 @@ export default function RaceWeekend() {
                     ["timing", "Timing"],
                     ["map", "Map"],
                     ["chart", "Chart"],
+                    ["gap", "Gap"],
                   ] as [TrackerTab, string][]
                 ).map(([tab, label]) => (
                   <button
@@ -390,6 +392,15 @@ export default function RaceWeekend() {
                     sessionTimeMs={t}
                   />
                 )}
+
+                {(trackerTab ?? "timing") === "gap" && (
+                  <GapChart
+                    drivers={drivers.data ?? []}
+                    intervals={intervals.data ?? []}
+                    sessionStartMs={sessionStartMs}
+                    sessionTimeMs={t}
+                  />
+                )}
               </div>
             </div>
 
@@ -403,6 +414,7 @@ export default function RaceWeekend() {
                     [
                       ["timing", "Timing"],
                       ["chart", "Lap Chart"],
+                      ["gap", "Gap Chart"],
                     ] as [TrackerTab, string][]
                   ).map(([tab, label]) => (
                     <button
@@ -421,17 +433,26 @@ export default function RaceWeekend() {
 
                 {/* Panel content */}
                 <div className="flex-1 min-h-0 overflow-hidden">
-                  {(trackerTab ?? "timing") === "timing" ? (
+                  {(trackerTab ?? "timing") === "timing" && (
                     positions.isError ? (
                       <ErrorMessage message="Failed to load timing data" />
                     ) : (
                       timingTower
                     )
-                  ) : (
+                  )}
+                  {(trackerTab ?? "timing") === "chart" && (
                     <LapChart
                       drivers={drivers.data ?? []}
                       positions={positions.data ?? []}
                       lapStarts={lapMarks}
+                      sessionStartMs={sessionStartMs}
+                      sessionTimeMs={t}
+                    />
+                  )}
+                  {(trackerTab ?? "timing") === "gap" && (
+                    <GapChart
+                      drivers={drivers.data ?? []}
+                      intervals={intervals.data ?? []}
                       sessionStartMs={sessionStartMs}
                       sessionTimeMs={t}
                     />
