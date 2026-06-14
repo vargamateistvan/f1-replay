@@ -41,6 +41,7 @@ import {
 import { isSessionLive } from "@/utils/live";
 import { DEFAULT_YEAR, DEFAULT_SESSION_MS } from "@/constants";
 import type { MainView } from "@/components/Nav";
+import type { Stint } from "@/api/types";
 
 // Sub-tab options per view
 type TrackerTab = "timing" | "chart" | "map";
@@ -148,6 +149,54 @@ export default function RaceWeekend() {
     return out;
   }, [overtakes.data, sessionStartMs, t]);
 
+  // Current tyre compound + age per driver at the playhead.
+  // Rebuilds when lap/stint data arrives or when the coarse time crosses a lap boundary.
+  const activeCompounds = useMemo(() => {
+    const result = new Map<number, { compound: Stint["compound"]; age: number }>();
+    if (!laps.data?.length || !stints.data?.length || !sessionStartMs) return result;
+    const currentLapByDriver = new Map<number, number>();
+    for (const lap of laps.data) {
+      if (!lap.date_start) continue;
+      const lapRelMs = new Date(lap.date_start).getTime() - sessionStartMs;
+      if (lapRelMs > t) continue;
+      const prev = currentLapByDriver.get(lap.driver_number);
+      if (prev === undefined || lap.lap_number > prev)
+        currentLapByDriver.set(lap.driver_number, lap.lap_number);
+    }
+    for (const [driverNum, currentLap] of currentLapByDriver) {
+      const stint = stints.data.find(
+        (s) =>
+          s.driver_number === driverNum &&
+          s.lap_start <= currentLap &&
+          s.lap_end >= currentLap,
+      );
+      if (stint)
+        result.set(driverNum, {
+          compound: stint.compound,
+          age: currentLap - stint.lap_start + stint.tyre_age_at_start,
+        });
+    }
+    return result;
+  }, [laps.data, stints.data, sessionStartMs, t]);
+
+  // Cars within 1.0 s of the car ahead → highlight DRS battle on the map.
+  const battlingDrivers = useMemo(() => {
+    const result = new Set<number>();
+    if (!intervals.data?.length || !sessionStartMs) return result;
+    const cutoffMs = sessionStartMs + t;
+    const latest = new Map<number, { ms: number; interval: number | string | null }>();
+    for (const iv of intervals.data) {
+      const ms = new Date(iv.date).getTime();
+      if (ms > cutoffMs) continue;
+      const prev = latest.get(iv.driver_number);
+      if (!prev || ms > prev.ms) latest.set(iv.driver_number, { ms, interval: iv.interval });
+    }
+    for (const [num, { interval }] of latest) {
+      if (typeof interval === "number" && interval <= 1.0) result.add(num);
+    }
+    return result;
+  }, [intervals.data, sessionStartMs, t]);
+
   const effectiveDuration = durationMs || DEFAULT_SESSION_MS;
   useKeyboardShortcuts({
     lapStarts: lapMarks,
@@ -186,6 +235,8 @@ export default function RaceWeekend() {
       focusDriver={focusDriver}
       pulseDrivers={pulseDrivers}
       circuitShortName={session?.circuit_short_name}
+      activeCompounds={activeCompounds}
+      battlingDrivers={battlingDrivers}
     />
   );
 

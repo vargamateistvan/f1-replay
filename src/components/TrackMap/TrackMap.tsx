@@ -3,12 +3,15 @@ import { useTrackOutline, locationToSvg } from "@/hooks/useTrackMap";
 import { buildIndex, interpolateXY } from "@/timeline/interpolate";
 import { useTimeline } from "@/timeline/clock";
 import { teamColor } from "@/utils/color";
-import type { Driver, Location } from "@/api/types";
+import type { Driver, Location, Stint } from "@/api/types";
 import {
   TRACK_SVG_W as SVG_W,
   TRACK_SVG_H as SVG_H,
   TRACK_SVG_PAD as PAD,
   SECTOR_COLORS,
+  COMPOUND_COLORS,
+  FOLLOW_ZOOM_W,
+  FOLLOW_ZOOM_H,
 } from "@/constants";
 import { getCircuitLayout } from "@/data/circuits";
 
@@ -20,6 +23,8 @@ interface Props {
   readonly focusDriver?: number | null;
   readonly pulseDrivers?: readonly number[];
   readonly circuitShortName?: string | null;
+  readonly activeCompounds?: ReadonlyMap<number, { compound: Stint["compound"]; age: number }>;
+  readonly battlingDrivers?: ReadonlySet<number>;
 }
 
 export function TrackMap({
@@ -30,6 +35,8 @@ export function TrackMap({
   focusDriver = null,
   pulseDrivers,
   circuitShortName,
+  activeCompounds,
+  battlingDrivers,
 }: Props) {
   // TrackMap owns its t subscription so the animation loop is isolated here
   const { t } = useTimeline();
@@ -232,9 +239,23 @@ export function TrackMap({
 
   const pulseSet = new Set(pulseDrivers ?? []);
 
+  // Follow-cam: zoom in on the focused driver, clamped to the SVG boundary.
+  let viewBox = `0 0 ${SVG_W} ${SVG_H}`;
+  if (focusDriver !== null) {
+    const focusedPos = carPositions.find((c) => c.num === focusDriver);
+    if (focusedPos) {
+      const { sx, sy } = locationToSvg(focusedPos.x, focusedPos.y, bounds, innerW, innerH);
+      const cx = sx + PAD;
+      const cy = sy + PAD;
+      const vx = Math.max(0, Math.min(SVG_W - FOLLOW_ZOOM_W, cx - FOLLOW_ZOOM_W / 2));
+      const vy = Math.max(0, Math.min(SVG_H - FOLLOW_ZOOM_H, cy - FOLLOW_ZOOM_H / 2));
+      viewBox = `${vx.toFixed(1)} ${vy.toFixed(1)} ${FOLLOW_ZOOM_W} ${FOLLOW_ZOOM_H}`;
+    }
+  }
+
   return (
     <svg
-      viewBox={`0 0 ${SVG_W} ${SVG_H}`}
+      viewBox={viewBox}
       className="w-full h-full"
       style={{ background: "#15151e" }}
     >
@@ -283,12 +304,25 @@ export function TrackMap({
           const dimmed = focusDriver !== null && !focused;
           const showLabel = focusDriver === null || focused;
           const pulsing = pulseSet.has(num);
+          const isBattling = battlingDrivers?.has(num) ?? false;
+          const compoundInfo = activeCompounds?.get(num);
           return (
             <g
               key={num}
               transform={`translate(${(sx + PAD).toFixed(1)},${(sy + PAD).toFixed(1)})`}
               opacity={dimmed ? 0.3 : 1}
             >
+              {/* Battle ring: dashed amber ring for cars within 1 s of the car ahead */}
+              {isBattling && !pulsing && (
+                <circle
+                  r={focused ? 13 : 8}
+                  fill="none"
+                  stroke="#ffd700"
+                  strokeWidth={1.5}
+                  strokeOpacity={0.75}
+                  strokeDasharray="3 2"
+                />
+              )}
               {pulsing && (
                 <circle r={6} fill="none" stroke="#ffffff" strokeWidth={1.5}>
                   <animate
@@ -323,6 +357,17 @@ export function TrackMap({
                 strokeWidth={focused ? 1.6 : 1.2}
                 strokeOpacity={focused ? 0.9 : 0.6}
               />
+              {/* Compound badge: small dot in tyre-compound colour */}
+              {compoundInfo && (
+                <circle
+                  cx={focused ? 8 : 5}
+                  cy={focused ? 8 : 5}
+                  r={focused ? 2.5 : 1.8}
+                  fill={COMPOUND_COLORS[compoundInfo.compound]}
+                  stroke="#15151e"
+                  strokeWidth={0.5}
+                />
+              )}
               {showLabel && (
                 <text
                   x={focused ? 10 : 7}

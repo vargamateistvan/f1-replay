@@ -45,6 +45,21 @@ export const SECTOR_COLORS: Record<1 | 2 | 3, string> = {
   3: '#b71c1c',
 }
 
+// ── Track map follow-cam (zoom dimensions in SVG units) ─────────────────────--
+// 200 × 134 gives ≈3× zoom on the 600 × 400 viewport. Tune here to adjust depth.
+export const FOLLOW_ZOOM_W = 200
+export const FOLLOW_ZOOM_H = 134
+
+// ── Tyre compound colours ───────────────────────────────────────────────────--
+export const COMPOUND_COLORS = {
+  SOFT: '#e8002d',
+  MEDIUM: '#ffd700',
+  HARD: '#f0f0f0',
+  INTERMEDIATE: '#39b54a',
+  WET: '#4da6ff',
+  UNKNOWN: '#636369',
+} as const
+
 // ── Championship points ─────────────────────────────────────────────────────--
 export const RACE_POINTS = [25, 18, 15, 12, 10, 8, 6, 4, 2, 1] as const
 export const SPRINT_POINTS = [8, 7, 6, 5, 4, 3, 2, 1] as const
