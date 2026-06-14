@@ -8,6 +8,7 @@ import {
   TRACK_SVG_W as SVG_W,
   TRACK_SVG_H as SVG_H,
   TRACK_SVG_PAD as PAD,
+  SECTOR_COLORS,
 } from "@/constants";
 import { getCircuitLayout } from "@/data/circuits";
 
@@ -73,6 +74,113 @@ export function TrackMap({
     [circuitShortName],
   );
 
+  // Memoize the SVG path string and shared coordinate transform — only changes when
+  // the track outline itself changes (once per session), not on every frame.
+  const trackGeometry = useMemo(() => {
+    if (!outline) return null;
+    const { points, bounds } = outline;
+    const innerW = SVG_W - PAD * 2;
+    const innerH = SVG_H - PAD * 2;
+
+    const svgPts = points.map((p) => {
+      const { sx, sy } = locationToSvg(p.x, p.y, bounds, innerW, innerH);
+      return { sx: sx + PAD, sy: sy + PAD };
+    });
+    const n = svgPts.length;
+    const get = (i: number) => svgPts[((i % n) + n) % n]!;
+    let pathData = `M${get(0).sx.toFixed(1)},${get(0).sy.toFixed(1)}`;
+    for (let i = 0; i < n; i++) {
+      const p0 = get(i - 1),
+        p1 = get(i),
+        p2 = get(i + 1),
+        p3 = get(i + 2);
+      const cp1x = p1.sx + (p2.sx - p0.sx) / 6;
+      const cp1y = p1.sy + (p2.sy - p0.sy) / 6;
+      const cp2x = p2.sx - (p3.sx - p1.sx) / 6;
+      const cp2y = p2.sy - (p3.sy - p1.sy) / 6;
+      pathData += ` C${cp1x.toFixed(1)},${cp1y.toFixed(1)} ${cp2x.toFixed(1)},${cp2y.toFixed(1)} ${p2.sx.toFixed(1)},${p2.sy.toFixed(1)}`;
+    }
+    pathData += " Z";
+    return { pathData, bounds, innerW, innerH };
+  }, [outline]);
+
+  // Memoize sector + DRS overlay elements — pure geometry, session-static.
+  const staticOverlays = useMemo(() => {
+    if (!trackGeometry || !circuitLayout) return null;
+    const { bounds, innerW, innerH } = trackGeometry;
+    return (
+      <>
+        {circuitLayout.sectors.map((sector) => {
+          const { sx: sx1, sy: sy1 } = locationToSvg(
+            sector.bounds.minX,
+            sector.bounds.minY,
+            bounds,
+            innerW,
+            innerH,
+          );
+          const { sx: sx2, sy: sy2 } = locationToSvg(
+            sector.bounds.maxX,
+            sector.bounds.maxY,
+            bounds,
+            innerW,
+            innerH,
+          );
+          const x = Math.min(sx1, sx2) + PAD;
+          const y = Math.min(sy1, sy2) + PAD;
+          const w = Math.abs(sx2 - sx1);
+          const h = Math.abs(sy2 - sy1);
+          return (
+            <g key={`sector-${sector.number}`} opacity={0.15}>
+              <rect x={x} y={y} width={w} height={h} fill={SECTOR_COLORS[sector.number]} />
+              <text
+                x={x + w / 2}
+                y={y + h / 2}
+                textAnchor="middle"
+                dominantBaseline="middle"
+                fontSize={9}
+                fill={SECTOR_COLORS[sector.number]}
+                fontWeight="bold"
+                fontFamily="Inter, sans-serif"
+              >
+                S{sector.number}
+              </text>
+            </g>
+          );
+        })}
+        {circuitLayout.drsZones.map((zone, idx) => {
+          const { sx: sx1, sy: sy1 } = locationToSvg(
+            zone.line.x1,
+            zone.line.y1,
+            bounds,
+            innerW,
+            innerH,
+          );
+          const { sx: sx2, sy: sy2 } = locationToSvg(
+            zone.line.x2,
+            zone.line.y2,
+            bounds,
+            innerW,
+            innerH,
+          );
+          return (
+            <g key={`drs-${idx}`}>
+              <line
+                x1={sx1 + PAD}
+                y1={sy1 + PAD}
+                x2={sx2 + PAD}
+                y2={sy2 + PAD}
+                stroke="#4da6ff"
+                strokeWidth={3}
+                opacity={0.8}
+              />
+              <circle cx={sx1 + PAD} cy={sy1 + PAD} r={2.5} fill="#4da6ff" />
+            </g>
+          );
+        })}
+      </>
+    );
+  }, [trackGeometry, circuitLayout]);
+
   if (!sessionKey) {
     return (
       <div className="flex items-center justify-center w-full h-full text-muted text-sm">
@@ -97,33 +205,11 @@ export function TrackMap({
     );
   }
 
-  const { points, bounds } = outline;
-  const innerW = SVG_W - PAD * 2;
-  const innerH = SVG_H - PAD * 2;
+  // trackGeometry is guaranteed non-null here: the `!outline` early-return above fires first.
+  const { pathData, bounds, innerW, innerH } = trackGeometry!;
 
-  // Catmull-Rom → cubic Bézier: fit smooth curves through every GPS point.
-  // Wraps around so the lap join is also smooth.
-  const svgPts = points.map((p) => {
-    const { sx, sy } = locationToSvg(p.x, p.y, bounds, innerW, innerH);
-    return { sx: sx + PAD, sy: sy + PAD };
-  });
-  const n = svgPts.length;
-  const get = (i: number) => svgPts[((i % n) + n) % n];
-  let pathData = `M${get(0).sx.toFixed(1)},${get(0).sy.toFixed(1)}`;
-  for (let i = 0; i < n; i++) {
-    const p0 = get(i - 1),
-      p1 = get(i),
-      p2 = get(i + 1),
-      p3 = get(i + 2);
-    const cp1x = p1.sx + (p2.sx - p0.sx) / 6;
-    const cp1y = p1.sy + (p2.sy - p0.sy) / 6;
-    const cp2x = p2.sx - (p3.sx - p1.sx) / 6;
-    const cp2y = p2.sy - (p3.sy - p1.sy) / 6;
-    pathData += ` C${cp1x.toFixed(1)},${cp1y.toFixed(1)} ${cp2x.toFixed(1)},${cp2y.toFixed(1)} ${p2.sx.toFixed(1)},${p2.sy.toFixed(1)}`;
-  }
-  pathData += " Z";
-
-  // Interpolate each driver's position at the current playhead time t (session-relative ms)
+  // Interpolate each driver's position at the current playhead time t (session-relative ms).
+  // This runs per-frame — it's the only thing that should.
   const carPositions: Array<{ num: number; x: number; y: number }> = [];
   for (const [num, idx] of locationIndexes) {
     const pos = interpolateXY(idx, t);
@@ -165,85 +251,8 @@ export function TrackMap({
         strokeOpacity={0.15}
       />
 
-      {/* Sectors overlay */}
-      {circuitLayout &&
-        circuitLayout.sectors.map((sector) => {
-          const { sx: sx1, sy: sy1 } = locationToSvg(
-            sector.bounds.minX,
-            sector.bounds.minY,
-            bounds,
-            innerW,
-            innerH,
-          );
-          const { sx: sx2, sy: sy2 } = locationToSvg(
-            sector.bounds.maxX,
-            sector.bounds.maxY,
-            bounds,
-            innerW,
-            innerH,
-          );
-          const x = Math.min(sx1, sx2) + PAD;
-          const y = Math.min(sy1, sy2) + PAD;
-          const w = Math.abs(sx2 - sx1);
-          const h = Math.abs(sy2 - sy1);
-          const colors = { 1: "#f5a623", 2: "#7cb342", 3: "#b71c1c" };
-          return (
-            <g key={`sector-${sector.number}`} opacity={0.15}>
-              <rect
-                x={x}
-                y={y}
-                width={w}
-                height={h}
-                fill={colors[sector.number]}
-              />
-              <text
-                x={x + w / 2}
-                y={y + h / 2}
-                textAnchor="middle"
-                dominantBaseline="middle"
-                fontSize={9}
-                fill={colors[sector.number]}
-                fontWeight="bold"
-                fontFamily="Inter, sans-serif"
-              >
-                S{sector.number}
-              </text>
-            </g>
-          );
-        })}
-
-      {/* DRS zones */}
-      {circuitLayout &&
-        circuitLayout.drsZones.map((zone, idx) => {
-          const { sx: sx1, sy: sy1 } = locationToSvg(
-            zone.line.x1,
-            zone.line.y1,
-            bounds,
-            innerW,
-            innerH,
-          );
-          const { sx: sx2, sy: sy2 } = locationToSvg(
-            zone.line.x2,
-            zone.line.y2,
-            bounds,
-            innerW,
-            innerH,
-          );
-          return (
-            <g key={`drs-${idx}`}>
-              <line
-                x1={sx1 + PAD}
-                y1={sy1 + PAD}
-                x2={sx2 + PAD}
-                y2={sy2 + PAD}
-                stroke="#4da6ff"
-                strokeWidth={3}
-                opacity={0.8}
-              />
-              <circle cx={sx1 + PAD} cy={sy1 + PAD} r={2.5} fill="#4da6ff" />
-            </g>
-          );
-        })}
+      {/* Sectors + DRS overlays (session-static, memoized) */}
+      {staticOverlays}
 
       {/* Car dots — when a driver is focused, dim the rest and enlarge the pick */}
       {carPositions

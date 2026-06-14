@@ -50,7 +50,9 @@ export function interpolateXY(
   if (i < 0) return { x: xs[0]!, y: ys[0]! }
   if (i >= n - 1) return { x: xs[n - 1]!, y: ys[n - 1]! }
 
-  const alpha = (t - times[i]!) / (times[i + 1]! - times[i]!)
+  const dt = times[i + 1]! - times[i]!
+  if (dt <= 0) return { x: xs[i]!, y: ys[i]! }
+  const alpha = (t - times[i]!) / dt
   return {
     x: xs[i]! + (xs[i + 1]! - xs[i]!) * alpha,
     y: ys[i]! + (ys[i + 1]! - ys[i]!) * alpha,

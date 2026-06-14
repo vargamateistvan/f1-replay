@@ -38,7 +38,7 @@ import {
   overtakeTimes,
 } from "@/timeline/events";
 import { isSessionLive } from "@/utils/live";
-import { DEFAULT_YEAR } from "@/constants";
+import { DEFAULT_YEAR, DEFAULT_SESSION_MS } from "@/constants";
 import type { MainView } from "@/components/Nav";
 
 // Sub-tab options per view
@@ -143,7 +143,7 @@ export default function RaceWeekend() {
     return out;
   }, [overtakes.data, sessionStartMs, t]);
 
-  const effectiveDuration = durationMs || 7_200_000;
+  const effectiveDuration = durationMs || DEFAULT_SESSION_MS;
   useKeyboardShortcuts({
     lapStarts: lapMarks,
     durationMs: effectiveDuration,

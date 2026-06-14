@@ -1,5 +1,5 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query'
-import { useEffect } from 'react'
+import { useEffect, useMemo } from 'react'
 import { api } from '@/api/endpoints'
 import type { Location } from '@/api/types'
 import { CHUNK_MS } from '@/constants'
@@ -60,10 +60,13 @@ export function useLocationChunks(
     })
   }, [qc, enabled, sessionKey, sessionStartMs, chunkIdx])
 
-  const data = [
-    ...(current.data ?? []),
-    ...(next.data ?? []),
-  ]
+  // Stable reference: only rebuilds when a chunk actually arrives, not every render.
+  // Without this memo, RaceWeekend's t-subscription causes a new array every frame,
+  // which forces TrackMap to rebuild all typed-array location indexes at 60 fps.
+  const data = useMemo(
+    () => [...(current.data ?? []), ...(next.data ?? [])],
+    [current.data, next.data],
+  )
 
   return { data, isPending: current.isPending }
 }

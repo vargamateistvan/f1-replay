@@ -35,6 +35,16 @@ export const TRACK_OUTLINE_LAP = 2
 export const SECTOR_PURPLE_S = 0.05 // within 50 ms of best → personal/overall best
 export const SECTOR_GREEN_S = 0.5 // within 0.5 s → green
 
+// Fallback session duration when date_end is missing (2 hours).
+export const DEFAULT_SESSION_MS = 7_200_000
+
+// ── Track map sector colours ────────────────────────────────────────────────--
+export const SECTOR_COLORS: Record<1 | 2 | 3, string> = {
+  1: '#f5a623',
+  2: '#7cb342',
+  3: '#b71c1c',
+}
+
 // ── Championship points ─────────────────────────────────────────────────────--
 export const RACE_POINTS = [25, 18, 15, 12, 10, 8, 6, 4, 2, 1] as const
 export const SPRINT_POINTS = [8, 7, 6, 5, 4, 3, 2, 1] as const

@@ -32,6 +32,20 @@ describe('interpolateXY', () => {
     // t=150 is halfway between (100,10,20) and (200,30,0)
     expect(interpolateXY(idx, 150)).toEqual({ x: 20, y: 10 })
   })
+
+  it('returns a finite result when two consecutive timestamps are equal', () => {
+    // OpenF1 can emit duplicate-date rows; guard against dt=0 → alpha=Infinity
+    const dupIdx = buildIndex([
+      { t: 0, x: 0, y: 0 },
+      { t: 100, x: 10, y: 20 },
+      { t: 100, x: 12, y: 22 }, // duplicate timestamp
+      { t: 200, x: 30, y: 0 },
+    ])
+    const result = interpolateXY(dupIdx, 100)
+    expect(result).not.toBeNull()
+    expect(Number.isFinite(result!.x)).toBe(true)
+    expect(Number.isFinite(result!.y)).toBe(true)
+  })
 })
 
 describe('stepAt', () => {
