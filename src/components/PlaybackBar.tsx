@@ -1,11 +1,9 @@
-import { useState } from "react";
 import { useTimeline } from "@/timeline/clock";
 import { SPEEDS } from "@/constants";
 import { nextAfter, prevBefore } from "@/timeline/events";
 
 interface Props {
   durationMs: number;
-  // Session-relative ms marker arrays (sorted ascending) for jump-to-event.
   lapStarts?: number[];
   pitTimes?: number[];
   flagTimes?: number[];
@@ -26,7 +24,7 @@ function fmtTime(ms: number) {
 const JUMP_BTN =
   "w-7 h-8 flex items-center justify-center text-xs bg-panel text-muted hover:text-white hover:bg-[#38383f] transition-colors shrink-0 disabled:opacity-30 disabled:hover:bg-panel disabled:hover:text-muted";
 const CHIP =
-  "px-2 h-8 flex items-center text-[10px] font-black uppercase tracking-widest bg-panel text-muted hover:text-white hover:bg-[#38383f] transition-colors shrink-0 disabled:opacity-30 disabled:hover:bg-panel disabled:hover:text-muted";
+  "px-3 h-7 flex items-center text-[10px] font-black uppercase tracking-widest bg-panel text-muted hover:text-white hover:bg-[#38383f] transition-colors shrink-0 disabled:opacity-30 disabled:hover:bg-panel disabled:hover:text-muted";
 
 export function PlaybackBar({
   durationMs,
@@ -37,7 +35,6 @@ export function PlaybackBar({
   radioTimes = [],
 }: Props) {
   const { t, playing, speed, toggle, setT, setSpeed } = useTimeline();
-  const [showChips, setShowChips] = useState(false);
 
   const clamp = (v: number) =>
     Math.max(0, durationMs > 0 ? Math.min(v, durationMs) : v);
@@ -52,11 +49,18 @@ export function PlaybackBar({
   const nextPass = nextAfter(overtakeTimes, t);
   const nextRadio = nextAfter(radioTimes, t);
 
+  function cycleSpeed() {
+    const idx = (SPEEDS as readonly number[]).indexOf(speed);
+    const next = SPEEDS[(idx + 1) % SPEEDS.length];
+    setSpeed(next);
+  }
+
   return (
-    <div className="flex flex-col sm:flex-row sm:items-center gap-2 px-4 py-2.5 bg-track border-t border-panel">
-      {/* Row 1: Transport, scrubber, time, speed (stack on phone, row on sm+) */}
+    <div className="flex flex-col gap-1.5 px-3 py-2 bg-track border-t border-panel sm:gap-2 sm:px-4 sm:py-2.5">
+
+      {/* ── Transport + scrubber row ─────────────────────────────── */}
       <div className="flex items-center gap-2 w-full">
-        {/* Transport cluster: prev-lap · play · next-lap */}
+        {/* Prev lap */}
         <button
           onClick={() => jump(prevLap)}
           disabled={prevLap === null}
@@ -66,6 +70,8 @@ export function PlaybackBar({
         >
           ⏮
         </button>
+
+        {/* Play / pause */}
         <button
           onClick={toggle}
           className="w-8 h-8 bg-f1red text-white font-bold flex items-center justify-center hover:bg-red-600 transition-colors shrink-0"
@@ -74,6 +80,8 @@ export function PlaybackBar({
         >
           {playing ? "⏸" : "▶"}
         </button>
+
+        {/* Next lap */}
         <button
           onClick={() => jump(nextLap)}
           disabled={nextLap === null}
@@ -84,10 +92,12 @@ export function PlaybackBar({
           ⏭
         </button>
 
-        <span className="text-muted font-mono text-xs tabular-nums w-12 text-right shrink-0 ml-1">
+        {/* Current time */}
+        <span className="text-muted font-mono text-xs tabular-nums w-10 text-right shrink-0">
           {fmtTime(t)}
         </span>
 
+        {/* Scrubber */}
         <input
           type="range"
           min={0}
@@ -99,11 +109,21 @@ export function PlaybackBar({
           aria-label="Seek"
         />
 
-        <span className="text-muted font-mono text-xs tabular-nums w-12 shrink-0">
+        {/* Duration — hidden on mobile to reclaim scrubber space */}
+        <span className="hidden sm:inline text-muted font-mono text-xs tabular-nums w-12 shrink-0">
           {fmtTime(durationMs)}
         </span>
 
-        {/* Speed buttons — hidden on phone (shown in expanded chips row instead) */}
+        {/* Speed — tap-to-cycle on mobile, full buttons on desktop */}
+        <button
+          onClick={cycleSpeed}
+          aria-label={`Speed ${speed}x — tap to change`}
+          className="sm:hidden w-9 h-8 flex items-center justify-center text-[10px] font-black uppercase tracking-widest bg-panel transition-colors shrink-0 text-f1red"
+        >
+          {speed}×
+        </button>
+
+        {/* Speed buttons — desktop only */}
         <div className="hidden sm:flex gap-px shrink-0">
           {SPEEDS.map((s) => (
             <button
@@ -121,76 +141,43 @@ export function PlaybackBar({
             </button>
           ))}
         </div>
-
-        {/* Toggle button for jump chips + speed (phone only) */}
-        <button
-          onClick={() => setShowChips(!showChips)}
-          className="sm:hidden w-7 h-8 flex items-center justify-center text-xs bg-panel text-muted hover:text-white hover:bg-[#38383f] transition-colors shrink-0"
-          aria-label="Jump to event"
-          title="Jump events"
-        >
-          ⋯
-        </button>
       </div>
 
-      {/* Row 2: Speed + jump chips (hidden on phone by default, visible on sm+, or toggled by ⋯) */}
-      <div
-        className={`flex items-center gap-1 overflow-x-auto sm:flex ${showChips ? "flex" : "hidden sm:flex"}`}
-      >
-        {/* Speed buttons on mobile (desktop shows them in row 1) */}
-        <div className="sm:hidden flex gap-px shrink-0 mr-1">
-          {SPEEDS.map((s) => (
-            <button
-              key={s}
-              onClick={() => setSpeed(s)}
-              aria-pressed={speed === s}
-              aria-label={`${s}x speed`}
-              className={`px-2 py-1 text-[10px] font-black uppercase tracking-widest transition-colors ${
-                speed === s
-                  ? "bg-f1red text-white"
-                  : "bg-panel text-muted hover:text-white hover:bg-[#38383f]"
-              }`}
-            >
-              {s}×
-            </button>
-          ))}
-        </div>
-        <div className="sm:hidden w-px h-5 bg-[#38383f] shrink-0" />
+      {/* ── Jump chips row ───────────────────────────────────────── */}
+      {/* Mobile: compact always-visible horizontal scroll             */}
+      {/* Desktop: flows naturally after the transport row            */}
+      <div className="flex gap-1 overflow-x-auto sm:flex-wrap">
         <button
           onClick={() => jump(nextPit)}
           disabled={nextPit === null}
           className={CHIP}
           aria-label="Jump to next pit stop"
-          title="Next pit stop"
         >
-          Pit›
+          Pit ›
         </button>
         <button
           onClick={() => jump(nextFlag)}
           disabled={nextFlag === null}
           className={CHIP}
           aria-label="Jump to next flag or safety car"
-          title="Next flag / SC"
         >
-          Flag›
+          Flag ›
         </button>
         <button
           onClick={() => jump(nextPass)}
           disabled={nextPass === null}
           className={CHIP}
           aria-label="Jump to next overtake"
-          title="Next overtake"
         >
-          Pass›
+          Pass ›
         </button>
         <button
           onClick={() => jump(nextRadio)}
           disabled={nextRadio === null}
           className={CHIP}
           aria-label="Jump to next radio message"
-          title="Next radio"
         >
-          Radio›
+          Radio ›
         </button>
       </div>
     </div>
