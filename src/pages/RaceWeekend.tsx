@@ -769,25 +769,26 @@ export default function RaceWeekend() {
           </div>
 
           {/* Sub-tabs */}
-          <div className="flex border-b border-panel shrink-0 bg-track">
+          <div className="flex border-b border-panel shrink-0 bg-track overflow-x-auto">
             {(
               [
-                ["rc", "Race Control"],
-                ["radio", "Team Radio"],
-                ["passes", "Overtakes"],
-                ["moments", "Key Moments"],
-              ] as [CommentaryTab, string][]
-            ).map(([tab, label]) => (
+                ["rc", "Race Control", "RC"],
+                ["radio", "Team Radio", "Radio"],
+                ["passes", "Overtakes", "Passes"],
+                ["moments", "Key Moments", "Moments"],
+              ] as [CommentaryTab, string, string][]
+            ).map(([tab, label, shortLabel]) => (
               <button
                 key={tab}
                 onClick={() => setCommentaryTab(tab)}
-                className={`px-5 py-2 text-[11px] font-bold uppercase tracking-wider transition-colors border-b-2 ${
+                className={`shrink-0 px-4 py-2 text-[11px] font-bold uppercase tracking-wider transition-colors border-b-2 ${
                   (commentaryTab ?? "rc") === tab
                     ? "text-white border-f1red -mb-px"
                     : "text-muted border-transparent hover:text-white"
                 }`}
               >
-                {label}
+                <span className="sm:hidden">{shortLabel}</span>
+                <span className="hidden sm:inline">{label}</span>
               </button>
             ))}
           </div>

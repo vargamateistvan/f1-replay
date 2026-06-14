@@ -40,7 +40,7 @@ export function EventToastStack({ toasts, drivers, onDismiss }: Props) {
         }
         .toast-in { animation: toast-in 0.18s ease-out both; }
       `}</style>
-      <div className="absolute top-3 right-3 z-30 flex flex-col gap-2 pointer-events-none" style={{ maxWidth: 260 }}>
+      <div className="absolute top-3 right-3 z-30 flex flex-col gap-2 pointer-events-none w-[min(260px,calc(100vw-1.5rem))]">
         {toasts.map((at) => (
           <ToastCard
             key={at.event.id}
@@ -100,7 +100,7 @@ function RadioToast({
   const color = teamColor(driver?.team_colour)
 
   return (
-    <div className="toast-in pointer-events-auto bg-[#1f1f27] border border-[#38383f] shadow-xl flex overflow-hidden" style={{ minWidth: 200 }}>
+    <div className="toast-in pointer-events-auto bg-[#1f1f27] border border-[#38383f] shadow-xl flex overflow-hidden w-full">
       <span className="w-[3px] shrink-0" style={{ background: color }} />
       <div className="flex-1 px-2.5 py-2 min-w-0">
         <div className="flex items-center justify-between gap-2">
@@ -152,7 +152,7 @@ function FlagToast({
   const isPenalty = /penalty|investigation/i.test(p.message)
 
   return (
-    <div className="toast-in pointer-events-auto bg-[#1f1f27] border border-[#38383f] shadow-xl overflow-hidden" style={{ minWidth: 200 }}>
+    <div className="toast-in pointer-events-auto bg-[#1f1f27] border border-[#38383f] shadow-xl overflow-hidden w-full">
       <div className="flex items-center gap-2 px-2.5 py-1" style={{ background: cfg.bg }}>
         <span className="text-[10px] font-black uppercase tracking-widest" style={{ color: cfg.text }}>
           {isPenalty && !p.flag ? '⚠ PENALTY' : cfg.label}
@@ -194,7 +194,7 @@ function OvertakeToast({
   const color = teamColor(overtaking?.team_colour)
 
   return (
-    <div className="toast-in pointer-events-auto bg-[#1f1f27] border border-[#38383f] shadow-xl flex items-center gap-2 px-2.5 py-2 overflow-hidden" style={{ minWidth: 200 }}>
+    <div className="toast-in pointer-events-auto bg-[#1f1f27] border border-[#38383f] shadow-xl flex items-center gap-2 px-2.5 py-2 overflow-hidden w-full">
       <span className="w-[3px] self-stretch shrink-0" style={{ background: color }} />
       <div className="flex-1 min-w-0">
         <div className="text-[9px] text-muted uppercase tracking-widest mb-0.5">Overtake</div>
@@ -234,7 +234,7 @@ function PitToast({
   const color = teamColor(driver?.team_colour)
 
   return (
-    <div className="toast-in pointer-events-auto bg-[#1f1f27] border border-[#38383f] shadow-xl flex items-center gap-2 px-2.5 py-2 overflow-hidden" style={{ minWidth: 200 }}>
+    <div className="toast-in pointer-events-auto bg-[#1f1f27] border border-[#38383f] shadow-xl flex items-center gap-2 px-2.5 py-2 overflow-hidden w-full">
       <span className="w-[3px] self-stretch shrink-0" style={{ background: color }} />
       <div className="flex-1 min-w-0">
         <div className="text-[9px] text-muted uppercase tracking-widest mb-0.5">Pit Stop · L{p.lapNumber}</div>
@@ -282,8 +282,8 @@ function FastestLapToast({
 
   return (
     <div
-      className="toast-in pointer-events-auto shadow-xl overflow-hidden"
-      style={{ minWidth: 200, background: '#1a0e2e', border: '1px solid #9b59f5' }}
+      className="toast-in pointer-events-auto shadow-xl overflow-hidden w-full"
+      style={{ background: '#1a0e2e', border: '1px solid #9b59f5' }}
     >
       <div className="flex items-center gap-2 px-2.5 py-1" style={{ background: '#9b59f5' }}>
         <span className="text-[10px] font-black uppercase tracking-widest text-white">

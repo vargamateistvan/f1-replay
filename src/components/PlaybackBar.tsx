@@ -103,7 +103,8 @@ export function PlaybackBar({
           {fmtTime(durationMs)}
         </span>
 
-        <div className="flex gap-px shrink-0">
+        {/* Speed buttons — hidden on phone (shown in expanded chips row instead) */}
+        <div className="hidden sm:flex gap-px shrink-0">
           {SPEEDS.map((s) => (
             <button
               key={s}
@@ -121,7 +122,7 @@ export function PlaybackBar({
           ))}
         </div>
 
-        {/* Toggle button for jump chips (phone only) */}
+        {/* Toggle button for jump chips + speed (phone only) */}
         <button
           onClick={() => setShowChips(!showChips)}
           className="sm:hidden w-7 h-8 flex items-center justify-center text-xs bg-panel text-muted hover:text-white hover:bg-[#38383f] transition-colors shrink-0"
@@ -132,10 +133,29 @@ export function PlaybackBar({
         </button>
       </div>
 
-      {/* Row 2: Jump chips (hidden on phone by default, visible on sm+, or toggled by ⋯) */}
+      {/* Row 2: Speed + jump chips (hidden on phone by default, visible on sm+, or toggled by ⋯) */}
       <div
-        className={`flex gap-1 overflow-x-auto sm:flex ${showChips ? "flex" : "hidden sm:flex"}`}
+        className={`flex items-center gap-1 overflow-x-auto sm:flex ${showChips ? "flex" : "hidden sm:flex"}`}
       >
+        {/* Speed buttons on mobile (desktop shows them in row 1) */}
+        <div className="sm:hidden flex gap-px shrink-0 mr-1">
+          {SPEEDS.map((s) => (
+            <button
+              key={s}
+              onClick={() => setSpeed(s)}
+              aria-pressed={speed === s}
+              aria-label={`${s}x speed`}
+              className={`px-2 py-1 text-[10px] font-black uppercase tracking-widest transition-colors ${
+                speed === s
+                  ? "bg-f1red text-white"
+                  : "bg-panel text-muted hover:text-white hover:bg-[#38383f]"
+              }`}
+            >
+              {s}×
+            </button>
+          ))}
+        </div>
+        <div className="sm:hidden w-px h-5 bg-[#38383f] shrink-0" />
         <button
           onClick={() => jump(nextPit)}
           disabled={nextPit === null}
