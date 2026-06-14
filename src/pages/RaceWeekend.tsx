@@ -180,6 +180,7 @@ export default function RaceWeekend() {
       sessionStartMs={sessionStartMs}
       focusDriver={focusDriver}
       pulseDrivers={pulseDrivers}
+      circuitShortName={session?.circuit_short_name}
     />
   );
 
