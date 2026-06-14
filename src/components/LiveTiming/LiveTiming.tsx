@@ -23,6 +23,7 @@ interface Props {
   readonly grid?: StartingGrid[];
   readonly sessionTimeMs: number;
   readonly sessionStartMs: number;
+  readonly sessionName?: string;
   readonly isLoading?: boolean;
   readonly selectedDriver?: number | null;
   readonly onSelectDriver?: (driverNumber: number) => void;
@@ -75,6 +76,12 @@ const LAP_TIME_COLOUR: Record<string, string> = {
 const TH =
   "py-1.5 px-2 text-[9px] font-bold uppercase tracking-[0.12em] text-[#636369] select-none";
 
+function isRaceSession(sessionName?: string) {
+  if (!sessionName) return false;
+  const n = sessionName.toLowerCase();
+  return n.includes("race") || n.includes("sprint");
+}
+
 export function LiveTiming({
   drivers,
   positions,
@@ -83,6 +90,7 @@ export function LiveTiming({
   laps,
   stints,
   grid,
+  sessionName,
   sessionTimeMs,
   sessionStartMs,
   isLoading,
@@ -208,11 +216,13 @@ export function LiveTiming({
     return m;
   }, [laps, currentT]);
 
-  // Detect retirements: a driver whose last position update (at/before currentT) is
-  // more than 5 min earlier than the most recent update from any driver is considered
-  // retired at the current playhead. Works without session_result — purely from
-  // the position stream stopping, which is how OpenF1 signals a retirement.
+  // Retirement detection only applies to race/sprint sessions.
+  // OpenF1 position data is event-driven — it only fires on order changes. Stable
+  // top-order drivers can go minutes without a position event while the midfield
+  // keeps swapping, making them look falsely retired. Cross-check with lap data:
+  // a driver who started a lap within the gap window is still racing.
   const retiredDrivers = useMemo(() => {
+    if (!isRaceSession(sessionName)) return new Set<number>();
     const lastMs = new Map<number, number>();
     for (const p of positions) {
       const ms = new Date(p.date).getTime();
@@ -223,12 +233,20 @@ export function LiveTiming({
     let maxMs = 0;
     for (const ms of lastMs.values()) if (ms > maxMs) maxMs = ms;
     const RETIREMENT_GAP_MS = 5 * 60_000;
+    const activeLappers = new Set<number>();
+    for (const lap of laps) {
+      if (!lap.date_start) continue;
+      const lapStartMs = new Date(lap.date_start).getTime();
+      if (lapStartMs <= currentT && maxMs - lapStartMs < RETIREMENT_GAP_MS)
+        activeLappers.add(lap.driver_number);
+    }
     const retired = new Set<number>();
     for (const [num, ms] of lastMs) {
-      if (maxMs - ms > RETIREMENT_GAP_MS) retired.add(num);
+      if (maxMs - ms > RETIREMENT_GAP_MS && !activeLappers.has(num))
+        retired.add(num);
     }
     return retired;
-  }, [positions, currentT]);
+  }, [positions, laps, currentT, sessionName]);
 
   const driverByNumber = useMemo(
     () => new Map(drivers.map((d) => [d.driver_number, d])),

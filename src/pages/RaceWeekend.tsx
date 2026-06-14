@@ -267,10 +267,13 @@ export default function RaceWeekend() {
       });
   }, [positions.data, intervals.data, drivers.data, sessionStartMs, t]);
 
-  // Retired drivers: position stream stopped >5 min before the latest update.
-  // Same logic as LiveTiming's RET badge — centralised here so TrackMap shares it.
+  // Retired drivers for TrackMap — mirrors LiveTiming's logic exactly.
+  // Position data is event-driven; cross-check with laps to avoid flagging
+  // stable top-order drivers whose position stream went quiet.
   const retiredDrivers = useMemo((): ReadonlySet<number> => {
-    if (!sessionStartMs || !positions.data?.length) return new Set();
+    const name = session?.session_name ?? "";
+    const isRace = name.toLowerCase().includes("race") || name.toLowerCase().includes("sprint");
+    if (!isRace || !sessionStartMs || !positions.data?.length) return new Set();
     const cutoff = sessionStartMs + t;
     const lastMs = new Map<number, number>();
     for (const p of positions.data) {
@@ -281,12 +284,21 @@ export default function RaceWeekend() {
     }
     let maxMs = 0;
     for (const ms of lastMs.values()) if (ms > maxMs) maxMs = ms;
+    const RETIREMENT_GAP_MS = 5 * 60_000;
+    const activeLappers = new Set<number>();
+    for (const lap of laps.data ?? []) {
+      if (!lap.date_start) continue;
+      const lapStartMs = new Date(lap.date_start).getTime();
+      if (lapStartMs <= cutoff && maxMs - lapStartMs < RETIREMENT_GAP_MS)
+        activeLappers.add(lap.driver_number);
+    }
     const retired = new Set<number>();
     for (const [num, ms] of lastMs) {
-      if (maxMs - ms > 5 * 60_000) retired.add(num);
+      if (maxMs - ms > RETIREMENT_GAP_MS && !activeLappers.has(num))
+        retired.add(num);
     }
     return retired;
-  }, [positions.data, sessionStartMs, t]);
+  }, [positions.data, laps.data, sessionStartMs, session?.session_name, t]);
 
   // Current session flag (last flag-bearing RC entry at/before playhead).
   const activeSectorFlag = useMemo(() => {
@@ -447,6 +459,7 @@ export default function RaceWeekend() {
       laps={laps.data ?? []}
       stints={stints.data ?? []}
       grid={grid.data ?? []}
+      sessionName={session?.session_name}
       sessionTimeMs={t}
       sessionStartMs={sessionStartMs}
       isLoading={positions.isPending && sessionKey !== null}
