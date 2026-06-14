@@ -267,6 +267,27 @@ export default function RaceWeekend() {
       });
   }, [positions.data, intervals.data, drivers.data, sessionStartMs, t]);
 
+  // Retired drivers: position stream stopped >5 min before the latest update.
+  // Same logic as LiveTiming's RET badge — centralised here so TrackMap shares it.
+  const retiredDrivers = useMemo((): ReadonlySet<number> => {
+    if (!sessionStartMs || !positions.data?.length) return new Set();
+    const cutoff = sessionStartMs + t;
+    const lastMs = new Map<number, number>();
+    for (const p of positions.data) {
+      const ms = new Date(p.date).getTime();
+      if (ms > cutoff) continue;
+      const prev = lastMs.get(p.driver_number) ?? 0;
+      if (ms > prev) lastMs.set(p.driver_number, ms);
+    }
+    let maxMs = 0;
+    for (const ms of lastMs.values()) if (ms > maxMs) maxMs = ms;
+    const retired = new Set<number>();
+    for (const [num, ms] of lastMs) {
+      if (maxMs - ms > 5 * 60_000) retired.add(num);
+    }
+    return retired;
+  }, [positions.data, sessionStartMs, t]);
+
   // Current session flag (last flag-bearing RC entry at/before playhead).
   const activeSectorFlag = useMemo(() => {
     if (!sessionStartMs) return null;
@@ -449,6 +470,7 @@ export default function RaceWeekend() {
       focusDriverLap={mapShowDriverHud ? focusDriverLap : null}
       leaderboard={mapShowLeaderboard ? mapLeaderboard : undefined}
       activeSectorFlag={mapShowSectorFlags ? activeSectorFlag : null}
+      retiredDrivers={retiredDrivers}
     />
   );
 

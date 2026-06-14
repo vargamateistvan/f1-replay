@@ -78,6 +78,7 @@ interface Props {
   readonly circuitKey?: number | null;
   readonly activeCompounds?: ReadonlyMap<number, { compound: Stint["compound"]; age: number }>;
   readonly battlingDrivers?: ReadonlySet<number>;
+  readonly retiredDrivers?: ReadonlySet<number>;
   readonly focusDriverLap?: number | null;
   readonly leaderboard?: readonly LeaderboardRow[];
   readonly activeSectorFlag?: string | null;
@@ -94,6 +95,7 @@ export function TrackMap({
   circuitKey = null,
   activeCompounds,
   battlingDrivers,
+  retiredDrivers,
   focusDriverLap = null,
   leaderboard,
   activeSectorFlag = null,
@@ -416,6 +418,7 @@ export function TrackMap({
   // This runs per-frame — it's the only thing that should.
   const carPositions: Array<{ num: number; x: number; y: number }> = [];
   for (const [num, idx] of locationIndexes) {
+    if (retiredDrivers?.has(num)) continue;
     const pos = interpolateXY(idx, t);
     if (pos) carPositions.push({ num, ...pos });
   }
