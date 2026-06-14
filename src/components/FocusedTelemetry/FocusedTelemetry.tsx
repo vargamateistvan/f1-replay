@@ -52,9 +52,9 @@ export function FocusedTelemetry({ sessionKey, driver, sessionStartMs, onClear }
 
       {sample ? (
         <>
-          <Metric label="Speed" value={`${Math.round(sample.speed)}`} unit="km/h" />
-          <Metric label="Gear" value={sample.n_gear === 0 ? 'N' : String(sample.n_gear)} />
-          <Metric label="RPM" value={`${Math.round(sample.rpm)}`} />
+          <Metric label="Speed" value={`${Math.round(sample.speed)}`} unit="km/h" w="w-[3ch]" />
+          <Metric label="Gear" value={sample.n_gear === 0 ? 'N' : String(sample.n_gear)} w="w-[1ch]" />
+          <Metric label="RPM" value={`${Math.round(sample.rpm)}`} w="w-[5ch]" />
           <Bar label="Thr" value={sample.throttle} color="#39d743" />
           <Bar label="Brk" value={sample.brake} color="#ff5252" />
           <span
@@ -82,11 +82,11 @@ export function FocusedTelemetry({ sessionKey, driver, sessionStartMs, onClear }
   )
 }
 
-function Metric({ label, value, unit }: { label: string; value: string; unit?: string }) {
+function Metric({ label, value, unit, w = 'w-auto' }: { label: string; value: string; unit?: string; w?: string }) {
   return (
     <span className="flex items-baseline gap-1 shrink-0">
       <span className="text-[10px] font-bold uppercase tracking-widest text-muted">{label}</span>
-      <span className="font-mono font-bold tabular-nums text-white">{value}</span>
+      <span className={`font-mono font-bold tabular-nums text-white text-right inline-block ${w}`}>{value}</span>
       {unit && <span className="text-[10px] text-muted">{unit}</span>}
     </span>
   )
