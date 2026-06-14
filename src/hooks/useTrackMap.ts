@@ -21,9 +21,15 @@ export function computeTrackBounds(locations: Location[]): TrackBounds {
 }
 
 export function locationToSvg(x: number, y: number, bounds: TrackBounds, svgW: number, svgH: number) {
-  const nx = (x - bounds.minX) / bounds.width
-  const ny = 1 - (y - bounds.minY) / bounds.height // flip Y axis
-  return { sx: nx * svgW, sy: ny * svgH }
+  // Uniform scale so the real-world aspect ratio is preserved (letterbox if needed).
+  const scale = Math.min(svgW / bounds.width, svgH / bounds.height)
+  const mapW = bounds.width * scale
+  const mapH = bounds.height * scale
+  const offX = (svgW - mapW) / 2
+  const offY = (svgH - mapH) / 2
+  const sx = (x - bounds.minX) * scale + offX
+  const sy = mapH - (y - bounds.minY) * scale + offY  // flip Y axis
+  return { sx, sy }
 }
 
 // Derives track outline via two sequential calls:
