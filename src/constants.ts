@@ -2,9 +2,9 @@
 // Grouped by domain. Prefer importing from here over re-declaring literals.
 
 // ── Seasons ───────────────────────────────────────────────────────────────────
-// Years offered in every session/standings picker. OpenF1 coverage starts in 2023;
-// 2022 is partial. Newest first so the default selection is the latest season.
-export const YEARS = [2024, 2023, 2022] as const
+// Years offered in every session/standings picker. OpenF1 coverage starts in 2023.
+// Newest first so the default selection is the latest season.
+export const YEARS = [2026, 2025, 2024, 2023] as const
 export const DEFAULT_YEAR = YEARS[0]
 
 // ── Playback ────────────────────────────────────────────────────────────────--

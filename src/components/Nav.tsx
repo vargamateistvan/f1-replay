@@ -135,8 +135,8 @@ export function Nav() {
         </div>
       )}
 
-      {/* ── Dark sub-bar: session pickers ─────────────────────── */}
-      <div className="flex flex-wrap items-center gap-x-3 gap-y-1 px-4 py-1.5 bg-track border-b border-panel">
+      {/* ── Dark sub-bar: session pickers (main route only) ─────── */}
+      {isMainRoute && <div className="flex flex-wrap items-center gap-x-3 gap-y-1 px-4 py-1.5 bg-track border-b border-panel">
         {live && (
           <span className="flex items-center gap-1 bg-f1red text-white text-[9px] font-black uppercase tracking-widest px-2 py-0.5 mr-1">
             <span className="w-1.5 h-1.5 rounded-full bg-white animate-pulse" />
@@ -199,7 +199,7 @@ export function Nav() {
         {(meetings.isPending || sessions.isPending) && (
           <span className="text-muted text-[9px] animate-pulse ml-1">Loading…</span>
         )}
-      </div>
+      </div>}
     </header>
   )
 }
