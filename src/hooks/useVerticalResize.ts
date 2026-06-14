@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 
 interface Options {
   initialHeight: number;
@@ -11,7 +11,11 @@ interface Options {
  * controlled height. The handle sits above the bottom panel; dragging it UP
  * grows the panel, dragging DOWN shrinks it.
  */
-export function useVerticalResize({ initialHeight, minHeight, maxHeight }: Options) {
+export function useVerticalResize({
+  initialHeight,
+  minHeight,
+  maxHeight,
+}: Options) {
   const [height, setHeight] = useState(initialHeight);
 
   // Stable refs so the window listeners created once stay up to date.
@@ -25,11 +29,16 @@ export function useVerticalResize({ initialHeight, minHeight, maxHeight }: Optio
       const delta = clientY - dragRef.current.startY;
       const { minHeight, maxHeight } = clampRef.current;
       setHeight(
-        Math.max(minHeight, Math.min(maxHeight, dragRef.current.startH - delta)),
+        Math.max(
+          minHeight,
+          Math.min(maxHeight, dragRef.current.startH - delta),
+        ),
       );
     }
 
-    function onMouseMove(e: MouseEvent) { onMove(e.clientY); }
+    function onMouseMove(e: MouseEvent) {
+      onMove(e.clientY);
+    }
     function onTouchMove(e: TouchEvent) {
       e.preventDefault();
       onMove(e.touches[0]!.clientY);

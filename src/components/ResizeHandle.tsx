@@ -1,3 +1,5 @@
+import React from "react";
+
 interface Props {
   onMouseDown: (e: React.MouseEvent) => void;
   onTouchStart: (e: React.TouchEvent) => void;
@@ -10,7 +12,12 @@ interface Props {
  * A thin horizontal drag handle for resizing adjacent vertical panels.
  * Drag UP/DOWN to resize; double-click to reset to default.
  */
-export function ResizeHandle({ onMouseDown, onTouchStart, onDoubleClick, className = "" }: Props) {
+export function ResizeHandle({
+  onMouseDown,
+  onTouchStart,
+  onDoubleClick,
+  className = "",
+}: Props) {
   return (
     <div
       onMouseDown={onMouseDown}

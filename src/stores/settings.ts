@@ -25,7 +25,10 @@ interface SettingsStore extends AppSettings {
   isOpen: boolean;
   openModal: () => void;
   closeModal: () => void;
-  setSetting: <K extends keyof AppSettings>(key: K, value: AppSettings[K]) => void;
+  setSetting: <K extends keyof AppSettings>(
+    key: K,
+    value: AppSettings[K],
+  ) => void;
   reset: () => void;
 }
 
@@ -59,8 +62,13 @@ export const useSettings = create<SettingsStore>()(
       name: "f1-replay-settings",
       // Only persist the AppSettings fields, not the modal state or actions.
       partialize: (state) => {
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
         const {
-          isOpen, openModal, closeModal, setSetting, reset,
+          isOpen,
+          openModal,
+          closeModal,
+          setSetting,
+          reset,
           ...settings
         } = state;
         return settings as AppSettings;
