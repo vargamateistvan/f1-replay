@@ -1,3 +1,4 @@
+import { useState } from "react";
 import {
   NavLink,
   useSearchParams,
@@ -29,6 +30,7 @@ export function Nav() {
   const [meetingKey] = useNumberParam("meeting", null);
   const [sessionKey, setSessionKey] = useNumberParam("session", null);
   const [view] = useStringParam<MainView>("view", "leaderboard");
+  const [showMenu, setShowMenu] = useState(false);
 
   const meetings = useMeetings(year);
   const sessions = useSessions(meetingKey);
@@ -141,6 +143,15 @@ export function Nav() {
             Standings
           </NavLink>
         </div>
+
+        {/* Menu button for phone */}
+        <button
+          onClick={() => setShowMenu(!showMenu)}
+          className="sm:hidden w-8 h-10 flex items-center justify-center text-white hover:opacity-80 transition-opacity ml-2"
+          aria-label="Menu"
+        >
+          ⋯
+        </button>
       </div>
 
       {/* ── Auth failure banner ───────────────────────────────── */}
@@ -232,6 +243,46 @@ export function Nav() {
             </span>
           )}
         </div>
+      )}
+
+      {/* ── Phone menu drawer ─────────────────────────────────────── */}
+      {showMenu && (
+        <>
+          {/* Backdrop */}
+          <div
+            className="fixed inset-0 bg-black/50 z-40 sm:hidden"
+            onClick={() => setShowMenu(false)}
+          />
+          {/* Menu panel */}
+          <div className="absolute top-10 right-4 z-50 bg-surface border border-panel rounded shadow-lg min-w-40">
+            <NavLink
+              to={`/telemetry?${searchParams}`}
+              onClick={() => setShowMenu(false)}
+              className={({ isActive }) =>
+                `block w-full text-left px-4 py-2 text-[11px] font-bold uppercase tracking-wider border-b border-panel transition-colors ${
+                  isActive
+                    ? "bg-f1red text-white"
+                    : "text-muted hover:text-white hover:bg-track"
+                }`
+              }
+            >
+              Telemetry
+            </NavLink>
+            <NavLink
+              to={`/standings?${searchParams}`}
+              onClick={() => setShowMenu(false)}
+              className={({ isActive }) =>
+                `block w-full text-left px-4 py-2 text-[11px] font-bold uppercase tracking-wider transition-colors ${
+                  isActive
+                    ? "bg-f1red text-white"
+                    : "text-muted hover:text-white hover:bg-track"
+                }`
+              }
+            >
+              Standings
+            </NavLink>
+          </div>
+        </>
       )}
     </header>
   );
