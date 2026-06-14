@@ -1,4 +1,4 @@
-import { NavLink, useSearchParams } from 'react-router-dom'
+import { NavLink, useSearchParams, useLocation, useNavigate } from 'react-router-dom'
 import { useMeetings, useSessions } from '@/hooks/useSession'
 import { isAuthError } from '@/api/client'
 import { isSessionLive } from '@/utils/live'
@@ -23,7 +23,7 @@ export function Nav() {
   const year = yearParam ?? DEFAULT_YEAR
   const [meetingKey] = useNumberParam('meeting', null)
   const [sessionKey, setSessionKey] = useNumberParam('session', null)
-  const [view, setView] = useStringParam<MainView>('view', 'leaderboard')
+  const [view] = useStringParam<MainView>('view', 'leaderboard')
 
   const meetings = useMeetings(year)
   const sessions = useSessions(meetingKey)
@@ -60,14 +60,27 @@ export function Nav() {
       : circuitLabel ?? 'SELECT SESSION'
 
   const currentView = view ?? 'leaderboard'
+  const location = useLocation()
+  const navigate = useNavigate()
+  const isMainRoute = location.pathname === '/'
+
+  function viewHref(id: MainView) {
+    const params = new URLSearchParams(searchParams)
+    if (id === 'leaderboard') params.delete('view')
+    else params.set('view', id)
+    return `/?${params}`
+  }
 
   return (
     <header className="shrink-0">
       {/* ── Red top bar ──────────────────────────────────────────── */}
       <div className="flex items-center h-10 px-4 bg-f1red">
-        <span className="font-black text-white text-sm tracking-[0.22em] uppercase mr-6 select-none shrink-0">
+        <button
+          onClick={() => navigate(viewHref(currentView))}
+          className="font-black text-white text-sm tracking-[0.22em] uppercase mr-6 select-none shrink-0 hover:opacity-80 transition-opacity"
+        >
           F1<span className="opacity-60 font-light mx-1">|</span>REPLAY
-        </span>
+        </button>
 
         <span className="text-white/80 text-[11px] font-bold tracking-widest uppercase mr-auto truncate hidden sm:block">
           {headerLabel}
@@ -77,9 +90,9 @@ export function Nav() {
           {VIEW_TABS.map(({ id, label }) => (
             <button
               key={id}
-              onClick={() => setView(id)}
+              onClick={() => navigate(viewHref(id))}
               className={`h-10 px-4 text-[11px] font-bold uppercase tracking-[0.1em] border-b-2 transition-colors ${
-                currentView === id
+                isMainRoute && currentView === id
                   ? 'text-white border-white'
                   : 'text-white/60 border-transparent hover:text-white/90 hover:border-white/40'
               }`}
