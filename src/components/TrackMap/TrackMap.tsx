@@ -1,4 +1,4 @@
-import { useMemo, useState, useEffect } from "react";
+import { useMemo, useState, useEffect, useRef } from "react";
 import { useTrackOutline, locationToSvg } from "@/hooks/useTrackMap";
 import { buildIndex, interpolateXY } from "@/timeline/interpolate";
 import { useTimeline } from "@/timeline/clock";
@@ -14,6 +14,41 @@ import {
   FOLLOW_ZOOM_H,
 } from "@/constants";
 import { getCircuitLayout } from "@/data/circuits";
+
+// Serialize the live SVG to a hi-DPI PNG and trigger a browser download.
+// Uses XMLSerializer → Image → Canvas pipeline — no extra dependencies.
+function exportTrackSnapshot(svgEl: SVGSVGElement): void {
+  const w = svgEl.clientWidth || SVG_W;
+  const h = svgEl.clientHeight || SVG_H;
+  const dpr = window.devicePixelRatio || 1;
+  const svgStr = new XMLSerializer().serializeToString(svgEl);
+  const svgBlob = new Blob([svgStr], { type: "image/svg+xml" });
+  const url = URL.createObjectURL(svgBlob);
+  const img = new Image();
+  img.onload = () => {
+    const canvas = document.createElement("canvas");
+    canvas.width = w * dpr;
+    canvas.height = h * dpr;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) { URL.revokeObjectURL(url); return; }
+    ctx.scale(dpr, dpr);
+    // Fill background so the PNG isn't transparent where the SVG bg is set via CSS.
+    ctx.fillStyle = "#15151e";
+    ctx.fillRect(0, 0, w, h);
+    ctx.drawImage(img, 0, 0, w, h);
+    URL.revokeObjectURL(url);
+    canvas.toBlob((pngBlob) => {
+      if (!pngBlob) return;
+      const a = document.createElement("a");
+      a.href = URL.createObjectURL(pngBlob);
+      a.download = "f1-replay.png";
+      a.click();
+      setTimeout(() => URL.revokeObjectURL(a.href), 1_000);
+    }, "image/png");
+  };
+  img.onerror = () => URL.revokeObjectURL(url);
+  img.src = url;
+}
 
 interface Props {
   readonly sessionKey: number | null;
@@ -238,6 +273,7 @@ export function TrackMap({
   }
 
   const pulseSet = new Set(pulseDrivers ?? []);
+  const svgRef = useRef<SVGSVGElement>(null);
 
   // Follow-cam: zoom in on the focused driver, clamped to the SVG boundary.
   let viewBox = `0 0 ${SVG_W} ${SVG_H}`;
@@ -254,7 +290,9 @@ export function TrackMap({
   }
 
   return (
+    <div className="relative w-full h-full">
     <svg
+      ref={svgRef}
       viewBox={viewBox}
       className="w-full h-full"
       style={{ background: "#15151e" }}
@@ -399,5 +437,17 @@ export function TrackMap({
         </text>
       )}
     </svg>
+
+    {/* PNG export — only shown when there is track + car data to capture */}
+    {locationIndexes.size > 0 && (
+      <button
+        onClick={() => svgRef.current && exportTrackSnapshot(svgRef.current)}
+        className="absolute bottom-2 right-2 px-2 py-0.5 text-[9px] font-bold uppercase tracking-widest bg-[#1e1e2a]/80 border border-[#38383f] text-muted hover:text-white hover:border-white/30 transition-colors backdrop-blur-sm"
+        title="Download track snapshot as PNG"
+      >
+        ↓ PNG
+      </button>
+    )}
+    </div>
   );
 }
