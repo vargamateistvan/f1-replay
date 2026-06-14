@@ -46,6 +46,8 @@ import { useCatchupSummary } from "@/hooks/useCatchupSummary";
 import { EventToastStack } from "@/components/EventToast/EventToastStack";
 import { KeyMoments } from "@/components/KeyMoments/KeyMoments";
 import { CatchupSummary } from "@/components/CatchupSummary/CatchupSummary";
+import { ResizeHandle } from "@/components/ResizeHandle";
+import { useVerticalResize } from "@/hooks/useVerticalResize";
 import type { FastestLapPayload } from "@/timeline/events";
 import { isSessionLive } from "@/utils/live";
 import { teamColor } from "@/utils/color";
@@ -370,6 +372,12 @@ export default function RaceWeekend() {
   const toggleFocus = (num: number) =>
     setFocusDriver(focusDriver === num ? null : num);
 
+  const {
+    height: strategyHeight,
+    handleProps: strategyHandleProps,
+    reset: resetStrategyHeight,
+  } = useVerticalResize({ initialHeight: 120, minHeight: 48, maxHeight: 340 });
+
   // ── Shared sub-components ────────────────────────────────────────────────────
 
   const timingTower = (
@@ -429,7 +437,7 @@ export default function RaceWeekend() {
             </div>
           )}
 
-          {/* Full-width timing tower */}
+          {/* Full-width timing tower — fills remaining vertical space */}
           <div className="flex-1 min-h-0 overflow-hidden">
             {positions.isError ? (
               <ErrorMessage message="Failed to load timing data" />
@@ -438,10 +446,19 @@ export default function RaceWeekend() {
             )}
           </div>
 
-          {/* Strategy strip */}
-          <div className={`${PANEL} shrink-0 max-h-24 sm:max-h-40`}>
-            <div className={PANEL_TITLE}>Tyre Strategy</div>
-            <div className="overflow-auto" style={{ maxHeight: 120 }}>
+          {/* Drag handle */}
+          <ResizeHandle
+            {...strategyHandleProps}
+            onDoubleClick={resetStrategyHeight}
+          />
+
+          {/* Strategy strip — height controlled by drag */}
+          <div
+            className={`${PANEL} shrink-0 flex flex-col overflow-hidden`}
+            style={{ height: strategyHeight }}
+          >
+            <div className={`${PANEL_TITLE} shrink-0`}>Tyre Strategy</div>
+            <div className="flex-1 min-h-0 overflow-auto">
               <StrategyBar
                 stints={stints.data ?? []}
                 drivers={drivers.data ?? []}
