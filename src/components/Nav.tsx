@@ -10,6 +10,7 @@ import { isAuthError } from "@/api/client";
 import { isSessionLive } from "@/utils/live";
 import { YEARS, DEFAULT_YEAR } from "@/constants";
 import { useNumberParam, useStringParam } from "@/hooks/useSearchParamState";
+import { AppLogo } from "@/components/AppLogo";
 
 export type MainView = "leaderboard" | "tracker" | "commentary";
 
@@ -92,9 +93,13 @@ export function Nav() {
       <div className="flex items-center h-10 px-4 bg-f1red">
         <button
           onClick={() => navigate(viewHref(currentView))}
-          className="font-black text-white text-sm tracking-[0.22em] uppercase mr-6 select-none shrink-0 hover:opacity-80 transition-opacity"
+          className="flex items-center gap-2 mr-6 select-none shrink-0 hover:opacity-80 transition-opacity"
+          aria-label="F1 Replay home"
         >
-          F1<span className="opacity-60 font-light mx-1">|</span>REPLAY
+          <AppLogo size={22} />
+          <span className="font-black text-white text-sm tracking-[0.22em] uppercase leading-none">
+            F1<span className="opacity-50 font-light mx-1">|</span>REPLAY
+          </span>
         </button>
 
         <span className="text-white/80 text-[11px] font-bold tracking-widest uppercase mr-auto truncate hidden sm:block">

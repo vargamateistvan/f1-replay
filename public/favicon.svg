@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
+  <!-- Dark background -->
+  <rect width="32" height="32" fill="#15151e" rx="5"/>
+
+  <!-- Circuit ring: almost-complete circle, gap at top = start/finish line.
+       r=12, C≈75.4. Gap=8 centered at 12-o-clock.
+       stroke-dasharray="67 8" with dashoffset=71 (=67+4) centers the gap at path start.
+       rotate(-90) puts path start at the top. -->
+  <circle
+    cx="16" cy="16" r="12"
+    fill="none"
+    stroke="#E8002D"
+    stroke-width="2.5"
+    stroke-linecap="round"
+    stroke-dasharray="67 8"
+    stroke-dashoffset="71"
+    transform="rotate(-90 16 16)"
+  />
+
+  <!-- Start/finish line: two short white tick marks at the gap (top of ring) -->
+  <line x1="13.5" y1="2.5" x2="13.5" y2="5.5" stroke="white" stroke-width="1.5" stroke-linecap="round"/>
+  <line x1="18.5" y1="2.5" x2="18.5" y2="5.5" stroke="white" stroke-width="1.5" stroke-linecap="round"/>
+
+  <!-- Play triangle: white, centered inside the ring -->
+  <polygon points="12,10 12,22 23,16" fill="white"/>
+</svg>
