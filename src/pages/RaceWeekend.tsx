@@ -336,7 +336,7 @@ export default function RaceWeekend() {
   const telemetryEnabled = leaderboardTelemetry && currentView === "leaderboard";
   const allCarData = useAllCarDataWindow(
     sessionKey,
-    sessionStartMs || null,
+    sessionStartMs,
     chunkIdx,
     telemetryEnabled,
   );
