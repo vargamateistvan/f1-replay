@@ -38,7 +38,10 @@ import {
   pitTimes,
   flagTimes,
   overtakeTimes,
+  buildToastEvents,
 } from "@/timeline/events";
+import { useEventToasts } from "@/hooks/useEventToasts";
+import { EventToastStack } from "@/components/EventToast/EventToastStack";
 import { isSessionLive } from "@/utils/live";
 import { DEFAULT_YEAR, DEFAULT_SESSION_MS } from "@/constants";
 import type { MainView } from "@/components/Nav";
@@ -211,6 +214,21 @@ export default function RaceWeekend() {
     return result;
   }, [intervals.data, sessionStartMs, t]);
 
+  const toastEvents = useMemo(
+    () =>
+      sessionStartMs
+        ? buildToastEvents(
+            teamRadio.data ?? [],
+            raceControl.data ?? [],
+            overtakes.data ?? [],
+            pits.data ?? [],
+            sessionStartMs,
+          )
+        : [],
+    [teamRadio.data, raceControl.data, overtakes.data, pits.data, sessionStartMs],
+  );
+  const { toasts, dismiss } = useEventToasts(toastEvents, t);
+
   const effectiveDuration = durationMs || DEFAULT_SESSION_MS;
   useKeyboardShortcuts({
     lapStarts: lapMarks,
@@ -313,7 +331,10 @@ export default function RaceWeekend() {
             sessionTimeMs={t}
             sessionStartMs={sessionStartMs}
           />
-          <div className="flex-1 min-h-0 flex flex-col md:flex overflow-hidden">
+          <div className="flex-1 min-h-0 flex flex-col md:flex overflow-hidden relative">
+            {/* Toast overlay — covers both mobile and desktop tracker content */}
+            <EventToastStack toasts={toasts} drivers={drivers.data ?? []} onDismiss={dismiss} />
+
             {/* Phone layout: tab-switched (md:hidden) */}
             <div className="md:hidden flex-1 min-h-0 flex flex-col overflow-hidden w-full">
               {/* Tab chips */}
