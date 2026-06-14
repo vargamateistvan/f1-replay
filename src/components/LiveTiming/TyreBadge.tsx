@@ -4,6 +4,7 @@ interface Props {
   stints: Stint[]
   driverNumber: number
   currentLap: number | null
+  startCompound?: string | null
 }
 
 type Compound = Stint['compound']
@@ -17,7 +18,20 @@ const COMPOUND_STYLE: Record<Compound, { bg: string; letter: string }> = {
   UNKNOWN:      { bg: '#555',    letter: '?' },
 }
 
-export function TyreBadge({ stints, driverNumber, currentLap }: Props) {
+function CompoundDot({ compound }: { compound: Compound }) {
+  const { bg, letter } = COMPOUND_STYLE[compound] ?? COMPOUND_STYLE.UNKNOWN
+  return (
+    <span
+      className="w-5 h-5 rounded-full flex items-center justify-center text-[9px] font-black shrink-0"
+      style={{ backgroundColor: bg, color: compound === 'HARD' ? '#000' : '#fff' }}
+      title={compound}
+    >
+      {letter}
+    </span>
+  )
+}
+
+export function TyreBadge({ stints, driverNumber, currentLap, startCompound }: Props) {
   const lap = currentLap ?? 0
   const active = stints
     .filter((s) => s.driver_number === driverNumber)
@@ -25,18 +39,18 @@ export function TyreBadge({ stints, driverNumber, currentLap }: Props) {
 
   if (!active) return <span className="text-muted text-[10px]">—</span>
 
-  const { bg, letter } = COMPOUND_STYLE[active.compound] ?? COMPOUND_STYLE.UNKNOWN
   const age = lap - active.lap_start + (active.tyre_age_at_start ?? 0)
+  const changed = startCompound && startCompound !== active.compound
 
   return (
     <span className="flex items-center gap-1">
-      <span
-        className="w-5 h-5 rounded-full flex items-center justify-center text-[9px] font-black shrink-0"
-        style={{ backgroundColor: bg, color: active.compound === 'HARD' ? '#000' : '#fff' }}
-        title={active.compound}
-      >
-        {letter}
-      </span>
+      {changed && (
+        <>
+          <CompoundDot compound={startCompound as Compound} />
+          <span className="text-[9px] text-muted/50">→</span>
+        </>
+      )}
+      <CompoundDot compound={active.compound} />
       <span className="text-[10px] text-muted tabular-nums">{age}</span>
     </span>
   )

@@ -185,6 +185,27 @@ export function LiveTiming({
     return { s1, s2, s3, lap };
   }, [lastLapMap]);
 
+  // Pit stop count per driver up to the current playhead
+  const pitCountMap = useMemo(() => {
+    const m = new Map<number, number>();
+    for (const p of pits) {
+      if (new Date(p.date).getTime() > currentT) continue;
+      m.set(p.driver_number, (m.get(p.driver_number) ?? 0) + 1);
+    }
+    return m;
+  }, [pits, currentT]);
+
+  // Starting tyre: compound from the stint with the lowest lap_start per driver
+  const startCompoundMap = useMemo(() => {
+    const earliest = new Map<number, { lap: number; compound: string }>();
+    for (const s of stints ?? []) {
+      const prev = earliest.get(s.driver_number);
+      if (!prev || s.lap_start < prev.lap)
+        earliest.set(s.driver_number, { lap: s.lap_start, compound: s.compound });
+    }
+    return new Map([...earliest.entries()].map(([n, v]) => [n, v.compound]));
+  }, [stints]);
+
   // Personal-best sectors per driver (across all laps up to currentT)
   const personalBestMap = useMemo(() => {
     const m = new Map<
@@ -288,6 +309,7 @@ export function LiveTiming({
             <th className={`${TH} hidden sm:table-cell text-center`}>S2</th>
             <th className={`${TH} hidden sm:table-cell text-center`}>S3</th>
             <th className={`${TH} text-left`}>Tyre</th>
+            <th className={`${TH} text-center w-8`}>Pit</th>
             <th className={`${TH} hidden sm:table-cell text-center w-10`}>
               Lap
             </th>
@@ -423,13 +445,19 @@ export function LiveTiming({
                   </div>
                 </td>
 
-                {/* Tyre badge */}
+                {/* Tyre: starting compound → current compound + age */}
                 <td className="py-3 px-2">
                   <TyreBadge
                     stints={stints ?? []}
                     driverNumber={num}
                     currentLap={currentLap}
+                    startCompound={startCompoundMap.get(num) ?? null}
                   />
+                </td>
+
+                {/* Pit stop count */}
+                <td className="py-3 px-2 text-center font-mono text-[11px] tabular-nums text-muted">
+                  {(pitCountMap.get(num) ?? 0) > 0 ? pitCountMap.get(num) : "—"}
                 </td>
 
                 {/* Current lap */}

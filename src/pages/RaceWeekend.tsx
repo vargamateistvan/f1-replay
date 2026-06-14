@@ -665,7 +665,7 @@ export default function RaceWeekend() {
             {/* Desktop layout: split panel (hidden md:flex) */}
             <div className="hidden md:flex flex-1 min-h-0 overflow-hidden">
               {/* Left data panel */}
-              <div className="md:w-[480px] shrink-0 flex flex-col border-r border-panel overflow-hidden">
+              <div className="md:w-[580px] shrink-0 flex flex-col border-r border-panel overflow-hidden">
                 {/* Sub-tabs */}
                 <div className="flex border-b border-panel shrink-0">
                   {(
