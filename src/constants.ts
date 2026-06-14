@@ -2,9 +2,14 @@
 // Grouped by domain. Prefer importing from here over re-declaring literals.
 
 // ── Seasons ───────────────────────────────────────────────────────────────────
-// Years offered in every session/standings picker. OpenF1 coverage starts in 2023.
-// Newest first so the default selection is the latest season.
-export const YEARS = [2026, 2025, 2024, 2023] as const
+// OpenF1 coverage starts in 2023. Generates a descending list up to the current
+// year so the picker stays current without manual updates.
+const OPENF1_START_YEAR = 2023
+const _currentYear = new Date().getFullYear()
+export const YEARS = Array.from(
+  { length: _currentYear - OPENF1_START_YEAR + 1 },
+  (_, i) => _currentYear - i,
+) as number[]
 export const DEFAULT_YEAR = YEARS[0]
 
 // ── Playback ────────────────────────────────────────────────────────────────--
