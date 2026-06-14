@@ -42,7 +42,11 @@ import {
   buildToastEvents,
 } from "@/timeline/events";
 import { useEventToasts } from "@/hooks/useEventToasts";
+import { useCatchupSummary } from "@/hooks/useCatchupSummary";
 import { EventToastStack } from "@/components/EventToast/EventToastStack";
+import { KeyMoments } from "@/components/KeyMoments/KeyMoments";
+import { CatchupSummary } from "@/components/CatchupSummary/CatchupSummary";
+import type { FastestLapPayload } from "@/timeline/events";
 import { isSessionLive } from "@/utils/live";
 import { teamColor } from "@/utils/color";
 import { DEFAULT_YEAR, DEFAULT_SESSION_MS } from "@/constants";
@@ -51,7 +55,15 @@ import type { Stint } from "@/api/types";
 
 // Sub-tab options per view
 type TrackerTab = "timing" | "chart" | "gap" | "map";
-type CommentaryTab = "rc" | "radio" | "passes";
+type CommentaryTab = "rc" | "radio" | "passes" | "moments";
+
+export interface KeyMoment {
+  ms: number;
+  kind: "lead_change" | "fastest_lap" | "safety_car" | "vsc" | "red_flag";
+  label: string;
+  sublabel?: string;
+  color: string;
+}
 
 const PANEL = "bg-surface border border-panel";
 const PANEL_TITLE =
@@ -281,6 +293,74 @@ export default function RaceWeekend() {
     [teamRadio.data, raceControl.data, overtakes.data, pits.data, sessionStartMs, laps.data],
   );
   const { toasts, dismiss } = useEventToasts(toastEvents, t);
+  const { summary: catchupSummary, dismiss: dismissCatchup } = useCatchupSummary(toastEvents, t);
+
+  // Key moments: lead changes + fastest laps (from toastEvents) + SC/Red flag events.
+  const keyMoments = useMemo((): KeyMoment[] => {
+    if (!sessionStartMs) return [];
+    const driverMap = new Map((drivers.data ?? []).map((d) => [d.driver_number, d]));
+    const moments: KeyMoment[] = [];
+
+    // Lead changes: find P1 position events and detect driver transitions
+    const p1Events = (positions.data ?? [])
+      .filter((p) => p.position === 1)
+      .map((p) => ({ ms: new Date(p.date).getTime() - sessionStartMs, num: p.driver_number }))
+      .filter((p) => p.ms >= 0)
+      .sort((a, b) => a.ms - b.ms);
+
+    let lastLeader = -1;
+    for (const ev of p1Events) {
+      if (ev.num !== lastLeader) {
+        if (lastLeader !== -1) {
+          const d = driverMap.get(ev.num);
+          moments.push({
+            ms: ev.ms,
+            kind: "lead_change",
+            label: `${d?.name_acronym ?? ev.num} takes lead`,
+            color: teamColor(d?.team_colour),
+          });
+        }
+        lastLeader = ev.num;
+      }
+    }
+
+    // Fastest laps from the toast event pipeline
+    for (const ev of toastEvents) {
+      if (ev.kind !== "fastest_lap") continue;
+      const p = ev.payload as FastestLapPayload;
+      const d = driverMap.get(p.driverNumber);
+      const m = Math.floor(p.lapTime / 60);
+      const s = (p.lapTime % 60).toFixed(3).padStart(6, "0");
+      moments.push({
+        ms: ev.ms,
+        kind: "fastest_lap",
+        label: `Fastest: ${d?.name_acronym ?? p.driverNumber}`,
+        sublabel: m > 0 ? `${m}:${s}` : s,
+        color: "#9b59f5",
+      });
+    }
+
+    // SC / VSC / Red flag milestones from race control
+    for (const e of raceControl.data ?? []) {
+      const ms = new Date(e.date).getTime() - sessionStartMs;
+      if (ms < 0) continue;
+      if (e.flag === "SAFETY_CAR") {
+        moments.push({ ms, kind: "safety_car", label: "Safety Car deployed", color: "#f5a623" });
+      } else if (e.flag === "VIRTUAL_SC") {
+        moments.push({ ms, kind: "vsc", label: "Virtual Safety Car", color: "#f5a623" });
+      } else if (e.flag === "RED") {
+        moments.push({
+          ms,
+          kind: "red_flag",
+          label: "Red Flag",
+          sublabel: e.message.length > 50 ? e.message.slice(0, 47) + "…" : e.message,
+          color: "#e8002d",
+        });
+      }
+    }
+
+    return moments.sort((a, b) => a.ms - b.ms);
+  }, [positions.data, toastEvents, raceControl.data, drivers.data, sessionStartMs]);
 
   const effectiveDuration = durationMs || DEFAULT_SESSION_MS;
   useKeyboardShortcuts({
@@ -331,7 +411,7 @@ export default function RaceWeekend() {
   // ── View layouts ─────────────────────────────────────────────────────────────
 
   return (
-    <div className="flex flex-col h-full overflow-hidden">
+    <div className="flex flex-col h-full overflow-hidden relative">
       {/* Flag banner — spans full width below nav */}
       {sessionStartMs > 0 && (
         <FlagBanner
@@ -620,6 +700,7 @@ export default function RaceWeekend() {
                 ["rc", "Race Control"],
                 ["radio", "Team Radio"],
                 ["passes", "Overtakes"],
+                ["moments", "Key Moments"],
               ] as [CommentaryTab, string][]
             ).map(([tab, label]) => (
               <button
@@ -670,8 +751,24 @@ export default function RaceWeekend() {
                   sessionStartMs={sessionStartMs}
                 />
               ))}
+            {commentaryTab === "moments" && (
+              <KeyMoments
+                moments={keyMoments}
+                sessionTimeMs={t}
+                onJump={(ms) => useTimeline.getState().setT(ms)}
+              />
+            )}
           </div>
         </div>
+      )}
+
+      {/* Catch-up summary — appears over the whole layout after a big scrub-forward */}
+      {catchupSummary && (
+        <CatchupSummary
+          summary={catchupSummary}
+          drivers={drivers.data ?? []}
+          onDismiss={dismissCatchup}
+        />
       )}
 
       {/* Playback bar — always visible */}
