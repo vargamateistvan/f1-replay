@@ -30,6 +30,7 @@ import {
 import { useTimeline } from "@/timeline/clock";
 import { useCoarseTime } from "@/hooks/useCoarseTime";
 import { useLocationChunks, chunkIndexFor } from "@/hooks/useLocationChunks";
+import { useAllCarDataWindow } from "@/hooks/useAllCarDataWindow";
 import { useNumberParam, useStringParam } from "@/hooks/useSearchParamState";
 import { useTimelineUrlSync } from "@/hooks/useTimelineUrlSync";
 import { useKeyboardShortcuts } from "@/hooks/useKeyboardShortcuts";
@@ -54,7 +55,7 @@ import { teamColor } from "@/utils/color";
 import { DEFAULT_SESSION_MS } from "@/constants";
 import { useSettings } from "@/stores/settings";
 import type { MainView } from "@/components/Nav";
-import type { Stint } from "@/api/types";
+import type { Stint, CarData } from "@/api/types";
 
 // Sub-tab options per view
 type TrackerTab = "timing" | "chart" | "gap" | "map";
@@ -324,9 +325,56 @@ export default function RaceWeekend() {
     mapShowBattleRings,
     mapShowDriverHud,
     mapShowSectorFlags,
+    leaderboardTelemetry,
     defaultSpeed,
     catchupSummaryEnabled,
   } = useSettings();
+
+  // ── Live car telemetry for the leaderboard (all drivers) ────────────────────
+  // Fetched only when the leaderboard view is active AND the setting is on — it's
+  // a ~22k-row window per chunk, so we don't pay for it on other views.
+  const telemetryEnabled = leaderboardTelemetry && currentView === "leaderboard";
+  const allCarData = useAllCarDataWindow(
+    sessionKey,
+    sessionStartMs || null,
+    chunkIdx,
+    telemetryEnabled,
+  );
+
+  // Group samples per driver, sorted by session-relative ms. Rebuilds only when
+  // the fetched window changes (every ~5 min of session time), not every tick.
+  const carSamplesByDriver = useMemo(() => {
+    const m = new Map<number, { ms: number; d: CarData }[]>();
+    if (!sessionStartMs) return m;
+    for (const d of allCarData.data) {
+      const ms = new Date(d.date).getTime() - sessionStartMs;
+      let arr = m.get(d.driver_number);
+      if (!arr) {
+        arr = [];
+        m.set(d.driver_number, arr);
+      }
+      arr.push({ ms, d });
+    }
+    for (const arr of m.values()) arr.sort((a, b) => a.ms - b.ms);
+    return m;
+  }, [allCarData.data, sessionStartMs]);
+
+  // Latest car-data sample per driver at the playhead (binary search per driver).
+  const carDataAtT = useMemo((): ReadonlyMap<number, CarData> => {
+    const m = new Map<number, CarData>();
+    for (const [num, arr] of carSamplesByDriver) {
+      let lo = 0;
+      let hi = arr.length;
+      while (lo < hi) {
+        const mid = (lo + hi) >>> 1;
+        if (arr[mid]!.ms <= t) lo = mid + 1;
+        else hi = mid;
+      }
+      const s = arr[lo - 1]?.d;
+      if (s) m.set(num, s);
+    }
+    return m;
+  }, [carSamplesByDriver, t]);
 
   // Apply default speed when a new session loads.
   useEffect(() => {
@@ -468,6 +516,26 @@ export default function RaceWeekend() {
     />
   );
 
+  // Leaderboard view gets the same tower plus live car-data columns.
+  const leaderboardTower = (
+    <LiveTiming
+      drivers={drivers.data ?? []}
+      positions={positions.data ?? []}
+      intervals={intervals.data ?? []}
+      pits={pits.data ?? []}
+      laps={laps.data ?? []}
+      stints={stints.data ?? []}
+      grid={grid.data ?? []}
+      sessionName={session?.session_name}
+      sessionTimeMs={t}
+      sessionStartMs={sessionStartMs}
+      isLoading={positions.isPending && sessionKey !== null}
+      selectedDriver={focusDriver}
+      onSelectDriver={toggleFocus}
+      carData={telemetryEnabled ? carDataAtT : undefined}
+    />
+  );
+
   const trackMap = (
     <TrackMap
       sessionKey={sessionKey}
@@ -515,7 +583,7 @@ export default function RaceWeekend() {
             {positions.isError ? (
               <ErrorMessage message="Failed to load timing data" />
             ) : (
-              timingTower
+              leaderboardTower
             )}
           </div>
 

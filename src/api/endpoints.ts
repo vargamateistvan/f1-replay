@@ -47,6 +47,15 @@ export const api = {
   carData: (sessionKey: number, driverNumber: number) =>
     fetchEndpoint<CarData>('car_data', { session_key: sessionKey, driver_number: driverNumber }),
 
+  // Car data for ALL drivers in a date window — used for the leaderboard telemetry
+  // columns. A 5-min window is ~22k rows (20 drivers × 3.7 Hz × 300 s), one request.
+  carDataWindowAll: (sessionKey: number, dateGte: string, dateLte: string) =>
+    fetchEndpoint<CarData>('car_data', {
+      session_key: sessionKey,
+      'date>': dateGte,
+      'date<': dateLte,
+    }),
+
   laps: (sessionKey: number, driverNumber?: number) =>
     fetchEndpoint<Lap>('laps', driverNumber
       ? { session_key: sessionKey, driver_number: driverNumber }

@@ -266,6 +266,15 @@ export function SettingsModal() {
             onChange={toggle("mapShowSectorFlags")}
           />
 
+          {/* ── Leaderboard ────────────────────────────────────────── */}
+          <SectionHeader>Leaderboard</SectionHeader>
+          <SettingRow
+            label="Live car telemetry"
+            description="Speed, gear, RPM, throttle, brake & DRS columns (extra data)"
+            checked={settings.leaderboardTelemetry}
+            onChange={toggle("leaderboardTelemetry")}
+          />
+
           {/* ── Playback ───────────────────────────────────────────── */}
           <SectionHeader>Playback</SectionHeader>
           <SpeedSelector

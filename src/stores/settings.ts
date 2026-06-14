@@ -16,6 +16,8 @@ export interface AppSettings {
   mapShowBattleRings: boolean;
   mapShowDriverHud: boolean;
   mapShowSectorFlags: boolean;
+  // Leaderboard
+  leaderboardTelemetry: boolean;
   // Playback
   defaultSpeed: number;
   catchupSummaryEnabled: boolean;
@@ -44,6 +46,7 @@ export const SETTINGS_DEFAULTS: AppSettings = {
   mapShowBattleRings: true,
   mapShowDriverHud: true,
   mapShowSectorFlags: true,
+  leaderboardTelemetry: true,
   defaultSpeed: 1,
   catchupSummaryEnabled: true,
 };

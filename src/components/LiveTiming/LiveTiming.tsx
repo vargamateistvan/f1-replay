@@ -7,6 +7,7 @@ import type {
   Lap,
   StartingGrid,
   Stint,
+  CarData,
 } from "@/api/types";
 import { teamColor } from "@/utils/color";
 import { laneDuration, pitStopTime } from "@/utils/pit";
@@ -25,6 +26,9 @@ interface Props {
   readonly sessionTimeMs: number;
   readonly sessionStartMs: number;
   readonly sessionName?: string;
+  /** Latest car-data sample per driver at the playhead. When provided, the tower
+   *  renders live telemetry columns (speed/gear/rpm/throttle/brake/DRS). */
+  readonly carData?: ReadonlyMap<number, CarData>;
   readonly isLoading?: boolean;
   readonly selectedDriver?: number | null;
   readonly onSelectDriver?: (driverNumber: number) => void;
@@ -92,12 +96,14 @@ export function LiveTiming({
   stints,
   grid,
   sessionName,
+  carData,
   sessionTimeMs,
   sessionStartMs,
   isLoading,
   selectedDriver,
   onSelectDriver,
 }: Props) {
+  const showTelemetry = carData !== undefined;
   const currentT = sessionStartMs + sessionTimeMs;
 
   const posMap = useMemo(() => {
@@ -320,6 +326,15 @@ export function LiveTiming({
             <th className={`${TH} hidden sm:table-cell text-center w-10`}>
               Lap
             </th>
+            {showTelemetry && (
+              <>
+                <th className={`${TH} hidden lg:table-cell text-right`}>Speed</th>
+                <th className={`${TH} hidden lg:table-cell text-center w-8`}>Gear</th>
+                <th className={`${TH} hidden xl:table-cell text-right`}>RPM</th>
+                <th className={`${TH} hidden lg:table-cell text-center`}>Thr/Brk</th>
+                <th className={`${TH} hidden lg:table-cell text-center w-10`}>DRS</th>
+              </>
+            )}
           </tr>
         </thead>
         <tbody>
@@ -331,6 +346,7 @@ export function LiveTiming({
             const lastLap = lastLapMap.get(num) ?? null;
             const currentLap = currentLapMap.get(num) ?? null;
             const pitInfo = pitInfoMap.get(num) ?? null;
+            const car = carData?.get(num) ?? null;
             const pb = personalBestMap.get(num) ?? {
               s1: null,
               s2: null,
@@ -479,11 +495,72 @@ export function LiveTiming({
                 <td className="hidden sm:table-cell py-3 px-2 text-center font-mono text-[11px] tabular-nums text-muted">
                   {currentLap ?? "—"}
                 </td>
+
+                {/* Live car telemetry */}
+                {showTelemetry && (
+                  <>
+                    {/* Speed */}
+                    <td className="hidden lg:table-cell py-3 px-2 text-right font-mono text-[12px] tabular-nums text-white">
+                      {car ? Math.round(car.speed) : "—"}
+                    </td>
+                    {/* Gear */}
+                    <td className="hidden lg:table-cell py-3 px-2 text-center font-mono text-[12px] tabular-nums text-white/90">
+                      {car ? (car.n_gear === 0 ? "N" : car.n_gear) : "—"}
+                    </td>
+                    {/* RPM */}
+                    <td className="hidden xl:table-cell py-3 px-2 text-right font-mono text-[11px] tabular-nums text-muted">
+                      {car ? Math.round(car.rpm) : "—"}
+                    </td>
+                    {/* Throttle / brake mini bars */}
+                    <td className="hidden lg:table-cell py-3 px-2">
+                      {car ? (
+                        <span className="flex flex-col gap-0.5 w-16 mx-auto">
+                          <MiniBar value={car.throttle} color="#39d743" />
+                          <MiniBar value={car.brake} color="#ff5252" />
+                        </span>
+                      ) : (
+                        <span className="block text-center text-muted">—</span>
+                      )}
+                    </td>
+                    {/* DRS */}
+                    <td className="hidden lg:table-cell py-3 px-2 text-center">
+                      {car ? (
+                        <span
+                          className={`inline-block px-1.5 py-0.5 text-[9px] font-black uppercase tracking-widest ${
+                            car.drs >= 10
+                              ? "bg-[#39d743] text-black"
+                              : "bg-panel text-[#636369]"
+                          }`}
+                          title={`DRS raw value ${car.drs}`}
+                        >
+                          DRS
+                        </span>
+                      ) : (
+                        <span className="text-muted">—</span>
+                      )}
+                    </td>
+                  </>
+                )}
               </tr>
             );
           })}
         </tbody>
       </table>
     </div>
+  );
+}
+
+// Thin 0–100 % bar for throttle / brake in the telemetry columns.
+function MiniBar({ value, color }: { value: number; color: string }) {
+  return (
+    <span className="block h-1.5 bg-panel overflow-hidden rounded-sm">
+      <span
+        className="block h-full"
+        style={{
+          width: `${Math.max(0, Math.min(100, value))}%`,
+          background: color,
+        }}
+      />
+    </span>
   );
 }
