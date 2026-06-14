@@ -1,4 +1,5 @@
 import { useMemo, useState, useEffect, useRef } from "react";
+import { useCarDataForLap } from "@/hooks/useCarDataForLap";
 import { useTrackOutline, locationToSvg } from "@/hooks/useTrackMap";
 import { buildIndex, interpolateXY } from "@/timeline/interpolate";
 import { useTimeline } from "@/timeline/clock";
@@ -14,6 +15,13 @@ import {
   FOLLOW_ZOOM_H,
 } from "@/constants";
 import { getCircuitLayout } from "@/data/circuits";
+
+// Speed → HSL color: 0 km/h = blue (240°), 150 = green (120°), 300+ = red (0°).
+// Matches the F1 broadcast "speed trace" convention.
+function speedToColor(speed: number): string {
+  const hue = Math.round(240 - Math.min(speed / 300, 1) * 240);
+  return `hsl(${hue},100%,55%)`;
+}
 
 // Serialize the live SVG to a hi-DPI PNG and trigger a browser download.
 // Uses XMLSerializer → Image → Canvas pipeline — no extra dependencies.
@@ -60,6 +68,7 @@ interface Props {
   readonly circuitShortName?: string | null;
   readonly activeCompounds?: ReadonlyMap<number, { compound: Stint["compound"]; age: number }>;
   readonly battlingDrivers?: ReadonlySet<number>;
+  readonly focusDriverLap?: number | null;
 }
 
 export function TrackMap({
@@ -72,6 +81,7 @@ export function TrackMap({
   circuitShortName,
   activeCompounds,
   battlingDrivers,
+  focusDriverLap = null,
 }: Props) {
   // TrackMap owns its t subscription so the animation loop is isolated here
   const { t } = useTimeline();
@@ -157,8 +167,52 @@ export function TrackMap({
       pathData += ` C${cp1x.toFixed(1)},${cp1y.toFixed(1)} ${cp2x.toFixed(1)},${cp2y.toFixed(1)} ${p2.sx.toFixed(1)},${p2.sy.toFixed(1)}`;
     }
     pathData += " Z";
-    return { pathData, bounds, innerW, innerH };
+
+    // Normalized cumulative arc length for each outline point — used to map
+    // telemetry distance (0–1) onto track geometry for the speed heat overlay.
+    const arcLengths: number[] = [0];
+    for (let i = 0; i < svgPts.length - 1; i++) {
+      const dx = svgPts[i + 1]!.sx - svgPts[i]!.sx;
+      const dy = svgPts[i + 1]!.sy - svgPts[i]!.sy;
+      arcLengths.push(arcLengths[i]! + Math.sqrt(dx * dx + dy * dy));
+    }
+    const totalArc = arcLengths[arcLengths.length - 1] || 1;
+    const normArc = arcLengths.map((l) => l / totalArc);
+
+    return { pathData, bounds, innerW, innerH, svgPts, normArc };
   }, [outline]);
+
+  // Fetch telemetry for the focused driver's last completed lap.
+  // Only fires when a driver is focused and a lap number is known; result is
+  // cached forever (staleTime: Infinity) so lap changes cost one extra API call.
+  const heatData = useCarDataForLap(
+    sessionKey,
+    focusDriver,
+    focusDriverLap ?? null,
+  );
+
+  // Map telemetry distance onto track arc positions to build colored segments.
+  const heatSegments = useMemo(() => {
+    const samples = heatData.data;
+    if (!trackGeometry || !samples?.length) return [];
+    const { svgPts, normArc } = trackGeometry;
+    const totalDist = samples[samples.length - 1]!.distM || 1;
+
+    return svgPts.slice(0, -1).map((pt, i) => {
+      // Mid-point normalized position of this segment
+      const midNorm = (normArc[i]! + normArc[i + 1]!) / 2;
+      const targetDist = midNorm * totalDist;
+      // Binary search for the closest sample at this distance
+      let lo = 0, hi = samples.length - 1;
+      while (lo < hi) {
+        const mid = (lo + hi) >>> 1;
+        if (samples[mid]!.distM < targetDist) lo = mid + 1;
+        else hi = mid;
+      }
+      const sample = samples[lo] ?? samples[samples.length - 1]!;
+      return { x1: pt.sx, y1: pt.sy, x2: svgPts[i + 1]!.sx, y2: svgPts[i + 1]!.sy, speed: sample.speed };
+    });
+  }, [trackGeometry, heatData.data]);
 
   // Memoize sector + DRS overlay elements — pure geometry, session-static.
   const staticOverlays = useMemo(() => {
@@ -323,6 +377,23 @@ export function TrackMap({
         strokeLinejoin="round"
         strokeOpacity={0.15}
       />
+
+      {/* Speed heat overlay — shown when a driver is focused and lap data is loaded.
+          Segments are colored blue (slow) → green → red (fast) by the driver's
+          recorded speed at each track position on their last completed lap. */}
+      {heatSegments.length > 0 && heatSegments.map((seg, i) => (
+        <line
+          key={i}
+          x1={seg.x1}
+          y1={seg.y1}
+          x2={seg.x2}
+          y2={seg.y2}
+          stroke={speedToColor(seg.speed)}
+          strokeWidth={4}
+          strokeLinecap="round"
+          opacity={0.9}
+        />
+      ))}
 
       {/* Sectors + DRS overlays (session-static, memoized) */}
       {staticOverlays}

@@ -150,6 +150,19 @@ export default function RaceWeekend() {
     return out;
   }, [overtakes.data, sessionStartMs, t]);
 
+  // Last completed lap number for the focused driver — used to load heat overlay data.
+  // Uses previous lap (not current in-progress) because incomplete laps have no lap_duration.
+  const focusDriverLap = useMemo(() => {
+    if (focusDriver === null || !laps.data?.length || !sessionStartMs) return null;
+    let current: number | null = null;
+    for (const lap of laps.data) {
+      if (lap.driver_number !== focusDriver || !lap.date_start) continue;
+      if (new Date(lap.date_start).getTime() - sessionStartMs > t) continue;
+      if (current === null || lap.lap_number > current) current = lap.lap_number;
+    }
+    return current !== null && current > 1 ? current - 1 : null;
+  }, [focusDriver, laps.data, sessionStartMs, t]);
+
   // Current tyre compound + age per driver at the playhead.
   // Rebuilds when lap/stint data arrives or when the coarse time crosses a lap boundary.
   const activeCompounds = useMemo(() => {
@@ -238,6 +251,7 @@ export default function RaceWeekend() {
       circuitShortName={session?.circuit_short_name}
       activeCompounds={activeCompounds}
       battlingDrivers={battlingDrivers}
+      focusDriverLap={focusDriverLap}
     />
   );
 
