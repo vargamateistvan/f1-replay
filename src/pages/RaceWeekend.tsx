@@ -10,6 +10,7 @@ import { OvertakeFeed } from '@/components/Overtakes/OvertakeFeed'
 import { FocusedTelemetry } from '@/components/FocusedTelemetry/FocusedTelemetry'
 import { LapChart } from '@/components/LapChart/LapChart'
 import { FlagBanner } from '@/components/FlagBanner'
+import { SessionInfoBar } from '@/components/SessionInfoBar'
 import { ErrorMessage } from '@/components/ErrorMessage'
 import {
   useDrivers, usePositions, useIntervals,
@@ -206,9 +207,16 @@ export default function RaceWeekend() {
 
       {/* ── DRIVER TRACKER VIEW ───────────────────────────────────────── */}
       {currentView === 'tracker' && (
-        <div className="flex-1 min-h-0 flex overflow-hidden">
+        <div className="flex-1 min-h-0 flex flex-col overflow-hidden">
+          <SessionInfoBar
+            laps={laps.data ?? []}
+            raceControl={raceControl.data ?? []}
+            sessionTimeMs={t}
+            sessionStartMs={sessionStartMs}
+          />
+          <div className="flex-1 min-h-0 flex overflow-hidden">
           {/* Left data panel */}
-          <div className="w-72 shrink-0 flex flex-col border-r border-panel overflow-hidden">
+          <div className="w-[480px] shrink-0 flex flex-col border-r border-panel overflow-hidden">
             {/* Sub-tabs */}
             <div className="flex border-b border-panel shrink-0">
               {([['timing', 'Timing'], ['chart', 'Lap Chart']] as [TrackerTab, string][]).map(
@@ -286,6 +294,7 @@ export default function RaceWeekend() {
               </span>
             )}
           </div>
+        </div>
         </div>
       )}
 
