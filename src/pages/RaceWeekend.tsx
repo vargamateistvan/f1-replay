@@ -54,6 +54,7 @@ import { isSessionLive } from "@/utils/live";
 import { teamColor } from "@/utils/color";
 import { DEFAULT_SESSION_MS } from "@/constants";
 import { useSettings } from "@/stores/settings";
+import { isTimedSession, isQualiSession, detectQualiPhase } from "@/utils/session";
 import type { MainView } from "@/components/Nav";
 import type { Stint, CarData } from "@/api/types";
 
@@ -481,6 +482,16 @@ export default function RaceWeekend() {
   }, [positions.data, toastEvents, raceControl.data, drivers.data, sessionStartMs]);
 
   const effectiveDuration = durationMs || DEFAULT_SESSION_MS;
+
+  // ── Session countdown (practice / qualifying) ────────────────────────────
+  const sessionName = session?.session_name ?? "";
+  const countdownMs = isTimedSession(sessionName) && effectiveDuration > 0
+    ? Math.max(0, effectiveDuration - t)
+    : null;
+  const qualiPhase = isQualiSession(sessionName)
+    ? detectQualiPhase(raceControl.data ?? [], sessionStartMs, t)
+    : null;
+
   useKeyboardShortcuts({
     lapStarts: lapMarks,
     durationMs: effectiveDuration,
@@ -937,6 +948,8 @@ export default function RaceWeekend() {
         flagTimes={flagMarks}
         overtakeTimes={overtakeMarks}
         radioTimes={radioMarks}
+        countdownMs={countdownMs}
+        qualiPhase={qualiPhase}
       />
     </div>
   );

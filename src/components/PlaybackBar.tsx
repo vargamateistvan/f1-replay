@@ -9,6 +9,10 @@ interface Props {
   flagTimes?: number[];
   overtakeTimes?: number[];
   radioTimes?: number[];
+  /** Show a countdown badge (timed sessions: practice / qualifying) */
+  countdownMs?: number | null;
+  /** Active qualifying phase label e.g. "Q1" — shown alongside the countdown */
+  qualiPhase?: string | null;
 }
 
 function fmtTime(ms: number) {
@@ -33,6 +37,8 @@ export function PlaybackBar({
   flagTimes = [],
   overtakeTimes = [],
   radioTimes = [],
+  countdownMs = null,
+  qualiPhase = null,
 }: Props) {
   const { t, playing, speed, toggle, setT, setSpeed } = useTimeline();
 
@@ -96,6 +102,18 @@ export function PlaybackBar({
         <span className="text-muted font-mono text-xs tabular-nums w-10 text-right shrink-0">
           {fmtTime(t)}
         </span>
+
+        {/* Countdown badge — practice / qualifying only */}
+        {countdownMs !== null && (
+          <span className="flex items-center gap-1 shrink-0 px-1.5 py-0.5 bg-panel text-[10px] font-black tabular-nums uppercase tracking-widest">
+            {qualiPhase && (
+              <span className="text-f1red">{qualiPhase}</span>
+            )}
+            <span className={countdownMs <= 0 ? 'text-muted' : countdownMs <= 60_000 ? 'text-[#f5a623]' : 'text-white'}>
+              {countdownMs <= 0 ? 'ENDED' : fmtTime(countdownMs)}
+            </span>
+          </span>
+        )}
 
         {/* Scrubber */}
         <input
