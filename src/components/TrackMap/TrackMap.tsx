@@ -68,6 +68,11 @@ export function TrackMap({
     return indexes;
   }, [locationData, sessionStartMs]);
 
+  const circuitLayout = useMemo(
+    () => (circuitShortName ? getCircuitLayout(circuitShortName) : null),
+    [circuitShortName],
+  );
+
   if (!sessionKey) {
     return (
       <div className="flex items-center justify-center w-full h-full text-muted text-sm">
@@ -126,11 +131,6 @@ export function TrackMap({
   }
 
   const pulseSet = new Set(pulseDrivers ?? []);
-
-  const circuitLayout = useMemo(
-    () => (circuitShortName ? getCircuitLayout(circuitShortName) : null),
-    [circuitShortName],
-  );
 
   return (
     <svg
