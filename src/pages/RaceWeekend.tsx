@@ -27,6 +27,7 @@ import {
   useOvertakes,
 } from "@/hooks/useSession";
 import { useTimeline } from "@/timeline/clock";
+import { useCoarseTime } from "@/hooks/useCoarseTime";
 import { useLocationChunks, chunkIndexFor } from "@/hooks/useLocationChunks";
 import { useNumberParam, useStringParam } from "@/hooks/useSearchParamState";
 import { useTimelineUrlSync } from "@/hooks/useTimelineUrlSync";
@@ -92,7 +93,11 @@ export default function RaceWeekend() {
   const teamRadio = useTeamRadio(sessionKey, live);
   const weather = useWeather(sessionKey, live);
 
-  const { t, setSessionStart } = useTimeline();
+  // Stable selector — won't re-render on every t tick.
+  const setSessionStart = useTimeline((s) => s.setSessionStart);
+  // Throttled to ~10 Hz. Step-based panels (LiveTiming, Strategy, Weather, etc.)
+  // don't need 60 fps; TrackMap drives its own 60 Hz loop internally.
+  const t = useCoarseTime();
 
   const sessionStartMs = session ? new Date(session.date_start).getTime() : 0;
   const sessionEndMs = session ? new Date(session.date_end).getTime() : 0;

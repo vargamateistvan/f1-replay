@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useMemo, useState, useEffect } from "react";
 import { useTrackOutline, locationToSvg } from "@/hooks/useTrackMap";
 import { buildIndex, interpolateXY } from "@/timeline/interpolate";
 import { useTimeline } from "@/timeline/clock";
@@ -34,11 +34,25 @@ export function TrackMap({
   // TrackMap owns its t subscription so the animation loop is isolated here
   const { t } = useTimeline();
 
-  const firstDriver = drivers[0] ?? null;
+  // Try drivers in order until one yields a valid track outline. A driver who
+  // retired on lap 1 may have no clean laps; trying the next avoids a blank map.
+  const [driverFallbackIdx, setDriverFallbackIdx] = useState(0);
+  useEffect(() => {
+    setDriverFallbackIdx(0);
+  }, [sessionKey]);
+
+  const candidateDriver = drivers[driverFallbackIdx] ?? drivers[0] ?? null;
   const { data: outline, isPending } = useTrackOutline(
     sessionKey,
-    firstDriver?.driver_number ?? null,
+    candidateDriver?.driver_number ?? null,
   );
+
+  // If this driver has no valid laps and there are more to try, advance the index.
+  useEffect(() => {
+    if (!isPending && outline === null && driverFallbackIdx < drivers.length - 1) {
+      setDriverFallbackIdx((i) => i + 1);
+    }
+  }, [outline, isPending, driverFallbackIdx, drivers.length]);
 
   const driverByNumber = useMemo(
     () => new Map(drivers.map((d) => [d.driver_number, d])),
