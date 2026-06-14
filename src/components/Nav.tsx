@@ -17,7 +17,7 @@ const SELECT =
   'bg-transparent text-white border border-[#38383f] text-[11px] font-medium px-2 py-1 focus:outline-none focus:border-muted appearance-none cursor-pointer'
 
 export function Nav() {
-  const [, setSearchParams] = useSearchParams()
+  const [searchParams, setSearchParams] = useSearchParams()
 
   const [yearParam] = useNumberParam('year', DEFAULT_YEAR)
   const year = yearParam ?? DEFAULT_YEAR
@@ -91,7 +91,7 @@ export function Nav() {
 
         <div className="flex items-center gap-0 ml-3 pl-3 border-l border-white/20">
           <NavLink
-            to="/telemetry"
+            to={`/telemetry?${searchParams}`}
             className={({ isActive }) =>
               `h-10 flex items-center px-3 text-[11px] font-bold uppercase tracking-[0.1em] border-b-2 transition-colors ${
                 isActive ? 'text-white border-white' : 'text-white/50 border-transparent hover:text-white/80'
@@ -101,7 +101,7 @@ export function Nav() {
             Telemetry
           </NavLink>
           <NavLink
-            to="/standings"
+            to={`/standings?${searchParams}`}
             className={({ isActive }) =>
               `h-10 flex items-center px-3 text-[11px] font-bold uppercase tracking-[0.1em] border-b-2 transition-colors ${
                 isActive ? 'text-white border-white' : 'text-white/50 border-transparent hover:text-white/80'
