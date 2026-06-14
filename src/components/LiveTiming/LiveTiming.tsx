@@ -9,6 +9,7 @@ import type {
   Stint,
 } from "@/api/types";
 import { teamColor } from "@/utils/color";
+import { laneDuration, pitStopTime } from "@/utils/pit";
 import { SECTOR_GREEN_S } from "@/constants";
 import { SectorBar, type SectorTier } from "./SectorBar";
 import { TyreBadge } from "./TyreBadge";
@@ -124,9 +125,8 @@ export function LiveTiming({
     const s = new Set<number>();
     for (const p of pits) {
       const entry = new Date(p.date).getTime();
-      const exitMs = p.pit_duration
-        ? entry + p.pit_duration * 1000
-        : entry + 30_000;
+      const lane = laneDuration(p);
+      const exitMs = lane ? entry + lane * 1000 : entry + 30_000;
       if (entry <= currentT && currentT <= exitMs) s.add(p.driver_number);
     }
     return s;
@@ -185,25 +185,32 @@ export function LiveTiming({
     return { s1, s2, s3, lap };
   }, [lastLapMap]);
 
-  // Pit stop count per driver up to the current playhead
-  const pitCountMap = useMemo(() => {
-    const m = new Map<number, number>();
+  // Pit stops per driver up to the playhead: count + most recent stop time (s).
+  const pitInfoMap = useMemo(() => {
+    const m = new Map<number, { count: number; lastStop: number | null }>();
     for (const p of pits) {
       if (new Date(p.date).getTime() > currentT) continue;
-      m.set(p.driver_number, (m.get(p.driver_number) ?? 0) + 1);
+      const prev = m.get(p.driver_number) ?? { count: 0, lastStop: null };
+      m.set(p.driver_number, {
+        count: prev.count + 1,
+        lastStop: pitStopTime(p) ?? prev.lastStop,
+      });
     }
     return m;
   }, [pits, currentT]);
 
-  // Starting tyre: compound from the stint with the lowest lap_start per driver
+  // Starting tyre: compound from the driver's first stint (stint_number === 1,
+  // per the OpenF1 stints schema). Falls back to the lowest lap_start if a
+  // session lacks a stint_number 1 record.
   const startCompoundMap = useMemo(() => {
-    const earliest = new Map<number, { lap: number; compound: string }>();
+    const first = new Map<number, { rank: number; compound: string }>();
     for (const s of stints ?? []) {
-      const prev = earliest.get(s.driver_number);
-      if (!prev || s.lap_start < prev.lap)
-        earliest.set(s.driver_number, { lap: s.lap_start, compound: s.compound });
+      const rank = s.stint_number === 1 ? -1 : s.lap_start;
+      const prev = first.get(s.driver_number);
+      if (!prev || rank < prev.rank)
+        first.set(s.driver_number, { rank, compound: s.compound });
     }
-    return new Map([...earliest.entries()].map(([n, v]) => [n, v.compound]));
+    return new Map([...first.entries()].map(([n, v]) => [n, v.compound]));
   }, [stints]);
 
   // Personal-best sectors per driver (across all laps up to currentT)
@@ -323,6 +330,7 @@ export function LiveTiming({
             const inPit = pittingNow.has(num);
             const lastLap = lastLapMap.get(num) ?? null;
             const currentLap = currentLapMap.get(num) ?? null;
+            const pitInfo = pitInfoMap.get(num) ?? null;
             const pb = personalBestMap.get(num) ?? {
               s1: null,
               s2: null,
@@ -455,9 +463,16 @@ export function LiveTiming({
                   />
                 </td>
 
-                {/* Pit stop count */}
-                <td className="py-3 px-2 text-center font-mono text-[11px] tabular-nums text-muted">
-                  {(pitCountMap.get(num) ?? 0) > 0 ? pitCountMap.get(num) : "—"}
+                {/* Pit stop count (hover: most recent stop time) */}
+                <td
+                  className="py-3 px-2 text-center font-mono text-[11px] tabular-nums text-muted"
+                  title={
+                    pitInfo && pitInfo.lastStop !== null
+                      ? `${pitInfo.count} stop${pitInfo.count !== 1 ? "s" : ""} · last ${pitInfo.lastStop.toFixed(1)}s`
+                      : undefined
+                  }
+                >
+                  {pitInfo ? pitInfo.count : "—"}
                 </td>
 
                 {/* Current lap */}

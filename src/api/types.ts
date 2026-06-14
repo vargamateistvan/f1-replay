@@ -110,6 +110,11 @@ export interface Pit {
   driver_number: number
   lap_number: number
   meeting_key: number
+  /** Stationary stop time, seconds. Available from the 2024 US GP onward. */
+  stop_duration: number | null
+  /** Total time in the pit lane, seconds. Replaces the deprecated pit_duration. */
+  lane_duration: number | null
+  /** @deprecated OpenF1 alias for lane_duration — kept for older sessions. */
   pit_duration: number | null
   session_key: number
 }

@@ -1,4 +1,5 @@
 import type { Lap, Pit, RaceControl, Overtake, TeamRadio } from '@/api/types'
+import { pitStopTime } from '@/utils/pit'
 
 // ─── Normalized toast events ────────────────────────────────────────────────
 
@@ -75,7 +76,7 @@ export function buildToastEvents(
       id: `pit-${p.driver_number}-${p.date}`,
       ms,
       kind: 'pit',
-      payload: { driverNumber: p.driver_number, lapNumber: p.lap_number, pitDuration: p.pit_duration } satisfies PitPayload,
+      payload: { driverNumber: p.driver_number, lapNumber: p.lap_number, pitDuration: pitStopTime(p) } satisfies PitPayload,
     })
   }
 
