@@ -1,6 +1,6 @@
 import { useEffect, useMemo } from "react";
 import { PlaybackBar } from "@/components/PlaybackBar";
-import { TrackMap } from "@/components/TrackMap/TrackMap";
+import { TrackMap, type LeaderboardRow } from "@/components/TrackMap/TrackMap";
 import { LiveTiming } from "@/components/LiveTiming/LiveTiming";
 import { RaceControlFeed } from "@/components/RaceControl/RaceControl";
 import { WeatherPanel } from "@/components/Weather/WeatherPanel";
@@ -44,6 +44,7 @@ import {
 import { useEventToasts } from "@/hooks/useEventToasts";
 import { EventToastStack } from "@/components/EventToast/EventToastStack";
 import { isSessionLive } from "@/utils/live";
+import { teamColor } from "@/utils/color";
 import { DEFAULT_YEAR, DEFAULT_SESSION_MS } from "@/constants";
 import type { MainView } from "@/components/Nav";
 import type { Stint } from "@/api/types";
@@ -220,6 +221,51 @@ export default function RaceWeekend() {
     return result;
   }, [intervals.data, sessionStartMs, t]);
 
+  // Top-5 leaderboard snapshot for the track-map overlay.
+  const mapLeaderboard = useMemo((): LeaderboardRow[] => {
+    if (!sessionStartMs || !positions.data?.length) return [];
+    const cutoff = sessionStartMs + t;
+    const posMap = new Map<number, number>();
+    for (const p of positions.data) {
+      if (new Date(p.date).getTime() <= cutoff) posMap.set(p.driver_number, p.position);
+    }
+    const intMap = new Map<number, string>();
+    for (const iv of intervals.data ?? []) {
+      if (new Date(iv.date).getTime() > cutoff) continue;
+      const gap = iv.gap_to_leader;
+      intMap.set(
+        iv.driver_number,
+        gap === null ? "LEAD" : typeof gap === "number" ? `+${gap.toFixed(1)}` : String(gap),
+      );
+    }
+    const driverMap = new Map((drivers.data ?? []).map((d) => [d.driver_number, d]));
+    return [...posMap.entries()]
+      .sort((a, b) => a[1] - b[1])
+      .slice(0, 5)
+      .map(([num, pos]) => {
+        const d = driverMap.get(num);
+        return {
+          num,
+          pos,
+          acronym: d?.name_acronym ?? String(num),
+          color: teamColor(d?.team_colour),
+          gap: intMap.get(num) ?? "—",
+        };
+      });
+  }, [positions.data, intervals.data, drivers.data, sessionStartMs, t]);
+
+  // Current session flag (last flag-bearing RC entry at/before playhead).
+  const activeSectorFlag = useMemo(() => {
+    if (!sessionStartMs) return null;
+    const cutoff = sessionStartMs + t;
+    let flag: string | null = null;
+    for (const e of raceControl.data ?? []) {
+      if (new Date(e.date).getTime() > cutoff) break;
+      if (e.flag && e.flag !== "") flag = e.flag;
+    }
+    return flag;
+  }, [raceControl.data, sessionStartMs, t]);
+
   const toastEvents = useMemo(
     () =>
       sessionStartMs
@@ -277,6 +323,8 @@ export default function RaceWeekend() {
       activeCompounds={activeCompounds}
       battlingDrivers={battlingDrivers}
       focusDriverLap={focusDriverLap}
+      leaderboard={mapLeaderboard}
+      activeSectorFlag={activeSectorFlag}
     />
   );
 

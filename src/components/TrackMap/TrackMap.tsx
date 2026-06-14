@@ -58,6 +58,14 @@ function exportTrackSnapshot(svgEl: SVGSVGElement): void {
   img.src = url;
 }
 
+export interface LeaderboardRow {
+  num: number;
+  pos: number;
+  acronym: string;
+  color: string;
+  gap: string;
+}
+
 interface Props {
   readonly sessionKey: number | null;
   readonly drivers: Driver[];
@@ -69,6 +77,8 @@ interface Props {
   readonly activeCompounds?: ReadonlyMap<number, { compound: Stint["compound"]; age: number }>;
   readonly battlingDrivers?: ReadonlySet<number>;
   readonly focusDriverLap?: number | null;
+  readonly leaderboard?: readonly LeaderboardRow[];
+  readonly activeSectorFlag?: string | null;
 }
 
 export function TrackMap({
@@ -82,6 +92,8 @@ export function TrackMap({
   activeCompounds,
   battlingDrivers,
   focusDriverLap = null,
+  leaderboard,
+  activeSectorFlag = null,
 }: Props) {
   // TrackMap owns its t subscription so the animation loop is isolated here
   const { t } = useTimeline();
@@ -291,6 +303,53 @@ export function TrackMap({
     );
   }, [trackGeometry, circuitLayout]);
 
+  // Flag tint overlaid on top of sector boxes when a flag is active.
+  // Separate from staticOverlays so flag changes don't regenerate the static geometry.
+  const sectorFlagTints = useMemo(() => {
+    if (!trackGeometry || !circuitLayout || !activeSectorFlag) return null;
+    const TINT: Record<string, string> = {
+      YELLOW:        '#f5d400',
+      DOUBLE_YELLOW: '#f5d400',
+      RED:           '#e8002d',
+      SAFETY_CAR:    '#f5a623',
+      VIRTUAL_SC:    '#f5a623',
+      GREEN:         '#39b54a',
+    };
+    const tint = TINT[activeSectorFlag];
+    if (!tint) return null;
+    const { bounds, innerW, innerH } = trackGeometry;
+    return (
+      <>
+        {circuitLayout.sectors.map((sector) => {
+          const { sx: sx1, sy: sy1 } = locationToSvg(sector.bounds.minX, sector.bounds.minY, bounds, innerW, innerH);
+          const { sx: sx2, sy: sy2 } = locationToSvg(sector.bounds.maxX, sector.bounds.maxY, bounds, innerW, innerH);
+          const x = Math.min(sx1, sx2) + PAD;
+          const y = Math.min(sy1, sy2) + PAD;
+          const w = Math.abs(sx2 - sx1);
+          const h = Math.abs(sy2 - sy1);
+          return <rect key={`flag-tint-${sector.number}`} x={x} y={y} width={w} height={h} fill={tint} opacity={0.28} />;
+        })}
+      </>
+    );
+  }, [trackGeometry, circuitLayout, activeSectorFlag]);
+
+  // Current-moment car telemetry for the focused driver — binary search on date.
+  // Runs at 60 fps but O(log n) on ~1000-sample arrays so cost is negligible.
+  const hudData = useMemo(() => {
+    if (focusDriver === null || !heatData.data?.length) return null;
+    const data = heatData.data;
+    const targetMs = sessionStartMs + t;
+    let lo = 0, hi = data.length - 1;
+    while (lo < hi) {
+      const mid = (lo + hi) >>> 1;
+      if (new Date(data[mid]!.date).getTime() < targetMs) lo = mid + 1;
+      else hi = mid;
+    }
+    const sample = data[lo] ?? data[data.length - 1]!;
+    const diff = Math.abs(new Date(sample.date).getTime() - targetMs);
+    return diff < 120_000 ? sample : null;
+  }, [heatData.data, sessionStartMs, t, focusDriver]);
+
   if (!sessionKey) {
     return (
       <div className="flex items-center justify-center w-full h-full text-muted text-sm">
@@ -397,6 +456,9 @@ export function TrackMap({
 
       {/* Sectors + DRS overlays (session-static, memoized) */}
       {staticOverlays}
+
+      {/* Active flag tint over sector boxes */}
+      {sectorFlagTints}
 
       {/* Car dots — when a driver is focused, dim the rest and enlarge the pick */}
       {carPositions
@@ -508,6 +570,69 @@ export function TrackMap({
         </text>
       )}
     </svg>
+
+    {/* Mini-leaderboard — top-5 positions pinned to bottom-left */}
+    {leaderboard && leaderboard.length > 0 && (
+      <div className="absolute bottom-2 left-2 flex flex-col gap-px pointer-events-none" style={{ minWidth: 110 }}>
+        {leaderboard.map((row) => (
+          <div
+            key={row.num}
+            className="flex items-center gap-1.5 px-1.5 py-0.5"
+            style={{ background: 'rgba(21,21,30,0.82)', backdropFilter: 'blur(4px)' }}
+          >
+            <span className="text-[9px] font-black tabular-nums text-muted w-4 text-right shrink-0">
+              {row.pos}
+            </span>
+            <span className="w-[2px] self-stretch shrink-0 rounded-sm" style={{ background: row.color }} />
+            <span className="text-[10px] font-black uppercase tracking-wide flex-1" style={{ color: row.color }}>
+              {row.acronym}
+            </span>
+            <span className="text-[9px] font-mono tabular-nums text-muted shrink-0">
+              {row.gap}
+            </span>
+          </div>
+        ))}
+      </div>
+    )}
+
+    {/* Focused-driver HUD — speed / gear / throttle + brake bars */}
+    {hudData && focusDriver !== null && (() => {
+      const driver = driverByNumber.get(focusDriver);
+      const color = teamColor(driver?.team_colour);
+      return (
+        <div
+          className="absolute top-2 left-2 pointer-events-none flex flex-col gap-1 px-2 py-1.5"
+          style={{ background: 'rgba(21,21,30,0.85)', backdropFilter: 'blur(4px)', minWidth: 100, border: `1px solid ${color}33` }}
+        >
+          <div className="flex items-baseline gap-2">
+            <span className="text-[22px] font-black tabular-nums leading-none" style={{ color }}>
+              {hudData.speed}
+            </span>
+            <span className="text-[9px] text-muted uppercase tracking-widest leading-none self-end pb-0.5">km/h</span>
+            <span
+              className="ml-auto text-[18px] font-black tabular-nums leading-none"
+              style={{ color: hudData.n_gear === 0 ? '#ff5252' : color }}
+            >
+              {hudData.n_gear === 0 ? 'N' : hudData.n_gear}
+            </span>
+          </div>
+          {/* Throttle bar */}
+          <div className="flex items-center gap-1.5">
+            <span className="text-[8px] text-muted w-5 shrink-0">THR</span>
+            <div className="flex-1 h-1.5 bg-panel rounded-sm overflow-hidden">
+              <div className="h-full bg-[#39b54a] rounded-sm transition-none" style={{ width: `${hudData.throttle}%` }} />
+            </div>
+          </div>
+          {/* Brake bar */}
+          <div className="flex items-center gap-1.5">
+            <span className="text-[8px] text-muted w-5 shrink-0">BRK</span>
+            <div className="flex-1 h-1.5 bg-panel rounded-sm overflow-hidden">
+              <div className="h-full bg-f1red rounded-sm transition-none" style={{ width: `${hudData.brake}%` }} />
+            </div>
+          </div>
+        </div>
+      );
+    })()}
 
     {/* PNG export — only shown when there is track + car data to capture */}
     {locationIndexes.size > 0 && (
