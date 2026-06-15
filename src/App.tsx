@@ -6,6 +6,7 @@ import { startClock, stopClock } from './timeline/clock'
 import { ErrorBoundary } from '@/components/ErrorBoundary'
 import { OpenF1Error } from '@/api/client'
 import { queryPersister } from '@/lib/queryPersister'
+import { useSettings } from '@/stores/settings'
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -26,6 +27,25 @@ const queryClient = new QueryClient({
 // Live-session queries (staleTime: 0) are restored as stale and immediately refetched.
 const PERSIST_MAX_AGE = 30 * 24 * 60 * 60 * 1000
 
+function CoffeeWidgetGate() {
+  const showCoffeeWidget = useSettings((s) => s.showCoffeeWidget)
+  useEffect(() => {
+    const STYLE_ID = 'bmc-hide-style'
+    if (!showCoffeeWidget) {
+      if (!document.getElementById(STYLE_ID)) {
+        const s = document.createElement('style')
+        s.id = STYLE_ID
+        // Target the BMC widget's injected container + popup elements
+        s.textContent = '#bmc-wbtn,#bmc-widget-banner,.bmc-btn-container{display:none!important}'
+        document.head.appendChild(s)
+      }
+    } else {
+      document.getElementById(STYLE_ID)?.remove()
+    }
+  }, [showCoffeeWidget])
+  return null
+}
+
 export default function App() {
   useEffect(() => {
     startClock()
@@ -38,6 +58,7 @@ export default function App() {
         client={queryClient}
         persistOptions={{ persister: queryPersister, maxAge: PERSIST_MAX_AGE }}
       >
+        <CoffeeWidgetGate />
         <AppRouter />
       </PersistQueryClientProvider>
     </ErrorBoundary>

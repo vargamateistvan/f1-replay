@@ -266,6 +266,15 @@ export function SettingsModal() {
             onChange={toggle("leaderboardTelemetry")}
           />
 
+          {/* ── Support ────────────────────────────────────────────── */}
+          <SectionHeader>Support</SectionHeader>
+          <SettingRow
+            label="Buy Me a Coffee button"
+            description="Show the floating support widget"
+            checked={settings.showCoffeeWidget}
+            onChange={toggle("showCoffeeWidget")}
+          />
+
           {/* ── Playback ───────────────────────────────────────────── */}
           <SectionHeader>Playback</SectionHeader>
           <SpeedSelector
