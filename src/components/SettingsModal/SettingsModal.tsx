@@ -132,15 +132,9 @@ export function SettingsModal() {
     return () => window.removeEventListener("keydown", onKey);
   }, [isOpen, closeModal]);
 
-  // Prevent body scroll while open
-  useEffect(() => {
-    if (isOpen) {
-      document.body.style.overflow = "hidden";
-    } else {
-      document.body.style.overflow = "";
-    }
-    return () => { document.body.style.overflow = ""; };
-  }, [isOpen]);
+  // Body scroll is already prevented by the root h-[100dvh] overflow-hidden container.
+  // Setting document.body.style.overflow = "hidden" on iOS blocks scroll inside fixed
+  // elements too (a Safari bug), so we intentionally skip it here.
 
   if (!isOpen) return null;
 
@@ -158,7 +152,7 @@ export function SettingsModal() {
       onClick={handleBackdropClick}
       className="fixed inset-0 z-[200] flex items-center justify-center bg-black/70 backdrop-blur-sm"
     >
-      <div className="relative w-full max-w-sm mx-4 max-h-[90vh] flex flex-col bg-[#1a1a24] border border-[#2a2a35] rounded-lg shadow-2xl overflow-hidden">
+      <div className="relative w-full max-w-sm mx-4 max-h-[90dvh] flex flex-col bg-[#1a1a24] border border-[#2a2a35] rounded-lg shadow-2xl overflow-hidden">
         {/* Header */}
         <div className="flex items-center justify-between px-5 py-3.5 border-b border-[#2a2a35] shrink-0">
           <div className="flex items-center gap-2">
@@ -184,7 +178,7 @@ export function SettingsModal() {
         </div>
 
         {/* Scrollable body */}
-        <div className="flex-1 min-h-0 overflow-y-auto px-5 pb-4" style={{ touchAction: 'pan-y' }}>
+        <div className="flex-1 min-h-0 overflow-y-auto px-5 pb-4" style={{ touchAction: 'pan-y', overscrollBehavior: 'contain' }}>
           {/* ── Notifications ──────────────────────────────────────── */}
           <SectionHeader>Notifications</SectionHeader>
           <SettingRow
