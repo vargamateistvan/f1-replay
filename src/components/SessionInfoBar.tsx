@@ -9,6 +9,7 @@ interface Props {
   lightsOutMs?: number | null;
   isRaceSession?: boolean;
   totalLapCount?: number | null;
+  onShowResults?: () => void;
 }
 
 interface TrackStatus {
@@ -71,6 +72,7 @@ export function SessionInfoBar({
   lightsOutMs,
   isRaceSession,
   totalLapCount = null,
+  onShowResults,
 }: Props) {
   const currentT = sessionStartMs + sessionTimeMs;
 
@@ -135,6 +137,15 @@ export function SessionInfoBar({
           {fmtElapsed(sessionTimeMs)}
         </span>
       </div>
+
+      {onShowResults && (
+        <button
+          onClick={onShowResults}
+          className="shrink-0 border-r border-panel px-4 py-2 text-[10px] font-black uppercase tracking-[0.16em] text-white transition-colors hover:bg-white/5 hover:text-f1red"
+        >
+          Show Results
+        </button>
+      )}
 
       {/* Latest RC message */}
       {latestMsg && (

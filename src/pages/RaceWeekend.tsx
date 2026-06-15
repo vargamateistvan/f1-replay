@@ -822,6 +822,11 @@ export default function RaceWeekend() {
             isRaceSession={isRaceSession}
             lightsOutMs={lightsOutMs}
             totalLapCount={totalLapCount}
+            onShowResults={
+              showFinalClassification && !sessionResult.isError
+                ? () => setIsResultsDialogOpen(true)
+                : undefined
+            }
           />
           <div className="flex-1 min-h-0 flex flex-col md:flex overflow-hidden relative">
             {/* Toast overlay — covers both mobile and desktop tracker content */}
@@ -1160,26 +1165,14 @@ export default function RaceWeekend() {
             />
           </div>
         ) : (
-          <>
-            {!isResultsDialogOpen && (
-              <div className="pointer-events-none absolute bottom-16 right-3 z-[120] sm:right-4">
-                <button
-                  onClick={() => setIsResultsDialogOpen(true)}
-                  className="pointer-events-auto border border-panel bg-[#0f1118]/95 px-3 py-2 text-[10px] font-black uppercase tracking-[0.16em] text-white shadow-lg transition-colors hover:border-f1red hover:text-f1red"
-                >
-                  Results
-                </button>
-              </div>
-            )}
-            {isResultsDialogOpen && (
-              <FinalClassificationDialog
-                results={sessionResult.data ?? []}
-                drivers={drivers.data ?? []}
-                sessionName={session?.session_name}
-                onClose={() => setIsResultsDialogOpen(false)}
-              />
-            )}
-          </>
+          isResultsDialogOpen && (
+            <FinalClassificationDialog
+              results={sessionResult.data ?? []}
+              drivers={drivers.data ?? []}
+              sessionName={session?.session_name}
+              onClose={() => setIsResultsDialogOpen(false)}
+            />
+          )
         ))}
 
       {/* Playback bar — always visible */}
