@@ -16,6 +16,16 @@ export interface MarshalLight {
   trackPosition: { x: number; y: number }
 }
 
+/** 2-D affine: maps F1 Cartesian (x, y) → WGS84 (lng, lat).
+ *  lng = a*x + b*y + c
+ *  lat = d*x + e*y + f
+ *  Baked by scripts/fetch-circuits.mjs when a matching f1-circuits GeoJSON is
+ *  found. Absent = satellite mode is disabled for this circuit. */
+export interface GeoAffine {
+  a: number; b: number; c: number;
+  d: number; e: number; f: number;
+}
+
 export interface CircuitGeometry {
   circuitKey: number
   circuitName: string
@@ -31,4 +41,6 @@ export interface CircuitGeometry {
   corners: CornerInfo[]
   marshalSectors: MarshalSector[]
   marshalLights: MarshalLight[]
+  /** Cartesian→WGS84 affine. Present when f1-circuits data was available at bake time. */
+  geoAffine?: GeoAffine
 }
