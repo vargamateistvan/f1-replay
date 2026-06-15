@@ -111,6 +111,7 @@ export default function RaceWeekend() {
     "rc",
   );
   const [focusDriver, setFocusDriver] = useNumberParam("focus", null);
+  const [compareDriver, setCompareDriver] = useNumberParam("compare", null);
 
   const sessions = useSessions(meetingKey);
   const session = sessions.data?.find((s) => s.session_key === sessionKey);
@@ -231,6 +232,19 @@ export default function RaceWeekend() {
     }
     return current !== null && current > 1 ? current - 1 : null;
   }, [focusDriver, laps.data, sessionStartMs, t]);
+
+  const compareDriverLap = useMemo(() => {
+    if (compareDriver === null || !laps.data?.length || !sessionStartMs)
+      return null;
+    let current: number | null = null;
+    for (const lap of laps.data) {
+      if (lap.driver_number !== compareDriver || !lap.date_start) continue;
+      if (new Date(lap.date_start).getTime() - sessionStartMs > t) continue;
+      if (current === null || lap.lap_number > current)
+        current = lap.lap_number;
+    }
+    return current !== null && current > 1 ? current - 1 : null;
+  }, [compareDriver, laps.data, sessionStartMs, t]);
 
   // Current tyre compound + age per driver at the playhead.
   // Rebuilds when lap/stint data arrives or when the coarse time crosses a lap boundary.
@@ -598,8 +612,23 @@ export default function RaceWeekend() {
     enabled: sessionKey !== null,
   });
 
-  const toggleFocus = (num: number) =>
-    setFocusDriver(focusDriver === num ? null : num);
+  const toggleFocus = (num: number) => {
+    if (focusDriver === null) {
+      setFocusDriver(num);
+      setCompareDriver(null);
+      return;
+    }
+    if (focusDriver === num) {
+      setFocusDriver(null);
+      setCompareDriver(null);
+      return;
+    }
+    if (compareDriver === num) {
+      setCompareDriver(null);
+      return;
+    }
+    setCompareDriver(num);
+  };
 
   const {
     height: strategyHeight,
@@ -827,8 +856,16 @@ export default function RaceWeekend() {
                               (d) => d.driver_number === focusDriver,
                             ) ?? null
                           }
+                          compareDriver={
+                            drivers.data?.find(
+                              (d) => d.driver_number === compareDriver,
+                            ) ?? null
+                          }
                           sessionStartMs={sessionStartMs}
+                          driverLap={focusDriverLap}
+                          compareDriverLap={compareDriverLap}
                           onClear={() => setFocusDriver(null)}
+                          onClearCompare={() => setCompareDriver(null)}
                         />
                       </div>
                     )}
@@ -935,8 +972,16 @@ export default function RaceWeekend() {
                           (d) => d.driver_number === focusDriver,
                         ) ?? null
                       }
+                      compareDriver={
+                        drivers.data?.find(
+                          (d) => d.driver_number === compareDriver,
+                        ) ?? null
+                      }
                       sessionStartMs={sessionStartMs}
+                      driverLap={focusDriverLap}
+                      compareDriverLap={compareDriverLap}
                       onClear={() => setFocusDriver(null)}
+                      onClearCompare={() => setCompareDriver(null)}
                     />
                   </div>
                 )}
