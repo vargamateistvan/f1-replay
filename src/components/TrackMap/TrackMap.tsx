@@ -124,6 +124,13 @@ export function TrackMap({
   onSelectDriver,
 }: Props) {
   const { t } = useTimeline();
+  const [zoomLevel, setZoomLevel] = useState(1);
+  const [rotationDeg, setRotationDeg] = useState(0);
+
+  useEffect(() => {
+    setZoomLevel(1);
+    setRotationDeg(0);
+  }, [sessionKey, circuitKey]);
 
   const scopedSector =
     activeSectorFlag?.sector != null &&
@@ -625,7 +632,10 @@ export function TrackMap({
   const pulseSet = new Set(pulseDrivers ?? []);
 
   // Follow-cam: zoom in on the focused driver, clamped to the SVG boundary.
-  let viewBox = `0 0 ${SVG_W} ${SVG_H}`;
+  let viewX = 0;
+  let viewY = 0;
+  let viewW = SVG_W;
+  let viewH = SVG_H;
   if (focusDriver !== null) {
     const focusedPos = carPositions.find((c) => c.num === focusDriver);
     if (focusedPos) {
@@ -646,9 +656,18 @@ export function TrackMap({
         0,
         Math.min(SVG_H - FOLLOW_ZOOM_H, cy - FOLLOW_ZOOM_H / 2),
       );
-      viewBox = `${vx.toFixed(1)} ${vy.toFixed(1)} ${FOLLOW_ZOOM_W} ${FOLLOW_ZOOM_H}`;
+      viewX = vx;
+      viewY = vy;
+      viewW = FOLLOW_ZOOM_W;
+      viewH = FOLLOW_ZOOM_H;
     }
   }
+
+  const viewBox = `${viewX.toFixed(1)} ${viewY.toFixed(1)} ${viewW.toFixed(1)} ${viewH.toFixed(1)}`;
+  const pivotX = viewX + viewW / 2;
+  const pivotY = viewY + viewH / 2;
+  const zoomTransform = `translate(${pivotX.toFixed(1)} ${pivotY.toFixed(1)}) scale(${zoomLevel.toFixed(2)}) translate(${-pivotX.toFixed(1)} ${-pivotY.toFixed(1)})`;
+  const trackTransform = `rotate(${rotationDeg.toFixed(1)} ${pivotX.toFixed(1)} ${pivotY.toFixed(1)}) ${zoomTransform}`;
 
   return (
     <div className="relative w-full h-full">
@@ -674,179 +693,248 @@ export function TrackMap({
         className="w-full h-full"
         style={{ background: "#15151e" }}
       >
-        {/* Track surface: thick grey base + thin white highlight */}
-        <path
-          d={pathData}
-          fill="none"
-          stroke="#38383f"
-          strokeWidth={11}
-          strokeLinecap="round"
-          strokeLinejoin="round"
-        />
-        <path
-          d={pathData}
-          fill="none"
-          stroke="#4a4a55"
-          strokeWidth={7}
-          strokeLinecap="round"
-          strokeLinejoin="round"
-        />
-        <path
-          d={pathData}
-          fill="none"
-          stroke="#ffffff"
-          strokeWidth={1.5}
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          strokeOpacity={0.15}
-        />
+        <g transform={trackTransform}>
+          {/* Track surface: thick grey base + thin white highlight */}
+          <path
+            d={pathData}
+            fill="none"
+            stroke="#38383f"
+            strokeWidth={11}
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+          <path
+            d={pathData}
+            fill="none"
+            stroke="#4a4a55"
+            strokeWidth={7}
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+          <path
+            d={pathData}
+            fill="none"
+            stroke="#ffffff"
+            strokeWidth={1.5}
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeOpacity={0.15}
+          />
 
-        {/* Speed heat overlay — shown when a driver is focused and lap data is loaded.
+          {/* Speed heat overlay — shown when a driver is focused and lap data is loaded.
           Segments are colored blue (slow) → green → red (fast) by the driver's
           recorded speed at each track position on their last completed lap. */}
-        {heatSegments.length > 0 &&
-          heatSegments.map((seg, i) => (
-            <line
-              key={i}
-              x1={seg.x1}
-              y1={seg.y1}
-              x2={seg.x2}
-              y2={seg.y2}
-              stroke={speedToColor(seg.speed)}
-              strokeWidth={4}
-              strokeLinecap="round"
-              opacity={0.9}
-            />
-          ))}
+          {heatSegments.length > 0 &&
+            heatSegments.map((seg, i) => (
+              <line
+                key={i}
+                x1={seg.x1}
+                y1={seg.y1}
+                x2={seg.x2}
+                y2={seg.y2}
+                stroke={speedToColor(seg.speed)}
+                strokeWidth={4}
+                strokeLinecap="round"
+                opacity={0.9}
+              />
+            ))}
 
-        {/* Sectors + DRS overlays (session-static, memoized) */}
-        {staticOverlays}
+          {/* Sectors + DRS overlays (session-static, memoized) */}
+          {staticOverlays}
 
-        {/* Marshal sector dots (baked geometry only) */}
-        {marshalSectorOverlays}
+          {/* Marshal sector dots (baked geometry only) */}
+          {marshalSectorOverlays}
 
-        {/* Active flag tint over marshal sectors / sector boxes */}
-        {sectorFlagTints}
+          {/* Active flag tint over marshal sectors / sector boxes */}
+          {sectorFlagTints}
 
-        {/* Corner numbers (baked geometry only) */}
-        {cornerOverlays}
+          {/* Corner numbers (baked geometry only) */}
+          {cornerOverlays}
 
-        {/* Car dots — when a driver is focused, dim the rest and enlarge the pick */}
-        {carPositions
-          .slice()
-          .sort(
-            (a, b) =>
-              (a.num === focusDriver ? 1 : 0) - (b.num === focusDriver ? 1 : 0),
-          )
-          .map(({ num, x, y }) => {
-            const driver = driverByNumber.get(num);
-            const color = teamColor(driver?.team_colour, "#ffffff");
-            const { sx, sy } = locationToSvg(x, y, bounds, innerW, innerH);
-            const focused = focusDriver === num;
-            const dimmed = focusDriver !== null && !focused;
-            const showLabel = focusDriver === null || focused;
-            const pulsing = pulseSet.has(num);
-            const isBattling = battlingDrivers?.has(num) ?? false;
-            const compoundInfo = activeCompounds?.get(num);
-            return (
-              <g
-                key={num}
-                transform={`translate(${(sx + PAD).toFixed(1)},${(sy + PAD).toFixed(1)})`}
-                opacity={dimmed ? 0.3 : 1}
-                onClick={() => onSelectDriver?.(num)}
-                style={onSelectDriver ? { cursor: "pointer" } : undefined}
-              >
-                {/* Battle ring: dashed amber ring for cars within 1 s of the car ahead */}
-                {isBattling && !pulsing && (
-                  <circle
-                    r={focused ? 13 : 8}
-                    fill="none"
-                    stroke="#ffd700"
-                    strokeWidth={1.5}
-                    strokeOpacity={0.75}
-                    strokeDasharray="3 2"
-                  />
-                )}
-                {pulsing && (
-                  <circle r={6} fill="none" stroke="#ffffff" strokeWidth={1.5}>
-                    <animate
-                      attributeName="r"
-                      from="6"
-                      to="14"
-                      dur="0.8s"
-                      repeatCount="indefinite"
+          {/* Car dots — when a driver is focused, dim the rest and enlarge the pick */}
+          {carPositions
+            .slice()
+            .sort(
+              (a, b) =>
+                (a.num === focusDriver ? 1 : 0) -
+                (b.num === focusDriver ? 1 : 0),
+            )
+            .map(({ num, x, y }) => {
+              const driver = driverByNumber.get(num);
+              const color = teamColor(driver?.team_colour, "#ffffff");
+              const { sx, sy } = locationToSvg(x, y, bounds, innerW, innerH);
+              const focused = focusDriver === num;
+              const dimmed = focusDriver !== null && !focused;
+              const showLabel = focusDriver === null || focused;
+              const pulsing = pulseSet.has(num);
+              const isBattling = battlingDrivers?.has(num) ?? false;
+              const compoundInfo = activeCompounds?.get(num);
+              return (
+                <g
+                  key={num}
+                  transform={`translate(${(sx + PAD).toFixed(1)},${(sy + PAD).toFixed(1)})`}
+                  opacity={dimmed ? 0.3 : 1}
+                  onClick={() => onSelectDriver?.(num)}
+                  style={onSelectDriver ? { cursor: "pointer" } : undefined}
+                >
+                  {/* Battle ring: dashed amber ring for cars within 1 s of the car ahead */}
+                  {isBattling && !pulsing && (
+                    <circle
+                      r={focused ? 13 : 8}
+                      fill="none"
+                      stroke="#ffd700"
+                      strokeWidth={1.5}
+                      strokeOpacity={0.75}
+                      strokeDasharray="3 2"
                     />
-                    <animate
-                      attributeName="stroke-opacity"
-                      from="0.9"
-                      to="0"
-                      dur="0.8s"
-                      repeatCount="indefinite"
+                  )}
+                  {pulsing && (
+                    <circle
+                      r={6}
+                      fill="none"
+                      stroke="#ffffff"
+                      strokeWidth={1.5}
+                    >
+                      <animate
+                        attributeName="r"
+                        from="6"
+                        to="14"
+                        dur="0.8s"
+                        repeatCount="indefinite"
+                      />
+                      <animate
+                        attributeName="stroke-opacity"
+                        from="0.9"
+                        to="0"
+                        dur="0.8s"
+                        repeatCount="indefinite"
+                      />
+                    </circle>
+                  )}
+                  {focused && (
+                    <circle
+                      r={9}
+                      fill="none"
+                      stroke={color}
+                      strokeWidth={1.5}
+                      strokeOpacity={0.5}
                     />
-                  </circle>
-                )}
-                {focused && (
+                  )}
                   <circle
-                    r={9}
-                    fill="none"
-                    stroke={color}
-                    strokeWidth={1.5}
-                    strokeOpacity={0.5}
-                  />
-                )}
-                <circle
-                  r={focused ? 6.5 : 4.5}
-                  fill={color}
-                  stroke="#ffffff"
-                  strokeWidth={focused ? 1.6 : 1.2}
-                  strokeOpacity={focused ? 0.9 : 0.6}
-                />
-                {/* Compound badge: small dot in tyre-compound colour */}
-                {compoundInfo && (
-                  <circle
-                    cx={focused ? 8 : 5}
-                    cy={focused ? 8 : 5}
-                    r={focused ? 2.5 : 1.8}
-                    fill={COMPOUND_COLORS[compoundInfo.compound]}
-                    stroke="#15151e"
-                    strokeWidth={0.5}
-                  />
-                )}
-                {showLabel && (
-                  <text
-                    x={focused ? 10 : 7}
-                    y={-5}
-                    fontSize={focused ? 9 : 8}
+                    r={focused ? 6.5 : 4.5}
                     fill={color}
-                    fontFamily="Inter, sans-serif"
-                    fontWeight="900"
-                    letterSpacing="0.04em"
-                  >
-                    {driver?.name_acronym ?? num}
-                  </text>
-                )}
-              </g>
-            );
-          })}
+                    stroke="#ffffff"
+                    strokeWidth={focused ? 1.6 : 1.2}
+                    strokeOpacity={focused ? 0.9 : 0.6}
+                  />
+                  {/* Compound badge: small dot in tyre-compound colour */}
+                  {compoundInfo && (
+                    <circle
+                      cx={focused ? 8 : 5}
+                      cy={focused ? 8 : 5}
+                      r={focused ? 2.5 : 1.8}
+                      fill={COMPOUND_COLORS[compoundInfo.compound]}
+                      stroke="#15151e"
+                      strokeWidth={0.5}
+                    />
+                  )}
+                  {showLabel && (
+                    <text
+                      x={focused ? 10 : 7}
+                      y={-5}
+                      fontSize={focused ? 9 : 8}
+                      fill={color}
+                      fontFamily="Inter, sans-serif"
+                      fontWeight="900"
+                      letterSpacing="0.04em"
+                    >
+                      {driver?.name_acronym ?? num}
+                    </text>
+                  )}
+                </g>
+              );
+            })}
 
-        {/* No-data hint */}
-        {locationIndexes.size === 0 && (
-          <text
-            x={SVG_W / 2}
-            y={SVG_H / 2}
-            textAnchor="middle"
-            fill="#636369"
-            fontSize={11}
-            fontFamily="Inter, sans-serif"
-          >
-            Press ▶ to start replay
-          </text>
-        )}
+          {/* No-data hint */}
+          {locationIndexes.size === 0 && (
+            <text
+              x={SVG_W / 2}
+              y={SVG_H / 2}
+              textAnchor="middle"
+              fill="#636369"
+              fontSize={11}
+              fontFamily="Inter, sans-serif"
+            >
+              Press ▶ to start replay
+            </text>
+          )}
+        </g>
       </svg>
+
+      <div
+        className="absolute top-2 right-2 z-20 flex flex-col gap-1 p-1"
+        style={{
+          background: "rgba(21,21,30,0.82)",
+          backdropFilter: "blur(4px)",
+        }}
+      >
+        <div className="flex items-center gap-1">
+          <button
+            type="button"
+            onClick={() => setZoomLevel((z) => Math.max(0.6, z - 0.2))}
+            className="px-1.5 py-0.5 text-[9px] font-black uppercase tracking-[0.12em] border border-[#4b4b57] text-white/85 hover:text-white hover:border-white/50 transition-colors"
+            title="Zoom out"
+          >
+            Zoom-
+          </button>
+          <button
+            type="button"
+            onClick={() => setZoomLevel((z) => Math.min(3, z + 0.2))}
+            className="px-1.5 py-0.5 text-[9px] font-black uppercase tracking-[0.12em] border border-[#4b4b57] text-white/85 hover:text-white hover:border-white/50 transition-colors"
+            title="Zoom in"
+          >
+            Zoom+
+          </button>
+          <button
+            type="button"
+            onClick={() => setZoomLevel(1)}
+            className="px-1.5 py-0.5 text-[9px] font-black uppercase tracking-[0.12em] border border-[#4b4b57] text-white/85 hover:text-white hover:border-white/50 transition-colors"
+            title="Reset zoom"
+          >
+            ZR
+          </button>
+        </div>
+        <div className="flex items-center gap-1">
+          <button
+            type="button"
+            onClick={() => setRotationDeg((r) => r - 15)}
+            className="px-1.5 py-0.5 text-[9px] font-black uppercase tracking-[0.12em] border border-[#4b4b57] text-white/85 hover:text-white hover:border-white/50 transition-colors"
+            title="Rotate left"
+          >
+            RotL
+          </button>
+          <button
+            type="button"
+            onClick={() => setRotationDeg((r) => r + 15)}
+            className="px-1.5 py-0.5 text-[9px] font-black uppercase tracking-[0.12em] border border-[#4b4b57] text-white/85 hover:text-white hover:border-white/50 transition-colors"
+            title="Rotate right"
+          >
+            RotR
+          </button>
+          <button
+            type="button"
+            onClick={() => setRotationDeg(0)}
+            className="px-1.5 py-0.5 text-[9px] font-black uppercase tracking-[0.12em] border border-[#4b4b57] text-white/85 hover:text-white hover:border-white/50 transition-colors"
+            title="Reset rotation"
+          >
+            RR
+          </button>
+        </div>
+      </div>
 
       {outline.source === "layout" && (
         <div
-          className="absolute top-2 right-2 px-2 py-1 text-[9px] font-black uppercase tracking-[0.16em] text-white/80 border border-[#38383f]"
+          className="absolute top-14 right-2 px-2 py-1 text-[9px] font-black uppercase tracking-[0.16em] text-white/80 border border-[#38383f]"
           style={{
             background: "rgba(21,21,30,0.82)",
             backdropFilter: "blur(4px)",
