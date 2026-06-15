@@ -91,7 +91,7 @@ const LAP_TIME_COLOUR: Record<string, string> = {
 };
 
 const TH =
-  "py-1.5 px-2 text-[9px] font-bold uppercase tracking-[0.12em] text-[#636369] select-none";
+  "py-1.5 px-1.5 text-[9px] font-bold uppercase tracking-[0.12em] text-[#636369] select-none sm:px-2";
 
 function MiniBar({ value, color }: { value: number; color: string }) {
   return (
@@ -428,7 +428,11 @@ export function LiveTiming({
             <th className={`${TH} hidden sm:table-cell text-center`}>S2</th>
             <th className={`${TH} hidden sm:table-cell text-center`}>S3</th>
             <th className={`${TH} text-left`}>Tyre</th>
-            <th className={`${TH} text-center w-8`}>Pit</th>
+            <th
+              className={`${TH} hidden min-[430px]:table-cell text-center w-8`}
+            >
+              Pit
+            </th>
             <th className={`${TH} hidden sm:table-cell text-center w-16`}>
               Lap
             </th>
@@ -509,12 +513,12 @@ export function LiveTiming({
                 className={`border-b border-[#1e1e28] transition-colors ${onSelectDriver ? "cursor-pointer" : ""} ${rowBg}`}
               >
                 {/* Position */}
-                <td className="py-3 px-2 font-black text-sm tabular-nums text-white/90">
+                <td className="py-3 px-1.5 font-black text-sm tabular-nums text-white/90 sm:px-2">
                   {pos}
                 </td>
 
                 {/* Driver */}
-                <td className="py-3 px-2">
+                <td className="py-3 px-1.5 sm:px-2">
                   <span className="flex items-center gap-2">
                     <DriverHeadshot driver={driver} accent={color} size="sm" />
                     {/* Team colour bar */}
@@ -561,13 +565,13 @@ export function LiveTiming({
 
                 {/* Best lap time */}
                 <td
-                  className={`py-3 px-2 text-right font-mono text-[12px] tabular-nums ${LAP_TIME_COLOUR[lapTier]}`}
+                  className={`py-3 px-1.5 text-right font-mono text-[12px] tabular-nums sm:px-2 ${LAP_TIME_COLOUR[lapTier]}`}
                 >
                   {fmtTime(lastLap?.lap_duration ?? null)}
                 </td>
 
                 {/* Gap to leader */}
-                <td className="py-3 px-2 text-right font-mono text-[11px] tabular-nums text-muted">
+                <td className="py-3 px-1.5 text-right font-mono text-[11px] tabular-nums text-muted sm:px-2">
                   {fmtGap(intData?.gap_to_leader ?? null)}
                 </td>
 
@@ -598,7 +602,7 @@ export function LiveTiming({
                 </td>
 
                 {/* Tyre: starting compound → current compound + age */}
-                <td className="py-3 px-2">
+                <td className="py-3 px-1.5 sm:px-2">
                   <TyreBadge
                     stints={stints ?? []}
                     driverNumber={num}
@@ -609,7 +613,7 @@ export function LiveTiming({
 
                 {/* Pit stop count (hover: most recent stop time) */}
                 <td
-                  className="py-3 px-2 text-center font-mono text-[11px] tabular-nums text-muted"
+                  className="hidden min-[430px]:table-cell py-3 px-1.5 text-center font-mono text-[11px] tabular-nums text-muted sm:px-2"
                   title={
                     pitInfo && pitInfo.lastStop !== null
                       ? `${pitInfo.count} stop${pitInfo.count !== 1 ? "s" : ""} · last ${pitInfo.lastStop.toFixed(1)}s`
