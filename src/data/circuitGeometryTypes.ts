@@ -26,6 +26,8 @@ export interface CircuitGeometry {
   x: number[]
   /** Centerline y-coords in the F1 Cartesian space. */
   y: number[]
+  /** Centerline z-coords (elevation, same unit as x/y). Optional — baked when available from MultiViewer. */
+  z?: number[]
   corners: CornerInfo[]
   marshalSectors: MarshalSector[]
   marshalLights: MarshalLight[]

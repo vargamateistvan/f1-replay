@@ -92,6 +92,7 @@ async function main() {
       rotation: data.rotation ?? 0,
       x: data.x ?? [],
       y: data.y ?? [],
+      ...(Array.isArray(data.z) && data.z.length ? { z: data.z } : {}),
       corners: (data.corners ?? []).map(c => ({
         number: c.number,
         letter: c.letter ?? '',
