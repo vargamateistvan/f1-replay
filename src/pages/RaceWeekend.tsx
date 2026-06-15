@@ -1,6 +1,6 @@
 import { useEffect, useMemo } from "react";
 import { PlaybackBar } from "@/components/PlaybackBar";
-import { TrackMap, type LeaderboardRow } from "@/components/TrackMap/TrackMap";
+import { TrackMapView, type LeaderboardRow } from "@/components/TrackMap/TrackMapView";
 import { LiveTiming } from "@/components/LiveTiming/LiveTiming";
 import { RaceControlFeed } from "@/components/RaceControl/RaceControl";
 import { WeatherPanel } from "@/components/Weather/WeatherPanel";
@@ -548,7 +548,7 @@ export default function RaceWeekend() {
   );
 
   const trackMap = (
-    <TrackMap
+    <TrackMapView
       sessionKey={sessionKey}
       drivers={drivers.data ?? []}
       locationData={location.data}

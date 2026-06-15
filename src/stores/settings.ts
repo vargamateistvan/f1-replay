@@ -10,7 +10,16 @@ export interface AppSettings {
   toastOvertake: boolean;
   toastPit: boolean;
   toastFastestLap: boolean;
-  // Track Map
+  // Track Map — view mode
+  mapViewMode: "2d" | "3d" | "satellite";
+  // 3D mode options
+  map3dElevation: boolean;
+  map3dElevationScale: number;
+  map3dAutoRotate: boolean;
+  // Satellite mode options
+  satelliteOpacity: number;
+  satelliteLabels: boolean;
+  // Track Map — overlays
   mapShowLeaderboard: boolean;
   mapShowCompoundBadges: boolean;
   mapShowBattleRings: boolean;
@@ -43,6 +52,12 @@ export const SETTINGS_DEFAULTS: AppSettings = {
   toastOvertake: true,
   toastPit: true,
   toastFastestLap: true,
+  mapViewMode: "2d",
+  map3dElevation: true,
+  map3dElevationScale: 3,
+  map3dAutoRotate: false,
+  satelliteOpacity: 0.85,
+  satelliteLabels: false,
   mapShowLeaderboard: true,
   mapShowCompoundBadges: true,
   mapShowBattleRings: true,

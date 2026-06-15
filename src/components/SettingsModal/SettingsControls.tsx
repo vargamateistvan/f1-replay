@@ -74,6 +74,99 @@ export function SectionHeader({ children }: { children: ReactNode }) {
   );
 }
 
+// ── Segmented row ─────────────────────────────────────────────────────────────
+
+export function SegmentedRow<T extends string>({
+  label,
+  description,
+  options,
+  value,
+  onChange,
+  disabled = false,
+}: {
+  label: string;
+  description?: string;
+  options: readonly { label: string; value: T }[];
+  value: T;
+  onChange: (v: T) => void;
+  disabled?: boolean;
+}) {
+  return (
+    <div
+      className={`flex items-center justify-between gap-4 py-3 border-b border-[#2a2a35] last:border-0 ${
+        disabled ? "opacity-40" : ""
+      }`}
+    >
+      <div className="min-w-0">
+        <div className="text-[13px] text-white/90 leading-tight">{label}</div>
+        {description && (
+          <div className="text-[11px] text-muted mt-0.5 leading-tight">{description}</div>
+        )}
+      </div>
+      <div className="flex gap-1 shrink-0">
+        {options.map((opt) => (
+          <button
+            key={opt.value}
+            onClick={() => !disabled && onChange(opt.value)}
+            className={`px-2.5 h-8 text-[11px] font-bold rounded transition-colors ${
+              disabled ? "cursor-not-allowed" : "cursor-pointer"
+            } ${
+              value === opt.value
+                ? "bg-f1red text-white"
+                : "bg-[#2a2a35] text-muted hover:text-white hover:bg-[#38383f]"
+            }`}
+          >
+            {opt.label}
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// ── Slider row ────────────────────────────────────────────────────────────────
+
+export function SliderRow({
+  label,
+  description,
+  min,
+  max,
+  step,
+  value,
+  onChange,
+  format = (v) => String(v),
+}: {
+  label: string;
+  description?: string;
+  min: number;
+  max: number;
+  step: number;
+  value: number;
+  onChange: (v: number) => void;
+  format?: (v: number) => string;
+}) {
+  return (
+    <div className="py-3 border-b border-[#2a2a35] last:border-0">
+      <div className="flex items-center justify-between mb-1.5">
+        <div className="text-[13px] text-white/90 leading-tight">{label}</div>
+        <div className="text-[11px] font-mono tabular-nums text-muted">{format(value)}</div>
+      </div>
+      {description && (
+        <div className="text-[11px] text-muted mb-2 leading-tight">{description}</div>
+      )}
+      <input
+        type="range"
+        min={min}
+        max={max}
+        step={step}
+        value={value}
+        onChange={(e) => onChange(parseFloat(e.target.value))}
+        className="w-full accent-f1red h-1"
+      />
+    </div>
+  );
+}
+
 // ── Speed selector ────────────────────────────────────────────────────────────
 
 const SPEED_OPTIONS = [1, 2, 4, 8] as const;
@@ -113,6 +206,16 @@ export function SpeedSelector({
     </div>
   );
 }
+
+// ── Map view options ──────────────────────────────────────────────────────────
+
+const MAP_VIEW_OPTIONS = [
+  { label: "2D", value: "2d" as const },
+  { label: "3D", value: "3d" as const },
+  { label: "Satellite", value: "satellite" as const },
+] satisfies { label: string; value: "2d" | "3d" | "satellite" }[];
+
+const ELEV_SCALE_OPTIONS = [1, 2, 4, 8] as const;
 
 // ── Settings body (all sections) ──────────────────────────────────────────────
 
@@ -162,6 +265,79 @@ export function SettingsBody() {
         onChange={toggle("toastFastestLap")}
         disabled={!settings.toastsEnabled}
       />
+
+      <SectionHeader>Map View</SectionHeader>
+      <SegmentedRow
+        label="View mode"
+        options={MAP_VIEW_OPTIONS}
+        value={settings.mapViewMode}
+        onChange={(v) => setSetting("mapViewMode", v)}
+      />
+
+      {settings.mapViewMode === "3d" && (
+        <>
+          <SettingRow
+            label="Elevation"
+            description="Lift corners and hills using Z-coordinate data"
+            checked={settings.map3dElevation}
+            onChange={toggle("map3dElevation")}
+          />
+          <div
+            className={`flex items-center justify-between gap-4 py-3 border-b border-[#2a2a35] ${
+              !settings.map3dElevation ? "opacity-40" : ""
+            }`}
+          >
+            <div className="min-w-0">
+              <div className="text-[13px] text-white/90 leading-tight">Elevation scale</div>
+              <div className="text-[11px] text-muted mt-0.5 leading-tight">Vertical exaggeration factor</div>
+            </div>
+            <div className="flex gap-1 shrink-0">
+              {ELEV_SCALE_OPTIONS.map((s) => (
+                <button
+                  key={s}
+                  onClick={() => settings.map3dElevation && setSetting("map3dElevationScale", s)}
+                  className={`w-9 h-8 text-[11px] font-bold rounded transition-colors ${
+                    !settings.map3dElevation ? "cursor-not-allowed" : "cursor-pointer"
+                  } ${
+                    settings.map3dElevationScale === s
+                      ? "bg-f1red text-white"
+                      : "bg-[#2a2a35] text-muted hover:text-white hover:bg-[#38383f]"
+                  }`}
+                >
+                  {s}×
+                </button>
+              ))}
+            </div>
+          </div>
+          <SettingRow
+            label="Auto-rotate when paused"
+            description="Slow orbital camera while playback is stopped"
+            checked={settings.map3dAutoRotate}
+            onChange={toggle("map3dAutoRotate")}
+          />
+        </>
+      )}
+
+      {settings.mapViewMode === "satellite" && (
+        <>
+          <SliderRow
+            label="Track opacity"
+            description="Ribbon visibility over satellite imagery"
+            min={0.3}
+            max={1}
+            step={0.05}
+            value={settings.satelliteOpacity}
+            onChange={(v) => setSetting("satelliteOpacity", v)}
+            format={(v) => `${Math.round(v * 100)}%`}
+          />
+          <SettingRow
+            label="Map labels"
+            description="Show road and place name labels"
+            checked={settings.satelliteLabels}
+            onChange={toggle("satelliteLabels")}
+          />
+        </>
+      )}
 
       <SectionHeader>Track Map</SectionHeader>
       <SettingRow
