@@ -108,9 +108,9 @@ export function SessionInfoBar({
   if (sessionStartMs === 0) return null;
 
   return (
-    <div className="shrink-0 flex items-center gap-0 border-b border-panel bg-track text-[10px] font-bold uppercase tracking-[0.1em] overflow-hidden">
+    <div className="shrink-0 flex flex-wrap items-stretch gap-0 border-b border-panel bg-track text-[10px] font-bold uppercase tracking-[0.1em]">
       {/* Lap counter */}
-      <div className="flex items-center gap-2 px-4 py-2 border-r border-panel shrink-0">
+      <div className="flex items-center gap-2 border-r border-panel px-3 py-2 shrink-0 sm:px-4">
         <span className="text-muted">Lap</span>
         <span
           className="tabular-nums text-[13px] font-black"
@@ -121,7 +121,7 @@ export function SessionInfoBar({
       </div>
 
       {/* Track status badge */}
-      <div className="px-4 py-2 border-r border-panel shrink-0">
+      <div className="flex items-center border-r border-panel px-3 py-2 shrink-0 sm:px-4">
         <span
           className="px-2 py-0.5 text-[9px] font-black tracking-widest"
           style={{ background: status.bg, color: status.color }}
@@ -131,7 +131,7 @@ export function SessionInfoBar({
       </div>
 
       {/* Elapsed time */}
-      <div className="flex items-center gap-2 px-4 py-2 border-r border-panel shrink-0">
+      <div className="flex items-center gap-2 border-r border-panel px-3 py-2 shrink-0 sm:px-4">
         <span className="text-muted">Time</span>
         <span className="text-white tabular-nums font-mono">
           {fmtElapsed(sessionTimeMs)}
@@ -141,15 +141,16 @@ export function SessionInfoBar({
       {onShowResults && (
         <button
           onClick={onShowResults}
-          className="shrink-0 border-r border-panel px-4 py-2 text-[10px] font-black uppercase tracking-[0.16em] text-white transition-colors hover:bg-white/5 hover:text-f1red"
+          className="shrink-0 border-r border-panel px-3 py-2 text-[10px] font-black uppercase tracking-[0.12em] text-white transition-colors hover:bg-white/5 hover:text-f1red sm:px-4 sm:tracking-[0.16em]"
         >
-          Show Results
+          <span className="sm:hidden">Results</span>
+          <span className="hidden sm:inline">Show Results</span>
         </button>
       )}
 
       {/* Latest RC message */}
       {latestMsg && (
-        <div className="flex items-center gap-2 px-4 py-2 min-w-0">
+        <div className="flex min-w-0 basis-full items-center gap-2 border-t border-panel px-3 py-2 sm:basis-auto sm:flex-1 sm:border-t-0 sm:px-4">
           {latestMsg.lap_number !== null && (
             <span className="text-muted shrink-0">L{latestMsg.lap_number}</span>
           )}
