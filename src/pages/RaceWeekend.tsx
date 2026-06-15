@@ -14,6 +14,7 @@ import { FlagBanner } from "@/components/FlagBanner";
 import { StartingLights } from "@/components/StartingLights";
 import { SessionInfoBar } from "@/components/SessionInfoBar";
 import { ErrorMessage } from "@/components/ErrorMessage";
+import { FinalClassification } from "@/components/FinalClassification";
 import {
   useDrivers,
   usePositions,
@@ -27,6 +28,7 @@ import {
   useTeamRadio,
   useStartingGrid,
   useOvertakes,
+  useSessionResult,
 } from "@/hooks/useSession";
 import { useTimeline } from "@/timeline/clock";
 import { useCoarseTime } from "@/hooks/useCoarseTime";
@@ -55,7 +57,11 @@ import { isSessionLive } from "@/utils/live";
 import { teamColor } from "@/utils/color";
 import { DEFAULT_SESSION_MS } from "@/constants";
 import { useSettings } from "@/stores/settings";
-import { isTimedSession, isQualiSession, detectQualiPhase } from "@/utils/session";
+import {
+  isTimedSession,
+  isQualiSession,
+  detectQualiPhase,
+} from "@/utils/session";
 import type { MainView } from "@/components/Nav";
 import type { Stint, CarData } from "@/api/types";
 
@@ -111,6 +117,7 @@ export default function RaceWeekend() {
   const laps = useLaps(sessionKey, undefined, live);
   const pits = usePits(sessionKey);
   const grid = useStartingGrid(sessionKey);
+  const sessionResult = useSessionResult(sessionKey);
   const overtakes = useOvertakes(sessionKey, live);
   const raceControl = useRaceControl(sessionKey, live);
   const teamRadio = useTeamRadio(sessionKey, live);
@@ -183,6 +190,16 @@ export default function RaceWeekend() {
     [teamRadio.data, sessionStartMs],
   );
 
+  const chequeredMs = useMemo(() => {
+    if (!sessionStartMs) return null;
+    let lastChequered: number | null = null;
+    for (const entry of raceControl.data ?? []) {
+      if (entry.flag !== "CHEQUERED") continue;
+      lastChequered = new Date(entry.date).getTime() - sessionStartMs;
+    }
+    return lastChequered;
+  }, [raceControl.data, sessionStartMs]);
+
   const pulseDrivers = useMemo(() => {
     const out: number[] = [];
     for (const o of overtakes.data ?? []) {
@@ -197,12 +214,14 @@ export default function RaceWeekend() {
   // Last completed lap number for the focused driver — used to load heat overlay data.
   // Uses previous lap (not current in-progress) because incomplete laps have no lap_duration.
   const focusDriverLap = useMemo(() => {
-    if (focusDriver === null || !laps.data?.length || !sessionStartMs) return null;
+    if (focusDriver === null || !laps.data?.length || !sessionStartMs)
+      return null;
     let current: number | null = null;
     for (const lap of laps.data) {
       if (lap.driver_number !== focusDriver || !lap.date_start) continue;
       if (new Date(lap.date_start).getTime() - sessionStartMs > t) continue;
-      if (current === null || lap.lap_number > current) current = lap.lap_number;
+      if (current === null || lap.lap_number > current)
+        current = lap.lap_number;
     }
     return current !== null && current > 1 ? current - 1 : null;
   }, [focusDriver, laps.data, sessionStartMs, t]);
@@ -210,8 +229,12 @@ export default function RaceWeekend() {
   // Current tyre compound + age per driver at the playhead.
   // Rebuilds when lap/stint data arrives or when the coarse time crosses a lap boundary.
   const activeCompounds = useMemo(() => {
-    const result = new Map<number, { compound: Stint["compound"]; age: number }>();
-    if (!laps.data?.length || !stints.data?.length || !sessionStartMs) return result;
+    const result = new Map<
+      number,
+      { compound: Stint["compound"]; age: number }
+    >();
+    if (!laps.data?.length || !stints.data?.length || !sessionStartMs)
+      return result;
     const currentLapByDriver = new Map<number, number>();
     for (const lap of laps.data) {
       if (!lap.date_start) continue;
@@ -242,12 +265,16 @@ export default function RaceWeekend() {
     const result = new Set<number>();
     if (!intervals.data?.length || !sessionStartMs) return result;
     const cutoffMs = sessionStartMs + t;
-    const latest = new Map<number, { ms: number; interval: number | string | null }>();
+    const latest = new Map<
+      number,
+      { ms: number; interval: number | string | null }
+    >();
     for (const iv of intervals.data) {
       const ms = new Date(iv.date).getTime();
       if (ms > cutoffMs) continue;
       const prev = latest.get(iv.driver_number);
-      if (!prev || ms > prev.ms) latest.set(iv.driver_number, { ms, interval: iv.interval });
+      if (!prev || ms > prev.ms)
+        latest.set(iv.driver_number, { ms, interval: iv.interval });
     }
     for (const [num, { interval }] of latest) {
       if (typeof interval === "number" && interval <= 1.0) result.add(num);
@@ -261,7 +288,8 @@ export default function RaceWeekend() {
     const cutoff = sessionStartMs + t;
     const posMap = new Map<number, number>();
     for (const p of positions.data) {
-      if (new Date(p.date).getTime() <= cutoff) posMap.set(p.driver_number, p.position);
+      if (new Date(p.date).getTime() <= cutoff)
+        posMap.set(p.driver_number, p.position);
     }
     const intMap = new Map<number, string>();
     for (const iv of intervals.data ?? []) {
@@ -269,10 +297,16 @@ export default function RaceWeekend() {
       const gap = iv.gap_to_leader;
       intMap.set(
         iv.driver_number,
-        gap === null ? "LEAD" : typeof gap === "number" ? `+${gap.toFixed(1)}` : String(gap),
+        gap === null
+          ? "LEAD"
+          : typeof gap === "number"
+            ? `+${gap.toFixed(1)}`
+            : String(gap),
       );
     }
-    const driverMap = new Map((drivers.data ?? []).map((d) => [d.driver_number, d]));
+    const driverMap = new Map(
+      (drivers.data ?? []).map((d) => [d.driver_number, d]),
+    );
     return [...posMap.entries()]
       .sort((a, b) => a[1] - b[1])
       .slice(0, 5)
@@ -293,7 +327,9 @@ export default function RaceWeekend() {
   // stable top-order drivers whose position stream went quiet.
   const retiredDrivers = useMemo((): ReadonlySet<number> => {
     const name = session?.session_name ?? "";
-    const isRace = name.toLowerCase().includes("race") || name.toLowerCase().includes("sprint");
+    const isRace =
+      name.toLowerCase().includes("race") ||
+      name.toLowerCase().includes("sprint");
     if (!isRace || !sessionStartMs || !positions.data?.length) return new Set();
     const cutoff = sessionStartMs + t;
     const lastMs = new Map<number, number>();
@@ -353,7 +389,8 @@ export default function RaceWeekend() {
   // ── Live car telemetry for the leaderboard (all drivers) ────────────────────
   // Fetched only when the leaderboard view is active AND the setting is on — it's
   // a ~22k-row window per chunk, so we don't pay for it on other views.
-  const telemetryEnabled = leaderboardTelemetry && currentView === "leaderboard";
+  const telemetryEnabled =
+    leaderboardTelemetry && currentView === "leaderboard";
   const allCarData = useAllCarDataWindow(
     sessionKey,
     sessionStartMs,
@@ -415,7 +452,14 @@ export default function RaceWeekend() {
             laps.data ?? [],
           )
         : [],
-    [teamRadio.data, raceControl.data, overtakes.data, pits.data, sessionStartMs, laps.data],
+    [
+      teamRadio.data,
+      raceControl.data,
+      overtakes.data,
+      pits.data,
+      sessionStartMs,
+      laps.data,
+    ],
   );
 
   const filteredToastEvents = useMemo(() => {
@@ -428,21 +472,35 @@ export default function RaceWeekend() {
       if (ev.kind === "fastest_lap") return settingToastFastestLap;
       return true;
     });
-  }, [toastEvents, toastsEnabled, settingToastRadio, settingToastFlag, settingToastOvertake, settingToastPit, settingToastFastestLap]);
+  }, [
+    toastEvents,
+    toastsEnabled,
+    settingToastRadio,
+    settingToastFlag,
+    settingToastOvertake,
+    settingToastPit,
+    settingToastFastestLap,
+  ]);
 
   const { toasts, dismiss } = useEventToasts(filteredToastEvents, t);
-  const { summary: catchupSummary, dismiss: dismissCatchup } = useCatchupSummary(filteredToastEvents, t);
+  const { summary: catchupSummary, dismiss: dismissCatchup } =
+    useCatchupSummary(filteredToastEvents, t);
 
   // Key moments: lead changes + fastest laps (from toastEvents) + SC/Red flag events.
   const keyMoments = useMemo((): KeyMoment[] => {
     if (!sessionStartMs) return [];
-    const driverMap = new Map((drivers.data ?? []).map((d) => [d.driver_number, d]));
+    const driverMap = new Map(
+      (drivers.data ?? []).map((d) => [d.driver_number, d]),
+    );
     const moments: KeyMoment[] = [];
 
     // Lead changes: find P1 position events and detect driver transitions
     const p1Events = (positions.data ?? [])
       .filter((p) => p.position === 1)
-      .map((p) => ({ ms: new Date(p.date).getTime() - sessionStartMs, num: p.driver_number }))
+      .map((p) => ({
+        ms: new Date(p.date).getTime() - sessionStartMs,
+        num: p.driver_number,
+      }))
       .filter((p) => p.ms >= 0)
       .sort((a, b) => a.ms - b.ms);
 
@@ -483,30 +541,54 @@ export default function RaceWeekend() {
       const ms = new Date(e.date).getTime() - sessionStartMs;
       if (ms < 0) continue;
       if (e.flag === "SAFETY_CAR") {
-        moments.push({ ms, kind: "safety_car", label: "Safety Car deployed", color: "#f5a623" });
+        moments.push({
+          ms,
+          kind: "safety_car",
+          label: "Safety Car deployed",
+          color: "#f5a623",
+        });
       } else if (e.flag === "VIRTUAL_SC") {
-        moments.push({ ms, kind: "vsc", label: "Virtual Safety Car", color: "#f5a623" });
+        moments.push({
+          ms,
+          kind: "vsc",
+          label: "Virtual Safety Car",
+          color: "#f5a623",
+        });
       } else if (e.flag === "RED") {
         moments.push({
           ms,
           kind: "red_flag",
           label: "Red Flag",
-          sublabel: e.message.length > 50 ? e.message.slice(0, 47) + "…" : e.message,
+          sublabel:
+            e.message.length > 50 ? e.message.slice(0, 47) + "…" : e.message,
           color: "#e8002d",
         });
       }
     }
 
     return moments.sort((a, b) => a.ms - b.ms);
-  }, [positions.data, toastEvents, raceControl.data, drivers.data, sessionStartMs]);
+  }, [
+    positions.data,
+    toastEvents,
+    raceControl.data,
+    drivers.data,
+    sessionStartMs,
+  ]);
 
   const effectiveDuration = durationMs || DEFAULT_SESSION_MS;
+  const finalClassificationTriggerMs =
+    chequeredMs ?? (durationMs > 0 ? durationMs : null);
+  const showFinalClassification =
+    finalClassificationTriggerMs !== null &&
+    t >= finalClassificationTriggerMs &&
+    (sessionResult.data?.length ?? 0) > 0;
 
   // ── Session countdown (practice / qualifying) ────────────────────────────
   const sessionName = session?.session_name ?? "";
-  const countdownMs = isTimedSession(sessionName) && effectiveDuration > 0
-    ? Math.max(0, effectiveDuration - t)
-    : null;
+  const countdownMs =
+    isTimedSession(sessionName) && effectiveDuration > 0
+      ? Math.max(0, effectiveDuration - t)
+      : null;
   const qualiPhase = isQualiSession(sessionName)
     ? detectQualiPhase(raceControl.data ?? [], sessionStartMs, t)
     : null;
@@ -664,7 +746,11 @@ export default function RaceWeekend() {
           />
           <div className="flex-1 min-h-0 flex flex-col md:flex overflow-hidden relative">
             {/* Toast overlay — covers both mobile and desktop tracker content */}
-            <EventToastStack toasts={toasts} drivers={drivers.data ?? []} onDismiss={dismiss} />
+            <EventToastStack
+              toasts={toasts}
+              drivers={drivers.data ?? []}
+              onDismiss={dismiss}
+            />
 
             {/* Phone layout: tab-switched (md:hidden) */}
             <div className="md:hidden flex-1 min-h-0 flex flex-col overflow-hidden w-full">
@@ -699,7 +785,10 @@ export default function RaceWeekend() {
                     {/* Weather accordion */}
                     <div className="shrink-0 border-b border-panel">
                       {weather.isError ? (
-                        <ErrorMessage message="Failed to load weather" compact />
+                        <ErrorMessage
+                          message="Failed to load weather"
+                          compact
+                        />
                       ) : (
                         <WeatherPanel
                           entries={weather.data ?? []}
@@ -799,13 +888,12 @@ export default function RaceWeekend() {
 
                 {/* Panel content */}
                 <div className="flex-1 min-h-0 flex flex-col overflow-hidden">
-                  {(trackerTab ?? "timing") === "timing" && (
-                    positions.isError ? (
+                  {(trackerTab ?? "timing") === "timing" &&
+                    (positions.isError ? (
                       <ErrorMessage message="Failed to load timing data" />
                     ) : (
                       timingTower
-                    )
-                  )}
+                    ))}
                   {(trackerTab ?? "timing") === "chart" && (
                     <LapChart
                       drivers={drivers.data ?? []}
@@ -967,6 +1055,22 @@ export default function RaceWeekend() {
           onDismiss={dismissCatchup}
         />
       )}
+
+      {showFinalClassification &&
+        (sessionResult.isError ? (
+          <div className="shrink-0 border-t border-panel">
+            <ErrorMessage
+              message="Failed to load final classification"
+              compact
+            />
+          </div>
+        ) : (
+          <FinalClassification
+            results={sessionResult.data ?? []}
+            drivers={drivers.data ?? []}
+            sessionName={session?.session_name}
+          />
+        ))}
 
       {/* Playback bar — always visible */}
       <PlaybackBar
