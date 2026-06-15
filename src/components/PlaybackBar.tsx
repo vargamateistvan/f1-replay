@@ -55,15 +55,14 @@ export function PlaybackBar({
   const nextPass = nextAfter(overtakeTimes, t);
   const nextRadio = nextAfter(radioTimes, t);
 
-  function cycleSpeed() {
-    const idx = (SPEEDS as readonly number[]).indexOf(speed);
-    const next = SPEEDS[(idx + 1) % SPEEDS.length];
-    setSpeed(next);
-  }
-
   return (
-    <div className="flex flex-col gap-1.5 py-2 bg-track border-t border-panel sm:gap-2 sm:py-2.5" style={{ paddingLeft: 'max(0.75rem, env(safe-area-inset-left))', paddingRight: 'max(0.75rem, env(safe-area-inset-right))' }}>
-
+    <div
+      className="flex flex-col gap-1.5 py-2 bg-track border-t border-panel sm:gap-2 sm:py-2.5"
+      style={{
+        paddingLeft: "max(0.75rem, env(safe-area-inset-left))",
+        paddingRight: "max(0.75rem, env(safe-area-inset-right))",
+      }}
+    >
       {/* ── Transport + scrubber row ─────────────────────────────── */}
       <div className="flex items-center gap-2 w-full">
         {/* Prev lap */}
@@ -143,7 +142,10 @@ export function PlaybackBar({
       {/* ── Jump chips row ───────────────────────────────────────── */}
       {/* Mobile: compact always-visible horizontal scroll             */}
       {/* Desktop: flows naturally after the transport row            */}
-      <div className="flex gap-1 overflow-x-auto sm:flex-wrap" style={{ touchAction: 'pan-x' }}>
+      <div
+        className="flex gap-1 overflow-x-auto sm:flex-wrap"
+        style={{ touchAction: "pan-x" }}
+      >
         {/* Speed picker — mobile only; desktop shows these in the transport row */}
         <div className="sm:hidden flex gap-px shrink-0">
           {SPEEDS.map((s) => (
@@ -153,9 +155,7 @@ export function PlaybackBar({
               aria-pressed={speed === s}
               aria-label={`${s}x speed`}
               className={`px-2.5 h-7 text-[10px] font-black uppercase tracking-widest transition-colors ${
-                speed === s
-                  ? "bg-f1red text-white"
-                  : "bg-panel text-muted"
+                speed === s ? "bg-f1red text-white" : "bg-panel text-muted"
               }`}
             >
               {s}×
@@ -167,8 +167,16 @@ export function PlaybackBar({
         {countdownMs !== null && (
           <span className="flex items-center gap-1 shrink-0 px-2 h-7 bg-panel text-[10px] font-black tabular-nums uppercase tracking-widest">
             {qualiPhase && <span className="text-f1red">{qualiPhase}</span>}
-            <span className={countdownMs <= 0 ? 'text-muted' : countdownMs <= 60_000 ? 'text-[#f5a623]' : 'text-white'}>
-              {countdownMs <= 0 ? 'ENDED' : fmtTime(countdownMs)}
+            <span
+              className={
+                countdownMs <= 0
+                  ? "text-muted"
+                  : countdownMs <= 60_000
+                    ? "text-[#f5a623]"
+                    : "text-white"
+              }
+            >
+              {countdownMs <= 0 ? "ENDED" : fmtTime(countdownMs)}
             </span>
           </span>
         )}
