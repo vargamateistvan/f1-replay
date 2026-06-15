@@ -6,6 +6,8 @@ interface Props {
   raceControl: RaceControl[]
   sessionTimeMs: number
   sessionStartMs: number
+  lightsOutMs?: number | null
+  isRaceSession?: boolean
 }
 
 interface TrackStatus {
@@ -15,6 +17,7 @@ interface TrackStatus {
 }
 
 const FLAG_STATUS: Record<string, TrackStatus> = {
+  FORMATION_LAP:      { label: 'FORMATION LAP',  bg: '#1c1c2e', color: '#c8c8ff' },
   GREEN:              { label: 'GREEN FLAG',     bg: '#39b54a', color: '#fff' },
   CLEAR:              { label: 'TRACK CLEAR',    bg: '#39b54a', color: '#fff' },
   YELLOW:             { label: 'YELLOW FLAG',    bg: '#f5d400', color: '#000' },
@@ -55,7 +58,7 @@ function fmtElapsed(ms: number): string {
   return `${String(m).padStart(2, '0')}:${String(sec).padStart(2, '0')}`
 }
 
-export function SessionInfoBar({ laps, raceControl, sessionTimeMs, sessionStartMs }: Props) {
+export function SessionInfoBar({ laps, raceControl, sessionTimeMs, sessionStartMs, lightsOutMs, isRaceSession }: Props) {
   const currentT = sessionStartMs + sessionTimeMs
 
   const currentLap = useMemo(() => {
@@ -68,7 +71,14 @@ export function SessionInfoBar({ laps, raceControl, sessionTimeMs, sessionStartM
     return max > 0 ? max : null
   }, [laps, currentT])
 
-  const status = useMemo(() => deriveStatus(raceControl, currentT), [raceControl, currentT])
+  const isFormationLap = isRaceSession && lightsOutMs != null
+    ? sessionTimeMs >= 0 && sessionTimeMs < lightsOutMs
+    : false
+
+  const status = useMemo(() => {
+    if (isFormationLap) return FLAG_STATUS['FORMATION_LAP']!
+    return deriveStatus(raceControl, currentT)
+  }, [isFormationLap, raceControl, currentT])
   const latestMsg = useMemo(() => deriveLatestMessage(raceControl, currentT), [raceControl, currentT])
 
   if (sessionStartMs === 0) return null
@@ -79,8 +89,11 @@ export function SessionInfoBar({ laps, raceControl, sessionTimeMs, sessionStartM
       {/* Lap counter */}
       <div className="flex items-center gap-2 px-4 py-2 border-r border-panel shrink-0">
         <span className="text-muted">Lap</span>
-        <span className="text-white tabular-nums text-[13px] font-black">
-          {currentLap ?? '—'}
+        <span
+          className="tabular-nums text-[13px] font-black"
+          style={{ color: isFormationLap ? '#c8c8ff' : undefined }}
+        >
+          {isFormationLap ? 'F' : (currentLap ?? '—')}
         </span>
       </div>
 

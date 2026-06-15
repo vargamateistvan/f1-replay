@@ -146,6 +146,23 @@ export default function RaceWeekend() {
     () => lapStartTimes(laps.data ?? [], sessionStartMs),
     [laps.data, sessionStartMs],
   );
+
+  const isRaceSession = useMemo(() => {
+    const type = session?.session_type ?? "";
+    return type === "Race" || type === "Sprint";
+  }, [session?.session_type]);
+
+  // Session-relative ms of lights out = earliest lap-1 start across all drivers.
+  const lightsOutMs = useMemo(() => {
+    if (!sessionStartMs || !laps.data?.length) return null;
+    let min = Infinity;
+    for (const l of laps.data) {
+      if (l.lap_number !== 1 || !l.date_start) continue;
+      const ms = new Date(l.date_start).getTime() - sessionStartMs;
+      if (ms < min) min = ms;
+    }
+    return min === Infinity ? null : min;
+  }, [laps.data, sessionStartMs]);
   const pitMarks = useMemo(
     () => pitTimes(pits.data ?? [], sessionStartMs),
     [pits.data, sessionStartMs],
@@ -577,6 +594,8 @@ export default function RaceWeekend() {
           entries={raceControl.data ?? []}
           sessionTimeMs={t}
           sessionStartMs={sessionStartMs}
+          isRaceSession={isRaceSession}
+          lightsOutMs={lightsOutMs}
         />
       )}
 
@@ -633,6 +652,8 @@ export default function RaceWeekend() {
             raceControl={raceControl.data ?? []}
             sessionTimeMs={t}
             sessionStartMs={sessionStartMs}
+            isRaceSession={isRaceSession}
+            lightsOutMs={lightsOutMs}
           />
           <div className="flex-1 min-h-0 flex flex-col md:flex overflow-hidden relative">
             {/* Toast overlay — covers both mobile and desktop tracker content */}

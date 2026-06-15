@@ -4,6 +4,9 @@ interface Props {
   entries: RaceControl[];
   sessionTimeMs: number;
   sessionStartMs: number;
+  /** Earliest session-relative ms when lap 1 starts (= lights out). Race/sprint only. */
+  lightsOutMs?: number | null;
+  isRaceSession?: boolean;
 }
 
 interface BannerStyle {
@@ -11,6 +14,9 @@ interface BannerStyle {
   text: string;
   label: string;
 }
+
+const FORMATION_STYLE: BannerStyle = { bg: "#1c1c2e", text: "#c8c8ff", label: "FORMATION LAP" };
+const LIGHTS_OUT_STYLE: BannerStyle = { bg: "#00c851", text: "#fff", label: "🚦 LIGHTS OUT" };
 
 const FLAG_STYLES: Record<string, BannerStyle> = {
   YELLOW: { bg: "#f5d400", text: "#000", label: "⚑ YELLOW FLAG" },
@@ -38,9 +44,21 @@ function activeFlag(
   return FLAG_STYLES[last.flag] ?? null;
 }
 
-export function FlagBanner({ entries, sessionTimeMs, sessionStartMs }: Props) {
+const LIGHTS_OUT_DURATION_MS = 3_500;
+
+export function FlagBanner({ entries, sessionTimeMs, sessionStartMs, lightsOutMs, isRaceSession }: Props) {
   const currentT = sessionStartMs + sessionTimeMs;
-  const banner = activeFlag(entries, currentT);
+
+  // Formation lap / lights out take priority over regular flags.
+  let banner: BannerStyle | null = null;
+  if (isRaceSession && lightsOutMs != null) {
+    if (sessionTimeMs >= lightsOutMs && sessionTimeMs < lightsOutMs + LIGHTS_OUT_DURATION_MS) {
+      banner = LIGHTS_OUT_STYLE;
+    } else if (sessionTimeMs >= 0 && sessionTimeMs < lightsOutMs) {
+      banner = FORMATION_STYLE;
+    }
+  }
+  if (!banner) banner = activeFlag(entries, currentT);
 
   if (!banner) return null;
 
