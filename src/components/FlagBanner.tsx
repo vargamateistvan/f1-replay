@@ -50,13 +50,17 @@ export function FlagBanner({ entries, sessionTimeMs, sessionStartMs, lightsOutMs
   const currentT = sessionStartMs + sessionTimeMs;
 
   // Formation lap / lights out take priority over regular flags.
+  // Suppress the formation-lap text once the lights sequence starts (5 s before
+  // lights out) — StartingLights handles that window visually.
+  const LIGHTS_SEQUENCE_MS = 5_000;
   let banner: BannerStyle | null = null;
   if (isRaceSession && lightsOutMs != null) {
     if (sessionTimeMs >= lightsOutMs && sessionTimeMs < lightsOutMs + LIGHTS_OUT_DURATION_MS) {
       banner = LIGHTS_OUT_STYLE;
-    } else if (sessionTimeMs >= 0 && sessionTimeMs < lightsOutMs) {
+    } else if (sessionTimeMs >= 0 && sessionTimeMs < lightsOutMs - LIGHTS_SEQUENCE_MS) {
       banner = FORMATION_STYLE;
     }
+    // lightsOutMs - LIGHTS_SEQUENCE_MS ≤ t < lightsOutMs → no banner (StartingLights shown)
   }
   if (!banner) banner = activeFlag(entries, currentT);
 

@@ -11,6 +11,7 @@ import { FocusedTelemetry } from "@/components/FocusedTelemetry/FocusedTelemetry
 import { LapChart } from "@/components/LapChart/LapChart";
 import { GapChart } from "@/components/GapChart/GapChart";
 import { FlagBanner } from "@/components/FlagBanner";
+import { StartingLights } from "@/components/StartingLights";
 import { SessionInfoBar } from "@/components/SessionInfoBar";
 import { ErrorMessage } from "@/components/ErrorMessage";
 import {
@@ -597,6 +598,11 @@ export default function RaceWeekend() {
           isRaceSession={isRaceSession}
           lightsOutMs={lightsOutMs}
         />
+      )}
+
+      {/* Starting lights — absolute overlay, race sessions only */}
+      {sessionStartMs > 0 && isRaceSession && lightsOutMs != null && (
+        <StartingLights t={t} lightsOutMs={lightsOutMs} />
       )}
 
       {/* ── LEADERBOARD VIEW ──────────────────────────────────────────── */}

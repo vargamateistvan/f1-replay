@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import { useSettings, type AppSettings, SETTINGS_DEFAULTS } from "@/stores/settings";
+import { useSettings, type AppSettings } from "@/stores/settings";
 
 // ── Toggle switch ─────────────────────────────────────────────────────────────
 
