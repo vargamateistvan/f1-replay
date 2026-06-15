@@ -45,7 +45,7 @@ export function RaceControlFeed({ entries, sessionTimeMs, sessionStartMs }: Prop
   const feed = [...visibleEntries].reverse().slice(0, 30)
 
   return (
-    <div className="flex flex-col h-full">
+    <div className="flex flex-col flex-1 min-h-0">
       {/* Persistent status banner — slim full-width strip */}
       {flagConfig && (
         <div className={`flex items-center gap-2 px-3 h-7 ${flagConfig.bar} shrink-0`}>

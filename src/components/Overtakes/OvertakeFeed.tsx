@@ -43,7 +43,7 @@ export function OvertakeFeed({ entries, drivers, sessionTimeMs, sessionStartMs }
   }
 
   return (
-    <div className="overflow-auto h-full p-2 space-y-1" style={{ touchAction: 'pan-y' }}>
+    <div className="overflow-auto flex-1 min-h-0 p-2 space-y-1" style={{ touchAction: 'pan-y' }}>
       {visible.map((e, i) => {
         const over = driverByNumber.get(e.overtaking_driver_number)
         const under = driverByNumber.get(e.overtaken_driver_number)

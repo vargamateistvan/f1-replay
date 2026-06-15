@@ -617,7 +617,7 @@ export default function RaceWeekend() {
           )}
 
           {/* Full-width timing tower — fills remaining vertical space */}
-          <div className="flex-1 min-h-0 overflow-hidden">
+          <div className="flex-1 min-h-0 flex flex-col overflow-hidden">
             {positions.isError ? (
               <ErrorMessage message="Failed to load timing data" />
             ) : (
@@ -709,7 +709,7 @@ export default function RaceWeekend() {
                       )}
                     </div>
                     {/* Timing tower */}
-                    <div className="flex-1 min-h-0 overflow-hidden">
+                    <div className="flex-1 min-h-0 flex flex-col overflow-hidden">
                       {positions.isError ? (
                         <ErrorMessage message="Failed to load timing data" />
                       ) : (
@@ -798,7 +798,7 @@ export default function RaceWeekend() {
                 </div>
 
                 {/* Panel content */}
-                <div className="flex-1 min-h-0 overflow-hidden">
+                <div className="flex-1 min-h-0 flex flex-col overflow-hidden">
                   {(trackerTab ?? "timing") === "timing" && (
                     positions.isError ? (
                       <ErrorMessage message="Failed to load timing data" />
@@ -915,7 +915,7 @@ export default function RaceWeekend() {
           </div>
 
           {/* Content */}
-          <div className="flex-1 min-h-0 overflow-hidden">
+          <div className="flex-1 min-h-0 flex flex-col overflow-hidden">
             {(commentaryTab ?? "rc") === "rc" &&
               (raceControl.isError ? (
                 <ErrorMessage message="Failed to load race control" />

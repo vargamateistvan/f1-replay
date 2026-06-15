@@ -37,7 +37,7 @@ export function KeyMoments({ moments, sessionTimeMs, onJump }: Props) {
   }
 
   return (
-    <div className="h-full overflow-auto">
+    <div className="flex-1 min-h-0 overflow-auto" style={{ touchAction: 'pan-y' }}>
       <div className="divide-y divide-[#2a2a35]">
         {moments.map((m, i) => {
           const cfg = KIND_CONFIG[m.kind];
