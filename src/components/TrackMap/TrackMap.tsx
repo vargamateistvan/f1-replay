@@ -153,6 +153,7 @@ export function TrackMap({
     sessionKey,
     candidateDriver?.driver_number ?? null,
     circuitKey,
+    circuitShortName ?? null,
   );
 
   useEffect(() => {
@@ -819,6 +820,19 @@ export function TrackMap({
           </text>
         )}
       </svg>
+
+      {outline.source === "layout" && (
+        <div
+          className="absolute top-2 right-2 px-2 py-1 text-[9px] font-black uppercase tracking-[0.16em] text-white/80 border border-[#38383f]"
+          style={{
+            background: "rgba(21,21,30,0.82)",
+            backdropFilter: "blur(4px)",
+          }}
+          title="Using coarse circuit layout fallback because baked geometry and GPS outline data were unavailable"
+        >
+          Fallback layout
+        </div>
+      )}
 
       {/* Mini-leaderboard — top-5 positions pinned to bottom-left */}
       {leaderboard && leaderboard.length > 0 && (
