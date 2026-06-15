@@ -8,6 +8,7 @@ interface Props {
   lapStarts?: number[];
   pitTimes?: number[];
   flagTimes?: number[];
+  safetyCarTimes?: number[];
   overtakeTimes?: number[];
   radioTimes?: number[];
   /** Show a countdown badge (timed sessions: practice / qualifying) */
@@ -146,6 +147,7 @@ export function PlaybackBar({
   lapStarts = [],
   pitTimes = [],
   flagTimes = [],
+  safetyCarTimes = [],
   overtakeTimes = [],
   radioTimes = [],
   countdownMs = null,
@@ -171,6 +173,7 @@ export function PlaybackBar({
   const nextLap = nextAfter(lapStarts, t);
   const nextPit = nextAfter(pitTimes, t);
   const nextFlag = nextAfter(flagTimes, t);
+  const nextSafetyCar = nextAfter(safetyCarTimes, t);
   const nextPass = nextAfter(overtakeTimes, t);
   const nextRadio = nextAfter(radioTimes, t);
 
@@ -334,6 +337,14 @@ export function PlaybackBar({
           aria-label="Jump to next flag or safety car"
         >
           Flag ›
+        </button>
+        <button
+          onClick={() => jump(nextSafetyCar)}
+          disabled={nextSafetyCar === null}
+          className={CHIP_STRETCH}
+          aria-label="Jump to next safety car"
+        >
+          SC ›
         </button>
         <button
           onClick={() => jump(nextPass)}

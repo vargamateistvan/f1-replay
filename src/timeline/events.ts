@@ -255,6 +255,18 @@ export function flagTimes(
     .sort((a, b) => a - b);
 }
 
+// Times of Safety Car control messages (including VSC) for dedicated navigation.
+export function safetyCarTimes(
+  entries: RaceControl[],
+  sessionStartMs: number,
+): number[] {
+  return entries
+    .filter((e) => e.flag === "SAFETY_CAR" || e.flag === "VIRTUAL_SC")
+    .map((e) => relMs(e.date, sessionStartMs))
+    .filter((v) => v >= 0)
+    .sort((a, b) => a - b);
+}
+
 export function overtakeTimes(
   overtakes: Overtake[],
   sessionStartMs: number,

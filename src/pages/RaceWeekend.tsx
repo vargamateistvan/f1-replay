@@ -47,6 +47,7 @@ import {
   lapStartTimes,
   pitTimes,
   flagTimes,
+  safetyCarTimes,
   overtakeTimes,
   radioTimes,
   buildToastEvents,
@@ -187,6 +188,10 @@ export default function RaceWeekend() {
   );
   const flagMarks = useMemo(
     () => flagTimes(raceControl.data ?? [], sessionStartMs),
+    [raceControl.data, sessionStartMs],
+  );
+  const safetyCarMarks = useMemo(
+    () => safetyCarTimes(raceControl.data ?? [], sessionStartMs),
     [raceControl.data, sessionStartMs],
   );
   const overtakeMarks = useMemo(
@@ -1239,6 +1244,7 @@ export default function RaceWeekend() {
         lapStarts={lapMarks}
         pitTimes={pitMarks}
         flagTimes={flagMarks}
+        safetyCarTimes={safetyCarMarks}
         overtakeTimes={overtakeMarks}
         radioTimes={radioMarks}
         countdownMs={countdownMs}
