@@ -62,6 +62,7 @@ import { isSessionLive } from "@/utils/live";
 import { teamColor } from "@/utils/color";
 import { DEFAULT_SESSION_MS } from "@/constants";
 import { useSettings } from "@/stores/settings";
+import { deriveRetiredDrivers } from "@/utils/retirement";
 import {
   isTimedSession,
   isQualiSession,
@@ -327,40 +328,22 @@ export default function RaceWeekend() {
       });
   }, [positions.data, intervals.data, drivers.data, sessionStartMs, t]);
 
-  // Retired drivers for TrackMap — mirrors LiveTiming's logic exactly.
-  // Position data is event-driven; cross-check with laps to avoid flagging
-  // stable top-order drivers whose position stream went quiet.
   const retiredDrivers = useMemo((): ReadonlySet<number> => {
-    const name = session?.session_name ?? "";
-    const isRace =
-      name.toLowerCase().includes("race") ||
-      name.toLowerCase().includes("sprint");
-    if (!isRace || !sessionStartMs || !positions.data?.length) return new Set();
-    const cutoff = sessionStartMs + t;
-    const lastMs = new Map<number, number>();
-    for (const p of positions.data) {
-      const ms = new Date(p.date).getTime();
-      if (ms > cutoff) continue;
-      const prev = lastMs.get(p.driver_number) ?? 0;
-      if (ms > prev) lastMs.set(p.driver_number, ms);
-    }
-    let maxMs = 0;
-    for (const ms of lastMs.values()) if (ms > maxMs) maxMs = ms;
-    const RETIREMENT_GAP_MS = 5 * 60_000;
-    const activeLappers = new Set<number>();
-    for (const lap of laps.data ?? []) {
-      if (!lap.date_start) continue;
-      const lapStartMs = new Date(lap.date_start).getTime();
-      if (lapStartMs <= cutoff && maxMs - lapStartMs < RETIREMENT_GAP_MS)
-        activeLappers.add(lap.driver_number);
-    }
-    const retired = new Set<number>();
-    for (const [num, ms] of lastMs) {
-      if (maxMs - ms > RETIREMENT_GAP_MS && !activeLappers.has(num))
-        retired.add(num);
-    }
-    return retired;
-  }, [positions.data, laps.data, sessionStartMs, session?.session_name, t]);
+    return deriveRetiredDrivers({
+      positions: positions.data ?? [],
+      laps: laps.data ?? [],
+      raceControl: raceControl.data ?? [],
+      currentT: sessionStartMs + t,
+      isRaceSession,
+    });
+  }, [
+    positions.data,
+    laps.data,
+    raceControl.data,
+    sessionStartMs,
+    t,
+    isRaceSession,
+  ]);
 
   // Current session flag (last flag-bearing RC entry at/before playhead).
   const activeSectorFlag = useMemo<ActiveTrackFlag | null>(() => {
@@ -633,6 +616,7 @@ export default function RaceWeekend() {
       intervals={intervals.data ?? []}
       pits={pits.data ?? []}
       laps={laps.data ?? []}
+      raceControl={raceControl.data ?? []}
       stints={stints.data ?? []}
       grid={grid.data ?? []}
       sessionName={session?.session_name}
@@ -652,6 +636,7 @@ export default function RaceWeekend() {
       intervals={intervals.data ?? []}
       pits={pits.data ?? []}
       laps={laps.data ?? []}
+      raceControl={raceControl.data ?? []}
       stints={stints.data ?? []}
       grid={grid.data ?? []}
       sessionName={session?.session_name}
