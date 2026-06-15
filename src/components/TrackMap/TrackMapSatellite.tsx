@@ -1,5 +1,6 @@
 import { useEffect, useRef, useMemo } from "react";
-import maplibregl from "maplibre-gl";
+import maplibregl, { GeoJSONSource } from "maplibre-gl";
+import type { StyleSpecification } from "maplibre-gl";
 import "maplibre-gl/dist/maplibre-gl.css";
 import { applyGeoAffine } from "@/geometry/align";
 import { getCircuitGeometry } from "@/data/circuitGeometry";
@@ -10,6 +11,10 @@ import type { Driver, Location, Stint } from "@/api/types";
 import type { CircuitGeometry, GeoAffine } from "@/data/circuitGeometryTypes";
 import type { CarPosition } from "@/hooks/useCarPositions";
 import type { LeaderboardRow } from "./TrackMap";
+
+// MapLibre expression types are complex unions — cast helpers keep addLayer calls readable.
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const expr = (e: unknown) => e as any;
 
 // ── GeoJSON builders ──────────────────────────────────────────────────────────
 
@@ -65,7 +70,7 @@ function buildCarsGeoJSON(
 const ESRI_ATTRIBUTION =
   "Tiles © Esri — Source: Esri, USGS, NOAA";
 
-function makeMapStyle(showLabels: boolean): maplibregl.StyleSpecification {
+function makeMapStyle(showLabels: boolean): StyleSpecification {
   return {
     version: 8,
     glyphs: "https://demotiles.maplibre.org/font/{fontstack}/{range}.pbf",
@@ -131,7 +136,6 @@ export interface Props {
 }
 
 export function TrackMapSatellite({
-  sessionKey,
   drivers,
   locationData,
   sessionStartMs,
@@ -232,13 +236,13 @@ export function TrackMapSatellite({
         id: "cars-halo",
         type: "circle",
         source: CARS_SOURCE,
-        filter: ["==", ["get", "focused"], 1],
+        filter: expr(["==", ["get", "focused"], 1]),
         paint: {
           "circle-radius": 14,
-          "circle-color": ["get", "color"],
+          "circle-color": expr(["get", "color"]),
           "circle-opacity": 0.2,
           "circle-stroke-width": 1.5,
-          "circle-stroke-color": ["get", "color"],
+          "circle-stroke-color": expr(["get", "color"]),
           "circle-stroke-opacity": 0.5,
         },
       });
@@ -247,13 +251,8 @@ export function TrackMapSatellite({
         type: "circle",
         source: CARS_SOURCE,
         paint: {
-          "circle-radius": [
-            "case",
-            ["==", ["get", "focused"], 1],
-            9,
-            6,
-          ],
-          "circle-color": ["get", "color"],
+          "circle-radius": expr(["case", ["==", ["get", "focused"], 1], 9, 6]),
+          "circle-color": expr(["get", "color"]),
           "circle-stroke-width": 1.5,
           "circle-stroke-color": "#ffffff",
           "circle-stroke-opacity": 0.7,
@@ -264,8 +263,8 @@ export function TrackMapSatellite({
         type: "symbol",
         source: CARS_SOURCE,
         layout: {
-          "text-field": ["get", "acronym"],
-          "text-size": ["case", ["==", ["get", "focused"], 1], 12, 10],
+          "text-field": expr(["get", "acronym"]),
+          "text-size": expr(["case", ["==", ["get", "focused"], 1], 12, 10]),
           "text-font": ["Open Sans Bold", "Arial Unicode MS Bold"],
           "text-anchor": "bottom",
           "text-offset": [0, -1.2],
@@ -273,7 +272,7 @@ export function TrackMapSatellite({
           "text-ignore-placement": true,
         },
         paint: {
-          "text-color": ["get", "color"],
+          "text-color": expr(["get", "color"]),
           "text-halo-color": "#000000",
           "text-halo-width": 1.5,
         },
@@ -295,8 +294,8 @@ export function TrackMapSatellite({
     const map = mapRef.current;
     if (!map || !mapReadyRef.current || !affine) return;
     const source = map.getSource(CARS_SOURCE);
-    if (!source || source.type !== "geojson") return;
-    (source as maplibregl.GeoJSONSource).setData(
+    if (!(source instanceof GeoJSONSource)) return;
+    source.setData(
       buildCarsGeoJSON(carPositions, affine, driverByNumber, focusDriver),
     );
   }, [carPositions, affine, driverByNumber, focusDriver]);
