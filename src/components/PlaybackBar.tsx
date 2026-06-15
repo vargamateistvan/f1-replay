@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, type ReactNode } from "react";
 import { useTimeline } from "@/timeline/clock";
 import { SPEEDS } from "@/constants";
 import { nextAfter, prevBefore } from "@/timeline/events";
@@ -30,6 +30,116 @@ const JUMP_BTN =
   "w-7 h-8 flex items-center justify-center text-xs bg-panel text-muted hover:text-white hover:bg-[#38383f] transition-colors shrink-0 disabled:opacity-30 disabled:hover:bg-panel disabled:hover:text-muted";
 const CHIP_STRETCH =
   "h-7 flex-1 flex items-center justify-center text-[10px] font-black uppercase tracking-widest bg-panel text-muted hover:text-white hover:bg-[#38383f] transition-colors sm:flex-none sm:shrink-0 sm:px-3 disabled:opacity-30 disabled:hover:bg-panel disabled:hover:text-muted";
+
+function TransportIcon({ children }: { children: ReactNode }) {
+  return (
+    <svg
+      width="14"
+      height="14"
+      viewBox="0 0 14 14"
+      fill="none"
+      className="shrink-0"
+      aria-hidden="true"
+    >
+      {children}
+    </svg>
+  );
+}
+
+function StartIcon() {
+  return (
+    <TransportIcon>
+      <path
+        d="M3.5 2.5v9"
+        stroke="currentColor"
+        strokeWidth="1.5"
+        strokeLinecap="round"
+      />
+      <path d="M10.5 2.8 5.8 7l4.7 4.2V2.8Z" fill="currentColor" />
+    </TransportIcon>
+  );
+}
+
+function PrevLapIcon() {
+  return (
+    <TransportIcon>
+      <path
+        d="M3.5 2.5v9"
+        stroke="currentColor"
+        strokeWidth="1.5"
+        strokeLinecap="round"
+      />
+      <path
+        d="M9.8 3.2 6 7l3.8 3.8"
+        stroke="currentColor"
+        strokeWidth="1.5"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </TransportIcon>
+  );
+}
+
+function PlayIcon() {
+  return (
+    <TransportIcon>
+      <path d="M4.5 3.2 10.8 7l-6.3 3.8V3.2Z" fill="currentColor" />
+    </TransportIcon>
+  );
+}
+
+function PauseIcon() {
+  return (
+    <TransportIcon>
+      <path
+        d="M4.5 3.2v7.6"
+        stroke="currentColor"
+        strokeWidth="1.8"
+        strokeLinecap="round"
+      />
+      <path
+        d="M9.5 3.2v7.6"
+        stroke="currentColor"
+        strokeWidth="1.8"
+        strokeLinecap="round"
+      />
+    </TransportIcon>
+  );
+}
+
+function NextLapIcon() {
+  return (
+    <TransportIcon>
+      <path
+        d="M10.5 2.5v9"
+        stroke="currentColor"
+        strokeWidth="1.5"
+        strokeLinecap="round"
+      />
+      <path
+        d="M4.2 3.2 8 7l-3.8 3.8"
+        stroke="currentColor"
+        strokeWidth="1.5"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </TransportIcon>
+  );
+}
+
+function EndIcon() {
+  return (
+    <TransportIcon>
+      <path
+        d="M10.5 2.5v9"
+        stroke="currentColor"
+        strokeWidth="1.5"
+        strokeLinecap="round"
+      />
+      <path d="M3.5 2.8 8.2 7l-4.7 4.2V2.8Z" fill="currentColor" />
+    </TransportIcon>
+  );
+}
 
 export function PlaybackBar({
   durationMs,
@@ -74,6 +184,17 @@ export function PlaybackBar({
     >
       {/* ── Transport + scrubber row ─────────────────────────────── */}
       <div className="flex items-center gap-2 w-full">
+        {/* Start */}
+        <button
+          onClick={() => jump(0)}
+          disabled={t <= 0}
+          className={JUMP_BTN}
+          aria-label="Jump to start"
+          title="Jump to start"
+        >
+          <StartIcon />
+        </button>
+
         {/* Prev lap */}
         <button
           onClick={() => jump(prevLap)}
@@ -82,7 +203,7 @@ export function PlaybackBar({
           aria-label="Previous lap"
           title="Previous lap ([)"
         >
-          ⏮
+          <PrevLapIcon />
         </button>
 
         {/* Play / pause */}
@@ -92,7 +213,7 @@ export function PlaybackBar({
           aria-label={playing ? "Pause" : "Play"}
           title="Play / pause (Space)"
         >
-          {playing ? "⏸" : "▶"}
+          {playing ? <PauseIcon /> : <PlayIcon />}
         </button>
 
         {/* Next lap */}
@@ -103,7 +224,18 @@ export function PlaybackBar({
           aria-label="Next lap"
           title="Next lap (])"
         >
-          ⏭
+          <NextLapIcon />
+        </button>
+
+        {/* End */}
+        <button
+          onClick={() => jump(durationMs)}
+          disabled={durationMs <= 0 || t >= durationMs}
+          className={JUMP_BTN}
+          aria-label="Jump to end"
+          title="Jump to end"
+        >
+          <EndIcon />
         </button>
 
         {/* Current time */}
