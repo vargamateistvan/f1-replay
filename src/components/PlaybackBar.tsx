@@ -27,8 +27,8 @@ function fmtTime(ms: number) {
 
 const JUMP_BTN =
   "w-7 h-8 flex items-center justify-center text-xs bg-panel text-muted hover:text-white hover:bg-[#38383f] transition-colors shrink-0 disabled:opacity-30 disabled:hover:bg-panel disabled:hover:text-muted";
-const CHIP =
-  "px-3 h-7 flex items-center text-[10px] font-black uppercase tracking-widest bg-panel text-muted hover:text-white hover:bg-[#38383f] transition-colors shrink-0 disabled:opacity-30 disabled:hover:bg-panel disabled:hover:text-muted";
+const CHIP_STRETCH =
+  "h-7 flex-1 flex items-center justify-center text-[10px] font-black uppercase tracking-widest bg-panel text-muted hover:text-white hover:bg-[#38383f] transition-colors sm:flex-none sm:shrink-0 sm:px-3 disabled:opacity-30 disabled:hover:bg-panel disabled:hover:text-muted";
 
 export function PlaybackBar({
   durationMs,
@@ -139,30 +139,28 @@ export function PlaybackBar({
         </div>
       </div>
 
-      {/* ── Jump chips row ───────────────────────────────────────── */}
-      {/* Mobile: compact always-visible horizontal scroll             */}
-      {/* Desktop: flows naturally after the transport row            */}
+      {/* ── Speed row — mobile only ──────────────────────────────── */}
+      <div className="sm:hidden flex gap-px">
+        {SPEEDS.map((s) => (
+          <button
+            key={s}
+            onClick={() => setSpeed(s)}
+            aria-pressed={speed === s}
+            aria-label={`${s}x speed`}
+            className={`flex-1 h-7 text-[10px] font-black uppercase tracking-widest transition-colors ${
+              speed === s ? "bg-f1red text-white" : "bg-panel text-muted"
+            }`}
+          >
+            {s}×
+          </button>
+        ))}
+      </div>
+
+      {/* ── Event jump chips row ─────────────────────────────────── */}
       <div
-        className="flex gap-1 overflow-x-auto sm:flex-wrap"
+        className="flex gap-1 sm:overflow-x-auto sm:flex-wrap"
         style={{ touchAction: "pan-x" }}
       >
-        {/* Speed picker — mobile only; desktop shows these in the transport row */}
-        <div className="sm:hidden flex gap-px shrink-0">
-          {SPEEDS.map((s) => (
-            <button
-              key={s}
-              onClick={() => setSpeed(s)}
-              aria-pressed={speed === s}
-              aria-label={`${s}x speed`}
-              className={`px-2.5 h-7 text-[10px] font-black uppercase tracking-widest transition-colors ${
-                speed === s ? "bg-f1red text-white" : "bg-panel text-muted"
-              }`}
-            >
-              {s}×
-            </button>
-          ))}
-        </div>
-
         {/* Countdown / qualifying phase chip — practice & qualifying only */}
         {countdownMs !== null && (
           <span className="flex items-center gap-1 shrink-0 px-2 h-7 bg-panel text-[10px] font-black tabular-nums uppercase tracking-widest">
@@ -183,7 +181,7 @@ export function PlaybackBar({
         <button
           onClick={() => jump(nextPit)}
           disabled={nextPit === null}
-          className={CHIP}
+          className={CHIP_STRETCH}
           aria-label="Jump to next pit stop"
         >
           Pit ›
@@ -191,7 +189,7 @@ export function PlaybackBar({
         <button
           onClick={() => jump(nextFlag)}
           disabled={nextFlag === null}
-          className={CHIP}
+          className={CHIP_STRETCH}
           aria-label="Jump to next flag or safety car"
         >
           Flag ›
@@ -199,7 +197,7 @@ export function PlaybackBar({
         <button
           onClick={() => jump(nextPass)}
           disabled={nextPass === null}
-          className={CHIP}
+          className={CHIP_STRETCH}
           aria-label="Jump to next overtake"
         >
           Pass ›
@@ -207,7 +205,7 @@ export function PlaybackBar({
         <button
           onClick={() => jump(nextRadio)}
           disabled={nextRadio === null}
-          className={CHIP}
+          className={CHIP_STRETCH}
           aria-label="Jump to next radio message"
         >
           Radio ›
