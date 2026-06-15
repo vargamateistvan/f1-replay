@@ -30,6 +30,7 @@ interface Props {
   readonly sessionTimeMs: number;
   readonly sessionStartMs: number;
   readonly sessionName?: string;
+  readonly totalLapCount?: number | null;
   /** Latest car-data sample per driver at the playhead. When provided, the tower
    *  renders live telemetry columns (speed/gear/rpm/throttle/brake/DRS). */
   readonly carData?: ReadonlyMap<number, CarData>;
@@ -126,6 +127,7 @@ export function LiveTiming({
   sessionTimeMs,
   sessionStartMs,
   isLoading,
+  totalLapCount = null,
   selectedDriver,
   compareDriver,
   onSelectDriver,
@@ -427,7 +429,7 @@ export function LiveTiming({
             <th className={`${TH} hidden sm:table-cell text-center`}>S3</th>
             <th className={`${TH} text-left`}>Tyre</th>
             <th className={`${TH} text-center w-8`}>Pit</th>
-            <th className={`${TH} hidden sm:table-cell text-center w-10`}>
+            <th className={`${TH} hidden sm:table-cell text-center w-16`}>
               Lap
             </th>
             {showTelemetry && (
@@ -619,7 +621,9 @@ export function LiveTiming({
 
                 {/* Current lap */}
                 <td className="hidden sm:table-cell py-3 px-2 text-center font-mono text-[11px] tabular-nums text-muted">
-                  {currentLap ?? "—"}
+                  {currentLap !== null && totalLapCount !== null
+                    ? `${currentLap}/${totalLapCount}`
+                    : (currentLap ?? "—")}
                 </td>
 
                 {/* Live car telemetry */}

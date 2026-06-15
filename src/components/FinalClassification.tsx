@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useEffect, useMemo, useRef, type MouseEvent } from "react";
 import type { Driver, SessionResult } from "@/api/types";
 import { teamColor } from "@/utils/color";
 import { DriverHeadshot } from "@/components/DriverHeadshot";
@@ -7,6 +7,10 @@ interface Props {
   readonly results: SessionResult[];
   readonly drivers: Driver[];
   readonly sessionName?: string;
+}
+
+interface DialogProps extends Props {
+  readonly onClose: () => void;
 }
 
 interface DecoratedResult {
@@ -27,6 +31,28 @@ function normalizeValue(
   return value;
 }
 
+function formatDurationClock(seconds: number | number[] | null): string | null {
+  if (seconds === null) return null;
+
+  const value = Array.isArray(seconds) ? (seconds[0] ?? null) : seconds;
+  if (value === null || !Number.isFinite(value)) return null;
+
+  const totalMs = Math.max(0, Math.round(value * 1000));
+  const hours = Math.floor(totalMs / 3_600_000);
+  const minutes = Math.floor((totalMs % 3_600_000) / 60_000);
+  const secs = Math.floor((totalMs % 60_000) / 1000);
+  const millis = totalMs % 1000;
+
+  return `${String(hours).padStart(2, "0")}:${String(minutes).padStart(2, "0")}:${String(secs).padStart(2, "0")}.${String(millis).padStart(3, "0")}`;
+}
+
+function formatRelativeDurationClock(
+  seconds: number | number[] | null,
+): string | null {
+  const formatted = formatDurationClock(seconds);
+  return formatted ? `+${formatted}` : null;
+}
+
 function resultStatus(result: SessionResult): string {
   if (result.dsq) return "DSQ";
   if (result.dns) return "DNS";
@@ -38,16 +64,16 @@ function resultDetail(result: SessionResult): string {
   if (result.dsq || result.dns || result.dnf) {
     return (
       normalizeValue(result.gap_to_leader) ??
-      normalizeValue(result.duration) ??
+      formatRelativeDurationClock(result.duration) ??
       "Not classified"
     );
   }
   if (result.position === 1) {
-    return normalizeValue(result.duration) ?? "Winner";
+    return formatDurationClock(result.duration) ?? "Winner";
   }
   return (
     normalizeValue(result.gap_to_leader) ??
-    normalizeValue(result.duration) ??
+    formatRelativeDurationClock(result.duration) ??
     "—"
   );
 }
@@ -62,6 +88,87 @@ function sortResults(results: SessionResult[]): SessionResult[] {
 }
 
 export function FinalClassification({ results, drivers, sessionName }: Props) {
+  return (
+    <section className="shrink-0 border-t border-panel bg-[#0f1118]/95 backdrop-blur">
+      <FinalClassificationContent
+        results={results}
+        drivers={drivers}
+        sessionName={sessionName}
+        tableClassName="max-h-[40vh] overflow-auto"
+      />
+    </section>
+  );
+}
+
+export function FinalClassificationDialog({
+  results,
+  drivers,
+  sessionName,
+  onClose,
+}: DialogProps) {
+  const backdropRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    function onKeyDown(event: KeyboardEvent) {
+      if (event.key === "Escape") onClose();
+    }
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [onClose]);
+
+  function handleBackdropClick(event: MouseEvent<HTMLDivElement>) {
+    if (event.target === backdropRef.current) onClose();
+  }
+
+  return (
+    <div
+      ref={backdropRef}
+      onClick={handleBackdropClick}
+      className="fixed inset-0 z-[220] flex items-center justify-center bg-black/75 px-3 py-6 backdrop-blur-sm sm:px-6"
+    >
+      <div className="flex max-h-[90dvh] w-full max-w-5xl flex-col overflow-hidden border border-panel bg-[#0f1118] shadow-2xl">
+        <div className="flex items-center justify-between border-b border-panel px-4 py-3 sm:px-5">
+          <div>
+            <div className="text-[10px] font-black uppercase tracking-[0.2em] text-f1red">
+              Final Classification
+            </div>
+            <div className="mt-1 text-sm font-black text-white sm:text-base">
+              {sessionName ?? "Session Results"}
+            </div>
+          </div>
+          <button
+            onClick={onClose}
+            aria-label="Close results dialog"
+            className="flex h-8 w-8 items-center justify-center text-lg text-muted transition-colors hover:bg-white/5 hover:text-white"
+          >
+            ×
+          </button>
+        </div>
+
+        <FinalClassificationContent
+          results={results}
+          drivers={drivers}
+          sessionName={sessionName}
+          hideHeader
+          tableClassName="min-h-0 flex-1 overflow-auto"
+        />
+      </div>
+    </div>
+  );
+}
+
+interface ContentProps extends Props {
+  readonly hideHeader?: boolean;
+  readonly tableClassName: string;
+}
+
+function FinalClassificationContent({
+  results,
+  drivers,
+  sessionName,
+  hideHeader = false,
+  tableClassName,
+}: ContentProps) {
   const driverByNumber = useMemo(
     () => new Map(drivers.map((driver) => [driver.driver_number, driver])),
     [drivers],
@@ -85,20 +192,22 @@ export function FinalClassification({ results, drivers, sessionName }: Props) {
   );
 
   return (
-    <section className="shrink-0 border-t border-panel bg-[#0f1118]/95 backdrop-blur">
-      <div className="border-b border-panel px-4 py-3 sm:px-5">
-        <div className="text-[10px] font-black uppercase tracking-[0.2em] text-f1red">
-          Final Classification
-        </div>
-        <div className="mt-1 flex flex-wrap items-end justify-between gap-2">
-          <div className="text-lg font-black text-white sm:text-xl">
-            {sessionName ?? "Session Results"}
+    <div className="flex min-h-0 flex-col bg-[#0f1118]/95 backdrop-blur">
+      {!hideHeader && (
+        <div className="border-b border-panel px-4 py-3 sm:px-5">
+          <div className="text-[10px] font-black uppercase tracking-[0.2em] text-f1red">
+            Final Classification
           </div>
-          <div className="text-[11px] uppercase tracking-[0.16em] text-muted">
-            Official session result
+          <div className="mt-1 flex flex-wrap items-end justify-between gap-2">
+            <div className="text-lg font-black text-white sm:text-xl">
+              {sessionName ?? "Session Results"}
+            </div>
+            <div className="text-[11px] uppercase tracking-[0.16em] text-muted">
+              Official session result
+            </div>
           </div>
         </div>
-      </div>
+      )}
 
       {podium.length > 0 && (
         <div className="grid gap-2 border-b border-panel px-4 py-3 sm:grid-cols-3 sm:px-5">
@@ -151,7 +260,7 @@ export function FinalClassification({ results, drivers, sessionName }: Props) {
         </div>
       )}
 
-      <div className="max-h-[40vh] overflow-auto">
+      <div className={tableClassName}>
         <table className="w-full border-collapse">
           <thead>
             <tr className="sticky top-0 border-b border-panel bg-track/95 text-[10px] font-black uppercase tracking-[0.16em] text-muted">
@@ -208,6 +317,6 @@ export function FinalClassification({ results, drivers, sessionName }: Props) {
           </tbody>
         </table>
       </div>
-    </section>
+    </div>
   );
 }

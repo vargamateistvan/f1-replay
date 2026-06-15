@@ -1,4 +1,4 @@
-import { useEffect, useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { PlaybackBar } from "@/components/PlaybackBar";
 import {
   TrackMap,
@@ -19,7 +19,7 @@ import { QualifyingBanner } from "@/components/QualifyingBanner";
 import { StartingLights } from "@/components/StartingLights";
 import { SessionInfoBar } from "@/components/SessionInfoBar";
 import { ErrorMessage } from "@/components/ErrorMessage";
-import { FinalClassification } from "@/components/FinalClassification";
+import { FinalClassificationDialog } from "@/components/FinalClassification";
 import {
   useDrivers,
   usePositions,
@@ -112,6 +112,7 @@ export default function RaceWeekend() {
   );
   const [focusDriver, setFocusDriver] = useNumberParam("focus", null);
   const [compareDriver, setCompareDriver] = useNumberParam("compare", null);
+  const [isResultsDialogOpen, setIsResultsDialogOpen] = useState(false);
 
   const sessions = useSessions(meetingKey);
   const session = sessions.data?.find((s) => s.session_key === sessionKey);
@@ -595,6 +596,21 @@ export default function RaceWeekend() {
     finalClassificationTriggerMs !== null &&
     t >= finalClassificationTriggerMs &&
     (sessionResult.data?.length ?? 0) > 0;
+  const totalLapCount = useMemo(() => {
+    if (!isRaceSession) return null;
+
+    const observedLapCount = Math.max(
+      0,
+      ...(laps.data ?? []).map((lap) => lap.lap_number),
+    );
+    const classifiedLapCount = Math.max(
+      0,
+      ...(sessionResult.data ?? []).map((result) => result.number_of_laps ?? 0),
+    );
+    const total = Math.max(observedLapCount, classifiedLapCount);
+
+    return total > 0 ? total : null;
+  }, [isRaceSession, laps.data, sessionResult.data]);
 
   // ── Session countdown (practice / qualifying) ────────────────────────────
   const sessionName = session?.session_name ?? "";
@@ -605,6 +621,16 @@ export default function RaceWeekend() {
   const qualiPhase = isQualiSession(sessionName)
     ? detectQualiPhase(raceControl.data ?? [], sessionStartMs, t)
     : null;
+
+  useEffect(() => {
+    if (!showFinalClassification) {
+      setIsResultsDialogOpen(false);
+      return;
+    }
+    if (!sessionResult.isError) {
+      setIsResultsDialogOpen(true);
+    }
+  }, [showFinalClassification, sessionResult.isError]);
 
   useKeyboardShortcuts({
     lapStarts: lapMarks,
@@ -657,6 +683,7 @@ export default function RaceWeekend() {
       sessionTimeMs={t}
       sessionStartMs={sessionStartMs}
       isLoading={positions.isPending && sessionKey !== null}
+      totalLapCount={totalLapCount}
       selectedDriver={focusDriver}
       compareDriver={compareDriver}
       onSelectDriver={toggleFocus}
@@ -678,6 +705,7 @@ export default function RaceWeekend() {
       sessionTimeMs={t}
       sessionStartMs={sessionStartMs}
       isLoading={positions.isPending && sessionKey !== null}
+      totalLapCount={totalLapCount}
       selectedDriver={focusDriver}
       compareDriver={compareDriver}
       onSelectDriver={toggleFocus}
@@ -791,6 +819,7 @@ export default function RaceWeekend() {
             sessionStartMs={sessionStartMs}
             isRaceSession={isRaceSession}
             lightsOutMs={lightsOutMs}
+            totalLapCount={totalLapCount}
           />
           <div className="flex-1 min-h-0 flex flex-col md:flex overflow-hidden relative">
             {/* Toast overlay — covers both mobile and desktop tracker content */}
@@ -1129,11 +1158,26 @@ export default function RaceWeekend() {
             />
           </div>
         ) : (
-          <FinalClassification
-            results={sessionResult.data ?? []}
-            drivers={drivers.data ?? []}
-            sessionName={session?.session_name}
-          />
+          <>
+            {!isResultsDialogOpen && (
+              <div className="pointer-events-none absolute bottom-16 right-3 z-[120] sm:right-4">
+                <button
+                  onClick={() => setIsResultsDialogOpen(true)}
+                  className="pointer-events-auto border border-panel bg-[#0f1118]/95 px-3 py-2 text-[10px] font-black uppercase tracking-[0.16em] text-white shadow-lg transition-colors hover:border-f1red hover:text-f1red"
+                >
+                  Results
+                </button>
+              </div>
+            )}
+            {isResultsDialogOpen && (
+              <FinalClassificationDialog
+                results={sessionResult.data ?? []}
+                drivers={drivers.data ?? []}
+                sessionName={session?.session_name}
+                onClose={() => setIsResultsDialogOpen(false)}
+              />
+            )}
+          </>
         ))}
 
       {/* Playback bar — always visible */}
