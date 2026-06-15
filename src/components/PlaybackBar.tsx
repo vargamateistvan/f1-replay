@@ -120,16 +120,7 @@ export function PlaybackBar({
           {fmtTime(durationMs)}
         </span>
 
-        {/* Speed — tap-to-cycle on mobile, full buttons on desktop */}
-        <button
-          onClick={cycleSpeed}
-          aria-label={`Speed ${speed}x — tap to change`}
-          className="sm:hidden w-9 h-8 flex items-center justify-center text-[10px] font-black uppercase tracking-widest bg-panel transition-colors shrink-0 text-f1red"
-        >
-          {speed}×
-        </button>
-
-        {/* Speed buttons — desktop only */}
+        {/* Speed buttons — desktop only (mobile lives in chips row) */}
         <div className="hidden sm:flex gap-px shrink-0">
           {SPEEDS.map((s) => (
             <button
@@ -153,6 +144,25 @@ export function PlaybackBar({
       {/* Mobile: compact always-visible horizontal scroll             */}
       {/* Desktop: flows naturally after the transport row            */}
       <div className="flex gap-1 overflow-x-auto sm:flex-wrap" style={{ touchAction: 'pan-x' }}>
+        {/* Speed picker — mobile only; desktop shows these in the transport row */}
+        <div className="sm:hidden flex gap-px shrink-0">
+          {SPEEDS.map((s) => (
+            <button
+              key={s}
+              onClick={() => setSpeed(s)}
+              aria-pressed={speed === s}
+              aria-label={`${s}x speed`}
+              className={`px-2.5 h-7 text-[10px] font-black uppercase tracking-widest transition-colors ${
+                speed === s
+                  ? "bg-f1red text-white"
+                  : "bg-panel text-muted"
+              }`}
+            >
+              {s}×
+            </button>
+          ))}
+        </div>
+
         {/* Countdown / qualifying phase chip — practice & qualifying only */}
         {countdownMs !== null && (
           <span className="flex items-center gap-1 shrink-0 px-2 h-7 bg-panel text-[10px] font-black tabular-nums uppercase tracking-widest">
