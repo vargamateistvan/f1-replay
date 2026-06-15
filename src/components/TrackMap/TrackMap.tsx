@@ -41,7 +41,10 @@ function exportTrackSnapshot(svgEl: SVGSVGElement): void {
     canvas.width = w * dpr;
     canvas.height = h * dpr;
     const ctx = canvas.getContext("2d");
-    if (!ctx) { URL.revokeObjectURL(url); return; }
+    if (!ctx) {
+      URL.revokeObjectURL(url);
+      return;
+    }
     ctx.scale(dpr, dpr);
     // Fill background so the PNG isn't transparent where the SVG bg is set via CSS.
     ctx.fillStyle = "#15151e";
@@ -69,6 +72,12 @@ export interface LeaderboardRow {
   gap: string;
 }
 
+export interface ActiveTrackFlag {
+  flag: string;
+  scope: string | null;
+  sector: number | null;
+}
+
 interface Props {
   readonly sessionKey: number | null;
   readonly drivers: Driver[];
@@ -78,12 +87,15 @@ interface Props {
   readonly pulseDrivers?: readonly number[];
   readonly circuitShortName?: string | null;
   readonly circuitKey?: number | null;
-  readonly activeCompounds?: ReadonlyMap<number, { compound: Stint["compound"]; age: number }>;
+  readonly activeCompounds?: ReadonlyMap<
+    number,
+    { compound: Stint["compound"]; age: number }
+  >;
   readonly battlingDrivers?: ReadonlySet<number>;
   readonly retiredDrivers?: ReadonlySet<number>;
   readonly focusDriverLap?: number | null;
   readonly leaderboard?: readonly LeaderboardRow[];
-  readonly activeSectorFlag?: string | null;
+  readonly activeSectorFlag?: ActiveTrackFlag | null;
   readonly onSelectDriver?: (driverNumber: number) => void;
 }
 
@@ -106,12 +118,26 @@ export function TrackMap({
 }: Props) {
   const { t } = useTimeline();
 
+  const scopedSector =
+    activeSectorFlag?.sector != null &&
+    activeSectorFlag.sector >= 1 &&
+    activeSectorFlag.sector <= 3 &&
+    !(activeSectorFlag.scope?.toLowerCase().includes("track") ?? false)
+      ? activeSectorFlag.sector
+      : null;
+
   // Rolling 5-min car_data window for the focused driver — drives the live HUD overlay.
   const chunkIdx = chunkIndexFor(t);
-  const { data: hudRawData } = useCarDataWindow(sessionKey, focusDriver, sessionStartMs, chunkIdx);
+  const { data: hudRawData } = useCarDataWindow(
+    sessionKey,
+    focusDriver,
+    sessionStartMs,
+    chunkIdx,
+  );
 
   // Baked official geometry — available immediately when the bake script has run.
-  const circuitGeom = circuitKey != null ? getCircuitGeometry(circuitKey) : null;
+  const circuitGeom =
+    circuitKey != null ? getCircuitGeometry(circuitKey) : null;
   const hasBaked = circuitGeom != null;
 
   // Driver fallback loop: only needed for the GPS path (no baked data).
@@ -120,7 +146,9 @@ export function TrackMap({
     setDriverFallbackIdx(0);
   }, [sessionKey]);
 
-  const candidateDriver = hasBaked ? null : (drivers[driverFallbackIdx] ?? drivers[0] ?? null);
+  const candidateDriver = hasBaked
+    ? null
+    : (drivers[driverFallbackIdx] ?? drivers[0] ?? null);
   const { data: outline, isPending } = useTrackOutline(
     sessionKey,
     candidateDriver?.driver_number ?? null,
@@ -128,7 +156,12 @@ export function TrackMap({
   );
 
   useEffect(() => {
-    if (!hasBaked && !isPending && outline === null && driverFallbackIdx < drivers.length - 1) {
+    if (
+      !hasBaked &&
+      !isPending &&
+      outline === null &&
+      driverFallbackIdx < drivers.length - 1
+    ) {
       setDriverFallbackIdx((i) => i + 1);
     }
   }, [outline, isPending, driverFallbackIdx, drivers.length, hasBaked]);
@@ -230,29 +263,51 @@ export function TrackMap({
       const midNorm = (normArc[i]! + normArc[i + 1]!) / 2;
       const targetDist = midNorm * totalDist;
       // Binary search for the closest sample at this distance
-      let lo = 0, hi = samples.length - 1;
+      let lo = 0,
+        hi = samples.length - 1;
       while (lo < hi) {
         const mid = (lo + hi) >>> 1;
         if (samples[mid]!.distM < targetDist) lo = mid + 1;
         else hi = mid;
       }
       const sample = samples[lo] ?? samples[samples.length - 1]!;
-      return { x1: pt.sx, y1: pt.sy, x2: svgPts[i + 1]!.sx, y2: svgPts[i + 1]!.sy, speed: sample.speed };
+      return {
+        x1: pt.sx,
+        y1: pt.sy,
+        x2: svgPts[i + 1]!.sx,
+        y2: svgPts[i + 1]!.sy,
+        speed: sample.speed,
+      };
     });
   }, [trackGeometry, heatData.data]);
 
   // Corner number labels from baked geometry — placed at each corner's trackPosition.
   const cornerOverlays = useMemo(() => {
-    if (!trackGeometry || !circuitGeom || !circuitGeom.corners.length) return null;
+    if (!trackGeometry || !circuitGeom || !circuitGeom.corners.length)
+      return null;
     const { bounds, innerW, innerH } = trackGeometry;
     return (
       <>
         {circuitGeom.corners.map((corner) => {
-          const { sx, sy } = locationToSvg(corner.trackPosition.x, corner.trackPosition.y, bounds, innerW, innerH);
-          const cx = sx + PAD, cy = sy + PAD;
+          const { sx, sy } = locationToSvg(
+            corner.trackPosition.x,
+            corner.trackPosition.y,
+            bounds,
+            innerW,
+            innerH,
+          );
+          const cx = sx + PAD,
+            cy = sy + PAD;
           return (
             <g key={`corner-${corner.number}`} opacity={0.55}>
-              <circle cx={cx} cy={cy} r={5} fill="none" stroke="#6b6b7a" strokeWidth={0.8} />
+              <circle
+                cx={cx}
+                cy={cy}
+                r={5}
+                fill="none"
+                stroke="#6b6b7a"
+                strokeWidth={0.8}
+              />
               <text
                 x={cx}
                 y={cy + 0.5}
@@ -263,7 +318,8 @@ export function TrackMap({
                 fontFamily="Inter, sans-serif"
                 fontWeight="700"
               >
-                {corner.number}{corner.letter}
+                {corner.number}
+                {corner.letter}
               </text>
             </g>
           );
@@ -275,19 +331,39 @@ export function TrackMap({
   // Marshal sector tick marks from baked geometry.
   // Coloured by timing-sector (S1/S2/S3) based on which third of the circuit each belongs to.
   const marshalSectorOverlays = useMemo(() => {
-    if (!trackGeometry || !circuitGeom || !circuitGeom.marshalSectors.length) return null;
+    if (!trackGeometry || !circuitGeom || !circuitGeom.marshalSectors.length)
+      return null;
     const { bounds, innerW, innerH } = trackGeometry;
     const total = circuitGeom.marshalSectors.length;
     return (
       <>
         {circuitGeom.marshalSectors.map((ms, i) => {
-          const { sx, sy } = locationToSvg(ms.trackPosition.x, ms.trackPosition.y, bounds, innerW, innerH);
-          const cx = sx + PAD, cy = sy + PAD;
-          const sector = (i < total / 3 ? 1 : i < (2 * total) / 3 ? 2 : 3) as 1 | 2 | 3;
+          const { sx, sy } = locationToSvg(
+            ms.trackPosition.x,
+            ms.trackPosition.y,
+            bounds,
+            innerW,
+            innerH,
+          );
+          const cx = sx + PAD,
+            cy = sy + PAD;
+          const sector = (i < total / 3 ? 1 : i < (2 * total) / 3 ? 2 : 3) as
+            | 1
+            | 2
+            | 3;
           const color = SECTOR_COLORS[sector];
           return (
-            <circle key={`ms-${ms.number}`} cx={cx} cy={cy} r={2.5}
-              fill={color} fillOpacity={0.35} stroke={color} strokeWidth={0.6} strokeOpacity={0.6} />
+            <circle
+              key={`ms-${ms.number}`}
+              cx={cx}
+              cy={cy}
+              r={2.5}
+              fill={color}
+              fillOpacity={0.35}
+              stroke={color}
+              strokeWidth={0.6}
+              strokeOpacity={0.6}
+            />
           );
         })}
       </>
@@ -298,37 +374,93 @@ export function TrackMap({
   const staticOverlays = useMemo(() => {
     if (!trackGeometry) return null;
     const { bounds, innerW, innerH } = trackGeometry;
-    const drsElements = circuitLayout?.drsZones.map((zone, idx) => {
-      const { sx: sx1, sy: sy1 } = locationToSvg(zone.line.x1, zone.line.y1, bounds, innerW, innerH);
-      const { sx: sx2, sy: sy2 } = locationToSvg(zone.line.x2, zone.line.y2, bounds, innerW, innerH);
-      return (
-        <g key={`drs-${idx}`}>
-          <line x1={sx1 + PAD} y1={sy1 + PAD} x2={sx2 + PAD} y2={sy2 + PAD}
-            stroke="#4da6ff" strokeWidth={3} opacity={0.8} />
-          <circle cx={sx1 + PAD} cy={sy1 + PAD} r={2.5} fill="#4da6ff" />
-        </g>
-      );
-    }) ?? [];
+    const drsElements =
+      circuitLayout?.drsZones.map((zone, idx) => {
+        const { sx: sx1, sy: sy1 } = locationToSvg(
+          zone.line.x1,
+          zone.line.y1,
+          bounds,
+          innerW,
+          innerH,
+        );
+        const { sx: sx2, sy: sy2 } = locationToSvg(
+          zone.line.x2,
+          zone.line.y2,
+          bounds,
+          innerW,
+          innerH,
+        );
+        return (
+          <g key={`drs-${idx}`}>
+            <line
+              x1={sx1 + PAD}
+              y1={sy1 + PAD}
+              x2={sx2 + PAD}
+              y2={sy2 + PAD}
+              stroke="#4da6ff"
+              strokeWidth={3}
+              opacity={0.8}
+            />
+            <circle cx={sx1 + PAD} cy={sy1 + PAD} r={2.5} fill="#4da6ff" />
+          </g>
+        );
+      }) ?? [];
 
     // Legacy sector rectangles — only when no baked marshal sectors available.
-    const sectorRects = (!hasBaked && circuitLayout) ? circuitLayout.sectors.map((sector) => {
-      const { sx: sx1, sy: sy1 } = locationToSvg(sector.bounds.minX, sector.bounds.minY, bounds, innerW, innerH);
-      const { sx: sx2, sy: sy2 } = locationToSvg(sector.bounds.maxX, sector.bounds.maxY, bounds, innerW, innerH);
-      const x = Math.min(sx1, sx2) + PAD, y = Math.min(sy1, sy2) + PAD;
-      const w = Math.abs(sx2 - sx1), h = Math.abs(sy2 - sy1);
-      return (
-        <g key={`sector-${sector.number}`} opacity={0.15}>
-          <rect x={x} y={y} width={w} height={h} fill={SECTOR_COLORS[sector.number]} />
-          <text x={x + w / 2} y={y + h / 2} textAnchor="middle" dominantBaseline="middle"
-            fontSize={9} fill={SECTOR_COLORS[sector.number]} fontWeight="bold" fontFamily="Inter, sans-serif">
-            S{sector.number}
-          </text>
-        </g>
-      );
-    }) : [];
+    const sectorRects =
+      !hasBaked && circuitLayout
+        ? circuitLayout.sectors.map((sector) => {
+            const { sx: sx1, sy: sy1 } = locationToSvg(
+              sector.bounds.minX,
+              sector.bounds.minY,
+              bounds,
+              innerW,
+              innerH,
+            );
+            const { sx: sx2, sy: sy2 } = locationToSvg(
+              sector.bounds.maxX,
+              sector.bounds.maxY,
+              bounds,
+              innerW,
+              innerH,
+            );
+            const x = Math.min(sx1, sx2) + PAD,
+              y = Math.min(sy1, sy2) + PAD;
+            const w = Math.abs(sx2 - sx1),
+              h = Math.abs(sy2 - sy1);
+            return (
+              <g key={`sector-${sector.number}`} opacity={0.15}>
+                <rect
+                  x={x}
+                  y={y}
+                  width={w}
+                  height={h}
+                  fill={SECTOR_COLORS[sector.number]}
+                />
+                <text
+                  x={x + w / 2}
+                  y={y + h / 2}
+                  textAnchor="middle"
+                  dominantBaseline="middle"
+                  fontSize={9}
+                  fill={SECTOR_COLORS[sector.number]}
+                  fontWeight="bold"
+                  fontFamily="Inter, sans-serif"
+                >
+                  S{sector.number}
+                </text>
+              </g>
+            );
+          })
+        : [];
 
     if (!drsElements.length && !sectorRects.length) return null;
-    return <>{sectorRects}{drsElements}</>;
+    return (
+      <>
+        {sectorRects}
+        {drsElements}
+      </>
+    );
   }, [trackGeometry, circuitLayout, hasBaked]);
 
   // Flag tint overlaid when a flag is active.
@@ -337,25 +469,43 @@ export function TrackMap({
   const sectorFlagTints = useMemo(() => {
     if (!trackGeometry || !activeSectorFlag) return null;
     const TINT: Record<string, string> = {
-      YELLOW:        '#f5d400',
-      DOUBLE_YELLOW: '#f5d400',
-      RED:           '#e8002d',
-      SAFETY_CAR:    '#f5a623',
-      VIRTUAL_SC:    '#f5a623',
-      GREEN:         '#39b54a',
+      YELLOW: "#f5d400",
+      DOUBLE_YELLOW: "#f5d400",
+      RED: "#e8002d",
+      SAFETY_CAR: "#f5a623",
+      VIRTUAL_SC: "#f5a623",
+      GREEN: "#39b54a",
     };
-    const tint = TINT[activeSectorFlag];
+    const tint = TINT[activeSectorFlag.flag];
     if (!tint) return null;
     const { bounds, innerW, innerH } = trackGeometry;
 
     if (hasBaked && circuitGeom && circuitGeom.marshalSectors.length) {
       return (
         <>
-          {circuitGeom.marshalSectors.map((ms) => {
-            const { sx, sy } = locationToSvg(ms.trackPosition.x, ms.trackPosition.y, bounds, innerW, innerH);
+          {circuitGeom.marshalSectors.map((ms, i) => {
+            const total = circuitGeom.marshalSectors.length;
+            const sector = (i < total / 3 ? 1 : i < (2 * total) / 3 ? 2 : 3) as
+              | 1
+              | 2
+              | 3;
+            if (scopedSector !== null && sector !== scopedSector) return null;
+            const { sx, sy } = locationToSvg(
+              ms.trackPosition.x,
+              ms.trackPosition.y,
+              bounds,
+              innerW,
+              innerH,
+            );
             return (
-              <circle key={`flag-ms-${ms.number}`} cx={sx + PAD} cy={sy + PAD}
-                r={4} fill={tint} fillOpacity={0.7} />
+              <circle
+                key={`flag-ms-${ms.number}`}
+                cx={sx + PAD}
+                cy={sy + PAD}
+                r={4}
+                fill={tint}
+                fillOpacity={0.7}
+              />
             );
           })}
         </>
@@ -366,22 +516,56 @@ export function TrackMap({
     return (
       <>
         {circuitLayout.sectors.map((sector) => {
-          const { sx: sx1, sy: sy1 } = locationToSvg(sector.bounds.minX, sector.bounds.minY, bounds, innerW, innerH);
-          const { sx: sx2, sy: sy2 } = locationToSvg(sector.bounds.maxX, sector.bounds.maxY, bounds, innerW, innerH);
-          const x = Math.min(sx1, sx2) + PAD, y = Math.min(sy1, sy2) + PAD;
-          const w = Math.abs(sx2 - sx1), h = Math.abs(sy2 - sy1);
-          return <rect key={`flag-tint-${sector.number}`} x={x} y={y} width={w} height={h} fill={tint} opacity={0.28} />;
+          if (scopedSector !== null && sector.number !== scopedSector)
+            return null;
+          const { sx: sx1, sy: sy1 } = locationToSvg(
+            sector.bounds.minX,
+            sector.bounds.minY,
+            bounds,
+            innerW,
+            innerH,
+          );
+          const { sx: sx2, sy: sy2 } = locationToSvg(
+            sector.bounds.maxX,
+            sector.bounds.maxY,
+            bounds,
+            innerW,
+            innerH,
+          );
+          const x = Math.min(sx1, sx2) + PAD,
+            y = Math.min(sy1, sy2) + PAD;
+          const w = Math.abs(sx2 - sx1),
+            h = Math.abs(sy2 - sy1);
+          return (
+            <rect
+              key={`flag-tint-${sector.number}`}
+              x={x}
+              y={y}
+              width={w}
+              height={h}
+              fill={tint}
+              opacity={0.28}
+            />
+          );
         })}
       </>
     );
-  }, [trackGeometry, circuitLayout, circuitGeom, hasBaked, activeSectorFlag]);
+  }, [
+    trackGeometry,
+    circuitLayout,
+    circuitGeom,
+    hasBaked,
+    activeSectorFlag,
+    scopedSector,
+  ]);
 
   // Current-moment car telemetry for the focused driver — binary search on the rolling
   // 5-min window (same source as FocusedTelemetry). Runs at 60 fps, O(log n).
   const hudData = useMemo((): CarData | null => {
     if (focusDriver === null || !hudRawData.length) return null;
     const targetMs = sessionStartMs + t;
-    let lo = 0, hi = hudRawData.length - 1;
+    let lo = 0,
+      hi = hudRawData.length - 1;
     while (lo < hi) {
       const mid = (lo + hi) >>> 1;
       if (new Date(hudRawData[mid]!.date).getTime() < targetMs) lo = mid + 1;
@@ -437,265 +621,308 @@ export function TrackMap({
   if (focusDriver !== null) {
     const focusedPos = carPositions.find((c) => c.num === focusDriver);
     if (focusedPos) {
-      const { sx, sy } = locationToSvg(focusedPos.x, focusedPos.y, bounds, innerW, innerH);
+      const { sx, sy } = locationToSvg(
+        focusedPos.x,
+        focusedPos.y,
+        bounds,
+        innerW,
+        innerH,
+      );
       const cx = sx + PAD;
       const cy = sy + PAD;
-      const vx = Math.max(0, Math.min(SVG_W - FOLLOW_ZOOM_W, cx - FOLLOW_ZOOM_W / 2));
-      const vy = Math.max(0, Math.min(SVG_H - FOLLOW_ZOOM_H, cy - FOLLOW_ZOOM_H / 2));
+      const vx = Math.max(
+        0,
+        Math.min(SVG_W - FOLLOW_ZOOM_W, cx - FOLLOW_ZOOM_W / 2),
+      );
+      const vy = Math.max(
+        0,
+        Math.min(SVG_H - FOLLOW_ZOOM_H, cy - FOLLOW_ZOOM_H / 2),
+      );
       viewBox = `${vx.toFixed(1)} ${vy.toFixed(1)} ${FOLLOW_ZOOM_W} ${FOLLOW_ZOOM_H}`;
     }
   }
 
   return (
     <div className="relative w-full h-full">
-    <svg
-      ref={svgRef}
-      viewBox={viewBox}
-      className="w-full h-full"
-      style={{ background: "#15151e" }}
-    >
-      {/* Track surface: thick grey base + thin white highlight */}
-      <path
-        d={pathData}
-        fill="none"
-        stroke="#38383f"
-        strokeWidth={11}
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-      <path
-        d={pathData}
-        fill="none"
-        stroke="#4a4a55"
-        strokeWidth={7}
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-      <path
-        d={pathData}
-        fill="none"
-        stroke="#ffffff"
-        strokeWidth={1.5}
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        strokeOpacity={0.15}
-      />
+      <svg
+        ref={svgRef}
+        viewBox={viewBox}
+        className="w-full h-full"
+        style={{ background: "#15151e" }}
+      >
+        {/* Track surface: thick grey base + thin white highlight */}
+        <path
+          d={pathData}
+          fill="none"
+          stroke="#38383f"
+          strokeWidth={11}
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+        <path
+          d={pathData}
+          fill="none"
+          stroke="#4a4a55"
+          strokeWidth={7}
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+        <path
+          d={pathData}
+          fill="none"
+          stroke="#ffffff"
+          strokeWidth={1.5}
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          strokeOpacity={0.15}
+        />
 
-      {/* Speed heat overlay — shown when a driver is focused and lap data is loaded.
+        {/* Speed heat overlay — shown when a driver is focused and lap data is loaded.
           Segments are colored blue (slow) → green → red (fast) by the driver's
           recorded speed at each track position on their last completed lap. */}
-      {heatSegments.length > 0 && heatSegments.map((seg, i) => (
-        <line
-          key={i}
-          x1={seg.x1}
-          y1={seg.y1}
-          x2={seg.x2}
-          y2={seg.y2}
-          stroke={speedToColor(seg.speed)}
-          strokeWidth={4}
-          strokeLinecap="round"
-          opacity={0.9}
-        />
-      ))}
+        {heatSegments.length > 0 &&
+          heatSegments.map((seg, i) => (
+            <line
+              key={i}
+              x1={seg.x1}
+              y1={seg.y1}
+              x2={seg.x2}
+              y2={seg.y2}
+              stroke={speedToColor(seg.speed)}
+              strokeWidth={4}
+              strokeLinecap="round"
+              opacity={0.9}
+            />
+          ))}
 
-      {/* Sectors + DRS overlays (session-static, memoized) */}
-      {staticOverlays}
+        {/* Sectors + DRS overlays (session-static, memoized) */}
+        {staticOverlays}
 
-      {/* Marshal sector dots (baked geometry only) */}
-      {marshalSectorOverlays}
+        {/* Marshal sector dots (baked geometry only) */}
+        {marshalSectorOverlays}
 
-      {/* Active flag tint over marshal sectors / sector boxes */}
-      {sectorFlagTints}
+        {/* Active flag tint over marshal sectors / sector boxes */}
+        {sectorFlagTints}
 
-      {/* Corner numbers (baked geometry only) */}
-      {cornerOverlays}
+        {/* Corner numbers (baked geometry only) */}
+        {cornerOverlays}
 
-      {/* Car dots — when a driver is focused, dim the rest and enlarge the pick */}
-      {carPositions
-        .slice()
-        .sort(
-          (a, b) =>
-            (a.num === focusDriver ? 1 : 0) - (b.num === focusDriver ? 1 : 0),
-        )
-        .map(({ num, x, y }) => {
-          const driver = driverByNumber.get(num);
-          const color = teamColor(driver?.team_colour, "#ffffff");
-          const { sx, sy } = locationToSvg(x, y, bounds, innerW, innerH);
-          const focused = focusDriver === num;
-          const dimmed = focusDriver !== null && !focused;
-          const showLabel = focusDriver === null || focused;
-          const pulsing = pulseSet.has(num);
-          const isBattling = battlingDrivers?.has(num) ?? false;
-          const compoundInfo = activeCompounds?.get(num);
-          return (
-            <g
-              key={num}
-              transform={`translate(${(sx + PAD).toFixed(1)},${(sy + PAD).toFixed(1)})`}
-              opacity={dimmed ? 0.3 : 1}
-              onClick={() => onSelectDriver?.(num)}
-              style={onSelectDriver ? { cursor: "pointer" } : undefined}
-            >
-              {/* Battle ring: dashed amber ring for cars within 1 s of the car ahead */}
-              {isBattling && !pulsing && (
-                <circle
-                  r={focused ? 13 : 8}
-                  fill="none"
-                  stroke="#ffd700"
-                  strokeWidth={1.5}
-                  strokeOpacity={0.75}
-                  strokeDasharray="3 2"
-                />
-              )}
-              {pulsing && (
-                <circle r={6} fill="none" stroke="#ffffff" strokeWidth={1.5}>
-                  <animate
-                    attributeName="r"
-                    from="6"
-                    to="14"
-                    dur="0.8s"
-                    repeatCount="indefinite"
+        {/* Car dots — when a driver is focused, dim the rest and enlarge the pick */}
+        {carPositions
+          .slice()
+          .sort(
+            (a, b) =>
+              (a.num === focusDriver ? 1 : 0) - (b.num === focusDriver ? 1 : 0),
+          )
+          .map(({ num, x, y }) => {
+            const driver = driverByNumber.get(num);
+            const color = teamColor(driver?.team_colour, "#ffffff");
+            const { sx, sy } = locationToSvg(x, y, bounds, innerW, innerH);
+            const focused = focusDriver === num;
+            const dimmed = focusDriver !== null && !focused;
+            const showLabel = focusDriver === null || focused;
+            const pulsing = pulseSet.has(num);
+            const isBattling = battlingDrivers?.has(num) ?? false;
+            const compoundInfo = activeCompounds?.get(num);
+            return (
+              <g
+                key={num}
+                transform={`translate(${(sx + PAD).toFixed(1)},${(sy + PAD).toFixed(1)})`}
+                opacity={dimmed ? 0.3 : 1}
+                onClick={() => onSelectDriver?.(num)}
+                style={onSelectDriver ? { cursor: "pointer" } : undefined}
+              >
+                {/* Battle ring: dashed amber ring for cars within 1 s of the car ahead */}
+                {isBattling && !pulsing && (
+                  <circle
+                    r={focused ? 13 : 8}
+                    fill="none"
+                    stroke="#ffd700"
+                    strokeWidth={1.5}
+                    strokeOpacity={0.75}
+                    strokeDasharray="3 2"
                   />
-                  <animate
-                    attributeName="stroke-opacity"
-                    from="0.9"
-                    to="0"
-                    dur="0.8s"
-                    repeatCount="indefinite"
+                )}
+                {pulsing && (
+                  <circle r={6} fill="none" stroke="#ffffff" strokeWidth={1.5}>
+                    <animate
+                      attributeName="r"
+                      from="6"
+                      to="14"
+                      dur="0.8s"
+                      repeatCount="indefinite"
+                    />
+                    <animate
+                      attributeName="stroke-opacity"
+                      from="0.9"
+                      to="0"
+                      dur="0.8s"
+                      repeatCount="indefinite"
+                    />
+                  </circle>
+                )}
+                {focused && (
+                  <circle
+                    r={9}
+                    fill="none"
+                    stroke={color}
+                    strokeWidth={1.5}
+                    strokeOpacity={0.5}
                   />
-                </circle>
-              )}
-              {focused && (
+                )}
                 <circle
-                  r={9}
-                  fill="none"
-                  stroke={color}
-                  strokeWidth={1.5}
-                  strokeOpacity={0.5}
-                />
-              )}
-              <circle
-                r={focused ? 6.5 : 4.5}
-                fill={color}
-                stroke="#ffffff"
-                strokeWidth={focused ? 1.6 : 1.2}
-                strokeOpacity={focused ? 0.9 : 0.6}
-              />
-              {/* Compound badge: small dot in tyre-compound colour */}
-              {compoundInfo && (
-                <circle
-                  cx={focused ? 8 : 5}
-                  cy={focused ? 8 : 5}
-                  r={focused ? 2.5 : 1.8}
-                  fill={COMPOUND_COLORS[compoundInfo.compound]}
-                  stroke="#15151e"
-                  strokeWidth={0.5}
-                />
-              )}
-              {showLabel && (
-                <text
-                  x={focused ? 10 : 7}
-                  y={-5}
-                  fontSize={focused ? 9 : 8}
+                  r={focused ? 6.5 : 4.5}
                   fill={color}
-                  fontFamily="Inter, sans-serif"
-                  fontWeight="900"
-                  letterSpacing="0.04em"
-                >
-                  {driver?.name_acronym ?? num}
-                </text>
-              )}
-            </g>
-          );
-        })}
+                  stroke="#ffffff"
+                  strokeWidth={focused ? 1.6 : 1.2}
+                  strokeOpacity={focused ? 0.9 : 0.6}
+                />
+                {/* Compound badge: small dot in tyre-compound colour */}
+                {compoundInfo && (
+                  <circle
+                    cx={focused ? 8 : 5}
+                    cy={focused ? 8 : 5}
+                    r={focused ? 2.5 : 1.8}
+                    fill={COMPOUND_COLORS[compoundInfo.compound]}
+                    stroke="#15151e"
+                    strokeWidth={0.5}
+                  />
+                )}
+                {showLabel && (
+                  <text
+                    x={focused ? 10 : 7}
+                    y={-5}
+                    fontSize={focused ? 9 : 8}
+                    fill={color}
+                    fontFamily="Inter, sans-serif"
+                    fontWeight="900"
+                    letterSpacing="0.04em"
+                  >
+                    {driver?.name_acronym ?? num}
+                  </text>
+                )}
+              </g>
+            );
+          })}
 
-      {/* No-data hint */}
-      {locationIndexes.size === 0 && (
-        <text
-          x={SVG_W / 2}
-          y={SVG_H / 2}
-          textAnchor="middle"
-          fill="#636369"
-          fontSize={11}
-          fontFamily="Inter, sans-serif"
-        >
-          Press ▶ to start replay
-        </text>
-      )}
-    </svg>
-
-    {/* Mini-leaderboard — top-5 positions pinned to bottom-left */}
-    {leaderboard && leaderboard.length > 0 && (
-      <div className="absolute bottom-2 left-2 flex flex-col gap-px pointer-events-none" style={{ minWidth: 110 }}>
-        {leaderboard.map((row) => (
-          <div
-            key={row.num}
-            className="flex items-center gap-1.5 px-1.5 py-0.5"
-            style={{ background: 'rgba(21,21,30,0.82)', backdropFilter: 'blur(4px)' }}
+        {/* No-data hint */}
+        {locationIndexes.size === 0 && (
+          <text
+            x={SVG_W / 2}
+            y={SVG_H / 2}
+            textAnchor="middle"
+            fill="#636369"
+            fontSize={11}
+            fontFamily="Inter, sans-serif"
           >
-            <span className="text-[9px] font-black tabular-nums text-muted w-4 text-right shrink-0">
-              {row.pos}
-            </span>
-            <span className="w-[2px] self-stretch shrink-0 rounded-sm" style={{ background: row.color }} />
-            <span className="text-[10px] font-black uppercase tracking-wide flex-1" style={{ color: row.color }}>
-              {row.acronym}
-            </span>
-            <span className="text-[9px] font-mono tabular-nums text-muted shrink-0">
-              {row.gap}
-            </span>
-          </div>
-        ))}
-      </div>
-    )}
+            Press ▶ to start replay
+          </text>
+        )}
+      </svg>
 
-    {/* Focused-driver HUD — speed / gear / throttle + brake bars */}
-    {hudData && focusDriver !== null && (() => {
-      const driver = driverByNumber.get(focusDriver);
-      const color = teamColor(driver?.team_colour);
-      return (
+      {/* Mini-leaderboard — top-5 positions pinned to bottom-left */}
+      {leaderboard && leaderboard.length > 0 && (
         <div
-          className="absolute top-2 left-2 pointer-events-none flex flex-col gap-1 px-2 py-1.5"
-          style={{ background: 'rgba(21,21,30,0.85)', backdropFilter: 'blur(4px)', minWidth: 100, border: `1px solid ${color}33` }}
+          className="absolute bottom-2 left-2 flex flex-col gap-px pointer-events-none"
+          style={{ minWidth: 110 }}
         >
-          <div className="flex items-baseline gap-2">
-            <span className="text-[22px] font-black tabular-nums leading-none" style={{ color }}>
-              {hudData.speed}
-            </span>
-            <span className="text-[9px] text-muted uppercase tracking-widest leading-none self-end pb-0.5">km/h</span>
-            <span
-              className="ml-auto text-[18px] font-black tabular-nums leading-none"
-              style={{ color: hudData.n_gear === 0 ? '#ff5252' : color }}
+          {leaderboard.map((row) => (
+            <div
+              key={row.num}
+              className="flex items-center gap-1.5 px-1.5 py-0.5"
+              style={{
+                background: "rgba(21,21,30,0.82)",
+                backdropFilter: "blur(4px)",
+              }}
             >
-              {hudData.n_gear === 0 ? 'N' : hudData.n_gear}
-            </span>
-          </div>
-          {/* Throttle bar */}
-          <div className="flex items-center gap-1.5">
-            <span className="text-[8px] text-muted w-5 shrink-0">THR</span>
-            <div className="flex-1 h-1.5 bg-panel rounded-sm overflow-hidden">
-              <div className="h-full bg-[#39b54a] rounded-sm transition-none" style={{ width: `${hudData.throttle}%` }} />
+              <span className="text-[9px] font-black tabular-nums text-muted w-4 text-right shrink-0">
+                {row.pos}
+              </span>
+              <span
+                className="w-[2px] self-stretch shrink-0 rounded-sm"
+                style={{ background: row.color }}
+              />
+              <span
+                className="text-[10px] font-black uppercase tracking-wide flex-1"
+                style={{ color: row.color }}
+              >
+                {row.acronym}
+              </span>
+              <span className="text-[9px] font-mono tabular-nums text-muted shrink-0">
+                {row.gap}
+              </span>
             </div>
-          </div>
-          {/* Brake bar */}
-          <div className="flex items-center gap-1.5">
-            <span className="text-[8px] text-muted w-5 shrink-0">BRK</span>
-            <div className="flex-1 h-1.5 bg-panel rounded-sm overflow-hidden">
-              <div className="h-full bg-f1red rounded-sm transition-none" style={{ width: `${hudData.brake}%` }} />
-            </div>
-          </div>
+          ))}
         </div>
-      );
-    })()}
+      )}
 
-    {/* PNG export — only shown when there is track + car data to capture */}
-    {locationIndexes.size > 0 && (
-      <button
-        onClick={() => svgRef.current && exportTrackSnapshot(svgRef.current)}
-        className="absolute bottom-2 right-2 px-2 py-0.5 text-[9px] font-bold uppercase tracking-widest bg-[#1e1e2a]/80 border border-[#38383f] text-muted hover:text-white hover:border-white/30 transition-colors backdrop-blur-sm"
-        title="Download track snapshot as PNG"
-      >
-        ↓ PNG
-      </button>
-    )}
+      {/* Focused-driver HUD — speed / gear / throttle + brake bars */}
+      {hudData &&
+        focusDriver !== null &&
+        (() => {
+          const driver = driverByNumber.get(focusDriver);
+          const color = teamColor(driver?.team_colour);
+          return (
+            <div
+              className="absolute top-2 left-2 pointer-events-none flex flex-col gap-1 px-2 py-1.5"
+              style={{
+                background: "rgba(21,21,30,0.85)",
+                backdropFilter: "blur(4px)",
+                minWidth: 100,
+                border: `1px solid ${color}33`,
+              }}
+            >
+              <div className="flex items-baseline gap-2">
+                <span
+                  className="text-[22px] font-black tabular-nums leading-none"
+                  style={{ color }}
+                >
+                  {hudData.speed}
+                </span>
+                <span className="text-[9px] text-muted uppercase tracking-widest leading-none self-end pb-0.5">
+                  km/h
+                </span>
+                <span
+                  className="ml-auto text-[18px] font-black tabular-nums leading-none"
+                  style={{ color: hudData.n_gear === 0 ? "#ff5252" : color }}
+                >
+                  {hudData.n_gear === 0 ? "N" : hudData.n_gear}
+                </span>
+              </div>
+              {/* Throttle bar */}
+              <div className="flex items-center gap-1.5">
+                <span className="text-[8px] text-muted w-5 shrink-0">THR</span>
+                <div className="flex-1 h-1.5 bg-panel rounded-sm overflow-hidden">
+                  <div
+                    className="h-full bg-[#39b54a] rounded-sm transition-none"
+                    style={{ width: `${hudData.throttle}%` }}
+                  />
+                </div>
+              </div>
+              {/* Brake bar */}
+              <div className="flex items-center gap-1.5">
+                <span className="text-[8px] text-muted w-5 shrink-0">BRK</span>
+                <div className="flex-1 h-1.5 bg-panel rounded-sm overflow-hidden">
+                  <div
+                    className="h-full bg-f1red rounded-sm transition-none"
+                    style={{ width: `${hudData.brake}%` }}
+                  />
+                </div>
+              </div>
+            </div>
+          );
+        })()}
+
+      {/* PNG export — only shown when there is track + car data to capture */}
+      {locationIndexes.size > 0 && (
+        <button
+          onClick={() => svgRef.current && exportTrackSnapshot(svgRef.current)}
+          className="absolute bottom-2 right-2 px-2 py-0.5 text-[9px] font-bold uppercase tracking-widest bg-[#1e1e2a]/80 border border-[#38383f] text-muted hover:text-white hover:border-white/30 transition-colors backdrop-blur-sm"
+          title="Download track snapshot as PNG"
+        >
+          ↓ PNG
+        </button>
+      )}
     </div>
   );
 }

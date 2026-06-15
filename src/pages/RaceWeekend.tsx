@@ -1,6 +1,10 @@
 import { useEffect, useMemo } from "react";
 import { PlaybackBar } from "@/components/PlaybackBar";
-import { TrackMap, type LeaderboardRow } from "@/components/TrackMap/TrackMap";
+import {
+  TrackMap,
+  type ActiveTrackFlag,
+  type LeaderboardRow,
+} from "@/components/TrackMap/TrackMap";
 import { LiveTiming } from "@/components/LiveTiming/LiveTiming";
 import { RaceControlFeed } from "@/components/RaceControl/RaceControl";
 import { WeatherPanel } from "@/components/Weather/WeatherPanel";
@@ -358,15 +362,21 @@ export default function RaceWeekend() {
   }, [positions.data, laps.data, sessionStartMs, session?.session_name, t]);
 
   // Current session flag (last flag-bearing RC entry at/before playhead).
-  const activeSectorFlag = useMemo(() => {
+  const activeSectorFlag = useMemo<ActiveTrackFlag | null>(() => {
     if (!sessionStartMs) return null;
     const cutoff = sessionStartMs + t;
-    let flag: string | null = null;
+    let active: ActiveTrackFlag | null = null;
     for (const e of raceControl.data ?? []) {
       if (new Date(e.date).getTime() > cutoff) break;
-      if (e.flag && e.flag !== "") flag = e.flag;
+      if (e.flag && e.flag !== "") {
+        active = {
+          flag: e.flag,
+          scope: e.scope,
+          sector: e.sector,
+        };
+      }
     }
-    return flag;
+    return active;
   }, [raceControl.data, sessionStartMs, t]);
 
   const {
