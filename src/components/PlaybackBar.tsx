@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { useTimeline } from "@/timeline/clock";
 import { SPEEDS } from "@/constants";
 import { nextAfter, prevBefore } from "@/timeline/events";
@@ -40,10 +41,18 @@ export function PlaybackBar({
   countdownMs = null,
   qualiPhase = null,
 }: Props) {
-  const { t, playing, speed, toggle, setT, setSpeed } = useTimeline();
+  const { t, playing, speed, toggle, setT, setSpeed, setPlaying } =
+    useTimeline();
 
   const clamp = (v: number) =>
     Math.max(0, durationMs > 0 ? Math.min(v, durationMs) : v);
+
+  useEffect(() => {
+    if (durationMs <= 0 || t < durationMs) return;
+    if (t !== durationMs) setT(durationMs);
+    if (playing) setPlaying(false);
+  }, [durationMs, playing, setPlaying, setT, t]);
+
   const jump = (target: number | null) => {
     if (target !== null) setT(clamp(target));
   };

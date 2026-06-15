@@ -1157,12 +1157,9 @@ export default function RaceWeekend() {
       )}
 
       {showFinalClassification && sessionResult.isError && (
-          <div className="shrink-0 border-t border-panel">
-            <ErrorMessage
-              message="Failed to load final classification"
-              compact
-            />
-          </div>
+        <div className="shrink-0 border-t border-panel">
+          <ErrorMessage message="Failed to load final classification" compact />
+        </div>
       )}
 
       {showFinalClassification &&
