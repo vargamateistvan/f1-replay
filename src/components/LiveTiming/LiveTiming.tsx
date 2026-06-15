@@ -370,7 +370,7 @@ export function LiveTiming({
         <div className="mb-2 text-[10px] font-bold uppercase tracking-[0.12em] text-muted">
           Tap driver A, then driver B to compare
         </div>
-        <div className="flex flex-wrap gap-2">
+        <div className="grid grid-cols-3 gap-1.5 sm:gap-2">
           {(
             [
               ["S1", sessionBestOwners.s1],
@@ -385,7 +385,7 @@ export function LiveTiming({
             return (
               <div
                 key={label}
-                className="flex min-w-[108px] items-center gap-2 border border-panel bg-track px-2 py-1"
+                className="flex min-w-0 items-center gap-1.5 border border-panel bg-track px-1.5 py-1 sm:gap-2 sm:px-2"
                 title={
                   best
                     ? `${label} ${best.time.toFixed(3)} · ${driver?.full_name ?? best.driverNumber} · Lap ${best.lapNumber}`
@@ -398,17 +398,17 @@ export function LiveTiming({
                 {best ? (
                   <>
                     <span
-                      className="font-black text-[11px] uppercase tracking-[0.1em]"
+                      className="min-w-0 truncate font-black text-[10px] uppercase tracking-[0.08em] sm:text-[11px] sm:tracking-[0.1em]"
                       style={{ color }}
                     >
                       {driver?.name_acronym ?? best.driverNumber}
                     </span>
-                    <span className="ml-auto font-mono text-[10px] tabular-nums text-white">
+                    <span className="ml-auto shrink-0 font-mono text-[9px] tabular-nums text-white sm:text-[10px]">
                       {best.time.toFixed(3)}
                     </span>
                   </>
                 ) : (
-                  <span className="text-[10px] uppercase tracking-[0.12em] text-muted">
+                  <span className="truncate text-[9px] uppercase tracking-[0.1em] text-muted sm:text-[10px] sm:tracking-[0.12em]">
                     Waiting
                   </span>
                 )}
