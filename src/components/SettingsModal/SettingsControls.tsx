@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import { useSettings, type AppSettings, SETTINGS_DEFAULTS } from "@/stores/settings";
+import { useSettings, type AppSettings } from "@/stores/settings";
 
 // ── Toggle switch ─────────────────────────────────────────────────────────────
 
@@ -100,7 +100,9 @@ export function SegmentedRow<T extends string>({
       <div className="min-w-0">
         <div className="text-[13px] text-white/90 leading-tight">{label}</div>
         {description && (
-          <div className="text-[11px] text-muted mt-0.5 leading-tight">{description}</div>
+          <div className="text-[11px] text-muted mt-0.5 leading-tight">
+            {description}
+          </div>
         )}
       </div>
       <div className="flex gap-1 shrink-0">
@@ -149,10 +151,14 @@ export function SliderRow({
     <div className="py-3 border-b border-[#2a2a35] last:border-0">
       <div className="flex items-center justify-between mb-1.5">
         <div className="text-[13px] text-white/90 leading-tight">{label}</div>
-        <div className="text-[11px] font-mono tabular-nums text-muted">{format(value)}</div>
+        <div className="text-[11px] font-mono tabular-nums text-muted">
+          {format(value)}
+        </div>
       </div>
       {description && (
-        <div className="text-[11px] text-muted mb-2 leading-tight">{description}</div>
+        <div className="text-[11px] text-muted mb-2 leading-tight">
+          {description}
+        </div>
       )}
       <input
         type="range"
@@ -288,16 +294,25 @@ export function SettingsBody() {
             }`}
           >
             <div className="min-w-0">
-              <div className="text-[13px] text-white/90 leading-tight">Elevation scale</div>
-              <div className="text-[11px] text-muted mt-0.5 leading-tight">Vertical exaggeration factor</div>
+              <div className="text-[13px] text-white/90 leading-tight">
+                Elevation scale
+              </div>
+              <div className="text-[11px] text-muted mt-0.5 leading-tight">
+                Vertical exaggeration factor
+              </div>
             </div>
             <div className="flex gap-1 shrink-0">
               {ELEV_SCALE_OPTIONS.map((s) => (
                 <button
                   key={s}
-                  onClick={() => settings.map3dElevation && setSetting("map3dElevationScale", s)}
+                  onClick={() =>
+                    settings.map3dElevation &&
+                    setSetting("map3dElevationScale", s)
+                  }
                   className={`w-9 h-8 text-[11px] font-bold rounded transition-colors ${
-                    !settings.map3dElevation ? "cursor-not-allowed" : "cursor-pointer"
+                    !settings.map3dElevation
+                      ? "cursor-not-allowed"
+                      : "cursor-pointer"
                   } ${
                     settings.map3dElevationScale === s
                       ? "bg-f1red text-white"
