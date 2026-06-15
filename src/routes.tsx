@@ -5,6 +5,7 @@ import { SettingsModal } from "@/components/SettingsModal/SettingsModal";
 import RaceWeekend from "@/pages/RaceWeekend";
 import Telemetry from "@/pages/Telemetry";
 import Standings from "@/pages/Standings";
+import Settings from "@/pages/Settings";
 
 export function AppRouter() {
   return (
@@ -16,6 +17,7 @@ export function AppRouter() {
             <Route path="/" element={<RaceWeekend />} />
             <Route path="/telemetry" element={<Telemetry />} />
             <Route path="/standings" element={<Standings />} />
+            <Route path="/settings" element={<Settings />} />
           </Routes>
         </main>
         <MobileNav />
