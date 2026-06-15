@@ -1,6 +1,7 @@
 import { useMemo } from "react";
 import type { Driver, SessionResult } from "@/api/types";
 import { teamColor } from "@/utils/color";
+import { DriverHeadshot } from "@/components/DriverHeadshot";
 
 interface Props {
   readonly results: SessionResult[];
@@ -107,15 +108,22 @@ export function FinalClassification({ results, drivers, sessionName }: Props) {
               className="border border-panel bg-surface px-3 py-3"
             >
               <div className="flex items-center justify-between gap-3">
-                <div>
-                  <div className="text-[10px] font-black uppercase tracking-[0.16em] text-muted">
-                    P{entry.result.position}
-                  </div>
-                  <div
-                    className="mt-1 text-base font-black"
-                    style={{ color: entry.color }}
-                  >
-                    {entry.driver?.name_acronym ?? entry.result.driver_number}
+                <div className="flex items-center gap-3">
+                  <DriverHeadshot
+                    driver={entry.driver}
+                    accent={entry.color}
+                    size="lg"
+                  />
+                  <div>
+                    <div className="text-[10px] font-black uppercase tracking-[0.16em] text-muted">
+                      P{entry.result.position}
+                    </div>
+                    <div
+                      className="mt-1 text-base font-black"
+                      style={{ color: entry.color }}
+                    >
+                      {entry.driver?.name_acronym ?? entry.result.driver_number}
+                    </div>
                   </div>
                 </div>
                 <div className="text-right">
@@ -166,6 +174,11 @@ export function FinalClassification({ results, drivers, sessionName }: Props) {
                 </td>
                 <td className="px-4 py-2.5">
                   <div className="flex items-center gap-2">
+                    <DriverHeadshot
+                      driver={entry.driver}
+                      accent={entry.color}
+                      size="sm"
+                    />
                     <span
                       className="h-4 w-[3px] shrink-0"
                       style={{ background: entry.color }}

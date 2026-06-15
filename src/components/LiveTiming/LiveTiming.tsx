@@ -14,6 +14,7 @@ import { laneDuration, pitStopTime } from "@/utils/pit";
 import { SECTOR_GREEN_S } from "@/constants";
 import { SectorBar, type SectorTier } from "./SectorBar";
 import { TyreBadge } from "./TyreBadge";
+import { DriverHeadshot } from "@/components/DriverHeadshot";
 
 interface Props {
   readonly drivers: Driver[];
@@ -324,7 +325,10 @@ export function LiveTiming({
   }
 
   return (
-    <div className="flex-1 min-h-0 overflow-auto" style={{ touchAction: 'pan-y' }}>
+    <div
+      className="flex-1 min-h-0 overflow-auto"
+      style={{ touchAction: "pan-y" }}
+    >
       <table className="w-full border-collapse">
         <thead>
           <tr className="sticky top-0 bg-track z-10 border-b border-[#38383f]">
@@ -342,11 +346,19 @@ export function LiveTiming({
             </th>
             {showTelemetry && (
               <>
-                <th className={`${TH} hidden lg:table-cell text-right`}>Speed</th>
-                <th className={`${TH} hidden lg:table-cell text-center w-8`}>Gear</th>
+                <th className={`${TH} hidden lg:table-cell text-right`}>
+                  Speed
+                </th>
+                <th className={`${TH} hidden lg:table-cell text-center w-8`}>
+                  Gear
+                </th>
                 <th className={`${TH} hidden xl:table-cell text-right`}>RPM</th>
-                <th className={`${TH} hidden lg:table-cell text-center`}>Thr/Brk</th>
-                <th className={`${TH} hidden lg:table-cell text-center w-10`}>DRS</th>
+                <th className={`${TH} hidden lg:table-cell text-center`}>
+                  Thr/Brk
+                </th>
+                <th className={`${TH} hidden lg:table-cell text-center w-10`}>
+                  DRS
+                </th>
               </>
             )}
           </tr>
@@ -413,6 +425,7 @@ export function LiveTiming({
                 {/* Driver */}
                 <td className="py-3 px-2">
                   <span className="flex items-center gap-2">
+                    <DriverHeadshot driver={driver} accent={color} size="sm" />
                     {/* Team colour bar */}
                     <span
                       className="w-[3px] h-4 shrink-0 rounded-sm"
@@ -563,4 +576,3 @@ export function LiveTiming({
     </div>
   );
 }
-
