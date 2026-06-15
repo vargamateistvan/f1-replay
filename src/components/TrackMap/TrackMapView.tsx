@@ -11,6 +11,9 @@ type TrackMapProps = ComponentProps<typeof TrackMap>;
 const TrackMap3D = lazy(() =>
   import("./TrackMap3D").then((m) => ({ default: m.TrackMap3D })),
 );
+const TrackMapSatellite = lazy(() =>
+  import("./TrackMapSatellite").then((m) => ({ default: m.TrackMapSatellite })),
+);
 
 function Fallback2D(props: TrackMapProps) {
   return <TrackMap {...props} />;
@@ -47,10 +50,11 @@ export function TrackMapView(props: TrackMapProps) {
 
   if (mapViewMode === "satellite") {
     return (
-      <div className="flex flex-col items-center justify-center w-full h-full gap-2 text-muted">
-        <span className="text-[13px] font-bold text-white/60">Satellite view</span>
-        <span className="text-[11px]">Coming soon</span>
-      </div>
+      <ModeErrorBoundary fallback={<Fallback2D {...props} />}>
+        <Suspense fallback={<LoadingPlaceholder />}>
+          <TrackMapSatellite {...props} />
+        </Suspense>
+      </ModeErrorBoundary>
     );
   }
 
