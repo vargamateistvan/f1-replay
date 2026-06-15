@@ -362,7 +362,6 @@ export default function RaceWeekend() {
 
   // Current session flag (last flag-bearing RC entry at/before playhead).
   const activeSectorFlag = useMemo<ActiveTrackFlag | null>(() => {
-    if (!sessionStartMs) return null;
     const cutoff = sessionStartMs + t;
     let active: ActiveTrackFlag | null = null;
     for (const e of raceControl.data ?? []) {
@@ -590,14 +589,15 @@ export default function RaceWeekend() {
   ]);
 
   const effectiveDuration = durationMs || DEFAULT_SESSION_MS;
-  const playbackDurationMs =
+  const playbackDurationMs: number =
     isRaceSession && chequeredMs !== null ? chequeredMs : effectiveDuration;
-  const finalClassificationTriggerMs =
+  const finalClassificationTriggerMs: number | null =
     chequeredMs ?? (durationMs > 0 ? durationMs : null);
   const showFinalClassification =
-    finalClassificationTriggerMs !== null &&
-    t >= finalClassificationTriggerMs &&
-    (sessionResult.data?.length ?? 0) > 0;
+    finalClassificationTriggerMs === null
+      ? false
+      : t >= finalClassificationTriggerMs &&
+        (sessionResult.data?.length ?? 0) > 0;
   const totalLapCount = useMemo(() => {
     if (!isRaceSession) return null;
 
@@ -851,7 +851,7 @@ export default function RaceWeekend() {
                   <button
                     key={tab}
                     onClick={() => setTrackerTab(tab)}
-                    className={`flex-1 py-1.5 text-[10px] font-bold uppercase tracking-wider transition-colors ${
+                    className={`${tab === "timing" ? "flex-[1.2]" : "flex-1"} py-1.5 text-[10px] font-bold uppercase tracking-wider transition-colors ${
                       (trackerTab ?? "timing") === tab
                         ? "text-white border-b-2 border-f1red -mb-px"
                         : "text-muted hover:text-white border-b-2 border-transparent"
@@ -967,7 +967,7 @@ export default function RaceWeekend() {
                     <button
                       key={tab}
                       onClick={() => setTrackerTab(tab)}
-                      className={`flex-1 py-1.5 text-[10px] font-bold uppercase tracking-wider transition-colors ${
+                      className={`${tab === "timing" ? "flex-[1.2]" : "flex-1"} py-1.5 text-[10px] font-bold uppercase tracking-wider transition-colors ${
                         (trackerTab ?? "timing") === tab
                           ? "text-white border-b-2 border-f1red -mb-px bg-surface"
                           : "text-muted hover:text-white bg-track"
@@ -1148,7 +1148,7 @@ export default function RaceWeekend() {
       )}
 
       {/* Catch-up summary — appears over the whole layout after a big scrub-forward */}
-      {catchupSummaryEnabled && catchupSummary && (
+      {catchupSummaryEnabled && catchupSummary !== null && (
         <CatchupSummary
           summary={catchupSummary}
           drivers={drivers.data ?? []}
@@ -1156,24 +1156,25 @@ export default function RaceWeekend() {
         />
       )}
 
-      {showFinalClassification &&
-        (sessionResult.isError ? (
+      {showFinalClassification && sessionResult.isError && (
           <div className="shrink-0 border-t border-panel">
             <ErrorMessage
               message="Failed to load final classification"
               compact
             />
           </div>
-        ) : (
-          isResultsDialogOpen && (
-            <FinalClassificationDialog
-              results={sessionResult.data ?? []}
-              drivers={drivers.data ?? []}
-              sessionName={session?.session_name}
-              onClose={() => setIsResultsDialogOpen(false)}
-            />
-          )
-        ))}
+      )}
+
+      {showFinalClassification &&
+        !sessionResult.isError &&
+        isResultsDialogOpen && (
+          <FinalClassificationDialog
+            results={sessionResult.data ?? []}
+            drivers={drivers.data ?? []}
+            sessionName={session?.session_name}
+            onClose={() => setIsResultsDialogOpen(false)}
+          />
+        )}
 
       {/* Playback bar — always visible */}
       <PlaybackBar
