@@ -24,16 +24,20 @@ export function chunkIndexFor(tMs: number): number {
 }
 
 // How many chunks to keep on each side of the current position.
-// current-1 (for reverse scrub) + current + current+1 + current+2 (lookahead) = 4 live.
-// Chunks beyond this window are removed from the React Query cache to bound memory.
-const EVICT_RADIUS = 3
+const EVICT_RADIUS = 4
+
+// How many ms before the next chunk boundary to start prefetching +3.
+const EARLY_PREFETCH_MS = 60_000
 
 // Returns merged Location[] for the current 5-min window + the next (prefetched).
 // chunkIdx should be computed by the caller as chunkIndexFor(t).
+// tMs (optional) enables early prefetch: when within 60 s of the boundary we
+// immediately kick off chunkIdx+3 rather than waiting for chunkIdx to tick over.
 export function useLocationChunks(
   sessionKey: number | null,
   sessionStartMs: number | null,
   chunkIdx: number,
+  tMs?: number,
 ): { data: Location[]; isPending: boolean } {
   const qc = useQueryClient()
 
@@ -55,15 +59,31 @@ export function useLocationChunks(
     gcTime: Infinity,
   })
 
-  // Prefetch chunk after next so there's no gap during fast forward
+  // Prefetch +2 and +3 so there's always two chunks of headroom during fast-forward.
   useEffect(() => {
     if (!enabled) return
+    for (const offset of [2, 3]) {
+      qc.prefetchQuery({
+        queryKey: chunkKey(sessionKey!, chunkIdx + offset),
+        queryFn: () => fetchChunk(sessionKey!, sessionStartMs!, chunkIdx + offset),
+        staleTime: Infinity,
+      })
+    }
+  }, [qc, enabled, sessionKey, sessionStartMs, chunkIdx])
+
+  // Early-prefetch +2 when the playhead is within 60 s of the next boundary so
+  // the network request starts before chunkIdx increments.
+  const nearBoundary =
+    tMs !== undefined &&
+    tMs % CHUNK_MS > CHUNK_MS - EARLY_PREFETCH_MS
+  useEffect(() => {
+    if (!enabled || !nearBoundary) return
     qc.prefetchQuery({
       queryKey: chunkKey(sessionKey!, chunkIdx + 2),
       queryFn: () => fetchChunk(sessionKey!, sessionStartMs!, chunkIdx + 2),
       staleTime: Infinity,
     })
-  }, [qc, enabled, sessionKey, sessionStartMs, chunkIdx])
+  }, [qc, enabled, nearBoundary, sessionKey, sessionStartMs, chunkIdx])
 
   // Evict chunks outside the keep window to bound memory on long replays.
   // We inspect the cache for all location-chunk queries for this session and

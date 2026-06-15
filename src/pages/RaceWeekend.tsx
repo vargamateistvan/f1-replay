@@ -141,6 +141,7 @@ export default function RaceWeekend() {
     sessionKey,
     sessionStartMs || null,
     chunkIdx,
+    t,
   );
 
   const lapMarks = useMemo(
