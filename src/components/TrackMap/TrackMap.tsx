@@ -78,6 +78,11 @@ export interface ActiveTrackFlag {
   sector: number | null;
 }
 
+export interface ActiveTrackVehicles {
+  safetyCar: boolean;
+  medicalCar: boolean;
+}
+
 interface Props {
   readonly sessionKey: number | null;
   readonly drivers: Driver[];
@@ -96,6 +101,7 @@ interface Props {
   readonly focusDriverLap?: number | null;
   readonly leaderboard?: readonly LeaderboardRow[];
   readonly activeSectorFlag?: ActiveTrackFlag | null;
+  readonly activeTrackVehicles?: ActiveTrackVehicles | null;
   readonly onSelectDriver?: (driverNumber: number) => void;
 }
 
@@ -114,6 +120,7 @@ export function TrackMap({
   focusDriverLap = null,
   leaderboard,
   activeSectorFlag = null,
+  activeTrackVehicles = null,
   onSelectDriver,
 }: Props) {
   const { t } = useTimeline();
@@ -645,6 +652,22 @@ export function TrackMap({
 
   return (
     <div className="relative w-full h-full">
+      {activeTrackVehicles &&
+        (activeTrackVehicles.safetyCar || activeTrackVehicles.medicalCar) && (
+          <div className="pointer-events-none absolute top-2 left-1/2 z-20 -translate-x-1/2 flex items-center gap-1.5">
+            {activeTrackVehicles.safetyCar && (
+              <span className="border border-[#704600] bg-[#f5a623] px-2 py-0.5 text-[9px] font-black uppercase tracking-[0.16em] text-black/90">
+                Safety Car
+              </span>
+            )}
+            {activeTrackVehicles.medicalCar && (
+              <span className="border border-[#5f121d] bg-[#e8002d] px-2 py-0.5 text-[9px] font-black uppercase tracking-[0.16em] text-white">
+                Medical Car
+              </span>
+            )}
+          </div>
+        )}
+
       <svg
         ref={svgRef}
         viewBox={viewBox}

@@ -3,6 +3,7 @@ import { PlaybackBar } from "@/components/PlaybackBar";
 import {
   TrackMap,
   type ActiveTrackFlag,
+  type ActiveTrackVehicles,
   type LeaderboardRow,
 } from "@/components/TrackMap/TrackMap";
 import { LiveTiming } from "@/components/LiveTiming/LiveTiming";
@@ -377,6 +378,64 @@ export default function RaceWeekend() {
     return active;
   }, [raceControl.data, sessionStartMs, t]);
 
+  const activeTrackVehicles = useMemo<ActiveTrackVehicles | null>(() => {
+    if (!sessionStartMs) return null;
+
+    let safetyCar = false;
+    let medicalCar = false;
+    const cutoff = sessionStartMs + t;
+
+    for (const entry of raceControl.data ?? []) {
+      if (new Date(entry.date).getTime() > cutoff) break;
+
+      const message = entry.message.toUpperCase();
+      const clearsTrack =
+        entry.flag === "GREEN" ||
+        entry.flag === "CLEAR" ||
+        message.includes("TRACK CLEAR") ||
+        message.includes("GREEN FLAG");
+
+      if (clearsTrack) {
+        safetyCar = false;
+        medicalCar = false;
+      }
+
+      if (entry.flag === "SAFETY_CAR") {
+        safetyCar = true;
+      }
+
+      if (message.includes("MEDICAL CAR")) {
+        if (
+          message.includes("IN THIS LAP") ||
+          message.includes("ENDING") ||
+          message.includes("HAS ENDED") ||
+          message.includes("RETURN") ||
+          message.includes("WITHDRAW")
+        ) {
+          medicalCar = false;
+        } else {
+          medicalCar = true;
+        }
+      }
+
+      if (message.includes("SAFETY CAR") && !message.includes("VIRTUAL")) {
+        if (
+          message.includes("IN THIS LAP") ||
+          message.includes("ENDING") ||
+          message.includes("HAS ENDED") ||
+          message.includes("RESTART")
+        ) {
+          safetyCar = false;
+        } else {
+          safetyCar = true;
+        }
+      }
+    }
+
+    if (!safetyCar && !medicalCar) return null;
+    return { safetyCar, medicalCar };
+  }, [raceControl.data, sessionStartMs, t]);
+
   const {
     toastsEnabled,
     toastRadio: settingToastRadio,
@@ -730,6 +789,7 @@ export default function RaceWeekend() {
       focusDriverLap={mapShowDriverHud ? focusDriverLap : null}
       leaderboard={mapShowLeaderboard ? mapLeaderboard : undefined}
       activeSectorFlag={mapShowSectorFlags ? activeSectorFlag : null}
+      activeTrackVehicles={activeTrackVehicles}
       retiredDrivers={retiredDrivers}
       onSelectDriver={toggleFocus}
     />
