@@ -15,6 +15,7 @@ import { FocusedTelemetry } from "@/components/FocusedTelemetry/FocusedTelemetry
 import { LapChart } from "@/components/LapChart/LapChart";
 import { GapChart } from "@/components/GapChart/GapChart";
 import { FlagBanner } from "@/components/FlagBanner";
+import { QualifyingBanner } from "@/components/QualifyingBanner";
 import { StartingLights } from "@/components/StartingLights";
 import { SessionInfoBar } from "@/components/SessionInfoBar";
 import { ErrorMessage } from "@/components/ErrorMessage";
@@ -690,6 +691,17 @@ export default function RaceWeekend() {
           sessionStartMs={sessionStartMs}
           isRaceSession={isRaceSession}
           lightsOutMs={lightsOutMs}
+        />
+      )}
+
+      {sessionStartMs > 0 && isQualiSession(sessionName) && qualiPhase && (
+        <QualifyingBanner
+          phase={qualiPhase}
+          drivers={drivers.data ?? []}
+          positions={positions.data ?? []}
+          sessionTimeMs={t}
+          sessionStartMs={sessionStartMs}
+          countdownMs={countdownMs}
         />
       )}
 
