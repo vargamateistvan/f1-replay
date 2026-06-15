@@ -35,6 +35,12 @@ interface Props {
   readonly onSelectDriver?: (driverNumber: number) => void;
 }
 
+interface SessionBestOwner {
+  driverNumber: number;
+  lapNumber: number;
+  time: number;
+}
+
 function fmtGap(val: number | string | null) {
   if (val === null) return "—";
   if (typeof val === "string") return val;
@@ -121,6 +127,11 @@ export function LiveTiming({
   const showTelemetry = carData !== undefined;
   const currentT = sessionStartMs + sessionTimeMs;
 
+  const driverByNumber = useMemo(
+    () => new Map(drivers.map((d) => [d.driver_number, d])),
+    [drivers],
+  );
+
   const posMap = useMemo(() => {
     const m = new Map<number, number>();
     for (const p of positions)
@@ -153,18 +164,27 @@ export function LiveTiming({
     return s;
   }, [pits, currentT]);
 
+  const completedLaps = useMemo(
+    () =>
+      laps.filter(
+        (lap): lap is Lap & { date_start: string; lap_duration: number } => {
+          if (!lap.date_start || lap.lap_duration === null) return false;
+          const lapEndT =
+            new Date(lap.date_start).getTime() + lap.lap_duration * 1000;
+          return lapEndT <= currentT;
+        },
+      ),
+    [laps, currentT],
+  );
+
   const lastLapMap = useMemo(() => {
     const m = new Map<number, Lap>();
-    for (const l of laps) {
-      if (!l.date_start || !l.lap_duration) continue;
-      const lapEndT = new Date(l.date_start).getTime() + l.lap_duration * 1000;
-      if (lapEndT <= currentT) {
-        const prev = m.get(l.driver_number);
-        if (!prev || l.lap_number > prev.lap_number) m.set(l.driver_number, l);
-      }
+    for (const l of completedLaps) {
+      const prev = m.get(l.driver_number);
+      if (!prev || l.lap_number > prev.lap_number) m.set(l.driver_number, l);
     }
     return m;
-  }, [laps, currentT]);
+  }, [completedLaps]);
 
   const currentLapMap = useMemo(() => {
     const m = new Map<number, number>();
@@ -184,7 +204,7 @@ export function LiveTiming({
       s2: number | null = null,
       s3: number | null = null;
     let lap: number | null = null;
-    for (const l of lastLapMap.values()) {
+    for (const l of completedLaps) {
       if (
         l.duration_sector_1 !== null &&
         (s1 === null || l.duration_sector_1 < s1)
@@ -204,7 +224,46 @@ export function LiveTiming({
         lap = l.lap_duration;
     }
     return { s1, s2, s3, lap };
-  }, [lastLapMap]);
+  }, [completedLaps]);
+
+  const sessionBestOwners = useMemo(() => {
+    let s1: SessionBestOwner | null = null;
+    let s2: SessionBestOwner | null = null;
+    let s3: SessionBestOwner | null = null;
+    for (const lap of completedLaps) {
+      if (
+        lap.duration_sector_1 !== null &&
+        (s1 === null || lap.duration_sector_1 < s1.time)
+      ) {
+        s1 = {
+          driverNumber: lap.driver_number,
+          lapNumber: lap.lap_number,
+          time: lap.duration_sector_1,
+        };
+      }
+      if (
+        lap.duration_sector_2 !== null &&
+        (s2 === null || lap.duration_sector_2 < s2.time)
+      ) {
+        s2 = {
+          driverNumber: lap.driver_number,
+          lapNumber: lap.lap_number,
+          time: lap.duration_sector_2,
+        };
+      }
+      if (
+        lap.duration_sector_3 !== null &&
+        (s3 === null || lap.duration_sector_3 < s3.time)
+      ) {
+        s3 = {
+          driverNumber: lap.driver_number,
+          lapNumber: lap.lap_number,
+          time: lap.duration_sector_3,
+        };
+      }
+    }
+    return { s1, s2, s3 };
+  }, [completedLaps]);
 
   // Pit stops per driver up to the playhead: count + most recent stop time (s).
   const pitInfoMap = useMemo(() => {
@@ -240,10 +299,7 @@ export function LiveTiming({
       number,
       { s1: number | null; s2: number | null; s3: number | null }
     >();
-    for (const l of laps) {
-      if (!l.date_start || !l.lap_duration) continue;
-      const lapEndT = new Date(l.date_start).getTime() + l.lap_duration * 1000;
-      if (lapEndT > currentT) continue;
+    for (const l of completedLaps) {
       const pb = m.get(l.driver_number) ?? { s1: null, s2: null, s3: null };
       if (
         l.duration_sector_1 !== null &&
@@ -263,7 +319,7 @@ export function LiveTiming({
       m.set(l.driver_number, pb);
     }
     return m;
-  }, [laps, currentT]);
+  }, [completedLaps]);
 
   // Retirement detection only applies to race/sprint sessions.
   // OpenF1 position data is event-driven — it only fires on order changes. Stable
@@ -297,11 +353,6 @@ export function LiveTiming({
     return retired;
   }, [positions, laps, currentT, sessionName]);
 
-  const driverByNumber = useMemo(
-    () => new Map(drivers.map((d) => [d.driver_number, d])),
-    [drivers],
-  );
-
   const sorted = useMemo(
     () => [...posMap.entries()].sort((a, b) => a[1] - b[1]),
     [posMap],
@@ -329,6 +380,54 @@ export function LiveTiming({
       className="flex-1 min-h-0 overflow-auto"
       style={{ touchAction: "pan-y" }}
     >
+      <div className="border-b border-[#2a2a35] bg-surface/80 px-2 py-2 sm:px-3">
+        <div className="flex flex-wrap gap-2">
+          {(
+            [
+              ["S1", sessionBestOwners.s1],
+              ["S2", sessionBestOwners.s2],
+              ["S3", sessionBestOwners.s3],
+            ] as const
+          ).map(([label, best]) => {
+            const driver = best
+              ? driverByNumber.get(best.driverNumber)
+              : undefined;
+            const color = teamColor(driver?.team_colour);
+            return (
+              <div
+                key={label}
+                className="flex min-w-[108px] items-center gap-2 border border-panel bg-track px-2 py-1"
+                title={
+                  best
+                    ? `${label} ${best.time.toFixed(3)} · ${driver?.full_name ?? best.driverNumber} · Lap ${best.lapNumber}`
+                    : `${label} not set yet`
+                }
+              >
+                <span className="bg-[#9b59f5] px-1.5 py-0.5 text-[9px] font-black uppercase tracking-widest text-white">
+                  {label}
+                </span>
+                {best ? (
+                  <>
+                    <span
+                      className="font-black text-[11px] uppercase tracking-[0.1em]"
+                      style={{ color }}
+                    >
+                      {driver?.name_acronym ?? best.driverNumber}
+                    </span>
+                    <span className="ml-auto font-mono text-[10px] tabular-nums text-white">
+                      {best.time.toFixed(3)}
+                    </span>
+                  </>
+                ) : (
+                  <span className="text-[10px] uppercase tracking-[0.12em] text-muted">
+                    Waiting
+                  </span>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      </div>
       <table className="w-full border-collapse">
         <thead>
           <tr className="sticky top-0 bg-track z-10 border-b border-[#38383f]">
