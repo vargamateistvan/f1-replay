@@ -111,11 +111,17 @@ function parseRetryAfter(res: Response): number | null {
   return Number.isNaN(dateMs) ? null : Math.max(0, dateMs - Date.now());
 }
 
-async function isNoResults404(res: Response): Promise<boolean> {
+async function isNoResults404(path: string, res: Response): Promise<boolean> {
   if (res.status !== 404) return false;
+
+  // OpenF1 location windows frequently return 404 when no samples exist in a
+  // requested range. For replay chunking this is an expected "empty chunk".
+  if (path === "location") return true;
+
   try {
     const body = (await res.clone().json()) as OpenF1ErrorPayload;
-    return (body.detail ?? "").toLowerCase().includes("no results found");
+    const detail = (body.detail ?? "").toLowerCase();
+    return detail.includes("no results found") || detail.includes("no data");
   } catch {
     return false;
   }
@@ -145,7 +151,7 @@ export async function fetchEndpoint<T>(
 
     // OpenF1 returns 404 + `{"detail":"No results found."}` for empty filters.
     // Treat that specific case as an empty dataset.
-    if (await isNoResults404(res)) return [];
+    if (await isNoResults404(path, res)) return [];
 
     // Retry on 429 (rate limit) and 5xx (transient server) with backoff.
     // Auth (401/403) and other 4xx are terminal — fail fast.
