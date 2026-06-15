@@ -1,11 +1,13 @@
 import { useSearchParams, useLocation, useNavigate } from "react-router-dom";
 import { useStringParam } from "@/hooks/useSearchParamState";
+import { useSettings } from "@/stores/settings";
 import type { MainView } from "@/components/Nav";
 
 export function MobileNav() {
   const [searchParams] = useSearchParams();
   const location = useLocation();
   const navigate = useNavigate();
+  const openSettings = useSettings((s) => s.openModal);
   const [view] = useStringParam<MainView>("view", "leaderboard");
   const currentView: MainView = view ?? "leaderboard";
   const isMain = location.pathname === "/";
@@ -58,6 +60,21 @@ export function MobileNav() {
       >
         <span className="text-base leading-none">⊞</span>
         <span>Standings</span>
+      </button>
+      <button
+        onClick={openSettings}
+        className={btn(false)}
+        aria-label="Settings"
+      >
+        <svg width="14" height="14" viewBox="0 0 16 16" fill="none" strokeLinecap="round">
+          <line x1="2" y1="4" x2="14" y2="4" stroke="currentColor" strokeWidth="1.5"/>
+          <circle cx="10" cy="4" r="2" fill="currentColor"/>
+          <line x1="2" y1="8" x2="14" y2="8" stroke="currentColor" strokeWidth="1.5"/>
+          <circle cx="5" cy="8" r="2" fill="currentColor"/>
+          <line x1="2" y1="12" x2="14" y2="12" stroke="currentColor" strokeWidth="1.5"/>
+          <circle cx="11" cy="12" r="2" fill="currentColor"/>
+        </svg>
+        <span>Settings</span>
       </button>
     </nav>
   );

@@ -149,10 +149,10 @@ export function Nav() {
           </NavLink>
         </div>
 
-        {/* Settings button */}
+        {/* Settings button — desktop only; mobile has it in the bottom nav */}
         <button
           onClick={openSettings}
-          className="w-8 h-10 flex items-center justify-center text-white/70 hover:text-white hover:opacity-80 transition-opacity ml-1"
+          className="hidden md:flex w-8 h-10 items-center justify-center text-white/70 hover:text-white hover:opacity-80 transition-opacity ml-1"
           aria-label="Settings"
           title="Settings"
         >
