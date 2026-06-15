@@ -149,7 +149,7 @@ export default function Telemetry() {
   return (
     <div className="flex flex-col h-full overflow-hidden">
       {/* Driver + lap selectors */}
-      <div className="flex items-center gap-x-4 gap-y-1.5 px-4 py-2 bg-surface border-b border-panel flex-wrap">
+      <div className="flex items-center gap-x-3 gap-y-1.5 px-3 py-2 bg-surface border-b border-panel overflow-x-auto">
         <DriverSelect label="Driver A" value={driverA} onChange={setDriverA}
           options={drivers.data ?? []} disabled={!sessionKey} placeholder="— select —" />
         <DriverSelect label="Driver B" value={driverB} onChange={setDriverB}

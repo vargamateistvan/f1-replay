@@ -103,18 +103,6 @@ export function PlaybackBar({
           {fmtTime(t)}
         </span>
 
-        {/* Countdown badge — practice / qualifying only */}
-        {countdownMs !== null && (
-          <span className="flex items-center gap-1 shrink-0 px-1.5 py-0.5 bg-panel text-[10px] font-black tabular-nums uppercase tracking-widest">
-            {qualiPhase && (
-              <span className="text-f1red">{qualiPhase}</span>
-            )}
-            <span className={countdownMs <= 0 ? 'text-muted' : countdownMs <= 60_000 ? 'text-[#f5a623]' : 'text-white'}>
-              {countdownMs <= 0 ? 'ENDED' : fmtTime(countdownMs)}
-            </span>
-          </span>
-        )}
-
         {/* Scrubber */}
         <input
           type="range"
@@ -164,7 +152,16 @@ export function PlaybackBar({
       {/* ── Jump chips row ───────────────────────────────────────── */}
       {/* Mobile: compact always-visible horizontal scroll             */}
       {/* Desktop: flows naturally after the transport row            */}
-      <div className="flex gap-1 overflow-x-auto sm:flex-wrap">
+      <div className="flex gap-1 overflow-x-auto sm:flex-wrap" style={{ touchAction: 'pan-x' }}>
+        {/* Countdown / qualifying phase chip — practice & qualifying only */}
+        {countdownMs !== null && (
+          <span className="flex items-center gap-1 shrink-0 px-2 h-7 bg-panel text-[10px] font-black tabular-nums uppercase tracking-widest">
+            {qualiPhase && <span className="text-f1red">{qualiPhase}</span>}
+            <span className={countdownMs <= 0 ? 'text-muted' : countdownMs <= 60_000 ? 'text-[#f5a623]' : 'text-white'}>
+              {countdownMs <= 0 ? 'ENDED' : fmtTime(countdownMs)}
+            </span>
+          </span>
+        )}
         <button
           onClick={() => jump(nextPit)}
           disabled={nextPit === null}

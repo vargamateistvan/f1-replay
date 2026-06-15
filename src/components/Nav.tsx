@@ -182,22 +182,22 @@ export function Nav() {
 
       {/* ── Dark sub-bar: session pickers (main route only) ─────── */}
       {isMainRoute && (
-        <div className="flex flex-wrap items-center gap-x-3 gap-y-1 px-4 py-1.5 bg-track border-b border-panel">
+        <div className="flex items-center gap-1.5 px-2 py-1.5 bg-track border-b border-panel overflow-x-auto">
           {live && (
-            <span className="flex items-center gap-1 bg-f1red text-white text-[9px] font-black uppercase tracking-widest px-2 py-0.5 mr-1">
+            <span className="flex items-center gap-1 bg-f1red text-white text-[9px] font-black uppercase tracking-widest px-2 py-0.5 shrink-0">
               <span className="w-1.5 h-1.5 rounded-full bg-white animate-pulse" />
               Live
             </span>
           )}
 
-          <span className="text-[9px] font-bold uppercase tracking-widest text-muted">
+          <span className="hidden sm:inline text-[9px] font-bold uppercase tracking-widest text-muted shrink-0">
             Year
           </span>
           <select
             aria-label="Season year"
             value={year}
             onChange={(e) => onYear(Number(e.target.value))}
-            className={SELECT}
+            className={`${SELECT} shrink-0`}
           >
             {YEARS.map((y) => (
               <option key={y} value={y}>
@@ -206,11 +206,11 @@ export function Nav() {
             ))}
           </select>
 
-          <span className="text-[9px] font-bold uppercase tracking-widest text-muted">
+          <span className="hidden sm:inline text-[9px] font-bold uppercase tracking-widest text-muted shrink-0">
             Event
           </span>
           {meetings.isError && !authFailed ? (
-            <span className="text-red-400 font-mono text-[10px]">
+            <span className="text-red-400 font-mono text-[10px] shrink-0">
               Failed to load events
             </span>
           ) : (
@@ -219,9 +219,9 @@ export function Nav() {
               value={meetingKey ?? ""}
               onChange={(e) => onMeeting(Number(e.target.value))}
               disabled={meetings.isPending}
-              className={`${SELECT} min-w-0 flex-1 sm:min-w-44`}
+              className={`${SELECT} min-w-0 max-w-[160px] sm:max-w-none flex-1`}
             >
-              <option value="">— select —</option>
+              <option value="">— event —</option>
               {meetings.data?.map((m) => (
                 <option key={m.meeting_key} value={m.meeting_key}>
                   {m.location} — {m.meeting_name}
@@ -230,11 +230,11 @@ export function Nav() {
             </select>
           )}
 
-          <span className="text-[9px] font-bold uppercase tracking-widest text-muted">
+          <span className="hidden sm:inline text-[9px] font-bold uppercase tracking-widest text-muted shrink-0">
             Session
           </span>
           {sessions.isError && !authFailed ? (
-            <span className="text-red-400 font-mono text-[10px]">
+            <span className="text-red-400 font-mono text-[10px] shrink-0">
               Failed to load sessions
             </span>
           ) : (
@@ -243,9 +243,9 @@ export function Nav() {
               value={sessionKey ?? ""}
               onChange={(e) => setSessionKey(Number(e.target.value))}
               disabled={sessions.isPending || !meetingKey}
-              className={SELECT}
+              className={`${SELECT} shrink-0`}
             >
-              <option value="">— select —</option>
+              <option value="">— session —</option>
               {sessions.data?.map((s) => (
                 <option key={s.session_key} value={s.session_key}>
                   {s.session_name}
@@ -255,7 +255,7 @@ export function Nav() {
           )}
 
           {(meetings.isPending || sessions.isPending) && (
-            <span className="text-muted text-[9px] animate-pulse ml-1">
+            <span className="text-muted text-[9px] animate-pulse shrink-0">
               Loading…
             </span>
           )}

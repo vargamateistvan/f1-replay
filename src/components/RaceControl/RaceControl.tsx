@@ -56,7 +56,7 @@ export function RaceControlFeed({ entries, sessionTimeMs, sessionStartMs }: Prop
       )}
 
       {/* Scrollable message feed */}
-      <div className="flex-1 overflow-auto p-2 space-y-1">
+      <div className="flex-1 overflow-auto p-2 space-y-1" style={{ touchAction: 'pan-y' }}>
         {feed.length === 0 && (
           <div className="text-muted text-xs">
             {sessionStartMs ? 'No messages yet — scrub forward' : 'Select a session'}

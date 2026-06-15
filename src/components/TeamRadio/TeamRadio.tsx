@@ -46,7 +46,7 @@ export function TeamRadioFeed({ entries, drivers, sessionTimeMs, sessionStartMs 
   }
 
   return (
-    <div className="overflow-auto h-full p-2 space-y-1">
+    <div className="overflow-auto h-full p-2 space-y-1" style={{ touchAction: 'pan-y' }}>
       {visible.map((e, i) => {
         const driver = driverByNumber.get(e.driver_number)
         const color = teamColor(driver?.team_colour)

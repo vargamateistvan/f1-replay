@@ -324,7 +324,7 @@ export function LiveTiming({
   }
 
   return (
-    <div className="h-full overflow-auto">
+    <div className="h-full overflow-auto" style={{ touchAction: 'pan-y' }}>
       <table className="w-full border-collapse">
         <thead>
           <tr className="sticky top-0 bg-track z-10 border-b border-[#38383f]">
