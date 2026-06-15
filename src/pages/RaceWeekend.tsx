@@ -590,6 +590,8 @@ export default function RaceWeekend() {
   ]);
 
   const effectiveDuration = durationMs || DEFAULT_SESSION_MS;
+  const playbackDurationMs =
+    isRaceSession && chequeredMs !== null ? chequeredMs : effectiveDuration;
   const finalClassificationTriggerMs =
     chequeredMs ?? (durationMs > 0 ? durationMs : null);
   const showFinalClassification =
@@ -634,7 +636,7 @@ export default function RaceWeekend() {
 
   useKeyboardShortcuts({
     lapStarts: lapMarks,
-    durationMs: effectiveDuration,
+    durationMs: playbackDurationMs,
     enabled: sessionKey !== null,
   });
 
@@ -1182,7 +1184,7 @@ export default function RaceWeekend() {
 
       {/* Playback bar — always visible */}
       <PlaybackBar
-        durationMs={effectiveDuration}
+        durationMs={playbackDurationMs}
         lapStarts={lapMarks}
         pitTimes={pitMarks}
         flagTimes={flagMarks}
