@@ -88,9 +88,18 @@ export function Nav() {
   }
 
   return (
-    <header className="shrink-0" style={{ paddingTop: 'env(safe-area-inset-top)' }}>
+    <header
+      className="shrink-0"
+      style={{ paddingTop: "env(safe-area-inset-top)" }}
+    >
       {/* ── Red top bar ──────────────────────────────────────────── */}
-      <div className="flex items-center h-10 px-4 bg-f1red" style={{ paddingLeft: 'max(1rem, env(safe-area-inset-left))', paddingRight: 'max(1rem, env(safe-area-inset-right))' }}>
+      <div
+        className="flex items-center h-10 px-4 bg-f1red"
+        style={{
+          paddingLeft: "max(1rem, env(safe-area-inset-left))",
+          paddingRight: "max(1rem, env(safe-area-inset-right))",
+        }}
+      >
         <button
           onClick={() => navigate(viewHref(currentView))}
           className="flex items-center gap-2 mr-6 select-none shrink-0 hover:opacity-80 transition-opacity"
@@ -156,19 +165,45 @@ export function Nav() {
           aria-label="Settings"
           title="Settings"
         >
-          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" strokeLinecap="round">
+          <svg
+            width="16"
+            height="16"
+            viewBox="0 0 16 16"
+            fill="none"
+            strokeLinecap="round"
+          >
             {/* Top slider — high */}
-            <line x1="2" y1="4" x2="14" y2="4" stroke="currentColor" strokeWidth="1.5"/>
-            <circle cx="10" cy="4" r="2" fill="currentColor"/>
+            <line
+              x1="2"
+              y1="4"
+              x2="14"
+              y2="4"
+              stroke="currentColor"
+              strokeWidth="1.5"
+            />
+            <circle cx="10" cy="4" r="2" fill="currentColor" />
             {/* Middle slider — low */}
-            <line x1="2" y1="8" x2="14" y2="8" stroke="currentColor" strokeWidth="1.5"/>
-            <circle cx="5" cy="8" r="2" fill="currentColor"/>
+            <line
+              x1="2"
+              y1="8"
+              x2="14"
+              y2="8"
+              stroke="currentColor"
+              strokeWidth="1.5"
+            />
+            <circle cx="5" cy="8" r="2" fill="currentColor" />
             {/* Bottom slider — mid */}
-            <line x1="2" y1="12" x2="14" y2="12" stroke="currentColor" strokeWidth="1.5"/>
-            <circle cx="11" cy="12" r="2" fill="currentColor"/>
+            <line
+              x1="2"
+              y1="12"
+              x2="14"
+              y2="12"
+              stroke="currentColor"
+              strokeWidth="1.5"
+            />
+            <circle cx="11" cy="12" r="2" fill="currentColor" />
           </svg>
         </button>
-
       </div>
 
       {/* ── Auth failure banner ───────────────────────────────── */}
@@ -182,7 +217,13 @@ export function Nav() {
 
       {/* ── Dark sub-bar: session pickers (main route only) ─────── */}
       {isMainRoute && (
-        <div className="flex items-center gap-1.5 py-1.5 bg-track border-b border-panel overflow-x-auto" style={{ paddingLeft: 'max(0.5rem, env(safe-area-inset-left))', paddingRight: 'max(0.5rem, env(safe-area-inset-right))' }}>
+        <div
+          className="flex flex-wrap items-center gap-1.5 py-1.5 bg-track border-b border-panel"
+          style={{
+            paddingLeft: "max(0.5rem, env(safe-area-inset-left))",
+            paddingRight: "max(0.5rem, env(safe-area-inset-right))",
+          }}
+        >
           {live && (
             <span className="flex items-center gap-1 bg-f1red text-white text-[9px] font-black uppercase tracking-widest px-2 py-0.5 shrink-0">
               <span className="w-1.5 h-1.5 rounded-full bg-white animate-pulse" />
@@ -219,7 +260,7 @@ export function Nav() {
               value={meetingKey ?? ""}
               onChange={(e) => onMeeting(Number(e.target.value))}
               disabled={meetings.isPending}
-              className={`${SELECT} min-w-0 max-w-[160px] sm:max-w-none flex-1`}
+              className={`${SELECT} min-w-0 flex-[1_1_160px] sm:max-w-none`}
             >
               <option value="">— event —</option>
               {meetings.data?.map((m) => (
@@ -243,7 +284,7 @@ export function Nav() {
               value={sessionKey ?? ""}
               onChange={(e) => setSessionKey(Number(e.target.value))}
               disabled={sessions.isPending || !meetingKey}
-              className={`${SELECT} shrink-0`}
+              className={`${SELECT} min-w-0 flex-[1_1_120px] sm:flex-none`}
             >
               <option value="">— session —</option>
               {sessions.data?.map((s) => (
@@ -255,13 +296,12 @@ export function Nav() {
           )}
 
           {(meetings.isPending || sessions.isPending) && (
-            <span className="text-muted text-[9px] animate-pulse shrink-0">
+            <span className="text-muted text-[9px] animate-pulse shrink-0 ml-auto sm:ml-0">
               Loading…
             </span>
           )}
         </div>
       )}
-
     </header>
   );
 }
