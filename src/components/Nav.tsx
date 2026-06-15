@@ -88,9 +88,9 @@ export function Nav() {
   }
 
   return (
-    <header className="shrink-0">
+    <header className="shrink-0" style={{ paddingTop: 'env(safe-area-inset-top)' }}>
       {/* ── Red top bar ──────────────────────────────────────────── */}
-      <div className="flex items-center h-10 px-4 bg-f1red">
+      <div className="flex items-center h-10 px-4 bg-f1red" style={{ paddingLeft: 'max(1rem, env(safe-area-inset-left))', paddingRight: 'max(1rem, env(safe-area-inset-right))' }}>
         <button
           onClick={() => navigate(viewHref(currentView))}
           className="flex items-center gap-2 mr-6 select-none shrink-0 hover:opacity-80 transition-opacity"
@@ -182,7 +182,7 @@ export function Nav() {
 
       {/* ── Dark sub-bar: session pickers (main route only) ─────── */}
       {isMainRoute && (
-        <div className="flex items-center gap-1.5 px-2 py-1.5 bg-track border-b border-panel overflow-x-auto">
+        <div className="flex items-center gap-1.5 py-1.5 bg-track border-b border-panel overflow-x-auto" style={{ paddingLeft: 'max(0.5rem, env(safe-area-inset-left))', paddingRight: 'max(0.5rem, env(safe-area-inset-right))' }}>
           {live && (
             <span className="flex items-center gap-1 bg-f1red text-white text-[9px] font-black uppercase tracking-widest px-2 py-0.5 shrink-0">
               <span className="w-1.5 h-1.5 rounded-full bg-white animate-pulse" />

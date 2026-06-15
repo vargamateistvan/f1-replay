@@ -12,6 +12,16 @@ body {
   @apply bg-track text-white font-sans antialiased;
 }
 
+/* iOS: use dynamic viewport height so address bar doesn't clip layout */
+html, body, #root {
+  height: 100%;
+}
+
+/* iOS momentum scrolling for all overflow-auto/scroll containers */
+.overflow-auto, .overflow-y-auto, .overflow-x-auto {
+  -webkit-overflow-scrolling: touch;
+}
+
 /* Thin scrollbar for panels */
 ::-webkit-scrollbar { width: 4px; height: 4px; }
 ::-webkit-scrollbar-track { @apply bg-surface; }

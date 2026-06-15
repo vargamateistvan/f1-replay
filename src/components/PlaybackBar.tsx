@@ -62,7 +62,7 @@ export function PlaybackBar({
   }
 
   return (
-    <div className="flex flex-col gap-1.5 px-3 py-2 bg-track border-t border-panel sm:gap-2 sm:px-4 sm:py-2.5">
+    <div className="flex flex-col gap-1.5 py-2 bg-track border-t border-panel sm:gap-2 sm:py-2.5" style={{ paddingLeft: 'max(0.75rem, env(safe-area-inset-left))', paddingRight: 'max(0.75rem, env(safe-area-inset-right))' }}>
 
       {/* ── Transport + scrubber row ─────────────────────────────── */}
       <div className="flex items-center gap-2 w-full">

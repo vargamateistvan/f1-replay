@@ -25,57 +25,62 @@ export function MobileNav() {
     }`;
 
   return (
-    <nav className="md:hidden shrink-0 flex h-11 bg-track border-t border-panel">
-      <button
-        onClick={() => navigate(viewHref("leaderboard"))}
-        className={btn(isMain && currentView === "leaderboard")}
-      >
-        <span className="text-base leading-none">≡</span>
-        <span>Tower</span>
-      </button>
-      <button
-        onClick={() => navigate(viewHref("tracker"))}
-        className={btn(isMain && currentView === "tracker")}
-      >
-        <span className="text-base leading-none">◉</span>
-        <span>Tracker</span>
-      </button>
-      <button
-        onClick={() => navigate(viewHref("commentary"))}
-        className={btn(isMain && currentView === "commentary")}
-      >
-        <span className="text-base leading-none">≋</span>
-        <span>Feeds</span>
-      </button>
-      <button
-        onClick={() => navigate(`/telemetry?${searchParams}`)}
-        className={btn(location.pathname === "/telemetry")}
-      >
-        <span className="text-base leading-none">↗</span>
-        <span>Telemetry</span>
-      </button>
-      <button
-        onClick={() => navigate(`/standings?${searchParams}`)}
-        className={btn(location.pathname === "/standings")}
-      >
-        <span className="text-base leading-none">⊞</span>
-        <span>Standings</span>
-      </button>
-      <button
-        onClick={openSettings}
-        className={btn(false)}
-        aria-label="Settings"
-      >
-        <svg width="14" height="14" viewBox="0 0 16 16" fill="none" strokeLinecap="round">
-          <line x1="2" y1="4" x2="14" y2="4" stroke="currentColor" strokeWidth="1.5"/>
-          <circle cx="10" cy="4" r="2" fill="currentColor"/>
-          <line x1="2" y1="8" x2="14" y2="8" stroke="currentColor" strokeWidth="1.5"/>
-          <circle cx="5" cy="8" r="2" fill="currentColor"/>
-          <line x1="2" y1="12" x2="14" y2="12" stroke="currentColor" strokeWidth="1.5"/>
-          <circle cx="11" cy="12" r="2" fill="currentColor"/>
-        </svg>
-        <span>Settings</span>
-      </button>
+    <nav
+      className="md:hidden shrink-0 flex flex-col bg-track border-t border-panel"
+      style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
+    >
+      <div className="flex h-11">
+        <button
+          onClick={() => navigate(viewHref("leaderboard"))}
+          className={btn(isMain && currentView === "leaderboard")}
+        >
+          <span className="text-base leading-none">≡</span>
+          <span>Tower</span>
+        </button>
+        <button
+          onClick={() => navigate(viewHref("tracker"))}
+          className={btn(isMain && currentView === "tracker")}
+        >
+          <span className="text-base leading-none">◉</span>
+          <span>Tracker</span>
+        </button>
+        <button
+          onClick={() => navigate(viewHref("commentary"))}
+          className={btn(isMain && currentView === "commentary")}
+        >
+          <span className="text-base leading-none">≋</span>
+          <span>Feeds</span>
+        </button>
+        <button
+          onClick={() => navigate(`/telemetry?${searchParams}`)}
+          className={btn(location.pathname === "/telemetry")}
+        >
+          <span className="text-base leading-none">↗</span>
+          <span>Telemetry</span>
+        </button>
+        <button
+          onClick={() => navigate(`/standings?${searchParams}`)}
+          className={btn(location.pathname === "/standings")}
+        >
+          <span className="text-base leading-none">⊞</span>
+          <span>Standings</span>
+        </button>
+        <button
+          onClick={openSettings}
+          className={btn(false)}
+          aria-label="Settings"
+        >
+          <svg width="14" height="14" viewBox="0 0 16 16" fill="none" strokeLinecap="round">
+            <line x1="2" y1="4" x2="14" y2="4" stroke="currentColor" strokeWidth="1.5"/>
+            <circle cx="10" cy="4" r="2" fill="currentColor"/>
+            <line x1="2" y1="8" x2="14" y2="8" stroke="currentColor" strokeWidth="1.5"/>
+            <circle cx="5" cy="8" r="2" fill="currentColor"/>
+            <line x1="2" y1="12" x2="14" y2="12" stroke="currentColor" strokeWidth="1.5"/>
+            <circle cx="11" cy="12" r="2" fill="currentColor"/>
+          </svg>
+          <span>Settings</span>
+        </button>
+      </div>
     </nav>
   );
 }
