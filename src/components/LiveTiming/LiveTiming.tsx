@@ -35,6 +35,7 @@ interface Props {
   readonly carData?: ReadonlyMap<number, CarData>;
   readonly isLoading?: boolean;
   readonly selectedDriver?: number | null;
+  readonly compareDriver?: number | null;
   readonly onSelectDriver?: (driverNumber: number) => void;
 }
 
@@ -126,6 +127,7 @@ export function LiveTiming({
   sessionStartMs,
   isLoading,
   selectedDriver,
+  compareDriver,
   onSelectDriver,
 }: Props) {
   const showTelemetry = carData !== undefined;
@@ -363,6 +365,9 @@ export function LiveTiming({
       style={{ touchAction: "pan-y" }}
     >
       <div className="border-b border-[#2a2a35] bg-surface/80 px-2 py-2 sm:px-3">
+        <div className="mb-2 text-[10px] font-bold uppercase tracking-[0.12em] text-muted">
+          Tap driver A, then driver B to compare
+        </div>
         <div className="flex flex-wrap gap-2">
           {(
             [
@@ -484,13 +489,16 @@ export function LiveTiming({
             const gained = gridPos !== null ? gridPos - pos : null;
             const retired = retiredDrivers.has(num);
             const selected = selectedDriver === num;
+            const compared = compareDriver === num;
             const rowBg = selected
               ? "bg-[#2a2a35]"
-              : retired
-                ? "opacity-50"
-                : idx % 2 === 1
-                  ? "bg-white/[0.02] hover:bg-white/[0.06]"
-                  : "hover:bg-white/[0.06]";
+              : compared
+                ? "bg-[#1a2438]"
+                : retired
+                  ? "opacity-50"
+                  : idx % 2 === 1
+                    ? "bg-white/[0.02] hover:bg-white/[0.06]"
+                    : "hover:bg-white/[0.06]";
 
             return (
               <tr
@@ -516,6 +524,16 @@ export function LiveTiming({
                     <span className="font-bold text-[12px] tracking-[0.06em] uppercase text-white">
                       {driver?.name_acronym ?? num}
                     </span>
+                    {selected && (
+                      <span className="bg-f1red text-white text-[9px] font-black uppercase tracking-widest px-1.5 py-0.5">
+                        A
+                      </span>
+                    )}
+                    {compared && (
+                      <span className="bg-[#1e40af] text-white text-[9px] font-black uppercase tracking-widest px-1.5 py-0.5">
+                        B
+                      </span>
+                    )}
                     {/* Places gained/lost */}
                     {gained !== null && gained !== 0 && (
                       <span

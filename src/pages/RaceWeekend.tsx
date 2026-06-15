@@ -630,6 +630,11 @@ export default function RaceWeekend() {
     setCompareDriver(num);
   };
 
+  const clearFocusSelection = () => {
+    setFocusDriver(null);
+    setCompareDriver(null);
+  };
+
   const {
     height: strategyHeight,
     handleProps: strategyHandleProps,
@@ -653,6 +658,7 @@ export default function RaceWeekend() {
       sessionStartMs={sessionStartMs}
       isLoading={positions.isPending && sessionKey !== null}
       selectedDriver={focusDriver}
+      compareDriver={compareDriver}
       onSelectDriver={toggleFocus}
     />
   );
@@ -673,6 +679,7 @@ export default function RaceWeekend() {
       sessionStartMs={sessionStartMs}
       isLoading={positions.isPending && sessionKey !== null}
       selectedDriver={focusDriver}
+      compareDriver={compareDriver}
       onSelectDriver={toggleFocus}
       carData={telemetryEnabled ? carDataAtT : undefined}
     />
@@ -864,7 +871,7 @@ export default function RaceWeekend() {
                           sessionStartMs={sessionStartMs}
                           driverLap={focusDriverLap}
                           compareDriverLap={compareDriverLap}
-                          onClear={() => setFocusDriver(null)}
+                          onClear={clearFocusSelection}
                           onClearCompare={() => setCompareDriver(null)}
                         />
                       </div>
@@ -980,7 +987,7 @@ export default function RaceWeekend() {
                       sessionStartMs={sessionStartMs}
                       driverLap={focusDriverLap}
                       compareDriverLap={compareDriverLap}
-                      onClear={() => setFocusDriver(null)}
+                      onClear={clearFocusSelection}
                       onClearCompare={() => setCompareDriver(null)}
                     />
                   </div>
