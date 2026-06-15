@@ -477,7 +477,12 @@ export default function RaceWeekend() {
     if (!toastsEnabled) return [];
     return toastEvents.filter((ev) => {
       if (ev.kind === "radio") return settingToastRadio;
-      if (ev.kind === "flag") return settingToastFlag;
+      if (
+        ev.kind === "flag" ||
+        ev.kind === "investigation" ||
+        ev.kind === "penalty"
+      )
+        return settingToastFlag;
       if (ev.kind === "overtake") return settingToastOvertake;
       if (ev.kind === "pit") return settingToastPit;
       if (ev.kind === "fastest_lap") return settingToastFastestLap;

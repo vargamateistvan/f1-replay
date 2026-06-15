@@ -147,7 +147,11 @@ function ToastCard({
   const inner = (() => {
     if (at.event.kind === "radio")
       return <RadioToast at={at} driverMap={driverMap} onDismiss={onDismiss} />;
-    if (at.event.kind === "flag")
+    if (
+      at.event.kind === "flag" ||
+      at.event.kind === "investigation" ||
+      at.event.kind === "penalty"
+    )
       return <FlagToast at={at} onDismiss={onDismiss} />;
     if (at.event.kind === "overtake")
       return (
@@ -260,29 +264,36 @@ function FlagToast({
   onDismiss: (id: string) => void;
 }) {
   const p = at.event.payload as FlagPayload;
+  const kind = at.event.kind;
   const cfg = FLAG_COLORS[p.flag] ?? {
     bg: "#2a2a35",
     text: "#fff",
     label: p.flag,
   };
-  const isPenalty = /penalty|investigation/i.test(p.message);
+
+  const header =
+    kind === "investigation"
+      ? { bg: "#3a3320", text: "#ffd36a", label: "INVESTIGATION" }
+      : kind === "penalty"
+        ? { bg: "#4a1820", text: "#ff9ca9", label: "PENALTY" }
+        : cfg;
 
   return (
     <div className="pointer-events-auto bg-[#1f1f27] border border-[#38383f] shadow-xl overflow-hidden w-full">
       <div
         className="flex items-center gap-2 px-2 py-1 md:px-3 md:py-1.5"
-        style={{ background: cfg.bg }}
+        style={{ background: header.bg }}
       >
         <span
           className="text-[10px] font-black uppercase tracking-widest"
-          style={{ color: cfg.text }}
+          style={{ color: header.text }}
         >
-          {isPenalty && !p.flag ? "⚠ PENALTY" : cfg.label}
+          {header.label}
         </span>
         {p.lapNumber && (
           <span
             className="text-[9px] font-mono ml-auto"
-            style={{ color: cfg.text, opacity: 0.75 }}
+            style={{ color: header.text, opacity: 0.75 }}
           >
             L{p.lapNumber}
           </span>
@@ -370,7 +381,10 @@ function PitToast({
           Pit · L{p.lapNumber}
         </div>
         <div className="flex items-center gap-1.5">
-          <span className="font-black text-[12px] md:text-[14px]" style={{ color }}>
+          <span
+            className="font-black text-[12px] md:text-[14px]"
+            style={{ color }}
+          >
             {driver?.name_acronym ?? p.driverNumber}
           </span>
           {p.pitDuration !== null && (
