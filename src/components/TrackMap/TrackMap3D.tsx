@@ -31,18 +31,23 @@ function makeTransform(
   ys: readonly number[],
   zs?: readonly number[],
 ): WorldTransform {
-  let minX = Infinity, maxX = -Infinity;
-  let minY = Infinity, maxY = -Infinity;
-  let minZ = 0, maxZ = 0;
+  let minX = Infinity,
+    maxX = -Infinity;
+  let minY = Infinity,
+    maxY = -Infinity;
+  let minZ = 0,
+    maxZ = 0;
   for (let i = 0; i < xs.length; i++) {
-    const x = xs[i]!, y = ys[i]!;
+    const x = xs[i]!,
+      y = ys[i]!;
     if (x < minX) minX = x;
     if (x > maxX) maxX = x;
     if (y < minY) minY = y;
     if (y > maxY) maxY = y;
   }
   if (zs?.length) {
-    minZ = Infinity; maxZ = -Infinity;
+    minZ = Infinity;
+    maxZ = -Infinity;
     for (const z of zs) {
       if (z < minZ) minZ = z;
       if (z > maxZ) maxZ = z;
@@ -68,9 +73,7 @@ function toWorld(
 ): [number, number, number] {
   // Normalize elevation to [0, elevScale * 8] world units so the track never
   // looks flat even at 1× or overwhelmingly tall at 8×.
-  const wy = useElev
-    ? ((z - tr.minZ) / tr.zRange) * elevScale * 8
-    : 0;
+  const wy = useElev ? ((z - tr.minZ) / tr.zRange) * elevScale * 8 : 0;
   return [(x - tr.cx) * tr.scale, wy, -(y - tr.cy) * tr.scale];
 }
 
@@ -88,7 +91,12 @@ interface SceneProps {
   playing: boolean;
 }
 
-function TrackScene({ trackPts, carPositions, autoRotate, playing }: SceneProps) {
+function TrackScene({
+  trackPts,
+  carPositions,
+  autoRotate,
+  playing,
+}: SceneProps) {
   return (
     <>
       <ambientLight intensity={1.2} />
@@ -108,7 +116,13 @@ function TrackScene({ trackPts, carPositions, autoRotate, playing }: SceneProps)
         <>
           <Line points={trackPts} color="#38383f" lineWidth={12} />
           <Line points={trackPts} color="#4a4a55" lineWidth={7} />
-          <Line points={trackPts} color="#ffffff" lineWidth={1} transparent opacity={0.12} />
+          <Line
+            points={trackPts}
+            color="#ffffff"
+            lineWidth={1}
+            transparent
+            opacity={0.12}
+          />
         </>
       )}
 
@@ -118,12 +132,21 @@ function TrackScene({ trackPts, carPositions, autoRotate, playing }: SceneProps)
           {focused && (
             <mesh rotation={[-Math.PI / 2, 0, 0] as [number, number, number]}>
               <ringGeometry args={[1.5, 2.0, 32]} />
-              <meshBasicMaterial color={color} transparent opacity={0.5} side={THREE.DoubleSide} />
+              <meshBasicMaterial
+                color={color}
+                transparent
+                opacity={0.5}
+                side={THREE.DoubleSide}
+              />
             </mesh>
           )}
           <mesh>
             <sphereGeometry args={[focused ? 1.0 : 0.65, 10, 10]} />
-            <meshStandardMaterial color={color} roughness={0.3} metalness={0.4} />
+            <meshStandardMaterial
+              color={color}
+              roughness={0.3}
+              metalness={0.4}
+            />
           </mesh>
         </group>
       ))}
@@ -159,10 +182,12 @@ export function TrackMap3D({
   retiredDrivers,
   leaderboard,
 }: Props) {
-  const { map3dElevation, map3dElevationScale, map3dAutoRotate } = useSettings();
+  const { map3dElevation, map3dElevationScale, map3dAutoRotate } =
+    useSettings();
   const { playing } = useTimeline();
 
-  const circuitGeom = circuitKey != null ? getCircuitGeometry(circuitKey) : null;
+  const circuitGeom =
+    circuitKey != null ? getCircuitGeometry(circuitKey) : null;
   const fallbackDriverNum = !circuitGeom
     ? (drivers[0]?.driver_number ?? null)
     : null;
@@ -176,6 +201,13 @@ export function TrackMap3D({
   const driverByNumber = useMemo(
     () => new Map(drivers.map((d) => [d.driver_number, d])),
     [drivers],
+  );
+
+  // Some sessions/circuits ship no live Z samples in /location. In that case,
+  // keep cars on the track plane instead of placing them below the 3D ribbon.
+  const hasLiveElevation = useMemo(
+    () => locationData.some((p) => p.z !== null && p.z !== undefined),
+    [locationData],
   );
 
   const worldTransform = useMemo((): WorldTransform | null => {
@@ -214,25 +246,55 @@ export function TrackMap3D({
     // Manually close the loop so the track ribbon has no gap.
     if (pts.length > 2) pts = [...pts, pts[0]!];
     return pts;
-  }, [circuitGeom, outline, worldTransform, map3dElevation, map3dElevationScale]);
+  }, [
+    circuitGeom,
+    outline,
+    worldTransform,
+    map3dElevation,
+    map3dElevationScale,
+  ]);
 
   // 60 Hz car positions
-  const rawPositions = useCarPositions(locationData, sessionStartMs, retiredDrivers);
+  const rawPositions = useCarPositions(
+    locationData,
+    sessionStartMs,
+    retiredDrivers,
+  );
 
   const carPositions = useMemo(() => {
     if (!worldTransform) return [];
     return rawPositions.map(({ num, x, y, z }) => {
       const driver = driverByNumber.get(num);
+      const inputZ = map3dElevation
+        ? hasLiveElevation
+          ? z
+          : worldTransform.minZ
+        : 0;
+      const [wx, wy, wz] = toWorld(
+        x,
+        y,
+        inputZ,
+        worldTransform,
+        map3dElevationScale,
+        map3dElevation,
+      );
       return {
         num,
-        worldPos: toWorld(
-          x, y, z, worldTransform, map3dElevationScale, map3dElevation,
-        ) as [number, number, number],
+        // Lift slightly above the track to avoid depth fighting with the ribbon.
+        worldPos: [wx, wy + 0.6, wz] as [number, number, number],
         color: teamColor(driver?.team_colour),
         focused: focusDriver === num,
       };
     });
-  }, [rawPositions, worldTransform, driverByNumber, focusDriver, map3dElevation, map3dElevationScale]);
+  }, [
+    rawPositions,
+    worldTransform,
+    driverByNumber,
+    focusDriver,
+    map3dElevation,
+    map3dElevationScale,
+    hasLiveElevation,
+  ]);
 
   if (!worldTransform) {
     return (

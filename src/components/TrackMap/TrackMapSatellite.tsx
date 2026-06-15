@@ -1,5 +1,5 @@
 import { useEffect, useRef, useMemo } from "react";
-import maplibregl, { GeoJSONSource } from "maplibre-gl";
+import maplibregl from "maplibre-gl";
 import type { StyleSpecification } from "maplibre-gl";
 import "maplibre-gl/dist/maplibre-gl.css";
 import { applyGeoAffine } from "@/geometry/align";
@@ -67,8 +67,7 @@ function buildCarsGeoJSON(
 // ── MapLibre style ────────────────────────────────────────────────────────────
 // Esri World Imagery — free, no API key, referrer-restricted on their end.
 
-const ESRI_ATTRIBUTION =
-  "Tiles © Esri — Source: Esri, USGS, NOAA";
+const ESRI_ATTRIBUTION = "Tiles © Esri — Source: Esri, USGS, NOAA";
 
 function makeMapStyle(showLabels: boolean): StyleSpecification {
   return {
@@ -146,7 +145,8 @@ export function TrackMapSatellite({
 }: Props) {
   const { satelliteOpacity, satelliteLabels } = useSettings();
 
-  const circuitGeom = circuitKey != null ? getCircuitGeometry(circuitKey) : null;
+  const circuitGeom =
+    circuitKey != null ? getCircuitGeometry(circuitKey) : null;
   const affine = circuitGeom?.geoAffine ?? null;
 
   const driverByNumber = useMemo(
@@ -155,7 +155,11 @@ export function TrackMapSatellite({
   );
 
   // 60 Hz car positions
-  const carPositions = useCarPositions(locationData, sessionStartMs, retiredDrivers);
+  const carPositions = useCarPositions(
+    locationData,
+    sessionStartMs,
+    retiredDrivers,
+  );
 
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<maplibregl.Map | null>(null);
@@ -167,12 +171,20 @@ export function TrackMapSatellite({
     if (!mapContainerRef.current || !affine || !circuitGeom) return;
 
     // Compute track lng/lat bounds for fitBounds
-    let minLng = Infinity, maxLng = -Infinity;
-    let minLat = Infinity, maxLat = -Infinity;
+    let minLng = Infinity,
+      maxLng = -Infinity;
+    let minLat = Infinity,
+      maxLat = -Infinity;
     for (let i = 0; i < circuitGeom.x.length; i++) {
-      const { lng, lat } = applyGeoAffine(affine, circuitGeom.x[i]!, circuitGeom.y[i]!);
-      if (lng < minLng) minLng = lng; if (lng > maxLng) maxLng = lng;
-      if (lat < minLat) minLat = lat; if (lat > maxLat) maxLat = lat;
+      const { lng, lat } = applyGeoAffine(
+        affine,
+        circuitGeom.x[i]!,
+        circuitGeom.y[i]!,
+      );
+      if (lng < minLng) minLng = lng;
+      if (lng > maxLng) maxLng = lng;
+      if (lat < minLat) minLat = lat;
+      if (lat > maxLat) maxLat = lat;
     }
     const pad = 0.002; // ~200m padding
     const bounds: [LngLat, LngLat] = [
@@ -230,7 +242,12 @@ export function TrackMapSatellite({
       // Cars
       map.addSource(CARS_SOURCE, {
         type: "geojson",
-        data: { type: "FeatureCollection", features: [] },
+        data: buildCarsGeoJSON(
+          carPositions,
+          affine,
+          driverByNumber,
+          focusDriver,
+        ),
       });
       map.addLayer({
         id: "cars-halo",
@@ -287,14 +304,23 @@ export function TrackMapSatellite({
       map.remove();
       mapRef.current = null;
     };
-  }, [affine, circuitGeom, satelliteLabels]); // reinit on circuit or labels toggle
+  }, [
+    affine,
+    circuitGeom,
+    satelliteLabels,
+    carPositions,
+    driverByNumber,
+    focusDriver,
+  ]); // reinit on circuit or labels toggle
 
   // ── Car position updates (60 Hz) ───────────────────────────────────────────
   useEffect(() => {
     const map = mapRef.current;
     if (!map || !mapReadyRef.current || !affine) return;
-    const source = map.getSource(CARS_SOURCE);
-    if (!(source instanceof GeoJSONSource)) return;
+    const source = map.getSource(CARS_SOURCE) as
+      | { setData?: (data: unknown) => void }
+      | undefined;
+    if (!source?.setData) return;
     source.setData(
       buildCarsGeoJSON(carPositions, affine, driverByNumber, focusDriver),
     );
@@ -306,7 +332,11 @@ export function TrackMapSatellite({
     if (!map || !mapReadyRef.current) return;
     map.setPaintProperty("track-base", "line-opacity", satelliteOpacity);
     map.setPaintProperty("track-surface", "line-opacity", satelliteOpacity);
-    map.setPaintProperty("track-highlight", "line-opacity", satelliteOpacity * 0.2);
+    map.setPaintProperty(
+      "track-highlight",
+      "line-opacity",
+      satelliteOpacity * 0.2,
+    );
   }, [satelliteOpacity]);
 
   // ── No geo affine ─────────────────────────────────────────────────────────
@@ -319,7 +349,11 @@ export function TrackMapSatellite({
         <span className="text-[11px] leading-snug">
           No geo-reference data for this circuit.
           <br />
-          Run <code className="text-white/50 text-[10px]">node scripts/fetch-circuits.mjs</code> and re-deploy.
+          Run{" "}
+          <code className="text-white/50 text-[10px]">
+            node scripts/fetch-circuits.mjs
+          </code>{" "}
+          and re-deploy.
         </span>
       </div>
     );
