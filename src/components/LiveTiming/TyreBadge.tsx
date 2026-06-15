@@ -22,7 +22,7 @@ function CompoundDot({ compound }: { compound: Compound }) {
   const { bg, letter } = COMPOUND_STYLE[compound] ?? COMPOUND_STYLE.UNKNOWN;
   return (
     <span
-      className="w-5 h-5 rounded-full flex items-center justify-center text-[9px] font-black shrink-0"
+      className="flex h-4 w-4 shrink-0 items-center justify-center rounded-full text-[8px] font-black sm:h-5 sm:w-5 sm:text-[9px]"
       style={{
         backgroundColor: bg,
         color: compound === "HARD" ? "#000" : "#fff",
@@ -52,17 +52,17 @@ export function TyreBadge({
 
   return (
     <span
-      className="flex items-center gap-1"
+      className="flex items-center gap-0.5 sm:gap-1"
       title={`${active.compound} · ${age} lap${age === 1 ? "" : "s"} old`}
     >
       {changed && (
         <>
           <CompoundDot compound={startCompound as Compound} />
-          <span className="text-[9px] text-muted/50">→</span>
+          <span className="text-[8px] text-muted/50 sm:text-[9px]">→</span>
         </>
       )}
       <CompoundDot compound={active.compound} />
-      <span className="rounded bg-panel px-1.5 py-0.5 text-[9px] font-black uppercase tracking-[0.08em] text-white/75 tabular-nums">
+      <span className="hidden rounded bg-panel px-1.5 py-0.5 text-[9px] font-black uppercase tracking-[0.08em] text-white/75 tabular-nums min-[430px]:inline-block">
         {age}L
       </span>
     </span>

@@ -27,7 +27,7 @@ function fmtTime(ms: number) {
 }
 
 const JUMP_BTN =
-  "w-7 h-8 flex items-center justify-center text-xs bg-panel text-muted hover:text-white hover:bg-[#38383f] transition-colors shrink-0 disabled:opacity-30 disabled:hover:bg-panel disabled:hover:text-muted";
+  "flex h-8 w-6 items-center justify-center text-xs bg-panel text-muted transition-colors shrink-0 hover:text-white hover:bg-[#38383f] sm:w-7 disabled:opacity-30 disabled:hover:bg-panel disabled:hover:text-muted";
 const CHIP_STRETCH =
   "h-7 flex-1 flex items-center justify-center text-[10px] font-black uppercase tracking-widest bg-panel text-muted hover:text-white hover:bg-[#38383f] transition-colors sm:flex-none sm:shrink-0 sm:px-3 disabled:opacity-30 disabled:hover:bg-panel disabled:hover:text-muted";
 
@@ -183,7 +183,7 @@ export function PlaybackBar({
       }}
     >
       {/* ── Transport + scrubber row ─────────────────────────────── */}
-      <div className="flex items-center gap-2 w-full">
+      <div className="flex items-center gap-1.5 w-full sm:gap-2">
         {/* Start */}
         <button
           onClick={() => jump(0)}
@@ -239,7 +239,7 @@ export function PlaybackBar({
         </button>
 
         {/* Current time */}
-        <span className="text-muted font-mono text-xs tabular-nums w-10 text-right shrink-0">
+        <span className="text-muted font-mono text-xs tabular-nums w-9 text-right shrink-0 sm:w-10">
           {fmtTime(t)}
         </span>
 

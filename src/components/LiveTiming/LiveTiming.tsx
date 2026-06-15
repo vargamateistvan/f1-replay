@@ -428,11 +428,7 @@ export function LiveTiming({
             <th className={`${TH} hidden sm:table-cell text-center`}>S2</th>
             <th className={`${TH} hidden sm:table-cell text-center`}>S3</th>
             <th className={`${TH} text-left`}>Tyre</th>
-            <th
-              className={`${TH} hidden min-[430px]:table-cell text-center w-8`}
-            >
-              Pit
-            </th>
+            <th className={`${TH} text-center w-7 sm:w-8`}>Pit</th>
             <th className={`${TH} hidden sm:table-cell text-center w-16`}>
               Lap
             </th>
@@ -519,7 +515,7 @@ export function LiveTiming({
 
                 {/* Driver */}
                 <td className="py-3 px-1.5 sm:px-2">
-                  <span className="flex items-center gap-2">
+                  <span className="flex items-center gap-1.5 sm:gap-2">
                     <DriverHeadshot driver={driver} accent={color} size="sm" />
                     {/* Team colour bar */}
                     <span
@@ -613,7 +609,7 @@ export function LiveTiming({
 
                 {/* Pit stop count (hover: most recent stop time) */}
                 <td
-                  className="hidden min-[430px]:table-cell py-3 px-1.5 text-center font-mono text-[11px] tabular-nums text-muted sm:px-2"
+                  className="py-3 px-1 text-center font-mono text-[10px] tabular-nums text-muted sm:px-2 sm:text-[11px]"
                   title={
                     pitInfo && pitInfo.lastStop !== null
                       ? `${pitInfo.count} stop${pitInfo.count !== 1 ? "s" : ""} · last ${pitInfo.lastStop.toFixed(1)}s`
