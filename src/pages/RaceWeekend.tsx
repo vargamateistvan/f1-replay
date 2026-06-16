@@ -895,7 +895,7 @@ export default function RaceWeekend() {
   // ── View layouts ─────────────────────────────────────────────────────────────
 
   return (
-    <div className="flex flex-col relative h-dvh md:h-full overflow-hidden">
+    <div className="flex flex-col relative flex-1 min-h-0 h-full overflow-hidden">
       {/* Flag banner — spans full width below nav */}
       {sessionStartMs > 0 && (
         <FlagBanner
@@ -925,7 +925,7 @@ export default function RaceWeekend() {
 
       {/* ── LEADERBOARD VIEW ──────────────────────────────────────────── */}
       {currentView === "leaderboard" && (
-        <div className="flex flex-col md:flex-1 md:min-h-0 md:overflow-hidden">
+        <div className="flex flex-col flex-1 min-h-0 overflow-hidden">
           {/* Loading indicator */}
           {isLoadingSessionData && (
             <div className="border-b border-panel bg-track px-3 py-2 sm:px-4">
@@ -1089,7 +1089,7 @@ export default function RaceWeekend() {
                       )}
                     </div>
                     {/* Timing tower */}
-                    <div className="flex flex-col md:flex-1 md:min-h-0 md:overflow-hidden">
+                    <div className="flex flex-col flex-1 min-h-0 overflow-hidden">
                       {positions.isError ? (
                         <ErrorMessage message="Failed to load timing data" />
                       ) : (
@@ -1290,7 +1290,7 @@ export default function RaceWeekend() {
 
       {/* ── COMMENTARY VIEW ───────────────────────────────────────────── */}
       {currentView === "commentary" && (
-        <div className="flex flex-col md:flex-1 md:min-h-0 md:overflow-hidden">
+        <div className="flex flex-col flex-1 min-h-0 overflow-hidden">
           {/* Compact weather strip */}
           <div className="shrink-0 border-b border-panel">
             {weather.isError ? (
@@ -1331,7 +1331,7 @@ export default function RaceWeekend() {
           </div>
 
           {/* Content */}
-          <div className="flex flex-col md:flex-1 md:min-h-0 md:overflow-hidden">
+          <div className="flex flex-col flex-1 min-h-0 overflow-hidden">
             {(commentaryTab ?? "rc") === "rc" &&
               (raceControl.isError ? (
                 <ErrorMessage message="Failed to load race control" />

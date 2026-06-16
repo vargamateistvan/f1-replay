@@ -12,17 +12,11 @@ body {
   @apply bg-track text-white font-sans antialiased;
 }
 
-/* Desktop: fixed app-shell height */
+/* Fixed app-shell height — nested panels scroll inside on all viewports */
 html, body, #root {
   height: 100%;
-}
-
-/* Mobile: natural document scroll — let content grow, page scrolls */
-@media (max-width: 767px) {
-  html, body, #root {
-    height: auto;
-    min-height: 100dvh;
-  }
+  height: 100dvh;
+  overflow: hidden;
 }
 
 /* iOS momentum scrolling for all overflow-auto/scroll containers */
