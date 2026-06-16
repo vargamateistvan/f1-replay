@@ -36,7 +36,7 @@ function fmtTime(ms: number) {
 const JUMP_BTN =
   "flex h-8 w-6 items-center justify-center text-xs bg-panel text-muted transition-colors shrink-0 hover:text-white hover:bg-[#38383f] sm:w-7 disabled:opacity-30 disabled:hover:bg-panel disabled:hover:text-muted";
 const CHIP_STRETCH =
-  "h-7 flex-1 flex items-center justify-center text-[10px] font-black uppercase tracking-widest bg-panel text-muted hover:text-white hover:bg-[#38383f] transition-colors sm:flex-none sm:shrink-0 sm:px-3 disabled:opacity-30 disabled:hover:bg-panel disabled:hover:text-muted";
+  "h-7 shrink-0 px-3 flex items-center justify-center text-[10px] font-black uppercase tracking-widest bg-panel text-muted hover:text-white hover:bg-[#38383f] transition-colors sm:flex-none sm:px-3 disabled:opacity-30 disabled:hover:bg-panel disabled:hover:text-muted";
 
 function TransportIcon({ children }: { children: ReactNode }) {
   return (
@@ -195,7 +195,7 @@ export function PlaybackBar({
       style={{
         paddingLeft: "max(0.75rem, env(safe-area-inset-left))",
         paddingRight: "max(0.75rem, env(safe-area-inset-right))",
-        bottom: "calc(44px + env(safe-area-inset-bottom))",
+        bottom: "calc(48px + env(safe-area-inset-bottom))",
       }}
     >
       {/* ── Transport + scrubber row ─────────────────────────────── */}
@@ -377,7 +377,7 @@ export function PlaybackBar({
 
       {/* ── Event jump chips row ─────────────────────────────────── */}
       <div
-        className="flex gap-1 sm:overflow-x-auto sm:flex-wrap"
+        className="flex gap-1 overflow-x-auto pb-0.5 sm:flex-wrap"
         style={{ touchAction: "pan-x pan-y" }}
       >
         {/* Countdown / qualifying phase chip — practice & qualifying only */}

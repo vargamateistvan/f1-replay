@@ -317,7 +317,7 @@ export default function Standings() {
   return (
     <div className="flex flex-col h-full overflow-hidden bg-track">
       {/* Header */}
-      <div className="flex flex-wrap items-center gap-4 px-4 pt-2 pb-2 bg-surface border-b border-panel">
+      <div className="flex flex-wrap items-center gap-3 px-4 pt-2 pb-2 bg-surface border-b border-panel">
         <span className="text-f1red font-black text-sm tracking-[0.18em] uppercase">
           STANDINGS
         </span>
@@ -344,12 +344,12 @@ export default function Standings() {
         )}
 
         {/* Tabs */}
-        <div className="ml-auto flex h-11">
+        <div className="flex h-11 w-full sm:ml-auto sm:w-auto">
           {(["drivers", "constructors"] as Tab[]).map((t) => (
             <button
               key={t}
               onClick={() => setTab(t)}
-              className={`h-11 flex items-center px-4 text-xs font-bold uppercase tracking-[0.12em] transition-colors border-b-2 ${
+              className={`h-11 flex-1 items-center justify-center px-4 text-xs font-bold uppercase tracking-[0.12em] transition-colors border-b-2 sm:flex-none ${
                 tab === t
                   ? "text-white border-f1red"
                   : "text-muted border-transparent hover:text-white"
@@ -373,10 +373,10 @@ export default function Standings() {
         <div className="flex-1 overflow-hidden flex flex-col sm:flex-row gap-0">
           {tab === "drivers" ? (
             <>
-              <div className="sm:w-[420px] shrink-0 sm:border-r border-b sm:border-b-0 border-panel overflow-auto max-h-[40%] sm:max-h-full">
+              <div className="sm:w-[420px] shrink-0 sm:border-r border-b sm:border-b-0 border-panel overflow-auto max-h-[55dvh] sm:max-h-full">
                 <DriverTable standings={driverStandings} />
               </div>
-              <div className="flex-1 overflow-auto p-4 bg-track">
+              <div className="flex-1 overflow-auto p-4 bg-track min-h-[18rem]">
                 <div className="text-[10px] text-muted font-bold mb-3 uppercase tracking-[0.12em]">
                   Points — {year} Driver Championship
                 </div>
@@ -385,10 +385,10 @@ export default function Standings() {
             </>
           ) : (
             <>
-              <div className="sm:w-[360px] shrink-0 sm:border-r border-b sm:border-b-0 border-panel overflow-auto max-h-[40%] sm:max-h-full">
+              <div className="sm:w-[360px] shrink-0 sm:border-r border-b sm:border-b-0 border-panel overflow-auto max-h-[55dvh] sm:max-h-full">
                 <ConstructorTable standings={constructorStandings} />
               </div>
-              <div className="flex-1 overflow-auto p-4 bg-track">
+              <div className="flex-1 overflow-auto p-4 bg-track min-h-[18rem]">
                 <div className="text-[10px] text-muted font-bold mb-3 uppercase tracking-[0.12em]">
                   Points — {year} Constructor Championship
                 </div>
