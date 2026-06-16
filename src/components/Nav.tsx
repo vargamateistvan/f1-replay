@@ -94,19 +94,19 @@ export function Nav() {
     >
       {/* ── Red top bar ──────────────────────────────────────────── */}
       <div
-        className="flex items-center h-10 px-4 bg-f1red"
+        className="flex items-center h-9 px-3 sm:h-10 sm:px-4 bg-f1red"
         style={{
-          paddingLeft: "max(1rem, env(safe-area-inset-left))",
-          paddingRight: "max(1rem, env(safe-area-inset-right))",
+          paddingLeft: "max(0.75rem, env(safe-area-inset-left))",
+          paddingRight: "max(0.75rem, env(safe-area-inset-right))",
         }}
       >
         <button
           onClick={() => navigate(viewHref(currentView))}
-          className="flex items-center gap-2 mr-6 select-none shrink-0 hover:opacity-80 transition-opacity"
+          className="flex items-center gap-1.5 mr-3 sm:mr-6 select-none shrink-0 hover:opacity-80 transition-opacity"
           aria-label="F1 Replay home"
         >
           <AppLogo size={22} />
-          <span className="font-black text-white text-sm tracking-[0.22em] uppercase leading-none">
+          <span className="font-black text-white text-[12px] sm:text-sm tracking-[0.18em] sm:tracking-[0.22em] uppercase leading-none">
             F1<span className="opacity-50 font-light mx-1">|</span>REPLAY
           </span>
         </button>
@@ -218,7 +218,7 @@ export function Nav() {
       {/* ── Dark sub-bar: session pickers (main route only) ─────── */}
       {isMainRoute && (
         <div
-          className="flex flex-wrap items-center gap-1.5 py-1.5 bg-track border-b border-panel"
+          className="flex flex-wrap items-center gap-1 py-1.5 bg-track border-b border-panel"
           style={{
             paddingLeft: "max(0.5rem, env(safe-area-inset-left))",
             paddingRight: "max(0.5rem, env(safe-area-inset-right))",
@@ -238,7 +238,7 @@ export function Nav() {
             aria-label="Season year"
             value={year}
             onChange={(e) => onYear(Number(e.target.value))}
-            className={`${SELECT} shrink-0`}
+            className={`${SELECT} shrink-0 w-[4.5rem] sm:w-auto`}
           >
             {YEARS.map((y) => (
               <option key={y} value={y}>
@@ -260,7 +260,7 @@ export function Nav() {
               value={meetingKey ?? ""}
               onChange={(e) => onMeeting(Number(e.target.value))}
               disabled={meetings.isPending}
-              className={`${SELECT} min-w-0 flex-[1_1_160px] sm:max-w-none`}
+              className={`${SELECT} min-w-0 flex-[1_1_132px] sm:flex-[1_1_160px] sm:max-w-none`}
             >
               <option value="">— event —</option>
               {meetings.data?.map((m) => (
@@ -284,7 +284,7 @@ export function Nav() {
               value={sessionKey ?? ""}
               onChange={(e) => setSessionKey(Number(e.target.value))}
               disabled={sessions.isPending || !meetingKey}
-              className={`${SELECT} min-w-0 flex-[1_1_120px] sm:flex-none`}
+              className={`${SELECT} min-w-0 flex-[1_1_108px] sm:flex-none`}
             >
               <option value="">— session —</option>
               {sessions.data?.map((s) => (

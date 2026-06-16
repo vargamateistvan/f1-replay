@@ -367,10 +367,10 @@ export function LiveTiming({
       style={{ touchAction: "pan-y" }}
     >
       <div className="border-b border-[#2a2a35] bg-surface/80 px-2 py-2 sm:px-3">
-        <div className="mb-2 text-[10px] font-bold uppercase tracking-[0.12em] text-muted">
+        <div className="mb-2 text-[9px] sm:text-[10px] font-bold uppercase tracking-[0.12em] text-muted">
           Tap driver A, then driver B to compare
         </div>
-        <div className="grid grid-cols-3 gap-1.5 sm:gap-2">
+        <div className="grid grid-cols-1 gap-1.5 min-[360px]:grid-cols-3 sm:gap-2">
           {(
             [
               ["S1", sessionBestOwners.s1],
@@ -417,17 +417,21 @@ export function LiveTiming({
           })}
         </div>
       </div>
-      <table className="w-full border-collapse">
+      <table className="w-full border-collapse table-fixed sm:table-auto">
         <thead>
           <tr className="sticky top-0 bg-track z-10 border-b border-[#38383f]">
             <th className={`${TH} text-left w-8`}>P</th>
-            <th className={`${TH} text-left`}>Driver</th>
+            <th className={`${TH} text-left w-[8.5rem] min-[390px]:w-auto`}>
+              Driver
+            </th>
             <th className={`${TH} text-right`}>Best Lap</th>
             <th className={`${TH} text-right`}>Gap</th>
             <th className={`${TH} hidden sm:table-cell text-center`}>S1</th>
             <th className={`${TH} hidden sm:table-cell text-center`}>S2</th>
             <th className={`${TH} hidden sm:table-cell text-center`}>S3</th>
-            <th className={`${TH} text-left`}>Tyre</th>
+            <th className={`${TH} text-left w-[3.5rem] min-[390px]:w-auto`}>
+              Tyre
+            </th>
             <th className={`${TH} text-center w-7 sm:w-8`}>Pit</th>
             <th className={`${TH} hidden sm:table-cell text-center w-16`}>
               Lap
@@ -515,31 +519,37 @@ export function LiveTiming({
 
                 {/* Driver */}
                 <td className="py-3 px-1.5 sm:px-2">
-                  <span className="flex items-center gap-1.5 sm:gap-2">
-                    <DriverHeadshot driver={driver} accent={color} size="sm" />
+                  <span className="flex items-center gap-1 sm:gap-2">
+                    <span className="hidden min-[390px]:inline-flex sm:inline-flex">
+                      <DriverHeadshot
+                        driver={driver}
+                        accent={color}
+                        size="sm"
+                      />
+                    </span>
                     {/* Team colour bar */}
                     <span
                       className="w-[3px] h-4 shrink-0 rounded-sm"
                       style={{ background: color }}
                     />
                     {/* Surname in CAPS */}
-                    <span className="font-bold text-[12px] tracking-[0.06em] uppercase text-white">
+                    <span className="min-w-0 truncate font-bold text-[11px] min-[390px]:text-[12px] tracking-[0.04em] min-[390px]:tracking-[0.06em] uppercase text-white">
                       {driver?.name_acronym ?? num}
                     </span>
                     {selected && (
-                      <span className="bg-f1red text-white text-[9px] font-black uppercase tracking-widest px-1.5 py-0.5">
+                      <span className="bg-f1red text-white text-[8px] min-[390px]:text-[9px] font-black uppercase tracking-widest px-1 min-[390px]:px-1.5 py-0.5">
                         A
                       </span>
                     )}
                     {compared && (
-                      <span className="bg-[#1e40af] text-white text-[9px] font-black uppercase tracking-widest px-1.5 py-0.5">
+                      <span className="bg-[#1e40af] text-white text-[8px] min-[390px]:text-[9px] font-black uppercase tracking-widest px-1 min-[390px]:px-1.5 py-0.5">
                         B
                       </span>
                     )}
                     {/* Places gained/lost */}
                     {gained !== null && gained !== 0 && (
                       <span
-                        className={`text-[9px] font-bold tabular-nums ${gained > 0 ? "text-[#39b54a]" : "text-[#ff5252]"}`}
+                        className={`hidden min-[390px]:inline text-[9px] font-bold tabular-nums ${gained > 0 ? "text-[#39b54a]" : "text-[#ff5252]"}`}
                         title={`${gained > 0 ? "Gained" : "Lost"} ${Math.abs(gained)} since start (P${gridPos})`}
                       >
                         {gained > 0 ? "▲" : "▼"}
@@ -547,12 +557,12 @@ export function LiveTiming({
                       </span>
                     )}
                     {retired && (
-                      <span className="bg-[#3a1010] text-[#ff5252] text-[9px] font-black uppercase tracking-widest px-1.5 py-0.5">
+                      <span className="hidden min-[390px]:inline-block bg-[#3a1010] text-[#ff5252] text-[9px] font-black uppercase tracking-widest px-1.5 py-0.5">
                         RET
                       </span>
                     )}
                     {!retired && inPit && (
-                      <span className="bg-panel text-muted text-[9px] font-black uppercase tracking-widest px-1.5 py-0.5">
+                      <span className="hidden min-[390px]:inline-block bg-panel text-muted text-[9px] font-black uppercase tracking-widest px-1.5 py-0.5">
                         PIT
                       </span>
                     )}
@@ -561,13 +571,13 @@ export function LiveTiming({
 
                 {/* Best lap time */}
                 <td
-                  className={`py-3 px-1.5 text-right font-mono text-[12px] tabular-nums sm:px-2 ${LAP_TIME_COLOUR[lapTier]}`}
+                  className={`py-3 px-1 text-right font-mono text-[11px] min-[390px]:text-[12px] tabular-nums sm:px-2 ${LAP_TIME_COLOUR[lapTier]}`}
                 >
                   {fmtTime(lastLap?.lap_duration ?? null)}
                 </td>
 
                 {/* Gap to leader */}
-                <td className="py-3 px-1.5 text-right font-mono text-[11px] tabular-nums text-muted sm:px-2">
+                <td className="py-3 px-1 text-right font-mono text-[10px] min-[390px]:text-[11px] tabular-nums text-muted sm:px-2">
                   {fmtGap(intData?.gap_to_leader ?? null)}
                 </td>
 

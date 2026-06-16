@@ -994,7 +994,7 @@ export default function RaceWeekend() {
             {/* Phone layout: tab-switched (md:hidden) */}
             <div className="md:hidden flex flex-col w-full">
               {/* Tab chips */}
-              <div className="flex border-b border-panel shrink-0 bg-track">
+              <div className="flex gap-1 overflow-x-auto border-b border-panel shrink-0 bg-track px-2 py-1.5">
                 {(
                   [
                     ["timing", "Timing"],
@@ -1006,10 +1006,10 @@ export default function RaceWeekend() {
                   <button
                     key={tab}
                     onClick={() => setTrackerTab(tab)}
-                    className={`${tab === "timing" ? "flex-[1.2]" : "flex-1"} py-1.5 text-[10px] font-bold uppercase tracking-wider transition-colors ${
+                    className={`shrink-0 rounded-sm px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider transition-colors ${
                       (trackerTab ?? "timing") === tab
-                        ? "text-white border-b-2 border-f1red -mb-px"
-                        : "text-muted hover:text-white border-b-2 border-transparent"
+                        ? "text-white bg-f1red"
+                        : "text-muted bg-panel hover:text-white"
                     }`}
                   >
                     {label}
