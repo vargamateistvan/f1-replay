@@ -1,8 +1,8 @@
-import { useEffect, type ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { useTimeline } from "@/timeline/clock";
 import { SPEEDS } from "@/constants";
 import { nextAfter, prevBefore } from "@/timeline/events";
-import type { RaceControlMarker } from "@/timeline/raceControl";
+import type { RaceControlMarker, MarkerSummary } from "@/timeline/raceControl";
 
 interface Props {
   durationMs: number;
@@ -13,6 +13,7 @@ interface Props {
   overtakeTimes?: number[];
   radioTimes?: number[];
   raceControlMarkers?: RaceControlMarker[];
+  markerSummary?: MarkerSummary | null;
   /** Show a countdown badge (timed sessions: practice / qualifying) */
   countdownMs?: number | null;
   /** Active qualifying phase label e.g. "Q1" — shown alongside the countdown */
@@ -153,11 +154,13 @@ export function PlaybackBar({
   overtakeTimes = [],
   radioTimes = [],
   raceControlMarkers = [],
+  markerSummary = null,
   countdownMs = null,
   qualiPhase = null,
 }: Props) {
   const { t, playing, speed, toggle, setT, setSpeed, setPlaying } =
     useTimeline();
+  const [showMarkers, setShowMarkers] = useState(true);
 
   const clamp = (v: number) =>
     Math.max(0, durationMs > 0 ? Math.min(v, durationMs) : v);
@@ -262,7 +265,7 @@ export function PlaybackBar({
             style={{ touchAction: "none" }}
             aria-label="Seek"
           />
-          {durationMs > 0 && raceControlMarkers.length > 0 && (
+          {durationMs > 0 && showMarkers && raceControlMarkers.length > 0 && (
             <div className="absolute inset-0">
               {raceControlMarkers.map((marker) => {
                 const left = (marker.ms / durationMs) * 100;
@@ -294,6 +297,40 @@ export function PlaybackBar({
         <span className="hidden sm:inline text-muted font-mono text-xs tabular-nums w-12 shrink-0">
           {fmtTime(durationMs)}
         </span>
+
+        {/* Marker legend toggle — desktop only */}
+        {markerSummary !== null &&
+          (markerSummary?.critical ?? 0) + (markerSummary?.warning ?? 0) >
+            0 && (
+            <button
+              type="button"
+              onClick={() => setShowMarkers((v) => !v)}
+              title={
+                showMarkers
+                  ? "Hide race-control markers"
+                  : "Show race-control markers"
+              }
+              aria-pressed={showMarkers}
+              className={`hidden sm:flex items-center gap-1 shrink-0 h-7 px-2 text-[9px] font-black uppercase tracking-widest transition-colors border ${
+                showMarkers
+                  ? "border-amber-500/60 text-amber-300 bg-amber-500/10 hover:bg-amber-500/20"
+                  : "border-panel text-muted bg-panel hover:text-white"
+              }`}
+            >
+              {markerSummary.critical > 0 && (
+                <span className="flex items-center gap-0.5">
+                  <span className="inline-block w-1.5 h-1.5 rounded-sm bg-red-500" />
+                  {markerSummary.critical}
+                </span>
+              )}
+              {markerSummary.warning > 0 && (
+                <span className="flex items-center gap-0.5">
+                  <span className="inline-block w-1.5 h-1.5 rounded-sm bg-amber-400" />
+                  {markerSummary.warning}
+                </span>
+              )}
+            </button>
+          )}
 
         {/* Speed buttons — desktop only (mobile lives in chips row) */}
         <div className="hidden sm:flex gap-px shrink-0">

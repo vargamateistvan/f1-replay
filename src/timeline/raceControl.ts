@@ -177,3 +177,75 @@ export function buildRaceControlMarkers(
       label: event.title,
     }));
 }
+
+/**
+ * Collapse markers that are closer than `windowMs` (default 20 s) into a
+ * single representative marker. The representative keeps the highest severity
+ * of the group and its ms is the earliest in the cluster.
+ *
+ * This prevents the scrubber from turning into a solid bar of markers during
+ * heavy incident windows (e.g. VSC → yellow → investigation in quick succession).
+ */
+export function clusterRaceControlMarkers(
+  markers: RaceControlMarker[],
+  windowMs = 20_000,
+): RaceControlMarker[] {
+  if (markers.length === 0) return [];
+
+  const SEV_RANK: Record<RaceControlSeverity, number> = {
+    info: 0,
+    warning: 1,
+    critical: 2,
+  };
+
+  const sorted = [...markers].sort((a, b) => a.ms - b.ms);
+  const clusters: RaceControlMarker[] = [];
+  let groupStart = 0;
+
+  while (groupStart < sorted.length) {
+    const anchor = sorted[groupStart]!;
+    let groupEnd = groupStart + 1;
+    while (
+      groupEnd < sorted.length &&
+      sorted[groupEnd]!.ms - anchor.ms < windowMs
+    ) {
+      groupEnd++;
+    }
+
+    const group = sorted.slice(groupStart, groupEnd);
+    // Pick the item with the highest severity; break ties by earliest ms.
+    const rep = group.reduce((best, cur) =>
+      SEV_RANK[cur.severity] > SEV_RANK[best.severity] ? cur : best,
+    );
+
+    clusters.push({
+      id: rep.id,
+      ms: anchor.ms, // always start of the cluster window
+      severity: rep.severity,
+      label:
+        group.length > 1
+          ? `${rep.label} (+${group.length - 1} more)`
+          : rep.label,
+    });
+
+    groupStart = groupEnd;
+  }
+
+  return clusters;
+}
+
+/** Summary counts by severity — for the legend strip. */
+export interface MarkerSummary {
+  critical: number;
+  warning: number;
+}
+
+export function summarizeMarkers(markers: RaceControlMarker[]): MarkerSummary {
+  let critical = 0;
+  let warning = 0;
+  for (const m of markers) {
+    if (m.severity === "critical") critical++;
+    else if (m.severity === "warning") warning++;
+  }
+  return { critical, warning };
+}

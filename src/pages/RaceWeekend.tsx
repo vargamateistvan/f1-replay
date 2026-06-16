@@ -54,7 +54,9 @@ import {
 } from "@/timeline/events";
 import {
   buildRaceControlMarkers,
+  clusterRaceControlMarkers,
   normalizeRaceControl,
+  summarizeMarkers,
 } from "@/timeline/raceControl";
 import { useEventToasts } from "@/hooks/useEventToasts";
 import { useCatchupSummary } from "@/hooks/useCatchupSummary";
@@ -213,8 +215,14 @@ export default function RaceWeekend() {
       raceControl.data ?? [],
       sessionStartMs,
     );
-    return buildRaceControlMarkers(normalized);
+    const raw = buildRaceControlMarkers(normalized);
+    return clusterRaceControlMarkers(raw);
   }, [raceControl.data, sessionStartMs]);
+
+  const markerSummary = useMemo(
+    () => summarizeMarkers(raceControlMarkers),
+    [raceControlMarkers],
+  );
 
   const chequeredMs = useMemo(() => {
     if (!sessionStartMs) return null;
@@ -1260,6 +1268,7 @@ export default function RaceWeekend() {
         overtakeTimes={overtakeMarks}
         radioTimes={radioMarks}
         raceControlMarkers={raceControlMarkers}
+        markerSummary={markerSummary}
         countdownMs={countdownMs}
         qualiPhase={qualiPhase}
       />
