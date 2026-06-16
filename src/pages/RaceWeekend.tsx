@@ -817,6 +817,9 @@ export default function RaceWeekend() {
     setCompareDriver(null);
   };
 
+  const showTrackerInlinePlayback =
+    currentView === "tracker" && (trackerTab ?? "timing") !== "timing";
+
   const {
     height: strategyHeight,
     handleProps: strategyHandleProps,
@@ -1023,6 +1026,38 @@ export default function RaceWeekend() {
                   </button>
                 ))}
               </div>
+
+              {showTrackerInlinePlayback && (
+                <PlaybackBar
+                  durationMs={playbackDurationMs}
+                  lapStarts={lapMarks}
+                  pitTimes={pitMarks}
+                  flagTimes={flagMarks}
+                  safetyCarTimes={safetyCarMarks}
+                  overtakeTimes={overtakeMarks}
+                  radioTimes={radioMarks}
+                  raceControlMarkers={raceControlMarkers}
+                  markerSummary={markerSummary}
+                  canReplayNextIncident={
+                    nextReplayIncident !== undefined ||
+                    firstReplayIncident !== undefined
+                  }
+                  onReplayNextIncident={() => {
+                    const chosen = nextReplayIncident ?? firstReplayIncident;
+                    if (!chosen || chosen.endMs === null) return;
+                    if (!nextReplayIncident && firstReplayIncident) {
+                      setIncidentReplayHint("Wrapped to first incident");
+                    }
+                    setTimelineT(chosen.startMs);
+                    setIncidentReplayEndMs(chosen.endMs);
+                    setTimelinePlaying(true);
+                  }}
+                  incidentReplayHint={incidentReplayHint}
+                  countdownMs={countdownMs}
+                  qualiPhase={qualiPhase}
+                  mobileInline
+                />
+              )}
 
               {/* Tab content */}
               <div className="flex flex-col md:flex-1 md:min-h-0 md:overflow-hidden">
@@ -1355,34 +1390,36 @@ export default function RaceWeekend() {
           />
         )}
 
-      {/* Playback bar — always visible */}
-      <PlaybackBar
-        durationMs={playbackDurationMs}
-        lapStarts={lapMarks}
-        pitTimes={pitMarks}
-        flagTimes={flagMarks}
-        safetyCarTimes={safetyCarMarks}
-        overtakeTimes={overtakeMarks}
-        radioTimes={radioMarks}
-        raceControlMarkers={raceControlMarkers}
-        markerSummary={markerSummary}
-        canReplayNextIncident={
-          nextReplayIncident !== undefined || firstReplayIncident !== undefined
-        }
-        onReplayNextIncident={() => {
-          const chosen = nextReplayIncident ?? firstReplayIncident;
-          if (!chosen || chosen.endMs === null) return;
-          if (!nextReplayIncident && firstReplayIncident) {
-            setIncidentReplayHint("Wrapped to first incident");
+      {!showTrackerInlinePlayback && (
+        <PlaybackBar
+          durationMs={playbackDurationMs}
+          lapStarts={lapMarks}
+          pitTimes={pitMarks}
+          flagTimes={flagMarks}
+          safetyCarTimes={safetyCarMarks}
+          overtakeTimes={overtakeMarks}
+          radioTimes={radioMarks}
+          raceControlMarkers={raceControlMarkers}
+          markerSummary={markerSummary}
+          canReplayNextIncident={
+            nextReplayIncident !== undefined ||
+            firstReplayIncident !== undefined
           }
-          setTimelineT(chosen.startMs);
-          setIncidentReplayEndMs(chosen.endMs);
-          setTimelinePlaying(true);
-        }}
-        incidentReplayHint={incidentReplayHint}
-        countdownMs={countdownMs}
-        qualiPhase={qualiPhase}
-      />
+          onReplayNextIncident={() => {
+            const chosen = nextReplayIncident ?? firstReplayIncident;
+            if (!chosen || chosen.endMs === null) return;
+            if (!nextReplayIncident && firstReplayIncident) {
+              setIncidentReplayHint("Wrapped to first incident");
+            }
+            setTimelineT(chosen.startMs);
+            setIncidentReplayEndMs(chosen.endMs);
+            setTimelinePlaying(true);
+          }}
+          incidentReplayHint={incidentReplayHint}
+          countdownMs={countdownMs}
+          qualiPhase={qualiPhase}
+        />
+      )}
     </div>
   );
 }

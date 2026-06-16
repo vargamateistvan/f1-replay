@@ -21,6 +21,7 @@ interface Props {
   countdownMs?: number | null;
   /** Active qualifying phase label e.g. "Q1" — shown alongside the countdown */
   qualiPhase?: string | null;
+  mobileInline?: boolean;
 }
 
 function fmtTime(ms: number) {
@@ -163,6 +164,7 @@ export function PlaybackBar({
   incidentReplayHint = null,
   countdownMs = null,
   qualiPhase = null,
+  mobileInline = false,
 }: Props) {
   const { t, playing, speed, toggle, setT, setSpeed, setPlaying } =
     useTimeline();
@@ -200,12 +202,19 @@ export function PlaybackBar({
 
   return (
     <div
-      className="flex flex-col gap-1.5 py-2 bg-track border-t border-panel sm:gap-2 sm:py-2.5 sticky z-20 md:static md:z-auto"
-      style={{
-        paddingLeft: "max(0.75rem, env(safe-area-inset-left))",
-        paddingRight: "max(0.75rem, env(safe-area-inset-right))",
-        bottom: "calc(48px + env(safe-area-inset-bottom))",
-      }}
+      className={`flex flex-col gap-1.5 py-2 bg-track border-t border-panel sm:gap-2 sm:py-2.5 ${mobileInline ? "" : "sticky z-20 md:static md:z-auto"}`}
+      style={
+        mobileInline
+          ? {
+              paddingLeft: "max(0.75rem, env(safe-area-inset-left))",
+              paddingRight: "max(0.75rem, env(safe-area-inset-right))",
+            }
+          : {
+              paddingLeft: "max(0.75rem, env(safe-area-inset-left))",
+              paddingRight: "max(0.75rem, env(safe-area-inset-right))",
+              bottom: "calc(48px + env(safe-area-inset-bottom))",
+            }
+      }
     >
       {/* ── Transport + scrubber row ─────────────────────────────── */}
       <div className="flex items-center gap-1.5 w-full sm:gap-2">
