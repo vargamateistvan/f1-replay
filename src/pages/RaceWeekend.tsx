@@ -282,6 +282,13 @@ export default function RaceWeekend() {
     [incidentWindows, positions.data, pits.data, sessionStartMs],
   );
 
+  const nextReplayIncident = useMemo(() => {
+    const MIN_AHEAD_MS = 250;
+    return incidentWindows.find(
+      (w) => w.endMs !== null && w.startMs > t + MIN_AHEAD_MS,
+    );
+  }, [incidentWindows, t]);
+
   const pulseDrivers = useMemo(() => {
     const out: number[] = [];
     for (const o of overtakes.data ?? []) {
@@ -1337,6 +1344,13 @@ export default function RaceWeekend() {
         radioTimes={radioMarks}
         raceControlMarkers={raceControlMarkers}
         markerSummary={markerSummary}
+        canReplayNextIncident={nextReplayIncident !== undefined}
+        onReplayNextIncident={() => {
+          if (!nextReplayIncident || nextReplayIncident.endMs === null) return;
+          setTimelineT(nextReplayIncident.startMs);
+          setIncidentReplayEndMs(nextReplayIncident.endMs);
+          setTimelinePlaying(true);
+        }}
         countdownMs={countdownMs}
         qualiPhase={qualiPhase}
       />

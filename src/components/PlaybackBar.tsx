@@ -14,6 +14,8 @@ interface Props {
   radioTimes?: number[];
   raceControlMarkers?: RaceControlMarker[];
   markerSummary?: MarkerSummary | null;
+  canReplayNextIncident?: boolean;
+  onReplayNextIncident?: () => void;
   /** Show a countdown badge (timed sessions: practice / qualifying) */
   countdownMs?: number | null;
   /** Active qualifying phase label e.g. "Q1" — shown alongside the countdown */
@@ -155,6 +157,8 @@ export function PlaybackBar({
   radioTimes = [],
   raceControlMarkers = [],
   markerSummary = null,
+  canReplayNextIncident = false,
+  onReplayNextIncident,
   countdownMs = null,
   qualiPhase = null,
 }: Props) {
@@ -391,6 +395,14 @@ export function PlaybackBar({
             </span>
           </span>
         )}
+        <button
+          onClick={() => onReplayNextIncident?.()}
+          disabled={!canReplayNextIncident}
+          className={CHIP_STRETCH}
+          aria-label="Replay next incident window"
+        >
+          Incident ›
+        </button>
         <button
           onClick={() => jump(nextPit)}
           disabled={nextPit === null}
