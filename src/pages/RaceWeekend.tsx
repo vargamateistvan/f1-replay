@@ -817,8 +817,7 @@ export default function RaceWeekend() {
     setCompareDriver(null);
   };
 
-  const showTrackerInlinePlayback =
-    currentView === "tracker" && (trackerTab ?? "timing") !== "timing";
+  const showTrackerInlinePlayback = false;
 
   const {
     height: strategyHeight,

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useSearchParams, useLocation, useNavigate } from "react-router-dom";
 import { useStringParam } from "@/hooks/useSearchParamState";
 import type { MainView } from "@/components/Nav";
@@ -7,10 +7,17 @@ export function MobileNav() {
   const [searchParams] = useSearchParams();
   const location = useLocation();
   const navigate = useNavigate();
-  const [view] = useStringParam<MainView>("view", "leaderboard");
+  const [view, setView] = useStringParam<MainView>("view", "leaderboard");
   const [showMore, setShowMore] = useState(false);
   const currentView: MainView = view ?? "leaderboard";
   const isMain = location.pathname === "/";
+
+  useEffect(() => {
+    if (!isMain || typeof window === "undefined") return;
+    if (!window.matchMedia("(max-width: 767px)").matches) return;
+    if (currentView !== "leaderboard") return;
+    setView("tracker");
+  }, [currentView, isMain, setView]);
 
   function viewHref(id: MainView) {
     const params = new URLSearchParams(searchParams);
@@ -58,13 +65,6 @@ export function MobileNav() {
       )}
 
       <div className="flex h-12">
-        <button
-          onClick={() => goTo(viewHref("leaderboard"))}
-          className={btn(isMain && currentView === "leaderboard")}
-        >
-          <span className="text-base leading-none">≡</span>
-          <span>Race</span>
-        </button>
         <button
           onClick={() => goTo(viewHref("tracker"))}
           className={btn(isMain && currentView === "tracker")}
