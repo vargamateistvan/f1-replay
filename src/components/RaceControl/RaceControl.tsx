@@ -1,5 +1,10 @@
 import { useMemo } from "react";
 import type { RaceControl as RaceControlEntry } from "@/api/types";
+import {
+  normalizeRaceControl,
+  toFlagKey,
+  type RaceControlSeverity,
+} from "@/timeline/raceControl";
 
 // Visual config per flag value
 const FLAG_CONFIG: Record<
@@ -36,6 +41,24 @@ const FLAG_CONFIG: Record<
 
 const DEFAULT_CONFIG = { label: "", bar: "bg-[#2a2a35]", text: "text-muted" };
 
+const SEVERITY_BADGE: Record<
+  RaceControlSeverity,
+  { label: string; cls: string }
+> = {
+  info: {
+    label: "Info",
+    cls: "bg-[#2a2a35] text-gray-300",
+  },
+  warning: {
+    label: "Warn",
+    cls: "bg-amber-500/20 text-amber-300",
+  },
+  critical: {
+    label: "Critical",
+    cls: "bg-red-500/20 text-red-300",
+  },
+};
+
 function sectorBadge(entry: RaceControlEntry): string | null {
   if (entry.sector !== null && entry.sector >= 1 && entry.sector <= 3) {
     return `Sector ${entry.sector}`;
@@ -55,11 +78,14 @@ export function RaceControlFeed({
   sessionTimeMs,
   sessionStartMs,
 }: Props) {
-  const currentT = sessionStartMs + sessionTimeMs;
+  const normalized = useMemo(
+    () => normalizeRaceControl(entries, sessionStartMs),
+    [entries, sessionStartMs],
+  );
 
   const visibleEntries = useMemo(
-    () => entries.filter((e) => new Date(e.date).getTime() <= currentT),
-    [entries, currentT],
+    () => normalized.filter((e) => e.ms <= sessionTimeMs),
+    [normalized, sessionTimeMs],
   );
 
   // Current session flag: last flag-bearing entry
@@ -73,7 +99,7 @@ export function RaceControlFeed({
   }, [visibleEntries]);
 
   const flagConfig = currentFlagEntry
-    ? (FLAG_CONFIG[currentFlagEntry.flag ?? ""] ?? DEFAULT_CONFIG)
+    ? (FLAG_CONFIG[toFlagKey(currentFlagEntry.flag)] ?? DEFAULT_CONFIG)
     : null;
   const currentSector = currentFlagEntry ? sectorBadge(currentFlagEntry) : null;
 
@@ -111,12 +137,14 @@ export function RaceControlFeed({
               : "Select a session"}
           </div>
         )}
-        {feed.map((e, i) => {
-          const cfg = FLAG_CONFIG[e.flag ?? ""] ?? DEFAULT_CONFIG;
+        {feed.map((e) => {
+          const cfg = FLAG_CONFIG[toFlagKey(e.flag)] ?? DEFAULT_CONFIG;
           const sector = sectorBadge(e);
+          const severity = SEVERITY_BADGE[e.severity];
+          const typeLabel = e.kind.replace(/_/g, " ");
           return (
             <div
-              key={i}
+              key={e.id}
               className="flex gap-2 text-xs border-b border-[#2a2a35] pb-1.5 pt-0.5"
             >
               <div className="flex shrink-0 flex-col items-start gap-1">
@@ -127,6 +155,14 @@ export function RaceControlFeed({
                     {cfg.label || e.flag}
                   </span>
                 )}
+                <span
+                  className={`rounded px-1.5 py-0.5 text-[9px] font-black uppercase tracking-widest ${severity.cls}`}
+                >
+                  {severity.label}
+                </span>
+                <span className="rounded bg-panel px-1.5 py-0.5 text-[9px] font-black uppercase tracking-widest text-muted">
+                  {typeLabel}
+                </span>
                 {sector && (
                   <span className="rounded bg-panel px-1.5 py-0.5 text-[9px] font-black uppercase tracking-widest text-muted">
                     {sector}
@@ -134,11 +170,11 @@ export function RaceControlFeed({
                 )}
               </div>
               <span className="flex-1 text-white/90 leading-snug text-[11px]">
-                {e.message}
+                {e.description}
               </span>
-              {e.lap_number && (
+              {e.lapNumber !== null && (
                 <span className="shrink-0 text-muted tabular-nums font-mono text-[10px]">
-                  L{e.lap_number}
+                  L{e.lapNumber}
                 </span>
               )}
             </div>

@@ -2,6 +2,7 @@ import { useEffect, type ReactNode } from "react";
 import { useTimeline } from "@/timeline/clock";
 import { SPEEDS } from "@/constants";
 import { nextAfter, prevBefore } from "@/timeline/events";
+import type { RaceControlMarker } from "@/timeline/raceControl";
 
 interface Props {
   durationMs: number;
@@ -11,6 +12,7 @@ interface Props {
   safetyCarTimes?: number[];
   overtakeTimes?: number[];
   radioTimes?: number[];
+  raceControlMarkers?: RaceControlMarker[];
   /** Show a countdown badge (timed sessions: practice / qualifying) */
   countdownMs?: number | null;
   /** Active qualifying phase label e.g. "Q1" — shown alongside the countdown */
@@ -150,6 +152,7 @@ export function PlaybackBar({
   safetyCarTimes = [],
   overtakeTimes = [],
   radioTimes = [],
+  raceControlMarkers = [],
   countdownMs = null,
   qualiPhase = null,
 }: Props) {
@@ -248,16 +251,44 @@ export function PlaybackBar({
         </span>
 
         {/* Scrubber */}
-        <input
-          type="range"
-          min={0}
-          max={durationMs}
-          value={Math.min(t, durationMs)}
-          onChange={(e) => setT(Number(e.target.value))}
-          className="flex-1 h-1 cursor-pointer"
-          style={{ touchAction: "none" }}
-          aria-label="Seek"
-        />
+        <div className="relative flex-1 h-4 flex items-center">
+          <input
+            type="range"
+            min={0}
+            max={durationMs}
+            value={Math.min(t, durationMs)}
+            onChange={(e) => setT(Number(e.target.value))}
+            className="w-full h-1 cursor-pointer"
+            style={{ touchAction: "none" }}
+            aria-label="Seek"
+          />
+          {durationMs > 0 && raceControlMarkers.length > 0 && (
+            <div className="absolute inset-0">
+              {raceControlMarkers.map((marker) => {
+                const left = (marker.ms / durationMs) * 100;
+                if (!Number.isFinite(left) || left < 0 || left > 100)
+                  return null;
+                const color =
+                  marker.severity === "critical"
+                    ? "bg-red-500"
+                    : marker.severity === "warning"
+                      ? "bg-amber-400"
+                      : "bg-slate-400";
+                return (
+                  <button
+                    key={marker.id}
+                    type="button"
+                    title={`Jump to ${marker.label}`}
+                    aria-label={`Jump to ${marker.label}`}
+                    onClick={() => jump(marker.ms)}
+                    className={`absolute top-0 h-4 w-1 rounded ${color} opacity-80 hover:opacity-100`}
+                    style={{ left: `${left}%`, transform: "translateX(-50%)" }}
+                  />
+                );
+              })}
+            </div>
+          )}
+        </div>
 
         {/* Duration — hidden on mobile to reclaim scrubber space */}
         <span className="hidden sm:inline text-muted font-mono text-xs tabular-nums w-12 shrink-0">

@@ -52,6 +52,10 @@ import {
   radioTimes,
   buildToastEvents,
 } from "@/timeline/events";
+import {
+  buildRaceControlMarkers,
+  normalizeRaceControl,
+} from "@/timeline/raceControl";
 import { useEventToasts } from "@/hooks/useEventToasts";
 import { useCatchupSummary } from "@/hooks/useCatchupSummary";
 import { EventToastStack } from "@/components/EventToast/EventToastStack";
@@ -203,6 +207,14 @@ export default function RaceWeekend() {
     () => radioTimes(teamRadio.data ?? [], sessionStartMs),
     [teamRadio.data, sessionStartMs],
   );
+
+  const raceControlMarkers = useMemo(() => {
+    const normalized = normalizeRaceControl(
+      raceControl.data ?? [],
+      sessionStartMs,
+    );
+    return buildRaceControlMarkers(normalized);
+  }, [raceControl.data, sessionStartMs]);
 
   const chequeredMs = useMemo(() => {
     if (!sessionStartMs) return null;
@@ -1247,6 +1259,7 @@ export default function RaceWeekend() {
         safetyCarTimes={safetyCarMarks}
         overtakeTimes={overtakeMarks}
         radioTimes={radioMarks}
+        raceControlMarkers={raceControlMarkers}
         countdownMs={countdownMs}
         qualiPhase={qualiPhase}
       />
