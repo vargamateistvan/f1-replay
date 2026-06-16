@@ -895,7 +895,7 @@ export default function RaceWeekend() {
   // ── View layouts ─────────────────────────────────────────────────────────────
 
   return (
-    <div className="flex flex-col relative md:h-full md:overflow-hidden">
+    <div className="flex flex-col relative h-dvh md:h-full overflow-hidden">
       {/* Flag banner — spans full width below nav */}
       {sessionStartMs > 0 && (
         <FlagBanner
@@ -987,7 +987,7 @@ export default function RaceWeekend() {
 
       {/* ── DRIVER TRACKER VIEW ───────────────────────────────────────── */}
       {currentView === "tracker" && (
-        <div className="flex flex-col md:flex-1 md:min-h-0 md:overflow-hidden">
+        <div className="flex flex-col flex-1 min-h-0 md:flex-1 md:min-h-0 md:overflow-hidden">
           <SessionInfoBar
             laps={laps.data ?? []}
             raceControl={raceControl.data ?? []}
@@ -1002,7 +1002,7 @@ export default function RaceWeekend() {
                 : undefined
             }
           />
-          <div className="flex flex-col md:flex-1 md:min-h-0 md:overflow-hidden relative">
+          <div className="flex flex-col flex-1 min-h-0 md:flex-1 md:min-h-0 md:overflow-hidden relative">
             {/* Toast overlay — covers both mobile and desktop tracker content */}
             <EventToastStack
               toasts={toasts}
@@ -1011,7 +1011,7 @@ export default function RaceWeekend() {
             />
 
             {/* Phone layout: tab-switched (md:hidden) */}
-            <div className="md:hidden flex flex-col w-full">
+            <div className="md:hidden flex flex-col flex-1 min-h-0 w-full">
               {/* Tab chips */}
               <div className="flex gap-1 overflow-x-auto border-b border-panel shrink-0 bg-track px-2 py-1.5">
                 {(
@@ -1070,7 +1070,7 @@ export default function RaceWeekend() {
               )}
 
               {/* Tab content */}
-              <div className="flex flex-col md:flex-1 md:min-h-0 md:overflow-hidden">
+              <div className="flex flex-col flex-1 min-h-0 overflow-hidden">
                 {(trackerTab ?? "timing") === "timing" && (
                   <>
                     {/* Weather accordion */}
