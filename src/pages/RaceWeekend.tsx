@@ -1197,6 +1197,11 @@ export default function RaceWeekend() {
                   entries={raceControl.data ?? []}
                   sessionTimeMs={t}
                   sessionStartMs={sessionStartMs}
+                  drivers={drivers.data ?? []}
+                  focusDriver={focusDriver}
+                  onClearFocus={
+                    focusDriver !== null ? clearFocusSelection : undefined
+                  }
                 />
               ))}
             {commentaryTab === "radio" &&

@@ -249,3 +249,86 @@ export function summarizeMarkers(markers: RaceControlMarker[]): MarkerSummary {
   }
   return { critical, warning };
 }
+
+// ─── Penalty / investigation state machine ───────────────────────────────────
+
+export type PenaltyStatus = "noted" | "investigating" | "penalty" | "cleared";
+
+export interface PenaltyDriverState {
+  driverNumber: number;
+  status: PenaltyStatus;
+  lapNumber: number | null;
+  latestDescription: string;
+}
+
+function classifyPenaltyStatus(
+  event: NormalizedRaceControlEvent,
+): PenaltyStatus | null {
+  if (event.kind !== "penalty" && event.kind !== "investigation") return null;
+  const lower = event.description.toLowerCase();
+  if (/no further investigation|no action taken|not investigated/i.test(lower))
+    return "cleared";
+  if (
+    /penalty|drive.through|stop.go|time penalty|grid drop|disqualif|reprimand|lap time deleted/i.test(
+      lower,
+    )
+  )
+    return "penalty";
+  if (/under investigation/i.test(lower)) return "investigating";
+  if (/noted|alleged/i.test(lower)) return "noted";
+  return event.kind === "penalty" ? "penalty" : "noted";
+}
+
+/**
+ * Derive the current disciplinary state per driver from a sorted
+ * (ascending ms) array of normalized events. The last event in time
+ * for each driver defines their current state.
+ */
+export function buildPenaltyStates(
+  events: NormalizedRaceControlEvent[],
+): PenaltyDriverState[] {
+  const byDriver = new Map<number, PenaltyDriverState>();
+  for (const e of events) {
+    if (e.driverNumber === null) continue;
+    const status = classifyPenaltyStatus(e);
+    if (status === null) continue;
+    byDriver.set(e.driverNumber, {
+      driverNumber: e.driverNumber,
+      status,
+      lapNumber: e.lapNumber,
+      latestDescription: e.description,
+    });
+  }
+  return [...byDriver.values()].sort((a, b) => a.driverNumber - b.driverNumber);
+}
+
+// ─── Lap-grouped events ───────────────────────────────────────────────────────
+
+export interface LapGroup {
+  lapNumber: number | null;
+  events: NormalizedRaceControlEvent[];
+}
+
+/**
+ * Group normalized events by lap number. Session-level events (null lap)
+ * form their own group. Returns groups sorted ascending by lap (null first).
+ */
+export function groupEventsByLap(
+  events: NormalizedRaceControlEvent[],
+): LapGroup[] {
+  const grouped = new Map<string, LapGroup>();
+  for (const e of events) {
+    const key = e.lapNumber !== null ? String(e.lapNumber) : "session";
+    let group = grouped.get(key);
+    if (!group) {
+      group = { lapNumber: e.lapNumber, events: [] };
+      grouped.set(key, group);
+    }
+    group.events.push(e);
+  }
+  return [...grouped.values()].sort((a, b) => {
+    if (a.lapNumber === null) return -1;
+    if (b.lapNumber === null) return 1;
+    return a.lapNumber - b.lapNumber;
+  });
+}
