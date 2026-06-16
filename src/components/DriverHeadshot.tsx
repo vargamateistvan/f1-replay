@@ -4,10 +4,11 @@ import type { Driver } from "@/api/types";
 interface Props {
   readonly driver: Driver | undefined;
   readonly accent: string;
-  readonly size?: "sm" | "md" | "lg";
+  readonly size?: "xs" | "sm" | "md" | "lg";
 }
 
 const SIZE_CLASSES: Record<NonNullable<Props["size"]>, string> = {
+  xs: "h-5 w-5 text-[8px]",
   sm: "h-7 w-7 text-[9px]",
   md: "h-10 w-10 text-[11px]",
   lg: "h-14 w-14 text-sm",

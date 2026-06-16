@@ -458,7 +458,7 @@ export function LiveTiming({
         <thead>
           <tr className="sticky top-0 bg-track z-10 border-b border-[#38383f]">
             <th className={`${TH} text-left w-8`}>P</th>
-            <th className={`${TH} text-left w-[8.5rem] min-[390px]:w-auto`}>
+            <th className={`${TH} text-left w-[6.75rem] min-[390px]:w-[7.5rem] sm:w-auto`}>
               Driver
             </th>
             <th className={`${TH} text-right`}>Best Lap</th>
@@ -555,22 +555,20 @@ export function LiveTiming({
                 </td>
 
                 {/* Driver */}
-                <td className="py-3 px-1.5 sm:px-2">
+                <td className="py-3 px-1 sm:px-2">
                   <span className="flex items-center gap-1 sm:gap-2">
-                    <span className="hidden min-[390px]:inline-flex sm:inline-flex">
-                      <DriverHeadshot
-                        driver={driver}
-                        accent={color}
-                        size="sm"
-                      />
-                    </span>
+                    <DriverHeadshot
+                      driver={driver}
+                      accent={color}
+                      size="xs"
+                    />
                     {/* Team colour bar */}
                     <span
-                      className="w-[3px] h-4 shrink-0 rounded-sm"
+                      className="w-[2px] h-4 shrink-0 rounded-sm"
                       style={{ background: color }}
                     />
                     {/* Surname in CAPS */}
-                    <span className="min-w-0 truncate font-bold text-[11px] min-[390px]:text-[12px] tracking-[0.04em] min-[390px]:tracking-[0.06em] uppercase text-white">
+                    <span className="min-w-0 truncate font-bold text-[10px] min-[390px]:text-[11px] tracking-[0.03em] min-[390px]:tracking-[0.05em] uppercase text-white">
                       {driver?.name_acronym ?? num}
                     </span>
                     {selected && (
