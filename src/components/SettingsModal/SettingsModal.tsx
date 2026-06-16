@@ -52,8 +52,8 @@ export function SettingsModal() {
 
         {/* Scrollable body */}
         <div
-          className="flex-1 min-h-0 overflow-y-auto px-5 pb-4"
-          style={{ touchAction: 'pan-y', overscrollBehavior: 'contain' }}
+          className="flex-1 min-h-0 overflow-y-auto overscroll-contain px-5 pb-4"
+          style={{ WebkitOverflowScrolling: "touch" }}
         >
           <SettingsBody />
         </div>

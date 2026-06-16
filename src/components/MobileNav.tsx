@@ -38,7 +38,7 @@ export function MobileNav() {
 
   return (
     <nav
-      className="md:hidden shrink-0 flex flex-col bg-track border-t border-panel sticky bottom-0 z-30"
+      className="md:hidden fixed inset-x-0 bottom-0 z-30 flex flex-col bg-track border-t border-panel"
       style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
     >
       {showMore && (

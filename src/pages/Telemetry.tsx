@@ -227,7 +227,7 @@ export default function Telemetry() {
   }, [sessionKey]);
 
   return (
-    <div className="flex flex-col h-full overflow-hidden">
+    <div className="flex flex-col md:h-full md:overflow-hidden">
       {/* Driver + lap selectors */}
       <div className="grid grid-cols-1 gap-2 px-3 py-3 bg-surface border-b border-panel sm:flex sm:flex-wrap sm:items-center sm:gap-x-3 sm:gap-y-1.5 sm:py-2">
         <div className="grid grid-cols-1 gap-2 sm:contents">
@@ -306,7 +306,7 @@ export default function Telemetry() {
       </div>
 
       {/* Charts */}
-      <div className="flex-1 overflow-auto p-3 space-y-2">
+      <div className="panel-scroll p-3 space-y-2">
         {(() => {
           if (hasError)
             return (

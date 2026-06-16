@@ -202,7 +202,11 @@ export function PlaybackBar({
 
   return (
     <div
-      className={`flex flex-col gap-1.5 py-2 bg-track border-t border-panel sm:gap-2 sm:py-2.5 ${mobileInline ? "" : "sticky z-20 md:static md:z-auto"}`}
+      className={`flex flex-col gap-1.5 py-2 bg-track border-t border-panel sm:gap-2 sm:py-2.5 ${
+        mobileInline
+          ? ""
+          : "fixed inset-x-0 z-20 md:static md:inset-auto md:z-auto"
+      }`}
       style={
         mobileInline
           ? {

@@ -5,7 +5,7 @@ export default function Settings() {
   const navigate = useNavigate();
 
   return (
-    <div className="flex flex-col h-full bg-[#1a1a24]">
+    <div className="flex flex-col md:h-full bg-[#1a1a24]">
       {/* Header */}
       <div className="flex items-center gap-3 px-4 py-3 border-b border-[#2a2a35] shrink-0 bg-track">
         <button
@@ -21,10 +21,7 @@ export default function Settings() {
       </div>
 
       {/* Scrollable content */}
-      <div
-        className="flex-1 min-h-0 overflow-y-auto px-4 pb-6"
-        style={{ touchAction: 'pan-y', overscrollBehavior: 'contain' }}
-      >
+      <div className="panel-scroll px-4 pb-6">
         <SettingsBody />
       </div>
     </div>

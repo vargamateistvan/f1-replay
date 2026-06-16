@@ -380,10 +380,7 @@ export function LiveTiming({
   }
 
   return (
-    <div
-      className="flex-1 min-h-0 overflow-auto"
-      style={{ touchAction: "pan-y" }}
-    >
+    <div className="panel-scroll">
       <div className="border-b border-[#2a2a35] bg-surface/80 px-2 py-2 sm:px-3">
         {hasSectorReference ? (
           <>

@@ -136,7 +136,7 @@ export function StrategyBar({
   }
 
   return (
-    <div className="px-2 py-1.5 space-y-0.5 overflow-auto h-full sm:px-3 sm:py-2">
+    <div className="px-2 py-1.5 space-y-0.5 md:overflow-auto md:h-full sm:px-3 sm:py-2">
       {/* Lap axis */}
       <div className="relative mb-1 flex h-4 items-center pl-8 pr-1 sm:pl-10">
         {axisTicks.map((lap) => (

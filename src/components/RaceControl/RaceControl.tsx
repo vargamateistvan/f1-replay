@@ -211,7 +211,7 @@ export function RaceControlFeed({
     focusDriver !== null ? driverMap.get(focusDriver) : null;
 
   return (
-    <div className="flex flex-col flex-1 min-h-0">
+    <div className="flex flex-col md:flex-1 md:min-h-0">
       {/* ── Active flag banner ─────────────────────────────────── */}
       {flagConfig && (
         <div
@@ -344,7 +344,7 @@ export function RaceControlFeed({
       )}
 
       {/* ── Lap-grouped feed ───────────────────────────────────── */}
-      <div className="flex-1 overflow-auto" style={{ touchAction: "pan-y" }}>
+      <div className="panel-scroll">
         {lapGroups.length === 0 && (
           <div className="p-2 text-muted text-xs">
             {sessionStartMs ? "No events match filters" : "Select a session"}

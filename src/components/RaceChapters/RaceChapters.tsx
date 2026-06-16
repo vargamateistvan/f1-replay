@@ -328,10 +328,7 @@ export function RaceChapters({
   }
 
   return (
-    <div
-      className="flex-1 min-h-0 overflow-auto"
-      style={{ touchAction: "pan-y" }}
-    >
+    <div className="panel-scroll">
       <div className="sticky top-0 z-10 flex items-center gap-2 px-2 py-1.5 border-b border-[#2a2a35] bg-track">
         <button
           type="button"

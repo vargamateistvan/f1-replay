@@ -315,7 +315,7 @@ export default function Standings() {
   } = useStandings(year);
 
   return (
-    <div className="flex flex-col h-full overflow-hidden bg-track">
+    <div className="flex flex-col md:h-full md:overflow-hidden bg-track">
       {/* Header */}
       <div className="flex flex-wrap items-center gap-3 px-4 pt-2 pb-2 bg-surface border-b border-panel">
         <span className="text-f1red font-black text-sm tracking-[0.18em] uppercase">
@@ -370,13 +370,13 @@ export default function Standings() {
           <ErrorMessage message="Failed to load championship data" />
         </div>
       ) : (
-        <div className="flex-1 overflow-hidden flex flex-col sm:flex-row gap-0">
+        <div className="flex flex-col sm:flex-row gap-0 md:flex-1 md:overflow-hidden">
           {tab === "drivers" ? (
             <>
-              <div className="sm:w-[420px] shrink-0 sm:border-r border-b sm:border-b-0 border-panel overflow-auto max-h-[55dvh] sm:max-h-full">
+              <div className="sm:w-[420px] shrink-0 sm:border-r border-b sm:border-b-0 border-panel md:overflow-auto md:max-h-full">
                 <DriverTable standings={driverStandings} />
               </div>
-              <div className="flex-1 overflow-auto p-4 bg-track min-h-[18rem]">
+              <div className="md:flex-1 md:overflow-auto p-4 bg-track min-h-[18rem]">
                 <div className="text-[10px] text-muted font-bold mb-3 uppercase tracking-[0.12em]">
                   Points — {year} Driver Championship
                 </div>
@@ -385,10 +385,10 @@ export default function Standings() {
             </>
           ) : (
             <>
-              <div className="sm:w-[360px] shrink-0 sm:border-r border-b sm:border-b-0 border-panel overflow-auto max-h-[55dvh] sm:max-h-full">
+              <div className="sm:w-[360px] shrink-0 sm:border-r border-b sm:border-b-0 border-panel md:overflow-auto md:max-h-full">
                 <ConstructorTable standings={constructorStandings} />
               </div>
-              <div className="flex-1 overflow-auto p-4 bg-track min-h-[18rem]">
+              <div className="md:flex-1 md:overflow-auto p-4 bg-track min-h-[18rem]">
                 <div className="text-[10px] text-muted font-bold mb-3 uppercase tracking-[0.12em]">
                   Points — {year} Constructor Championship
                 </div>
