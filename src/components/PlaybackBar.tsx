@@ -16,6 +16,7 @@ interface Props {
   markerSummary?: MarkerSummary | null;
   canReplayNextIncident?: boolean;
   onReplayNextIncident?: () => void;
+  incidentReplayHint?: string | null;
   /** Show a countdown badge (timed sessions: practice / qualifying) */
   countdownMs?: number | null;
   /** Active qualifying phase label e.g. "Q1" — shown alongside the countdown */
@@ -159,6 +160,7 @@ export function PlaybackBar({
   markerSummary = null,
   canReplayNextIncident = false,
   onReplayNextIncident,
+  incidentReplayHint = null,
   countdownMs = null,
   qualiPhase = null,
 }: Props) {
@@ -403,6 +405,11 @@ export function PlaybackBar({
         >
           Incident ›
         </button>
+        {incidentReplayHint && (
+          <span className="h-7 flex items-center px-2 text-[9px] font-black uppercase tracking-widest bg-amber-500/20 text-amber-300 border border-amber-500/30 shrink-0">
+            {incidentReplayHint}
+          </span>
+        )}
         <button
           onClick={() => jump(nextPit)}
           disabled={nextPit === null}

@@ -128,6 +128,9 @@ export default function RaceWeekend() {
   const [incidentReplayEndMs, setIncidentReplayEndMs] = useState<number | null>(
     null,
   );
+  const [incidentReplayHint, setIncidentReplayHint] = useState<string | null>(
+    null,
+  );
 
   const sessions = useSessions(meetingKey);
   const session = sessions.data?.find((s) => s.session_key === sessionKey);
@@ -171,7 +174,14 @@ export default function RaceWeekend() {
 
   useEffect(() => {
     setIncidentReplayEndMs(null);
+    setIncidentReplayHint(null);
   }, [sessionKey]);
+
+  useEffect(() => {
+    if (!incidentReplayHint) return;
+    const id = window.setTimeout(() => setIncidentReplayHint(null), 2200);
+    return () => window.clearTimeout(id);
+  }, [incidentReplayHint]);
 
   useTimelineUrlSync(sessionKey, sessionStartMs > 0);
 
@@ -288,6 +298,11 @@ export default function RaceWeekend() {
       (w) => w.endMs !== null && w.startMs > t + MIN_AHEAD_MS,
     );
   }, [incidentWindows, t]);
+
+  const firstReplayIncident = useMemo(
+    () => incidentWindows.find((w) => w.endMs !== null),
+    [incidentWindows],
+  );
 
   const pulseDrivers = useMemo(() => {
     const out: number[] = [];
@@ -1344,13 +1359,20 @@ export default function RaceWeekend() {
         radioTimes={radioMarks}
         raceControlMarkers={raceControlMarkers}
         markerSummary={markerSummary}
-        canReplayNextIncident={nextReplayIncident !== undefined}
+        canReplayNextIncident={
+          nextReplayIncident !== undefined || firstReplayIncident !== undefined
+        }
         onReplayNextIncident={() => {
-          if (!nextReplayIncident || nextReplayIncident.endMs === null) return;
-          setTimelineT(nextReplayIncident.startMs);
-          setIncidentReplayEndMs(nextReplayIncident.endMs);
+          const chosen = nextReplayIncident ?? firstReplayIncident;
+          if (!chosen || chosen.endMs === null) return;
+          if (!nextReplayIncident && firstReplayIncident) {
+            setIncidentReplayHint("Wrapped to first incident");
+          }
+          setTimelineT(chosen.startMs);
+          setIncidentReplayEndMs(chosen.endMs);
           setTimelinePlaying(true);
         }}
+        incidentReplayHint={incidentReplayHint}
         countdownMs={countdownMs}
         qualiPhase={qualiPhase}
       />
