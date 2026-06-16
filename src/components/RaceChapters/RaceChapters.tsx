@@ -1,3 +1,4 @@
+import { useMemo, useState } from "react";
 import type { Driver } from "@/api/types";
 import type {
   RaceChapter,
@@ -189,6 +190,7 @@ interface ChapterRowProps {
   snapshot: WhatChangedSnapshot | null;
   drivers: Driver[];
   onJump: (ms: number) => void;
+  onPlayWindow?: (startMs: number, endMs: number) => void;
 }
 
 function ChapterRow({
@@ -197,16 +199,16 @@ function ChapterRow({
   snapshot,
   drivers,
   onJump,
+  onPlayWindow,
 }: ChapterRowProps) {
   const cfg = CHAPTER_CONFIG[chapter.kind];
+  const canReplayWindow = onPlayWindow && chapter.endMs !== null;
 
   return (
     <div
       className={`border-b border-[#2a2a35] ${isCurrent ? "bg-white/[0.04]" : ""}`}
     >
-      <button
-        type="button"
-        onClick={() => onJump(chapter.startMs)}
+      <div
         className={`w-full flex items-center gap-3 px-3 py-2.5 text-left transition-colors hover:bg-white/[0.04] border-l-2 ${cfg.trackCls}`}
         style={{ background: isCurrent ? undefined : cfg.bg }}
       >
@@ -246,9 +248,30 @@ function ChapterRow({
           </span>
         )}
 
-        {/* Jump arrow */}
-        <span className="text-muted text-[10px] shrink-0">›</span>
-      </button>
+        {/* Jump / replay actions */}
+        <div className="shrink-0 flex items-center gap-1">
+          <button
+            type="button"
+            onClick={() => onJump(chapter.startMs)}
+            className="h-6 px-2 text-[9px] font-black uppercase tracking-widest bg-panel text-muted hover:text-white hover:bg-[#38383f]"
+            aria-label={`Jump to ${chapter.label}`}
+            title={`Jump to ${chapter.label}`}
+          >
+            Jump
+          </button>
+          {canReplayWindow && (
+            <button
+              type="button"
+              onClick={() => onPlayWindow(chapter.startMs, chapter.endMs!)}
+              className="h-6 px-2 text-[9px] font-black uppercase tracking-widest bg-f1red text-white hover:bg-red-600"
+              aria-label={`Replay ${chapter.label}`}
+              title={`Replay ${chapter.label}`}
+            >
+              Replay
+            </button>
+          )}
+        </div>
+      </div>
 
       {/* What Changed inline card — only for completed incident windows */}
       {snapshot !== null && (
@@ -266,6 +289,7 @@ interface Props {
   drivers: Driver[];
   sessionTimeMs: number;
   onJump: (ms: number) => void;
+  onPlayWindow?: (startMs: number, endMs: number) => void;
 }
 
 export function RaceChapters({
@@ -274,7 +298,18 @@ export function RaceChapters({
   drivers,
   sessionTimeMs,
   onJump,
+  onPlayWindow,
 }: Props) {
+  const [incidentOnly, setIncidentOnly] = useState(false);
+
+  const visibleChapters = useMemo(
+    () =>
+      incidentOnly
+        ? chapters.filter((c) => c.incidentWindowId !== null)
+        : chapters,
+    [chapters, incidentOnly],
+  );
+
   if (chapters.length === 0) {
     return (
       <div className="text-muted text-xs p-3">
@@ -288,7 +323,7 @@ export function RaceChapters({
 
   // The current chapter is the last one whose startMs ≤ sessionTimeMs
   let currentChapterId: string | null = null;
-  for (const ch of chapters) {
+  for (const ch of visibleChapters) {
     if (ch.startMs <= sessionTimeMs) currentChapterId = ch.id;
   }
 
@@ -297,8 +332,25 @@ export function RaceChapters({
       className="flex-1 min-h-0 overflow-auto"
       style={{ touchAction: "pan-y" }}
     >
+      <div className="sticky top-0 z-10 flex items-center gap-2 px-2 py-1.5 border-b border-[#2a2a35] bg-track">
+        <button
+          type="button"
+          onClick={() => setIncidentOnly((v) => !v)}
+          aria-pressed={incidentOnly}
+          className={`h-6 px-2 text-[9px] font-black uppercase tracking-widest transition-colors ${
+            incidentOnly
+              ? "bg-amber-500/20 text-amber-300 border border-amber-500/40"
+              : "bg-panel text-muted hover:text-white"
+          }`}
+        >
+          Incident Only
+        </button>
+        <span className="text-[9px] text-muted uppercase tracking-widest">
+          {visibleChapters.length} chapters
+        </span>
+      </div>
       <div>
-        {chapters.map((ch) => {
+        {visibleChapters.map((ch) => {
           const snapshot =
             ch.incidentWindowId !== null
               ? (snapshotByWindowId.get(ch.incidentWindowId) ?? null)
@@ -311,6 +363,7 @@ export function RaceChapters({
               snapshot={snapshot}
               drivers={drivers}
               onJump={onJump}
+              onPlayWindow={onPlayWindow}
             />
           );
         })}

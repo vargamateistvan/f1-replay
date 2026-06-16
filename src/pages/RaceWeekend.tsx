@@ -125,6 +125,9 @@ export default function RaceWeekend() {
   const [focusDriver, setFocusDriver] = useNumberParam("focus", null);
   const [compareDriver, setCompareDriver] = useNumberParam("compare", null);
   const [isResultsDialogOpen, setIsResultsDialogOpen] = useState(false);
+  const [incidentReplayEndMs, setIncidentReplayEndMs] = useState<number | null>(
+    null,
+  );
 
   const sessions = useSessions(meetingKey);
   const session = sessions.data?.find((s) => s.session_key === sessionKey);
@@ -145,6 +148,8 @@ export default function RaceWeekend() {
 
   // Stable selector — won't re-render on every t tick.
   const setSessionStart = useTimeline((s) => s.setSessionStart);
+  const setTimelineT = useTimeline((s) => s.setT);
+  const setTimelinePlaying = useTimeline((s) => s.setPlaying);
   // Throttled to ~10 Hz. Step-based panels (LiveTiming, Strategy, Weather, etc.)
   // don't need 60 fps; TrackMap drives its own 60 Hz loop internally.
   const t = useCoarseTime();
@@ -156,6 +161,17 @@ export default function RaceWeekend() {
   useEffect(() => {
     if (sessionStartMs) setSessionStart(sessionStartMs);
   }, [sessionStartMs, setSessionStart]);
+
+  useEffect(() => {
+    if (incidentReplayEndMs === null) return;
+    if (t < incidentReplayEndMs) return;
+    setTimelinePlaying(false);
+    setIncidentReplayEndMs(null);
+  }, [incidentReplayEndMs, setTimelinePlaying, t]);
+
+  useEffect(() => {
+    setIncidentReplayEndMs(null);
+  }, [sessionKey]);
 
   useTimelineUrlSync(sessionKey, sessionStartMs > 0);
 
@@ -1273,6 +1289,11 @@ export default function RaceWeekend() {
                 drivers={drivers.data ?? []}
                 sessionTimeMs={t}
                 onJump={(ms) => useTimeline.getState().setT(ms)}
+                onPlayWindow={(startMs, endMs) => {
+                  setTimelineT(startMs);
+                  setIncidentReplayEndMs(endMs);
+                  setTimelinePlaying(true);
+                }}
               />
             )}
           </div>
