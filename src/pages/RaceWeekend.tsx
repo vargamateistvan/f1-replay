@@ -54,10 +54,14 @@ import {
 } from "@/timeline/events";
 import {
   buildRaceControlMarkers,
+  buildIncidentWindows,
+  buildRaceChapters,
   clusterRaceControlMarkers,
+  computeWhatChanged,
   normalizeRaceControl,
   summarizeMarkers,
 } from "@/timeline/raceControl";
+import { RaceChapters } from "@/components/RaceChapters/RaceChapters";
 import { useEventToasts } from "@/hooks/useEventToasts";
 import { useCatchupSummary } from "@/hooks/useCatchupSummary";
 import { EventToastStack } from "@/components/EventToast/EventToastStack";
@@ -81,7 +85,7 @@ import type { Stint, CarData } from "@/api/types";
 
 // Sub-tab options per view
 type TrackerTab = "timing" | "chart" | "gap" | "map";
-type CommentaryTab = "rc" | "radio" | "passes" | "moments";
+type CommentaryTab = "rc" | "radio" | "passes" | "moments" | "chapters";
 
 export interface KeyMoment {
   ms: number;
@@ -210,18 +214,25 @@ export default function RaceWeekend() {
     [teamRadio.data, sessionStartMs],
   );
 
+  // ── Phase 3: chapters + what-changed ────────────────────────────────────────
+  const normalizedRcEvents = useMemo(
+    () => normalizeRaceControl(raceControl.data ?? [], sessionStartMs),
+    [raceControl.data, sessionStartMs],
+  );
+
   const raceControlMarkers = useMemo(() => {
-    const normalized = normalizeRaceControl(
-      raceControl.data ?? [],
-      sessionStartMs,
-    );
-    const raw = buildRaceControlMarkers(normalized);
+    const raw = buildRaceControlMarkers(normalizedRcEvents);
     return clusterRaceControlMarkers(raw);
-  }, [raceControl.data, sessionStartMs]);
+  }, [normalizedRcEvents]);
 
   const markerSummary = useMemo(
     () => summarizeMarkers(raceControlMarkers),
     [raceControlMarkers],
+  );
+
+  const incidentWindows = useMemo(
+    () => buildIncidentWindows(normalizedRcEvents),
+    [normalizedRcEvents],
   );
 
   const chequeredMs = useMemo(() => {
@@ -233,6 +244,27 @@ export default function RaceWeekend() {
     }
     return lastChequered;
   }, [raceControl.data, sessionStartMs]);
+
+  const raceChapters = useMemo(
+    () =>
+      buildRaceChapters(
+        incidentWindows,
+        durationMs || DEFAULT_SESSION_MS,
+        chequeredMs,
+      ),
+    [incidentWindows, durationMs, chequeredMs],
+  );
+
+  const whatChangedSnapshots = useMemo(
+    () =>
+      computeWhatChanged(
+        incidentWindows,
+        positions.data ?? [],
+        pits.data ?? [],
+        sessionStartMs,
+      ),
+    [incidentWindows, positions.data, pits.data, sessionStartMs],
+  );
 
   const pulseDrivers = useMemo(() => {
     const out: number[] = [];
@@ -1170,6 +1202,7 @@ export default function RaceWeekend() {
                 ["radio", "Team Radio", "Radio"],
                 ["passes", "Overtakes", "Passes"],
                 ["moments", "Key Moments", "Moments"],
+                ["chapters", "Chapters", "Chptrs"],
               ] as [CommentaryTab, string, string][]
             ).map(([tab, label, shortLabel]) => (
               <button
@@ -1229,6 +1262,15 @@ export default function RaceWeekend() {
             {commentaryTab === "moments" && (
               <KeyMoments
                 moments={keyMoments}
+                sessionTimeMs={t}
+                onJump={(ms) => useTimeline.getState().setT(ms)}
+              />
+            )}
+            {commentaryTab === "chapters" && (
+              <RaceChapters
+                chapters={raceChapters}
+                snapshots={whatChangedSnapshots}
+                drivers={drivers.data ?? []}
                 sessionTimeMs={t}
                 onJump={(ms) => useTimeline.getState().setT(ms)}
               />

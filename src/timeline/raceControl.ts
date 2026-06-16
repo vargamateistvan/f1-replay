@@ -1,4 +1,4 @@
-import type { RaceControl } from "@/api/types";
+import type { RaceControl, Position, Pit } from "@/api/types";
 
 export type RaceControlSeverity = "info" | "warning" | "critical";
 
@@ -331,4 +331,273 @@ export function groupEventsByLap(
     if (b.lapNumber === null) return 1;
     return a.lapNumber - b.lapNumber;
   });
+}
+
+// ─── Incident windows ─────────────────────────────────────────────────────────
+// An incident window pairs the moment a SC/VSC/red-flag starts with the
+// subsequent "track clear" or restart event.
+
+export type IncidentWindowKind = "safety_car" | "vsc" | "red_flag";
+
+export interface IncidentWindow {
+  id: string;
+  kind: IncidentWindowKind;
+  label: string;
+  startMs: number;
+  /** null while the incident is still active (no clear event found yet). */
+  endMs: number | null;
+  startLap: number | null;
+}
+
+function incidentKindFor(
+  e: NormalizedRaceControlEvent,
+): IncidentWindowKind | null {
+  const flagKey = toFlagKey(e.flag);
+  if (flagKey === "SAFETY_CAR") return "safety_car";
+  if (flagKey === "VIRTUAL_SC") return "vsc";
+  if (flagKey === "RED") return "red_flag";
+  return null;
+}
+
+function isTrackClear(e: NormalizedRaceControlEvent): boolean {
+  const flagKey = toFlagKey(e.flag);
+  if (flagKey === "GREEN" || flagKey === "CLEAR") return true;
+  const lower = e.description.toLowerCase();
+  return (
+    lower.includes("track clear") ||
+    lower.includes("green flag") ||
+    lower.includes("safety car in this lap") ||
+    lower.includes("safety car ending") ||
+    lower.includes("vsc ending") ||
+    lower.includes("restart")
+  );
+}
+
+export function buildIncidentWindows(
+  events: NormalizedRaceControlEvent[],
+): IncidentWindow[] {
+  const windows: IncidentWindow[] = [];
+  const counters: Record<IncidentWindowKind, number> = {
+    safety_car: 0,
+    vsc: 0,
+    red_flag: 0,
+  };
+
+  let openWindow: {
+    kind: IncidentWindowKind;
+    id: string;
+    label: string;
+    startMs: number;
+    startLap: number | null;
+  } | null = null;
+
+  for (const e of events) {
+    const kind = incidentKindFor(e);
+
+    if (kind !== null && openWindow === null) {
+      counters[kind]++;
+      const num = counters[kind];
+      const kindLabel =
+        kind === "safety_car"
+          ? `Safety Car ${num > 1 ? num : ""}`.trim()
+          : kind === "vsc"
+            ? `Virtual SC ${num > 1 ? num : ""}`.trim()
+            : `Red Flag ${num > 1 ? num : ""}`.trim();
+      openWindow = {
+        kind,
+        id: `${kind}-${e.ms}`,
+        label: kindLabel,
+        startMs: e.ms,
+        startLap: e.lapNumber,
+      };
+    } else if (openWindow !== null && isTrackClear(e)) {
+      windows.push({ ...openWindow, endMs: e.ms });
+      openWindow = null;
+    }
+  }
+
+  // Push any still-open window with endMs = null
+  if (openWindow !== null) {
+    windows.push({ ...openWindow, endMs: null });
+  }
+
+  return windows;
+}
+
+// ─── Race chapters ────────────────────────────────────────────────────────────
+// Divide a session into named, jump-to-able chapters.
+
+export type ChapterKind =
+  | "start"
+  | "green"
+  | "safety_car"
+  | "vsc"
+  | "red_flag"
+  | "finish";
+
+export interface RaceChapter {
+  id: string;
+  kind: ChapterKind;
+  label: string;
+  startMs: number;
+  endMs: number | null;
+  durationMs: number | null;
+  incidentWindowId: string | null;
+}
+
+export function buildRaceChapters(
+  incidentWindows: IncidentWindow[],
+  sessionDurationMs: number,
+  chequeredMs: number | null,
+): RaceChapter[] {
+  const chapters: RaceChapter[] = [];
+  const finishMs = chequeredMs ?? sessionDurationMs;
+  let cursor = 0;
+  let greenCount = 0;
+
+  for (const w of [...incidentWindows].sort((a, b) => a.startMs - b.startMs)) {
+    // Green / start segment before this incident
+    if (w.startMs > cursor) {
+      greenCount++;
+      const label =
+        cursor === 0
+          ? "Race Start"
+          : greenCount === 1
+            ? "Green Flag"
+            : `Green Flag ${greenCount}`;
+      chapters.push({
+        id: `green-${cursor}`,
+        kind: cursor === 0 ? "start" : "green",
+        label,
+        startMs: cursor,
+        endMs: w.startMs,
+        durationMs: w.startMs - cursor,
+        incidentWindowId: null,
+      });
+    }
+
+    // Incident window chapter
+    const end = w.endMs;
+    chapters.push({
+      id: w.id,
+      kind: w.kind,
+      label: w.label,
+      startMs: w.startMs,
+      endMs: end,
+      durationMs: end !== null ? end - w.startMs : null,
+      incidentWindowId: w.id,
+    });
+
+    if (end !== null) cursor = end;
+  }
+
+  // Final green / finish segment
+  if (cursor < finishMs) {
+    chapters.push({
+      id: `finish-${cursor}`,
+      kind: finishMs === chequeredMs ? "finish" : "green",
+      label: finishMs === chequeredMs ? "Finish" : "Green Flag",
+      startMs: cursor,
+      endMs: finishMs,
+      durationMs: finishMs - cursor,
+      incidentWindowId: null,
+    });
+  }
+
+  return chapters;
+}
+
+// ─── What Changed snapshots ───────────────────────────────────────────────────
+// Correlate race_control incidents with position + pit data to show who
+// gained/lost during the window and who used it to pit.
+
+export interface PositionChange {
+  driverNumber: number;
+  before: number | null;
+  after: number | null;
+  /** positive = gained (position number decreased), negative = lost */
+  delta: number;
+}
+
+export interface WhatChangedSnapshot {
+  window: IncidentWindow;
+  positionChanges: PositionChange[];
+  /** Driver numbers who entered the pit lane during this window. */
+  pitsDuringWindow: number[];
+}
+
+function positionAtMs(
+  byDriver: Map<number, { ms: number; pos: number }[]>,
+  driverNumber: number,
+  cutoffMs: number,
+): number | null {
+  const arr = byDriver.get(driverNumber);
+  if (!arr) return null;
+  let result: number | null = null;
+  for (const entry of arr) {
+    if (entry.ms > cutoffMs) break;
+    result = entry.pos;
+  }
+  return result;
+}
+
+export function computeWhatChanged(
+  windows: IncidentWindow[],
+  positions: Position[],
+  pits: Pit[],
+  sessionStartMs: number,
+): WhatChangedSnapshot[] {
+  if (!sessionStartMs || windows.length === 0) return [];
+
+  // Pre-index positions by driver, sorted ascending ms
+  const byDriver = new Map<number, { ms: number; pos: number }[]>();
+  for (const p of positions) {
+    const ms = new Date(p.date).getTime() - sessionStartMs;
+    let arr = byDriver.get(p.driver_number);
+    if (!arr) {
+      arr = [];
+      byDriver.set(p.driver_number, arr);
+    }
+    arr.push({ ms, pos: p.position });
+  }
+  for (const arr of byDriver.values()) arr.sort((a, b) => a.ms - b.ms);
+
+  const allDrivers = [...byDriver.keys()];
+  const snapshots: WhatChangedSnapshot[] = [];
+
+  for (const w of windows) {
+    if (w.endMs === null) continue; // incident still active, skip
+
+    const SNAP_LEAD = 5_000; // snapshot 5 s before incident
+    const SNAP_LAG = 10_000; // snapshot 10 s after clear
+
+    const beforeMs = Math.max(0, w.startMs - SNAP_LEAD);
+    const afterMs = w.endMs + SNAP_LAG;
+
+    const changes: PositionChange[] = [];
+    for (const dn of allDrivers) {
+      const before = positionAtMs(byDriver, dn, beforeMs);
+      const after = positionAtMs(byDriver, dn, afterMs);
+      if (before === null && after === null) continue;
+      const delta = before !== null && after !== null ? before - after : 0;
+      changes.push({ driverNumber: dn, before, after, delta });
+    }
+    // Sort: biggest gainers first, then biggest losers
+    changes.sort((a, b) => b.delta - a.delta);
+
+    // Pits during window
+    const pitsDuringWindow: number[] = [];
+    const pitsSeen = new Set<number>();
+    for (const p of pits) {
+      const ms = new Date(p.date).getTime() - sessionStartMs;
+      if (ms >= w.startMs && ms <= w.endMs && !pitsSeen.has(p.driver_number)) {
+        pitsDuringWindow.push(p.driver_number);
+        pitsSeen.add(p.driver_number);
+      }
+    }
+
+    snapshots.push({ window: w, positionChanges: changes, pitsDuringWindow });
+  }
+
+  return snapshots;
 }
