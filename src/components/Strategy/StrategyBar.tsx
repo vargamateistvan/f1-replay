@@ -120,7 +120,19 @@ export function StrategyBar({
   const currentLapPct = maxLap > 0 ? (currentLap / maxLap) * 100 : 0;
 
   if (driverNumbers.length === 0) {
-    return <div className="text-muted text-xs p-3">No stint data</div>;
+    return (
+      <div className="p-3 sm:p-4">
+        <div className="rounded-sm border border-panel bg-track px-3 py-3 sm:px-4">
+          <div className="text-[10px] font-black uppercase tracking-[0.14em] text-white">
+            No strategy data
+          </div>
+          <div className="mt-1 text-xs text-muted">
+            Tyre stints will appear here once lap and compound data are
+            available.
+          </div>
+        </div>
+      </div>
+    );
   }
 
   return (

@@ -926,8 +926,15 @@ export default function RaceWeekend() {
         <div className="flex flex-col md:flex-1 md:min-h-0 md:overflow-hidden">
           {/* Loading indicator */}
           {isLoadingSessionData && (
-            <div className="text-f1red text-[10px] px-4 py-1 animate-pulse border-b border-panel bg-track">
-              Loading session data…
+            <div className="border-b border-panel bg-track px-3 py-2 sm:px-4">
+              <div className="rounded-sm border border-panel bg-surface px-3 py-2">
+                <div className="text-f1red text-[10px] font-black uppercase tracking-[0.14em] animate-pulse">
+                  Loading session data
+                </div>
+                <div className="mt-1 text-xs text-muted">
+                  Preparing timing, strategy, and event feeds for this session.
+                </div>
+              </div>
             </div>
           )}
 

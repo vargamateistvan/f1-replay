@@ -346,17 +346,31 @@ export function LiveTiming({
 
   if (isLoading) {
     return (
-      <div className="text-muted text-xs p-3 animate-pulse">
-        Loading timing data…
+      <div className="p-3 sm:p-4">
+        <div className="rounded-sm border border-panel bg-surface px-3 py-3 sm:px-4">
+          <div className="text-[10px] font-black uppercase tracking-[0.14em] text-f1red animate-pulse">
+            Loading timing data
+          </div>
+          <div className="mt-1 text-xs text-muted">
+            Pulling positions, gaps, and sector references.
+          </div>
+        </div>
       </div>
     );
   }
   if (sorted.length === 0) {
     return (
-      <div className="text-muted text-xs p-3">
-        {sessionStartMs
-          ? "No timing data yet — scrub forward"
-          : "Select a session"}
+      <div className="p-3 sm:p-4">
+        <div className="rounded-sm border border-panel bg-surface px-3 py-3 sm:px-4">
+          <div className="text-[10px] font-black uppercase tracking-[0.14em] text-white">
+            {sessionStartMs ? "Waiting for timing" : "No session selected"}
+          </div>
+          <div className="mt-1 text-xs text-muted">
+            {sessionStartMs
+              ? "Scrub forward or wait for the first classified samples."
+              : "Choose an event and session to populate the timing tower."}
+          </div>
+        </div>
       </div>
     );
   }
