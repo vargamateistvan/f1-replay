@@ -179,10 +179,11 @@ export function PlaybackBar({
 
   return (
     <div
-      className="flex flex-col gap-1.5 py-2 bg-track border-t border-panel sm:gap-2 sm:py-2.5"
+      className="flex flex-col gap-1.5 py-2 bg-track border-t border-panel sm:gap-2 sm:py-2.5 sticky z-20 md:static md:z-auto"
       style={{
         paddingLeft: "max(0.75rem, env(safe-area-inset-left))",
         paddingRight: "max(0.75rem, env(safe-area-inset-right))",
+        bottom: "calc(44px + env(safe-area-inset-bottom))",
       }}
     >
       {/* ── Transport + scrubber row ─────────────────────────────── */}
@@ -303,7 +304,7 @@ export function PlaybackBar({
       {/* ── Event jump chips row ─────────────────────────────────── */}
       <div
         className="flex gap-1 sm:overflow-x-auto sm:flex-wrap"
-        style={{ touchAction: "pan-x" }}
+        style={{ touchAction: "pan-x pan-y" }}
       >
         {/* Countdown / qualifying phase chip — practice & qualifying only */}
         {countdownMs !== null && (

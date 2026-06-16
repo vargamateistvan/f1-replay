@@ -24,8 +24,8 @@ export function MobileNav() {
 
   return (
     <nav
-      className="md:hidden shrink-0 flex flex-col bg-track border-t border-panel"
-      style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
+      className="md:hidden shrink-0 flex flex-col bg-track border-t border-panel sticky bottom-0 z-30"
+      style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
     >
       <div className="flex h-11">
         <button
@@ -68,13 +68,40 @@ export function MobileNav() {
           className={btn(location.pathname === "/settings")}
           aria-label="Settings"
         >
-          <svg width="14" height="14" viewBox="0 0 16 16" fill="none" strokeLinecap="round">
-            <line x1="2" y1="4" x2="14" y2="4" stroke="currentColor" strokeWidth="1.5"/>
-            <circle cx="10" cy="4" r="2" fill="currentColor"/>
-            <line x1="2" y1="8" x2="14" y2="8" stroke="currentColor" strokeWidth="1.5"/>
-            <circle cx="5" cy="8" r="2" fill="currentColor"/>
-            <line x1="2" y1="12" x2="14" y2="12" stroke="currentColor" strokeWidth="1.5"/>
-            <circle cx="11" cy="12" r="2" fill="currentColor"/>
+          <svg
+            width="14"
+            height="14"
+            viewBox="0 0 16 16"
+            fill="none"
+            strokeLinecap="round"
+          >
+            <line
+              x1="2"
+              y1="4"
+              x2="14"
+              y2="4"
+              stroke="currentColor"
+              strokeWidth="1.5"
+            />
+            <circle cx="10" cy="4" r="2" fill="currentColor" />
+            <line
+              x1="2"
+              y1="8"
+              x2="14"
+              y2="8"
+              stroke="currentColor"
+              strokeWidth="1.5"
+            />
+            <circle cx="5" cy="8" r="2" fill="currentColor" />
+            <line
+              x1="2"
+              y1="12"
+              x2="14"
+              y2="12"
+              stroke="currentColor"
+              strokeWidth="1.5"
+            />
+            <circle cx="11" cy="12" r="2" fill="currentColor" />
           </svg>
           <span>Settings</span>
         </button>

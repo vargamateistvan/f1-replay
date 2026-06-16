@@ -803,7 +803,7 @@ export default function RaceWeekend() {
   // ── View layouts ─────────────────────────────────────────────────────────────
 
   return (
-    <div className="flex flex-col h-full overflow-hidden relative">
+    <div className="flex flex-col relative md:h-full md:overflow-hidden">
       {/* Flag banner — spans full width below nav */}
       {sessionStartMs > 0 && (
         <FlagBanner
@@ -833,7 +833,7 @@ export default function RaceWeekend() {
 
       {/* ── LEADERBOARD VIEW ──────────────────────────────────────────── */}
       {currentView === "leaderboard" && (
-        <div className="flex-1 min-h-0 flex flex-col overflow-hidden">
+        <div className="flex flex-col md:flex-1 md:min-h-0 md:overflow-hidden">
           {/* Loading indicator */}
           {isLoadingSessionData && (
             <div className="text-f1red text-[10px] px-4 py-1 animate-pulse border-b border-panel bg-track">
@@ -842,7 +842,7 @@ export default function RaceWeekend() {
           )}
 
           {/* Full-width timing tower — fills remaining vertical space */}
-          <div className="flex-1 min-h-0 flex flex-col overflow-hidden">
+          <div className="flex flex-col md:flex-1 md:min-h-0 md:overflow-hidden">
             {positions.isError ? (
               <ErrorMessage message="Failed to load timing data" />
             ) : (
@@ -878,7 +878,7 @@ export default function RaceWeekend() {
 
       {/* ── DRIVER TRACKER VIEW ───────────────────────────────────────── */}
       {currentView === "tracker" && (
-        <div className="flex-1 min-h-0 flex flex-col overflow-hidden">
+        <div className="flex flex-col md:flex-1 md:min-h-0 md:overflow-hidden">
           <SessionInfoBar
             laps={laps.data ?? []}
             raceControl={raceControl.data ?? []}
@@ -893,7 +893,7 @@ export default function RaceWeekend() {
                 : undefined
             }
           />
-          <div className="flex-1 min-h-0 flex flex-col md:flex overflow-hidden relative">
+          <div className="flex flex-col md:flex-1 md:min-h-0 md:overflow-hidden relative">
             {/* Toast overlay — covers both mobile and desktop tracker content */}
             <EventToastStack
               toasts={toasts}
@@ -902,7 +902,7 @@ export default function RaceWeekend() {
             />
 
             {/* Phone layout: tab-switched (md:hidden) */}
-            <div className="md:hidden flex-1 min-h-0 flex flex-col overflow-hidden w-full">
+            <div className="md:hidden flex flex-col w-full">
               {/* Tab chips */}
               <div className="flex border-b border-panel shrink-0 bg-track">
                 {(
@@ -928,7 +928,7 @@ export default function RaceWeekend() {
               </div>
 
               {/* Tab content */}
-              <div className="flex-1 min-h-0 flex flex-col overflow-hidden">
+              <div className="flex flex-col md:flex-1 md:min-h-0 md:overflow-hidden">
                 {(trackerTab ?? "timing") === "timing" && (
                   <>
                     {/* Weather accordion */}
@@ -947,7 +947,7 @@ export default function RaceWeekend() {
                       )}
                     </div>
                     {/* Timing tower */}
-                    <div className="flex-1 min-h-0 flex flex-col overflow-hidden">
+                    <div className="flex flex-col md:flex-1 md:min-h-0 md:overflow-hidden">
                       {positions.isError ? (
                         <ErrorMessage message="Failed to load timing data" />
                       ) : (
@@ -981,7 +981,7 @@ export default function RaceWeekend() {
                 )}
 
                 {(trackerTab ?? "timing") === "map" && (
-                  <div className="flex-1 min-w-0 bg-[#10101a] relative">
+                  <div className="min-h-[80vw] bg-[#10101a] relative md:flex-1 md:min-w-0">
                     {drivers.isError ? (
                       <ErrorMessage message="Failed to load driver data" />
                     ) : (
@@ -1128,7 +1128,7 @@ export default function RaceWeekend() {
 
       {/* ── COMMENTARY VIEW ───────────────────────────────────────────── */}
       {currentView === "commentary" && (
-        <div className="flex-1 min-h-0 flex flex-col overflow-hidden">
+        <div className="flex flex-col md:flex-1 md:min-h-0 md:overflow-hidden">
           {/* Compact weather strip */}
           <div className="shrink-0 border-b border-panel">
             {weather.isError ? (
@@ -1168,7 +1168,7 @@ export default function RaceWeekend() {
           </div>
 
           {/* Content */}
-          <div className="flex-1 min-h-0 flex flex-col overflow-hidden">
+          <div className="flex flex-col md:flex-1 md:min-h-0 md:overflow-hidden">
             {(commentaryTab ?? "rc") === "rc" &&
               (raceControl.isError ? (
                 <ErrorMessage message="Failed to load race control" />

@@ -12,9 +12,17 @@ body {
   @apply bg-track text-white font-sans antialiased;
 }
 
-/* iOS: use dynamic viewport height so address bar doesn't clip layout */
+/* Desktop: fixed app-shell height */
 html, body, #root {
   height: 100%;
+}
+
+/* Mobile: natural document scroll — let content grow, page scrolls */
+@media (max-width: 767px) {
+  html, body, #root {
+    height: auto;
+    min-height: 100dvh;
+  }
 }
 
 /* iOS momentum scrolling for all overflow-auto/scroll containers */

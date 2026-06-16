@@ -10,9 +10,9 @@ import Settings from "@/pages/Settings";
 export function AppRouter() {
   return (
     <HashRouter>
-      <div className="flex min-h-[100dvh] flex-col overflow-y-auto overflow-x-hidden md:h-[100dvh] md:overflow-hidden">
+      <div className="flex flex-col min-h-[100dvh] md:h-[100dvh] md:overflow-hidden">
         <Nav />
-        <main className="flex-1 min-h-0 overflow-hidden md:overflow-hidden">
+        <main className="flex-1 md:min-h-0 md:overflow-hidden">
           <Routes>
             <Route path="/" element={<RaceWeekend />} />
             <Route path="/telemetry" element={<Telemetry />} />
