@@ -167,6 +167,15 @@ export function PlaybackBar({
   const { t, playing, speed, toggle, setT, setSpeed, setPlaying } =
     useTimeline();
   const [showMarkers, setShowMarkers] = useState(true);
+  const [isCompactViewport, setIsCompactViewport] = useState(false);
+
+  useEffect(() => {
+    const media = window.matchMedia("(max-width: 639px)");
+    const sync = () => setIsCompactViewport(media.matches);
+    sync();
+    media.addEventListener("change", sync);
+    return () => media.removeEventListener("change", sync);
+  }, []);
 
   const clamp = (v: number) =>
     Math.max(0, durationMs > 0 ? Math.min(v, durationMs) : v);
@@ -271,32 +280,38 @@ export function PlaybackBar({
             style={{ touchAction: "none" }}
             aria-label="Seek"
           />
-          {durationMs > 0 && showMarkers && raceControlMarkers.length > 0 && (
-            <div className="absolute inset-0">
-              {raceControlMarkers.map((marker) => {
-                const left = (marker.ms / durationMs) * 100;
-                if (!Number.isFinite(left) || left < 0 || left > 100)
-                  return null;
-                const color =
-                  marker.severity === "critical"
-                    ? "bg-red-500"
-                    : marker.severity === "warning"
-                      ? "bg-amber-400"
-                      : "bg-slate-400";
-                return (
-                  <button
-                    key={marker.id}
-                    type="button"
-                    title={`Jump to ${marker.label}`}
-                    aria-label={`Jump to ${marker.label}`}
-                    onClick={() => jump(marker.ms)}
-                    className={`absolute top-0 h-4 w-1 rounded ${color} opacity-80 hover:opacity-100`}
-                    style={{ left: `${left}%`, transform: "translateX(-50%)" }}
-                  />
-                );
-              })}
-            </div>
-          )}
+          {durationMs > 0 &&
+            showMarkers &&
+            !isCompactViewport &&
+            raceControlMarkers.length > 0 && (
+              <div className="absolute inset-0">
+                {raceControlMarkers.map((marker) => {
+                  const left = (marker.ms / durationMs) * 100;
+                  if (!Number.isFinite(left) || left < 0 || left > 100)
+                    return null;
+                  const color =
+                    marker.severity === "critical"
+                      ? "bg-red-500"
+                      : marker.severity === "warning"
+                        ? "bg-amber-400"
+                        : "bg-slate-400";
+                  return (
+                    <button
+                      key={marker.id}
+                      type="button"
+                      title={`Jump to ${marker.label}`}
+                      aria-label={`Jump to ${marker.label}`}
+                      onClick={() => jump(marker.ms)}
+                      className={`absolute top-0 h-4 w-1 rounded ${color} opacity-80 hover:opacity-100`}
+                      style={{
+                        left: `${left}%`,
+                        transform: "translateX(-50%)",
+                      }}
+                    />
+                  );
+                })}
+              </div>
+            )}
         </div>
 
         {/* Duration — hidden on mobile to reclaim scrubber space */}

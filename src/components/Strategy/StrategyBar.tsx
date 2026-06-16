@@ -136,15 +136,15 @@ export function StrategyBar({
   }
 
   return (
-    <div className="px-3 py-2 space-y-0.5 overflow-auto h-full">
+    <div className="px-2 py-1.5 space-y-0.5 overflow-auto h-full sm:px-3 sm:py-2">
       {/* Lap axis */}
-      <div className="flex items-center mb-1 pl-10 pr-1 relative h-4">
+      <div className="relative mb-1 flex h-4 items-center pl-8 pr-1 sm:pl-10">
         {axisTicks.map((lap) => (
           <span
             key={lap}
-            className="absolute text-[10px] font-mono text-muted -translate-x-1/2"
+            className="absolute -translate-x-1/2 text-[9px] font-mono text-muted sm:text-[10px]"
             style={{
-              left: `calc(2.5rem + ${(lap / maxLap) * 100}% * (100% - 2.5rem) / 100%)`,
+              left: `calc(2rem + ${(lap / maxLap) * 100}% * (100% - 2rem) / 100%)`,
             }}
           >
             {lap}
@@ -161,17 +161,17 @@ export function StrategyBar({
         const activeStint = activeStintByDriver.get(num) ?? null;
 
         return (
-          <div key={num} className="flex items-center gap-1 h-5">
+          <div key={num} className="flex h-[18px] items-center gap-1 sm:h-5">
             {/* Driver label */}
             <span
-              className="w-9 text-right shrink-0 text-[10px] font-black truncate"
+              className="w-7 shrink-0 truncate text-right text-[9px] font-black sm:w-9 sm:text-[10px]"
               style={{ color }}
             >
               {driver?.name_acronym ?? num}
             </span>
 
             <span
-              className="w-10 shrink-0 text-center text-[9px] font-black uppercase tracking-[0.08em] text-white/70 tabular-nums"
+              className="w-7 shrink-0 text-center text-[8px] font-black uppercase tracking-[0.04em] text-white/70 tabular-nums sm:w-10 sm:text-[9px] sm:tracking-[0.08em]"
               title={
                 activeStint
                   ? `${activeStint.compound} · ${activeStint.age} lap${activeStint.age === 1 ? "" : "s"} old`
@@ -182,7 +182,7 @@ export function StrategyBar({
             </span>
 
             {/* Timeline bar */}
-            <div className="relative flex flex-1 h-4 overflow-hidden bg-[#15151e]">
+            <div className="relative flex h-3.5 flex-1 overflow-hidden bg-[#15151e] sm:h-4">
               {/* Stint segments */}
               {dStints.map((s) => {
                 const left = ((s.lap_start - 1) / maxLap) * 100;
@@ -202,8 +202,8 @@ export function StrategyBar({
                       outline: isHard ? "1px solid #555" : undefined,
                     }}
                   >
-                    {width > 8 && (
-                      <span className="text-[9px] font-black leading-none select-none text-black/70">
+                    {width > 10 && (
+                      <span className="select-none text-[8px] font-black leading-none text-black/70 sm:text-[9px]">
                         {COMPOUND_LABEL[s.compound] ?? "?"}
                       </span>
                     )}
@@ -238,23 +238,23 @@ export function StrategyBar({
       })}
 
       {/* Legend */}
-      <div className="flex flex-wrap gap-x-3 gap-y-0.5 mt-1.5 pt-1.5 border-t border-[#2a2a35]">
+      <div className="mt-1.5 flex flex-wrap gap-x-2 gap-y-0.5 border-t border-[#2a2a35] pt-1.5 sm:gap-x-3">
         {Object.entries(COMPOUND_COLOR)
           .filter(([c]) => c !== "UNKNOWN")
           .map(([c, color]) => (
             <span key={c} className="flex items-center gap-1">
               <span
-                className="w-2.5 h-2.5 inline-block"
+                className="inline-block h-2 w-2 sm:h-2.5 sm:w-2.5"
                 style={{ background: color }}
               />
-              <span className="text-muted text-[10px] font-bold uppercase">
+              <span className="text-muted text-[9px] font-bold uppercase sm:text-[10px]">
                 {c[0]}
               </span>
             </span>
           ))}
         <span className="flex items-center gap-1 ml-2">
           <span className="w-px h-3 bg-[#636369] inline-block" />
-          <span className="text-muted text-[10px] font-bold uppercase">
+          <span className="text-muted text-[9px] font-bold uppercase sm:text-[10px]">
             Pit
           </span>
         </span>
