@@ -344,6 +344,10 @@ export function LiveTiming({
     [posMap],
   );
 
+  const hasSectorReference = Boolean(
+    sessionBestOwners.s1 || sessionBestOwners.s2 || sessionBestOwners.s3,
+  );
+
   if (isLoading) {
     return (
       <div className="p-3 sm:p-4">
@@ -381,55 +385,74 @@ export function LiveTiming({
       style={{ touchAction: "pan-y" }}
     >
       <div className="border-b border-[#2a2a35] bg-surface/80 px-2 py-2 sm:px-3">
-        <div className="mb-2 text-[9px] sm:text-[10px] font-bold uppercase tracking-[0.12em] text-muted">
-          Tap driver A, then driver B to compare
-        </div>
-        <div className="grid grid-cols-1 gap-1.5 min-[360px]:grid-cols-3 sm:gap-2">
-          {(
-            [
-              ["S1", sessionBestOwners.s1],
-              ["S2", sessionBestOwners.s2],
-              ["S3", sessionBestOwners.s3],
-            ] as const
-          ).map(([label, best]) => {
-            const driver = best
-              ? driverByNumber.get(best.driverNumber)
-              : undefined;
-            const color = teamColor(driver?.team_colour);
-            return (
-              <div
-                key={label}
-                className="flex min-w-0 items-center gap-1.5 border border-panel bg-track px-1.5 py-1 sm:gap-2 sm:px-2"
-                title={
-                  best
-                    ? `${label} ${best.time.toFixed(3)} · ${driver?.full_name ?? best.driverNumber} · Lap ${best.lapNumber}`
-                    : `${label} not set yet`
-                }
-              >
-                <span className="bg-[#9b59f5] px-1.5 py-0.5 text-[9px] font-black uppercase tracking-widest text-white">
-                  {label}
-                </span>
-                {best ? (
-                  <>
-                    <span
-                      className="min-w-0 truncate font-black text-[10px] uppercase tracking-[0.08em] sm:text-[11px] sm:tracking-[0.1em]"
-                      style={{ color }}
-                    >
-                      {driver?.name_acronym ?? best.driverNumber}
+        {hasSectorReference ? (
+          <>
+            <div className="mb-2 text-[9px] sm:text-[10px] font-bold uppercase tracking-[0.12em] text-muted">
+              Tap driver A, then driver B to compare
+            </div>
+            <div className="grid grid-cols-1 gap-1.5 min-[360px]:grid-cols-3 sm:gap-2">
+              {(
+                [
+                  ["S1", sessionBestOwners.s1],
+                  ["S2", sessionBestOwners.s2],
+                  ["S3", sessionBestOwners.s3],
+                ] as const
+              ).map(([label, best]) => {
+                const driver = best
+                  ? driverByNumber.get(best.driverNumber)
+                  : undefined;
+                const color = teamColor(driver?.team_colour);
+                return (
+                  <div
+                    key={label}
+                    className="flex min-w-0 items-center gap-1.5 border border-panel bg-track px-1.5 py-1 sm:gap-2 sm:px-2"
+                    title={
+                      best
+                        ? `${label} ${best.time.toFixed(3)} · ${driver?.full_name ?? best.driverNumber} · Lap ${best.lapNumber}`
+                        : `${label} not set yet`
+                    }
+                  >
+                    <span className="bg-[#9b59f5] px-1.5 py-0.5 text-[9px] font-black uppercase tracking-widest text-white">
+                      {label}
                     </span>
-                    <span className="ml-auto shrink-0 font-mono text-[9px] tabular-nums text-white sm:text-[10px]">
-                      {best.time.toFixed(3)}
-                    </span>
-                  </>
-                ) : (
-                  <span className="truncate text-[9px] uppercase tracking-[0.1em] text-muted sm:text-[10px] sm:tracking-[0.12em]">
-                    Waiting
-                  </span>
-                )}
+                    {best ? (
+                      <>
+                        <span
+                          className="min-w-0 truncate font-black text-[10px] uppercase tracking-[0.08em] sm:text-[11px] sm:tracking-[0.1em]"
+                          style={{ color }}
+                        >
+                          {driver?.name_acronym ?? best.driverNumber}
+                        </span>
+                        <span className="ml-auto shrink-0 font-mono text-[9px] tabular-nums text-white sm:text-[10px]">
+                          {best.time.toFixed(3)}
+                        </span>
+                      </>
+                    ) : (
+                      <span className="truncate text-[9px] uppercase tracking-[0.1em] text-muted sm:text-[10px] sm:tracking-[0.12em]">
+                        Waiting
+                      </span>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </>
+        ) : (
+          <div className="flex items-center gap-2 rounded-sm border border-panel bg-track px-2 py-2">
+            <span className="bg-[#9b59f5] px-1.5 py-0.5 text-[9px] font-black uppercase tracking-widest text-white shrink-0">
+              Sectors
+            </span>
+            <div className="min-w-0">
+              <div className="text-[10px] font-black uppercase tracking-[0.12em] text-white">
+                First timed lap pending
               </div>
-            );
-          })}
-        </div>
+              <div className="text-[10px] text-muted">
+                Tap driver A, then driver B to compare once sector references
+                are live.
+              </div>
+            </div>
+          </div>
+        )}
       </div>
       <table className="w-full border-collapse table-fixed sm:table-auto">
         <thead>
