@@ -84,7 +84,7 @@ import type { MainView } from "@/components/Nav";
 import type { Stint, CarData } from "@/api/types";
 
 // Sub-tab options per view
-type TrackerTab = "timing" | "chart" | "gap" | "map";
+type TrackerTab = "timing" | "chart" | "gap" | "map" | "strategy";
 type CommentaryTab = "rc" | "radio" | "passes" | "moments" | "chapters";
 
 export interface KeyMoment {
@@ -941,8 +941,7 @@ export default function RaceWeekend() {
             </div>
           )}
 
-          {/* Full-width timing tower — fills remaining vertical space */}
-          <div className="flex flex-col md:flex-1 md:min-h-0 md:overflow-hidden">
+          <div className="md:hidden flex flex-col flex-1 min-h-0 overflow-hidden">
             {positions.isError ? (
               <ErrorMessage message="Failed to load timing data" />
             ) : (
@@ -950,27 +949,38 @@ export default function RaceWeekend() {
             )}
           </div>
 
-          {/* Drag handle */}
-          <ResizeHandle
-            {...strategyHandleProps}
-            onDoubleClick={resetStrategyHeight}
-          />
+          <div className="hidden md:flex md:flex-col md:flex-1 md:min-h-0 md:overflow-hidden">
+            {/* Full-width timing tower — fills remaining vertical space */}
+            <div className="flex flex-col md:flex-1 md:min-h-0 md:overflow-hidden">
+              {positions.isError ? (
+                <ErrorMessage message="Failed to load timing data" />
+              ) : (
+                leaderboardTower
+              )}
+            </div>
 
-          {/* Strategy strip — height controlled by drag */}
-          <div
-            className={`${PANEL} shrink-0 flex flex-col overflow-hidden`}
-            style={{ height: strategyHeight }}
-          >
-            <div className={`${PANEL_TITLE} shrink-0`}>Tyre Strategy</div>
-            <div className="flex-1 min-h-0 overflow-auto">
-              <StrategyBar
-                stints={stints.data ?? []}
-                drivers={drivers.data ?? []}
-                laps={laps.data ?? []}
-                pits={pits.data ?? []}
-                sessionTimeMs={t}
-                sessionStartMs={sessionStartMs}
-              />
+            {/* Drag handle */}
+            <ResizeHandle
+              {...strategyHandleProps}
+              onDoubleClick={resetStrategyHeight}
+            />
+
+            {/* Strategy strip — height controlled by drag */}
+            <div
+              className={`${PANEL} shrink-0 flex flex-col overflow-hidden`}
+              style={{ height: strategyHeight }}
+            >
+              <div className={`${PANEL_TITLE} shrink-0`}>Tyre Strategy</div>
+              <div className="flex-1 min-h-0 overflow-auto">
+                <StrategyBar
+                  stints={stints.data ?? []}
+                  drivers={drivers.data ?? []}
+                  laps={laps.data ?? []}
+                  pits={pits.data ?? []}
+                  sessionTimeMs={t}
+                  sessionStartMs={sessionStartMs}
+                />
+              </div>
             </div>
           </div>
         </div>
@@ -1009,6 +1019,7 @@ export default function RaceWeekend() {
                   [
                     ["timing", "Timing"],
                     ["map", "Map"],
+                    ["strategy", "Strategy"],
                     ["chart", "Chart"],
                     ["gap", "Gap"],
                   ] as [TrackerTab, string][]
@@ -1124,6 +1135,22 @@ export default function RaceWeekend() {
                         Loading…
                       </span>
                     )}
+                  </div>
+                )}
+
+                {(trackerTab ?? "timing") === "strategy" && (
+                  <div className={`${PANEL} flex-1 flex flex-col overflow-hidden border-0`}>
+                    <div className={`${PANEL_TITLE} shrink-0`}>Tyre Strategy</div>
+                    <div className="flex-1 min-h-0 overflow-auto">
+                      <StrategyBar
+                        stints={stints.data ?? []}
+                        drivers={drivers.data ?? []}
+                        laps={laps.data ?? []}
+                        pits={pits.data ?? []}
+                        sessionTimeMs={t}
+                        sessionStartMs={sessionStartMs}
+                      />
+                    </div>
                   </div>
                 )}
 

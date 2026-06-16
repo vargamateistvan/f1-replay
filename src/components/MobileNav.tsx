@@ -63,7 +63,7 @@ export function MobileNav() {
           className={btn(isMain && currentView === "leaderboard")}
         >
           <span className="text-base leading-none">≡</span>
-          <span>Tower</span>
+          <span>Race</span>
         </button>
         <button
           onClick={() => goTo(viewHref("tracker"))}
