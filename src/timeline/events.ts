@@ -299,3 +299,19 @@ export function prevBefore(
   }
   return best;
 }
+
+// Last marker at or before `t` (tiny epsilon so exact-boundary presses stay
+// on the current marker). Useful for lap rewind behavior that should snap to
+// the current lap start instead of stepping into previous laps.
+export function atOrBefore(
+  sorted: number[],
+  t: number,
+  eps = 1,
+): number | null {
+  let best: number | null = null;
+  for (const v of sorted) {
+    if (v <= t + eps) best = v;
+    else break;
+  }
+  return best;
+}

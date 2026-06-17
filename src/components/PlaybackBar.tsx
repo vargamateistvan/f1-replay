@@ -9,7 +9,7 @@ import {
 } from "lucide-react";
 import { useTimeline } from "@/timeline/clock";
 import { SPEEDS } from "@/constants";
-import { nextAfter, prevBefore } from "@/timeline/events";
+import { atOrBefore, nextAfter } from "@/timeline/events";
 import type { RaceControlMarker, MarkerSummary } from "@/timeline/raceControl";
 
 interface Props {
@@ -94,7 +94,7 @@ export function PlaybackBar({
     if (target !== null) setT(clamp(target));
   };
 
-  const prevLap = prevBefore(lapStarts, t);
+  const prevLap = atOrBefore(lapStarts, t);
   const nextLap = nextAfter(lapStarts, t);
   const nextPit = nextAfter(pitTimes, t);
   const nextFlag = nextAfter(flagTimes, t);
