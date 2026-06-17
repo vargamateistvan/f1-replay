@@ -501,6 +501,22 @@ export function LiveTiming({
             const currentLap = currentLapMap.get(num) ?? null;
             const pitInfo = pitInfoMap.get(num) ?? null;
             const car = carData?.get(num) ?? null;
+            const speedDisplay = car
+              ? String(Math.round(car.speed)).padStart(3, "0")
+              : "---";
+            const rpmDisplay = car
+              ? String(Math.round(car.rpm)).padStart(5, "0")
+              : "-----";
+            const gearDisplay = car
+              ? String(car.n_gear === 0 ? "N" : car.n_gear)
+              : "-";
+            const drsDisplay = car ? (car.drs >= 10 ? "ON" : "OFF") : "--";
+            const throttleDisplay = car
+              ? `${String(Math.round(car.throttle)).padStart(3, "0")}%`
+              : "---%";
+            const brakeDisplay = car
+              ? `${String(Math.round(car.brake)).padStart(3, "0")}%`
+              : "---%";
             const pb = personalBestMap.get(num) ?? {
               s1: null,
               s2: null,
@@ -555,48 +571,81 @@ export function LiveTiming({
 
                 {/* Driver */}
                 <td className="py-3 px-1 sm:px-2">
-                  <span className="flex items-center gap-1 sm:gap-2">
-                    <DriverHeadshot driver={driver} accent={color} size="xs" />
-                    {/* Team colour bar */}
-                    <span
-                      className="w-[2px] h-4 shrink-0 rounded-sm"
-                      style={{ background: color }}
-                    />
-                    {/* Surname in CAPS */}
-                    <span className="min-w-0 truncate font-bold text-[10px] min-[390px]:text-[11px] tracking-[0.03em] min-[390px]:tracking-[0.05em] uppercase text-white">
-                      {driver?.name_acronym ?? num}
-                    </span>
-                    {selected && (
-                      <span className="bg-f1red text-white text-[8px] min-[390px]:text-[9px] font-black uppercase tracking-widest px-1 min-[390px]:px-1.5 py-0.5">
-                        A
-                      </span>
-                    )}
-                    {compared && (
-                      <span className="bg-[#1e40af] text-white text-[8px] min-[390px]:text-[9px] font-black uppercase tracking-widest px-1 min-[390px]:px-1.5 py-0.5">
-                        B
-                      </span>
-                    )}
-                    {/* Places gained/lost */}
-                    {gained !== null && gained !== 0 && (
+                  <div>
+                    <span className="flex items-center gap-1 sm:gap-2">
+                      <DriverHeadshot driver={driver} accent={color} size="xs" />
+                      {/* Team colour bar */}
                       <span
-                        className={`hidden min-[390px]:inline text-[9px] font-bold tabular-nums ${gained > 0 ? "text-[#39b54a]" : "text-[#ff5252]"}`}
-                        title={`${gained > 0 ? "Gained" : "Lost"} ${Math.abs(gained)} since start (P${gridPos})`}
-                      >
-                        {gained > 0 ? "▲" : "▼"}
-                        {Math.abs(gained)}
+                        className="w-[2px] h-4 shrink-0 rounded-sm"
+                        style={{ background: color }}
+                      />
+                      {/* Surname in CAPS */}
+                      <span className="min-w-0 truncate font-bold text-[10px] min-[390px]:text-[11px] tracking-[0.03em] min-[390px]:tracking-[0.05em] uppercase text-white">
+                        {driver?.name_acronym ?? num}
                       </span>
+                      {selected && (
+                        <span className="bg-f1red text-white text-[8px] min-[390px]:text-[9px] font-black uppercase tracking-widest px-1 min-[390px]:px-1.5 py-0.5">
+                          A
+                        </span>
+                      )}
+                      {compared && (
+                        <span className="bg-[#1e40af] text-white text-[8px] min-[390px]:text-[9px] font-black uppercase tracking-widest px-1 min-[390px]:px-1.5 py-0.5">
+                          B
+                        </span>
+                      )}
+                      {/* Places gained/lost */}
+                      {gained !== null && gained !== 0 && (
+                        <span
+                          className={`hidden min-[390px]:inline text-[9px] font-bold tabular-nums ${gained > 0 ? "text-[#39b54a]" : "text-[#ff5252]"}`}
+                          title={`${gained > 0 ? "Gained" : "Lost"} ${Math.abs(gained)} since start (P${gridPos})`}
+                        >
+                          {gained > 0 ? "▲" : "▼"}
+                          {Math.abs(gained)}
+                        </span>
+                      )}
+                      {retired && (
+                        <span className="hidden min-[390px]:inline-block bg-[#3a1010] text-[#ff5252] text-[9px] font-black uppercase tracking-widest px-1.5 py-0.5">
+                          RET
+                        </span>
+                      )}
+                      {!retired && inPit && (
+                        <span className="hidden min-[390px]:inline-block bg-panel text-muted text-[9px] font-black uppercase tracking-widest px-1.5 py-0.5">
+                          PIT
+                        </span>
+                      )}
+                    </span>
+
+                    {showTelemetry && (
+                      <div className="mt-1 grid grid-cols-2 gap-x-2 gap-y-0.5 text-[9px] leading-4 font-mono tabular-nums sm:hidden">
+                        <span className="inline-flex min-w-0 items-center gap-1 text-[#7dd3fc]">
+                          <span className="text-[#89a6bf]">SPD</span>
+                          <span className="w-[3ch] text-right">{speedDisplay}</span>
+                        </span>
+                        <span className="inline-flex min-w-0 items-center gap-1 text-[#c4b5fd]">
+                          <span className="text-[#a79ac9]">RPM</span>
+                          <span className="w-[5ch] text-right">{rpmDisplay}</span>
+                        </span>
+                        <span className="inline-flex min-w-0 items-center gap-1 text-[#fde68a]">
+                          <span className="text-[#d2bf72]">G</span>
+                          <span className="w-[3ch] text-right">{gearDisplay}</span>
+                        </span>
+                        <span
+                          className={`inline-flex min-w-0 items-center gap-1 ${car && car.drs >= 10 ? "text-[#39d743]" : "text-[#9ca3af]"}`}
+                        >
+                          <span className="text-[#9ba1a8]">DRS</span>
+                          <span className="w-[3ch] text-right">{drsDisplay}</span>
+                        </span>
+                        <span className="inline-flex min-w-0 items-center gap-1 text-[#4ade80]">
+                          <span className="text-[#6eb989]">T</span>
+                          <span className="w-[4ch] text-right">{throttleDisplay}</span>
+                        </span>
+                        <span className="inline-flex min-w-0 items-center gap-1 text-[#f87171]">
+                          <span className="text-[#c88787]">B</span>
+                          <span className="w-[4ch] text-right">{brakeDisplay}</span>
+                        </span>
+                      </div>
                     )}
-                    {retired && (
-                      <span className="hidden min-[390px]:inline-block bg-[#3a1010] text-[#ff5252] text-[9px] font-black uppercase tracking-widest px-1.5 py-0.5">
-                        RET
-                      </span>
-                    )}
-                    {!retired && inPit && (
-                      <span className="hidden min-[390px]:inline-block bg-panel text-muted text-[9px] font-black uppercase tracking-widest px-1.5 py-0.5">
-                        PIT
-                      </span>
-                    )}
-                  </span>
+                  </div>
                 </td>
 
                 {/* Best lap time */}

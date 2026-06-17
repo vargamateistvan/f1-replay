@@ -203,6 +203,14 @@ export function SettingsBody() {
         onChange={toggle("leaderboardTelemetry")}
       />
 
+      <SectionHeader>Driver Tracker</SectionHeader>
+      <SettingRow
+        label="Timing box live telemetry"
+        description="Show speed, gear, RPM, throttle, brake & DRS in tracker timing"
+        checked={settings.trackerTimingTelemetry}
+        onChange={toggle("trackerTimingTelemetry")}
+      />
+
       <SectionHeader>Support</SectionHeader>
       <SettingRow
         label="Buy Me a Coffee button"

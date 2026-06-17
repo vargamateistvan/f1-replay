@@ -18,6 +18,8 @@ export interface AppSettings {
   mapShowSectorFlags: boolean;
   // Leaderboard
   leaderboardTelemetry: boolean;
+  // Driver Tracker
+  trackerTimingTelemetry: boolean;
   // Support
   showCoffeeWidget: boolean;
   // Playback
@@ -49,6 +51,7 @@ export const SETTINGS_DEFAULTS: AppSettings = {
   mapShowDriverHud: true,
   mapShowSectorFlags: true,
   leaderboardTelemetry: true,
+  trackerTimingTelemetry: false,
   showCoffeeWidget: true,
   defaultSpeed: 1,
   catchupSummaryEnabled: true,

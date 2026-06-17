@@ -544,6 +544,7 @@ export default function RaceWeekend() {
     mapShowDriverHud,
     mapShowSectorFlags,
     leaderboardTelemetry,
+    trackerTimingTelemetry,
     defaultSpeed,
     catchupSummaryEnabled,
   } = useSettings();
@@ -551,8 +552,13 @@ export default function RaceWeekend() {
   // ── Live car telemetry for the leaderboard (all drivers) ────────────────────
   // Fetched only when the leaderboard view is active AND the setting is on — it's
   // a ~22k-row window per chunk, so we don't pay for it on other views.
+  const trackerTimingTelemetryEnabled =
+    trackerTimingTelemetry &&
+    currentView === "tracker" &&
+    (trackerTab ?? "timing") === "timing";
   const telemetryEnabled =
-    leaderboardTelemetry && currentView === "leaderboard";
+    (leaderboardTelemetry && currentView === "leaderboard") ||
+    trackerTimingTelemetryEnabled;
   const allCarData = useAllCarDataWindow(
     sessionKey,
     sessionStartMs,
@@ -845,6 +851,7 @@ export default function RaceWeekend() {
       selectedDriver={focusDriver}
       compareDriver={compareDriver}
       onSelectDriver={toggleFocus}
+      carData={trackerTimingTelemetryEnabled ? carDataAtT : undefined}
     />
   );
 
@@ -1185,7 +1192,7 @@ export default function RaceWeekend() {
             {/* Desktop layout: split panel (hidden md:flex) */}
             <div className="hidden md:flex flex-1 min-h-0 overflow-hidden">
               {/* Left data panel */}
-              <div className="md:w-[620px] lg:w-[660px] xl:w-[700px] shrink-0 flex flex-col border-r border-panel overflow-hidden">
+              <div className="md:w-[680px] lg:w-[740px] xl:w-[800px] shrink-0 flex flex-col border-r border-panel overflow-hidden">
                 {/* Sub-tabs */}
                 <div className="flex border-b border-panel shrink-0">
                   {(
