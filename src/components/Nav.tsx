@@ -38,6 +38,60 @@ function isRaceWeekend(meetingName: string, officialName: string) {
   return /grand prix/i.test(meetingName) || /grand prix/i.test(officialName);
 }
 
+function parseGmtOffsetToMinutes(offset: string | null | undefined): number {
+  if (!offset) return 0;
+  const sign = offset.startsWith("-") ? -1 : 1;
+  const raw = offset.replace(/^[-+]/, "");
+  const [h = "0", m = "0", s = "0"] = raw.split(":");
+  const hours = Number(h) || 0;
+  const minutes = Number(m) || 0;
+  const seconds = Number(s) || 0;
+  return sign * (hours * 60 + minutes + Math.round(seconds / 60));
+}
+
+const MONTHS_SHORT = [
+  "Jan",
+  "Feb",
+  "Mar",
+  "Apr",
+  "May",
+  "Jun",
+  "Jul",
+  "Aug",
+  "Sep",
+  "Oct",
+  "Nov",
+  "Dec",
+] as const;
+
+function formatTwo(n: number): string {
+  return String(n).padStart(2, "0");
+}
+
+function withOffsetUtcDate(dateIso: string, offsetMin: number): Date {
+  const utcMs = new Date(dateIso).getTime();
+  return new Date(utcMs + offsetMin * 60_000);
+}
+
+function formatTrackLocal(dateIso: string, offsetMin: number): string {
+  const shifted = withOffsetUtcDate(dateIso, offsetMin);
+  return `${formatTwo(shifted.getUTCHours())}:${formatTwo(shifted.getUTCMinutes())}`;
+}
+
+function formatTrackLocalDayMonth(dateIso: string, offsetMin: number): string {
+  const shifted = withOffsetUtcDate(dateIso, offsetMin);
+  return `${formatTwo(shifted.getUTCDate())} ${MONTHS_SHORT[shifted.getUTCMonth()]}`;
+}
+
+function resolveTrackOffsetMin(
+  sessionOffset: string | null | undefined,
+  meetingOffset: string | null | undefined,
+): number {
+  const sessionMin = parseGmtOffsetToMinutes(sessionOffset);
+  if (sessionOffset && sessionOffset.trim().length > 0) return sessionMin;
+  return parseGmtOffsetToMinutes(meetingOffset);
+}
+
 export function Nav() {
   const openSettings = useSettings((s) => s.openModal);
   const openHelp = useSettings((s) => s.openHelp);
@@ -50,6 +104,7 @@ export function Nav() {
   const [showCircuitFacts, setShowCircuitFacts] = useState(false);
   const [apiFacts, setApiFacts] = useState<CircuitFacts | null>(null);
   const [apiFactsLoading, setApiFactsLoading] = useState(false);
+  const [showNextAgenda, setShowNextAgenda] = useState(false);
 
   const [yearParam] = useNumberParam("year", DEFAULT_YEAR);
   const year = yearParam ?? DEFAULT_YEAR;
@@ -136,6 +191,8 @@ export function Nav() {
     [meetings.data, nowMs],
   );
 
+  const nextMeetingSessions = useSessions(nextMeeting?.meeting_key ?? null);
+
   const nextMeetingRound = useMemo(() => {
     if (!nextMeeting) return null;
     const heldCount = (meetings.data ?? []).filter(
@@ -172,8 +229,19 @@ export function Nav() {
     const seconds = totalSeconds % 60;
     const pad = (n: number) => String(n).padStart(2, "0");
 
-    return `${pad(days)} ${pad(hours)}:${pad(minutes)}:${pad(seconds)}`;
+    return `${pad(days)}d ${pad(hours)}:${pad(minutes)}:${pad(seconds)}`;
   }, [nextMeeting, nowMs]);
+
+  const nextAgendaSessions = useMemo(
+    () =>
+      (nextMeetingSessions.data ?? [])
+        .slice()
+        .sort(
+          (a, b) =>
+            new Date(a.date_start).getTime() - new Date(b.date_start).getTime(),
+        ),
+    [nextMeetingSessions.data],
+  );
 
   function onYear(y: number) {
     setSearchParams((prev) => {
@@ -383,6 +451,15 @@ export function Nav() {
           <div className="border-b border-panel">
             <div
               className="flex items-center gap-3 min-w-0 bg-black py-1.5"
+              role="button"
+              tabIndex={0}
+              onClick={() => setShowNextAgenda(true)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" || e.key === " ") {
+                  e.preventDefault();
+                  setShowNextAgenda(true);
+                }
+              }}
               style={{
                 paddingLeft: "max(0.5rem, env(safe-area-inset-left))",
                 paddingRight: "max(0.5rem, env(safe-area-inset-right))",
@@ -429,7 +506,10 @@ export function Nav() {
 
               <button
                 type="button"
-                onClick={() => setSetting("showNextRaceWeekendBanner", false)}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setSetting("showNextRaceWeekendBanner", false);
+                }}
                 aria-label="Hide next race banner"
                 title="Hide banner"
                 className="h-6 w-6 shrink-0 inline-flex items-center justify-center rounded-sm text-white/65 hover:text-white hover:bg-white/10"
@@ -439,6 +519,72 @@ export function Nav() {
             </div>
           </div>
         )}
+
+      {showNextAgenda && nextMeeting && (
+        <div
+          className="fixed inset-0 z-[220] flex items-center justify-center bg-black/70 backdrop-blur-sm px-4"
+          onClick={(e) => {
+            if (e.target === e.currentTarget) setShowNextAgenda(false);
+          }}
+        >
+          <div className="w-full max-w-2xl max-h-[88dvh] overflow-hidden rounded-lg border border-[#2a2a35] bg-[#1a1a24] shadow-2xl">
+            <div className="flex items-center justify-between border-b border-[#2a2a35] px-5 py-3.5">
+              <div className="min-w-0">
+                <div className="text-[13px] font-bold text-white tracking-wide truncate">
+                  {nextMeeting.meeting_name} Agenda
+                </div>
+                <div className="text-[10px] text-muted uppercase tracking-widest truncate">
+                  {nextMeeting.country_name} · {nextMeeting.circuit_short_name}
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowNextAgenda(false)}
+                className="w-7 h-7 flex items-center justify-center rounded text-muted hover:text-white hover:bg-[#2a2a35] transition-colors text-base"
+                aria-label="Close agenda"
+                title="Close"
+              >
+                ×
+              </button>
+            </div>
+
+            <div className="p-4 overflow-y-auto max-h-[calc(88dvh-60px)]">
+              <div className="mb-3 text-[10px] font-black uppercase tracking-[0.14em] text-muted">
+                Event Time
+              </div>
+
+              {nextMeetingSessions.isPending ? (
+                <div className="text-[11px] text-f1red animate-pulse">
+                  Loading agenda...
+                </div>
+              ) : nextAgendaSessions.length === 0 ? (
+                <div className="text-[11px] text-muted">
+                  Agenda not available yet.
+                </div>
+              ) : (
+                <div className="flex flex-col gap-2">
+                  {nextAgendaSessions.map((s) => (
+                    <div
+                      key={s.session_key}
+                      className="rounded border border-panel/80 bg-track/70 px-3 py-2"
+                    >
+                      <div className="text-[11px] font-bold text-white">
+                        {s.session_name}
+                      </div>
+                      <div className="mt-1 text-[10px] text-muted font-mono tracking-wide">
+                        {`${formatTrackLocalDayMonth(s.date_start, resolveTrackOffsetMin(s.gmt_offset, nextMeeting.gmt_offset))} ${formatTrackLocal(s.date_start, resolveTrackOffsetMin(s.gmt_offset, nextMeeting.gmt_offset))} - ${formatTrackLocal(s.date_end, resolveTrackOffsetMin(s.gmt_offset, nextMeeting.gmt_offset))}`}
+                        <span className="ml-2 uppercase tracking-widest text-white/50">
+                          {`EVENT (${s.gmt_offset || nextMeeting.gmt_offset || "+00:00"})`}
+                        </span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* ── Auth failure banner ───────────────────────────────── */}
       {authFailed && (
