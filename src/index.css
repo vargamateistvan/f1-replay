@@ -23,18 +23,23 @@ body {
   }
 }
 
-/* Mobile: use native page scroll for maximum iOS reliability. */
+/* Mobile: let iOS Safari scroll the document naturally.
+ * NEVER put overflow: hidden or overflow-x: hidden on html/body —
+ * it is a known iOS Safari bug that kills all touch scrolling. */
 @media (max-width: 767px) {
-  html,
-  body,
+  html {
+    /* No overflow restrictions — critical for iOS Safari */
+    height: auto;
+  }
+  body {
+    height: auto;
+    min-height: 100vh;
+    min-height: -webkit-fill-available;
+  }
   #root {
     height: auto;
-    min-height: 100%;
-    min-height: 100dvh;
+    min-height: 100vh;
     min-height: -webkit-fill-available;
-    overflow-x: hidden;
-    overflow-y: auto;
-    -webkit-overflow-scrolling: touch;
   }
 }
 
