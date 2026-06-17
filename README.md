@@ -239,21 +239,9 @@ tsc -b
 
 Validates `tsconfig.json`, `tsconfig.app.json`, and `tsconfig.node.json` in build mode.
 
-### Automated Circuit Facts Sync
+### Circuit Facts Source
 
-Circuit facts are refreshed automatically by a scheduled GitHub Action:
-
-- Workflow: [`.github/workflows/sync-circuit-facts.yml`](.github/workflows/sync-circuit-facts.yml)
-- Schedule: every Monday at 06:00 UTC
-- Behavior: runs `yarn sync:circuit-facts` and opens/updates a PR when `src/data/circuitFacts.ts` changes
-
-You can also run the sync locally at any time:
-
-```bash
-yarn sync:circuit-facts
-```
-
-The generated data file includes a `CIRCUIT_FACTS_LAST_SYNC_UTC` timestamp that is shown in the Track Facts dialog.
+Track facts are fetched from API sources at runtime inside the app (no prefetched circuit facts dataset committed in the repository).
 
 ## Configuration Files
 

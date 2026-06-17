@@ -13,9 +13,9 @@ import { useNumberParam, useStringParam } from "@/hooks/useSearchParamState";
 import { AppLogo } from "@/components/AppLogo";
 import { useSettings } from "@/stores/settings";
 import {
-  CIRCUIT_FACTS_LAST_SYNC_UTC,
-  getCircuitFacts,
-} from "@/data/circuitFacts";
+  fetchCircuitFactsFromApi,
+  type CircuitFacts,
+} from "@/api/circuitFactsLookup";
 
 export type MainView = "leaderboard" | "tracker" | "commentary";
 
@@ -48,6 +48,8 @@ export function Nav() {
   const [searchParams, setSearchParams] = useSearchParams();
   const [nowMs, setNowMs] = useState(() => Date.now());
   const [showCircuitFacts, setShowCircuitFacts] = useState(false);
+  const [apiFacts, setApiFacts] = useState<CircuitFacts | null>(null);
+  const [apiFactsLoading, setApiFactsLoading] = useState(false);
 
   const [yearParam] = useNumberParam("year", DEFAULT_YEAR);
   const year = yearParam ?? DEFAULT_YEAR;
@@ -65,10 +67,7 @@ export function Nav() {
   const selectedSession = sessions.data?.find(
     (s) => s.session_key === sessionKey,
   );
-  const circuitFacts = useMemo(
-    () => getCircuitFacts(selectedMeeting?.circuit_short_name),
-    [selectedMeeting?.circuit_short_name],
-  );
+  const visibleFacts = apiFacts;
   const live = isSessionLive(selectedSession);
 
   useEffect(() => {
@@ -79,6 +78,30 @@ export function Nav() {
   useEffect(() => {
     setShowCircuitFacts(false);
   }, [selectedMeeting?.meeting_key]);
+
+  useEffect(() => {
+    let cancelled = false;
+    setApiFacts(null);
+
+    async function loadApiFacts() {
+      if (!selectedMeeting) return;
+      setApiFactsLoading(true);
+      try {
+        const fetched = await fetchCircuitFactsFromApi(
+          selectedMeeting.circuit_short_name,
+          selectedMeeting.country_name,
+        );
+        if (!cancelled && fetched) setApiFacts(fetched);
+      } finally {
+        if (!cancelled) setApiFactsLoading(false);
+      }
+    }
+
+    void loadApiFacts();
+    return () => {
+      cancelled = true;
+    };
+  }, [selectedMeeting]);
 
   useEffect(() => {
     if (!showCircuitFacts) return;
@@ -620,13 +643,15 @@ export function Nav() {
             <div className="p-4 overflow-y-auto max-h-[calc(88dvh-60px)]">
               {selectedMeeting.circuit_image && (
                 <div className="mb-3 rounded border border-panel/80 bg-track/70 p-2">
-                  <img
-                    src={selectedMeeting.circuit_image}
-                    alt={`${selectedMeeting.circuit_short_name} track layout`}
-                    className="w-full max-h-44 object-contain rounded"
-                    loading="lazy"
-                    referrerPolicy="no-referrer"
-                  />
+                  <div className="rounded border border-black/10 bg-gradient-to-b from-[#f6f8fb] to-[#e8edf4] p-2">
+                    <img
+                      src={selectedMeeting.circuit_image}
+                      alt={`${selectedMeeting.circuit_short_name} track layout`}
+                      className="w-full max-h-44 object-contain rounded [filter:contrast(1.08)_drop-shadow(0_1px_0_rgba(255,255,255,0.45))]"
+                      loading="lazy"
+                      referrerPolicy="no-referrer"
+                    />
+                  </div>
                 </div>
               )}
 
@@ -634,41 +659,45 @@ export function Nav() {
                 {[
                   {
                     label: "Length",
-                    value: circuitFacts ? `${circuitFacts.lengthKm} km` : "N/A",
+                    value: visibleFacts?.lengthKm
+                      ? `${visibleFacts.lengthKm} km`
+                      : "N/A",
                   },
                   {
                     label: "Race Distance",
-                    value: circuitFacts
-                      ? `${circuitFacts.raceDistanceKm} km`
+                    value: visibleFacts?.raceDistanceKm
+                      ? `${visibleFacts.raceDistanceKm} km`
                       : "N/A",
                   },
                   {
                     label: "Laps",
-                    value: circuitFacts?.laps ?? "N/A",
+                    value: visibleFacts?.laps ?? "N/A",
                   },
                   {
                     label: "Turns",
-                    value: circuitFacts?.turns ?? "N/A",
+                    value: visibleFacts?.turns ?? "N/A",
                   },
                   {
                     label: "Lap Record",
-                    value: circuitFacts?.lapRecord ?? "N/A",
+                    value: visibleFacts?.lapRecord ?? "N/A",
                   },
                   {
                     label: "DRS Zones",
-                    value: circuitFacts?.drsZones ?? "N/A",
+                    value: visibleFacts?.drsZones ?? "N/A",
                   },
                   {
                     label: "First GP",
-                    value: circuitFacts?.firstGpYear ?? "N/A",
+                    value: visibleFacts?.firstGpYear ?? "N/A",
                   },
                   {
                     label: "Direction",
-                    value: circuitFacts?.direction ?? "N/A",
+                    value: visibleFacts?.direction ?? "N/A",
                   },
                   {
                     label: "Altitude",
-                    value: circuitFacts ? `${circuitFacts.altitudeM} m` : "N/A",
+                    value: visibleFacts?.altitudeM
+                      ? `${visibleFacts.altitudeM} m`
+                      : "N/A",
                   },
                 ].map((item) => (
                   <div
@@ -686,12 +715,13 @@ export function Nav() {
               </div>
 
               <div className="mt-3 border-t border-panel/70 pt-2">
+                {apiFactsLoading && (
+                  <div className="mb-1 text-[10px] text-f1red animate-pulse">
+                    Fetching facts from API...
+                  </div>
+                )}
                 <div className="text-[10px] text-muted leading-relaxed">
-                  Data source: official FIA/OpenF1 event metadata with curated
-                  circuit reference stats.
-                </div>
-                <div className="mt-1 text-[10px] text-muted">
-                  Last synced: {CIRCUIT_FACTS_LAST_SYNC_UTC} UTC
+                  Data source: live circuit facts fetched from API at runtime.
                 </div>
                 {selectedMeeting.circuit_info_url && (
                   <a
