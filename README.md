@@ -11,9 +11,10 @@ F1 Replay is a web-based application that allows you to explore Formula 1 race d
 The app features a broadcast-style experience with:
 
 - **Interactive Race Playback** — scrub through sessions with fine-grained control
-- **Live Track Map** — watch cars move across the circuit in real-time
-- **Telemetry Charts** — speed, throttle, brake, RPM, and gear data at high frequency
-- **Strategy Analysis** — pit stops, tire stints, fuel consumption
+- **Live Track Map** — watch cars move across the circuit in real-time with position overlays
+- **Telemetry Visualization** — high-frequency speed, throttle, brake, RPM, gear, and DRS data with multi-driver comparison
+- **Tire Strategy Analysis** — pit stops, compound changes, tire age tracking, and stint longevity
+- **Track Information** — circuit layout, turn names, DRS zones, and real-time sector performance
 - **Gap & Interval Views** — race standings, gaps to leader, and head-to-head comparisons
 - **Lap Charts** — sector times, speed traps, lap progression
 - **Team Radio & Race Control** — driver communications and official race events
@@ -30,23 +31,29 @@ The app features a broadcast-style experience with:
 
 ### Telemetry & Performance
 
-- **Multi-Driver Comparison** — side-by-side telemetry traces for up to multiple drivers
-- **Telemetry Chart** — high-frequency (3.7 Hz) speed, throttle, brake, RPM, gear, DRS data
+- **Multi-Driver Comparison** — side-by-side telemetry traces for detailed performance analysis across drivers
+- **Comprehensive Telemetry Metrics** — high-frequency (3.7 Hz) speed, throttle, brake, RPM, gear, DRS activation, and brake temperature data
+- **Tire Temperature & Wear** — real-time tire surface temperatures and compound wear progression during stints
 - **Gap Chart** — real-time gaps to leader and interval between adjacent cars
+- **Focused Telemetry Overlay** — zoom into any driver's data with full-screen telemetry analysis
 
 ### Strategy & Race Analysis
 
-- **Strategy View** — pit stops, tire compounds, stint lengths, tire age
-- **Overtake Tracker** — every overtake annotated with driver, lap, and position gain
-- **Lap Chart** — lap times, sector times, speed traps per driver
-- **Live Timing** — current race position, intervals, lap counts, pit status
-- **Final Classification** — championship standings and session results
+- **Strategy View** — comprehensive pit stop timeline, tire compound tracking, stint lengths, and tire age monitoring
+- **Tire Compound Visualization** — color-coded tire compounds (soft, medium, hard, intermediate, wet) across all stints
+- **Pit Stop Analysis** — exact pit timings, strategy calls, and tire change sequences
+- **Overtake Tracker** — every overtake annotated with driver, lap, position gain, and context
+- **Lap Chart** — lap times, sector times, speed traps per driver with performance trends
+- **Live Timing** — current race position, intervals, lap counts, pit status, and stint progression
+- **Final Classification** — championship standings, session results, and completed stints
 
-### Convenience
+### Track Information & Convenience
 
+- **Track Map** — visual circuit layout with turn names, DRS zones, and sector divisions
+- **Sector Performance** — real-time sector times and speed trap data
+- **Circuit Facts** — circuit name, length, lap count, and key track characteristics
 - **Driver Spotlight** — focus on a single driver, auto-follow radio and key events
-- **Focused Telemetry** — high-res overlay telemetry for targeted analysis
-- **Session Info Bar** — always-visible race clock, weather, flags
+- **Session Info Bar** — always-visible race clock, weather, flags, and track status
 - **Responsive Mobile Layout** — mobile navigation, optimized touch controls
 
 ## Tech Stack

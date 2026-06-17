@@ -107,17 +107,30 @@ export function HowItWorksModal() {
               </h3>
               <ul className="text-[12px] leading-relaxed space-y-1.5 ml-3">
                 <li>
-                  <strong className="text-white">Driver Tracker:</strong> View
-                  live car positions, speeds, and gaps on the track map
+                  <strong className="text-white">Telemetry Metrics:</strong>{" "}
+                  View high-frequency speed, throttle, brake, RPM, gear, DRS,
+                  and brake temperature data
                 </li>
                 <li>
-                  <strong className="text-white">Telemetry Tab:</strong> Select
-                  one or more drivers to compare speed, throttle, brake, RPM,
-                  and gear traces
+                  <strong className="text-white">
+                    Multi-Driver Comparison:
+                  </strong>{" "}
+                  Select one or more drivers to compare side-by-side telemetry
+                  traces
                 </li>
                 <li>
-                  <strong className="text-white">Hover Charts:</strong> Inspect
-                  exact telemetry values at any point in time
+                  <strong className="text-white">Tire Data:</strong> Monitor
+                  tire surface temperatures and compound wear progression during
+                  stints
+                </li>
+                <li>
+                  <strong className="text-white">Focused Overlay:</strong> Use
+                  the focused telemetry view for full-screen, high-resolution
+                  analysis
+                </li>
+                <li>
+                  <strong className="text-white">Hover Details:</strong> Inspect
+                  exact values at any point in time with precision tooltips
                 </li>
               </ul>
             </section>
@@ -125,28 +138,63 @@ export function HowItWorksModal() {
             {/* Strategy */}
             <section>
               <h3 className="text-[13px] font-bold text-white uppercase tracking-widest mb-2">
-                🏎️ Strategy & Race Events
+                🏎️ Tire Strategy & Race Events
               </h3>
               <ul className="text-[12px] leading-relaxed space-y-1.5 ml-3">
                 <li>
-                  <strong className="text-white">Strategy View:</strong> See pit
-                  stops, tire compounds, and stint lengths per driver
+                  <strong className="text-white">Strategy Timeline:</strong>{" "}
+                  Visualize pit stops, tire compound changes, stint lengths, and
+                  tire age tracking
+                </li>
+                <li>
+                  <strong className="text-white">Tire Compounds:</strong>{" "}
+                  Color-coded compound visualization (soft, medium, hard,
+                  intermediate, wet) for all stints
+                </li>
+                <li>
+                  <strong className="text-white">Pit Analysis:</strong> Exact
+                  pit timings and strategy call sequences per driver
                 </li>
                 <li>
                   <strong className="text-white">Overtakes Tab:</strong>{" "}
-                  Complete list of overtakes with context
+                  Complete list of overtakes with tactical context
                 </li>
                 <li>
                   <strong className="text-white">Live Timing:</strong> Current
-                  race position, gaps, and intervals
+                  position, gaps, intervals, and pit status
                 </li>
                 <li>
-                  <strong className="text-white">Team Radio:</strong> Listen to
-                  driver radio messages synced to playback
+                  <strong className="text-white">Team Radio:</strong> Driver
+                  communications synced to playback
                 </li>
                 <li>
                   <strong className="text-white">Race Control:</strong> Flags,
                   SC/VSC, incidents, and official messages
+                </li>
+              </ul>
+            </section>
+
+            {/* Track Info */}
+            <section>
+              <h3 className="text-[13px] font-bold text-white uppercase tracking-widest mb-2">
+                🏁 Track Information
+              </h3>
+              <ul className="text-[12px] leading-relaxed space-y-1.5 ml-3">
+                <li>
+                  <strong className="text-white">Circuit Layout:</strong> Visual
+                  track map with turn names, DRS zones, and sector divisions
+                </li>
+                <li>
+                  <strong className="text-white">Sector Performance:</strong>{" "}
+                  Real-time sector times and speed trap data for comparison
+                </li>
+                <li>
+                  <strong className="text-white">Circuit Details:</strong> Track
+                  name, length, total lap count, and key characteristics
+                </li>
+                <li>
+                  <strong className="text-white">Track Status:</strong> Live
+                  weather, flags, and track condition updates
                 </li>
               </ul>
             </section>
@@ -159,12 +207,12 @@ export function HowItWorksModal() {
               <ul className="text-[12px] leading-relaxed space-y-1.5 ml-3">
                 <li>
                   <strong className="text-white">Leaderboard:</strong> Grid view
-                  of race standings with current gaps
+                  of race standings with gaps and intervals
                 </li>
                 <li>
                   <strong className="text-white">Driver Tracker:</strong>{" "}
-                  Immersive replay with track map, strategy, radio, and timing
-                  data
+                  Immersive replay with track map, tire strategy, telemetry,
+                  radio, and timing data
                 </li>
                 <li>
                   <strong className="text-white">Commentary:</strong> Event
