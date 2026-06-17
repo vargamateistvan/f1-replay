@@ -659,7 +659,7 @@ export function LiveTiming({
                         </span>
                       )}
                       {!retired && inPit && (
-                        <span className="hidden min-[390px]:inline-block bg-panel text-muted text-[9px] font-black uppercase tracking-widest px-1.5 py-0.5">
+                        <span className="inline-block bg-[#f5a623] text-black text-[9px] font-black uppercase tracking-widest px-1.5 py-0.5 animate-pulse">
                           PIT
                         </span>
                       )}
@@ -791,7 +791,15 @@ export function LiveTiming({
                       : undefined
                   }
                 >
-                  {pitInfo ? pitInfo.count : "—"}
+                  {!retired && inPit ? (
+                    <span className="inline-block bg-[#f5a623] text-black text-[8px] font-black uppercase tracking-widest px-1 py-0.5 animate-pulse">
+                      PIT
+                    </span>
+                  ) : pitInfo ? (
+                    pitInfo.count
+                  ) : (
+                    "—"
+                  )}
                 </td>
 
                 {/* Current lap */}
