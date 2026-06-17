@@ -27,6 +27,7 @@ export interface AppSettings {
   showPlaybackSpeedControls: boolean;
   showPlaybackEventChips: boolean;
   catchupSummaryEnabled: boolean;
+  showCsvExportButtons: boolean;
 }
 
 interface SettingsStore extends AppSettings {
@@ -62,6 +63,7 @@ export const SETTINGS_DEFAULTS: AppSettings = {
   showPlaybackSpeedControls: true,
   showPlaybackEventChips: true,
   catchupSummaryEnabled: true,
+  showCsvExportButtons: true,
 };
 
 export const useSettings = create<SettingsStore>()(

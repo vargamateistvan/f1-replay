@@ -243,6 +243,14 @@ export function SettingsBody() {
         onChange={toggle("catchupSummaryEnabled")}
       />
 
+      <SectionHeader>Data & Export</SectionHeader>
+      <SettingRow
+        label="CSV export buttons"
+        description="Show export controls on Race Control, Team Radio, Overtakes and Weather panels"
+        checked={settings.showCsvExportButtons}
+        onChange={toggle("showCsvExportButtons")}
+      />
+
       <div className="pt-6 pb-2 flex justify-end">
         <button
           onClick={reset}

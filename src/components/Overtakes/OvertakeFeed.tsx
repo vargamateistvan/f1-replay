@@ -1,6 +1,7 @@
 import { useMemo } from "react";
 import type { Overtake, Driver } from "@/api/types";
 import { downloadEndpointCsv } from "@/api/client";
+import { useSettings } from "@/stores/settings";
 import { teamColor } from "@/utils/color";
 
 interface Props {
@@ -28,6 +29,7 @@ export function OvertakeFeed({
   sessionTimeMs,
   sessionStartMs,
 }: Props) {
+  const showCsvExportButtons = useSettings((s) => s.showCsvExportButtons);
   const currentT = sessionStartMs + sessionTimeMs;
 
   const driverByNumber = useMemo(
@@ -56,7 +58,7 @@ export function OvertakeFeed({
 
   return (
     <div className="panel-scroll p-2 space-y-1">
-      {sessionKey !== null && (
+      {sessionKey !== null && showCsvExportButtons && (
         <div className="flex justify-end pb-1">
           <button
             type="button"

@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
 import type { RaceControl as RaceControlEntry, Driver } from "@/api/types";
 import { downloadEndpointCsv } from "@/api/client";
+import { useSettings } from "@/stores/settings";
 import {
   normalizeRaceControl,
   toFlagKey,
@@ -124,6 +125,7 @@ export function RaceControlFeed({
   focusDriver = null,
   onClearFocus,
 }: Props) {
+  const showCsvExportButtons = useSettings((s) => s.showCsvExportButtons);
   const [activeGroups, setActiveGroups] = useState<Set<string>>(
     () => new Set(ALL_GROUP_KEYS),
   );
@@ -262,7 +264,7 @@ export function RaceControlFeed({
         >
           Tracker
         </button>
-        {sessionKey !== null && (
+        {sessionKey !== null && showCsvExportButtons && (
           <button
             type="button"
             onClick={() => {

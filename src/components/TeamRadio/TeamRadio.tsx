@@ -2,11 +2,13 @@ import { useState } from "react";
 import { Play, Square } from "lucide-react";
 import type { TeamRadio as TeamRadioEntry, Driver } from "@/api/types";
 import { downloadEndpointCsv } from "@/api/client";
+import { useSettings } from "@/stores/settings";
 import { teamColor } from "@/utils/color";
 
 interface Props {
   readonly entries: TeamRadioEntry[];
   readonly sessionKey?: number | null;
+  readonly sessionYear?: number | null;
   readonly drivers: Driver[];
   readonly sessionTimeMs: number;
   readonly sessionStartMs: number;
@@ -26,10 +28,12 @@ function fmtSessionTime(entryDateMs: number, sessionStartMs: number) {
 export function TeamRadioFeed({
   entries,
   sessionKey = null,
+  sessionYear = null,
   drivers,
   sessionTimeMs,
   sessionStartMs,
 }: Props) {
+  const showCsvExportButtons = useSettings((s) => s.showCsvExportButtons);
   const [playing, setPlaying] = useState<string | null>(null);
   const currentT = sessionStartMs + sessionTimeMs;
 
@@ -49,10 +53,13 @@ export function TeamRadioFeed({
   }
 
   if (visible.length === 0) {
+    const sparseCoverage = sessionYear !== null && sessionYear >= 2026;
     return (
       <div className="text-muted text-xs p-3">
         {sessionStartMs
-          ? "No radio messages yet — scrub forward"
+          ? sparseCoverage
+            ? "No radio messages for this session. OpenF1 coverage is often limited in 2026+ events."
+            : "No radio messages yet — scrub forward"
           : "Select a session"}
       </div>
     );
@@ -60,7 +67,7 @@ export function TeamRadioFeed({
 
   return (
     <div className="panel-scroll p-2 space-y-1">
-      {sessionKey !== null && (
+      {sessionKey !== null && showCsvExportButtons && (
         <div className="flex justify-end pb-1">
           <button
             type="button"

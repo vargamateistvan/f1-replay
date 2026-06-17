@@ -2,6 +2,7 @@ import { useMemo } from "react";
 import { CloudRain, Droplets, Gauge, Thermometer, Wind } from "lucide-react";
 import type { Weather } from "@/api/types";
 import { downloadEndpointCsv } from "@/api/client";
+import { useSettings } from "@/stores/settings";
 
 // 16-point compass from degrees
 function windDir(deg: number): string {
@@ -39,6 +40,7 @@ export function WeatherPanel({
   sessionTimeMs,
   sessionStartMs,
 }: Props) {
+  const showCsvExportButtons = useSettings((s) => s.showCsvExportButtons);
   const currentT = sessionStartMs + sessionTimeMs;
 
   const w = useMemo(
@@ -81,7 +83,7 @@ export function WeatherPanel({
         <span className="text-[10px] font-black uppercase tracking-[0.16em] text-white/85">
           Track Weather
         </span>
-        {sessionKey !== null && (
+        {sessionKey !== null && showCsvExportButtons && (
           <button
             type="button"
             onClick={() => {

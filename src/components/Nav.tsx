@@ -71,6 +71,24 @@ export function Nav() {
     });
   }
 
+  function selectLatestEvent() {
+    const latest = meetings.data
+      ?.slice()
+      .sort(
+        (a, b) =>
+          new Date(b.date_start).getTime() - new Date(a.date_start).getTime(),
+      )[0];
+    if (!latest) return;
+
+    setSearchParams((prev) => {
+      const next = new URLSearchParams(prev);
+      next.set("year", String(latest.year));
+      next.set("meeting", String(latest.meeting_key));
+      next.delete("session");
+      return next;
+    });
+  }
+
   const circuitLabel = selectedMeeting
     ? selectedMeeting.location.toUpperCase()
     : null;
@@ -330,6 +348,15 @@ export function Nav() {
                 Loading…
               </span>
             )}
+
+            <button
+              type="button"
+              onClick={selectLatestEvent}
+              disabled={meetings.isPending || !meetings.data?.length}
+              className="h-6 px-2 text-[9px] font-black uppercase tracking-widest rounded transition-colors bg-[#1e1e28] text-muted hover:text-white hover:bg-[#38383f] disabled:opacity-40 disabled:cursor-not-allowed"
+            >
+              Latest
+            </button>
           </div>
 
           {selectedMeeting && (

@@ -41,6 +41,18 @@ export function SessionPicker({
   const live = isSessionLive(selectedSession);
   const authFailed = isAuthError(meetings.error) || isAuthError(sessions.error);
 
+  function selectLatestEvent() {
+    const latest = meetings.data
+      ?.slice()
+      .sort(
+        (a, b) =>
+          new Date(b.date_start).getTime() - new Date(a.date_start).getTime(),
+      )[0];
+    if (!latest) return;
+    onYear(latest.year);
+    onMeeting(latest.meeting_key);
+  }
+
   return (
     <div>
       {authFailed && (
@@ -130,6 +142,15 @@ export function SessionPicker({
               Loading…
             </span>
           )}
+
+          <button
+            type="button"
+            onClick={selectLatestEvent}
+            disabled={meetings.isPending || !meetings.data?.length}
+            className="h-7 px-2 text-[10px] font-black uppercase tracking-widest rounded bg-[#1e1e28] text-muted hover:text-white hover:bg-[#38383f] disabled:opacity-40 disabled:cursor-not-allowed"
+          >
+            Latest Event
+          </button>
         </div>
 
         {selectedMeeting && (

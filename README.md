@@ -6,7 +6,7 @@
 
 ## Overview
 
-F1 Replay is a web-based application that allows you to explore Formula 1 race data in an interactive, time-synced environment. Watch replays of any F1 session from 2021 onwards, visualize car telemetry in real-time, analyze overtakes, pit strategies, tire compounds, and relive key moments—all powered by the public [OpenF1 API](https://api.openf1.org/v1).
+F1 Replay is a web-based application that allows you to explore Formula 1 race data in an interactive, time-synced environment. Watch replays of F1 sessions available through OpenF1 (historical coverage from 2023 onwards), visualize car telemetry in real-time, analyze overtakes, pit strategies, tire compounds, and relive key moments—all powered by the public [OpenF1 API](https://api.openf1.org/v1).
 
 The app features a broadcast-style experience with:
 
@@ -201,6 +201,10 @@ All data comes from the public **[OpenF1 API](https://api.openf1.org/v1)** — n
 - `race_control` — flags, SC/VSC, incidents
 - `team_radio` — audio URLs and driver messages
 - `weather` — track/air temp, humidity, wind, rain
+- `championship_drivers` — live/post-race driver championship standings
+- `championship_teams` — live/post-race constructor championship standings
+
+CSV export is available directly from Race Control, Team Radio, Overtakes, and Weather panels, and can be toggled from Settings.
 
 ## Development
 

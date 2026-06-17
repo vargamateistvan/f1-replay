@@ -1374,6 +1374,7 @@ export default function RaceWeekend() {
                 <TeamRadioFeed
                   entries={teamRadio.data ?? []}
                   sessionKey={sessionKey}
+                  sessionYear={session?.year ?? null}
                   drivers={drivers.data ?? []}
                   sessionTimeMs={t}
                   sessionStartMs={sessionStartMs}
