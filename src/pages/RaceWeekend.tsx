@@ -1084,21 +1084,6 @@ export default function RaceWeekend() {
               <div className="flex flex-col md:flex-1 md:min-h-0 md:overflow-hidden">
                 {(trackerTab ?? "timing") === "timing" && (
                   <>
-                    {/* Weather accordion */}
-                    <div className="shrink-0 border-b border-panel">
-                      {weather.isError ? (
-                        <ErrorMessage
-                          message="Failed to load weather"
-                          compact
-                        />
-                      ) : (
-                        <WeatherPanel
-                          entries={weather.data ?? []}
-                          sessionTimeMs={t}
-                          sessionStartMs={sessionStartMs}
-                        />
-                      )}
-                    </div>
                     {/* Timing tower */}
                     <div className="flex flex-col md:flex-1 md:min-h-0 md:overflow-hidden">
                       {positions.isError ? (
@@ -1134,17 +1119,33 @@ export default function RaceWeekend() {
                 )}
 
                 {(trackerTab ?? "timing") === "map" && (
-                  <div className="min-h-[80vw] bg-[#10101a] relative md:flex-1 md:min-w-0">
-                    {drivers.isError ? (
-                      <ErrorMessage message="Failed to load driver data" />
-                    ) : (
-                      trackMap
-                    )}
-                    {isLoadingSessionData && (
-                      <span className="absolute top-2 right-2 text-f1red text-[10px] animate-pulse">
-                        Loading…
-                      </span>
-                    )}
+                  <div className="min-h-[80vw] bg-[#10101a] flex flex-col md:flex-1 md:min-w-0">
+                    <div className="shrink-0 border-b border-panel">
+                      {weather.isError ? (
+                        <ErrorMessage
+                          message="Failed to load weather"
+                          compact
+                        />
+                      ) : (
+                        <WeatherPanel
+                          entries={weather.data ?? []}
+                          sessionTimeMs={t}
+                          sessionStartMs={sessionStartMs}
+                        />
+                      )}
+                    </div>
+                    <div className="relative flex-1 min-h-[64vw]">
+                      {drivers.isError ? (
+                        <ErrorMessage message="Failed to load driver data" />
+                      ) : (
+                        trackMap
+                      )}
+                      {isLoadingSessionData && (
+                        <span className="absolute top-2 right-2 text-f1red text-[10px] animate-pulse">
+                          Loading…
+                        </span>
+                      )}
+                    </div>
                   </div>
                 )}
 
