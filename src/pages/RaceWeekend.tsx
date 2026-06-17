@@ -578,7 +578,7 @@ export default function RaceWeekend() {
   // Fetched only when the leaderboard view is active AND the setting is on — it's
   // a ~22k-row window per chunk, so we don't pay for it on other views.
   const trackerTimingTelemetryEnabled =
-    trackerTimingTelemetry &&
+    (leaderboardTelemetry || trackerTimingTelemetry) &&
     currentView === "tracker" &&
     (trackerTab ?? "timing") === "timing";
   const telemetryEnabled =
