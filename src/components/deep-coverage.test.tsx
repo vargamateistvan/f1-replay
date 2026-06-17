@@ -4,6 +4,9 @@ import { EventToastStack } from "@/components/EventToast/EventToastStack";
 import { TeamRadioFeed } from "@/components/TeamRadio/TeamRadio";
 import { RaceChapters } from "@/components/RaceChapters/RaceChapters";
 import { TrackMap } from "@/components/TrackMap/TrackMap";
+import type { Driver, TeamRadio, Location } from "@/api/types";
+import type { ActiveToast } from "@/hooks/useEventToasts";
+import type { RaceChapter, WhatChangedSnapshot } from "@/timeline/raceControl";
 
 const testState = vi.hoisted(() => ({
   timeline: { t: 10_000 },
@@ -24,7 +27,7 @@ const testState = vi.hoisted(() => ({
       width: 100,
       height: 100,
     },
-  } as any,
+  } as unknown,
   carWindowData: [
     {
       date: "2024-01-01T00:00:10.000Z",
@@ -82,10 +85,10 @@ vi.mock("@/data/circuitGeometry", () => ({
   getCircuitGeometry: () => testState.circuitGeom,
 }));
 
-const drivers = [
+const drivers: Driver[] = [
   { driver_number: 1, name_acronym: "VER", team_colour: "3671C6" },
   { driver_number: 16, name_acronym: "LEC", team_colour: "E8002D" },
-] as any[];
+] as unknown as Driver[];
 
 describe("deep component coverage", () => {
   beforeEach(() => {
@@ -107,7 +110,7 @@ describe("deep component coverage", () => {
         width: 100,
         height: 100,
       },
-    } as any;
+    } as unknown;
     testState.carWindowData = [
       {
         date: "2024-01-01T00:00:10.000Z",
@@ -169,7 +172,7 @@ describe("deep component coverage", () => {
           payload: { driverNumber: 16, lapNumber: 18, lapTime: 89.123 },
         },
       },
-    ] as any;
+    ] as unknown as ActiveToast[];
 
     render(
       <EventToastStack toasts={toasts} drivers={drivers} onDismiss={dismiss} />,
@@ -226,7 +229,7 @@ describe("deep component coverage", () => {
               driver_number: 99,
               recording_url: "https://example.com/2.mp3",
             },
-          ] as any
+          ] as TeamRadio[]
         }
         drivers={drivers}
         sessionTimeMs={10_000}
@@ -272,7 +275,7 @@ describe("deep component coverage", () => {
         durationMs: 20_000,
         incidentWindowId: null,
       },
-    ] as any;
+    ] as RaceChapter[];
 
     const snapshots = [
       {
@@ -283,7 +286,7 @@ describe("deep component coverage", () => {
         ],
         pitsDuringWindow: [1],
       },
-    ] as any;
+    ] as WhatChangedSnapshot[];
 
     const { rerender } = render(
       <RaceChapters
@@ -350,7 +353,7 @@ describe("deep component coverage", () => {
     expect(screen.getByText("Loading track outline…")).toBeInTheDocument();
 
     testState.outlinePending = false;
-    testState.outline = null as any;
+    testState.outline = null as unknown;
     rerender(
       <TrackMap
         sessionKey={1}
@@ -391,7 +394,7 @@ describe("deep component coverage", () => {
               x: 30,
               y: 35,
             },
-          ] as any
+          ] as Location[]
         }
         sessionStartMs={0}
         focusDriver={1}

@@ -1,7 +1,9 @@
 import { describe, it, expect, vi } from "vitest";
 import { render } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
-import type { ReactElement } from "react";
+import type { ReactElement, ReactNode } from "react";
+import type { Driver, TeamRadio } from "@/api/types";
+import type { CatchupSummary as CatchupSummaryData } from "@/hooks/useCatchupSummary";
 import { AppLogo } from "@/components/AppLogo";
 import { CatchupSummary } from "@/components/CatchupSummary/CatchupSummary";
 import { DriverHeadshot } from "@/components/DriverHeadshot";
@@ -98,9 +100,7 @@ vi.mock("@/data/circuitGeometry", () => ({
 }));
 
 vi.mock("recharts", () => {
-  const Box = ({ children }: { children?: unknown }) => (
-    <div>{children as any}</div>
-  );
+  const Box = ({ children }: { children?: ReactNode }) => <div>{children}</div>;
   return {
     ResponsiveContainer: Box,
     LineChart: Box,
@@ -169,7 +169,7 @@ function wrap(ui: ReactElement) {
   return render(<MemoryRouter>{ui}</MemoryRouter>);
 }
 
-const drivers = [
+const drivers: Driver[] = [
   {
     driver_number: 1,
     name_acronym: "VER",
@@ -182,7 +182,7 @@ const drivers = [
     team_colour: "E8002D",
     full_name: "Charles Leclerc",
   },
-] as any[];
+] as unknown as Driver[];
 
 const baseDate = "2024-01-01T00:00:10.000Z";
 
@@ -195,7 +195,7 @@ describe("component smoke tests", () => {
   it("renders CatchupSummary", () => {
     wrap(
       <CatchupSummary
-        summary={{ fromMs: 0, toMs: 1000, events: [] } as any}
+        summary={{ fromMs: 0, toMs: 1000, events: [] } as CatchupSummaryData}
         drivers={drivers}
         onDismiss={vi.fn()}
       />,
@@ -364,6 +364,7 @@ describe("component smoke tests", () => {
     wrap(
       <RaceChapters
         chapters={[]}
+        snapshots={[]}
         sessionTimeMs={0}
         onJump={vi.fn()}
         drivers={drivers}
@@ -462,7 +463,7 @@ describe("component smoke tests", () => {
             date: baseDate,
             driver_number: 1,
             recording_url: "https://example.com/audio.mp3",
-          } as any,
+          } as TeamRadio,
         ]}
         drivers={drivers}
         sessionTimeMs={20_000}
