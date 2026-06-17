@@ -6,6 +6,7 @@ export interface AppSettings {
   // Notifications
   toastsEnabled: boolean;
   toastRadio: boolean;
+  toastRadioAutoplay: boolean;
   toastFlag: boolean;
   toastOvertake: boolean;
   toastPit: boolean;
@@ -47,6 +48,7 @@ interface SettingsStore extends AppSettings {
 export const SETTINGS_DEFAULTS: AppSettings = {
   toastsEnabled: true,
   toastRadio: true,
+  toastRadioAutoplay: false,
   toastFlag: true,
   toastOvertake: true,
   toastPit: true,

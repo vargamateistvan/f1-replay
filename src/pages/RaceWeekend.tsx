@@ -534,6 +534,7 @@ export default function RaceWeekend() {
   const {
     toastsEnabled,
     toastRadio: settingToastRadio,
+    toastRadioAutoplay: settingToastRadioAutoplay,
     toastFlag: settingToastFlag,
     toastOvertake: settingToastOvertake,
     toastPit: settingToastPit,
@@ -1018,6 +1019,7 @@ export default function RaceWeekend() {
                 toasts={toasts}
                 drivers={drivers.data ?? []}
                 onDismiss={dismiss}
+                radioAutoplay={settingToastRadioAutoplay}
                 layout="overlay"
               />
             )}
@@ -1143,6 +1145,7 @@ export default function RaceWeekend() {
                         toasts={toasts}
                         drivers={drivers.data ?? []}
                         onDismiss={dismiss}
+                        radioAutoplay={settingToastRadioAutoplay}
                         layout="overlay"
                       />
                       {drivers.isError ? (

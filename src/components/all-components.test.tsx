@@ -130,6 +130,7 @@ vi.mock("@/stores/settings", () => {
   const defaults = {
     toastsEnabled: true,
     toastRadio: true,
+    toastRadioAutoplay: false,
     toastFlag: true,
     toastOvertake: true,
     toastPit: true,

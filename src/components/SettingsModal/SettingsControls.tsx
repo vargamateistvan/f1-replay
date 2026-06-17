@@ -139,6 +139,13 @@ export function SettingsBody() {
         disabled={!settings.toastsEnabled}
       />
       <SettingRow
+        label="Auto-play radio messages"
+        description="Automatically play new team radio toasts"
+        checked={settings.toastRadioAutoplay}
+        onChange={toggle("toastRadioAutoplay")}
+        disabled={!settings.toastsEnabled || !settings.toastRadio}
+      />
+      <SettingRow
         label="Flags & race control"
         checked={settings.toastFlag}
         onChange={toggle("toastFlag")}

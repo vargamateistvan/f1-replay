@@ -16,6 +16,7 @@ interface Props {
   drivers: Driver[];
   onDismiss: (id: string) => void;
   layout?: "overlay" | "inline";
+  radioAutoplay?: boolean;
 }
 
 const FLAG_COLORS: Record<string, { bg: string; text: string; label: string }> =
@@ -34,6 +35,7 @@ export function EventToastStack({
   drivers,
   onDismiss,
   layout = "overlay",
+  radioAutoplay = false,
 }: Props) {
   const driverMap = new Map(drivers.map((d) => [d.driver_number, d]));
 
@@ -79,6 +81,7 @@ export function EventToastStack({
               at={at}
               driverMap={driverMap}
               onDismiss={onDismiss}
+              radioAutoplay={radioAutoplay}
             />
           ))}
         </div>
@@ -151,14 +154,23 @@ function ToastCard({
   at,
   driverMap,
   onDismiss,
+  radioAutoplay,
 }: {
   at: ActiveToast;
   driverMap: Map<number, Driver>;
   onDismiss: (id: string) => void;
+  radioAutoplay: boolean;
 }) {
   const inner = (() => {
     if (at.event.kind === "radio")
-      return <RadioToast at={at} driverMap={driverMap} onDismiss={onDismiss} />;
+      return (
+        <RadioToast
+          at={at}
+          driverMap={driverMap}
+          onDismiss={onDismiss}
+          radioAutoplay={radioAutoplay}
+        />
+      );
     if (
       at.event.kind === "flag" ||
       at.event.kind === "investigation" ||
@@ -217,12 +229,14 @@ function RadioToast({
   at,
   driverMap,
   onDismiss,
+  radioAutoplay,
 }: {
   at: ActiveToast;
   driverMap: Map<number, Driver>;
   onDismiss: (id: string) => void;
+  radioAutoplay: boolean;
 }) {
-  const [playing, setPlaying] = useState(false);
+  const [playing, setPlaying] = useState(radioAutoplay);
   const p = at.event.payload as RadioPayload;
   const driver = driverMap.get(p.driverNumber);
   const color = teamColor(driver?.team_colour);
