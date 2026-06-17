@@ -76,19 +76,29 @@ function extractLapRecord(wikitext: string) {
 }
 
 async function resolveWikiPage(shortName: string, countryName: string) {
+  const short = shortName.trim();
+  const shortWithoutCircuit = short.replace(/\bcircuit\b/gi, "").trim();
   const attempts = [
-    `${shortName} circuit ${countryName}`,
-    `${shortName} Formula One circuit`,
-    `${shortName} circuit`,
+    short,
+    `${shortWithoutCircuit} Circuit`,
+    `${shortWithoutCircuit} Formula One circuit`,
+    `${shortWithoutCircuit} circuit ${countryName}`,
   ];
 
+  const seen = new Set<string>();
   for (const query of attempts) {
+    const q = query.trim();
+    if (!q || seen.has(q.toLowerCase())) continue;
+    seen.add(q.toLowerCase());
+
     const res = await fetch(
-      `https://en.wikipedia.org/w/api.php?action=opensearch&limit=1&namespace=0&format=json&origin=*&search=${encodeURIComponent(query)}`,
+      `https://en.wikipedia.org/w/api.php?action=query&list=search&srlimit=1&format=json&origin=*&srsearch=${encodeURIComponent(q)}`,
     );
     if (!res.ok) continue;
-    const json = (await res.json()) as [string, string[]];
-    const page = json?.[1]?.[0];
+    const json = (await res.json()) as {
+      query?: { search?: Array<{ title?: string }> };
+    };
+    const page = json?.query?.search?.[0]?.title;
     if (page) return page;
   }
 
