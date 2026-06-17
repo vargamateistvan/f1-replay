@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import type { Stint, Driver, Lap, Pit } from "@/api/types";
 import { teamColor } from "@/utils/color";
 import { pitStopTime } from "@/utils/pit";
@@ -28,6 +28,7 @@ interface Props {
   readonly pits: Pit[];
   readonly sessionTimeMs: number;
   readonly sessionStartMs: number;
+  readonly currentLap?: number;
 }
 
 export function StrategyBar({
@@ -37,7 +38,9 @@ export function StrategyBar({
   pits,
   sessionTimeMs,
   sessionStartMs,
+  currentLap,
 }: Props) {
+  const [showAllLaps, setShowAllLaps] = useState(false);
   const currentT = sessionStartMs + sessionTimeMs;
 
   const driverByNumber = useMemo(
@@ -57,7 +60,7 @@ export function StrategyBar({
   );
 
   // Current lap at playhead: last lap started before currentT across any driver
-  const currentLap = useMemo(() => {
+  const derivedCurrentLap = useMemo(() => {
     let best = 0;
     for (const l of laps) {
       if (!l.date_start) continue;
@@ -66,6 +69,14 @@ export function StrategyBar({
     }
     return best;
   }, [laps, currentT]);
+
+  const playbackLap = currentLap ?? derivedCurrentLap;
+
+  const visibleMaxLap = useMemo(() => {
+    if (showAllLaps) return maxLap;
+    if (playbackLap <= 0) return 1;
+    return Math.min(playbackLap, maxLap);
+  }, [showAllLaps, playbackLap, maxLap]);
 
   // Pit stops per driver (only those that occurred before currentT)
   const pitsByDriver = useMemo(() => {
@@ -91,16 +102,17 @@ export function StrategyBar({
     const m = new Map<number, { compound: Stint["compound"]; age: number }>();
     for (const [driverNumber, driverStintList] of driverStints) {
       const active = driverStintList.find(
-        (stint) => stint.lap_start <= currentLap && currentLap <= stint.lap_end,
+        (stint) =>
+          stint.lap_start <= playbackLap && playbackLap <= stint.lap_end,
       );
       if (!active) continue;
       m.set(driverNumber, {
         compound: active.compound,
-        age: currentLap - active.lap_start + active.tyre_age_at_start,
+        age: playbackLap - active.lap_start + active.tyre_age_at_start,
       });
     }
     return m;
-  }, [driverStints, currentLap]);
+  }, [driverStints, playbackLap]);
 
   // Ordered list: drivers with stint data, in API order
   const driverNumbers = useMemo(
@@ -111,13 +123,16 @@ export function StrategyBar({
   // Lap axis ticks — roughly every 10 laps
   const axisTicks = useMemo(() => {
     const ticks: number[] = [1];
-    const step = maxLap <= 30 ? 5 : maxLap <= 60 ? 10 : 15;
-    for (let l = step; l < maxLap; l += step) ticks.push(l);
-    if (ticks[ticks.length - 1] !== maxLap) ticks.push(maxLap);
+    const step = visibleMaxLap <= 30 ? 5 : visibleMaxLap <= 60 ? 10 : 15;
+    for (let l = step; l < visibleMaxLap; l += step) ticks.push(l);
+    if (ticks[ticks.length - 1] !== visibleMaxLap) ticks.push(visibleMaxLap);
     return ticks;
-  }, [maxLap]);
+  }, [visibleMaxLap]);
 
-  const currentLapPct = maxLap > 0 ? (currentLap / maxLap) * 100 : 0;
+  const currentLapPct =
+    visibleMaxLap > 0
+      ? (Math.min(playbackLap, visibleMaxLap) / visibleMaxLap) * 100
+      : 0;
 
   if (driverNumbers.length === 0) {
     return (
@@ -137,6 +152,21 @@ export function StrategyBar({
 
   return (
     <div className="px-2 py-1.5 space-y-0.5 md:overflow-auto md:h-full sm:px-3 sm:py-2">
+      <div className="mb-1 flex items-center justify-end">
+        <button
+          type="button"
+          onClick={() => setShowAllLaps((v) => !v)}
+          className={`h-5 px-2 text-[9px] font-black uppercase tracking-widest border transition-colors ${
+            showAllLaps
+              ? "border-f1red bg-f1red text-white"
+              : "border-panel bg-track text-muted hover:text-white"
+          }`}
+          title={showAllLaps ? "Showing all laps" : "Showing elapsed laps"}
+        >
+          {showAllLaps ? "All" : "Elapsed"}
+        </button>
+      </div>
+
       {/* Lap axis */}
       <div className="relative mb-1 flex h-4 items-center pl-8 pr-1 sm:pl-10">
         {axisTicks.map((lap) => (
@@ -144,7 +174,7 @@ export function StrategyBar({
             key={lap}
             className="absolute -translate-x-1/2 text-[9px] font-mono text-muted sm:text-[10px]"
             style={{
-              left: `calc(2rem + ${(lap / maxLap) * 100}% * (100% - 2rem) / 100%)`,
+              left: `calc(2rem + ${(lap / visibleMaxLap) * 100}% * (100% - 2rem) / 100%)`,
             }}
           >
             {lap}
@@ -185,8 +215,12 @@ export function StrategyBar({
             <div className="relative flex h-3.5 flex-1 overflow-hidden bg-[#15151e] sm:h-4">
               {/* Stint segments */}
               {dStints.map((s) => {
-                const left = ((s.lap_start - 1) / maxLap) * 100;
-                const width = ((s.lap_end - s.lap_start + 1) / maxLap) * 100;
+                const visibleStart = Math.max(1, s.lap_start);
+                const visibleEnd = Math.min(s.lap_end, visibleMaxLap);
+                if (visibleEnd < visibleStart) return null;
+                const left = ((visibleStart - 1) / visibleMaxLap) * 100;
+                const width =
+                  ((visibleEnd - visibleStart + 1) / visibleMaxLap) * 100;
                 const bg = COMPOUND_COLOR[s.compound] ?? "#555";
                 const isHard = s.compound === "HARD";
                 return (
@@ -213,7 +247,8 @@ export function StrategyBar({
 
               {/* Pit stop markers */}
               {dPits.map((p, i) => {
-                const left = ((p.lap_number - 1) / maxLap) * 100;
+                if (p.lap_number > visibleMaxLap) return null;
+                const left = ((p.lap_number - 1) / visibleMaxLap) * 100;
                 const stop = pitStopTime(p);
                 return (
                   <div
@@ -226,7 +261,7 @@ export function StrategyBar({
               })}
 
               {/* Current-lap marker */}
-              {currentLap > 0 && (
+              {playbackLap > 0 && (
                 <div
                   className="absolute top-0 h-full w-px bg-f1red z-20 pointer-events-none"
                   style={{ left: `${currentLapPct}%` }}

@@ -202,6 +202,14 @@ export default function RaceWeekend() {
     [laps.data, sessionStartMs],
   );
 
+  const currentLap = useMemo(() => {
+    let lap = 0;
+    for (let i = 0; i < lapMarks.length; i++) {
+      if (lapMarks[i]! <= t) lap = i + 1;
+    }
+    return lap;
+  }, [lapMarks, t]);
+
   const isRaceSession = useMemo(() => {
     const type = session?.session_type ?? "";
     return type === "Race" || type === "Sprint";
@@ -1003,6 +1011,7 @@ export default function RaceWeekend() {
                   pits={pits.data ?? []}
                   sessionTimeMs={t}
                   sessionStartMs={sessionStartMs}
+                  currentLap={currentLap}
                 />
               </div>
             </div>
@@ -1192,6 +1201,7 @@ export default function RaceWeekend() {
                         pits={pits.data ?? []}
                         sessionTimeMs={t}
                         sessionStartMs={sessionStartMs}
+                        currentLap={currentLap}
                       />
                     </div>
                   </div>
@@ -1205,6 +1215,7 @@ export default function RaceWeekend() {
                       lapStarts={lapMarks}
                       sessionStartMs={sessionStartMs}
                       sessionTimeMs={t}
+                      currentLap={currentLap}
                     />
                   </div>
                 )}
@@ -1214,6 +1225,8 @@ export default function RaceWeekend() {
                     <GapChart
                       drivers={drivers.data ?? []}
                       intervals={intervals.data ?? []}
+                      lapStarts={lapMarks}
+                      currentLap={currentLap}
                       sessionStartMs={sessionStartMs}
                       sessionTimeMs={t}
                     />
@@ -1273,6 +1286,7 @@ export default function RaceWeekend() {
                           pits={pits.data ?? []}
                           sessionTimeMs={t}
                           sessionStartMs={sessionStartMs}
+                          currentLap={currentLap}
                         />
                       </div>
                     </div>
@@ -1284,12 +1298,15 @@ export default function RaceWeekend() {
                       lapStarts={lapMarks}
                       sessionStartMs={sessionStartMs}
                       sessionTimeMs={t}
+                      currentLap={currentLap}
                     />
                   )}
                   {(trackerTab ?? "timing") === "gap" && (
                     <GapChart
                       drivers={drivers.data ?? []}
                       intervals={intervals.data ?? []}
+                      lapStarts={lapMarks}
+                      currentLap={currentLap}
                       sessionStartMs={sessionStartMs}
                       sessionTimeMs={t}
                     />

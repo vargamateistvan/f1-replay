@@ -1,122 +1,181 @@
-import { useMemo } from 'react'
+import { useMemo, useState } from "react";
 import {
-  LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine,
-} from 'recharts'
-import type { Driver, Position } from '@/api/types'
-import { teamColor } from '@/utils/color'
+  LineChart,
+  Line,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
+  ReferenceLine,
+} from "recharts";
+import type { Driver, Position } from "@/api/types";
+import { teamColor } from "@/utils/color";
 
 interface Props {
-  readonly drivers: Driver[]
-  readonly positions: Position[]
-  readonly lapStarts: number[] // session-relative ms, sorted (one per lap)
-  readonly sessionStartMs: number
-  readonly sessionTimeMs: number
+  readonly drivers: Driver[];
+  readonly positions: Position[];
+  readonly lapStarts: number[]; // session-relative ms, sorted (one per lap)
+  readonly sessionStartMs: number;
+  readonly sessionTimeMs: number;
+  readonly currentLap?: number;
 }
 
 // Classic position-by-lap "spaghetti" chart. Position at each lap boundary is the
 // last known position for that driver at/before the boundary time — derived from
 // the position series already loaded for Live Timing (no extra fetch).
-export function LapChart({ drivers, positions, lapStarts, sessionStartMs, sessionTimeMs }: Props) {
+export function LapChart({
+  drivers,
+  positions,
+  lapStarts,
+  sessionStartMs,
+  sessionTimeMs,
+  currentLap,
+}: Props) {
+  const [showAllLaps, setShowAllLaps] = useState(false);
+
   // Per-driver position entries in session-relative ms (matching lapStarts), sorted.
   const byDriver = useMemo(() => {
-    const m = new Map<number, Array<{ ms: number; pos: number }>>()
+    const m = new Map<number, Array<{ ms: number; pos: number }>>();
     for (const p of positions) {
-      let arr = m.get(p.driver_number)
-      if (!arr) { arr = []; m.set(p.driver_number, arr) }
-      arr.push({ ms: new Date(p.date).getTime() - sessionStartMs, pos: p.position })
+      let arr = m.get(p.driver_number);
+      if (!arr) {
+        arr = [];
+        m.set(p.driver_number, arr);
+      }
+      arr.push({
+        ms: new Date(p.date).getTime() - sessionStartMs,
+        pos: p.position,
+      });
     }
-    for (const arr of m.values()) arr.sort((a, b) => a.ms - b.ms)
-    return m
-  }, [positions, sessionStartMs])
+    for (const arr of m.values()) arr.sort((a, b) => a.ms - b.ms);
+    return m;
+  }, [positions, sessionStartMs]);
+
+  const derivedCurrentLap = useMemo(() => {
+    let lap = 0;
+    for (let i = 0; i < lapStarts.length; i++)
+      if (lapStarts[i]! <= sessionTimeMs) lap = i + 1;
+    return lap;
+  }, [lapStarts, sessionTimeMs]);
+
+  const playbackLap = currentLap ?? derivedCurrentLap;
+
+  const visibleLapCount = useMemo(() => {
+    if (showAllLaps) return lapStarts.length;
+    return Math.max(0, Math.min(playbackLap, lapStarts.length));
+  }, [showAllLaps, playbackLap, lapStarts.length]);
 
   const rows = useMemo(() => {
-    if (lapStarts.length === 0 || byDriver.size === 0) return []
-    return lapStarts.map((lapMs, i) => {
-      const row: Record<string, number> = { lap: i + 1 }
+    if (lapStarts.length === 0 || byDriver.size === 0) return [];
+    if (visibleLapCount === 0) return [];
+    return lapStarts.slice(0, visibleLapCount).map((lapMs, i) => {
+      const row: Record<string, number> = { lap: i + 1 };
       for (const [num, arr] of byDriver) {
-        const pos = stepPos(arr, lapMs)
-        if (pos !== null) row[String(num)] = pos
+        const pos = stepPos(arr, lapMs);
+        if (pos !== null) row[String(num)] = pos;
       }
-      return row
-    })
-  }, [lapStarts, byDriver])
-
-  const currentLap = useMemo(() => {
-    let lap = 0
-    for (let i = 0; i < lapStarts.length; i++) if (lapStarts[i]! <= sessionTimeMs) lap = i + 1
-    return lap
-  }, [lapStarts, sessionTimeMs])
+      return row;
+    });
+  }, [lapStarts, byDriver, visibleLapCount]);
 
   if (rows.length === 0) {
     return (
       <div className="flex items-center justify-center h-full text-muted text-sm">
         No position data for a lap chart yet
       </div>
-    )
+    );
   }
 
-  const driverCount = drivers.length || 20
+  const driverCount = drivers.length || 20;
 
   return (
-    <ResponsiveContainer width="100%" height="100%">
-      <LineChart data={rows} margin={{ top: 8, right: 12, left: 0, bottom: 4 }}>
-        <CartesianGrid stroke="#2a2a35" />
-        <XAxis
-          dataKey="lap"
-          tick={{ fill: '#636369', fontSize: 10 }}
-          axisLine={{ stroke: '#38383f' }}
-          tickLine={false}
-        />
-        <YAxis
-          reversed
-          domain={[1, driverCount]}
-          allowDecimals={false}
-          width={24}
-          tick={{ fill: '#636369', fontSize: 10 }}
-          axisLine={false}
-          tickLine={false}
-        />
-        <Tooltip content={<LapTooltip />} />
-        {currentLap > 0 && <ReferenceLine x={currentLap} stroke="#E8002D" strokeWidth={1} />}
-        {drivers.map((d) => (
-          <Line
-            key={d.driver_number}
-            type="monotone"
-            dataKey={String(d.driver_number)}
-            name={d.name_acronym}
-            stroke={teamColor(d.team_colour)}
-            strokeWidth={1.5}
-            dot={false}
-            isAnimationActive={false}
-            connectNulls
+    <div className="relative h-full w-full">
+      {lapStarts.length > 0 && (
+        <div className="absolute right-2 top-2 z-20">
+          <button
+            type="button"
+            onClick={() => setShowAllLaps((v) => !v)}
+            className={`h-5 px-2 text-[9px] font-black uppercase tracking-widest border transition-colors ${
+              showAllLaps
+                ? "border-f1red bg-f1red text-white"
+                : "border-panel bg-track text-muted hover:text-white"
+            }`}
+            title={showAllLaps ? "Showing all laps" : "Showing elapsed laps"}
+          >
+            {showAllLaps ? "All" : "Elapsed"}
+          </button>
+        </div>
+      )}
+
+      <ResponsiveContainer width="100%" height="100%">
+        <LineChart
+          data={rows}
+          margin={{ top: 8, right: 12, left: 0, bottom: 4 }}
+        >
+          <CartesianGrid stroke="#2a2a35" />
+          <XAxis
+            dataKey="lap"
+            tick={{ fill: "#636369", fontSize: 10 }}
+            axisLine={{ stroke: "#38383f" }}
+            tickLine={false}
           />
-        ))}
-      </LineChart>
-    </ResponsiveContainer>
-  )
+          <YAxis
+            reversed
+            domain={[1, driverCount]}
+            allowDecimals={false}
+            width={24}
+            tick={{ fill: "#636369", fontSize: 10 }}
+            axisLine={false}
+            tickLine={false}
+          />
+          <Tooltip content={<LapTooltip />} />
+          {playbackLap > 0 && (
+            <ReferenceLine x={playbackLap} stroke="#E8002D" strokeWidth={1} />
+          )}
+          {drivers.map((d) => (
+            <Line
+              key={d.driver_number}
+              type="monotone"
+              dataKey={String(d.driver_number)}
+              name={d.name_acronym}
+              stroke={teamColor(d.team_colour)}
+              strokeWidth={1.5}
+              dot={false}
+              isAnimationActive={false}
+              connectNulls
+            />
+          ))}
+        </LineChart>
+      </ResponsiveContainer>
+    </div>
+  );
 }
 
-function stepPos(arr: Array<{ ms: number; pos: number }>, boundaryMs: number): number | null {
+function stepPos(
+  arr: Array<{ ms: number; pos: number }>,
+  boundaryMs: number,
+): number | null {
   // arr is sorted ascending by ms; return last pos with ms <= boundaryMs
-  let lo = 0
-  let hi = arr.length
+  let lo = 0;
+  let hi = arr.length;
   while (lo < hi) {
-    const mid = (lo + hi) >>> 1
-    if (arr[mid]!.ms <= boundaryMs) lo = mid + 1
-    else hi = mid
+    const mid = (lo + hi) >>> 1;
+    if (arr[mid]!.ms <= boundaryMs) lo = mid + 1;
+    else hi = mid;
   }
-  return arr[lo - 1]?.pos ?? null
+  return arr[lo - 1]?.pos ?? null;
 }
 
 interface TooltipProps {
-  active?: boolean
-  label?: number | string
+  active?: boolean;
+  label?: number | string;
 }
 function LapTooltip({ active, label }: TooltipProps) {
-  if (!active) return null
+  if (!active) return null;
   return (
     <div className="bg-surface border border-panel text-[10px] font-bold uppercase tracking-widest px-2 py-1">
       Lap {label}
     </div>
-  )
+  );
 }
