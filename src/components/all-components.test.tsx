@@ -147,6 +147,7 @@ vi.mock("@/stores/settings", () => {
     showPlaybackSpeedControls: true,
     showPlaybackEventChips: true,
     catchupSummaryEnabled: true,
+    showNextRaceWeekendBanner: true,
     isHelpOpen: true,
   };
   const store = {

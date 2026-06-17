@@ -4,6 +4,7 @@ import {
   useLocation,
   useNavigate,
 } from "react-router-dom";
+import { useEffect, useMemo, useState } from "react";
 import { useMeetings, useSessions } from "@/hooks/useSession";
 import { isAuthError } from "@/api/client";
 import { isSessionLive } from "@/utils/live";
@@ -29,10 +30,19 @@ const CIRCUIT_TYPE_LABEL: Record<string, string> = {
   "Temporary - Road": "Road Course",
 };
 
+function isRaceWeekend(meetingName: string, officialName: string) {
+  return /grand prix/i.test(meetingName) || /grand prix/i.test(officialName);
+}
+
 export function Nav() {
   const openSettings = useSettings((s) => s.openModal);
   const openHelp = useSettings((s) => s.openHelp);
+  const setSetting = useSettings((s) => s.setSetting);
+  const showNextRaceWeekendBanner = useSettings(
+    (s) => s.showNextRaceWeekendBanner,
+  );
   const [searchParams, setSearchParams] = useSearchParams();
+  const [nowMs, setNowMs] = useState(() => Date.now());
 
   const [yearParam] = useNumberParam("year", DEFAULT_YEAR);
   const year = yearParam ?? DEFAULT_YEAR;
@@ -51,6 +61,74 @@ export function Nav() {
     (s) => s.session_key === sessionKey,
   );
   const live = isSessionLive(selectedSession);
+
+  useEffect(() => {
+    const id = window.setInterval(() => setNowMs(Date.now()), 1_000);
+    return () => window.clearInterval(id);
+  }, []);
+
+  const startedMeetings = useMemo(
+    () =>
+      (meetings.data ?? []).filter(
+        (m) => !m.is_cancelled && new Date(m.date_start).getTime() <= nowMs,
+      ),
+    [meetings.data, nowMs],
+  );
+
+  const nextMeeting = useMemo(
+    () =>
+      (meetings.data ?? [])
+        .filter(
+          (m) =>
+            !m.is_cancelled &&
+            isRaceWeekend(m.meeting_name, m.meeting_official_name) &&
+            new Date(m.date_start).getTime() > nowMs,
+        )
+        .sort(
+          (a, b) =>
+            new Date(a.date_start).getTime() - new Date(b.date_start).getTime(),
+        )[0] ?? null,
+    [meetings.data, nowMs],
+  );
+
+  const nextMeetingRound = useMemo(() => {
+    if (!nextMeeting) return null;
+    const heldCount = (meetings.data ?? []).filter(
+      (m) =>
+        !m.is_cancelled &&
+        isRaceWeekend(m.meeting_name, m.meeting_official_name) &&
+        new Date(m.date_end).getTime() <= nowMs,
+    ).length;
+    return heldCount + 1;
+  }, [meetings.data, nextMeeting, nowMs]);
+
+  const nextMeetingDateRange = useMemo(() => {
+    if (!nextMeeting) return null;
+
+    const start = new Date(nextMeeting.date_start);
+    const end = new Date(nextMeeting.date_end);
+    const monthFmt = new Intl.DateTimeFormat("en", { month: "short" });
+    const startMonth = monthFmt.format(start).toUpperCase();
+    const endMonth = monthFmt.format(end).toUpperCase();
+    const startDay = String(start.getUTCDate()).padStart(2, "0");
+    const endDay = String(end.getUTCDate()).padStart(2, "0");
+
+    if (startMonth === endMonth) return `${startDay} - ${endDay} ${startMonth}`;
+    return `${startDay} ${startMonth} - ${endDay} ${endMonth}`;
+  }, [nextMeeting]);
+
+  const nextMeetingCountdown = useMemo(() => {
+    if (!nextMeeting) return null;
+    const diff = new Date(nextMeeting.date_start).getTime() - nowMs;
+    const totalSeconds = Math.max(0, Math.floor(diff / 1_000));
+    const days = Math.floor(totalSeconds / 86_400);
+    const hours = Math.floor((totalSeconds % 86_400) / 3_600);
+    const minutes = Math.floor((totalSeconds % 3_600) / 60);
+    const seconds = totalSeconds % 60;
+    const pad = (n: number) => String(n).padStart(2, "0");
+
+    return `${pad(days)} ${pad(hours)}:${pad(minutes)}:${pad(seconds)}`;
+  }, [nextMeeting, nowMs]);
 
   function onYear(y: number) {
     setSearchParams((prev) => {
@@ -72,7 +150,7 @@ export function Nav() {
   }
 
   function selectLatestEvent() {
-    const latest = meetings.data
+    const latest = startedMeetings
       ?.slice()
       .sort(
         (a, b) =>
@@ -253,6 +331,71 @@ export function Nav() {
         </button>
       </div>
 
+      {/* ── Next race weekend banner (main route) ───────────────── */}
+      {isMainRoute &&
+        showNextRaceWeekendBanner &&
+        nextMeeting &&
+        nextMeetingCountdown && (
+          <div
+            className="border-b border-panel"
+            style={{
+              paddingLeft: "max(0.5rem, env(safe-area-inset-left))",
+              paddingRight: "max(0.5rem, env(safe-area-inset-right))",
+            }}
+          >
+            <div className="flex items-center gap-3 min-w-0 bg-black px-2 py-1.5">
+              <div className="flex items-center gap-2 min-w-0">
+                {nextMeeting.country_flag && (
+                  <img
+                    src={nextMeeting.country_flag}
+                    alt={`${nextMeeting.country_name} flag`}
+                    className="h-4 w-6 object-cover rounded-[2px] border border-white/20 shrink-0"
+                    loading="lazy"
+                    referrerPolicy="no-referrer"
+                  />
+                )}
+                <div className="min-w-0">
+                  <div className="text-[11px] font-black text-white tracking-wide truncate">
+                    {nextMeeting.country_name}{" "}
+                    <span className="text-white/60">›</span>
+                  </div>
+                  <div className="text-[9px] font-semibold uppercase tracking-[0.08em] text-white/60 truncate">
+                    {nextMeeting.circuit_short_name}
+                  </div>
+                </div>
+              </div>
+
+              <div className="min-w-0">
+                <div className="flex items-center gap-2 text-[9px] font-black uppercase tracking-[0.14em] text-white/85">
+                  {nextMeetingRound !== null && (
+                    <span className="shrink-0">
+                      R{String(nextMeetingRound).padStart(2, "0")}
+                    </span>
+                  )}
+                  <span className="text-white/45">|</span>
+                  <span className="shrink-0">
+                    {nextMeetingDateRange ?? "TBA"}
+                  </span>
+                </div>
+              </div>
+
+              <span className="ml-auto h-6 px-2 rounded-sm bg-white/5 text-[9px] font-mono text-f1red shrink-0 inline-flex items-center">
+                {nextMeetingCountdown}
+              </span>
+
+              <button
+                type="button"
+                onClick={() => setSetting("showNextRaceWeekendBanner", false)}
+                aria-label="Hide next race banner"
+                title="Hide banner"
+                className="h-6 w-6 shrink-0 inline-flex items-center justify-center rounded-sm text-white/65 hover:text-white hover:bg-white/10"
+              >
+                ×
+              </button>
+            </div>
+          </div>
+        )}
+
       {/* ── Auth failure banner ───────────────────────────────── */}
       {authFailed && (
         <div className="bg-f1red/15 border-b border-f1red/40 px-4 py-1 text-[10px] text-red-300 font-mono">
@@ -311,7 +454,7 @@ export function Nav() {
                 className={`${SELECT} min-w-0 flex-[1_1_132px] sm:flex-[1_1_160px] sm:max-w-none`}
               >
                 <option value="">— event —</option>
-                {meetings.data?.map((m) => (
+                {startedMeetings.map((m) => (
                   <option key={m.meeting_key} value={m.meeting_key}>
                     {m.location} — {m.meeting_name}
                   </option>

@@ -257,6 +257,12 @@ export function SettingsBody() {
         checked={settings.showCsvExportButtons}
         onChange={toggle("showCsvExportButtons")}
       />
+      <SettingRow
+        label="Next race weekend banner"
+        description="Show countdown banner for the next race weekend"
+        checked={settings.showNextRaceWeekendBanner}
+        onChange={toggle("showNextRaceWeekendBanner")}
+      />
 
       <div className="pt-6 pb-2 flex justify-end">
         <button
