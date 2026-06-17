@@ -895,7 +895,7 @@ export default function RaceWeekend() {
   // ── View layouts ─────────────────────────────────────────────────────────────
 
   return (
-    <div className="flex flex-col relative flex-1 md:min-h-0 md:h-full md:overflow-hidden pb-[calc(7.5rem+env(safe-area-inset-bottom))] md:pb-0">
+    <div className="relative flex flex-col pb-[calc(7.5rem+env(safe-area-inset-bottom))] md:h-full md:min-h-0 md:flex-1 md:overflow-hidden md:pb-0">
       {/* Flag banner — spans full width below nav */}
       {sessionStartMs > 0 && (
         <FlagBanner
