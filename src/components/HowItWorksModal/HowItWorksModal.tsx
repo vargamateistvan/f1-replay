@@ -250,14 +250,38 @@ export function HowItWorksModal() {
               <h3 className="text-[13px] font-bold text-white uppercase tracking-widest mb-2">
                 ⌨️ Keyboard Shortcuts
               </h3>
-              <div className="grid grid-cols-2 gap-2 text-[11px]">
+              <div className="grid grid-cols-2 gap-2 text-[11px] sm:grid-cols-3">
                 <div>
                   <div className="text-f1red font-mono">Space</div>
                   <div className="text-[10px]">Play/Pause</div>
                 </div>
                 <div>
                   <div className="text-f1red font-mono">← →</div>
-                  <div className="text-[10px]">Frame step</div>
+                  <div className="text-[10px]">Scrub ±5s</div>
+                </div>
+                <div>
+                  <div className="text-f1red font-mono">↑ ↓</div>
+                  <div className="text-[10px]">Speed up/down</div>
+                </div>
+                <div>
+                  <div className="text-f1red font-mono">[ ]</div>
+                  <div className="text-[10px]">Prev/next lap</div>
+                </div>
+                <div>
+                  <div className="text-f1red font-mono">J K</div>
+                  <div className="text-[10px]">Prev/next key moment</div>
+                </div>
+                <div>
+                  <div className="text-f1red font-mono">1 2 3</div>
+                  <div className="text-[10px]">Switch main view</div>
+                </div>
+                <div>
+                  <div className="text-f1red font-mono">Home End</div>
+                  <div className="text-[10px]">Jump start/end</div>
+                </div>
+                <div>
+                  <div className="text-f1red font-mono">? / H</div>
+                  <div className="text-[10px]">Open this help</div>
                 </div>
                 <div>
                   <div className="text-f1red font-mono">Esc</div>

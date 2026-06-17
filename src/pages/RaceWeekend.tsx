@@ -107,7 +107,7 @@ export default function RaceWeekend() {
 
   // Main view driven by the Nav's view tab buttons.
   // Clamp to valid values so old `?view=map` deep links fall back gracefully.
-  const [view] = useStringParam<MainView>("view", "leaderboard");
+  const [view, setView] = useStringParam<MainView>("view", "leaderboard");
   const VALID_VIEWS: MainView[] = ["leaderboard", "tracker", "commentary"];
   const currentView: MainView = VALID_VIEWS.includes(view as MainView)
     ? (view as MainView)
@@ -239,6 +239,14 @@ export default function RaceWeekend() {
     () => radioTimes(teamRadio.data ?? [], sessionStartMs),
     [teamRadio.data, sessionStartMs],
   );
+
+  const keyMomentMarks = useMemo(() => {
+    return [
+      ...new Set([...flagMarks, ...pitMarks, ...overtakeMarks, ...radioMarks]),
+    ]
+      .filter((ms) => ms >= 0)
+      .sort((a, b) => a - b);
+  }, [flagMarks, pitMarks, overtakeMarks, radioMarks]);
 
   // ── Phase 3: chapters + what-changed ────────────────────────────────────────
   const normalizedRcEvents = useMemo(
@@ -550,6 +558,9 @@ export default function RaceWeekend() {
     showPlaybackSpeedControls,
     showPlaybackEventChips,
     catchupSummaryEnabled,
+    isHelpOpen,
+    isOpen: isSettingsOpen,
+    openHelp,
   } = useSettings();
 
   // ── Live car telemetry for the leaderboard (all drivers) ────────────────────
@@ -799,7 +810,11 @@ export default function RaceWeekend() {
 
   useKeyboardShortcuts({
     lapStarts: lapMarks,
+    eventTimes: keyMomentMarks,
     durationMs: playbackDurationMs,
+    setView,
+    isModalOpen: isHelpOpen || isSettingsOpen,
+    onOpenHelp: openHelp,
     enabled: sessionKey !== null,
   });
 
@@ -1247,7 +1262,9 @@ export default function RaceWeekend() {
                     <div
                       className={`${PANEL} flex-1 flex flex-col overflow-hidden border-0`}
                     >
-                      <div className={`${PANEL_TITLE} shrink-0`}>Tyre Strategy</div>
+                      <div className={`${PANEL_TITLE} shrink-0`}>
+                        Tyre Strategy
+                      </div>
                       <div className="min-h-0 overflow-y-auto md:panel-scroll [-webkit-overflow-scrolling:touch]">
                         <StrategyBar
                           stints={stints.data ?? []}
