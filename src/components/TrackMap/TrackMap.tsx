@@ -1,4 +1,12 @@
 import { useMemo, useState, useEffect, useRef } from "react";
+import {
+  LocateFixed,
+  RotateCcw,
+  RotateCw,
+  Search,
+  ZoomIn,
+  ZoomOut,
+} from "lucide-react";
 import { useCarDataForLap } from "@/hooks/useCarDataForLap";
 import { useCarDataWindow } from "@/hooks/useCarDataWindow";
 import { chunkIndexFor } from "@/hooks/useLocationChunks";
@@ -885,27 +893,7 @@ export function TrackMap({
             className="w-7 h-7 flex items-center justify-center border border-[#4b4b57] text-white/85 hover:text-white hover:border-white/50 transition-colors"
             title="Zoom out"
           >
-            <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-              <circle
-                cx="6"
-                cy="6"
-                r="4.5"
-                stroke="currentColor"
-                strokeWidth="1.2"
-              />
-              <path
-                d="M9.5 9.5l4 4"
-                stroke="currentColor"
-                strokeWidth="1.2"
-                strokeLinecap="round"
-              />
-              <path
-                d="M3.5 6h5"
-                stroke="currentColor"
-                strokeWidth="1.3"
-                strokeLinecap="round"
-              />
-            </svg>
+            <ZoomOut size={14} strokeWidth={2.2} aria-hidden="true" />
           </button>
           <button
             type="button"
@@ -913,27 +901,7 @@ export function TrackMap({
             className="w-7 h-7 flex items-center justify-center border border-[#4b4b57] text-white/85 hover:text-white hover:border-white/50 transition-colors"
             title="Zoom in"
           >
-            <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-              <circle
-                cx="6"
-                cy="6"
-                r="4.5"
-                stroke="currentColor"
-                strokeWidth="1.2"
-              />
-              <path
-                d="M9.5 9.5l4 4"
-                stroke="currentColor"
-                strokeWidth="1.2"
-                strokeLinecap="round"
-              />
-              <path
-                d="M3.5 6h5M6 3.5v5"
-                stroke="currentColor"
-                strokeWidth="1.3"
-                strokeLinecap="round"
-              />
-            </svg>
+            <ZoomIn size={14} strokeWidth={2.2} aria-hidden="true" />
           </button>
           <button
             type="button"
@@ -941,23 +909,7 @@ export function TrackMap({
             className="w-7 h-7 flex items-center justify-center border border-[#4b4b57] text-white/85 hover:text-white hover:border-white/50 transition-colors"
             title="Reset zoom"
           >
-            <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-              <circle cx="8" cy="8" r="0.8" fill="currentColor" />
-              <path
-                d="M4 8a4 4 0 1 0 7.5-2"
-                stroke="currentColor"
-                strokeWidth="1.2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              />
-              <path
-                d="M11.5 2.5v3h-3"
-                stroke="currentColor"
-                strokeWidth="1.2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              />
-            </svg>
+            <Search size={14} strokeWidth={2.2} aria-hidden="true" />
           </button>
         </div>
         <div className="flex items-center gap-1">
@@ -967,22 +919,7 @@ export function TrackMap({
             className="w-7 h-7 flex items-center justify-center border border-[#4b4b57] text-white/85 hover:text-white hover:border-white/50 transition-colors"
             title="Rotate left"
           >
-            <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-              <path
-                d="M3 8a5 5 0 1 1 10 0"
-                stroke="currentColor"
-                strokeWidth="1.2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              />
-              <path
-                d="M3.5 5.5L2 4v3.5h3.5"
-                stroke="currentColor"
-                strokeWidth="1.2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              />
-            </svg>
+            <RotateCcw size={14} strokeWidth={2.2} aria-hidden="true" />
           </button>
           <button
             type="button"
@@ -990,22 +927,7 @@ export function TrackMap({
             className="w-7 h-7 flex items-center justify-center border border-[#4b4b57] text-white/85 hover:text-white hover:border-white/50 transition-colors"
             title="Rotate right"
           >
-            <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-              <path
-                d="M13 8a5 5 0 1 1 -10 0"
-                stroke="currentColor"
-                strokeWidth="1.2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              />
-              <path
-                d="M12.5 5.5L14 4v3.5h-3.5"
-                stroke="currentColor"
-                strokeWidth="1.2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              />
-            </svg>
+            <RotateCw size={14} strokeWidth={2.2} aria-hidden="true" />
           </button>
           <button
             type="button"
@@ -1013,23 +935,7 @@ export function TrackMap({
             className="w-7 h-7 flex items-center justify-center border border-[#4b4b57] text-white/85 hover:text-white hover:border-white/50 transition-colors"
             title="Reset rotation"
           >
-            <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-              <circle
-                cx="8"
-                cy="8"
-                r="5"
-                stroke="currentColor"
-                strokeWidth="1.2"
-                strokeLinecap="round"
-              />
-              <path
-                d="M8 5v3h2"
-                stroke="currentColor"
-                strokeWidth="1.2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              />
-            </svg>
+            <LocateFixed size={14} strokeWidth={2.2} aria-hidden="true" />
           </button>
         </div>
       </div>

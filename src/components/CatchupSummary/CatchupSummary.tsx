@@ -1,4 +1,5 @@
 import type { CatchupSummary as CatchupSummaryData } from "@/hooks/useCatchupSummary";
+import { FastForward } from "lucide-react";
 import type { Driver } from "@/api/types";
 import type { OvertakePayload, FastestLapPayload } from "@/timeline/events";
 import { teamColor } from "@/utils/color";
@@ -68,8 +69,9 @@ export function CatchupSummary({ summary, drivers, onDismiss }: Props) {
       <div className="bg-[#1f1f27] border border-[#38383f] shadow-2xl overflow-hidden">
         {/* Header */}
         <div className="flex items-center gap-2 px-3 py-2 bg-[#15151e] border-b border-[#38383f]">
-          <span className="text-[10px] font-black uppercase tracking-widest text-white/70">
-            ⏭ While you were away
+          <span className="text-[10px] font-black uppercase tracking-widest text-white/70 flex items-center gap-1">
+            <FastForward size={11} strokeWidth={2.4} aria-hidden="true" />
+            While you were away
           </span>
           <span className="text-[10px] font-mono text-muted ml-1">
             ({fmtDuration(duration)})

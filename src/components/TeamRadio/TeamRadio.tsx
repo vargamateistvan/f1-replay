@@ -1,57 +1,67 @@
-import { useState } from 'react'
-import type { TeamRadio as TeamRadioEntry, Driver } from '@/api/types'
-import { teamColor } from '@/utils/color'
+import { useState } from "react";
+import { Play, Square } from "lucide-react";
+import type { TeamRadio as TeamRadioEntry, Driver } from "@/api/types";
+import { teamColor } from "@/utils/color";
 
 interface Props {
-  readonly entries: TeamRadioEntry[]
-  readonly drivers: Driver[]
-  readonly sessionTimeMs: number
-  readonly sessionStartMs: number
+  readonly entries: TeamRadioEntry[];
+  readonly drivers: Driver[];
+  readonly sessionTimeMs: number;
+  readonly sessionStartMs: number;
 }
 
 function fmtSessionTime(entryDateMs: number, sessionStartMs: number) {
-  const elapsed = Math.max(0, entryDateMs - sessionStartMs)
-  const s = Math.floor(elapsed / 1000)
-  const m = Math.floor(s / 60)
-  const h = Math.floor(m / 60)
-  const pad = (n: number) => String(n).padStart(2, '0')
-  return h > 0 ? `${h}:${pad(m % 60)}:${pad(s % 60)}` : `${pad(m)}:${pad(s % 60)}`
+  const elapsed = Math.max(0, entryDateMs - sessionStartMs);
+  const s = Math.floor(elapsed / 1000);
+  const m = Math.floor(s / 60);
+  const h = Math.floor(m / 60);
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return h > 0
+    ? `${h}:${pad(m % 60)}:${pad(s % 60)}`
+    : `${pad(m)}:${pad(s % 60)}`;
 }
 
-export function TeamRadioFeed({ entries, drivers, sessionTimeMs, sessionStartMs }: Props) {
-  const [playing, setPlaying] = useState<string | null>(null)
-  const currentT = sessionStartMs + sessionTimeMs
+export function TeamRadioFeed({
+  entries,
+  drivers,
+  sessionTimeMs,
+  sessionStartMs,
+}: Props) {
+  const [playing, setPlaying] = useState<string | null>(null);
+  const currentT = sessionStartMs + sessionTimeMs;
 
-  const driverByNumber = new Map(drivers.map((d) => [d.driver_number, d]))
+  const driverByNumber = new Map(drivers.map((d) => [d.driver_number, d]));
 
   const visible = entries
     .filter((e) => new Date(e.date).getTime() <= currentT)
     .slice(-30)
-    .reverse()
+    .reverse();
 
   function play(url: string) {
     if (playing === url) {
-      setPlaying(null)
-      return
+      setPlaying(null);
+      return;
     }
-    setPlaying(url)
+    setPlaying(url);
   }
 
   if (visible.length === 0) {
     return (
       <div className="text-muted text-xs p-3">
-        {sessionStartMs ? 'No radio messages yet — scrub forward' : 'Select a session'}
+        {sessionStartMs
+          ? "No radio messages yet — scrub forward"
+          : "Select a session"}
       </div>
-    )
+    );
   }
 
   return (
     <div className="panel-scroll p-2 space-y-1">
       {visible.map((e, i) => {
-        const driver = driverByNumber.get(e.driver_number)
-        const color = teamColor(driver?.team_colour)
-        const entryMs = new Date(e.date).getTime()
-        const isPlaying = playing === e.recording_url
+        const driver = driverByNumber.get(e.driver_number);
+        const color = teamColor(driver?.team_colour);
+        const entryMs = new Date(e.date).getTime();
+        const isPlaying = playing === e.recording_url;
         return (
           <div
             key={i}
@@ -76,11 +86,21 @@ export function TeamRadioFeed({ entries, drivers, sessionTimeMs, sessionStartMs 
                   onClick={() => play(e.recording_url)}
                   className={`flex items-center gap-1.5 px-2.5 py-0.5 text-[10px] font-black uppercase tracking-widest transition-colors ${
                     isPlaying
-                      ? 'bg-f1red text-white'
-                      : 'bg-panel text-muted hover:text-white hover:bg-[#38383f]'
+                      ? "bg-f1red text-white"
+                      : "bg-panel text-muted hover:text-white hover:bg-[#38383f]"
                   }`}
                 >
-                  {isPlaying ? '⏹ Stop' : '▶ Play'}
+                  {isPlaying ? (
+                    <>
+                      <Square size={11} strokeWidth={2.4} aria-hidden="true" />{" "}
+                      Stop
+                    </>
+                  ) : (
+                    <>
+                      <Play size={11} strokeWidth={2.4} aria-hidden="true" />{" "}
+                      Play
+                    </>
+                  )}
                 </button>
                 {isPlaying && (
                   <audio
@@ -94,8 +114,8 @@ export function TeamRadioFeed({ entries, drivers, sessionTimeMs, sessionStartMs 
               </div>
             </div>
           </div>
-        )
+        );
       })}
     </div>
-  )
+  );
 }

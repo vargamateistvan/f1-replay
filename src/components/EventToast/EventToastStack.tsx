@@ -1,4 +1,5 @@
 import React, { useState, useRef, type ReactNode } from "react";
+import { Play, Square } from "lucide-react";
 import type { ActiveToast } from "@/hooks/useEventToasts";
 import type { Driver } from "@/api/types";
 import type {
@@ -234,9 +235,17 @@ function RadioToast({
           <button
             onClick={() => setPlaying((v) => !v)}
             style={{ touchAction: "manipulation" }}
-            className={`text-[10px] font-black uppercase tracking-widest px-2 py-1 transition-colors ${playing ? "bg-f1red text-white" : "bg-panel text-muted hover:text-white"}`}
+            className={`text-[10px] font-black uppercase tracking-widest px-2 py-1 transition-colors flex items-center gap-1 ${playing ? "bg-f1red text-white" : "bg-panel text-muted hover:text-white"}`}
           >
-            {playing ? "⏹ Stop" : "▶ Play"}
+            {playing ? (
+              <>
+                <Square size={11} strokeWidth={2.4} aria-hidden="true" /> Stop
+              </>
+            ) : (
+              <>
+                <Play size={11} strokeWidth={2.4} aria-hidden="true" /> Play
+              </>
+            )}
           </button>
           {playing && (
             <audio
