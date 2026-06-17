@@ -1316,7 +1316,7 @@ export default function RaceWeekend() {
           </div>
 
           {/* Sub-tabs */}
-          <div className="flex border-b border-panel shrink-0 bg-track overflow-x-auto">
+          <div className="grid grid-cols-5 w-full border-b border-panel shrink-0 bg-track sm:flex sm:overflow-x-auto">
             {(
               [
                 ["rc", "Race Control", "RC"],
@@ -1329,7 +1329,7 @@ export default function RaceWeekend() {
               <button
                 key={tab}
                 onClick={() => setCommentaryTab(tab)}
-                className={`shrink-0 px-4 py-2 text-[11px] font-bold uppercase tracking-wider transition-colors border-b-2 ${
+                className={`w-full px-1.5 py-2 text-[10px] font-bold uppercase tracking-wider transition-colors border-b-2 sm:shrink-0 sm:w-auto sm:px-4 sm:text-[11px] ${
                   (commentaryTab ?? "rc") === tab
                     ? "text-white border-f1red -mb-px"
                     : "text-muted border-transparent hover:text-white"
