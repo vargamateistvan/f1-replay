@@ -1024,7 +1024,7 @@ export default function RaceWeekend() {
                 {(
                   [
                     ["timing", "Timing"],
-                    ["map", "Map"],
+                    ["map", "Track"],
                     ["strategy", "Strategy"],
                     ["chart", "Chart"],
                     ["gap", "Gap"],
