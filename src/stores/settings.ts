@@ -33,6 +33,9 @@ interface SettingsStore extends AppSettings {
   isOpen: boolean;
   openModal: () => void;
   closeModal: () => void;
+  isHelpOpen: boolean;
+  openHelp: () => void;
+  closeHelp: () => void;
   setSetting: <K extends keyof AppSettings>(
     key: K,
     value: AppSettings[K],
@@ -68,6 +71,9 @@ export const useSettings = create<SettingsStore>()(
       isOpen: false,
       openModal: () => set({ isOpen: true }),
       closeModal: () => set({ isOpen: false }),
+      isHelpOpen: false,
+      openHelp: () => set({ isHelpOpen: true }),
+      closeHelp: () => set({ isHelpOpen: false }),
       setSetting: (key, value) => set((s) => ({ ...s, [key]: value })),
       reset: () => set((s) => ({ ...s, ...SETTINGS_DEFAULTS })),
     }),
@@ -82,6 +88,12 @@ export const useSettings = create<SettingsStore>()(
           openModal,
           // eslint-disable-next-line @typescript-eslint/no-unused-vars
           closeModal,
+          // eslint-disable-next-line @typescript-eslint/no-unused-vars
+          isHelpOpen,
+          // eslint-disable-next-line @typescript-eslint/no-unused-vars
+          openHelp,
+          // eslint-disable-next-line @typescript-eslint/no-unused-vars
+          closeHelp,
           // eslint-disable-next-line @typescript-eslint/no-unused-vars
           setSetting,
           // eslint-disable-next-line @typescript-eslint/no-unused-vars

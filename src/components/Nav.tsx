@@ -25,6 +25,7 @@ const SELECT =
 
 export function Nav() {
   const openSettings = useSettings((s) => s.openModal);
+  const openHelp = useSettings((s) => s.openHelp);
   const [searchParams, setSearchParams] = useSearchParams();
 
   const [yearParam] = useNumberParam("year", DEFAULT_YEAR);
@@ -202,6 +203,28 @@ export function Nav() {
               strokeWidth="1.5"
             />
             <circle cx="11" cy="12" r="2" fill="currentColor" />
+          </svg>
+        </button>
+
+        {/* Help button — desktop only */}
+        <button
+          onClick={openHelp}
+          className="hidden md:flex w-8 h-10 items-center justify-center text-white/70 hover:text-white hover:opacity-80 transition-opacity ml-1"
+          aria-label="How it works"
+          title="How it works"
+        >
+          <svg
+            width="16"
+            height="16"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+          >
+            <circle cx="12" cy="12" r="10" />
+            <path d="M12 16v-4" />
+            <path d="M12 8h.01" />
           </svg>
         </button>
       </div>

@@ -2,6 +2,7 @@ import { HashRouter, Routes, Route } from "react-router-dom";
 import { Nav } from "@/components/Nav";
 import { MobileNav } from "@/components/MobileNav";
 import { SettingsModal } from "@/components/SettingsModal/SettingsModal";
+import { HowItWorksModal } from "@/components/HowItWorksModal/HowItWorksModal";
 import RaceWeekend from "@/pages/RaceWeekend";
 import Telemetry from "@/pages/Telemetry";
 import Standings from "@/pages/Standings";
@@ -22,6 +23,7 @@ export function AppRouter() {
         </main>
         <MobileNav />
         <SettingsModal />
+        <HowItWorksModal />
       </div>
     </HashRouter>
   );

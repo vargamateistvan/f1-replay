@@ -1,12 +1,14 @@
 import { useEffect, useState } from "react";
 import { useSearchParams, useLocation, useNavigate } from "react-router-dom";
 import { useStringParam } from "@/hooks/useSearchParamState";
+import { useSettings } from "@/stores/settings";
 import type { MainView } from "@/components/Nav";
 
 export function MobileNav() {
   const [searchParams] = useSearchParams();
   const location = useLocation();
   const navigate = useNavigate();
+  const openHelp = useSettings((s) => s.openHelp);
   const [view, setView] = useStringParam<MainView>("view", "leaderboard");
   const [showMore, setShowMore] = useState(false);
   const currentView: MainView = view ?? "leaderboard";
@@ -42,7 +44,7 @@ export function MobileNav() {
       style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
     >
       {showMore && (
-        <div className="grid grid-cols-3 gap-px border-b border-panel bg-[#111118] px-2 py-2">
+        <div className="grid grid-cols-4 gap-px border-b border-panel bg-[#111118] px-2 py-2">
           <button
             onClick={() => goTo(`/telemetry?${searchParams}`)}
             className="h-10 rounded-sm bg-panel px-2 text-[10px] font-black uppercase tracking-[0.12em] text-white"
@@ -60,6 +62,15 @@ export function MobileNav() {
             className="h-10 rounded-sm bg-panel px-2 text-[10px] font-black uppercase tracking-[0.12em] text-white"
           >
             Settings
+          </button>
+          <button
+            onClick={() => {
+              setShowMore(false);
+              openHelp();
+            }}
+            className="h-10 rounded-sm bg-panel px-2 text-[10px] font-black uppercase tracking-[0.12em] text-white"
+          >
+            Help
           </button>
         </div>
       )}
