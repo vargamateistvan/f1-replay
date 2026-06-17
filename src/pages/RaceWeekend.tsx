@@ -1032,7 +1032,7 @@ export default function RaceWeekend() {
                   [
                     ["timing", "Timing"],
                     ["map", "Track"],
-                    ["strategy", "Strategy"],
+                    ["strategy", "Tyre Strategy"],
                     ["chart", "Chart"],
                     ["gap", "Gap"],
                   ] as [TrackerTab, string][]
@@ -1216,6 +1216,7 @@ export default function RaceWeekend() {
                   {(
                     [
                       ["timing", "Timing"],
+                      ["strategy", "Tyre Strategy"],
                       ["chart", "Lap Chart"],
                       ["gap", "Gap Chart"],
                     ] as [TrackerTab, string][]
@@ -1242,6 +1243,23 @@ export default function RaceWeekend() {
                     ) : (
                       timingTower
                     ))}
+                  {(trackerTab ?? "timing") === "strategy" && (
+                    <div
+                      className={`${PANEL} flex-1 flex flex-col overflow-hidden border-0`}
+                    >
+                      <div className={`${PANEL_TITLE} shrink-0`}>Tyre Strategy</div>
+                      <div className="min-h-0 overflow-y-auto md:panel-scroll [-webkit-overflow-scrolling:touch]">
+                        <StrategyBar
+                          stints={stints.data ?? []}
+                          drivers={drivers.data ?? []}
+                          laps={laps.data ?? []}
+                          pits={pits.data ?? []}
+                          sessionTimeMs={t}
+                          sessionStartMs={sessionStartMs}
+                        />
+                      </div>
+                    </div>
+                  )}
                   {(trackerTab ?? "timing") === "chart" && (
                     <LapChart
                       drivers={drivers.data ?? []}
