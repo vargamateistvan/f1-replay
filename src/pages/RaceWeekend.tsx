@@ -107,11 +107,11 @@ export default function RaceWeekend() {
 
   // Main view driven by the Nav's view tab buttons.
   // Clamp to valid values so old `?view=map` deep links fall back gracefully.
-  const [view, setView] = useStringParam<MainView>("view", "leaderboard");
+  const [view, setView] = useStringParam<MainView>("view", "tracker");
   const VALID_VIEWS: MainView[] = ["leaderboard", "tracker", "commentary"];
   const currentView: MainView = VALID_VIEWS.includes(view as MainView)
     ? (view as MainView)
-    : "leaderboard";
+    : "tracker";
 
   // Sub-tab state for tracker + commentary views
   const [trackerTab, setTrackerTab] = useStringParam<TrackerTab>(
