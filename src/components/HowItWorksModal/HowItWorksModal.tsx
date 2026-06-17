@@ -232,6 +232,19 @@ export function HowItWorksModal() {
               </a>
               . No account required!
             </p>
+
+            <p className="text-[11px] text-muted leading-relaxed pb-2">
+              Found a bug or have feedback?{" "}
+              <a
+                href="https://github.com/vargamateistvan/f1-replay/issues"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-f1red hover:underline"
+              >
+                Report an issue
+              </a>
+              .
+            </p>
           </div>
         </div>
       </div>

@@ -12,6 +12,7 @@ import { FinalClassification } from "@/components/FinalClassification";
 import { FlagBanner } from "@/components/FlagBanner";
 import { FocusedTelemetry } from "@/components/FocusedTelemetry/FocusedTelemetry";
 import { GapChart } from "@/components/GapChart/GapChart";
+import { HowItWorksModal } from "@/components/HowItWorksModal/HowItWorksModal";
 import { KeyMoments } from "@/components/KeyMoments/KeyMoments";
 import { LapChart } from "@/components/LapChart/LapChart";
 import { LiveTiming } from "@/components/LiveTiming/LiveTiming";
@@ -145,12 +146,15 @@ vi.mock("@/stores/settings", () => {
     showPlaybackSpeedControls: true,
     showPlaybackEventChips: true,
     catchupSummaryEnabled: true,
+    isHelpOpen: true,
   };
   const store = {
     ...defaults,
     isOpen: true,
     openModal: () => undefined,
     closeModal: () => undefined,
+    openHelp: () => undefined,
+    closeHelp: () => undefined,
     setSetting: () => undefined,
     reset: () => undefined,
   };
@@ -265,6 +269,11 @@ describe("component smoke tests", () => {
         sessionStartMs={0}
       />,
     );
+    expect(true).toBe(true);
+  });
+
+  it("renders HowItWorksModal", () => {
+    wrap(<HowItWorksModal />);
     expect(true).toBe(true);
   });
 
