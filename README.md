@@ -11,14 +11,15 @@ F1 Replay is a web-based application that allows you to explore Formula 1 race d
 The app features a broadcast-style experience with:
 
 - **Interactive Race Playback** — scrub through sessions with fine-grained control
-- **Live Track Map** — watch cars move across the circuit in real-time with position overlays
+- **Live Track Map** — watch cars move across the circuit in real-time with position overlays, focus-follow camera, and lap heatmap overlays
 - **Telemetry Visualization** — high-frequency speed, throttle, brake, RPM, gear, and DRS data with multi-driver comparison
 - **Tire Strategy Analysis** — pit stops, compound changes, tire age tracking, and stint longevity
 - **Track Information** — circuit layout, turn names, DRS zones, and real-time sector performance
 - **Gap & Interval Views** — race standings, gaps to leader, and head-to-head comparisons
 - **Lap Charts** — sector times, speed traps, lap progression
-- **Team Radio & Race Control** — driver communications and official race events
+- **Team Radio & Race Control** — driver communications and official race events, including resilient in-toast radio playback controls
 - **Weather Data** — track conditions at any point in time
+- **Error-Resilient Routing** — dedicated crash and not-found pages for safer navigation
 - **Mobile Responsive** — optimized for desktop and tablet use
 
 ## Features
@@ -27,12 +28,13 @@ The app features a broadcast-style experience with:
 
 - **Session Picker** — browse circuits, events, and session types (FP1/FP2/FP3/Q/Race)
 - **Playback Controls** — play/pause, speed adjustment, timestamp seek
-- **Time-Synced Events** — toasts for overtakes, radio messages, race control flags as the playhead advances
+- **Time-Synced Events** — toasts for overtakes, radio messages, race control flags, pits, and fastest laps as the playhead advances
 
 ### Telemetry & Performance
 
 - **Multi-Driver Comparison** — side-by-side telemetry traces for detailed performance analysis across drivers
 - **Comprehensive Telemetry Metrics** — high-frequency (3.7 Hz) speed, throttle, brake, RPM, gear, DRS activation, and brake temperature data
+- **Tracker Telemetry Parity** — the Driver Tracker timing experience surfaces the same live telemetry richness as leaderboard workflows
 - **Tire Temperature & Wear** — real-time tire surface temperatures and compound wear progression during stints
 - **Gap Chart** — real-time gaps to leader and interval between adjacent cars
 - **Focused Telemetry Overlay** — zoom into any driver's data with full-screen telemetry analysis
@@ -44,16 +46,18 @@ The app features a broadcast-style experience with:
 - **Pit Stop Analysis** — exact pit timings, strategy calls, and tire change sequences
 - **Overtake Tracker** — every overtake annotated with driver, lap, position gain, and context
 - **Lap Chart** — lap times, sector times, speed traps per driver with performance trends
-- **Live Timing** — current race position, intervals, lap counts, pit status, and stint progression
+- **Live Timing** — current race position, intervals, lap counts, pit status, active in-pit tags, and stint progression
 - **Final Classification** — championship standings, session results, and completed stints
 
 ### Track Information & Convenience
 
 - **Track Map** — visual circuit layout with turn names, DRS zones, and sector divisions
+- **Driver Focus + Heatmap** — click-to-focus flow from timing/map plus lap-based track heatmap visualization
 - **Sector Performance** — real-time sector times and speed trap data
 - **Circuit Facts** — circuit name, length, lap count, and key track characteristics
 - **Driver Spotlight** — focus on a single driver, auto-follow radio and key events
 - **Session Info Bar** — always-visible race clock, weather, flags, and track status
+- **Error Pages** — dedicated not-found and crash screens integrated with routing/error boundaries
 - **Responsive Mobile Layout** — mobile navigation, optimized touch controls
 
 ## Tech Stack
@@ -136,7 +140,13 @@ yarn preview
 
 - **Strategy Tab** — see pit stops and tire compounds per driver on a timeline
 - **Overtakes Tab** — sorted list of all overtakes with context
-- **Live Timing** — current standings and gaps updated as playback progresses
+- **Live Timing** — current standings and gaps updated as playback progresses, including in-pit visibility
+
+### Focus & Track Interaction
+
+- **Focus Driver** — click a driver in timing or on-track to lock focus and follow that car
+- **Track Heatmap** — overlay lap-based pace heatmap for focused runs
+- **Focused HUD Controls** — tune what appears in focused track-map mode from Settings
 
 ## Project Structure
 
@@ -249,6 +259,8 @@ Validates `tsconfig.json`, `tsconfig.app.json`, and `tsconfig.node.json` in buil
 ### Circuit Facts Source
 
 Track facts are fetched from API sources at runtime inside the app (no prefetched circuit facts dataset committed in the repository).
+
+Note: the track-facts surface may be temporarily hidden in some builds while upstream data quality is being refined.
 
 ## Configuration Files
 

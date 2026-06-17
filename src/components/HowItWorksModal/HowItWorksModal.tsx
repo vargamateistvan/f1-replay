@@ -161,11 +161,12 @@ export function HowItWorksModal() {
                 </li>
                 <li>
                   <strong className="text-white">Live Timing:</strong> Current
-                  position, gaps, intervals, and pit status
+                  position, gaps, intervals, pit status, and active in-pit tags
                 </li>
                 <li>
                   <strong className="text-white">Team Radio:</strong> Driver
-                  communications synced to playback
+                  communications synced to playback, with direct in-toast audio
+                  playback when recordings are available
                 </li>
                 <li>
                   <strong className="text-white">Race Control:</strong> Flags,
@@ -189,8 +190,19 @@ export function HowItWorksModal() {
                   Real-time sector times and speed trap data for comparison
                 </li>
                 <li>
+                  <strong className="text-white">Driver Focus:</strong> Click a
+                  driver in timing or on-map to focus the camera and follow that
+                  car around the circuit
+                </li>
+                <li>
+                  <strong className="text-white">Driver Heatmap:</strong> Focus
+                  mode can overlay lap-based speed heatmap colors on the track
+                  map for quick pace reads
+                </li>
+                <li>
                   <strong className="text-white">Circuit Details:</strong> Track
-                  name, length, total lap count, and key characteristics
+                  name, length, total lap count, and key characteristics when
+                  available
                 </li>
                 <li>
                   <strong className="text-white">Track Status:</strong> Live
@@ -212,7 +224,7 @@ export function HowItWorksModal() {
                 <li>
                   <strong className="text-white">Driver Tracker:</strong>{" "}
                   Immersive replay with track map, tire strategy, telemetry,
-                  radio, and timing data
+                  radio, and timing data with focused driver telemetry parity
                 </li>
                 <li>
                   <strong className="text-white">Commentary:</strong> Event
@@ -232,15 +244,22 @@ export function HowItWorksModal() {
               <ul className="text-[12px] leading-relaxed space-y-1.5 ml-3">
                 <li>
                   <strong className="text-white">Notifications:</strong>{" "}
-                  Enable/disable event toasts (radio, flags, overtakes, pits)
+                  Enable/disable event toasts (radio, flags, overtakes, pits,
+                  fastest laps)
                 </li>
                 <li>
                   <strong className="text-white">Track Map:</strong> Show/hide
-                  leaderboard, tyre badges, battle rings, sector flags
+                  focused HUD, leaderboard, tyre badges, battle rings, sector
+                  flags, and heatmap overlays
                 </li>
                 <li>
                   <strong className="text-white">Playback Speed:</strong> Set
                   default speed and enable speed controls
+                </li>
+                <li>
+                  <strong className="text-white">Resilience:</strong> Friendly
+                  error pages handle route and runtime failures without breaking
+                  the app shell
                 </li>
               </ul>
             </section>
