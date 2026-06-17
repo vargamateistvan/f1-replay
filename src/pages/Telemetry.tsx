@@ -1,14 +1,15 @@
-import { useMemo, useEffect } from "react";
-import { TelemetryChart } from "@/components/TelemetryChart/TelemetryChart";
+import { useEffect, useMemo } from "react";
+import type { Lap } from "@/api/types";
 import { ErrorMessage } from "@/components/ErrorMessage";
-import { useDrivers, useLaps, useSessions } from "@/hooks/useSession";
+import { TelemetryChart } from "@/components/TelemetryChart/TelemetryChart";
 import {
   useCarDataForLap,
   type TelemetrySample,
 } from "@/hooks/useCarDataForLap";
+import { useDrivers, useLaps, useSessions } from "@/hooks/useSession";
 import { useNumberParam, useStringParam } from "@/hooks/useSearchParamState";
-import { resampleToAxis, computeDelta, smooth } from "@/utils/telemetry";
 import { teamColor } from "@/utils/color";
+import { computeDelta, resampleToAxis, smooth } from "@/utils/telemetry";
 
 interface PlotSlot {
   num: number;
@@ -17,53 +18,167 @@ interface PlotSlot {
   data: TelemetrySample[];
 }
 
+interface SplitRow {
+  num: number;
+  lapNo: number;
+  color: string;
+  acr: string;
+  s1: number | null;
+  s2: number | null;
+  s3: number | null;
+  lap: number | null;
+}
+
+type SlotKey = "a" | "b" | "c";
+
 const PANEL = "bg-surface border border-panel";
 const PANEL_TITLE =
   "text-[10px] font-bold text-muted px-3 py-2 border-b border-[#38383f] uppercase tracking-[0.12em] border-l-2 border-l-f1red bg-track";
 const LABEL = "text-[10px] font-bold uppercase tracking-widest text-muted";
 const SELECT =
-  "bg-panel text-white border border-[#38383f] text-xs font-medium px-3 py-1.5 focus:outline-none";
+  "bg-[#191922] text-white border border-[#3b3b49] text-xs font-medium px-3 py-2 focus:outline-none focus:border-[#66667a] transition-colors";
 const SLOT_COLORS = ["#e8002d", "#0067ff", "#23c552"];
 
 export default function Telemetry() {
   const [meetingKey] = useNumberParam("meeting", null);
   const [sessionKey] = useNumberParam("session", null);
+
   const [driverA, setDriverA] = useNumberParam("a", null);
   const [driverB, setDriverB] = useNumberParam("b", null);
   const [driverC, setDriverC] = useNumberParam("c", null);
-  const [lapNumber, setLapNumber] = useNumberParam("lap", null);
+
+  const [lapA, setLapA] = useNumberParam("la", null);
+  const [lapB, setLapB] = useNumberParam("lb", null);
+  const [lapC, setLapC] = useNumberParam("lc", null);
+
+  // Backward-compatible shared lap. Individual lap selectors can override this.
+  const [sharedLap, setSharedLap] = useNumberParam("lap", null);
+
   const [smoothParam, setSmooth] = useStringParam<"0" | "1">("smooth", "0");
   const smoothing = smoothParam === "1";
 
   const sessions = useSessions(meetingKey);
   const drivers = useDrivers(sessionKey);
-  const laps = useLaps(sessionKey); // all drivers — feeds lap list + sector splits
+  const laps = useLaps(sessionKey);
 
-  const dataA = useCarDataForLap(sessionKey, driverA, lapNumber);
-  const dataB = useCarDataForLap(sessionKey, driverB, lapNumber);
-  const dataC = useCarDataForLap(sessionKey, driverC, lapNumber);
+  const selectedLapA = lapA ?? sharedLap;
+  const selectedLapB = lapB ?? sharedLap;
+  const selectedLapC = lapC ?? sharedLap;
+
+  const dataA = useCarDataForLap(sessionKey, driverA, selectedLapA);
+  const dataB = useCarDataForLap(sessionKey, driverB, selectedLapB);
+  const dataC = useCarDataForLap(sessionKey, driverC, selectedLapC);
 
   const session = sessions.data?.find((s) => s.session_key === sessionKey);
-
-  const availableLaps = useMemo(() => {
-    if (!laps.data) return [];
-    return [...new Set(laps.data.map((l) => l.lap_number))].sort(
-      (a, b) => a - b,
-    );
-  }, [laps.data]);
 
   const driverByNumber = useMemo(
     () => new Map((drivers.data ?? []).map((d) => [d.driver_number, d])),
     [drivers.data],
   );
 
+  const availableLaps = useMemo(() => {
+    if (!laps.data) return [];
+    return [...new Set(laps.data.map((l) => l.lap_number))]
+      .sort((a, b) => a - b)
+      .filter((lapNo) => lapNo > 0);
+  }, [laps.data]);
+
+  const lapsByDriver = useMemo(() => {
+    const out = new Map<number, number[]>();
+    for (const lap of laps.data ?? []) {
+      if (lap.lap_duration === null) continue;
+      const prev = out.get(lap.driver_number) ?? [];
+      if (!prev.includes(lap.lap_number)) prev.push(lap.lap_number);
+      out.set(lap.driver_number, prev);
+    }
+    for (const values of out.values()) values.sort((a, b) => a - b);
+    return out;
+  }, [laps.data]);
+
+  const lapLookup = useMemo(() => {
+    const out = new Map<string, Lap>();
+    for (const lap of laps.data ?? []) {
+      out.set(`${lap.driver_number}:${lap.lap_number}`, lap);
+    }
+    return out;
+  }, [laps.data]);
+
+  const bestLapByDriver = useMemo(() => {
+    const out = new Map<number, number>();
+    const bestDuration = new Map<number, number>();
+
+    for (const lap of laps.data ?? []) {
+      if (lap.lap_duration === null || lap.is_pit_out_lap) continue;
+      const current = bestDuration.get(lap.driver_number);
+      if (current === undefined || lap.lap_duration < current) {
+        bestDuration.set(lap.driver_number, lap.lap_duration);
+        out.set(lap.driver_number, lap.lap_number);
+      }
+    }
+
+    return out;
+  }, [laps.data]);
+
+  const latestLapByDriver = useMemo(() => {
+    const out = new Map<number, number>();
+    for (const lap of laps.data ?? []) {
+      if (lap.lap_duration === null) continue;
+      const current = out.get(lap.driver_number);
+      if (current === undefined || lap.lap_number > current) {
+        out.set(lap.driver_number, lap.lap_number);
+      }
+    }
+    return out;
+  }, [laps.data]);
+
   const acr = (num: number | null, fallback: string) =>
     (num !== null && driverByNumber.get(num)?.name_acronym) || fallback;
+
   const colorFor = (num: number | null, i: number) =>
     teamColor(
       num !== null ? driverByNumber.get(num)?.team_colour : undefined,
       SLOT_COLORS[i],
     );
+
+  const setSlotLap = (slot: SlotKey, value: number | null) => {
+    if (slot === "a") setLapA(value);
+    if (slot === "b") setLapB(value);
+    if (slot === "c") setLapC(value);
+  };
+
+  const applyPresetLap = (slot: SlotKey, preset: "best" | "latest") => {
+    const selectedDriver =
+      slot === "a" ? driverA : slot === "b" ? driverB : driverC;
+    if (selectedDriver === null) return;
+
+    const candidate =
+      preset === "best"
+        ? bestLapByDriver.get(selectedDriver)
+        : latestLapByDriver.get(selectedDriver);
+
+    if (candidate !== undefined) setSlotLap(slot, candidate);
+  };
+
+  const applyBestToAll = () => {
+    if (driverA !== null) {
+      const best = bestLapByDriver.get(driverA);
+      if (best !== undefined) setLapA(best);
+    }
+    if (driverB !== null) {
+      const best = bestLapByDriver.get(driverB);
+      if (best !== undefined) setLapB(best);
+    }
+    if (driverC !== null) {
+      const best = bestLapByDriver.get(driverC);
+      if (best !== undefined) setLapC(best);
+    }
+  };
+
+  const syncOtherLapsToA = () => {
+    if (selectedLapA === null) return;
+    if (driverB !== null) setLapB(selectedLapA);
+    if (driverC !== null) setLapC(selectedLapA);
+  };
 
   // Reference axis = driver A; B and C are resampled onto it.
   const dataBResampled = useMemo(
@@ -71,6 +186,7 @@ export default function Telemetry() {
       dataA.data && dataB.data ? resampleToAxis(dataA.data, dataB.data) : null,
     [dataA.data, dataB.data],
   );
+
   const dataCResampled = useMemo(
     () =>
       dataA.data && dataC.data ? resampleToAxis(dataA.data, dataC.data) : null,
@@ -82,9 +198,9 @@ export default function Telemetry() {
     [dataA.data],
   );
 
-  // Slots actually plotted (present data only), in A/B/C order.
   const plotSlots = useMemo<PlotSlot[]>(() => {
     const out: PlotSlot[] = [];
+
     if (dataA.data?.length)
       out.push({
         num: driverA!,
@@ -92,6 +208,7 @@ export default function Telemetry() {
         color: colorFor(driverA, 0),
         data: dataA.data,
       });
+
     if (driverB && dataBResampled?.length)
       out.push({
         num: driverB,
@@ -99,6 +216,7 @@ export default function Telemetry() {
         color: colorFor(driverB, 1),
         data: dataBResampled,
       });
+
     if (driverC && dataCResampled?.length)
       out.push({
         num: driverC,
@@ -106,6 +224,7 @@ export default function Telemetry() {
         color: colorFor(driverC, 2),
         data: dataCResampled,
       });
+
     return out;
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
@@ -134,7 +253,6 @@ export default function Telemetry() {
     });
   }
 
-  // Δ-time lines: each comparison driver vs A.
   const deltaSeries = useMemo(() => {
     if (!dataA.data) return [];
     const out: {
@@ -143,18 +261,21 @@ export default function Telemetry() {
       fill?: string;
       data: number[];
     }[] = [];
+
     if (driverB && dataBResampled)
       out.push({
         label: acr(driverB, "B"),
         color: colorFor(driverB, 1),
         data: computeDelta(dataA.data, dataBResampled),
       });
+
     if (driverC && dataCResampled)
       out.push({
         label: acr(driverC, "C"),
         color: colorFor(driverC, 2),
         data: computeDelta(dataA.data, dataCResampled),
       });
+
     return out;
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
@@ -166,20 +287,23 @@ export default function Telemetry() {
     driverByNumber,
   ]);
 
-  // Sector splits for the chosen lap, per selected driver.
   const splitRows = useMemo(() => {
-    if (!lapNumber || !laps.data) return [];
-    const slots = [driverA, driverB, driverC];
-    const rows = slots.flatMap((num, i) => {
-      if (num === null) return [];
-      const lap = laps.data!.find(
-        (l) => l.driver_number === num && l.lap_number === lapNumber,
-      );
+    const slots = [
+      { num: driverA, lapNo: selectedLapA, index: 0 },
+      { num: driverB, lapNo: selectedLapB, index: 1 },
+      { num: driverC, lapNo: selectedLapC, index: 2 },
+    ];
+
+    const rows = slots.flatMap(({ num, lapNo, index }) => {
+      if (num === null || lapNo === null) return [];
+      const lap = lapLookup.get(`${num}:${lapNo}`);
       if (!lap) return [];
+
       return [
         {
           num,
-          color: colorFor(num, i),
+          lapNo,
+          color: colorFor(num, index),
           acr: acr(num, String(num)),
           s1: lap.duration_sector_1,
           s2: lap.duration_sector_2,
@@ -188,15 +312,26 @@ export default function Telemetry() {
         },
       ];
     });
+
     return rows;
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [laps.data, lapNumber, driverA, driverB, driverC, driverByNumber]);
+  }, [
+    driverA,
+    driverB,
+    driverC,
+    selectedLapA,
+    selectedLapB,
+    selectedLapC,
+    lapLookup,
+    driverByNumber,
+  ]);
 
   const fastest = useMemo(() => {
     const min = (vals: (number | null)[]) => {
       const nums = vals.filter((v): v is number => v !== null);
       return nums.length ? Math.min(...nums) : null;
     };
+
     return {
       s1: min(splitRows.map((r) => r.s1)),
       s2: min(splitRows.map((r) => r.s2)),
@@ -209,79 +344,50 @@ export default function Telemetry() {
     (dataA.isPending && driverA !== null) ||
     (dataB.isPending && driverB !== null) ||
     (dataC.isPending && driverC !== null);
+
   const hasError = dataA.isError || dataB.isError || dataC.isError;
+
   const noTelemetry =
     driverA !== null &&
-    lapNumber !== null &&
+    selectedLapA !== null &&
     !dataA.isPending &&
     !dataA.isError &&
     (dataA.data == null || dataA.data.length === 0);
 
-  // When the session changes (driven by the global Nav picker), clear driver/lap state.
+  // When the session changes (driven by the global Nav picker), clear local state.
   useEffect(() => {
     setDriverA(null);
     setDriverB(null);
     setDriverC(null);
-    setLapNumber(null);
+
+    setLapA(null);
+    setLapB(null);
+    setLapC(null);
+    setSharedLap(null);
+
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [sessionKey]);
 
+  // If a driver is removed, clear only their lap override.
+  useEffect(() => {
+    if (driverA === null) setLapA(null);
+    if (driverB === null) setLapB(null);
+    if (driverC === null) setLapC(null);
+  }, [driverA, driverB, driverC, setLapA, setLapB, setLapC]);
+
   return (
     <div className="flex flex-col md:h-full md:overflow-hidden">
-      {/* Driver + lap selectors */}
-      <div className="grid grid-cols-1 gap-2 px-3 py-3 bg-surface border-b border-panel sm:flex sm:flex-wrap sm:items-center sm:gap-x-3 sm:gap-y-1.5 sm:py-2">
-        <div className="grid grid-cols-1 gap-2 sm:contents">
-          <DriverSelect
-            label="Driver A"
-            value={driverA}
-            onChange={setDriverA}
-            options={drivers.data ?? []}
-            disabled={!sessionKey}
-            placeholder="— select —"
-          />
-          <DriverSelect
-            label="Driver B"
-            value={driverB}
-            onChange={setDriverB}
-            options={(drivers.data ?? []).filter(
-              (d) => d.driver_number !== driverA && d.driver_number !== driverC,
-            )}
-            disabled={!sessionKey}
-            placeholder="(none)"
-          />
-          <DriverSelect
-            label="Driver C"
-            value={driverC}
-            onChange={setDriverC}
-            options={(drivers.data ?? []).filter(
-              (d) => d.driver_number !== driverA && d.driver_number !== driverB,
-            )}
-            disabled={!sessionKey}
-            placeholder="(none)"
-          />
-        </div>
-
-        <div className="grid grid-cols-[minmax(0,1fr)_auto] gap-2 sm:flex sm:items-center sm:gap-3">
-          <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:gap-2">
-            <span className={LABEL}>Lap</span>
-            <select
-              value={lapNumber ?? ""}
-              onChange={(e) => setLapNumber(Number(e.target.value) || null)}
-              disabled={!driverA}
-              className={`${SELECT} w-full sm:w-auto`}
-            >
-              <option value="">— select —</option>
-              {availableLaps.map((n) => (
-                <option key={n} value={n}>
-                  Lap {n}
-                </option>
-              ))}
-            </select>
+      <div className="border-b border-panel bg-[radial-gradient(circle_at_top_left,#2a2136_0%,#1b1d28_40%,#16161f_100%)] px-3 py-3">
+        <div className="mb-3 flex flex-wrap items-center gap-2">
+          <div className="rounded-sm border border-[#444458] bg-[#12131b] px-2 py-1">
+            <span className="text-[10px] font-bold uppercase tracking-[0.12em] text-muted">
+              Telemetry compare mode
+            </span>
           </div>
 
           <button
             onClick={() => setSmooth(smoothing ? "0" : "1")}
-            className={`h-[38px] px-3 text-[10px] font-black uppercase tracking-widest transition-colors ${
+            className={`h-[34px] px-3 text-[10px] font-black uppercase tracking-widest transition-colors ${
               smoothing
                 ? "bg-f1red text-white"
                 : "bg-panel text-muted hover:text-white"
@@ -290,58 +396,180 @@ export default function Telemetry() {
           >
             Smooth
           </button>
+
+          <button
+            onClick={applyBestToAll}
+            className="h-[34px] border border-[#4f4f65] bg-[#191922] px-3 text-[10px] font-black uppercase tracking-widest text-white transition-colors hover:border-f1red"
+            title="Pick each selected driver's best recorded lap"
+          >
+            Best all
+          </button>
+
+          <button
+            onClick={syncOtherLapsToA}
+            className="h-[34px] border border-[#4f4f65] bg-[#191922] px-3 text-[10px] font-black uppercase tracking-widest text-white transition-colors hover:border-f1red"
+            title="Use Driver A lap number for Driver B and Driver C"
+          >
+            Sync to A
+          </button>
+
+          <div className="ml-auto flex items-center gap-2">
+            <span className={LABEL}>Shared lap</span>
+            <select
+              value={sharedLap ?? ""}
+              onChange={(e) => setSharedLap(Number(e.target.value) || null)}
+              disabled={!driverA}
+              className={`${SELECT} min-w-[120px]`}
+            >
+              <option value="">None</option>
+              {availableLaps.map((n) => (
+                <option key={n} value={n}>
+                  Lap {n}
+                </option>
+              ))}
+            </select>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 gap-2 lg:grid-cols-3">
+          <DriverLapCard
+            slotLabel="Driver A"
+            accent={colorFor(driverA, 0)}
+            driver={driverA}
+            onDriverChange={setDriverA}
+            driverOptions={drivers.data ?? []}
+            driverPlaceholder="Select anchor"
+            lap={selectedLapA}
+            lapOptions={
+              driverA !== null ? (lapsByDriver.get(driverA) ?? []) : []
+            }
+            onLapChange={setLapA}
+            onBest={() => applyPresetLap("a", "best")}
+            onLatest={() => applyPresetLap("a", "latest")}
+            bestLap={
+              driverA !== null ? (bestLapByDriver.get(driverA) ?? null) : null
+            }
+            latestLap={
+              driverA !== null ? (latestLapByDriver.get(driverA) ?? null) : null
+            }
+            disabled={!sessionKey}
+          />
+
+          <DriverLapCard
+            slotLabel="Driver B"
+            accent={colorFor(driverB, 1)}
+            driver={driverB}
+            onDriverChange={setDriverB}
+            driverOptions={(drivers.data ?? []).filter(
+              (d) => d.driver_number !== driverA && d.driver_number !== driverC,
+            )}
+            driverPlaceholder="Optional"
+            lap={selectedLapB}
+            lapOptions={
+              driverB !== null ? (lapsByDriver.get(driverB) ?? []) : []
+            }
+            onLapChange={setLapB}
+            onBest={() => applyPresetLap("b", "best")}
+            onLatest={() => applyPresetLap("b", "latest")}
+            bestLap={
+              driverB !== null ? (bestLapByDriver.get(driverB) ?? null) : null
+            }
+            latestLap={
+              driverB !== null ? (latestLapByDriver.get(driverB) ?? null) : null
+            }
+            disabled={!sessionKey}
+          />
+
+          <DriverLapCard
+            slotLabel="Driver C"
+            accent={colorFor(driverC, 2)}
+            driver={driverC}
+            onDriverChange={setDriverC}
+            driverOptions={(drivers.data ?? []).filter(
+              (d) => d.driver_number !== driverA && d.driver_number !== driverB,
+            )}
+            driverPlaceholder="Optional"
+            lap={selectedLapC}
+            lapOptions={
+              driverC !== null ? (lapsByDriver.get(driverC) ?? []) : []
+            }
+            onLapChange={setLapC}
+            onBest={() => applyPresetLap("c", "best")}
+            onLatest={() => applyPresetLap("c", "latest")}
+            bestLap={
+              driverC !== null ? (bestLapByDriver.get(driverC) ?? null) : null
+            }
+            latestLap={
+              driverC !== null ? (latestLapByDriver.get(driverC) ?? null) : null
+            }
+            disabled={!sessionKey}
+          />
         </div>
 
         {session && (
-          <span className="text-muted text-xs sm:ml-auto">
+          <span className="mt-3 block text-xs text-muted sm:ml-auto">
             {session.circuit_short_name} · {session.session_name} ·{" "}
             {session.year}
           </span>
         )}
+
         {isLoading && (
-          <span className="text-f1red text-xs animate-pulse">
-            Loading telemetry…
+          <span className="mt-1 block text-xs text-f1red animate-pulse">
+            Loading telemetry...
           </span>
         )}
       </div>
 
-      {/* Charts */}
-      <div className="panel-scroll p-3 space-y-2">
+      <div className="panel-scroll space-y-2 p-3">
         {(() => {
-          if (hasError)
+          if (hasError) {
             return (
               <ErrorMessage message="Failed to load telemetry for a selected driver" />
             );
-          if (!driverA || !lapNumber) {
+          }
+
+          if (!driverA || !selectedLapA) {
             return (
-              <div className="flex items-center justify-center h-full text-muted text-sm">
-                Select a session, driver, and lap to view telemetry
+              <div className="flex h-full items-center justify-center text-sm text-muted">
+                Select Driver A and a lap to view telemetry
               </div>
             );
           }
+
           if (noTelemetry) {
             return (
-              <div className="flex items-center justify-center h-full text-muted text-sm">
-                No telemetry available for this lap — try another lap or driver
+              <div className="flex h-full items-center justify-center text-sm text-muted">
+                No telemetry available for this lap - try another lap or driver
               </div>
             );
           }
+
           return (
             <>
-              {/* Legend */}
-              <div className="flex gap-5 text-xs mb-1 flex-wrap">
-                {plotSlots.map((s) => (
-                  <span key={s.num} className="flex items-center gap-1.5">
+              <div className="mb-1 flex flex-wrap gap-5 text-xs">
+                {plotSlots.map((s) => {
+                  const lapForSlot =
+                    s.num === driverA
+                      ? selectedLapA
+                      : s.num === driverB
+                        ? selectedLapB
+                        : selectedLapC;
+
+                  return (
                     <span
-                      className="w-6 h-0.5 inline-block"
-                      style={{ background: s.color }}
-                    />
-                    <span className="font-bold" style={{ color: s.color }}>
-                      {s.label}
+                      key={`${s.num}-${lapForSlot ?? "na"}`}
+                      className="flex items-center gap-1.5"
+                    >
+                      <span
+                        className="inline-block h-0.5 w-6"
+                        style={{ background: s.color }}
+                      />
+                      <span className="font-bold" style={{ color: s.color }}>
+                        {s.label} · L{lapForSlot ?? "-"}
+                      </span>
                     </span>
-                  </span>
-                ))}
-                <span className="text-muted">Lap {lapNumber}</span>
+                  );
+                })}
               </div>
 
               <SplitsTable rows={splitRows} fastest={fastest} />
@@ -352,6 +580,7 @@ export default function Telemetry() {
                 yMin={0}
                 yMax={380}
                 height={130}
+                interactiveControls
                 series={series("speed", true)}
               />
               <TelemetryChart
@@ -360,6 +589,7 @@ export default function Telemetry() {
                 yMin={0}
                 yMax={100}
                 height={80}
+                interactiveControls
                 series={series("throttle", true, true)}
               />
               <TelemetryChart
@@ -368,6 +598,7 @@ export default function Telemetry() {
                 yMin={0}
                 yMax={100}
                 height={70}
+                interactiveControls
                 series={series("brake", true, true)}
               />
               <TelemetryChart
@@ -376,6 +607,7 @@ export default function Telemetry() {
                 yMin={0}
                 yMax={9}
                 height={80}
+                interactiveControls
                 series={series("gear", false)}
               />
               <TelemetryChart
@@ -384,6 +616,7 @@ export default function Telemetry() {
                 yMin={0}
                 yMax={15000}
                 height={90}
+                interactiveControls
                 series={series("rpm", true)}
               />
 
@@ -391,7 +624,7 @@ export default function Telemetry() {
                 <div className={PANEL}>
                   <div className={PANEL_TITLE}>
                     Delta vs {acr(driverA, "A")}
-                    <span className="ml-2 font-normal text-muted normal-case tracking-normal">
+                    <span className="ml-2 font-normal normal-case tracking-normal text-muted">
                       (+ = {acr(driverA, "A")} ahead)
                     </span>
                   </div>
@@ -399,6 +632,7 @@ export default function Telemetry() {
                     title=""
                     xData={xDist}
                     height={90}
+                    interactiveControls
                     series={deltaSeries}
                   />
                 </div>
@@ -433,12 +667,12 @@ function DriverSelect({
         value={value ?? ""}
         onChange={(e) => onChange(Number(e.target.value) || null)}
         disabled={disabled}
-        className={`${SELECT} w-full min-w-0 sm:w-auto`}
+        className={`${SELECT} min-w-0 w-full sm:w-auto`}
       >
         <option value="">{placeholder}</option>
         {options.map((d) => (
           <option key={d.driver_number} value={d.driver_number}>
-            {d.name_acronym} — {d.full_name}
+            {d.name_acronym} - {d.full_name}
           </option>
         ))}
       </select>
@@ -446,14 +680,102 @@ function DriverSelect({
   );
 }
 
-interface SplitRow {
-  num: number;
-  color: string;
-  acr: string;
-  s1: number | null;
-  s2: number | null;
-  s3: number | null;
+function DriverLapCard({
+  slotLabel,
+  accent,
+  driver,
+  onDriverChange,
+  driverOptions,
+  driverPlaceholder,
+  lap,
+  lapOptions,
+  onLapChange,
+  onBest,
+  onLatest,
+  bestLap,
+  latestLap,
+  disabled,
+}: {
+  slotLabel: string;
+  accent: string;
+  driver: number | null;
+  onDriverChange: (value: number | null) => void;
+  driverOptions: {
+    driver_number: number;
+    name_acronym: string;
+    full_name: string;
+  }[];
+  driverPlaceholder: string;
   lap: number | null;
+  lapOptions: number[];
+  onLapChange: (value: number | null) => void;
+  onBest: () => void;
+  onLatest: () => void;
+  bestLap: number | null;
+  latestLap: number | null;
+  disabled: boolean;
+}) {
+  return (
+    <div className="rounded border border-[#353548] bg-[#10111a] p-2">
+      <div className="mb-2 flex items-center justify-between gap-2">
+        <span className="text-[10px] font-black uppercase tracking-[0.15em] text-muted">
+          {slotLabel}
+        </span>
+        <span
+          className="h-1.5 w-8 rounded-full"
+          style={{ backgroundColor: accent }}
+        />
+      </div>
+
+      <div className="grid grid-cols-1 gap-2 sm:grid-cols-[minmax(0,1fr)_120px]">
+        <DriverSelect
+          label="Driver"
+          value={driver}
+          onChange={onDriverChange}
+          options={driverOptions}
+          disabled={disabled}
+          placeholder={driverPlaceholder}
+        />
+
+        <div className="flex min-w-0 flex-col gap-1">
+          <span className={LABEL}>Lap</span>
+          <select
+            value={lap ?? ""}
+            onChange={(e) => onLapChange(Number(e.target.value) || null)}
+            disabled={disabled || driver === null}
+            className={`${SELECT} min-w-0`}
+          >
+            <option value="">Select</option>
+            {lapOptions.map((n) => (
+              <option key={n} value={n}>
+                Lap {n}
+              </option>
+            ))}
+          </select>
+        </div>
+      </div>
+
+      <div className="mt-2 flex flex-wrap items-center gap-1.5">
+        <button
+          onClick={onBest}
+          disabled={driver === null || bestLap === null}
+          className="h-7 border border-[#46465a] bg-[#181a24] px-2 text-[10px] font-bold uppercase tracking-[0.12em] text-white disabled:opacity-50"
+          title="Select best valid lap"
+        >
+          Best {bestLap !== null ? `L${bestLap}` : ""}
+        </button>
+
+        <button
+          onClick={onLatest}
+          disabled={driver === null || latestLap === null}
+          className="h-7 border border-[#46465a] bg-[#181a24] px-2 text-[10px] font-bold uppercase tracking-[0.12em] text-white disabled:opacity-50"
+          title="Select latest valid lap"
+        >
+          Latest {latestLap !== null ? `L${latestLap}` : ""}
+        </button>
+      </div>
+    </div>
+  );
 }
 
 function SplitsTable({
@@ -469,47 +791,60 @@ function SplitsTable({
   };
 }) {
   if (rows.length === 0) return null;
-  const fmt = (v: number | null) => (v === null ? "—" : v.toFixed(3));
+
+  const fmt = (v: number | null) => (v === null ? "-" : v.toFixed(3));
   const cls = (v: number | null, best: number | null) =>
     v !== null && best !== null && v === best ? "text-[#b48ead]" : "text-white";
+
   return (
     <div className={PANEL}>
       <div className={PANEL_TITLE}>Sector splits</div>
-      <table className="w-full text-xs font-mono">
+      <table className="w-full font-mono text-xs">
         <thead>
           <tr className="text-[10px] uppercase tracking-widest text-[#636369]">
-            <th className="text-left py-1 px-3">Driver</th>
-            <th className="text-right py-1 px-3">S1</th>
-            <th className="text-right py-1 px-3">S2</th>
-            <th className="text-right py-1 px-3">S3</th>
-            <th className="text-right py-1 px-3">Lap</th>
+            <th className="px-3 py-1 text-left">Driver</th>
+            <th className="px-3 py-1 text-right">Lap #</th>
+            <th className="px-3 py-1 text-right">S1</th>
+            <th className="px-3 py-1 text-right">S2</th>
+            <th className="px-3 py-1 text-right">S3</th>
+            <th className="px-3 py-1 text-right">Lap</th>
           </tr>
         </thead>
+
         <tbody>
           {rows.map((r) => (
-            <tr key={r.num} className="border-t border-[#2a2a35]">
-              <td className="py-1 px-3">
+            <tr
+              key={`${r.num}-${r.lapNo}`}
+              className="border-t border-[#2a2a35]"
+            >
+              <td className="px-3 py-1">
                 <span className="font-black" style={{ color: r.color }}>
                   {r.acr}
                 </span>
               </td>
+              <td className="px-3 py-1 text-right tabular-nums text-muted">
+                {r.lapNo}
+              </td>
               <td
-                className={`text-right py-1 px-3 tabular-nums ${cls(r.s1, fastest.s1)}`}
+                className={`px-3 py-1 text-right tabular-nums ${cls(r.s1, fastest.s1)}`}
               >
                 {fmt(r.s1)}
               </td>
               <td
-                className={`text-right py-1 px-3 tabular-nums ${cls(r.s2, fastest.s2)}`}
+                className={`px-3 py-1 text-right tabular-nums ${cls(r.s2, fastest.s2)}`}
               >
                 {fmt(r.s2)}
               </td>
               <td
-                className={`text-right py-1 px-3 tabular-nums ${cls(r.s3, fastest.s3)}`}
+                className={`px-3 py-1 text-right tabular-nums ${cls(r.s3, fastest.s3)}`}
               >
                 {fmt(r.s3)}
               </td>
               <td
-                className={`text-right py-1 px-3 tabular-nums font-bold ${cls(r.lap, fastest.lap)}`}
+                className={`px-3 py-1 text-right tabular-nums font-bold ${cls(
+                  r.lap,
+                  fastest.lap,
+                )}`}
               >
                 {fmt(r.lap)}
               </td>
