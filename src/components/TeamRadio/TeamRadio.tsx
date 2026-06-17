@@ -1,10 +1,12 @@
 import { useState } from "react";
 import { Play, Square } from "lucide-react";
 import type { TeamRadio as TeamRadioEntry, Driver } from "@/api/types";
+import { downloadEndpointCsv } from "@/api/client";
 import { teamColor } from "@/utils/color";
 
 interface Props {
   readonly entries: TeamRadioEntry[];
+  readonly sessionKey?: number | null;
   readonly drivers: Driver[];
   readonly sessionTimeMs: number;
   readonly sessionStartMs: number;
@@ -23,6 +25,7 @@ function fmtSessionTime(entryDateMs: number, sessionStartMs: number) {
 
 export function TeamRadioFeed({
   entries,
+  sessionKey = null,
   drivers,
   sessionTimeMs,
   sessionStartMs,
@@ -57,6 +60,24 @@ export function TeamRadioFeed({
 
   return (
     <div className="panel-scroll p-2 space-y-1">
+      {sessionKey !== null && (
+        <div className="flex justify-end pb-1">
+          <button
+            type="button"
+            onClick={() => {
+              void downloadEndpointCsv(
+                "team_radio",
+                { session_key: sessionKey },
+                `team_radio_${sessionKey}.csv`,
+              );
+            }}
+            className="h-6 px-2 text-[9px] font-black uppercase tracking-widest rounded transition-colors bg-[#1e1e28] text-muted hover:text-white hover:bg-[#38383f]"
+            aria-label="Export team radio CSV"
+          >
+            Export CSV
+          </button>
+        </div>
+      )}
       {visible.map((e, i) => {
         const driver = driverByNumber.get(e.driver_number);
         const color = teamColor(driver?.team_colour);

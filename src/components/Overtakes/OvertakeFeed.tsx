@@ -1,29 +1,39 @@
-import { useMemo } from 'react'
-import type { Overtake, Driver } from '@/api/types'
-import { teamColor } from '@/utils/color'
+import { useMemo } from "react";
+import type { Overtake, Driver } from "@/api/types";
+import { downloadEndpointCsv } from "@/api/client";
+import { teamColor } from "@/utils/color";
 
 interface Props {
-  readonly entries: Overtake[]
-  readonly drivers: Driver[]
-  readonly sessionTimeMs: number
-  readonly sessionStartMs: number
+  readonly entries: Overtake[];
+  readonly sessionKey?: number | null;
+  readonly drivers: Driver[];
+  readonly sessionTimeMs: number;
+  readonly sessionStartMs: number;
 }
 
 function fmtSessionTime(ms: number) {
-  const s = Math.floor(ms / 1000)
-  const m = Math.floor(s / 60)
-  const h = Math.floor(m / 60)
-  const pad = (n: number) => String(n).padStart(2, '0')
-  return h > 0 ? `${h}:${pad(m % 60)}:${pad(s % 60)}` : `${pad(m)}:${pad(s % 60)}`
+  const s = Math.floor(ms / 1000);
+  const m = Math.floor(s / 60);
+  const h = Math.floor(m / 60);
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return h > 0
+    ? `${h}:${pad(m % 60)}:${pad(s % 60)}`
+    : `${pad(m)}:${pad(s % 60)}`;
 }
 
-export function OvertakeFeed({ entries, drivers, sessionTimeMs, sessionStartMs }: Props) {
-  const currentT = sessionStartMs + sessionTimeMs
+export function OvertakeFeed({
+  entries,
+  sessionKey = null,
+  drivers,
+  sessionTimeMs,
+  sessionStartMs,
+}: Props) {
+  const currentT = sessionStartMs + sessionTimeMs;
 
   const driverByNumber = useMemo(
     () => new Map(drivers.map((d) => [d.driver_number, d])),
     [drivers],
-  )
+  );
 
   const visible = useMemo(
     () =>
@@ -32,26 +42,49 @@ export function OvertakeFeed({ entries, drivers, sessionTimeMs, sessionStartMs }
         .slice(-40)
         .reverse(),
     [entries, currentT],
-  )
+  );
 
   if (visible.length === 0) {
     return (
       <div className="text-muted text-xs p-3">
-        {sessionStartMs ? 'No overtakes yet — scrub forward' : 'Select a session'}
+        {sessionStartMs
+          ? "No overtakes yet — scrub forward"
+          : "Select a session"}
       </div>
-    )
+    );
   }
 
   return (
     <div className="panel-scroll p-2 space-y-1">
+      {sessionKey !== null && (
+        <div className="flex justify-end pb-1">
+          <button
+            type="button"
+            onClick={() => {
+              void downloadEndpointCsv(
+                "overtakes",
+                { session_key: sessionKey },
+                `overtakes_${sessionKey}.csv`,
+              );
+            }}
+            className="h-6 px-2 text-[9px] font-black uppercase tracking-widest rounded transition-colors bg-[#1e1e28] text-muted hover:text-white hover:bg-[#38383f]"
+            aria-label="Export overtakes CSV"
+          >
+            Export CSV
+          </button>
+        </div>
+      )}
       {visible.map((e, i) => {
-        const over = driverByNumber.get(e.overtaking_driver_number)
-        const under = driverByNumber.get(e.overtaken_driver_number)
-        const overColor = teamColor(over?.team_colour)
-        const underColor = teamColor(under?.team_colour)
-        const ms = new Date(e.date).getTime() - sessionStartMs
+        const over = driverByNumber.get(e.overtaking_driver_number);
+        const under = driverByNumber.get(e.overtaken_driver_number);
+        const overColor = teamColor(over?.team_colour);
+        const underColor = teamColor(under?.team_colour);
+        const ms = new Date(e.date).getTime() - sessionStartMs;
         return (
-          <div key={i} className="flex items-center gap-2 border-b border-[#2a2a35] pb-1.5 pt-0.5 text-xs">
+          <div
+            key={i}
+            className="flex items-center gap-2 border-b border-[#2a2a35] pb-1.5 pt-0.5 text-xs"
+          >
             <span className="text-[#39d743] text-[10px]">▲</span>
             <span className="font-black" style={{ color: overColor }}>
               {over?.name_acronym ?? e.overtaking_driver_number}
@@ -67,8 +100,8 @@ export function OvertakeFeed({ entries, drivers, sessionTimeMs, sessionStartMs }
               {fmtSessionTime(ms)}
             </span>
           </div>
-        )
+        );
       })}
     </div>
-  )
+  );
 }

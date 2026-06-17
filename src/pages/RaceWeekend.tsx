@@ -1129,6 +1129,7 @@ export default function RaceWeekend() {
                       ) : (
                         <WeatherPanel
                           entries={weather.data ?? []}
+                          sessionKey={sessionKey}
                           sessionTimeMs={t}
                           sessionStartMs={sessionStartMs}
                         />
@@ -1279,6 +1280,7 @@ export default function RaceWeekend() {
                   ) : (
                     <WeatherPanel
                       entries={weather.data ?? []}
+                      sessionKey={sessionKey}
                       sessionTimeMs={t}
                       sessionStartMs={sessionStartMs}
                     />
@@ -1314,6 +1316,7 @@ export default function RaceWeekend() {
             ) : (
               <WeatherPanel
                 entries={weather.data ?? []}
+                sessionKey={sessionKey}
                 sessionTimeMs={t}
                 sessionStartMs={sessionStartMs}
               />
@@ -1354,6 +1357,7 @@ export default function RaceWeekend() {
               ) : (
                 <RaceControlFeed
                   entries={raceControl.data ?? []}
+                  sessionKey={sessionKey}
                   sessionTimeMs={t}
                   sessionStartMs={sessionStartMs}
                   drivers={drivers.data ?? []}
@@ -1369,6 +1373,7 @@ export default function RaceWeekend() {
               ) : (
                 <TeamRadioFeed
                   entries={teamRadio.data ?? []}
+                  sessionKey={sessionKey}
                   drivers={drivers.data ?? []}
                   sessionTimeMs={t}
                   sessionStartMs={sessionStartMs}
@@ -1380,6 +1385,7 @@ export default function RaceWeekend() {
               ) : (
                 <OvertakeFeed
                   entries={overtakes.data ?? []}
+                  sessionKey={sessionKey}
                   drivers={drivers.data ?? []}
                   sessionTimeMs={t}
                   sessionStartMs={sessionStartMs}

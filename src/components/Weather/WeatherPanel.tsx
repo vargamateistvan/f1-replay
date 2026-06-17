@@ -1,6 +1,7 @@
 import { useMemo } from "react";
 import { CloudRain, Droplets, Gauge, Thermometer, Wind } from "lucide-react";
 import type { Weather } from "@/api/types";
+import { downloadEndpointCsv } from "@/api/client";
 
 // 16-point compass from degrees
 function windDir(deg: number): string {
@@ -27,12 +28,14 @@ function windDir(deg: number): string {
 
 interface Props {
   readonly entries: Weather[];
+  readonly sessionKey?: number | null;
   readonly sessionTimeMs: number;
   readonly sessionStartMs: number;
 }
 
 export function WeatherPanel({
   entries,
+  sessionKey = null,
   sessionTimeMs,
   sessionStartMs,
 }: Props) {
@@ -78,6 +81,22 @@ export function WeatherPanel({
         <span className="text-[10px] font-black uppercase tracking-[0.16em] text-white/85">
           Track Weather
         </span>
+        {sessionKey !== null && (
+          <button
+            type="button"
+            onClick={() => {
+              void downloadEndpointCsv(
+                "weather",
+                { session_key: sessionKey },
+                `weather_${sessionKey}.csv`,
+              );
+            }}
+            className="h-6 px-2 text-[9px] font-black uppercase tracking-widest rounded transition-colors bg-[#1e1e28] text-muted hover:text-white hover:bg-[#38383f]"
+            aria-label="Export weather CSV"
+          >
+            Export CSV
+          </button>
+        )}
         {isRaining && (
           <span className="inline-flex items-center gap-1 bg-sky-600/85 text-white text-[9px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded-sm">
             <CloudRain size={10} strokeWidth={2.4} aria-hidden="true" />

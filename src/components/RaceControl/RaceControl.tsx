@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react";
 import type { RaceControl as RaceControlEntry, Driver } from "@/api/types";
+import { downloadEndpointCsv } from "@/api/client";
 import {
   normalizeRaceControl,
   toFlagKey,
@@ -104,6 +105,7 @@ function sectorBadge(entry: {
 
 interface Props {
   readonly entries: RaceControlEntry[];
+  readonly sessionKey?: number | null;
   readonly sessionTimeMs: number;
   readonly sessionStartMs: number;
   readonly drivers?: Driver[];
@@ -115,6 +117,7 @@ interface Props {
 
 export function RaceControlFeed({
   entries,
+  sessionKey = null,
   sessionTimeMs,
   sessionStartMs,
   drivers = [],
@@ -259,6 +262,22 @@ export function RaceControlFeed({
         >
           Tracker
         </button>
+        {sessionKey !== null && (
+          <button
+            type="button"
+            onClick={() => {
+              void downloadEndpointCsv(
+                "race_control",
+                { session_key: sessionKey },
+                `race_control_${sessionKey}.csv`,
+              );
+            }}
+            className="h-6 px-2 text-[9px] font-black uppercase tracking-widest rounded transition-colors bg-[#1e1e28] text-muted hover:text-white hover:bg-[#38383f]"
+            aria-label="Export race control CSV"
+          >
+            Export CSV
+          </button>
+        )}
         <input
           type="search"
           value={search}

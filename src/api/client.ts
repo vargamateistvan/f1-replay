@@ -27,6 +27,8 @@ interface OpenF1ErrorPayload {
   detail?: string;
 }
 
+type QueryParams = Record<string, string | number | boolean>;
+
 export function isAuthError(err: unknown): err is OpenF1Error {
   return (
     err instanceof OpenF1Error && (err.status === 401 || err.status === 403)
@@ -129,7 +131,7 @@ async function isNoResults404(path: string, res: Response): Promise<boolean> {
 
 export async function fetchEndpoint<T>(
   path: string,
-  params: Record<string, string | number | boolean>,
+  params: QueryParams,
 ): Promise<T[]> {
   // Build query string manually so comparison operators (>, <, >=, <=) in keys
   // are NOT percent-encoded — OpenF1 expects raw `date>value` syntax.
@@ -161,6 +163,54 @@ export async function fetchEndpoint<T>(
     }
 
     const backoff = parseRetryAfter(res) ?? 2 ** attempt * 500; // 0.5s,1s,2s,4s…
+    attempt++;
+    await sleep(backoff);
+  }
+}
+
+export async function downloadEndpointCsv(
+  path: string,
+  params: QueryParams,
+  fileName: string,
+): Promise<boolean> {
+  const qs = Object.entries({ ...params, csv: true })
+    .map(([k, v]) => `${k}=${encodeURIComponent(String(v))}`)
+    .join("&");
+  const query = qs ? `?${qs}` : "";
+  const url = `${BASE}/${path}${query}`;
+
+  const headers: Record<string, string> = {};
+  if (API_KEY) headers.Authorization = `Bearer ${API_KEY}`;
+
+  let attempt = 0;
+  for (;;) {
+    await acquireSlot();
+    const res = await fetch(url, { headers });
+
+    if (res.ok) {
+      const csv = await res.text();
+      if (!csv.trim()) return false;
+
+      const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+      const blobUrl = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = blobUrl;
+      a.download = fileName;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(blobUrl);
+      return true;
+    }
+
+    if (await isNoResults404(path, res)) return false;
+
+    const retryable = res.status === 429 || res.status >= 500;
+    if (!retryable || attempt >= RATE_MAX_RETRIES) {
+      throw new OpenF1Error(res.status, path);
+    }
+
+    const backoff = parseRetryAfter(res) ?? 2 ** attempt * 500;
     attempt++;
     await sleep(backoff);
   }
