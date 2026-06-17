@@ -12,6 +12,10 @@ import { YEARS, DEFAULT_YEAR } from "@/constants";
 import { useNumberParam, useStringParam } from "@/hooks/useSearchParamState";
 import { AppLogo } from "@/components/AppLogo";
 import { useSettings } from "@/stores/settings";
+import {
+  CIRCUIT_FACTS_LAST_SYNC_UTC,
+  getCircuitFacts,
+} from "@/data/circuitFacts";
 
 export type MainView = "leaderboard" | "tracker" | "commentary";
 
@@ -43,6 +47,7 @@ export function Nav() {
   );
   const [searchParams, setSearchParams] = useSearchParams();
   const [nowMs, setNowMs] = useState(() => Date.now());
+  const [showCircuitFacts, setShowCircuitFacts] = useState(false);
 
   const [yearParam] = useNumberParam("year", DEFAULT_YEAR);
   const year = yearParam ?? DEFAULT_YEAR;
@@ -60,12 +65,29 @@ export function Nav() {
   const selectedSession = sessions.data?.find(
     (s) => s.session_key === sessionKey,
   );
+  const circuitFacts = useMemo(
+    () => getCircuitFacts(selectedMeeting?.circuit_short_name),
+    [selectedMeeting?.circuit_short_name],
+  );
   const live = isSessionLive(selectedSession);
 
   useEffect(() => {
     const id = window.setInterval(() => setNowMs(Date.now()), 1_000);
     return () => window.clearInterval(id);
   }, []);
+
+  useEffect(() => {
+    setShowCircuitFacts(false);
+  }, [selectedMeeting?.meeting_key]);
+
+  useEffect(() => {
+    if (!showCircuitFacts) return;
+    function onKey(e: KeyboardEvent) {
+      if (e.key === "Escape") setShowCircuitFacts(false);
+    }
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [showCircuitFacts]);
 
   const startedMeetings = useMemo(
     () =>
@@ -503,45 +525,188 @@ export function Nav() {
           </div>
 
           {selectedMeeting && (
-            <div
-              className="flex items-center gap-2 border-t border-panel/80 py-1.5"
-              style={{
-                paddingLeft: "max(0.5rem, env(safe-area-inset-left))",
-                paddingRight: "max(0.5rem, env(safe-area-inset-right))",
-              }}
-            >
-              {selectedMeeting.circuit_image && (
-                <img
-                  src={selectedMeeting.circuit_image}
-                  alt={`${selectedMeeting.circuit_short_name} circuit`}
-                  className="hidden sm:block h-6 w-8 object-cover rounded-sm border border-panel/80"
-                  loading="lazy"
-                  referrerPolicy="no-referrer"
-                />
-              )}
-              {selectedMeeting.country_flag && (
-                <img
-                  src={selectedMeeting.country_flag}
-                  alt={`${selectedMeeting.country_name} flag`}
-                  className="h-4 w-6 object-cover rounded-[2px] border border-panel/80"
-                  loading="lazy"
-                  referrerPolicy="no-referrer"
-                />
-              )}
-              <span className="text-[10px] text-white/90 font-semibold truncate">
-                {selectedMeeting.meeting_name}
-              </span>
-              <span className="text-[9px] text-muted uppercase tracking-widest">
-                {CIRCUIT_TYPE_LABEL[selectedMeeting.circuit_type] ??
-                  selectedMeeting.circuit_type}
-              </span>
-              {selectedMeeting.is_cancelled && (
-                <span className="bg-red-500/15 border border-red-500/40 text-red-300 text-[9px] font-bold uppercase tracking-widest px-1.5 py-0.5 rounded-sm">
-                  Cancelled
+            <>
+              <div
+                className="flex items-center gap-2 border-t border-panel/80 py-1.5"
+                style={{
+                  paddingLeft: "max(0.5rem, env(safe-area-inset-left))",
+                  paddingRight: "max(0.5rem, env(safe-area-inset-right))",
+                }}
+              >
+                {selectedMeeting.circuit_image && (
+                  <button
+                    type="button"
+                    onClick={() => setShowCircuitFacts((v) => !v)}
+                    className="hidden sm:block group"
+                    aria-label="Toggle circuit facts"
+                    aria-expanded={showCircuitFacts}
+                    title="Show track facts"
+                  >
+                    <img
+                      src={selectedMeeting.circuit_image}
+                      alt={`${selectedMeeting.circuit_short_name} circuit`}
+                      className="h-6 w-8 object-cover rounded-sm border border-panel/80 transition-colors group-hover:border-white/70"
+                      loading="lazy"
+                      referrerPolicy="no-referrer"
+                    />
+                  </button>
+                )}
+                {selectedMeeting.country_flag && (
+                  <img
+                    src={selectedMeeting.country_flag}
+                    alt={`${selectedMeeting.country_name} flag`}
+                    className="h-4 w-6 object-cover rounded-[2px] border border-panel/80"
+                    loading="lazy"
+                    referrerPolicy="no-referrer"
+                  />
+                )}
+                <span className="text-[10px] text-white/90 font-semibold truncate">
+                  {selectedMeeting.meeting_name}
                 </span>
-              )}
-            </div>
+                <span className="text-[9px] text-muted uppercase tracking-widest">
+                  {CIRCUIT_TYPE_LABEL[selectedMeeting.circuit_type] ??
+                    selectedMeeting.circuit_type}
+                </span>
+                {selectedMeeting.circuit_image && (
+                  <button
+                    type="button"
+                    onClick={() => setShowCircuitFacts((v) => !v)}
+                    className="ml-auto text-[9px] font-black uppercase tracking-widest text-muted hover:text-white transition-colors"
+                    aria-label="Toggle circuit facts"
+                    aria-expanded={showCircuitFacts}
+                  >
+                    {showCircuitFacts ? "Hide Facts" : "Track Facts"}
+                  </button>
+                )}
+                {selectedMeeting.is_cancelled && (
+                  <span className="bg-red-500/15 border border-red-500/40 text-red-300 text-[9px] font-bold uppercase tracking-widest px-1.5 py-0.5 rounded-sm">
+                    Cancelled
+                  </span>
+                )}
+              </div>
+            </>
           )}
+        </div>
+      )}
+
+      {showCircuitFacts && selectedMeeting && (
+        <div
+          className="fixed inset-0 z-[210] flex items-center justify-center bg-black/70 backdrop-blur-sm px-4"
+          onClick={(e) => {
+            if (e.target === e.currentTarget) setShowCircuitFacts(false);
+          }}
+        >
+          <div className="w-full max-w-2xl max-h-[88dvh] overflow-hidden rounded-lg border border-[#2a2a35] bg-[#1a1a24] shadow-2xl">
+            <div className="flex items-center justify-between border-b border-[#2a2a35] px-5 py-3.5">
+              <div className="min-w-0">
+                <div className="text-[13px] font-bold text-white tracking-wide truncate">
+                  {selectedMeeting.circuit_short_name} Track Facts
+                </div>
+                <div className="text-[10px] text-muted uppercase tracking-widest truncate">
+                  {selectedMeeting.country_name}
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowCircuitFacts(false)}
+                className="w-7 h-7 flex items-center justify-center rounded text-muted hover:text-white hover:bg-[#2a2a35] transition-colors text-base"
+                aria-label="Close track facts"
+                title="Close"
+              >
+                ×
+              </button>
+            </div>
+
+            <div className="p-4 overflow-y-auto max-h-[calc(88dvh-60px)]">
+              {selectedMeeting.circuit_image && (
+                <div className="mb-3 rounded border border-panel/80 bg-track/70 p-2">
+                  <img
+                    src={selectedMeeting.circuit_image}
+                    alt={`${selectedMeeting.circuit_short_name} track layout`}
+                    className="w-full max-h-44 object-contain rounded"
+                    loading="lazy"
+                    referrerPolicy="no-referrer"
+                  />
+                </div>
+              )}
+
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                {[
+                  {
+                    label: "Length",
+                    value: circuitFacts ? `${circuitFacts.lengthKm} km` : "N/A",
+                  },
+                  {
+                    label: "Race Distance",
+                    value: circuitFacts
+                      ? `${circuitFacts.raceDistanceKm} km`
+                      : "N/A",
+                  },
+                  {
+                    label: "Laps",
+                    value: circuitFacts?.laps ?? "N/A",
+                  },
+                  {
+                    label: "Turns",
+                    value: circuitFacts?.turns ?? "N/A",
+                  },
+                  {
+                    label: "Lap Record",
+                    value: circuitFacts?.lapRecord ?? "N/A",
+                  },
+                  {
+                    label: "DRS Zones",
+                    value: circuitFacts?.drsZones ?? "N/A",
+                  },
+                  {
+                    label: "First GP",
+                    value: circuitFacts?.firstGpYear ?? "N/A",
+                  },
+                  {
+                    label: "Direction",
+                    value: circuitFacts?.direction ?? "N/A",
+                  },
+                  {
+                    label: "Altitude",
+                    value: circuitFacts ? `${circuitFacts.altitudeM} m` : "N/A",
+                  },
+                ].map((item) => (
+                  <div
+                    key={item.label}
+                    className="min-w-0 rounded border border-panel/80 bg-track/70 px-2.5 py-2"
+                  >
+                    <div className="text-[9px] font-black uppercase tracking-[0.14em] text-muted">
+                      {item.label}
+                    </div>
+                    <div className="mt-1 text-[11px] font-semibold text-white break-words">
+                      {item.value}
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              <div className="mt-3 border-t border-panel/70 pt-2">
+                <div className="text-[10px] text-muted leading-relaxed">
+                  Data source: official FIA/OpenF1 event metadata with curated
+                  circuit reference stats.
+                </div>
+                <div className="mt-1 text-[10px] text-muted">
+                  Last synced: {CIRCUIT_FACTS_LAST_SYNC_UTC} UTC
+                </div>
+                {selectedMeeting.circuit_info_url && (
+                  <a
+                    href={selectedMeeting.circuit_info_url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="mt-1 inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-widest text-f1red hover:text-white transition-colors"
+                  >
+                    Official circuit information
+                    <span aria-hidden="true">↗</span>
+                  </a>
+                )}
+              </div>
+            </div>
+          </div>
         </div>
       )}
     </header>

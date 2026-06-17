@@ -1,0 +1,49 @@
+name: Sync Circuit Facts
+
+on:
+  schedule:
+    # Every Monday at 06:00 UTC
+    - cron: "0 6 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: yarn
+
+      - name: Install dependencies
+        run: yarn install --frozen-lockfile
+
+      - name: Sync circuit facts
+        run: yarn sync:circuit-facts
+
+      - name: Create Pull Request
+        uses: peter-evans/create-pull-request@v7
+        with:
+          commit-message: "chore: sync circuit facts"
+          title: "chore: weekly circuit facts sync"
+          body: |
+            Automated weekly update of circuit facts from internet sources.
+
+            - Runs `yarn sync:circuit-facts`
+            - Updates `src/data/circuitFacts.ts` when remote data changes
+          branch: chore/weekly-circuit-facts-sync
+          delete-branch: true
+          labels: |
+            automated
+            data-sync
+          add-paths: |
+            src/data/circuitFacts.ts
