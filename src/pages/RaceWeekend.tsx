@@ -1158,22 +1158,26 @@ export default function RaceWeekend() {
                 )}
 
                 {(trackerTab ?? "timing") === "chart" && (
-                  <LapChart
-                    drivers={drivers.data ?? []}
-                    positions={positions.data ?? []}
-                    lapStarts={lapMarks}
-                    sessionStartMs={sessionStartMs}
-                    sessionTimeMs={t}
-                  />
+                  <div className="h-[52vh] min-h-[280px] bg-[#10101a]">
+                    <LapChart
+                      drivers={drivers.data ?? []}
+                      positions={positions.data ?? []}
+                      lapStarts={lapMarks}
+                      sessionStartMs={sessionStartMs}
+                      sessionTimeMs={t}
+                    />
+                  </div>
                 )}
 
                 {(trackerTab ?? "timing") === "gap" && (
-                  <GapChart
-                    drivers={drivers.data ?? []}
-                    intervals={intervals.data ?? []}
-                    sessionStartMs={sessionStartMs}
-                    sessionTimeMs={t}
-                  />
+                  <div className="h-[52vh] min-h-[280px] bg-[#10101a]">
+                    <GapChart
+                      drivers={drivers.data ?? []}
+                      intervals={intervals.data ?? []}
+                      sessionStartMs={sessionStartMs}
+                      sessionTimeMs={t}
+                    />
+                  </div>
                 )}
               </div>
             </div>
