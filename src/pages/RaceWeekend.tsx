@@ -36,6 +36,7 @@ import {
   useOvertakes,
   useSessionResult,
 } from "@/hooks/useSession";
+import { useSearchParams } from "react-router-dom";
 import { useTimeline } from "@/timeline/clock";
 import { useCoarseTime } from "@/hooks/useCoarseTime";
 import { useLocationChunks, chunkIndexFor } from "@/hooks/useLocationChunks";
@@ -67,8 +68,6 @@ import { useCatchupSummary } from "@/hooks/useCatchupSummary";
 import { EventToastStack } from "@/components/EventToast/EventToastStack";
 import { KeyMoments } from "@/components/KeyMoments/KeyMoments";
 import { CatchupSummary } from "@/components/CatchupSummary/CatchupSummary";
-import { ResizeHandle } from "@/components/ResizeHandle";
-import { useVerticalResize } from "@/hooks/useVerticalResize";
 import type { FastestLapPayload } from "@/timeline/events";
 import { isSessionLive } from "@/utils/live";
 import { teamColor } from "@/utils/color";
@@ -122,8 +121,9 @@ export default function RaceWeekend() {
     "ctab",
     "rc",
   );
-  const [focusDriver, setFocusDriver] = useNumberParam("focus", null);
-  const [compareDriver, setCompareDriver] = useNumberParam("compare", null);
+  const [focusDriver] = useNumberParam("focus", null);
+  const [compareDriver] = useNumberParam("compare", null);
+  const [, setSearchParams] = useSearchParams();
   const [isResultsDialogOpen, setIsResultsDialogOpen] = useState(false);
   const [incidentReplayEndMs, setIncidentReplayEndMs] = useState<number | null>(
     null,
@@ -332,31 +332,37 @@ export default function RaceWeekend() {
   }, [overtakes.data, sessionStartMs, t]);
 
   // Last completed lap number for the focused driver — used to load heat overlay data.
-  // Uses previous lap (not current in-progress) because incomplete laps have no lap_duration.
+  // Use the latest lap with a valid duration whose end time is at/before the playhead.
   const focusDriverLap = useMemo(() => {
     if (focusDriver === null || !laps.data?.length || !sessionStartMs)
       return null;
-    let current: number | null = null;
+    let latestCompleted: number | null = null;
     for (const lap of laps.data) {
       if (lap.driver_number !== focusDriver || !lap.date_start) continue;
-      if (new Date(lap.date_start).getTime() - sessionStartMs > t) continue;
-      if (current === null || lap.lap_number > current)
-        current = lap.lap_number;
+      if (lap.lap_duration === null) continue;
+      const lapStart = new Date(lap.date_start).getTime() - sessionStartMs;
+      const lapEnd = lapStart + lap.lap_duration * 1000;
+      if (lapEnd > t) continue;
+      if (latestCompleted === null || lap.lap_number > latestCompleted)
+        latestCompleted = lap.lap_number;
     }
-    return current !== null && current > 1 ? current - 1 : null;
+    return latestCompleted;
   }, [focusDriver, laps.data, sessionStartMs, t]);
 
   const compareDriverLap = useMemo(() => {
     if (compareDriver === null || !laps.data?.length || !sessionStartMs)
       return null;
-    let current: number | null = null;
+    let latestCompleted: number | null = null;
     for (const lap of laps.data) {
       if (lap.driver_number !== compareDriver || !lap.date_start) continue;
-      if (new Date(lap.date_start).getTime() - sessionStartMs > t) continue;
-      if (current === null || lap.lap_number > current)
-        current = lap.lap_number;
+      if (lap.lap_duration === null) continue;
+      const lapStart = new Date(lap.date_start).getTime() - sessionStartMs;
+      const lapEnd = lapStart + lap.lap_duration * 1000;
+      if (lapEnd > t) continue;
+      if (latestCompleted === null || lap.lap_number > latestCompleted)
+        latestCompleted = lap.lap_number;
     }
-    return current !== null && current > 1 ? current - 1 : null;
+    return latestCompleted;
   }, [compareDriver, laps.data, sessionStartMs, t]);
 
   // Current tyre compound + age per driver at the playhead.
@@ -829,36 +835,39 @@ export default function RaceWeekend() {
     enabled: sessionKey !== null,
   });
 
+  function setFocusSelection(focus: number | null, compare: number | null) {
+    setSearchParams(
+      (prev) => {
+        const next = new URLSearchParams(prev);
+        if (focus === null || Number.isNaN(focus)) next.delete("focus");
+        else next.set("focus", String(focus));
+        if (compare === null || Number.isNaN(compare)) next.delete("compare");
+        else next.set("compare", String(compare));
+        return next;
+      },
+      { replace: true },
+    );
+  }
+
   const toggleFocus = (num: number) => {
     if (focusDriver === null) {
-      setFocusDriver(num);
-      setCompareDriver(null);
+      setFocusSelection(num, null);
       return;
     }
     if (focusDriver === num) {
-      setFocusDriver(null);
-      setCompareDriver(null);
+      setFocusSelection(null, null);
       return;
     }
-    if (compareDriver === num) {
-      setCompareDriver(null);
-      return;
-    }
-    setCompareDriver(num);
+    // Clicking a different driver should move focus to that driver immediately.
+    // This keeps row/map interactions predictable (focus follows click).
+    setFocusSelection(num, null);
   };
 
   const clearFocusSelection = () => {
-    setFocusDriver(null);
-    setCompareDriver(null);
+    setFocusSelection(null, null);
   };
 
   const showTrackerInlinePlayback = false;
-
-  const {
-    height: strategyHeight,
-    handleProps: strategyHandleProps,
-    reset: resetStrategyHeight,
-  } = useVerticalResize({ initialHeight: 120, minHeight: 48, maxHeight: 340 });
 
   // ── Shared sub-components ────────────────────────────────────────────────────
 
@@ -908,6 +917,7 @@ export default function RaceWeekend() {
       carData={telemetryEnabled ? carDataAtT : undefined}
       showMinisectors={timingShowMinisectors}
       wideSectors
+      dense
     />
   );
 
@@ -923,7 +933,8 @@ export default function RaceWeekend() {
       circuitKey={session?.circuit_key ?? null}
       activeCompounds={mapShowCompoundBadges ? activeCompounds : undefined}
       battlingDrivers={mapShowBattleRings ? battlingDrivers : undefined}
-      focusDriverLap={mapShowDriverHud ? focusDriverLap : null}
+      focusDriverLap={focusDriverLap}
+      showFocusedHud={mapShowDriverHud}
       leaderboard={mapShowLeaderboard ? mapLeaderboard : undefined}
       activeSectorFlag={mapShowSectorFlags ? activeSectorFlag : null}
       showCompass={mapShowCompass}
@@ -975,54 +986,18 @@ export default function RaceWeekend() {
                   Loading session data
                 </div>
                 <div className="mt-1 text-xs text-muted">
-                  Preparing timing, strategy, and event feeds for this session.
+                  Preparing timing and event feeds for this session.
                 </div>
               </div>
             </div>
           )}
 
-          <div className="md:hidden flex flex-col">
+          <div className="flex flex-col md:flex-1 md:min-h-0 md:overflow-hidden">
             {positions.isError ? (
               <ErrorMessage message="Failed to load timing data" />
             ) : (
               leaderboardTower
             )}
-          </div>
-
-          <div className="hidden md:flex md:flex-col md:flex-1 md:min-h-0 md:overflow-hidden">
-            {/* Full-width timing tower — fills remaining vertical space */}
-            <div className="flex flex-col md:flex-1 md:min-h-0 md:overflow-hidden">
-              {positions.isError ? (
-                <ErrorMessage message="Failed to load timing data" />
-              ) : (
-                leaderboardTower
-              )}
-            </div>
-
-            {/* Drag handle */}
-            <ResizeHandle
-              {...strategyHandleProps}
-              onDoubleClick={resetStrategyHeight}
-            />
-
-            {/* Strategy strip — height controlled by drag */}
-            <div
-              className={`${PANEL} shrink-0 flex flex-col overflow-hidden`}
-              style={{ height: strategyHeight }}
-            >
-              <div className={`${PANEL_TITLE} shrink-0`}>Tyre Strategy</div>
-              <div className="flex-1 min-h-0 overflow-auto">
-                <StrategyBar
-                  stints={stints.data ?? []}
-                  drivers={drivers.data ?? []}
-                  laps={laps.data ?? []}
-                  pits={pits.data ?? []}
-                  sessionTimeMs={t}
-                  sessionStartMs={sessionStartMs}
-                  currentLap={currentLap}
-                />
-              </div>
-            </div>
           </div>
         </div>
       )}
@@ -1149,7 +1124,9 @@ export default function RaceWeekend() {
                           driverLap={focusDriverLap}
                           compareDriverLap={compareDriverLap}
                           onClear={clearFocusSelection}
-                          onClearCompare={() => setCompareDriver(null)}
+                          onClearCompare={() =>
+                            setFocusSelection(focusDriver, null)
+                          }
                         />
                       </div>
                     )}
@@ -1342,7 +1319,9 @@ export default function RaceWeekend() {
                       driverLap={focusDriverLap}
                       compareDriverLap={compareDriverLap}
                       onClear={clearFocusSelection}
-                      onClearCompare={() => setCompareDriver(null)}
+                      onClearCompare={() =>
+                        setFocusSelection(focusDriver, null)
+                      }
                     />
                   </div>
                 )}

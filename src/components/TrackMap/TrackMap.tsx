@@ -111,6 +111,7 @@ interface Props {
   readonly activeSectorFlag?: ActiveTrackFlag | null;
   readonly activeTrackVehicles?: ActiveTrackVehicles | null;
   readonly showCompass?: boolean;
+  readonly showFocusedHud?: boolean;
   readonly onSelectDriver?: (driverNumber: number) => void;
 }
 
@@ -131,6 +132,7 @@ export function TrackMap({
   activeSectorFlag = null,
   activeTrackVehicles = null,
   showCompass = true,
+  showFocusedHud = true,
   onSelectDriver,
 }: Props) {
   const { t } = useTimeline();
@@ -154,7 +156,7 @@ export function TrackMap({
   const chunkIdx = chunkIndexFor(t);
   const { data: hudRawData } = useCarDataWindow(
     sessionKey,
-    focusDriver,
+    showFocusedHud ? focusDriver : null,
     sessionStartMs,
     chunkIdx,
   );
@@ -992,7 +994,8 @@ export function TrackMap({
       )}
 
       {/* Focused-driver HUD — speed / gear / throttle + brake bars */}
-      {hudData &&
+      {showFocusedHud &&
+        hudData &&
         focusDriver !== null &&
         (() => {
           const driver = driverByNumber.get(focusDriver);

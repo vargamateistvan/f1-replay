@@ -444,6 +444,13 @@ export function LiveTiming({
 
   return (
     <div className="panel-scroll">
+      {dense && onSelectDriver && (
+        <div className="border-b border-[#2a2a35] bg-surface/80 px-2 py-1.5 sm:px-3">
+          <div className="text-[9px] font-bold uppercase tracking-[0.12em] text-muted">
+            Tap driver A, then driver B to compare
+          </div>
+        </div>
+      )}
       {!dense && (
         <div className="border-b border-[#2a2a35] bg-surface/80 px-2 py-2 sm:px-3">
           {hasSectorReference ? (
