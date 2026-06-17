@@ -225,6 +225,18 @@ export function SettingsBody() {
         onChange={(v) => setSetting("defaultSpeed", v)}
       />
       <SettingRow
+        label="Playback speed controls"
+        description="Show 1x/2x/4x/8x buttons in playback bar"
+        checked={settings.showPlaybackSpeedControls}
+        onChange={toggle("showPlaybackSpeedControls")}
+      />
+      <SettingRow
+        label="Forward event chips"
+        description="Show jump chips (incident, pit, flag, SC, pass, radio)"
+        checked={settings.showPlaybackEventChips}
+        onChange={toggle("showPlaybackEventChips")}
+      />
+      <SettingRow
         label="Catch-up summary"
         description="Show missed events after a large scrub forward"
         checked={settings.catchupSummaryEnabled}

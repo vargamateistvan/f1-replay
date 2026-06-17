@@ -546,6 +546,8 @@ export default function RaceWeekend() {
     leaderboardTelemetry,
     trackerTimingTelemetry,
     defaultSpeed,
+    showPlaybackSpeedControls,
+    showPlaybackEventChips,
     catchupSummaryEnabled,
   } = useSettings();
 
@@ -1073,6 +1075,8 @@ export default function RaceWeekend() {
                   countdownMs={countdownMs}
                   qualiPhase={qualiPhase}
                   mobileInline
+                  showSpeedControls={showPlaybackSpeedControls}
+                  showEventChips={showPlaybackEventChips}
                 />
               )}
 
@@ -1459,6 +1463,8 @@ export default function RaceWeekend() {
           incidentReplayHint={incidentReplayHint}
           countdownMs={countdownMs}
           qualiPhase={qualiPhase}
+          showSpeedControls={showPlaybackSpeedControls}
+          showEventChips={showPlaybackEventChips}
         />
       )}
     </div>

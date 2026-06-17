@@ -30,6 +30,8 @@ interface Props {
   /** Active qualifying phase label e.g. "Q1" — shown alongside the countdown */
   qualiPhase?: string | null;
   mobileInline?: boolean;
+  showSpeedControls?: boolean;
+  showEventChips?: boolean;
 }
 
 function fmtTime(ms: number) {
@@ -63,6 +65,8 @@ export function PlaybackBar({
   countdownMs = null,
   qualiPhase = null,
   mobileInline = false,
+  showSpeedControls = true,
+  showEventChips = true,
 }: Props) {
   const { t, playing, speed, toggle, setT, setSpeed, setPlaying } =
     useTimeline();
@@ -269,118 +273,124 @@ export function PlaybackBar({
           )}
 
         {/* Speed buttons — desktop only (mobile lives in chips row) */}
-        <div className="hidden sm:flex gap-px shrink-0">
+        {showSpeedControls && (
+          <div className="hidden sm:flex gap-px shrink-0">
+            {SPEEDS.map((s) => (
+              <button
+                key={s}
+                onClick={() => setSpeed(s)}
+                aria-pressed={speed === s}
+                aria-label={`${s}x speed`}
+                className={`px-2.5 py-1 text-[10px] font-black uppercase tracking-widest transition-colors ${
+                  speed === s
+                    ? "bg-f1red text-white"
+                    : "bg-panel text-muted hover:text-white hover:bg-[#38383f]"
+                }`}
+              >
+                {s}×
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* ── Speed row — mobile only ──────────────────────────────── */}
+      {showSpeedControls && (
+        <div className="sm:hidden flex gap-px">
           {SPEEDS.map((s) => (
             <button
               key={s}
               onClick={() => setSpeed(s)}
               aria-pressed={speed === s}
               aria-label={`${s}x speed`}
-              className={`px-2.5 py-1 text-[10px] font-black uppercase tracking-widest transition-colors ${
-                speed === s
-                  ? "bg-f1red text-white"
-                  : "bg-panel text-muted hover:text-white hover:bg-[#38383f]"
+              className={`flex-1 h-7 text-[10px] font-black uppercase tracking-widest transition-colors ${
+                speed === s ? "bg-f1red text-white" : "bg-panel text-muted"
               }`}
             >
               {s}×
             </button>
           ))}
         </div>
-      </div>
-
-      {/* ── Speed row — mobile only ──────────────────────────────── */}
-      <div className="sm:hidden flex gap-px">
-        {SPEEDS.map((s) => (
-          <button
-            key={s}
-            onClick={() => setSpeed(s)}
-            aria-pressed={speed === s}
-            aria-label={`${s}x speed`}
-            className={`flex-1 h-7 text-[10px] font-black uppercase tracking-widest transition-colors ${
-              speed === s ? "bg-f1red text-white" : "bg-panel text-muted"
-            }`}
-          >
-            {s}×
-          </button>
-        ))}
-      </div>
+      )}
 
       {/* ── Event jump chips row ─────────────────────────────────── */}
-      <div
-        className="flex gap-1 overflow-x-auto pb-0.5 sm:flex-wrap"
-        style={{ touchAction: "pan-x pan-y" }}
-      >
-        {/* Countdown / qualifying phase chip — practice & qualifying only */}
-        {countdownMs !== null && (
-          <span className="flex items-center gap-1 shrink-0 px-2 h-7 bg-panel text-[10px] font-black tabular-nums uppercase tracking-widest">
-            {qualiPhase && <span className="text-f1red">{qualiPhase}</span>}
-            <span
-              className={
-                countdownMs <= 0
-                  ? "text-muted"
-                  : countdownMs <= 60_000
-                    ? "text-[#f5a623]"
-                    : "text-white"
-              }
-            >
-              {countdownMs <= 0 ? "ENDED" : fmtTime(countdownMs)}
+      {showEventChips && (
+        <div
+          className="flex gap-1 overflow-x-auto pb-0.5 sm:flex-wrap"
+          style={{ touchAction: "pan-x pan-y" }}
+        >
+          {/* Countdown / qualifying phase chip — practice & qualifying only */}
+          {countdownMs !== null && (
+            <span className="flex items-center gap-1 shrink-0 px-2 h-7 bg-panel text-[10px] font-black tabular-nums uppercase tracking-widest">
+              {qualiPhase && <span className="text-f1red">{qualiPhase}</span>}
+              <span
+                className={
+                  countdownMs <= 0
+                    ? "text-muted"
+                    : countdownMs <= 60_000
+                      ? "text-[#f5a623]"
+                      : "text-white"
+                }
+              >
+                {countdownMs <= 0 ? "ENDED" : fmtTime(countdownMs)}
+              </span>
             </span>
-          </span>
-        )}
-        <button
-          onClick={() => onReplayNextIncident?.()}
-          disabled={!canReplayNextIncident}
-          className={CHIP_STRETCH}
-          aria-label="Replay next incident window"
-        >
-          Incident ›
-        </button>
-        {incidentReplayHint && (
-          <span className="h-7 flex items-center px-2 text-[9px] font-black uppercase tracking-widest bg-amber-500/20 text-amber-300 border border-amber-500/30 shrink-0">
-            {incidentReplayHint}
-          </span>
-        )}
-        <button
-          onClick={() => jump(nextPit)}
-          disabled={nextPit === null}
-          className={CHIP_STRETCH}
-          aria-label="Jump to next pit stop"
-        >
-          Pit ›
-        </button>
-        <button
-          onClick={() => jump(nextFlag)}
-          disabled={nextFlag === null}
-          className={CHIP_STRETCH}
-          aria-label="Jump to next flag or safety car"
-        >
-          Flag ›
-        </button>
-        <button
-          onClick={() => jump(nextSafetyCar)}
-          disabled={nextSafetyCar === null}
-          className={CHIP_STRETCH}
-          aria-label="Jump to next safety car"
-        >
-          SC ›
-        </button>
-        <button
-          onClick={() => jump(nextPass)}
-          disabled={nextPass === null}
-          className={CHIP_STRETCH}
-          aria-label="Jump to next overtake"
-        >
-          Pass ›
-        </button>
-        <button
-          onClick={() => jump(nextRadio)}
-          disabled={nextRadio === null}
-          className={CHIP_STRETCH}
-          aria-label="Jump to next radio message"
-        >
-          Radio ›
-        </button>
-      </div>
+          )}
+          <button
+            onClick={() => onReplayNextIncident?.()}
+            disabled={!canReplayNextIncident}
+            className={CHIP_STRETCH}
+            aria-label="Replay next incident window"
+          >
+            Incident ›
+          </button>
+          {incidentReplayHint && (
+            <span className="h-7 flex items-center px-2 text-[9px] font-black uppercase tracking-widest bg-amber-500/20 text-amber-300 border border-amber-500/30 shrink-0">
+              {incidentReplayHint}
+            </span>
+          )}
+          <button
+            onClick={() => jump(nextPit)}
+            disabled={nextPit === null}
+            className={CHIP_STRETCH}
+            aria-label="Jump to next pit stop"
+          >
+            Pit ›
+          </button>
+          <button
+            onClick={() => jump(nextFlag)}
+            disabled={nextFlag === null}
+            className={CHIP_STRETCH}
+            aria-label="Jump to next flag or safety car"
+          >
+            Flag ›
+          </button>
+          <button
+            onClick={() => jump(nextSafetyCar)}
+            disabled={nextSafetyCar === null}
+            className={CHIP_STRETCH}
+            aria-label="Jump to next safety car"
+          >
+            SC ›
+          </button>
+          <button
+            onClick={() => jump(nextPass)}
+            disabled={nextPass === null}
+            className={CHIP_STRETCH}
+            aria-label="Jump to next overtake"
+          >
+            Pass ›
+          </button>
+          <button
+            onClick={() => jump(nextRadio)}
+            disabled={nextRadio === null}
+            className={CHIP_STRETCH}
+            aria-label="Jump to next radio message"
+          >
+            Radio ›
+          </button>
+        </div>
+      )}
     </div>
   );
 }

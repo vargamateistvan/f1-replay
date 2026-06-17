@@ -24,6 +24,8 @@ export interface AppSettings {
   showCoffeeWidget: boolean;
   // Playback
   defaultSpeed: number;
+  showPlaybackSpeedControls: boolean;
+  showPlaybackEventChips: boolean;
   catchupSummaryEnabled: boolean;
 }
 
@@ -54,6 +56,8 @@ export const SETTINGS_DEFAULTS: AppSettings = {
   trackerTimingTelemetry: false,
   showCoffeeWidget: true,
   defaultSpeed: 1,
+  showPlaybackSpeedControls: true,
+  showPlaybackEventChips: true,
   catchupSummaryEnabled: true,
 };
 
