@@ -1,4 +1,4 @@
-import React, { useRef, useState, type ReactNode } from "react";
+import React, { useEffect, useRef, useState, type ReactNode } from "react";
 import { Play, Square } from "lucide-react";
 import type { ActiveToast } from "@/hooks/useEventToasts";
 import type { Driver } from "@/api/types";
@@ -213,8 +213,7 @@ function DismissBtn({
     <button
       onClick={() => onDismiss(id)}
       className="absolute top-1 right-1 z-10 flex items-center justify-center pointer-events-auto
-                 w-6 h-6 rounded-md border border-white/10 bg-black/20
-                 text-white/55 hover:text-white hover:bg-black/35 transition-colors text-xs"
+                 w-6 h-6 text-white/55 hover:text-white transition-colors text-xs"
       style={{ touchAction: "manipulation" }}
       aria-label="Dismiss"
     >
@@ -240,29 +239,35 @@ function RadioToast({
   const p = at.event.payload as RadioPayload;
   const driver = driverMap.get(p.driverNumber);
   const color = teamColor(driver?.team_colour);
+  const hasAudio = Boolean(p.recordingUrl && p.recordingUrl.trim().length > 0);
+
+  useEffect(() => {
+    if (!hasAudio && playing) setPlaying(false);
+  }, [hasAudio, playing]);
 
   return (
     <div className="relative pointer-events-auto rounded-lg bg-[#1f1f27] border border-[#3f3f4b] shadow-xl flex overflow-hidden w-full">
       <span className="w-[3px] shrink-0" style={{ background: color }} />
-      <div className="flex-1 px-2.5 py-2 md:px-3 md:py-2 min-w-0">
-        <div className="flex items-center justify-between gap-2">
+      <div className="flex-1 min-w-0 px-2.5 py-1.5 pr-8 md:px-3 md:py-2 md:pr-8">
+        <div className="text-[9px] text-muted uppercase tracking-widest mb-0.5">
+          Radio
+        </div>
+        <div className="flex items-center gap-1.5">
           <span
-            className="text-[10px] font-black uppercase tracking-widest"
+            className="font-black text-[12px] md:text-[13px]"
             style={{ color }}
           >
             {driver?.name_acronym ?? p.driverNumber}
           </span>
-          <span className="text-[9px] text-muted uppercase tracking-widest">
-            Radio
-          </span>
-        </div>
-        <div className="mt-1.5 flex items-center gap-1.5">
           <button
-            onClick={() => setPlaying((v) => !v)}
+            onClick={() => hasAudio && setPlaying((v) => !v)}
+            disabled={!hasAudio}
             style={{ touchAction: "manipulation" }}
             className={`text-[9px] font-black uppercase tracking-widest px-2 py-1 rounded-md transition-colors flex items-center gap-1 ${playing ? "bg-f1red text-white" : "bg-panel text-muted hover:text-white"}`}
           >
-            {playing ? (
+            {!hasAudio ? (
+              <>N/A</>
+            ) : playing ? (
               <>
                 <Square size={11} strokeWidth={2.4} aria-hidden="true" /> Stop
               </>
@@ -272,7 +277,7 @@ function RadioToast({
               </>
             )}
           </button>
-          {playing && (
+          {playing && hasAudio && (
             <audio
               key={p.recordingUrl}
               src={p.recordingUrl}
@@ -315,7 +320,7 @@ function FlagToast({
   return (
     <div className="relative pointer-events-auto rounded-lg bg-[#1f1f27] border border-[#3f3f4b] shadow-xl overflow-hidden w-full">
       <div
-        className="flex items-center gap-2 px-2.5 py-1 md:px-3 md:py-1"
+        className="flex items-center gap-2 px-2.5 py-1 pr-8 md:px-3 md:py-1 md:pr-8"
         style={{ background: header.bg }}
       >
         <span
@@ -333,7 +338,7 @@ function FlagToast({
           </span>
         )}
       </div>
-      <div className="flex items-center gap-1 px-2.5 py-1.5 md:px-3 md:py-2">
+      <div className="flex items-center gap-1 px-2.5 py-1.5 pr-8 md:px-3 md:py-2 md:pr-8">
         <p className="flex-1 text-[10px] text-white/85 leading-snug line-clamp-2">
           {p.message}
         </p>
@@ -365,7 +370,7 @@ function OvertakeToast({
         className="w-[3px] self-stretch shrink-0"
         style={{ background: color }}
       />
-      <div className="flex-1 min-w-0 px-2.5 py-1.5 md:px-3 md:py-2">
+      <div className="flex-1 min-w-0 px-2.5 py-1.5 pr-8 md:px-3 md:py-2 md:pr-8">
         <div className="text-[9px] text-muted uppercase tracking-widest mb-0.5">
           Overtake
         </div>
@@ -410,7 +415,7 @@ function PitToast({
         className="w-[3px] self-stretch shrink-0"
         style={{ background: color }}
       />
-      <div className="flex-1 min-w-0 px-2.5 py-1.5 md:px-3 md:py-2">
+      <div className="flex-1 min-w-0 px-2.5 py-1.5 pr-8 md:px-3 md:py-2 md:pr-8">
         <div className="text-[9px] text-muted uppercase tracking-widest mb-0.5">
           Pit · L{p.lapNumber}
         </div>
@@ -459,7 +464,7 @@ function FastestLapToast({
       style={{ background: "#1a0e2e", border: "1px solid #9b59f5" }}
     >
       <div
-        className="flex items-center gap-2 px-2.5 py-1 md:px-3 md:py-1"
+        className="flex items-center gap-2 px-2.5 py-1 pr-8 md:px-3 md:py-1 md:pr-8"
         style={{ background: "#9b59f5" }}
       >
         <span className="text-[10px] font-black uppercase tracking-widest text-white">
@@ -469,7 +474,7 @@ function FastestLapToast({
           L{p.lapNumber}
         </span>
       </div>
-      <div className="flex items-center px-2.5 py-1.5 md:px-3 md:py-2">
+      <div className="flex items-center px-2.5 py-1.5 pr-8 md:px-3 md:py-2 md:pr-8">
         <span
           className="font-black text-[12px] md:text-[13px] flex-1"
           style={{ color: "#9b59f5" }}

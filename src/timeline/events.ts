@@ -16,6 +16,14 @@ export interface RadioPayload {
   driverNumber: number;
   recordingUrl: string;
 }
+
+function normalizeRecordingUrl(url: string): string {
+  const trimmed = url.trim();
+  if (!trimmed) return "";
+  // Avoid mixed-content playback issues when app runs on HTTPS.
+  if (trimmed.startsWith("http://")) return `https://${trimmed.slice(7)}`;
+  return trimmed;
+}
 export interface FlagPayload {
   flag: string;
   message: string;
@@ -106,13 +114,14 @@ export function buildToastEvents(
   for (const r of radios) {
     const ms = new Date(r.date).getTime() - sessionStartMs;
     if (ms < 0) continue;
+    const recordingUrl = normalizeRecordingUrl(r.recording_url ?? "");
     events.push({
       id: `radio-${r.driver_number}-${r.date}`,
       ms,
       kind: "radio",
       payload: {
         driverNumber: r.driver_number,
-        recordingUrl: r.recording_url,
+        recordingUrl,
       } satisfies RadioPayload,
       priority: "high",
     });
