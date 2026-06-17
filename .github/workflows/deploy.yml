@@ -28,6 +28,15 @@ jobs:
       - name: Install dependencies
         run: yarn install --frozen-lockfile
 
+      - name: Type-check
+        run: yarn tsc -b
+
+      - name: Lint
+        run: yarn lint
+
+      - name: Test
+        run: yarn test
+
       - name: Build
         run: yarn build
 
