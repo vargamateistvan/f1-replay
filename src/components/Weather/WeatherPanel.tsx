@@ -137,34 +137,39 @@ export function WeatherPanel({
         </div>
       </div>
       <div className="hidden grid-cols-[auto_1fr_auto_1fr] gap-x-4 gap-y-1 sm:grid">
-        <span className="text-[10px] font-bold uppercase tracking-widest text-muted">
+        <span className="text-[10px] font-bold uppercase tracking-widest text-muted flex items-center gap-1">
+          <Thermometer size={12} strokeWidth={2.2} aria-hidden="true" />
           Track
         </span>
         <span className="font-mono tabular-nums text-xs">
           {w.track_temperature.toFixed(1)}°C
-          <span className="text-[#ffd600] ml-0.5 text-[10px]">
+          <span className="text-orange-300 ml-0.5 text-[10px] font-bold">
             {trend(trackDelta)}
           </span>
         </span>
-        <span className="text-[10px] font-bold uppercase tracking-widest text-muted">
+        <span className="text-[10px] font-bold uppercase tracking-widest text-muted flex items-center gap-1">
+          <Thermometer size={12} strokeWidth={2.2} aria-hidden="true" />
           Air
         </span>
         <span className="font-mono tabular-nums text-xs">
           {w.air_temperature.toFixed(1)}°C
         </span>
 
-        <span className="text-[10px] font-bold uppercase tracking-widest text-muted">
+        <span className="text-[10px] font-bold uppercase tracking-widest text-muted flex items-center gap-1">
+          <Droplets size={12} strokeWidth={2.2} aria-hidden="true" />
           Humidity
         </span>
         <span className="font-mono tabular-nums text-xs">{w.humidity}%</span>
-        <span className="text-[10px] font-bold uppercase tracking-widest text-muted">
+        <span className="text-[10px] font-bold uppercase tracking-widest text-muted flex items-center gap-1">
+          <Gauge size={12} strokeWidth={2.2} aria-hidden="true" />
           Pressure
         </span>
         <span className="font-mono tabular-nums text-xs">
           {w.pressure.toFixed(0)} hPa
         </span>
 
-        <span className="text-[10px] font-bold uppercase tracking-widest text-muted">
+        <span className="text-[10px] font-bold uppercase tracking-widest text-muted flex items-center gap-1">
+          <Wind size={12} strokeWidth={2.2} aria-hidden="true" />
           Wind
         </span>
         <span className="font-mono tabular-nums text-xs col-span-3">
