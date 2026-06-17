@@ -380,14 +380,14 @@ export function Nav() {
         showNextRaceWeekendBanner &&
         nextMeeting &&
         nextMeetingCountdown && (
-          <div
-            className="border-b border-panel"
-            style={{
-              paddingLeft: "max(0.5rem, env(safe-area-inset-left))",
-              paddingRight: "max(0.5rem, env(safe-area-inset-right))",
-            }}
-          >
-            <div className="flex items-center gap-3 min-w-0 bg-black px-2 py-1.5">
+          <div className="border-b border-panel">
+            <div
+              className="flex items-center gap-3 min-w-0 bg-black py-1.5"
+              style={{
+                paddingLeft: "max(0.5rem, env(safe-area-inset-left))",
+                paddingRight: "max(0.5rem, env(safe-area-inset-right))",
+              }}
+            >
               <div className="flex items-center gap-2 min-w-0">
                 {nextMeeting.country_flag && (
                   <img
