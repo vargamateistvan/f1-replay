@@ -23,6 +23,12 @@ const VIEW_TABS: { id: MainView; label: string }[] = [
 const SELECT =
   "bg-transparent text-white border border-[#38383f] text-[11px] font-medium px-2 py-1 focus:outline-none focus:border-muted appearance-none cursor-pointer";
 
+const CIRCUIT_TYPE_LABEL: Record<string, string> = {
+  Permanent: "Permanent",
+  "Temporary - Street": "Street Circuit",
+  "Temporary - Road": "Road Course",
+};
+
 export function Nav() {
   const openSettings = useSettings((s) => s.openModal);
   const openHelp = useSettings((s) => s.openHelp);
@@ -240,88 +246,131 @@ export function Nav() {
 
       {/* ── Dark sub-bar: session pickers (main route only) ─────── */}
       {isMainRoute && (
-        <div
-          className="flex flex-wrap items-center gap-1 py-1.5 bg-track border-b border-panel"
-          style={{
-            paddingLeft: "max(0.5rem, env(safe-area-inset-left))",
-            paddingRight: "max(0.5rem, env(safe-area-inset-right))",
-          }}
-        >
-          {live && (
-            <span className="flex items-center gap-1 bg-f1red text-white text-[9px] font-black uppercase tracking-widest px-2 py-0.5 shrink-0">
-              <span className="w-1.5 h-1.5 rounded-full bg-white animate-pulse" />
-              Live
-            </span>
-          )}
-
-          <span className="hidden sm:inline text-[9px] font-bold uppercase tracking-widest text-muted shrink-0">
-            Year
-          </span>
-          <select
-            aria-label="Season year"
-            value={year}
-            onChange={(e) => onYear(Number(e.target.value))}
-            className={`${SELECT} shrink-0 w-[4.5rem] sm:w-auto`}
+        <div className="bg-track border-b border-panel">
+          <div
+            className="flex flex-wrap items-center gap-1 py-1.5"
+            style={{
+              paddingLeft: "max(0.5rem, env(safe-area-inset-left))",
+              paddingRight: "max(0.5rem, env(safe-area-inset-right))",
+            }}
           >
-            {YEARS.map((y) => (
-              <option key={y} value={y}>
-                {y}
-              </option>
-            ))}
-          </select>
+            {live && (
+              <span className="flex items-center gap-1 bg-f1red text-white text-[9px] font-black uppercase tracking-widest px-2 py-0.5 shrink-0">
+                <span className="w-1.5 h-1.5 rounded-full bg-white animate-pulse" />
+                Live
+              </span>
+            )}
 
-          <span className="hidden sm:inline text-[9px] font-bold uppercase tracking-widest text-muted shrink-0">
-            Event
-          </span>
-          {meetings.isError && !authFailed ? (
-            <span className="text-red-400 font-mono text-[10px] shrink-0">
-              Failed to load events
+            <span className="hidden sm:inline text-[9px] font-bold uppercase tracking-widest text-muted shrink-0">
+              Year
             </span>
-          ) : (
             <select
-              aria-label="Event"
-              value={meetingKey ?? ""}
-              onChange={(e) => onMeeting(Number(e.target.value))}
-              disabled={meetings.isPending}
-              className={`${SELECT} min-w-0 flex-[1_1_132px] sm:flex-[1_1_160px] sm:max-w-none`}
+              aria-label="Season year"
+              value={year}
+              onChange={(e) => onYear(Number(e.target.value))}
+              className={`${SELECT} shrink-0 w-[4.5rem] sm:w-auto`}
             >
-              <option value="">— event —</option>
-              {meetings.data?.map((m) => (
-                <option key={m.meeting_key} value={m.meeting_key}>
-                  {m.location} — {m.meeting_name}
+              {YEARS.map((y) => (
+                <option key={y} value={y}>
+                  {y}
                 </option>
               ))}
             </select>
-          )}
 
-          <span className="hidden sm:inline text-[9px] font-bold uppercase tracking-widest text-muted shrink-0">
-            Session
-          </span>
-          {sessions.isError && !authFailed ? (
-            <span className="text-red-400 font-mono text-[10px] shrink-0">
-              Failed to load sessions
+            <span className="hidden sm:inline text-[9px] font-bold uppercase tracking-widest text-muted shrink-0">
+              Event
             </span>
-          ) : (
-            <select
-              aria-label="Session"
-              value={sessionKey ?? ""}
-              onChange={(e) => setSessionKey(Number(e.target.value))}
-              disabled={sessions.isPending || !meetingKey}
-              className={`${SELECT} min-w-0 flex-[1_1_108px] sm:flex-none`}
+            {meetings.isError && !authFailed ? (
+              <span className="text-red-400 font-mono text-[10px] shrink-0">
+                Failed to load events
+              </span>
+            ) : (
+              <select
+                aria-label="Event"
+                value={meetingKey ?? ""}
+                onChange={(e) => onMeeting(Number(e.target.value))}
+                disabled={meetings.isPending}
+                className={`${SELECT} min-w-0 flex-[1_1_132px] sm:flex-[1_1_160px] sm:max-w-none`}
+              >
+                <option value="">— event —</option>
+                {meetings.data?.map((m) => (
+                  <option key={m.meeting_key} value={m.meeting_key}>
+                    {m.location} — {m.meeting_name}
+                  </option>
+                ))}
+              </select>
+            )}
+
+            <span className="hidden sm:inline text-[9px] font-bold uppercase tracking-widest text-muted shrink-0">
+              Session
+            </span>
+            {sessions.isError && !authFailed ? (
+              <span className="text-red-400 font-mono text-[10px] shrink-0">
+                Failed to load sessions
+              </span>
+            ) : (
+              <select
+                aria-label="Session"
+                value={sessionKey ?? ""}
+                onChange={(e) => setSessionKey(Number(e.target.value))}
+                disabled={sessions.isPending || !meetingKey}
+                className={`${SELECT} min-w-0 flex-[1_1_108px] sm:flex-none`}
+              >
+                <option value="">— session —</option>
+                {sessions.data?.map((s) => (
+                  <option key={s.session_key} value={s.session_key}>
+                    {s.session_name}
+                  </option>
+                ))}
+              </select>
+            )}
+
+            {(meetings.isPending || sessions.isPending) && (
+              <span className="text-muted text-[9px] animate-pulse shrink-0 ml-auto sm:ml-0">
+                Loading…
+              </span>
+            )}
+          </div>
+
+          {selectedMeeting && (
+            <div
+              className="flex items-center gap-2 border-t border-panel/80 py-1.5"
+              style={{
+                paddingLeft: "max(0.5rem, env(safe-area-inset-left))",
+                paddingRight: "max(0.5rem, env(safe-area-inset-right))",
+              }}
             >
-              <option value="">— session —</option>
-              {sessions.data?.map((s) => (
-                <option key={s.session_key} value={s.session_key}>
-                  {s.session_name}
-                </option>
-              ))}
-            </select>
-          )}
-
-          {(meetings.isPending || sessions.isPending) && (
-            <span className="text-muted text-[9px] animate-pulse shrink-0 ml-auto sm:ml-0">
-              Loading…
-            </span>
+              {selectedMeeting.circuit_image && (
+                <img
+                  src={selectedMeeting.circuit_image}
+                  alt={`${selectedMeeting.circuit_short_name} circuit`}
+                  className="hidden sm:block h-6 w-8 object-cover rounded-sm border border-panel/80"
+                  loading="lazy"
+                  referrerPolicy="no-referrer"
+                />
+              )}
+              {selectedMeeting.country_flag && (
+                <img
+                  src={selectedMeeting.country_flag}
+                  alt={`${selectedMeeting.country_name} flag`}
+                  className="h-4 w-6 object-cover rounded-[2px] border border-panel/80"
+                  loading="lazy"
+                  referrerPolicy="no-referrer"
+                />
+              )}
+              <span className="text-[10px] text-white/90 font-semibold truncate">
+                {selectedMeeting.meeting_name}
+              </span>
+              <span className="text-[9px] text-muted uppercase tracking-widest">
+                {CIRCUIT_TYPE_LABEL[selectedMeeting.circuit_type] ??
+                  selectedMeeting.circuit_type}
+              </span>
+              {selectedMeeting.is_cancelled && (
+                <span className="bg-red-500/15 border border-red-500/40 text-red-300 text-[9px] font-bold uppercase tracking-widest px-1.5 py-0.5 rounded-sm">
+                  Cancelled
+                </span>
+              )}
+            </div>
           )}
         </div>
       )}
