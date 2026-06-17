@@ -107,6 +107,46 @@ function MiniBar({ value, color }: { value: number; color: string }) {
   );
 }
 
+function MobilePedalMeter({
+  label,
+  value,
+  color,
+  labelClassName,
+}: {
+  label: string;
+  value: number | null;
+  color: string;
+  labelClassName: string;
+}) {
+  const clamped = value === null ? 0 : Math.max(0, Math.min(100, value));
+  const activeSegments = Math.round(clamped / 20);
+
+  return (
+    <span className="inline-flex min-w-0 items-center gap-1">
+      <span className={labelClassName}>{label}</span>
+      <span className="inline-flex items-center gap-0.5">
+        {Array.from({ length: 5 }, (_, i) => {
+          const active = i < activeSegments;
+          return (
+            <span
+              key={i}
+              className="h-1.5 w-1 rounded-[2px]"
+              style={{
+                background: active
+                  ? color
+                  : value === null
+                    ? "#2a2a35"
+                    : "#30303a",
+                opacity: active ? 1 : 0.65,
+              }}
+            />
+          );
+        })}
+      </span>
+    </span>
+  );
+}
+
 function isRaceSession(sessionName?: string) {
   if (!sessionName) return false;
   const n = sessionName.toLowerCase();
@@ -511,12 +551,6 @@ export function LiveTiming({
               ? String(car.n_gear === 0 ? "N" : car.n_gear)
               : "-";
             const drsDisplay = car ? (car.drs >= 10 ? "ON" : "OFF") : "--";
-            const throttleDisplay = car
-              ? `${String(Math.round(car.throttle)).padStart(3, "0")}%`
-              : "---%";
-            const brakeDisplay = car
-              ? `${String(Math.round(car.brake)).padStart(3, "0")}%`
-              : "---%";
             const pb = personalBestMap.get(num) ?? {
               s1: null,
               s2: null,
@@ -647,18 +681,18 @@ export function LiveTiming({
                             {drsDisplay}
                           </span>
                         </span>
-                        <span className="inline-flex min-w-0 items-center gap-1 text-[#4ade80]">
-                          <span className="text-[#6eb989]">T</span>
-                          <span className="w-[4ch] text-right">
-                            {throttleDisplay}
-                          </span>
-                        </span>
-                        <span className="inline-flex min-w-0 items-center gap-1 text-[#f87171]">
-                          <span className="text-[#c88787]">B</span>
-                          <span className="w-[4ch] text-right">
-                            {brakeDisplay}
-                          </span>
-                        </span>
+                        <MobilePedalMeter
+                          label="T"
+                          value={car ? car.throttle : null}
+                          color="#39d743"
+                          labelClassName="text-[#6eb989]"
+                        />
+                        <MobilePedalMeter
+                          label="B"
+                          value={car ? car.brake : null}
+                          color="#ff5252"
+                          labelClassName="text-[#c88787]"
+                        />
                       </div>
                     )}
                   </div>
