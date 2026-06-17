@@ -49,7 +49,6 @@ body {
     @apply md:flex-1 md:min-h-0 md:overflow-y-auto md:overscroll-contain;
     -webkit-overflow-scrolling: touch;
   }
-
 }
 
 /* Thin scrollbar for panels */
