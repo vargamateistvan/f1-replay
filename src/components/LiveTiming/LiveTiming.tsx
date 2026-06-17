@@ -37,6 +37,7 @@ interface Props {
   readonly showMinisectors?: boolean;
   readonly compactDriverColumn?: boolean;
   readonly wideSectors?: boolean;
+  readonly dense?: boolean;
   readonly isLoading?: boolean;
   readonly selectedDriver?: number | null;
   readonly compareDriver?: number | null;
@@ -170,6 +171,7 @@ export function LiveTiming({
   showMinisectors = true,
   compactDriverColumn = false,
   wideSectors = false,
+  dense = false,
   sessionTimeMs,
   sessionStartMs,
   isLoading,
@@ -404,6 +406,11 @@ export function LiveTiming({
 
   const sectorBarWidthClass = wideSectors ? "w-14" : "w-7";
 
+  const driverCellCompactClass = compactDriverColumn
+    ? "py-1.5 px-1 sm:px-2"
+    : "py-1.5 px-1.5 sm:px-2";
+  const rowCellPad = dense ? "py-1.5" : "py-3";
+
   if (isLoading) {
     return (
       <div className="p-3 sm:p-4">
@@ -437,76 +444,78 @@ export function LiveTiming({
 
   return (
     <div className="panel-scroll">
-      <div className="border-b border-[#2a2a35] bg-surface/80 px-2 py-2 sm:px-3">
-        {hasSectorReference ? (
-          <>
-            <div className="mb-2 text-[9px] sm:text-[10px] font-bold uppercase tracking-[0.12em] text-muted">
-              Tap driver A, then driver B to compare
-            </div>
-            <div className="grid grid-cols-1 gap-1.5 min-[360px]:grid-cols-3 sm:gap-2">
-              {(
-                [
-                  ["S1", sessionBestOwners.s1],
-                  ["S2", sessionBestOwners.s2],
-                  ["S3", sessionBestOwners.s3],
-                ] as const
-              ).map(([label, best]) => {
-                const driver = best
-                  ? driverByNumber.get(best.driverNumber)
-                  : undefined;
-                const color = teamColor(driver?.team_colour);
-                return (
-                  <div
-                    key={label}
-                    className="flex min-w-0 items-center gap-1.5 border border-panel bg-track px-1.5 py-1 sm:gap-2 sm:px-2"
-                    title={
-                      best
-                        ? `${label} ${best.time.toFixed(3)} · ${driver?.full_name ?? best.driverNumber} · Lap ${best.lapNumber}`
-                        : `${label} not set yet`
-                    }
-                  >
-                    <span className="bg-[#9b59f5] px-1.5 py-0.5 text-[9px] font-black uppercase tracking-widest text-white">
-                      {label}
-                    </span>
-                    {best ? (
-                      <>
-                        <span
-                          className="min-w-0 truncate font-black text-[10px] uppercase tracking-[0.08em] sm:text-[11px] sm:tracking-[0.1em]"
-                          style={{ color }}
-                        >
-                          {driver?.name_acronym ?? best.driverNumber}
-                        </span>
-                        <span className="ml-auto shrink-0 font-mono text-[9px] tabular-nums text-white sm:text-[10px]">
-                          {best.time.toFixed(3)}
-                        </span>
-                      </>
-                    ) : (
-                      <span className="truncate text-[9px] uppercase tracking-[0.1em] text-muted sm:text-[10px] sm:tracking-[0.12em]">
-                        Waiting
+      {!dense && (
+        <div className="border-b border-[#2a2a35] bg-surface/80 px-2 py-2 sm:px-3">
+          {hasSectorReference ? (
+            <>
+              <div className="mb-2 text-[9px] sm:text-[10px] font-bold uppercase tracking-[0.12em] text-muted">
+                Tap driver A, then driver B to compare
+              </div>
+              <div className="grid grid-cols-1 gap-1.5 min-[360px]:grid-cols-3 sm:gap-2">
+                {(
+                  [
+                    ["S1", sessionBestOwners.s1],
+                    ["S2", sessionBestOwners.s2],
+                    ["S3", sessionBestOwners.s3],
+                  ] as const
+                ).map(([label, best]) => {
+                  const driver = best
+                    ? driverByNumber.get(best.driverNumber)
+                    : undefined;
+                  const color = teamColor(driver?.team_colour);
+                  return (
+                    <div
+                      key={label}
+                      className="flex min-w-0 items-center gap-1.5 border border-panel bg-track px-1.5 py-1 sm:gap-2 sm:px-2"
+                      title={
+                        best
+                          ? `${label} ${best.time.toFixed(3)} · ${driver?.full_name ?? best.driverNumber} · Lap ${best.lapNumber}`
+                          : `${label} not set yet`
+                      }
+                    >
+                      <span className="bg-[#9b59f5] px-1.5 py-0.5 text-[9px] font-black uppercase tracking-widest text-white">
+                        {label}
                       </span>
-                    )}
-                  </div>
-                );
-              })}
-            </div>
-          </>
-        ) : (
-          <div className="flex items-center gap-2 rounded-sm border border-panel bg-track px-2 py-2">
-            <span className="bg-[#9b59f5] px-1.5 py-0.5 text-[9px] font-black uppercase tracking-widest text-white shrink-0">
-              Sectors
-            </span>
-            <div className="min-w-0">
-              <div className="text-[10px] font-black uppercase tracking-[0.12em] text-white">
-                First timed lap pending
+                      {best ? (
+                        <>
+                          <span
+                            className="min-w-0 truncate font-black text-[10px] uppercase tracking-[0.08em] sm:text-[11px] sm:tracking-[0.1em]"
+                            style={{ color }}
+                          >
+                            {driver?.name_acronym ?? best.driverNumber}
+                          </span>
+                          <span className="ml-auto shrink-0 font-mono text-[9px] tabular-nums text-white sm:text-[10px]">
+                            {best.time.toFixed(3)}
+                          </span>
+                        </>
+                      ) : (
+                        <span className="truncate text-[9px] uppercase tracking-[0.1em] text-muted sm:text-[10px] sm:tracking-[0.12em]">
+                          Waiting
+                        </span>
+                      )}
+                    </div>
+                  );
+                })}
               </div>
-              <div className="text-[10px] text-muted">
-                Tap driver A, then driver B to compare once sector references
-                are live.
+            </>
+          ) : (
+            <div className="flex items-center gap-2 rounded-sm border border-panel bg-track px-2 py-2">
+              <span className="bg-[#9b59f5] px-1.5 py-0.5 text-[9px] font-black uppercase tracking-widest text-white shrink-0">
+                Sectors
+              </span>
+              <div className="min-w-0">
+                <div className="text-[10px] font-black uppercase tracking-[0.12em] text-white">
+                  First timed lap pending
+                </div>
+                <div className="text-[10px] text-muted">
+                  Tap driver A, then driver B to compare once sector references
+                  are live.
+                </div>
               </div>
             </div>
-          </div>
-        )}
-      </div>
+          )}
+        </div>
+      )}
       <table className="w-full border-collapse table-fixed sm:table-auto">
         <thead>
           <tr className="sticky top-0 bg-track z-10 border-b border-[#38383f]">
@@ -611,12 +620,16 @@ export function LiveTiming({
                 className={`border-b border-[#1e1e28] transition-colors ${onSelectDriver ? "cursor-pointer" : ""} ${rowBg}`}
               >
                 {/* Position */}
-                <td className="py-3 px-1.5 font-black text-sm tabular-nums text-white/90 sm:px-2">
+                <td
+                  className={`${rowCellPad} px-1.5 font-black text-sm tabular-nums text-white/90 sm:px-2`}
+                >
                   {pos}
                 </td>
 
                 {/* Driver */}
-                <td className={driverCellClass}>
+                <td
+                  className={dense ? driverCellCompactClass : driverCellClass}
+                >
                   <div>
                     <span className="flex items-center gap-1 sm:gap-2">
                       <DriverHeadshot
@@ -712,18 +725,20 @@ export function LiveTiming({
 
                 {/* Best lap time */}
                 <td
-                  className={`py-3 px-1 text-right font-mono text-[11px] min-[390px]:text-[12px] tabular-nums sm:px-2 ${LAP_TIME_COLOUR[lapTier]}`}
+                  className={`${rowCellPad} px-1 text-right font-mono text-[11px] min-[390px]:text-[12px] tabular-nums sm:px-2 ${LAP_TIME_COLOUR[lapTier]}`}
                 >
                   {fmtTime(lastLap?.lap_duration ?? null)}
                 </td>
 
                 {/* Gap to leader */}
-                <td className="py-3 px-1 text-right font-mono text-[10px] min-[390px]:text-[11px] tabular-nums text-muted sm:px-2">
+                <td
+                  className={`${rowCellPad} px-1 text-right font-mono text-[10px] min-[390px]:text-[11px] tabular-nums text-muted sm:px-2`}
+                >
                   {fmtGap(intData?.gap_to_leader ?? null)}
                 </td>
 
                 {/* Sector bars */}
-                <td className="hidden sm:table-cell py-3 px-1">
+                <td className={`hidden sm:table-cell ${rowCellPad} px-1`}>
                   <div className="flex flex-col items-center gap-1">
                     <SectorBar
                       tier={t1}
@@ -739,7 +754,7 @@ export function LiveTiming({
                     )}
                   </div>
                 </td>
-                <td className="hidden sm:table-cell py-3 px-1">
+                <td className={`hidden sm:table-cell ${rowCellPad} px-1`}>
                   <div className="flex flex-col items-center gap-1">
                     <SectorBar
                       tier={t2}
@@ -755,7 +770,7 @@ export function LiveTiming({
                     )}
                   </div>
                 </td>
-                <td className="hidden sm:table-cell py-3 px-1">
+                <td className={`hidden sm:table-cell ${rowCellPad} px-1`}>
                   <div className="flex flex-col items-center gap-1">
                     <SectorBar
                       tier={t3}
@@ -773,7 +788,7 @@ export function LiveTiming({
                 </td>
 
                 {/* Tyre: starting compound → current compound + age */}
-                <td className="py-3 px-1.5 sm:px-2">
+                <td className={`${rowCellPad} px-1.5 sm:px-2`}>
                   <TyreBadge
                     stints={stints ?? []}
                     driverNumber={num}
@@ -784,7 +799,7 @@ export function LiveTiming({
 
                 {/* Pit stop count (hover: most recent stop time) */}
                 <td
-                  className="py-3 px-1 text-center font-mono text-[10px] tabular-nums text-muted sm:px-2 sm:text-[11px]"
+                  className={`${rowCellPad} px-1 text-center font-mono text-[10px] tabular-nums text-muted sm:px-2 sm:text-[11px]`}
                   title={
                     pitInfo && pitInfo.lastStop !== null
                       ? `${pitInfo.count} stop${pitInfo.count !== 1 ? "s" : ""} · last ${pitInfo.lastStop.toFixed(1)}s`
@@ -803,7 +818,9 @@ export function LiveTiming({
                 </td>
 
                 {/* Current lap */}
-                <td className="hidden sm:table-cell py-3 px-2 text-center font-mono text-[11px] tabular-nums text-muted">
+                <td
+                  className={`hidden sm:table-cell ${rowCellPad} px-2 text-center font-mono text-[11px] tabular-nums text-muted`}
+                >
                   {currentLap !== null && totalLapCount !== null
                     ? `${currentLap}/${totalLapCount}`
                     : (currentLap ?? "—")}
@@ -813,19 +830,25 @@ export function LiveTiming({
                 {showTelemetry && (
                   <>
                     {/* Speed */}
-                    <td className="hidden lg:table-cell py-3 px-2 text-right font-mono text-[12px] tabular-nums text-white">
+                    <td
+                      className={`hidden lg:table-cell ${rowCellPad} px-2 text-right font-mono text-[12px] tabular-nums text-white`}
+                    >
                       {car ? Math.round(car.speed) : "—"}
                     </td>
                     {/* Gear */}
-                    <td className="hidden lg:table-cell py-3 px-2 text-center font-mono text-[12px] tabular-nums text-white/90">
+                    <td
+                      className={`hidden lg:table-cell ${rowCellPad} px-2 text-center font-mono text-[12px] tabular-nums text-white/90`}
+                    >
                       {car ? (car.n_gear === 0 ? "N" : car.n_gear) : "—"}
                     </td>
                     {/* RPM */}
-                    <td className="hidden xl:table-cell py-3 px-2 text-right font-mono text-[11px] tabular-nums text-muted">
+                    <td
+                      className={`hidden xl:table-cell ${rowCellPad} px-2 text-right font-mono text-[11px] tabular-nums text-muted`}
+                    >
                       {car ? Math.round(car.rpm) : "—"}
                     </td>
                     {/* Throttle / brake mini bars */}
-                    <td className="hidden lg:table-cell py-3 px-2">
+                    <td className={`hidden lg:table-cell ${rowCellPad} px-2`}>
                       {car ? (
                         <span className="flex flex-col gap-0.5 w-16 mx-auto">
                           <MiniBar value={car.throttle} color="#39d743" />
@@ -836,7 +859,9 @@ export function LiveTiming({
                       )}
                     </td>
                     {/* DRS */}
-                    <td className="hidden lg:table-cell py-3 px-2 text-center">
+                    <td
+                      className={`hidden lg:table-cell ${rowCellPad} px-2 text-center`}
+                    >
                       {car ? (
                         <span
                           className={`inline-block px-1.5 py-0.5 text-[9px] font-black uppercase tracking-widest ${
