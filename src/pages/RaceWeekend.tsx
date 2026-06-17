@@ -1013,11 +1013,14 @@ export default function RaceWeekend() {
           />
           <div className="flex flex-col md:flex-1 md:min-h-0 md:overflow-hidden relative">
             {/* Toast overlay — covers both mobile and desktop tracker content */}
-            <EventToastStack
-              toasts={toasts}
-              drivers={drivers.data ?? []}
-              onDismiss={dismiss}
-            />
+            {(trackerTab ?? "timing") !== "map" && (
+              <EventToastStack
+                toasts={toasts}
+                drivers={drivers.data ?? []}
+                onDismiss={dismiss}
+                layout="overlay"
+              />
+            )}
 
             {/* Phone layout: tab-switched (md:hidden) */}
             <div className="md:hidden flex flex-col w-full">
@@ -1136,6 +1139,12 @@ export default function RaceWeekend() {
                       )}
                     </div>
                     <div className="relative flex-1 min-h-[64vw]">
+                      <EventToastStack
+                        toasts={toasts}
+                        drivers={drivers.data ?? []}
+                        onDismiss={dismiss}
+                        layout="overlay"
+                      />
                       {drivers.isError ? (
                         <ErrorMessage message="Failed to load driver data" />
                       ) : (

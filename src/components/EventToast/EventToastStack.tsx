@@ -1,4 +1,4 @@
-import React, { useState, useRef, type ReactNode } from "react";
+import React, { useRef, useState, type ReactNode } from "react";
 import { Play, Square } from "lucide-react";
 import type { ActiveToast } from "@/hooks/useEventToasts";
 import type { Driver } from "@/api/types";
@@ -15,6 +15,7 @@ interface Props {
   toasts: ActiveToast[];
   drivers: Driver[];
   onDismiss: (id: string) => void;
+  layout?: "overlay" | "inline";
 }
 
 const FLAG_COLORS: Record<string, { bg: string; text: string; label: string }> =
@@ -28,7 +29,12 @@ const FLAG_COLORS: Record<string, { bg: string; text: string; label: string }> =
     BLUE: { bg: "#4da6ff", text: "#000", label: "BLUE FLAG" },
   };
 
-export function EventToastStack({ toasts, drivers, onDismiss }: Props) {
+export function EventToastStack({
+  toasts,
+  drivers,
+  onDismiss,
+  layout = "overlay",
+}: Props) {
   const driverMap = new Map(drivers.map((d) => [d.driver_number, d]));
 
   if (toasts.length === 0) return null;
@@ -36,41 +42,46 @@ export function EventToastStack({ toasts, drivers, onDismiss }: Props) {
   return (
     <>
       <style>{`
-        @keyframes toast-slide-right {
-          from { opacity: 0; transform: translateX(24px); }
-          to   { opacity: 1; transform: translateX(0); }
+        @keyframes toast-slide-desktop {
+          from { opacity: 0; transform: translateX(24px) scale(0.98); }
+          to   { opacity: 1; transform: translateX(0) scale(1); }
         }
-        @keyframes toast-slide-up {
-          from { opacity: 0; transform: translateY(16px); }
-          to   { opacity: 1; transform: translateY(0); }
+        @keyframes toast-slide-mobile {
+          from { opacity: 0; transform: translateY(16px) scale(0.98); }
+          to   { opacity: 1; transform: translateY(0) scale(1); }
         }
-        .toast-in { animation: toast-slide-right 0.18s ease-out both; }
+        .toast-in { animation: toast-slide-mobile 0.2s ease-out both; }
         @media (max-width: 767px) {
-          .toast-in { animation: toast-slide-up 0.18s ease-out both; }
+          .toast-in { animation: toast-slide-mobile 0.2s ease-out both; }
+        }
+        @media (min-width: 768px) {
+          .toast-in { animation: toast-slide-desktop 0.2s ease-out both; }
+        }
+        @media (max-width: 767px) {
+          .toast-cards > :nth-child(n + 3) { display: none; }
         }
       `}</style>
 
-      {/*
-        Mobile  : right-anchored narrow stack from the bottom, slide-up.
-        Desktop : top-right corner, newest at top, slide-right.
-      */}
       <div
         className={[
-          "absolute z-30 pointer-events-none flex gap-1.5",
-          // mobile — narrow right-anchored column, above playback bar
-          "flex-col-reverse bottom-2 right-2 left-auto w-[200px]",
-          // desktop overrides
-          "md:gap-2 md:flex-col md:bottom-auto md:top-3 md:left-auto md:right-3 md:w-[260px]",
+          "pointer-events-none flex flex-col gap-1.5",
+          layout === "overlay"
+            ? "absolute z-30 right-2 bottom-[max(6rem,env(safe-area-inset-bottom))] w-[198px] md:right-4 md:top-4 md:bottom-auto md:w-[220px]"
+            : "relative z-10 w-[198px] ml-auto px-1 pt-0.5 pb-0.5 md:self-end md:w-[220px] md:px-0 md:pt-1 md:pb-1",
         ].join(" ")}
+        role="region"
+        aria-label="Live race notifications"
       >
-        {toasts.map((at) => (
-          <ToastCard
-            key={at.event.id}
-            at={at}
-            driverMap={driverMap}
-            onDismiss={onDismiss}
-          />
-        ))}
+        <div className="toast-cards pointer-events-none flex flex-col gap-1.5">
+          {toasts.map((at) => (
+            <ToastCard
+              key={at.event.id}
+              at={at}
+              driverMap={driverMap}
+              onDismiss={onDismiss}
+            />
+          ))}
+        </div>
       </div>
     </>
   );
@@ -190,8 +201,8 @@ function DismissBtn({
     <button
       onClick={() => onDismiss(id)}
       className="flex items-center justify-center shrink-0 pointer-events-auto
-                 w-7 h-7 md:w-7 md:h-7
-                 text-muted hover:text-white transition-colors text-xs"
+                 w-6 h-6 rounded-md border border-white/10 bg-black/20
+                 text-white/55 hover:text-white hover:bg-black/35 transition-colors text-xs"
       style={{ touchAction: "manipulation" }}
       aria-label="Dismiss"
     >
@@ -217,9 +228,9 @@ function RadioToast({
   const color = teamColor(driver?.team_colour);
 
   return (
-    <div className="pointer-events-auto bg-[#1f1f27] border border-[#38383f] shadow-xl flex overflow-hidden w-full">
+    <div className="pointer-events-auto rounded-lg bg-[#1f1f27] border border-[#3f3f4b] shadow-xl flex overflow-hidden w-full">
       <span className="w-[3px] shrink-0" style={{ background: color }} />
-      <div className="flex-1 px-2 py-1.5 md:px-3 md:py-2 min-w-0">
+      <div className="flex-1 px-2.5 py-2 md:px-3 md:py-2 min-w-0">
         <div className="flex items-center justify-between gap-2">
           <span
             className="text-[10px] font-black uppercase tracking-widest"
@@ -231,11 +242,11 @@ function RadioToast({
             Radio
           </span>
         </div>
-        <div className="mt-1.5 flex items-center gap-2">
+        <div className="mt-1.5 flex items-center gap-1.5">
           <button
             onClick={() => setPlaying((v) => !v)}
             style={{ touchAction: "manipulation" }}
-            className={`text-[10px] font-black uppercase tracking-widest px-2 py-1 transition-colors flex items-center gap-1 ${playing ? "bg-f1red text-white" : "bg-panel text-muted hover:text-white"}`}
+            className={`text-[9px] font-black uppercase tracking-widest px-2 py-1 rounded-md transition-colors flex items-center gap-1 ${playing ? "bg-f1red text-white" : "bg-panel text-muted hover:text-white"}`}
           >
             {playing ? (
               <>
@@ -288,9 +299,9 @@ function FlagToast({
         : cfg;
 
   return (
-    <div className="pointer-events-auto bg-[#1f1f27] border border-[#38383f] shadow-xl overflow-hidden w-full">
+    <div className="pointer-events-auto rounded-lg bg-[#1f1f27] border border-[#3f3f4b] shadow-xl overflow-hidden w-full">
       <div
-        className="flex items-center gap-2 px-2 py-1 md:px-3 md:py-1.5"
+        className="flex items-center gap-2 px-2.5 py-1 md:px-3 md:py-1"
         style={{ background: header.bg }}
       >
         <span
@@ -308,8 +319,8 @@ function FlagToast({
           </span>
         )}
       </div>
-      <div className="flex items-center gap-1 px-2 py-1.5 md:px-3 md:py-2">
-        <p className="flex-1 text-[10px] text-white/80 leading-snug line-clamp-2">
+      <div className="flex items-center gap-1 px-2.5 py-1.5 md:px-3 md:py-2">
+        <p className="flex-1 text-[10px] text-white/85 leading-snug line-clamp-2">
           {p.message}
         </p>
         <DismissBtn id={at.event.id} onDismiss={onDismiss} />
@@ -335,16 +346,16 @@ function OvertakeToast({
   const color = teamColor(overtaking?.team_colour);
 
   return (
-    <div className="pointer-events-auto bg-[#1f1f27] border border-[#38383f] shadow-xl flex items-center overflow-hidden w-full">
+    <div className="pointer-events-auto rounded-lg bg-[#1f1f27] border border-[#3f3f4b] shadow-xl flex items-center overflow-hidden w-full">
       <span
         className="w-[3px] self-stretch shrink-0"
         style={{ background: color }}
       />
-      <div className="flex-1 min-w-0 px-2 py-1.5 md:px-3 md:py-2.5">
+      <div className="flex-1 min-w-0 px-2.5 py-1.5 md:px-3 md:py-2">
         <div className="text-[9px] text-muted uppercase tracking-widest mb-0.5">
           Overtake
         </div>
-        <div className="flex items-center gap-1 font-black text-[12px] md:text-[14px]">
+        <div className="flex items-center gap-1 font-black text-[12px] md:text-[13px]">
           <span style={{ color }}>
             {overtaking?.name_acronym ?? p.overtaking}
           </span>
@@ -380,18 +391,18 @@ function PitToast({
   const color = teamColor(driver?.team_colour);
 
   return (
-    <div className="pointer-events-auto bg-[#1f1f27] border border-[#38383f] shadow-xl flex items-center overflow-hidden w-full">
+    <div className="pointer-events-auto rounded-lg bg-[#1f1f27] border border-[#3f3f4b] shadow-xl flex items-center overflow-hidden w-full">
       <span
         className="w-[3px] self-stretch shrink-0"
         style={{ background: color }}
       />
-      <div className="flex-1 min-w-0 px-2 py-1.5 md:px-3 md:py-2.5">
+      <div className="flex-1 min-w-0 px-2.5 py-1.5 md:px-3 md:py-2">
         <div className="text-[9px] text-muted uppercase tracking-widest mb-0.5">
           Pit · L{p.lapNumber}
         </div>
         <div className="flex items-center gap-1.5">
           <span
-            className="font-black text-[12px] md:text-[14px]"
+            className="font-black text-[12px] md:text-[13px]"
             style={{ color }}
           >
             {driver?.name_acronym ?? p.driverNumber}
@@ -430,11 +441,11 @@ function FastestLapToast({
 
   return (
     <div
-      className="pointer-events-auto shadow-xl overflow-hidden w-full"
+      className="pointer-events-auto rounded-lg shadow-xl overflow-hidden w-full"
       style={{ background: "#1a0e2e", border: "1px solid #9b59f5" }}
     >
       <div
-        className="flex items-center gap-2 px-2 py-1 md:px-3 md:py-1.5"
+        className="flex items-center gap-2 px-2.5 py-1 md:px-3 md:py-1"
         style={{ background: "#9b59f5" }}
       >
         <span className="text-[10px] font-black uppercase tracking-widest text-white">
@@ -444,15 +455,15 @@ function FastestLapToast({
           L{p.lapNumber}
         </span>
       </div>
-      <div className="flex items-center px-2 py-1.5 md:px-3 md:py-2.5">
+      <div className="flex items-center px-2.5 py-1.5 md:px-3 md:py-2">
         <span
-          className="font-black text-[12px] md:text-[14px] flex-1"
+          className="font-black text-[12px] md:text-[13px] flex-1"
           style={{ color: "#9b59f5" }}
         >
           {driver?.name_acronym ?? p.driverNumber}
         </span>
         <span
-          className="font-mono text-[11px] md:text-[13px] tabular-nums"
+          className="font-mono text-[10px] md:text-[12px] tabular-nums"
           style={{ color: "#9b59f5" }}
         >
           {fmtLapTime(p.lapTime)}
