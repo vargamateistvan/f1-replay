@@ -175,7 +175,12 @@ describe("deep component coverage", () => {
     ] as unknown as ActiveToast[];
 
     render(
-      <EventToastStack toasts={toasts} drivers={drivers} onDismiss={dismiss} />,
+      <EventToastStack
+        toasts={toasts}
+        drivers={drivers}
+        onDismiss={dismiss}
+        maxVisible={6}
+      />,
     );
 
     expect(screen.getByText("Radio")).toBeInTheDocument();

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import type { Lap } from "@/api/types";
 import { ErrorMessage } from "@/components/ErrorMessage";
 import { TelemetryChart } from "@/components/TelemetryChart/TelemetryChart";
@@ -304,58 +304,61 @@ export default function Telemetry() {
     }
   };
 
-  const getLapMeta = (driver: number | null, lapNo: number | null): LapMeta => {
-    if (driver === null || lapNo === null) {
-      return {
-        timeText: "No lap selected",
-        statusLabel: "Idle",
-        statusClass: "text-muted border-[#444458] bg-[#171822]",
-      };
-    }
+  const getLapMeta = useCallback(
+    (driver: number | null, lapNo: number | null): LapMeta => {
+      if (driver === null || lapNo === null) {
+        return {
+          timeText: "No lap selected",
+          statusLabel: "Idle",
+          statusClass: "text-muted border-[#444458] bg-[#171822]",
+        };
+      }
 
-    const lap = lapLookup.get(`${driver}:${lapNo}`);
-    if (!lap) {
-      return {
-        timeText: "No timing data",
-        statusLabel: "Missing",
-        statusClass: "text-[#f5d400] border-[#7e7422] bg-[#2a240f]",
-      };
-    }
+      const lap = lapLookup.get(`${driver}:${lapNo}`);
+      if (!lap) {
+        return {
+          timeText: "No timing data",
+          statusLabel: "Missing",
+          statusClass: "text-[#f5d400] border-[#7e7422] bg-[#2a240f]",
+        };
+      }
 
-    if (lap.is_pit_out_lap) {
+      if (lap.is_pit_out_lap) {
+        return {
+          timeText: formatLapTime(lap.lap_duration),
+          statusLabel: "Pit Out",
+          statusClass: "text-[#f5a623] border-[#875d18] bg-[#2d1f0e]",
+        };
+      }
+
+      if (lap.lap_duration === null) {
+        return {
+          timeText: "No timing data",
+          statusLabel: "Invalid",
+          statusClass: "text-[#f5d400] border-[#7e7422] bg-[#2a240f]",
+        };
+      }
+
       return {
         timeText: formatLapTime(lap.lap_duration),
-        statusLabel: "Pit Out",
-        statusClass: "text-[#f5a623] border-[#875d18] bg-[#2d1f0e]",
+        statusLabel: "Valid",
+        statusClass: "text-[#39b54a] border-[#276d33] bg-[#112419]",
       };
-    }
-
-    if (lap.lap_duration === null) {
-      return {
-        timeText: "No timing data",
-        statusLabel: "Invalid",
-        statusClass: "text-[#f5d400] border-[#7e7422] bg-[#2a240f]",
-      };
-    }
-
-    return {
-      timeText: formatLapTime(lap.lap_duration),
-      statusLabel: "Valid",
-      statusClass: "text-[#39b54a] border-[#276d33] bg-[#112419]",
-    };
-  };
+    },
+    [lapLookup],
+  );
 
   const lapMetaA = useMemo(
     () => getLapMeta(driverA, selectedLapA),
-    [driverA, selectedLapA, lapLookup],
+    [driverA, selectedLapA, getLapMeta],
   );
   const lapMetaB = useMemo(
     () => getLapMeta(driverB, selectedLapB),
-    [driverB, selectedLapB, lapLookup],
+    [driverB, selectedLapB, getLapMeta],
   );
   const lapMetaC = useMemo(
     () => getLapMeta(driverC, selectedLapC),
-    [driverC, selectedLapC, lapLookup],
+    [driverC, selectedLapC, getLapMeta],
   );
 
   // Reference axis = driver A; B and C are resampled onto it.
