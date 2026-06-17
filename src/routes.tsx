@@ -10,7 +10,7 @@ import Settings from "@/pages/Settings";
 export function AppRouter() {
   return (
     <HashRouter>
-      <div className="flex h-[100dvh] min-h-[100dvh] flex-col overflow-hidden">
+      <div className="flex h-screen min-h-screen md:h-[100dvh] md:min-h-[100dvh] flex-col overflow-hidden">
         <Nav />
         <main className="app-main-scroll flex min-h-0 flex-1 flex-col pb-[calc(3rem+env(safe-area-inset-bottom))] md:overflow-hidden md:pb-0">
           <Routes>
