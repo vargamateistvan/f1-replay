@@ -4,6 +4,7 @@ interface Props {
   tier: SectorTier;
   segments?: readonly number[] | null;
   showMinisectors?: boolean;
+  widthClass?: string;
   title?: string;
 }
 
@@ -27,6 +28,7 @@ export function SectorBar({
   tier,
   segments,
   showMinisectors = true,
+  widthClass = "w-7",
   title,
 }: Props) {
   const colour: Record<SectorTier, string> = {
@@ -39,7 +41,10 @@ export function SectorBar({
 
   if (showMinisectors && segments && segments.length > 0) {
     return (
-      <div title={title} className="w-7 shrink-0 flex flex-col gap-[2px]">
+      <div
+        title={title}
+        className={`${widthClass} shrink-0 flex flex-col gap-[2px]`}
+      >
         <span className={`block h-[7px] ${colour[tier]}`} />
         <span className="block h-[4px] rounded-[1px] overflow-hidden flex items-stretch gap-px">
           {segments.map((code, idx) => (
@@ -54,6 +59,9 @@ export function SectorBar({
   }
 
   return (
-    <div title={title} className={`w-7 h-[7px] shrink-0 ${colour[tier]}`} />
+    <div
+      title={title}
+      className={`${widthClass} h-[7px] shrink-0 ${colour[tier]}`}
+    />
   );
 }

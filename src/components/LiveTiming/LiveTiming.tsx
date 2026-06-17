@@ -36,6 +36,7 @@ interface Props {
   readonly carData?: ReadonlyMap<number, CarData>;
   readonly showMinisectors?: boolean;
   readonly compactDriverColumn?: boolean;
+  readonly wideSectors?: boolean;
   readonly isLoading?: boolean;
   readonly selectedDriver?: number | null;
   readonly compareDriver?: number | null;
@@ -168,6 +169,7 @@ export function LiveTiming({
   carData,
   showMinisectors = true,
   compactDriverColumn = false,
+  wideSectors = false,
   sessionTimeMs,
   sessionStartMs,
   isLoading,
@@ -399,6 +401,8 @@ export function LiveTiming({
   const driverCellClass = compactDriverColumn
     ? "py-3 px-1 sm:px-1.5"
     : "py-3 px-1 sm:px-2";
+
+  const sectorBarWidthClass = wideSectors ? "w-14" : "w-7";
 
   if (isLoading) {
     return (
@@ -720,33 +724,51 @@ export function LiveTiming({
 
                 {/* Sector bars */}
                 <td className="hidden sm:table-cell py-3 px-1">
-                  <div className="flex justify-center">
+                  <div className="flex flex-col items-center gap-1">
                     <SectorBar
                       tier={t1}
                       segments={lastLap?.segments_sector_1}
                       showMinisectors={showMinisectors}
+                      widthClass={sectorBarWidthClass}
                       title={`S1: ${lastLap?.duration_sector_1?.toFixed(3) ?? "—"}`}
                     />
+                    {wideSectors && (
+                      <span className="text-[9px] font-mono tabular-nums text-muted leading-none">
+                        {lastLap?.duration_sector_1?.toFixed(3) ?? "—"}
+                      </span>
+                    )}
                   </div>
                 </td>
                 <td className="hidden sm:table-cell py-3 px-1">
-                  <div className="flex justify-center">
+                  <div className="flex flex-col items-center gap-1">
                     <SectorBar
                       tier={t2}
                       segments={lastLap?.segments_sector_2}
                       showMinisectors={showMinisectors}
+                      widthClass={sectorBarWidthClass}
                       title={`S2: ${lastLap?.duration_sector_2?.toFixed(3) ?? "—"}`}
                     />
+                    {wideSectors && (
+                      <span className="text-[9px] font-mono tabular-nums text-muted leading-none">
+                        {lastLap?.duration_sector_2?.toFixed(3) ?? "—"}
+                      </span>
+                    )}
                   </div>
                 </td>
                 <td className="hidden sm:table-cell py-3 px-1">
-                  <div className="flex justify-center">
+                  <div className="flex flex-col items-center gap-1">
                     <SectorBar
                       tier={t3}
                       segments={lastLap?.segments_sector_3}
                       showMinisectors={showMinisectors}
+                      widthClass={sectorBarWidthClass}
                       title={`S3: ${lastLap?.duration_sector_3?.toFixed(3) ?? "—"}`}
                     />
+                    {wideSectors && (
+                      <span className="text-[9px] font-mono tabular-nums text-muted leading-none">
+                        {lastLap?.duration_sector_3?.toFixed(3) ?? "—"}
+                      </span>
+                    )}
                   </div>
                 </td>
 
