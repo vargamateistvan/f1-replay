@@ -212,7 +212,7 @@ function DismissBtn({
   return (
     <button
       onClick={() => onDismiss(id)}
-      className="flex items-center justify-center shrink-0 pointer-events-auto
+      className="absolute top-1 right-1 z-10 flex items-center justify-center pointer-events-auto
                  w-6 h-6 rounded-md border border-white/10 bg-black/20
                  text-white/55 hover:text-white hover:bg-black/35 transition-colors text-xs"
       style={{ touchAction: "manipulation" }}
@@ -242,7 +242,7 @@ function RadioToast({
   const color = teamColor(driver?.team_colour);
 
   return (
-    <div className="pointer-events-auto rounded-lg bg-[#1f1f27] border border-[#3f3f4b] shadow-xl flex overflow-hidden w-full">
+    <div className="relative pointer-events-auto rounded-lg bg-[#1f1f27] border border-[#3f3f4b] shadow-xl flex overflow-hidden w-full">
       <span className="w-[3px] shrink-0" style={{ background: color }} />
       <div className="flex-1 px-2.5 py-2 md:px-3 md:py-2 min-w-0">
         <div className="flex items-center justify-between gap-2">
@@ -313,7 +313,7 @@ function FlagToast({
         : cfg;
 
   return (
-    <div className="pointer-events-auto rounded-lg bg-[#1f1f27] border border-[#3f3f4b] shadow-xl overflow-hidden w-full">
+    <div className="relative pointer-events-auto rounded-lg bg-[#1f1f27] border border-[#3f3f4b] shadow-xl overflow-hidden w-full">
       <div
         className="flex items-center gap-2 px-2.5 py-1 md:px-3 md:py-1"
         style={{ background: header.bg }}
@@ -360,7 +360,7 @@ function OvertakeToast({
   const color = teamColor(overtaking?.team_colour);
 
   return (
-    <div className="pointer-events-auto rounded-lg bg-[#1f1f27] border border-[#3f3f4b] shadow-xl flex items-center overflow-hidden w-full">
+    <div className="relative pointer-events-auto rounded-lg bg-[#1f1f27] border border-[#3f3f4b] shadow-xl flex items-center overflow-hidden w-full">
       <span
         className="w-[3px] self-stretch shrink-0"
         style={{ background: color }}
@@ -405,7 +405,7 @@ function PitToast({
   const color = teamColor(driver?.team_colour);
 
   return (
-    <div className="pointer-events-auto rounded-lg bg-[#1f1f27] border border-[#3f3f4b] shadow-xl flex items-center overflow-hidden w-full">
+    <div className="relative pointer-events-auto rounded-lg bg-[#1f1f27] border border-[#3f3f4b] shadow-xl flex items-center overflow-hidden w-full">
       <span
         className="w-[3px] self-stretch shrink-0"
         style={{ background: color }}
@@ -455,7 +455,7 @@ function FastestLapToast({
 
   return (
     <div
-      className="pointer-events-auto rounded-lg shadow-xl overflow-hidden w-full"
+      className="relative pointer-events-auto rounded-lg shadow-xl overflow-hidden w-full"
       style={{ background: "#1a0e2e", border: "1px solid #9b59f5" }}
     >
       <div
