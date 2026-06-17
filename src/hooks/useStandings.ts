@@ -3,6 +3,10 @@ import { useQuery, useQueries } from "@tanstack/react-query";
 import { api } from "@/api/endpoints";
 import { teamColor } from "@/utils/color";
 import { computeStandings, type DriverInfo } from "@/utils/standings";
+import {
+  useChampionshipDrivers,
+  useChampionshipTeams,
+} from "@/hooks/useSession";
 
 // Re-exported for existing import sites (pages/Standings.tsx).
 export type { DriverStanding, ConstructorStanding } from "@/utils/standings";
@@ -35,6 +39,9 @@ export function useStandings(year: number) {
     enabled: latestKey !== null,
     staleTime: Infinity,
   });
+
+  const championshipDriversQ = useChampionshipDrivers(latestKey);
+  const championshipTeamsQ = useChampionshipTeams(latestKey);
 
   // Authoritative classification for every race session (batched, rate-limited by
   // our client queue). session_result gives finishing position, points, and
@@ -72,10 +79,82 @@ export function useStandings(year: number) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [loadedRaces, totalRaces],
   );
-  const { driverStandings, constructorStandings } = useMemo(
+  const {
+    driverStandings: fallbackDriverStandings,
+    constructorStandings: fallbackConstructorStandings,
+  } = useMemo(
     () => computeStandings(raceSessions, resultData, driverInfo),
     [raceSessions, driverInfo, resultData],
   );
+
+  const fallbackDriverByNumber = useMemo(
+    () => new Map(fallbackDriverStandings.map((d) => [d.driverNumber, d])),
+    [fallbackDriverStandings],
+  );
+  const fallbackConstructorByTeam = useMemo(
+    () => new Map(fallbackConstructorStandings.map((c) => [c.name, c])),
+    [fallbackConstructorStandings],
+  );
+
+  const driverStandings = useMemo(() => {
+    const apiStandings = championshipDriversQ.data ?? [];
+    if (apiStandings.length === 0) return fallbackDriverStandings;
+
+    return [...apiStandings]
+      .sort(
+        (a, b) =>
+          a.position_current - b.position_current ||
+          b.points_current - a.points_current,
+      )
+      .map((d) => {
+        const fallback = fallbackDriverByNumber.get(d.driver_number);
+        return {
+          position: d.position_current,
+          driverNumber: d.driver_number,
+          acronym:
+            driverInfo.acronym.get(d.driver_number) ?? `#${d.driver_number}`,
+          fullName:
+            driverInfo.fullName.get(d.driver_number) ??
+            `Driver ${d.driver_number}`,
+          team: driverInfo.team.get(d.driver_number) ?? "—",
+          color: driverInfo.color.get(d.driver_number) ?? "#888",
+          points: d.points_current,
+          wins: fallback?.wins ?? 0,
+          podiums: fallback?.podiums ?? 0,
+        };
+      });
+  }, [
+    championshipDriversQ.data,
+    fallbackDriverByNumber,
+    fallbackDriverStandings,
+    driverInfo,
+  ]);
+
+  const constructorStandings = useMemo(() => {
+    const apiStandings = championshipTeamsQ.data ?? [];
+    if (apiStandings.length === 0) return fallbackConstructorStandings;
+
+    return [...apiStandings]
+      .sort(
+        (a, b) =>
+          a.position_current - b.position_current ||
+          b.points_current - a.points_current,
+      )
+      .map((c) => {
+        const fallback = fallbackConstructorByTeam.get(c.team_name);
+        return {
+          position: c.position_current,
+          name: c.team_name,
+          color: fallback?.color ?? "#888",
+          points: c.points_current,
+          wins: fallback?.wins ?? 0,
+        };
+      });
+  }, [
+    championshipTeamsQ.data,
+    fallbackConstructorByTeam,
+    fallbackConstructorStandings,
+  ]);
 
   return {
     driverStandings,
@@ -83,7 +162,14 @@ export function useStandings(year: number) {
     loadedRaces,
     totalRaces,
     isLoading: sessionsQ.isPending,
-    isFetching: resultQueries.some((q) => q.isFetching),
-    isError: sessionsQ.isError || resultQueries.some((q) => q.isError),
+    isFetching:
+      resultQueries.some((q) => q.isFetching) ||
+      championshipDriversQ.isFetching ||
+      championshipTeamsQ.isFetching,
+    isError:
+      sessionsQ.isError ||
+      resultQueries.some((q) => q.isError) ||
+      championshipDriversQ.isError ||
+      championshipTeamsQ.isError,
   };
 }

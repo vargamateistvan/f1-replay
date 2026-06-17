@@ -137,3 +137,21 @@ export function useOvertakes(sessionKey: number | null, isLive = false) {
     refetchInterval: isLive ? LIVE_POLL_MS : false,
   });
 }
+
+export function useChampionshipDrivers(sessionKey: number | null) {
+  return useQuery({
+    queryKey: ["championshipDrivers", sessionKey],
+    queryFn: () => api.championshipDrivers(sessionKey!),
+    enabled: sessionKey !== null,
+    staleTime: Infinity,
+  });
+}
+
+export function useChampionshipTeams(sessionKey: number | null) {
+  return useQuery({
+    queryKey: ["championshipTeams", sessionKey],
+    queryFn: () => api.championshipTeams(sessionKey!),
+    enabled: sessionKey !== null,
+    staleTime: Infinity,
+  });
+}
