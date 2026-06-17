@@ -110,6 +110,7 @@ interface Props {
   readonly leaderboard?: readonly LeaderboardRow[];
   readonly activeSectorFlag?: ActiveTrackFlag | null;
   readonly activeTrackVehicles?: ActiveTrackVehicles | null;
+  readonly showCompass?: boolean;
   readonly onSelectDriver?: (driverNumber: number) => void;
 }
 
@@ -129,6 +130,7 @@ export function TrackMap({
   leaderboard,
   activeSectorFlag = null,
   activeTrackVehicles = null,
+  showCompass = true,
   onSelectDriver,
 }: Props) {
   const { t } = useTimeline();
@@ -1048,13 +1050,106 @@ export function TrackMap({
 
       {/* PNG export — only shown when there is track + car data to capture */}
       {locationIndexes.size > 0 && (
-        <button
-          onClick={() => svgRef.current && exportTrackSnapshot(svgRef.current)}
-          className="absolute bottom-2 right-2 px-2 py-0.5 text-[9px] font-bold uppercase tracking-widest bg-[#1e1e2a]/80 border border-[#38383f] text-muted hover:text-white hover:border-white/30 transition-colors backdrop-blur-sm"
-          title="Download track snapshot as PNG"
-        >
-          ↓ PNG
-        </button>
+        <div className="absolute bottom-2 right-2 z-20 flex flex-col items-end gap-1">
+          {showCompass && (
+            <div
+              className="w-[46px] h-12 bg-[#15151e]/85 flex items-center justify-center"
+              title="Compass"
+            >
+              <svg
+                viewBox="0 0 24 24"
+                width="46"
+                height="46"
+                aria-hidden="true"
+              >
+                <circle
+                  cx="12"
+                  cy="12"
+                  r="8.5"
+                  fill="none"
+                  stroke="#6b6b7a"
+                  strokeWidth="0.8"
+                />
+                <text
+                  x="12"
+                  y="2.8"
+                  textAnchor="middle"
+                  fill="#ffffff"
+                  fontSize="3.2"
+                  fontWeight="900"
+                >
+                  N
+                </text>
+                <text
+                  x="12"
+                  y="23"
+                  textAnchor="middle"
+                  fill="#8c8ca0"
+                  fontSize="2.5"
+                  fontWeight="700"
+                >
+                  S
+                </text>
+                <text
+                  x="1.9"
+                  y="12.9"
+                  textAnchor="middle"
+                  fill="#8c8ca0"
+                  fontSize="2.5"
+                  fontWeight="700"
+                >
+                  W
+                </text>
+                <text
+                  x="22.1"
+                  y="12.9"
+                  textAnchor="middle"
+                  fill="#8c8ca0"
+                  fontSize="2.5"
+                  fontWeight="700"
+                >
+                  E
+                </text>
+                <line
+                  x1="12"
+                  y1="3.7"
+                  x2="12"
+                  y2="20.3"
+                  stroke="#4f5061"
+                  strokeWidth="0.45"
+                />
+                <line
+                  x1="3.7"
+                  y1="12"
+                  x2="20.3"
+                  y2="12"
+                  stroke="#4f5061"
+                  strokeWidth="0.45"
+                />
+                <g transform={`rotate(${-rotationDeg} 12 12)`}>
+                  <path
+                    d="M12 4.6 L13.8 12 L12 10.6 L10.2 12 Z"
+                    fill="#ff2d4d"
+                  />
+                  <path
+                    d="M12 19.4 L13.4 12 L12 13.1 L10.6 12 Z"
+                    fill="#5f6175"
+                  />
+                  <circle cx="12" cy="12" r="1.1" fill="#d4d4df" />
+                </g>
+              </svg>
+            </div>
+          )}
+          <button
+            onClick={() =>
+              svgRef.current && exportTrackSnapshot(svgRef.current)
+            }
+            className="px-2 py-0.5 text-[9px] font-bold uppercase tracking-widest bg-[#1e1e2a]/80 border border-[#38383f] text-muted hover:text-white hover:border-white/30 transition-colors backdrop-blur-sm"
+            title="Download track snapshot as PNG"
+          >
+            ↓ PNG
+          </button>
+        </div>
       )}
     </div>
   );

@@ -560,6 +560,7 @@ export default function RaceWeekend() {
     mapShowBattleRings,
     mapShowDriverHud,
     mapShowSectorFlags,
+    mapShowCompass,
     leaderboardTelemetry,
     trackerTimingTelemetry,
     defaultSpeed,
@@ -919,6 +920,7 @@ export default function RaceWeekend() {
       focusDriverLap={mapShowDriverHud ? focusDriverLap : null}
       leaderboard={mapShowLeaderboard ? mapLeaderboard : undefined}
       activeSectorFlag={mapShowSectorFlags ? activeSectorFlag : null}
+      showCompass={mapShowCompass}
       activeTrackVehicles={activeTrackVehicles}
       retiredDrivers={retiredDrivers}
       onSelectDriver={toggleFocus}

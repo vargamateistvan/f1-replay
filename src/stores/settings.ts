@@ -17,6 +17,7 @@ export interface AppSettings {
   mapShowBattleRings: boolean;
   mapShowDriverHud: boolean;
   mapShowSectorFlags: boolean;
+  mapShowCompass: boolean;
   // Leaderboard
   leaderboardTelemetry: boolean;
   // Driver Tracker
@@ -59,6 +60,7 @@ export const SETTINGS_DEFAULTS: AppSettings = {
   mapShowBattleRings: true,
   mapShowDriverHud: true,
   mapShowSectorFlags: true,
+  mapShowCompass: true,
   leaderboardTelemetry: true,
   trackerTimingTelemetry: false,
   showCoffeeWidget: true,

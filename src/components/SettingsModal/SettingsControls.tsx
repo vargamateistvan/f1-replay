@@ -201,6 +201,12 @@ export function SettingsBody() {
         checked={settings.mapShowSectorFlags}
         onChange={toggle("mapShowSectorFlags")}
       />
+      <SettingRow
+        label="Compass overlay"
+        description="Show north indicator in track controls"
+        checked={settings.mapShowCompass}
+        onChange={toggle("mapShowCompass")}
+      />
 
       <SectionHeader>Leaderboard</SectionHeader>
       <SettingRow
