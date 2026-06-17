@@ -12,28 +12,21 @@ body {
   @apply bg-track text-white font-sans antialiased;
 }
 
-/* Desktop: fixed app shell, nested panel scroll */
-@media (min-width: 768px) {
-  html, body, #root {
-    height: 100%;
-    height: 100dvh;
-    overflow: hidden;
-  }
+/* Keep the app in a fixed viewport shell; scrolling happens in app containers. */
+html,
+body,
+#root {
+  height: 100%;
+  height: 100dvh;
+  overflow: hidden;
 }
 
-/*
- * Mobile (especially iOS Safari): page scroll — nested overflow scroll
- * inside flex + overflow:hidden is unreliable on real touch devices.
- */
-@media (max-width: 767px) {
-  html, body, #root {
-    height: auto;
-    min-height: 100%;
-    min-height: 100dvh;
+/* iOS Safari viewport fallback */
+@supports (-webkit-touch-callout: none) {
+  html,
+  body,
+  #root {
     min-height: -webkit-fill-available;
-    overflow-x: hidden;
-    overflow-y: auto;
-    -webkit-overflow-scrolling: touch;
   }
 }
 
@@ -41,6 +34,13 @@ body {
   /* Nested scroll panels — desktop/tablet only */
   .panel-scroll {
     @apply md:flex-1 md:min-h-0 md:overflow-y-auto md:overscroll-contain;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  /* Main mobile scroll container (instead of document/body). */
+  .app-main-scroll {
+    overflow-y: auto;
+    overscroll-behavior-y: contain;
     -webkit-overflow-scrolling: touch;
   }
 }
