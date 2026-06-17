@@ -9,9 +9,9 @@ export function MobileNav() {
   const location = useLocation();
   const navigate = useNavigate();
   const openHelp = useSettings((s) => s.openHelp);
-  const [view, setView] = useStringParam<MainView>("view", "leaderboard");
+  const [view, setView] = useStringParam<MainView>("view", "tracker");
   const [showMore, setShowMore] = useState(false);
-  const currentView: MainView = view ?? "leaderboard";
+  const currentView: MainView = view ?? "tracker";
   const isMain = location.pathname === "/";
 
   useEffect(() => {
@@ -23,8 +23,7 @@ export function MobileNav() {
 
   function viewHref(id: MainView) {
     const params = new URLSearchParams(searchParams);
-    if (id === "leaderboard") params.delete("view");
-    else params.set("view", id);
+    params.set("view", id);
     return `/?${params}`;
   }
 

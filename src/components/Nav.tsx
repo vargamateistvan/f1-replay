@@ -55,7 +55,7 @@ export function Nav() {
   const year = yearParam ?? DEFAULT_YEAR;
   const [meetingKey] = useNumberParam("meeting", null);
   const [sessionKey, setSessionKey] = useNumberParam("session", null);
-  const [view] = useStringParam<MainView>("view", "leaderboard");
+  const [view] = useStringParam<MainView>("view", "tracker");
 
   const meetings = useMeetings(year);
   const sessions = useSessions(meetingKey);
@@ -223,15 +223,14 @@ export function Nav() {
       ? `${circuitLabel} · ${sessionLabel}`
       : (circuitLabel ?? "SELECT SESSION");
 
-  const currentView = view ?? "leaderboard";
+  const currentView = view ?? "tracker";
   const location = useLocation();
   const navigate = useNavigate();
   const isMainRoute = location.pathname === "/";
 
   function viewHref(id: MainView) {
     const params = new URLSearchParams(searchParams);
-    if (id === "leaderboard") params.delete("view");
-    else params.set("view", id);
+    params.set("view", id);
     return `/?${params}`;
   }
 
