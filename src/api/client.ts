@@ -29,6 +29,9 @@ interface OpenF1ErrorPayload {
 
 type QueryParams = Record<string, string | number | boolean>;
 
+// Identical concurrent GETs (same URL + auth header) share one network request.
+const inFlightJsonRequests = new Map<string, Promise<unknown[]>>();
+
 export function isAuthError(err: unknown): err is OpenF1Error {
   return (
     err instanceof OpenF1Error && (err.status === 401 || err.status === 403)
@@ -144,27 +147,42 @@ export async function fetchEndpoint<T>(
   const headers: Record<string, string> = {};
   if (API_KEY) headers.Authorization = `Bearer ${API_KEY}`;
 
-  let attempt = 0;
-  for (;;) {
-    await acquireSlot();
-    const res = await fetch(url, { headers });
+  const requestKey = `${url}|${headers.Authorization ?? ""}`;
+  const existing = inFlightJsonRequests.get(requestKey) as
+    | Promise<T[]>
+    | undefined;
+  if (existing) return existing;
 
-    if (res.ok) return res.json() as Promise<T[]>;
+  const requestPromise = (async () => {
+    let attempt = 0;
+    for (;;) {
+      await acquireSlot();
+      const res = await fetch(url, { headers });
 
-    // OpenF1 returns 404 + `{"detail":"No results found."}` for empty filters.
-    // Treat that specific case as an empty dataset.
-    if (await isNoResults404(path, res)) return [];
+      if (res.ok) return res.json() as Promise<T[]>;
 
-    // Retry on 429 (rate limit) and 5xx (transient server) with backoff.
-    // Auth (401/403) and other 4xx are terminal — fail fast.
-    const retryable = res.status === 429 || res.status >= 500;
-    if (!retryable || attempt >= RATE_MAX_RETRIES) {
-      throw new OpenF1Error(res.status, path);
+      // OpenF1 returns 404 + `{"detail":"No results found."}` for empty filters.
+      // Treat that specific case as an empty dataset.
+      if (await isNoResults404(path, res)) return [];
+
+      // Retry on 429 (rate limit) and 5xx (transient server) with backoff.
+      // Auth (401/403) and other 4xx are terminal — fail fast.
+      const retryable = res.status === 429 || res.status >= 500;
+      if (!retryable || attempt >= RATE_MAX_RETRIES) {
+        throw new OpenF1Error(res.status, path);
+      }
+
+      const backoff = parseRetryAfter(res) ?? 2 ** attempt * 500; // 0.5s,1s,2s,4s…
+      attempt++;
+      await sleep(backoff);
     }
+  })();
 
-    const backoff = parseRetryAfter(res) ?? 2 ** attempt * 500; // 0.5s,1s,2s,4s…
-    attempt++;
-    await sleep(backoff);
+  inFlightJsonRequests.set(requestKey, requestPromise as Promise<unknown[]>);
+  try {
+    return await requestPromise;
+  } finally {
+    inFlightJsonRequests.delete(requestKey);
   }
 }
 

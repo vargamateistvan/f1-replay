@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { api } from "@/api/endpoints";
-import { LIVE_POLL_MS } from "@/utils/live";
+import { LIVE_POLL_FAST_MS, LIVE_POLL_SLOW_MS } from "@/utils/live";
 
 export function useMeetings(year: number) {
   return useQuery({
@@ -34,7 +34,7 @@ export function usePositions(sessionKey: number | null, isLive = false) {
     queryFn: () => api.positions(sessionKey!),
     enabled: sessionKey !== null,
     staleTime: isLive ? 0 : Infinity,
-    refetchInterval: isLive ? LIVE_POLL_MS : false,
+    refetchInterval: isLive ? LIVE_POLL_FAST_MS : false,
   });
 }
 
@@ -44,7 +44,7 @@ export function useIntervals(sessionKey: number | null, isLive = false) {
     queryFn: () => api.intervals(sessionKey!),
     enabled: sessionKey !== null,
     staleTime: isLive ? 0 : Infinity,
-    refetchInterval: isLive ? LIVE_POLL_MS : false,
+    refetchInterval: isLive ? LIVE_POLL_FAST_MS : false,
   });
 }
 
@@ -58,7 +58,7 @@ export function useLaps(
     queryFn: () => api.laps(sessionKey!, driverNumber),
     enabled: sessionKey !== null,
     staleTime: isLive ? 0 : Infinity,
-    refetchInterval: isLive ? LIVE_POLL_MS : false,
+    refetchInterval: isLive ? LIVE_POLL_FAST_MS : false,
   });
 }
 
@@ -95,7 +95,7 @@ export function useRaceControl(sessionKey: number | null, isLive = false) {
     queryFn: () => api.raceControl(sessionKey!),
     enabled: sessionKey !== null,
     staleTime: isLive ? 0 : Infinity,
-    refetchInterval: isLive ? LIVE_POLL_MS : false,
+    refetchInterval: isLive ? LIVE_POLL_SLOW_MS : false,
   });
 }
 
@@ -105,7 +105,7 @@ export function useTeamRadio(sessionKey: number | null, isLive = false) {
     queryFn: () => api.teamRadio(sessionKey!),
     enabled: sessionKey !== null,
     staleTime: isLive ? 0 : Infinity,
-    refetchInterval: isLive ? LIVE_POLL_MS : false,
+    refetchInterval: isLive ? LIVE_POLL_SLOW_MS : false,
   });
 }
 
@@ -115,7 +115,7 @@ export function useWeather(sessionKey: number | null, isLive = false) {
     queryFn: () => api.weather(sessionKey!),
     enabled: sessionKey !== null,
     staleTime: isLive ? 0 : Infinity,
-    refetchInterval: isLive ? LIVE_POLL_MS : false,
+    refetchInterval: isLive ? LIVE_POLL_SLOW_MS : false,
   });
 }
 
@@ -134,7 +134,7 @@ export function useOvertakes(sessionKey: number | null, isLive = false) {
     queryFn: () => api.overtakes(sessionKey!),
     enabled: sessionKey !== null,
     staleTime: isLive ? 0 : Infinity,
-    refetchInterval: isLive ? LIVE_POLL_MS : false,
+    refetchInterval: isLive ? LIVE_POLL_SLOW_MS : false,
   });
 }
 
