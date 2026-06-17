@@ -7,6 +7,7 @@ import RaceWeekend from "@/pages/RaceWeekend";
 import Telemetry from "@/pages/Telemetry";
 import Standings from "@/pages/Standings";
 import Settings from "@/pages/Settings";
+import NotFound from "@/pages/NotFound";
 
 export function AppRouter() {
   return (
@@ -19,6 +20,7 @@ export function AppRouter() {
             <Route path="/telemetry" element={<Telemetry />} />
             <Route path="/standings" element={<Standings />} />
             <Route path="/settings" element={<Settings />} />
+            <Route path="*" element={<NotFound />} />
           </Routes>
         </main>
         <MobileNav />
