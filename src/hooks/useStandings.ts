@@ -8,6 +8,8 @@ import {
   useChampionshipTeams,
 } from "@/hooks/useSession";
 
+const SESSION_RESULT_FILTERS = { "position>=": 1 } as const;
+
 // Re-exported for existing import sites (pages/Standings.tsx).
 export type { DriverStanding, ConstructorStanding } from "@/utils/standings";
 
@@ -48,8 +50,8 @@ export function useStandings(year: number) {
   // DNF/DNS/DSQ flags directly — far more accurate than scraping the last position.
   const resultQueries = useQueries({
     queries: raceSessions.map((s) => ({
-      queryKey: ["sessionResult", s.session_key],
-      queryFn: () => api.sessionResult(s.session_key),
+      queryKey: ["sessionResult", s.session_key, SESSION_RESULT_FILTERS],
+      queryFn: () => api.sessionResult(s.session_key, SESSION_RESULT_FILTERS),
       staleTime: Infinity,
     })),
   });
