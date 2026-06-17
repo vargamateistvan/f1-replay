@@ -105,6 +105,9 @@ export function Nav() {
   const [apiFacts, setApiFacts] = useState<CircuitFacts | null>(null);
   const [apiFactsLoading, setApiFactsLoading] = useState(false);
   const [showNextAgenda, setShowNextAgenda] = useState(false);
+  const [brokenCircuitImages, setBrokenCircuitImages] = useState<
+    Record<string, true>
+  >({});
 
   const [yearParam] = useNumberParam("year", DEFAULT_YEAR);
   const year = yearParam ?? DEFAULT_YEAR;
@@ -122,8 +125,20 @@ export function Nav() {
   const selectedSession = sessions.data?.find(
     (s) => s.session_key === sessionKey,
   );
+  const isCircuitImageBroken = Boolean(
+    selectedMeeting?.circuit_image &&
+    brokenCircuitImages[selectedMeeting.circuit_image],
+  );
   const visibleFacts = apiFacts;
   const live = isSessionLive(selectedSession);
+
+  function markCircuitImageBroken(url: string | null | undefined) {
+    if (!url) return;
+    setBrokenCircuitImages((prev) => {
+      if (prev[url]) return prev;
+      return { ...prev, [url]: true };
+    });
+  }
 
   useEffect(() => {
     const id = window.setInterval(() => setNowMs(Date.now()), 1_000);
@@ -701,7 +716,7 @@ export function Nav() {
                   paddingRight: "max(0.5rem, env(safe-area-inset-right))",
                 }}
               >
-                {selectedMeeting.circuit_image && (
+                {selectedMeeting.circuit_image && !isCircuitImageBroken && (
                   <button
                     type="button"
                     onClick={() => setShowCircuitFacts((v) => !v)}
@@ -716,6 +731,9 @@ export function Nav() {
                       className="h-6 w-8 object-cover rounded-sm border border-panel/80 transition-colors group-hover:border-white/70"
                       loading="lazy"
                       referrerPolicy="no-referrer"
+                      onError={() =>
+                        markCircuitImageBroken(selectedMeeting.circuit_image)
+                      }
                     />
                   </button>
                 )}
@@ -735,17 +753,15 @@ export function Nav() {
                   {CIRCUIT_TYPE_LABEL[selectedMeeting.circuit_type] ??
                     selectedMeeting.circuit_type}
                 </span>
-                {selectedMeeting.circuit_image && (
-                  <button
-                    type="button"
-                    onClick={() => setShowCircuitFacts((v) => !v)}
-                    className="ml-auto text-[9px] font-black uppercase tracking-widest text-muted hover:text-white transition-colors"
-                    aria-label="Toggle circuit facts"
-                    aria-expanded={showCircuitFacts}
-                  >
-                    {showCircuitFacts ? "Hide Facts" : "Track Facts"}
-                  </button>
-                )}
+                <button
+                  type="button"
+                  onClick={() => setShowCircuitFacts((v) => !v)}
+                  className="ml-auto text-[9px] font-black uppercase tracking-widest text-muted hover:text-white transition-colors"
+                  aria-label="Toggle circuit facts"
+                  aria-expanded={showCircuitFacts}
+                >
+                  {showCircuitFacts ? "Hide Facts" : "Track Facts"}
+                </button>
                 {selectedMeeting.is_cancelled && (
                   <span className="bg-red-500/15 border border-red-500/40 text-red-300 text-[9px] font-bold uppercase tracking-widest px-1.5 py-0.5 rounded-sm">
                     Cancelled
@@ -786,7 +802,7 @@ export function Nav() {
             </div>
 
             <div className="p-4 overflow-y-auto max-h-[calc(88dvh-60px)]">
-              {selectedMeeting.circuit_image && (
+              {selectedMeeting.circuit_image && !isCircuitImageBroken && (
                 <div className="mb-3 rounded border border-panel/80 bg-track/70 p-2">
                   <div className="rounded border border-black/10 bg-gradient-to-b from-[#f6f8fb] to-[#e8edf4] p-2">
                     <img
@@ -795,8 +811,17 @@ export function Nav() {
                       className="w-full max-h-44 object-contain rounded [filter:contrast(1.08)_drop-shadow(0_1px_0_rgba(255,255,255,0.45))]"
                       loading="lazy"
                       referrerPolicy="no-referrer"
+                      onError={() =>
+                        markCircuitImageBroken(selectedMeeting.circuit_image)
+                      }
                     />
                   </div>
+                </div>
+              )}
+
+              {selectedMeeting.circuit_image && isCircuitImageBroken && (
+                <div className="mb-3 rounded border border-panel/80 bg-track/70 px-3 py-2 text-[10px] text-muted">
+                  Track layout image unavailable for this event.
                 </div>
               )}
 
