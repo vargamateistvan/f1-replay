@@ -555,6 +555,7 @@ export default function RaceWeekend() {
     toastOvertake: settingToastOvertake,
     toastPit: settingToastPit,
     toastFastestLap: settingToastFastestLap,
+    notificationMaxVisible,
     mapShowLeaderboard,
     mapShowCompoundBadges,
     mapShowBattleRings,
@@ -1051,6 +1052,7 @@ export default function RaceWeekend() {
                 drivers={drivers.data ?? []}
                 onDismiss={dismiss}
                 radioAutoplay={settingToastRadioAutoplay}
+                maxVisible={notificationMaxVisible}
                 layout="overlay"
               />
             )}
@@ -1177,6 +1179,7 @@ export default function RaceWeekend() {
                         drivers={drivers.data ?? []}
                         onDismiss={dismiss}
                         radioAutoplay={settingToastRadioAutoplay}
+                        maxVisible={notificationMaxVisible}
                         layout="overlay"
                       />
                       {drivers.isError ? (

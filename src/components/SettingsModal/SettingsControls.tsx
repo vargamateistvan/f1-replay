@@ -77,6 +77,7 @@ export function SectionHeader({ children }: { children: ReactNode }) {
 // ── Speed selector ────────────────────────────────────────────────────────────
 
 const SPEED_OPTIONS = [1, 2, 4, 8] as const;
+const NOTIFICATION_LIMIT_OPTIONS = [2, 4, 6, 8] as const;
 
 export function SpeedSelector({
   value,
@@ -114,6 +115,47 @@ export function SpeedSelector({
   );
 }
 
+export function NotificationLimitSelector({
+  value,
+  onChange,
+  disabled = false,
+}: {
+  value: 2 | 4 | 6 | 8;
+  onChange: (v: 2 | 4 | 6 | 8) => void;
+  disabled?: boolean;
+}) {
+  return (
+    <div
+      className={`flex items-center justify-between gap-4 py-3 border-b border-[#2a2a35] ${disabled ? "opacity-40" : ""}`}
+    >
+      <div>
+        <div className="text-[13px] text-white/90 leading-tight">
+          Max visible notifications
+        </div>
+        <div className="text-[11px] text-muted mt-0.5 leading-tight">
+          Applies to mobile and desktop toast stack
+        </div>
+      </div>
+      <div className="flex gap-1 shrink-0">
+        {NOTIFICATION_LIMIT_OPTIONS.map((n) => (
+          <button
+            key={n}
+            onClick={() => !disabled && onChange(n)}
+            disabled={disabled}
+            className={`w-9 h-8 text-[11px] font-bold rounded transition-colors ${
+              value === n
+                ? "bg-f1red text-white"
+                : "bg-[#2a2a35] text-muted hover:text-white hover:bg-[#38383f]"
+            } ${disabled ? "cursor-not-allowed" : ""}`}
+          >
+            {n}
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 // ── Settings body (all sections) ──────────────────────────────────────────────
 
 export function SettingsBody() {
@@ -131,6 +173,11 @@ export function SettingsBody() {
         description="Show event toasts during playback"
         checked={settings.toastsEnabled}
         onChange={toggle("toastsEnabled")}
+      />
+      <NotificationLimitSelector
+        value={settings.notificationMaxVisible}
+        onChange={(v) => setSetting("notificationMaxVisible", v)}
+        disabled={!settings.toastsEnabled}
       />
       <SettingRow
         label="Team radio"
