@@ -34,6 +34,8 @@ const CIRCUIT_TYPE_LABEL: Record<string, string> = {
   "Temporary - Road": "Road Course",
 };
 
+const TRACK_FACTS_ENABLED = false;
+
 function isRaceWeekend(meetingName: string, officialName: string) {
   return /grand prix/i.test(meetingName) || /grand prix/i.test(officialName);
 }
@@ -152,9 +154,10 @@ export function Nav() {
   useEffect(() => {
     let cancelled = false;
     setApiFacts(null);
+    setApiFactsLoading(false);
 
     async function loadApiFacts() {
-      if (!selectedMeeting) return;
+      if (!TRACK_FACTS_ENABLED || !selectedMeeting) return;
       setApiFactsLoading(true);
       try {
         const fetched = await fetchCircuitFactsFromApi(
@@ -717,25 +720,16 @@ export function Nav() {
                 }}
               >
                 {selectedMeeting.circuit_image && !isCircuitImageBroken && (
-                  <button
-                    type="button"
-                    onClick={() => setShowCircuitFacts((v) => !v)}
-                    className="hidden sm:block group"
-                    aria-label="Toggle circuit facts"
-                    aria-expanded={showCircuitFacts}
-                    title="Show track facts"
-                  >
-                    <img
-                      src={selectedMeeting.circuit_image}
-                      alt={`${selectedMeeting.circuit_short_name} circuit`}
-                      className="h-6 w-8 object-cover rounded-sm border border-panel/80 transition-colors group-hover:border-white/70"
-                      loading="lazy"
-                      referrerPolicy="no-referrer"
-                      onError={() =>
-                        markCircuitImageBroken(selectedMeeting.circuit_image)
-                      }
-                    />
-                  </button>
+                  <img
+                    src={selectedMeeting.circuit_image}
+                    alt={`${selectedMeeting.circuit_short_name} circuit`}
+                    className="hidden sm:block h-6 w-8 object-cover rounded-sm border border-panel/80"
+                    loading="lazy"
+                    referrerPolicy="no-referrer"
+                    onError={() =>
+                      markCircuitImageBroken(selectedMeeting.circuit_image)
+                    }
+                  />
                 )}
                 {selectedMeeting.country_flag && (
                   <img
@@ -753,15 +747,17 @@ export function Nav() {
                   {CIRCUIT_TYPE_LABEL[selectedMeeting.circuit_type] ??
                     selectedMeeting.circuit_type}
                 </span>
-                <button
-                  type="button"
-                  onClick={() => setShowCircuitFacts((v) => !v)}
-                  className="ml-auto text-[9px] font-black uppercase tracking-widest text-muted hover:text-white transition-colors"
-                  aria-label="Toggle circuit facts"
-                  aria-expanded={showCircuitFacts}
-                >
-                  {showCircuitFacts ? "Hide Facts" : "Track Facts"}
-                </button>
+                {TRACK_FACTS_ENABLED && (
+                  <button
+                    type="button"
+                    onClick={() => setShowCircuitFacts((v) => !v)}
+                    className="ml-auto text-[9px] font-black uppercase tracking-widest text-muted hover:text-white transition-colors"
+                    aria-label="Toggle circuit facts"
+                    aria-expanded={showCircuitFacts}
+                  >
+                    {showCircuitFacts ? "Hide Facts" : "Track Facts"}
+                  </button>
+                )}
                 {selectedMeeting.is_cancelled && (
                   <span className="bg-red-500/15 border border-red-500/40 text-red-300 text-[9px] font-bold uppercase tracking-widest px-1.5 py-0.5 rounded-sm">
                     Cancelled
@@ -773,7 +769,7 @@ export function Nav() {
         </div>
       )}
 
-      {showCircuitFacts && selectedMeeting && (
+      {TRACK_FACTS_ENABLED && showCircuitFacts && selectedMeeting && (
         <div
           className="fixed inset-0 z-[210] flex items-center justify-center bg-black/70 backdrop-blur-sm px-4"
           onClick={(e) => {
