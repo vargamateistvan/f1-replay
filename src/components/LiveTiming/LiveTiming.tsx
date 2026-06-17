@@ -573,7 +573,11 @@ export function LiveTiming({
                 <td className="py-3 px-1 sm:px-2">
                   <div>
                     <span className="flex items-center gap-1 sm:gap-2">
-                      <DriverHeadshot driver={driver} accent={color} size="xs" />
+                      <DriverHeadshot
+                        driver={driver}
+                        accent={color}
+                        size="xs"
+                      />
                       {/* Team colour bar */}
                       <span
                         className="w-[2px] h-4 shrink-0 rounded-sm"
@@ -619,29 +623,41 @@ export function LiveTiming({
                       <div className="mt-1 grid grid-cols-2 gap-x-2 gap-y-0.5 text-[9px] leading-4 font-mono tabular-nums sm:hidden">
                         <span className="inline-flex min-w-0 items-center gap-1 text-[#7dd3fc]">
                           <span className="text-[#89a6bf]">SPD</span>
-                          <span className="w-[3ch] text-right">{speedDisplay}</span>
+                          <span className="w-[3ch] text-right">
+                            {speedDisplay}
+                          </span>
                         </span>
                         <span className="inline-flex min-w-0 items-center gap-1 text-[#c4b5fd]">
                           <span className="text-[#a79ac9]">RPM</span>
-                          <span className="w-[5ch] text-right">{rpmDisplay}</span>
+                          <span className="w-[5ch] text-right">
+                            {rpmDisplay}
+                          </span>
                         </span>
                         <span className="inline-flex min-w-0 items-center gap-1 text-[#fde68a]">
                           <span className="text-[#d2bf72]">G</span>
-                          <span className="w-[3ch] text-right">{gearDisplay}</span>
+                          <span className="w-[3ch] text-right">
+                            {gearDisplay}
+                          </span>
                         </span>
                         <span
                           className={`inline-flex min-w-0 items-center gap-1 ${car && car.drs >= 10 ? "text-[#39d743]" : "text-[#9ca3af]"}`}
                         >
                           <span className="text-[#9ba1a8]">DRS</span>
-                          <span className="w-[3ch] text-right">{drsDisplay}</span>
+                          <span className="w-[3ch] text-right">
+                            {drsDisplay}
+                          </span>
                         </span>
                         <span className="inline-flex min-w-0 items-center gap-1 text-[#4ade80]">
                           <span className="text-[#6eb989]">T</span>
-                          <span className="w-[4ch] text-right">{throttleDisplay}</span>
+                          <span className="w-[4ch] text-right">
+                            {throttleDisplay}
+                          </span>
                         </span>
                         <span className="inline-flex min-w-0 items-center gap-1 text-[#f87171]">
                           <span className="text-[#c88787]">B</span>
-                          <span className="w-[4ch] text-right">{brakeDisplay}</span>
+                          <span className="w-[4ch] text-right">
+                            {brakeDisplay}
+                          </span>
                         </span>
                       </div>
                     )}
