@@ -35,14 +35,28 @@ function cleanWikiValue(raw: string) {
     .trim();
 }
 
-function extractField(wikitext: string, field: string) {
-  const regex = new RegExp(`\\|\\s*${field}\\s*=\\s*([^\\n]+)`, "i");
-  const value = wikitext.match(regex)?.[1] ?? "";
-  return cleanWikiValue(value);
+function extractField(wikitext: string, field: string | string[]) {
+  const fields = Array.isArray(field) ? field : [field];
+  for (const f of fields) {
+    const regex = new RegExp(`\\|\\s*${f}\\s*=\\s*([^\\n]+)`, "i");
+    const value = wikitext.match(regex)?.[1];
+    if (value) return cleanWikiValue(value);
+  }
+  return "";
 }
 
 function firstNumber(value: string) {
   return value.match(/-?\d+(?:\.\d+)?/)?.[0] ?? null;
+}
+
+function extractDirection(
+  wikitext: string,
+): "Clockwise" | "Counterclockwise" | null {
+  const dirRaw = extractField(wikitext, ["rotation", "direction"]);
+  if (!dirRaw) return null;
+  if (/counter|ccw|0/i.test(dirRaw)) return "Counterclockwise";
+  if (/clock|cw|1/i.test(dirRaw)) return "Clockwise";
+  return null;
 }
 
 function extractLapRecord(wikitext: string) {
@@ -98,12 +112,25 @@ export async function fetchCircuitFactsFromApi(
   const wikitext = parsed?.parse?.wikitext?.["*"] as string | undefined;
   if (!wikitext) return null;
 
-  const lengthKm = firstNumber(extractField(wikitext, "length_km"));
-  const raceDistanceKm = firstNumber(extractField(wikitext, "race_length_km"));
-  const laps = firstNumber(extractField(wikitext, "race_laps"));
-  const turns = firstNumber(extractField(wikitext, "turns"));
+  const lengthKm = firstNumber(
+    extractField(wikitext, ["length_km", "circuit_length"]),
+  );
+  const raceDistanceKm = firstNumber(
+    extractField(wikitext, ["race_length_km", "race_distance_km", "gp_length"]),
+  );
+  const laps = firstNumber(extractField(wikitext, ["race_laps", "laps_gp"]));
+  const turns = firstNumber(extractField(wikitext, ["turns", "corners"]));
+  const drsZones = firstNumber(
+    extractField(wikitext, ["drs_zones", "drs_zonen"]),
+  );
+  const altitudeM = firstNumber(
+    extractField(wikitext, ["altitude", "elevation"]),
+  );
   const firstGpYear =
-    extractField(wikitext, "first_held").match(/\d{4}/)?.[0] ?? null;
+    extractField(wikitext, ["first_held", "first_gp", "opened"]).match(
+      /\d{4}/,
+    )?.[0] ?? null;
+  const direction = extractDirection(wikitext);
   const lapRecord = extractLapRecord(wikitext);
 
   const facts: CircuitFacts = {};
@@ -111,7 +138,10 @@ export async function fetchCircuitFactsFromApi(
   if (raceDistanceKm) facts.raceDistanceKm = raceDistanceKm;
   if (laps) facts.laps = laps;
   if (turns) facts.turns = turns;
+  if (drsZones) facts.drsZones = drsZones;
+  if (altitudeM) facts.altitudeM = altitudeM;
   if (firstGpYear) facts.firstGpYear = firstGpYear;
+  if (direction) facts.direction = direction;
   if (lapRecord) facts.lapRecord = lapRecord;
 
   return Object.keys(facts).length ? facts : null;
