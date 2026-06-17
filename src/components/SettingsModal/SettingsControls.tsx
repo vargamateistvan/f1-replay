@@ -167,6 +167,30 @@ export function SettingsBody() {
 
   return (
     <>
+      <SectionHeader>Playback</SectionHeader>
+      <SpeedSelector
+        value={settings.defaultSpeed}
+        onChange={(v) => setSetting("defaultSpeed", v)}
+      />
+      <SettingRow
+        label="Playback speed controls"
+        description="Show 1x/2x/4x/8x buttons in playback bar"
+        checked={settings.showPlaybackSpeedControls}
+        onChange={toggle("showPlaybackSpeedControls")}
+      />
+      <SettingRow
+        label="Forward event chips"
+        description="Show jump chips (incident, pit, flag, SC, pass, radio)"
+        checked={settings.showPlaybackEventChips}
+        onChange={toggle("showPlaybackEventChips")}
+      />
+      <SettingRow
+        label="Catch-up summary"
+        description="Show missed events after a large scrub forward"
+        checked={settings.catchupSummaryEnabled}
+        onChange={toggle("catchupSummaryEnabled")}
+      />
+
       <SectionHeader>Notifications</SectionHeader>
       <SettingRow
         label="Enable notifications"
@@ -217,6 +241,26 @@ export function SettingsBody() {
         disabled={!settings.toastsEnabled}
       />
 
+      <SectionHeader>Race Views</SectionHeader>
+      <SettingRow
+        label="Live car telemetry"
+        description="Speed, gear, RPM, throttle, brake & DRS columns"
+        checked={settings.leaderboardTelemetry}
+        onChange={toggle("leaderboardTelemetry")}
+      />
+      <SettingRow
+        label="Timing minisectors"
+        description="Show minisector strips under S1/S2/S3 bars"
+        checked={settings.timingShowMinisectors}
+        onChange={toggle("timingShowMinisectors")}
+      />
+      <SettingRow
+        label="Timing box live telemetry"
+        description="Show speed, gear, RPM, throttle, brake & DRS in tracker timing"
+        checked={settings.trackerTimingTelemetry}
+        onChange={toggle("trackerTimingTelemetry")}
+      />
+
       <SectionHeader>Track Map</SectionHeader>
       <SettingRow
         label="Mini leaderboard"
@@ -255,61 +299,7 @@ export function SettingsBody() {
         onChange={toggle("mapShowCompass")}
       />
 
-      <SectionHeader>Leaderboard</SectionHeader>
-      <SettingRow
-        label="Live car telemetry"
-        description="Speed, gear, RPM, throttle, brake & DRS columns"
-        checked={settings.leaderboardTelemetry}
-        onChange={toggle("leaderboardTelemetry")}
-      />
-      <SettingRow
-        label="Timing minisectors"
-        description="Show minisector strips under S1/S2/S3 bars"
-        checked={settings.timingShowMinisectors}
-        onChange={toggle("timingShowMinisectors")}
-      />
-
-      <SectionHeader>Driver Tracker</SectionHeader>
-      <SettingRow
-        label="Timing box live telemetry"
-        description="Show speed, gear, RPM, throttle, brake & DRS in tracker timing"
-        checked={settings.trackerTimingTelemetry}
-        onChange={toggle("trackerTimingTelemetry")}
-      />
-
-      <SectionHeader>Support</SectionHeader>
-      <SettingRow
-        label="Buy Me a Coffee button"
-        description="Show the floating support widget"
-        checked={settings.showCoffeeWidget}
-        onChange={toggle("showCoffeeWidget")}
-      />
-
-      <SectionHeader>Playback</SectionHeader>
-      <SpeedSelector
-        value={settings.defaultSpeed}
-        onChange={(v) => setSetting("defaultSpeed", v)}
-      />
-      <SettingRow
-        label="Playback speed controls"
-        description="Show 1x/2x/4x/8x buttons in playback bar"
-        checked={settings.showPlaybackSpeedControls}
-        onChange={toggle("showPlaybackSpeedControls")}
-      />
-      <SettingRow
-        label="Forward event chips"
-        description="Show jump chips (incident, pit, flag, SC, pass, radio)"
-        checked={settings.showPlaybackEventChips}
-        onChange={toggle("showPlaybackEventChips")}
-      />
-      <SettingRow
-        label="Catch-up summary"
-        description="Show missed events after a large scrub forward"
-        checked={settings.catchupSummaryEnabled}
-        onChange={toggle("catchupSummaryEnabled")}
-      />
-
-      <SectionHeader>Data & Export</SectionHeader>
+      <SectionHeader>Data & Interface</SectionHeader>
       <SettingRow
         label="CSV export buttons"
         description="Show export controls on Race Control, Team Radio, Overtakes and Weather panels"
@@ -321,6 +311,14 @@ export function SettingsBody() {
         description="Show countdown banner for the next race weekend"
         checked={settings.showNextRaceWeekendBanner}
         onChange={toggle("showNextRaceWeekendBanner")}
+      />
+
+      <SectionHeader>Support</SectionHeader>
+      <SettingRow
+        label="Buy Me a Coffee button"
+        description="Show the floating support widget"
+        checked={settings.showCoffeeWidget}
+        onChange={toggle("showCoffeeWidget")}
       />
 
       <div className="pt-6 pb-2 flex justify-end">
