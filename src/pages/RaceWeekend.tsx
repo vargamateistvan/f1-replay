@@ -1013,7 +1013,7 @@ export default function RaceWeekend() {
             {/* Phone layout: tab-switched (md:hidden) */}
             <div className="md:hidden flex flex-col w-full">
               {/* Tab chips */}
-              <div className="flex gap-1 overflow-x-auto border-b border-panel shrink-0 bg-track px-2 py-1.5">
+              <div className="sticky top-0 z-20 grid grid-cols-5 w-full border-b border-panel shrink-0 bg-track/95 backdrop-blur">
                 {(
                   [
                     ["timing", "Timing"],
@@ -1026,10 +1026,10 @@ export default function RaceWeekend() {
                   <button
                     key={tab}
                     onClick={() => setTrackerTab(tab)}
-                    className={`shrink-0 rounded-sm px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider transition-colors ${
+                    className={`w-full px-1.5 py-2 text-[10px] font-bold uppercase tracking-wider border-b-2 -mb-px transition-colors ${
                       (trackerTab ?? "timing") === tab
-                        ? "text-white bg-f1red"
-                        : "text-muted bg-panel hover:text-white"
+                        ? "text-white border-f1red bg-surface"
+                        : "text-muted border-transparent hover:text-white"
                     }`}
                   >
                     {label}
@@ -1144,7 +1144,7 @@ export default function RaceWeekend() {
                     <div className={`${PANEL_TITLE} shrink-0`}>
                       Tyre Strategy
                     </div>
-                    <div className="panel-scroll">
+                    <div className="min-h-0 overflow-y-auto md:panel-scroll [-webkit-overflow-scrolling:touch]">
                       <StrategyBar
                         stints={stints.data ?? []}
                         drivers={drivers.data ?? []}
