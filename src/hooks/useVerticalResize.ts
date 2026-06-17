@@ -17,6 +17,7 @@ export function useVerticalResize({
   maxHeight,
 }: Options) {
   const [height, setHeight] = useState(initialHeight);
+  const [isDragging, setIsDragging] = useState(false);
 
   // Stable refs so the window listeners created once stay up to date.
   const dragRef = useRef<{ startY: number; startH: number } | null>(null);
@@ -24,6 +25,8 @@ export function useVerticalResize({
   clampRef.current = { minHeight, maxHeight };
 
   useEffect(() => {
+    if (!isDragging) return;
+
     function onMove(clientY: number) {
       if (!dragRef.current) return;
       const delta = clientY - dragRef.current.startY;
@@ -40,12 +43,16 @@ export function useVerticalResize({
       onMove(e.clientY);
     }
     function onTouchMove(e: TouchEvent) {
+      if (!dragRef.current) return;
       e.preventDefault();
-      onMove(e.touches[0]!.clientY);
+      const touch = e.touches[0];
+      if (!touch) return;
+      onMove(touch.clientY);
     }
 
     function onEnd() {
       dragRef.current = null;
+      setIsDragging(false);
       document.body.style.cursor = "";
       document.body.style.userSelect = "";
     }
@@ -61,10 +68,11 @@ export function useVerticalResize({
       window.removeEventListener("touchmove", onTouchMove);
       window.removeEventListener("touchend", onEnd);
     };
-  }, []); // single mount/unmount — clampRef keeps values current
+  }, [isDragging]);
 
   function startDrag(clientY: number) {
     dragRef.current = { startY: clientY, startH: height };
+    setIsDragging(true);
     document.body.style.cursor = "ns-resize";
     document.body.style.userSelect = "none";
   }
