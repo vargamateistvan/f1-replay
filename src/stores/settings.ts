@@ -20,6 +20,7 @@ export interface AppSettings {
   mapShowCompass: boolean;
   // Leaderboard
   leaderboardTelemetry: boolean;
+  timingShowMinisectors: boolean;
   // Driver Tracker
   trackerTimingTelemetry: boolean;
   // Support
@@ -62,6 +63,7 @@ export const SETTINGS_DEFAULTS: AppSettings = {
   mapShowSectorFlags: true,
   mapShowCompass: true,
   leaderboardTelemetry: true,
+  timingShowMinisectors: true,
   trackerTimingTelemetry: false,
   showCoffeeWidget: true,
   defaultSpeed: 1,

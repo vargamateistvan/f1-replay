@@ -215,6 +215,12 @@ export function SettingsBody() {
         checked={settings.leaderboardTelemetry}
         onChange={toggle("leaderboardTelemetry")}
       />
+      <SettingRow
+        label="Timing minisectors"
+        description="Show minisector strips under S1/S2/S3 bars"
+        checked={settings.timingShowMinisectors}
+        onChange={toggle("timingShowMinisectors")}
+      />
 
       <SectionHeader>Driver Tracker</SectionHeader>
       <SettingRow

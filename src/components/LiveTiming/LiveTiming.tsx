@@ -34,6 +34,8 @@ interface Props {
   /** Latest car-data sample per driver at the playhead. When provided, the tower
    *  renders live telemetry columns (speed/gear/rpm/throttle/brake/DRS). */
   readonly carData?: ReadonlyMap<number, CarData>;
+  readonly showMinisectors?: boolean;
+  readonly compactDriverColumn?: boolean;
   readonly isLoading?: boolean;
   readonly selectedDriver?: number | null;
   readonly compareDriver?: number | null;
@@ -164,6 +166,8 @@ export function LiveTiming({
   grid,
   sessionName,
   carData,
+  showMinisectors = true,
+  compactDriverColumn = false,
   sessionTimeMs,
   sessionStartMs,
   isLoading,
@@ -388,6 +392,14 @@ export function LiveTiming({
     sessionBestOwners.s1 || sessionBestOwners.s2 || sessionBestOwners.s3,
   );
 
+  const driverColClass = compactDriverColumn
+    ? `${TH} text-left w-[5.75rem] min-[390px]:w-[6.5rem] sm:w-[6.5rem] lg:w-[7rem]`
+    : `${TH} text-left w-[6.75rem] min-[390px]:w-[7.5rem] sm:w-auto`;
+
+  const driverCellClass = compactDriverColumn
+    ? "py-3 px-1 sm:px-1.5"
+    : "py-3 px-1 sm:px-2";
+
   if (isLoading) {
     return (
       <div className="p-3 sm:p-4">
@@ -495,11 +507,7 @@ export function LiveTiming({
         <thead>
           <tr className="sticky top-0 bg-track z-10 border-b border-[#38383f]">
             <th className={`${TH} text-left w-8`}>P</th>
-            <th
-              className={`${TH} text-left w-[6.75rem] min-[390px]:w-[7.5rem] sm:w-auto`}
-            >
-              Driver
-            </th>
+            <th className={driverColClass}>Driver</th>
             <th className={`${TH} text-right`}>Best Lap</th>
             <th className={`${TH} text-right`}>Gap</th>
             <th className={`${TH} hidden sm:table-cell text-center`}>S1</th>
@@ -604,7 +612,7 @@ export function LiveTiming({
                 </td>
 
                 {/* Driver */}
-                <td className="py-3 px-1 sm:px-2">
+                <td className={driverCellClass}>
                   <div>
                     <span className="flex items-center gap-1 sm:gap-2">
                       <DriverHeadshot
@@ -715,6 +723,8 @@ export function LiveTiming({
                   <div className="flex justify-center">
                     <SectorBar
                       tier={t1}
+                      segments={lastLap?.segments_sector_1}
+                      showMinisectors={showMinisectors}
                       title={`S1: ${lastLap?.duration_sector_1?.toFixed(3) ?? "—"}`}
                     />
                   </div>
@@ -723,6 +733,8 @@ export function LiveTiming({
                   <div className="flex justify-center">
                     <SectorBar
                       tier={t2}
+                      segments={lastLap?.segments_sector_2}
+                      showMinisectors={showMinisectors}
                       title={`S2: ${lastLap?.duration_sector_2?.toFixed(3) ?? "—"}`}
                     />
                   </div>
@@ -731,6 +743,8 @@ export function LiveTiming({
                   <div className="flex justify-center">
                     <SectorBar
                       tier={t3}
+                      segments={lastLap?.segments_sector_3}
+                      showMinisectors={showMinisectors}
                       title={`S3: ${lastLap?.duration_sector_3?.toFixed(3) ?? "—"}`}
                     />
                   </div>

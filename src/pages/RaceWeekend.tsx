@@ -562,6 +562,7 @@ export default function RaceWeekend() {
     mapShowSectorFlags,
     mapShowCompass,
     leaderboardTelemetry,
+    timingShowMinisectors,
     trackerTimingTelemetry,
     defaultSpeed,
     showPlaybackSpeedControls,
@@ -879,6 +880,8 @@ export default function RaceWeekend() {
       compareDriver={compareDriver}
       onSelectDriver={toggleFocus}
       carData={trackerTimingTelemetryEnabled ? carDataAtT : undefined}
+      showMinisectors={timingShowMinisectors}
+      compactDriverColumn
     />
   );
 
@@ -902,6 +905,7 @@ export default function RaceWeekend() {
       compareDriver={compareDriver}
       onSelectDriver={toggleFocus}
       carData={telemetryEnabled ? carDataAtT : undefined}
+      showMinisectors={timingShowMinisectors}
     />
   );
 
@@ -1240,7 +1244,7 @@ export default function RaceWeekend() {
             {/* Desktop layout: split panel (hidden md:flex) */}
             <div className="hidden md:flex flex-1 min-h-0 overflow-hidden">
               {/* Left data panel */}
-              <div className="md:w-[680px] lg:w-[740px] xl:w-[800px] shrink-0 flex flex-col border-r border-panel overflow-hidden">
+              <div className="md:w-[705px] lg:w-[765px] xl:w-[825px] shrink-0 flex flex-col border-r border-panel overflow-hidden">
                 {/* Sub-tabs */}
                 <div className="flex border-b border-panel shrink-0">
                   {(
