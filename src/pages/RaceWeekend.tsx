@@ -198,7 +198,8 @@ export default function RaceWeekend() {
 
   const chunkIdx = chunkIndexFor(t);
   const isMapVisible =
-    currentView === "tracker" && (trackerTab ?? "timing") === "map";
+    currentView === "tracker" &&
+    (!isCompactViewport || (trackerTab ?? "timing") === "map");
   const location = useLocationChunks(
     isMapVisible ? sessionKey : null,
     isMapVisible ? sessionStartMs || null : null,
