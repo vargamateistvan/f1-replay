@@ -1,29 +1,8 @@
 import { writeFile } from "node:fs/promises";
 import { resolve } from "node:path";
+import { loadSeoRoutes } from "./load-seo-routes.mjs";
 
 const SITE_URL = "https://f1replay.app";
-
-const routes = [
-  { path: "/", changefreq: "daily", priority: "1.0", indexable: true },
-  {
-    path: "/telemetry",
-    changefreq: "daily",
-    priority: "0.9",
-    indexable: true,
-  },
-  {
-    path: "/standings",
-    changefreq: "daily",
-    priority: "0.8",
-    indexable: true,
-  },
-  {
-    path: "/settings",
-    changefreq: "monthly",
-    priority: "0.3",
-    indexable: false,
-  },
-];
 
 function xmlEscape(value) {
   return value
@@ -39,10 +18,10 @@ function normalizePath(path) {
   return path.endsWith("/") ? path.slice(0, -1) : path;
 }
 
-function buildSitemapXml() {
+function buildSitemapXml(routes) {
   const today = new Date().toISOString().slice(0, 10);
   const urlEntries = routes
-    .filter((route) => route.indexable)
+    .filter((route) => !route.noindex)
     .map((route) => {
       const normalizedPath = normalizePath(route.path);
       const loc =
@@ -68,8 +47,9 @@ function buildSitemapXml() {
 }
 
 async function main() {
+  const routes = await loadSeoRoutes();
   const outPath = resolve(process.cwd(), "public", "sitemap.xml");
-  const xml = buildSitemapXml();
+  const xml = buildSitemapXml(routes);
   await writeFile(outPath, xml, "utf8");
   console.log(`Generated sitemap: ${outPath}`);
 }

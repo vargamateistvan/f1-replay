@@ -1,31 +1,12 @@
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { resolve } from "node:path";
+import { loadSeoRoutes } from "./load-seo-routes.mjs";
 
 const SITE_URL = "https://f1replay.app";
 const DEFAULT_IMAGE_ALT =
   "F1 Replay app preview showing telemetry, strategy, and live timing";
 const DIST_DIR = resolve(process.cwd(), "dist");
 const INDEX_HTML_PATH = resolve(DIST_DIR, "index.html");
-
-const ROUTE_SHELLS = [
-  {
-    path: "/telemetry",
-    title: "F1 Telemetry Comparison | Lap-by-Lap Driver Analysis",
-    description:
-      "Compare Formula 1 driver laps with synchronized speed, throttle, brake, gear, and RPM traces to uncover where lap time is won or lost.",
-    keywords:
-      "F1 telemetry comparison, Formula 1 lap analysis, speed trace, throttle trace",
-    robots: "index, follow",
-  },
-  {
-    path: "/standings",
-    title: "F1 Standings Dashboard | Driver & Constructor Points",
-    description:
-      "Explore Formula 1 championship standings with interactive driver and constructor points views, wins, and podium trends.",
-    keywords: "F1 standings, Formula 1 driver standings, constructor standings",
-    robots: "index, follow",
-  },
-];
 
 function escapeRegExp(value) {
   return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
@@ -102,7 +83,9 @@ function renderRouteShell(indexHtml, route) {
 
   html = setTitle(html, route.title);
   html = setMetaByName(html, "description", route.description);
-  html = setMetaByName(html, "keywords", route.keywords);
+  if (route.keywords) {
+    html = setMetaByName(html, "keywords", route.keywords);
+  }
   html = setMetaByName(html, "robots", route.robots);
   html = setMetaByName(html, "twitter:title", route.title);
   html = setMetaByName(html, "twitter:description", route.description);
@@ -118,13 +101,20 @@ function renderRouteShell(indexHtml, route) {
 }
 
 async function main() {
+  const routes = await loadSeoRoutes();
   const indexHtml = await readFile(INDEX_HTML_PATH, "utf8");
+  const routeShells = routes.filter(
+    (route) => route.prerender && !route.noindex,
+  );
 
-  for (const route of ROUTE_SHELLS) {
+  for (const route of routeShells) {
     const dirName = route.path.replace(/^\//, "");
     const outDir = resolve(DIST_DIR, dirName);
     const outFile = resolve(outDir, "index.html");
-    const html = renderRouteShell(indexHtml, route);
+    const html = renderRouteShell(indexHtml, {
+      ...route,
+      robots: "index, follow",
+    });
     await mkdir(outDir, { recursive: true });
     await writeFile(outFile, html, "utf8");
     console.log(`Generated route shell: ${outFile}`);

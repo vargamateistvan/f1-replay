@@ -1,0 +1,42 @@
+[
+  {
+    "path": "/",
+    "title": "F1 Replay | Formula 1 Race Replay, Telemetry, Strategy & Live Timing",
+    "description": "Relive Formula 1 sessions with synchronized telemetry, strategy timelines, live timing, race control, weather, and track map visualizations.",
+    "keywords": "Formula 1 replay, F1 telemetry, F1 strategy, F1 live timing, OpenF1 race replay",
+    "noindex": false,
+    "changefreq": "daily",
+    "priority": "1.0",
+    "prerender": false
+  },
+  {
+    "path": "/telemetry",
+    "title": "F1 Telemetry Comparison | Lap-by-Lap Driver Analysis",
+    "description": "Compare Formula 1 driver laps with synchronized speed, throttle, brake, gear, and RPM traces to uncover where lap time is won or lost.",
+    "keywords": "F1 telemetry comparison, Formula 1 lap analysis, speed trace, throttle trace",
+    "noindex": false,
+    "changefreq": "daily",
+    "priority": "0.9",
+    "prerender": true
+  },
+  {
+    "path": "/standings",
+    "title": "F1 Standings Dashboard | Driver & Constructor Points",
+    "description": "Explore Formula 1 championship standings with interactive driver and constructor points views, wins, and podium trends.",
+    "keywords": "F1 standings, Formula 1 driver standings, constructor standings",
+    "noindex": false,
+    "changefreq": "daily",
+    "priority": "0.8",
+    "prerender": true
+  },
+  {
+    "path": "/settings",
+    "title": "F1 Replay Settings | Customize Your Pit Wall Experience",
+    "description": "Control playback, map overlays, telemetry density, and notifications to tailor your Formula 1 replay experience.",
+    "keywords": "F1 replay settings, telemetry UI settings, Formula 1 app preferences",
+    "noindex": true,
+    "changefreq": "monthly",
+    "priority": "0.3",
+    "prerender": false
+  }
+]

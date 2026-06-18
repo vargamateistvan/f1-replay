@@ -1,5 +1,6 @@
 import { useEffect } from "react";
 import { useLocation } from "react-router-dom";
+import routeEntries from "../../../seo-routes.json";
 
 const SITE_NAME = "F1 Replay";
 const SITE_URL = "https://f1replay.app";
@@ -8,48 +9,22 @@ const DEFAULT_IMAGE_ALT =
   "F1 Replay app preview showing telemetry, strategy, and live timing";
 
 type RouteDefinition = {
+  path: string;
   title: string;
   description: string;
-  path: string;
   keywords?: string;
-  noindex?: boolean;
+  noindex: boolean;
+  changefreq: string;
+  priority: string;
+  prerender: boolean;
 };
 
-const ROUTES: Record<string, RouteDefinition> = {
-  "/": {
-    title:
-      "F1 Replay | Formula 1 Race Replay, Telemetry, Strategy & Live Timing",
-    description:
-      "Relive Formula 1 sessions with synchronized telemetry, strategy timelines, live timing, race control, weather, and track map visualizations.",
-    path: "/",
-    keywords:
-      "Formula 1 replay, F1 telemetry, F1 strategy, F1 live timing, OpenF1 race replay",
-  },
-  "/telemetry": {
-    title: "F1 Telemetry Comparison | Lap-by-Lap Driver Analysis",
-    description:
-      "Compare Formula 1 driver laps with synchronized speed, throttle, brake, gear, and RPM traces to uncover where lap time is won or lost.",
-    path: "/telemetry",
-    keywords:
-      "F1 telemetry comparison, Formula 1 lap analysis, speed trace, throttle trace",
-  },
-  "/standings": {
-    title: "F1 Standings Dashboard | Driver & Constructor Points",
-    description:
-      "Explore Formula 1 championship standings with interactive driver and constructor points views, wins, and podium trends.",
-    path: "/standings",
-    keywords: "F1 standings, Formula 1 driver standings, constructor standings",
-  },
-  "/settings": {
-    title: "F1 Replay Settings | Customize Your Pit Wall Experience",
-    description:
-      "Control playback, map overlays, telemetry density, and notifications to tailor your Formula 1 replay experience.",
-    path: "/settings",
-    keywords:
-      "F1 replay settings, telemetry UI settings, Formula 1 app preferences",
-    noindex: true,
-  },
-};
+const ROUTES: Record<string, RouteDefinition> = Object.fromEntries(
+  (routeEntries as RouteDefinition[]).map((route) => [
+    normalizePath(route.path),
+    route,
+  ]),
+);
 
 function normalizePath(pathname: string): string {
   if (!pathname || pathname === "/") return "/";
