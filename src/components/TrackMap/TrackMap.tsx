@@ -740,6 +740,32 @@ export function TrackMap({
   const zoomTransform = `translate(${pivotX.toFixed(1)} ${pivotY.toFixed(1)}) scale(${zoomLevel.toFixed(2)}) translate(${-pivotX.toFixed(1)} ${-pivotY.toFixed(1)})`;
   const trackTransform = `rotate(${rotationDeg.toFixed(1)} ${pivotX.toFixed(1)} ${pivotY.toFixed(1)}) ${zoomTransform}`;
 
+  const flagPalette: Record<string, { color: string; label: string }> = {
+    YELLOW: { color: "#f5d400", label: "Yellow" },
+    DOUBLE_YELLOW: { color: "#f5d400", label: "Double Yellow" },
+    RED: { color: "#e8002d", label: "Red Flag" },
+    SAFETY_CAR: { color: "#f5a623", label: "Safety Car" },
+    VIRTUAL_SC: { color: "#f5a623", label: "VSC" },
+    VIRTUAL_SAFETY_CAR: { color: "#f5a623", label: "VSC" },
+    GREEN: { color: "#39b54a", label: "Green" },
+    CLEAR: { color: "#39b54a", label: "Clear" },
+  };
+
+  const effectiveFlagForSector = (sector: 1 | 2 | 3): string | null => {
+    if (!normalizedTrackFlagState) return null;
+    if (normalizedTrackFlagState.globalFlag === "RED") return "RED";
+    return (
+      normalizedTrackFlagState.sectorFlags[sector] ??
+      normalizedTrackFlagState.globalFlag
+    );
+  };
+
+  const hasTrackConditionDisplay =
+    normalizedTrackFlagState?.globalFlag != null ||
+    effectiveFlagForSector(1) != null ||
+    effectiveFlagForSector(2) != null ||
+    effectiveFlagForSector(3) != null;
+
   return (
     <div className="relative w-full h-full">
       {activeTrackVehicles &&
@@ -833,36 +859,27 @@ export function TrackMap({
           />
 
           {/* Sector flag colors on track line */}
-          {normalizedTrackFlagState
-            ? ([1, 2, 3] as const).map((sectorNum) => {
-                const effectiveFlag = ((): string | null => {
-                  if (normalizedTrackFlagState.globalFlag === "RED")
-                    return "RED";
-                  return (
-                    normalizedTrackFlagState.sectorFlags[sectorNum] ??
-                    normalizedTrackFlagState.globalFlag
-                  );
-                })();
-                const color = effectiveFlag
-                  ? ({
-                      YELLOW: "#f5d400",
-                      DOUBLE_YELLOW: "#f5d400",
-                      RED: "#e8002d",
-                      SAFETY_CAR: "#f5a623",
-                      VIRTUAL_SC: "#f5a623",
-                      VIRTUAL_SAFETY_CAR: "#f5a623",
-                      GREEN: "#39b54a",
-                      CLEAR: "#39b54a",
-                    }[effectiveFlag] ?? null)
-                  : null;
+          {normalizedTrackFlagState &&
+            (() => {
+              const FLAG_COLORS: Record<string, string> = {
+                YELLOW: "#f5d400",
+                DOUBLE_YELLOW: "#f5d400",
+                RED: "#e8002d",
+                SAFETY_CAR: "#f5a623",
+                VIRTUAL_SC: "#f5a623",
+                VIRTUAL_SAFETY_CAR: "#f5a623",
+                GREEN: "#39b54a",
+                CLEAR: "#39b54a",
+              };
+
+              const globalFlag = normalizedTrackFlagState.globalFlag;
+
+              // Global flags (RED, SC, VSC) paint the entire track — no sector splitting needed
+              if (globalFlag) {
+                const color = FLAG_COLORS[globalFlag] ?? null;
                 if (!color) return null;
-                const sectorClipPath = circuitLayout?.sectors.some(
-                  (sector) => sector.number === sectorNum,
-                )
-                  ? `url(#track-sector-clip-${sectorNum})`
-                  : undefined;
                 return (
-                  <g key={`track-sector-color-${sectorNum}`}>
+                  <g key="track-global-color">
                     <path
                       d={pathData}
                       fill="none"
@@ -870,14 +887,7 @@ export function TrackMap({
                       strokeWidth={14}
                       strokeLinecap="round"
                       strokeLinejoin="round"
-                      {...(sectorClipPath
-                        ? { clipPath: sectorClipPath }
-                        : {
-                            pathLength: 300,
-                            strokeDasharray: "100 200",
-                            strokeDashoffset: -(sectorNum - 1) * 100,
-                          })}
-                      opacity={0.22}
+                      opacity={0.25}
                     />
                     <path
                       d={pathData}
@@ -886,14 +896,7 @@ export function TrackMap({
                       strokeWidth={8}
                       strokeLinecap="round"
                       strokeLinejoin="round"
-                      {...(sectorClipPath
-                        ? { clipPath: sectorClipPath }
-                        : {
-                            pathLength: 300,
-                            strokeDasharray: "100 200",
-                            strokeDashoffset: -(sectorNum - 1) * 100,
-                          })}
-                      opacity={0.65}
+                      opacity={0.7}
                     />
                     <path
                       d={pathData}
@@ -902,19 +905,82 @@ export function TrackMap({
                       strokeWidth={2}
                       strokeLinecap="round"
                       strokeLinejoin="round"
-                      {...(sectorClipPath
-                        ? { clipPath: sectorClipPath }
-                        : {
-                            pathLength: 300,
-                            strokeDasharray: "100 200",
-                            strokeDashoffset: -(sectorNum - 1) * 100,
-                          })}
                       opacity={0.18}
                     />
                   </g>
                 );
-              })
-            : null}
+              }
+
+              // Sector-specific: color only the affected third(s) of the track
+              return (
+                <>
+                  {([1, 2, 3] as const).map((sectorNum) => {
+                    const flag =
+                      normalizedTrackFlagState.sectorFlags[sectorNum];
+                    if (!flag) return null;
+                    const color = FLAG_COLORS[flag] ?? null;
+                    if (!color) return null;
+                    const sectorClipPath = circuitLayout?.sectors.some(
+                      (s) => s.number === sectorNum,
+                    )
+                      ? `url(#track-sector-clip-${sectorNum})`
+                      : undefined;
+                    return (
+                      <g key={`track-sector-color-${sectorNum}`}>
+                        <path
+                          d={pathData}
+                          fill="none"
+                          stroke={color}
+                          strokeWidth={14}
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          {...(sectorClipPath
+                            ? { clipPath: sectorClipPath }
+                            : {
+                                pathLength: 300,
+                                strokeDasharray: "100 200",
+                                strokeDashoffset: -(sectorNum - 1) * 100,
+                              })}
+                          opacity={0.25}
+                        />
+                        <path
+                          d={pathData}
+                          fill="none"
+                          stroke={color}
+                          strokeWidth={8}
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          {...(sectorClipPath
+                            ? { clipPath: sectorClipPath }
+                            : {
+                                pathLength: 300,
+                                strokeDasharray: "100 200",
+                                strokeDashoffset: -(sectorNum - 1) * 100,
+                              })}
+                          opacity={0.7}
+                        />
+                        <path
+                          d={pathData}
+                          fill="none"
+                          stroke="#ffffff"
+                          strokeWidth={2}
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          {...(sectorClipPath
+                            ? { clipPath: sectorClipPath }
+                            : {
+                                pathLength: 300,
+                                strokeDasharray: "100 200",
+                                strokeDashoffset: -(sectorNum - 1) * 100,
+                              })}
+                          opacity={0.18}
+                        />
+                      </g>
+                    );
+                  })}
+                </>
+              );
+            })()}
 
           {/* Speed heat overlay — shown when a driver is focused and lap data is loaded.
           Segments are colored blue (slow) → green → red (fast) by the driver's
@@ -1236,105 +1302,147 @@ export function TrackMap({
 
       {/* PNG export — only shown when there is track + car data to capture */}
       {locationIndexes.size > 0 && (
-        <div className="absolute bottom-2 right-2 z-20 flex flex-col items-end gap-1">
-          {showCompass && (
+        <div className="absolute bottom-2 right-2 z-20 flex flex-row items-end gap-2">
+          {hasTrackConditionDisplay && (
             <div
-              className="w-[46px] h-12 bg-[#15151e]/85 flex items-center justify-center"
-              title="Compass"
+              className="flex flex-col gap-px"
+              style={{ backdropFilter: "blur(4px)" }}
             >
-              <svg
-                viewBox="0 0 24 24"
-                width="46"
-                height="46"
-                aria-hidden="true"
+              <div
+                className="px-1.5 py-0.5 text-[8px] font-black uppercase tracking-[0.14em] text-muted text-center"
+                style={{ background: overlayBackground }}
               >
-                <circle
-                  cx="12"
-                  cy="12"
-                  r="8.5"
-                  fill="none"
-                  stroke="#6b6b7a"
-                  strokeWidth="0.8"
-                />
-                <text
-                  x="12"
-                  y="2.8"
-                  textAnchor="middle"
-                  fill="#ffffff"
-                  fontSize="3.2"
-                  fontWeight="900"
-                >
-                  N
-                </text>
-                <text
-                  x="12"
-                  y="23"
-                  textAnchor="middle"
-                  fill="#8c8ca0"
-                  fontSize="2.5"
-                  fontWeight="700"
-                >
-                  S
-                </text>
-                <text
-                  x="1.9"
-                  y="12.9"
-                  textAnchor="middle"
-                  fill="#8c8ca0"
-                  fontSize="2.5"
-                  fontWeight="700"
-                >
-                  W
-                </text>
-                <text
-                  x="22.1"
-                  y="12.9"
-                  textAnchor="middle"
-                  fill="#8c8ca0"
-                  fontSize="2.5"
-                  fontWeight="700"
-                >
-                  E
-                </text>
-                <line
-                  x1="12"
-                  y1="3.7"
-                  x2="12"
-                  y2="20.3"
-                  stroke="#4f5061"
-                  strokeWidth="0.45"
-                />
-                <line
-                  x1="3.7"
-                  y1="12"
-                  x2="20.3"
-                  y2="12"
-                  stroke="#4f5061"
-                  strokeWidth="0.45"
-                />
-                <g transform={`rotate(${-rotationDeg} 12 12)`}>
-                  <path
-                    d="M12 4.6 L13.8 12 L12 10.6 L10.2 12 Z"
-                    fill="#ff2d4d"
-                  />
-                  <path
-                    d="M12 19.4 L13.4 12 L12 13.1 L10.6 12 Z"
-                    fill="#5f6175"
-                  />
-                  <circle cx="12" cy="12" r="1.1" fill="#d4d4df" />
-                </g>
-              </svg>
+                Sectors
+              </div>
+              <div className="flex gap-px">
+                {([1, 2, 3] as const).map((sectorNum) => {
+                  const flag = effectiveFlagForSector(sectorNum);
+                  const color = flag
+                    ? (flagPalette[flag]?.color ?? "#6b6b7a")
+                    : "#2e2e3a";
+                  return (
+                    <div
+                      key={`sector-chip-${sectorNum}`}
+                      className="flex flex-col items-center justify-center px-2 py-1 border border-[#38383f]"
+                      style={{
+                        background: flag ? `${color}22` : overlayBackground,
+                        borderColor: flag ? `${color}66` : "#38383f",
+                        minWidth: 34,
+                      }}
+                    >
+                      <span
+                        className="w-2 h-2 rounded-full mb-0.5"
+                        style={{ background: color }}
+                      />
+                      <span className="text-[8px] font-black uppercase text-white/70">
+                        S{sectorNum}
+                      </span>
+                    </div>
+                  );
+                })}
+              </div>
             </div>
           )}
-          <button
-            onClick={() =>
-              svgRef.current && exportTrackSnapshot(svgRef.current)
-            }
-            className="px-2 py-0.5 text-[9px] font-bold uppercase tracking-widest bg-[#1e1e2a]/80 border border-[#38383f] text-muted hover:text-white hover:border-white/30 transition-colors backdrop-blur-sm"
-            title="Download track snapshot as PNG"
-          >
-            ↓ PNG
-          </button>
+          <div className="flex flex-col items-end gap-1">
+            {showCompass && (
+              <div
+                className="w-[46px] h-12 bg-[#15151e]/85 flex items-center justify-center"
+                title="Compass"
+              >
+                <svg
+                  viewBox="0 0 24 24"
+                  width="46"
+                  height="46"
+                  aria-hidden="true"
+                >
+                  <circle
+                    cx="12"
+                    cy="12"
+                    r="8.5"
+                    fill="none"
+                    stroke="#6b6b7a"
+                    strokeWidth="0.8"
+                  />
+                  <text
+                    x="12"
+                    y="2.8"
+                    textAnchor="middle"
+                    fill="#ffffff"
+                    fontSize="3.2"
+                    fontWeight="900"
+                  >
+                    N
+                  </text>
+                  <text
+                    x="12"
+                    y="23"
+                    textAnchor="middle"
+                    fill="#8c8ca0"
+                    fontSize="2.5"
+                    fontWeight="700"
+                  >
+                    S
+                  </text>
+                  <text
+                    x="1.9"
+                    y="12.9"
+                    textAnchor="middle"
+                    fill="#8c8ca0"
+                    fontSize="2.5"
+                    fontWeight="700"
+                  >
+                    W
+                  </text>
+                  <text
+                    x="22.1"
+                    y="12.9"
+                    textAnchor="middle"
+                    fill="#8c8ca0"
+                    fontSize="2.5"
+                    fontWeight="700"
+                  >
+                    E
+                  </text>
+                  <line
+                    x1="12"
+                    y1="3.7"
+                    x2="12"
+                    y2="20.3"
+                    stroke="#4f5061"
+                    strokeWidth="0.45"
+                  />
+                  <line
+                    x1="3.7"
+                    y1="12"
+                    x2="20.3"
+                    y2="12"
+                    stroke="#4f5061"
+                    strokeWidth="0.45"
+                  />
+                  <g transform={`rotate(${-rotationDeg} 12 12)`}>
+                    <path
+                      d="M12 4.6 L13.8 12 L12 10.6 L10.2 12 Z"
+                      fill="#ff2d4d"
+                    />
+                    <path
+                      d="M12 19.4 L13.4 12 L12 13.1 L10.6 12 Z"
+                      fill="#5f6175"
+                    />
+                    <circle cx="12" cy="12" r="1.1" fill="#d4d4df" />
+                  </g>
+                </svg>
+              </div>
+            )}
+            <button
+              onClick={() =>
+                svgRef.current && exportTrackSnapshot(svgRef.current)
+              }
+              className="px-2 py-0.5 text-[9px] font-bold uppercase tracking-widest bg-[#1e1e2a]/80 border border-[#38383f] text-muted hover:text-white hover:border-white/30 transition-colors backdrop-blur-sm"
+              title="Download track snapshot as PNG"
+            >
+              ↓ PNG
+            </button>
+          </div>
         </div>
       )}
     </div>

@@ -110,7 +110,11 @@ export function deriveTrackFlagState(
     updatedAtMs: 0,
   };
 
-  for (const entry of entries) {
+  const sorted = [...entries].sort(
+    (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime(),
+  );
+
+  for (const entry of sorted) {
     const eventMs = new Date(entry.date).getTime();
     if (eventMs > cutoffMs) break;
 
@@ -130,13 +134,26 @@ export function deriveTrackFlagState(
       continue;
     }
 
-    if (!flagKey) continue;
+    // Infer flag from message when flag field is null (OpenF1 sometimes omits it)
+    const msg = (entry.message ?? "").toUpperCase();
+    const resolvedFlagKey =
+      flagKey ||
+      (msg.includes("RED FLAG") ? "RED" : null) ||
+      (msg.includes("SAFETY CAR DEPLOYED") || msg.includes("SAFETY CAR IN")
+        ? "SAFETY_CAR"
+        : null) ||
+      (msg.includes("VIRTUAL SAFETY CAR DEPLOYED") ||
+      msg.includes("VSC DEPLOYED")
+        ? "VIRTUAL_SC"
+        : null);
+
+    if (!resolvedFlagKey) continue;
 
     state.updatedAtMs = eventMs;
     if (sectorScoped) {
-      state.sectorFlags[sector] = flagKey;
+      state.sectorFlags[sector] = resolvedFlagKey;
     } else {
-      state.globalFlag = flagKey;
+      state.globalFlag = resolvedFlagKey;
     }
   }
 

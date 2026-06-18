@@ -136,4 +136,31 @@ describe("deriveTrackFlagState", () => {
 
     expect(state).toBeNull();
   });
+
+  it("captures RED flag as globalFlag", () => {
+    const state = deriveTrackFlagState(
+      [
+        rc({ date: iso(10), flag: "YELLOW", scope: "Sector", sector: 1 }),
+        rc({ date: iso(20), flag: "RED", scope: "Track", message: "RED FLAG" }),
+      ],
+      START,
+      START + 30_000,
+    );
+
+    expect(state?.globalFlag).toBe("RED");
+  });
+
+  it("sorts unsorted entries by date before processing", () => {
+    const state = deriveTrackFlagState(
+      [
+        rc({ date: iso(20), flag: "RED", scope: "Track", message: "RED FLAG" }),
+        rc({ date: iso(10), flag: "GREEN", scope: "Track" }),
+      ],
+      START,
+      START + 30_000,
+    );
+
+    // After sorting: GREEN at 10s, RED at 20s — result should be RED
+    expect(state?.globalFlag).toBe("RED");
+  });
 });
