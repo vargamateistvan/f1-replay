@@ -179,7 +179,6 @@ export function LiveTiming({
   isLoading,
   totalLapCount = null,
   selectedDriver,
-  compareDriver,
   onSelectDriver,
   chequeredMs = null,
 }: Props) {
@@ -468,20 +467,10 @@ export function LiveTiming({
 
   return (
     <div className="panel-scroll">
-      {dense && onSelectDriver && (
-        <div className="border-b border-[#2a2a35] bg-surface/80 px-2 py-1.5 sm:px-3">
-          <div className="text-[9px] font-bold uppercase tracking-[0.12em] text-muted">
-            Tap driver A, then driver B to compare
-          </div>
-        </div>
-      )}
       {!dense && (
         <div className="border-b border-[#2a2a35] bg-surface/80 px-2 py-2 sm:px-3">
           {hasSectorReference ? (
             <>
-              <div className="mb-2 text-[9px] sm:text-[10px] font-bold uppercase tracking-[0.12em] text-muted">
-                Tap driver A, then driver B to compare
-              </div>
               <div className="grid grid-cols-1 gap-1.5 min-[360px]:grid-cols-3 sm:gap-2">
                 {(
                   [
@@ -539,8 +528,8 @@ export function LiveTiming({
                   First timed lap pending
                 </div>
                 <div className="text-[10px] text-muted">
-                  Tap driver A, then driver B to compare once sector references
-                  are live.
+                  Sector references will appear as soon as timed laps are
+                  registered.
                 </div>
               </div>
             </div>
@@ -668,7 +657,6 @@ export function LiveTiming({
               const gained = gridPos !== null ? gridPos - pos : null;
               const retired = retiredDrivers.has(num);
               const selected = selectedDriver === num;
-              const compared = compareDriver === num;
 
               // Check if the last lap is a post-race outlap
               const isOutlap =
@@ -681,13 +669,11 @@ export function LiveTiming({
 
               const rowBg = selected
                 ? "bg-[#2a2a35]"
-                : compared
-                  ? "bg-[#1a2438]"
-                  : retired
-                    ? "opacity-50"
-                    : idx % 2 === 1
-                      ? "bg-white/[0.02] hover:bg-white/[0.06]"
-                      : "hover:bg-white/[0.06]";
+                : retired
+                  ? "opacity-50"
+                  : idx % 2 === 1
+                    ? "bg-white/[0.02] hover:bg-white/[0.06]"
+                    : "hover:bg-white/[0.06]";
 
               return (
                 <tr
@@ -722,16 +708,6 @@ export function LiveTiming({
                         <span className="min-w-0 truncate font-bold text-[10px] min-[390px]:text-[11px] tracking-[0.03em] min-[390px]:tracking-[0.05em] uppercase text-white">
                           {driver?.name_acronym ?? num}
                         </span>
-                        {selected && (
-                          <span className="bg-f1red text-white text-[8px] min-[390px]:text-[9px] font-black uppercase tracking-widest px-1 min-[390px]:px-1.5 py-0.5">
-                            A
-                          </span>
-                        )}
-                        {compared && (
-                          <span className="bg-[#1e40af] text-white text-[8px] min-[390px]:text-[9px] font-black uppercase tracking-widest px-1 min-[390px]:px-1.5 py-0.5">
-                            B
-                          </span>
-                        )}
                         {/* Places gained/lost */}
                         {gained !== null && gained !== 0 && (
                           <span
