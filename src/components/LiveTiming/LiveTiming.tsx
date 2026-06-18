@@ -401,18 +401,39 @@ export function LiveTiming({
 
   const driverColClass = compactDriverColumn
     ? `${TH} text-left w-[5.75rem] min-[390px]:w-[6.5rem] sm:w-[6.5rem] lg:w-[7rem]`
-    : `${TH} text-left w-[6.75rem] min-[390px]:w-[7.5rem] sm:w-auto`;
+    : `${TH} text-left w-[6.75rem] min-[390px]:w-[7.5rem] sm:w-[8rem] lg:w-[8.5rem]`;
 
   const driverCellClass = compactDriverColumn
     ? "py-3 px-1 sm:px-1.5"
     : "py-3 px-1 sm:px-2";
 
   const sectorBarWidthClass = wideSectors ? "w-14" : "w-7";
+  const rowCellPad = dense ? "py-1.5" : "py-3";
+  const sectorHeaderWidthClass = wideSectors
+    ? "w-[4rem] lg:w-[4.5rem]"
+    : "w-[2.8rem] lg:w-[3rem]";
+  const sectorCellClass = `${rowCellPad} ${wideSectors ? "px-1" : "px-0"}`;
+  const rpmColumnClass = "hidden xl:table-cell";
+  const pedalColumnClass = "hidden lg:table-cell";
+  const drsColumnClass = "hidden lg:table-cell";
+  const telemetryPadClass = compactDriverColumn ? "px-1" : "px-2";
+  const telemetryCenterPadClass = compactDriverColumn ? "px-0.5" : "px-2";
+  const pedalHeaderWidthClass = compactDriverColumn
+    ? "w-[4rem]"
+    : "w-[4.75rem]";
+  const drsHeaderWidthClass = compactDriverColumn ? "w-8" : "w-10";
+  const pedalBarsWidthClass = compactDriverColumn ? "w-12" : "w-16";
+  const tableMinWidthClass = showTelemetry
+    ? compactDriverColumn
+      ? "min-w-[66rem]"
+      : "min-w-[74rem]"
+    : compactDriverColumn
+      ? "min-w-[52rem]"
+      : "min-w-[58rem]";
 
   const driverCellCompactClass = compactDriverColumn
     ? "py-1.5 px-1 sm:px-2"
     : "py-1.5 px-1.5 sm:px-2";
-  const rowCellPad = dense ? "py-1.5" : "py-3";
 
   if (isLoading) {
     return (
@@ -526,389 +547,433 @@ export function LiveTiming({
           )}
         </div>
       )}
-      <table className="w-full border-collapse table-fixed sm:table-auto">
-        <thead>
-          <tr className="sticky top-0 bg-track z-10 border-b border-[#38383f]">
-            <th className={`${TH} text-left w-8`}>P</th>
-            <th className={driverColClass}>Driver</th>
-            <th className={`${TH} text-right`}>Best Lap</th>
-            <th className={`${TH} text-right`}>Gap</th>
-            <th className={`${TH} hidden sm:table-cell text-center`}>S1</th>
-            <th className={`${TH} hidden sm:table-cell text-center`}>S2</th>
-            <th className={`${TH} hidden sm:table-cell text-center`}>S3</th>
-            <th className={`${TH} text-left w-[3.5rem] min-[390px]:w-auto`}>
-              Tyre
-            </th>
-            <th className={`${TH} text-center w-7 sm:w-8`}>Pit</th>
-            <th className={`${TH} hidden sm:table-cell text-center w-16`}>
-              Lap
-            </th>
-            {showTelemetry && (
-              <>
-                <th className={`${TH} hidden lg:table-cell text-right`}>
-                  Speed
-                </th>
-                <th className={`${TH} hidden lg:table-cell text-center w-8`}>
-                  Gear
-                </th>
-                <th className={`${TH} hidden xl:table-cell text-right`}>RPM</th>
-                <th className={`${TH} hidden lg:table-cell text-center`}>
-                  Thr/Brk
-                </th>
-                <th className={`${TH} hidden lg:table-cell text-center w-10`}>
-                  DRS
-                </th>
-              </>
-            )}
-          </tr>
-        </thead>
-        <tbody>
-          {sorted.map(([num, pos], idx) => {
-            const driver = driverByNumber.get(num);
-            const intData = intMap.get(num);
-            const color = teamColor(driver?.team_colour);
-            const inPit = pittingNow.has(num);
-            const lastLap = lastLapMap.get(num) ?? null;
-            const currentLap = currentLapMap.get(num) ?? null;
-            const pitInfo = pitInfoMap.get(num) ?? null;
-            const car = carData?.get(num) ?? null;
-            const speedDisplay = car
-              ? String(Math.round(car.speed)).padStart(3, "0")
-              : "---";
-            const rpmDisplay = car
-              ? String(Math.round(car.rpm)).padStart(5, "0")
-              : "-----";
-            const gearDisplay = car
-              ? String(car.n_gear === 0 ? "N" : car.n_gear)
-              : "-";
-            const drsDisplay = car ? (car.drs >= 10 ? "ON" : "OFF") : "--";
-            const pb = personalBestMap.get(num) ?? {
-              s1: null,
-              s2: null,
-              s3: null,
-            };
-
-            const t1 = sectorTier(
-              lastLap?.duration_sector_1 ?? null,
-              sessionBest.s1,
-              pb.s1,
-            );
-            const t2 = sectorTier(
-              lastLap?.duration_sector_2 ?? null,
-              sessionBest.s2,
-              pb.s2,
-            );
-            const t3 = sectorTier(
-              lastLap?.duration_sector_3 ?? null,
-              sessionBest.s3,
-              pb.s3,
-            );
-            const lapTier = lapTimeTier(
-              lastLap?.lap_duration ?? null,
-              sessionBest.lap,
-            );
-
-            const gridPos = gridMap.get(num) ?? null;
-            const gained = gridPos !== null ? gridPos - pos : null;
-            const retired = retiredDrivers.has(num);
-            const selected = selectedDriver === num;
-            const compared = compareDriver === num;
-
-            // Check if the last lap is a post-race outlap
-            const isOutlap =
-              lastLap &&
-              lastLap.date_start &&
-              chequeredMs !== undefined &&
-              chequeredMs !== null &&
-              new Date(lastLap.date_start).getTime() - sessionStartMs >=
-                chequeredMs;
-
-            const rowBg = selected
-              ? "bg-[#2a2a35]"
-              : compared
-                ? "bg-[#1a2438]"
-                : retired
-                  ? "opacity-50"
-                  : idx % 2 === 1
-                    ? "bg-white/[0.02] hover:bg-white/[0.06]"
-                    : "hover:bg-white/[0.06]";
-
-            return (
-              <tr
-                key={num}
-                onClick={() => onSelectDriver?.(num)}
-                className={`border-b border-[#1e1e28] transition-colors ${onSelectDriver ? "cursor-pointer" : ""} ${rowBg}`}
+      <div className="overflow-x-auto">
+        <table
+          className={`w-max min-w-full ${tableMinWidthClass} border-collapse table-auto`}
+        >
+          <thead>
+            <tr className="sticky top-0 bg-track z-10 border-b border-[#38383f]">
+              <th className={`${TH} text-left w-8`}>P</th>
+              <th className={driverColClass}>Driver</th>
+              <th
+                className={`${TH} text-right w-[4.75rem] min-[390px]:w-[5.25rem] sm:w-[5.5rem]`}
               >
-                {/* Position */}
-                <td
-                  className={`${rowCellPad} px-1.5 font-black text-sm tabular-nums text-white/90 sm:px-2`}
-                >
-                  {pos}
-                </td>
+                Best Lap
+              </th>
+              <th
+                className={`${TH} text-right w-[4.25rem] min-[390px]:w-[4.75rem] sm:w-[5rem]`}
+              >
+                Gap
+              </th>
+              <th
+                className={`${TH} hidden sm:table-cell text-center ${sectorHeaderWidthClass}`}
+              >
+                S1
+              </th>
+              <th
+                className={`${TH} hidden sm:table-cell text-center ${sectorHeaderWidthClass}`}
+              >
+                S2
+              </th>
+              <th
+                className={`${TH} hidden sm:table-cell text-center ${sectorHeaderWidthClass}`}
+              >
+                S3
+              </th>
+              <th className={`${TH} text-left w-[5.25rem] lg:w-[5.75rem]`}>
+                Tyre
+              </th>
+              <th className={`${TH} text-center w-[2.5rem] sm:w-[2.75rem]`}>
+                Pit
+              </th>
+              <th className={`${TH} hidden sm:table-cell text-center w-16`}>
+                Lap
+              </th>
+              {showTelemetry && (
+                <>
+                  <th
+                    className={`${TH} hidden lg:table-cell text-right w-[3.5rem]`}
+                  >
+                    Speed
+                  </th>
+                  <th className={`${TH} hidden lg:table-cell text-center w-8`}>
+                    Gear
+                  </th>
+                  <th
+                    className={`${TH} ${rpmColumnClass} text-right w-[4.75rem]`}
+                  >
+                    RPM
+                  </th>
+                  <th
+                    className={`${TH} ${pedalColumnClass} text-center ${pedalHeaderWidthClass}`}
+                  >
+                    Thr/Brk
+                  </th>
+                  <th
+                    className={`${TH} ${drsColumnClass} text-center ${drsHeaderWidthClass}`}
+                  >
+                    DRS
+                  </th>
+                </>
+              )}
+            </tr>
+          </thead>
+          <tbody>
+            {sorted.map(([num, pos], idx) => {
+              const driver = driverByNumber.get(num);
+              const intData = intMap.get(num);
+              const color = teamColor(driver?.team_colour);
+              const inPit = pittingNow.has(num);
+              const lastLap = lastLapMap.get(num) ?? null;
+              const currentLap = currentLapMap.get(num) ?? null;
+              const pitInfo = pitInfoMap.get(num) ?? null;
+              const car = carData?.get(num) ?? null;
+              const speedDisplay = car
+                ? String(Math.round(car.speed)).padStart(3, "0")
+                : "---";
+              const rpmDisplay = car
+                ? String(Math.round(car.rpm)).padStart(5, "0")
+                : "-----";
+              const gearDisplay = car
+                ? String(car.n_gear === 0 ? "N" : car.n_gear)
+                : "-";
+              const drsDisplay = car ? (car.drs >= 10 ? "ON" : "OFF") : "--";
+              const pb = personalBestMap.get(num) ?? {
+                s1: null,
+                s2: null,
+                s3: null,
+              };
 
-                {/* Driver */}
-                <td
-                  className={dense ? driverCellCompactClass : driverCellClass}
-                >
-                  <div>
-                    <span className="flex items-center gap-1 sm:gap-2">
-                      <DriverHeadshot
-                        driver={driver}
-                        accent={color}
-                        size="xs"
-                      />
-                      {/* Team colour bar */}
-                      <span
-                        className="w-[2px] h-4 shrink-0 rounded-sm"
-                        style={{ background: color }}
-                      />
-                      {/* Surname in CAPS */}
-                      <span className="min-w-0 truncate font-bold text-[10px] min-[390px]:text-[11px] tracking-[0.03em] min-[390px]:tracking-[0.05em] uppercase text-white">
-                        {driver?.name_acronym ?? num}
-                      </span>
-                      {selected && (
-                        <span className="bg-f1red text-white text-[8px] min-[390px]:text-[9px] font-black uppercase tracking-widest px-1 min-[390px]:px-1.5 py-0.5">
-                          A
-                        </span>
-                      )}
-                      {compared && (
-                        <span className="bg-[#1e40af] text-white text-[8px] min-[390px]:text-[9px] font-black uppercase tracking-widest px-1 min-[390px]:px-1.5 py-0.5">
-                          B
-                        </span>
-                      )}
-                      {/* Places gained/lost */}
-                      {gained !== null && gained !== 0 && (
-                        <span
-                          className={`hidden min-[390px]:inline text-[9px] font-bold tabular-nums ${gained > 0 ? "text-[#39b54a]" : "text-[#ff5252]"}`}
-                          title={`${gained > 0 ? "Gained" : "Lost"} ${Math.abs(gained)} since start (P${gridPos})`}
-                        >
-                          {gained > 0 ? "▲" : "▼"}
-                          {Math.abs(gained)}
-                        </span>
-                      )}
-                      {retired && (
-                        <span className="hidden min-[390px]:inline-block bg-[#3a1010] text-[#ff5252] text-[9px] font-black uppercase tracking-widest px-1.5 py-0.5">
-                          RET
-                        </span>
-                      )}
-                      {!retired && isOutlap && (
-                        <span className="inline-block bg-[#4b5563] text-[#d0d5dd] text-[9px] font-black uppercase tracking-widest px-1.5 py-0.5">
-                          OUTLAP
-                        </span>
-                      )}
-                      {!retired && !isOutlap && inPit && (
-                        <span className="inline-block bg-[#f5a623] text-black text-[9px] font-black uppercase tracking-widest px-1.5 py-0.5 animate-pulse">
-                          PIT
-                        </span>
-                      )}
-                    </span>
+              const t1 = sectorTier(
+                lastLap?.duration_sector_1 ?? null,
+                sessionBest.s1,
+                pb.s1,
+              );
+              const t2 = sectorTier(
+                lastLap?.duration_sector_2 ?? null,
+                sessionBest.s2,
+                pb.s2,
+              );
+              const t3 = sectorTier(
+                lastLap?.duration_sector_3 ?? null,
+                sessionBest.s3,
+                pb.s3,
+              );
+              const lapTier = lapTimeTier(
+                lastLap?.lap_duration ?? null,
+                sessionBest.lap,
+              );
 
-                    {showTelemetry && (
-                      <div className="mt-1 grid grid-cols-2 gap-x-2 gap-y-0.5 text-[9px] leading-4 font-mono tabular-nums sm:hidden">
-                        <span className="inline-flex min-w-0 items-center gap-1 text-[#7dd3fc]">
-                          <span className="text-[#89a6bf]">SPD</span>
-                          <span className="w-[3ch] text-right">
-                            {speedDisplay}
-                          </span>
-                        </span>
-                        <span className="inline-flex min-w-0 items-center gap-1 text-[#c4b5fd]">
-                          <span className="text-[#a79ac9]">RPM</span>
-                          <span className="w-[5ch] text-right">
-                            {rpmDisplay}
-                          </span>
-                        </span>
-                        <span className="inline-flex min-w-0 items-center gap-1 text-[#fde68a]">
-                          <span className="text-[#d2bf72]">G</span>
-                          <span className="w-[3ch] text-right">
-                            {gearDisplay}
-                          </span>
-                        </span>
-                        <span
-                          className={`inline-flex min-w-0 items-center gap-1 ${car && car.drs >= 10 ? "text-[#39d743]" : "text-[#9ca3af]"}`}
-                        >
-                          <span className="text-[#9ba1a8]">DRS</span>
-                          <span className="w-[3ch] text-right">
-                            {drsDisplay}
-                          </span>
-                        </span>
-                        <MobilePedalMeter
-                          label="T"
-                          value={car ? car.throttle : null}
-                          color="#39d743"
-                          labelClassName="text-[#6eb989]"
+              const gridPos = gridMap.get(num) ?? null;
+              const gained = gridPos !== null ? gridPos - pos : null;
+              const retired = retiredDrivers.has(num);
+              const selected = selectedDriver === num;
+              const compared = compareDriver === num;
+
+              // Check if the last lap is a post-race outlap
+              const isOutlap =
+                lastLap &&
+                lastLap.date_start &&
+                chequeredMs !== undefined &&
+                chequeredMs !== null &&
+                new Date(lastLap.date_start).getTime() - sessionStartMs >=
+                  chequeredMs;
+
+              const rowBg = selected
+                ? "bg-[#2a2a35]"
+                : compared
+                  ? "bg-[#1a2438]"
+                  : retired
+                    ? "opacity-50"
+                    : idx % 2 === 1
+                      ? "bg-white/[0.02] hover:bg-white/[0.06]"
+                      : "hover:bg-white/[0.06]";
+
+              return (
+                <tr
+                  key={num}
+                  onClick={() => onSelectDriver?.(num)}
+                  className={`border-b border-[#1e1e28] transition-colors ${onSelectDriver ? "cursor-pointer" : ""} ${rowBg}`}
+                >
+                  {/* Position */}
+                  <td
+                    className={`${rowCellPad} px-1.5 font-black text-sm tabular-nums text-white/90 sm:px-2`}
+                  >
+                    {pos}
+                  </td>
+
+                  {/* Driver */}
+                  <td
+                    className={dense ? driverCellCompactClass : driverCellClass}
+                  >
+                    <div>
+                      <span className="flex items-center gap-1 sm:gap-2">
+                        <DriverHeadshot
+                          driver={driver}
+                          accent={color}
+                          size="xs"
                         />
-                        <MobilePedalMeter
-                          label="B"
-                          value={car ? car.brake : null}
-                          color="#ff5252"
-                          labelClassName="text-[#c88787]"
+                        {/* Team colour bar */}
+                        <span
+                          className="w-[2px] h-4 shrink-0 rounded-sm"
+                          style={{ background: color }}
                         />
-                      </div>
-                    )}
-                  </div>
-                </td>
-
-                {/* Best lap time */}
-                <td
-                  className={`${rowCellPad} px-1 text-right font-mono text-[11px] min-[390px]:text-[12px] tabular-nums sm:px-2 ${LAP_TIME_COLOUR[lapTier]}`}
-                >
-                  {fmtTime(lastLap?.lap_duration ?? null)}
-                </td>
-
-                {/* Gap to leader */}
-                <td
-                  className={`${rowCellPad} px-1 text-right font-mono text-[10px] min-[390px]:text-[11px] tabular-nums text-muted sm:px-2`}
-                >
-                  {fmtGap(intData?.gap_to_leader ?? null)}
-                </td>
-
-                {/* Sector bars */}
-                <td className={`hidden sm:table-cell ${rowCellPad} px-1`}>
-                  <div className="flex flex-col items-center gap-1">
-                    <SectorBar
-                      tier={t1}
-                      segments={lastLap?.segments_sector_1}
-                      showMinisectors={showMinisectors}
-                      widthClass={sectorBarWidthClass}
-                      title={`S1: ${lastLap?.duration_sector_1?.toFixed(3) ?? "—"}`}
-                    />
-                    {wideSectors && (
-                      <span className="text-[9px] font-mono tabular-nums text-muted leading-none">
-                        {lastLap?.duration_sector_1?.toFixed(3) ?? "—"}
+                        {/* Surname in CAPS */}
+                        <span className="min-w-0 truncate font-bold text-[10px] min-[390px]:text-[11px] tracking-[0.03em] min-[390px]:tracking-[0.05em] uppercase text-white">
+                          {driver?.name_acronym ?? num}
+                        </span>
+                        {selected && (
+                          <span className="bg-f1red text-white text-[8px] min-[390px]:text-[9px] font-black uppercase tracking-widest px-1 min-[390px]:px-1.5 py-0.5">
+                            A
+                          </span>
+                        )}
+                        {compared && (
+                          <span className="bg-[#1e40af] text-white text-[8px] min-[390px]:text-[9px] font-black uppercase tracking-widest px-1 min-[390px]:px-1.5 py-0.5">
+                            B
+                          </span>
+                        )}
+                        {/* Places gained/lost */}
+                        {gained !== null && gained !== 0 && (
+                          <span
+                            className={`hidden min-[390px]:inline text-[9px] font-bold tabular-nums ${gained > 0 ? "text-[#39b54a]" : "text-[#ff5252]"}`}
+                            title={`${gained > 0 ? "Gained" : "Lost"} ${Math.abs(gained)} since start (P${gridPos})`}
+                          >
+                            {gained > 0 ? "▲" : "▼"}
+                            {Math.abs(gained)}
+                          </span>
+                        )}
+                        {retired && (
+                          <span className="hidden min-[390px]:inline-block bg-[#3a1010] text-[#ff5252] text-[9px] font-black uppercase tracking-widest px-1.5 py-0.5">
+                            RET
+                          </span>
+                        )}
+                        {!retired && isOutlap && (
+                          <span className="inline-block bg-[#4b5563] text-[#d0d5dd] text-[9px] font-black uppercase tracking-widest px-1.5 py-0.5">
+                            OUTLAP
+                          </span>
+                        )}
+                        {!retired && !isOutlap && inPit && (
+                          <span className="inline-block bg-[#f5a623] text-black text-[9px] font-black uppercase tracking-widest px-1.5 py-0.5 animate-pulse">
+                            PIT
+                          </span>
+                        )}
                       </span>
-                    )}
-                  </div>
-                </td>
-                <td className={`hidden sm:table-cell ${rowCellPad} px-1`}>
-                  <div className="flex flex-col items-center gap-1">
-                    <SectorBar
-                      tier={t2}
-                      segments={lastLap?.segments_sector_2}
-                      showMinisectors={showMinisectors}
-                      widthClass={sectorBarWidthClass}
-                      title={`S2: ${lastLap?.duration_sector_2?.toFixed(3) ?? "—"}`}
-                    />
-                    {wideSectors && (
-                      <span className="text-[9px] font-mono tabular-nums text-muted leading-none">
-                        {lastLap?.duration_sector_2?.toFixed(3) ?? "—"}
-                      </span>
-                    )}
-                  </div>
-                </td>
-                <td className={`hidden sm:table-cell ${rowCellPad} px-1`}>
-                  <div className="flex flex-col items-center gap-1">
-                    <SectorBar
-                      tier={t3}
-                      segments={lastLap?.segments_sector_3}
-                      showMinisectors={showMinisectors}
-                      widthClass={sectorBarWidthClass}
-                      title={`S3: ${lastLap?.duration_sector_3?.toFixed(3) ?? "—"}`}
-                    />
-                    {wideSectors && (
-                      <span className="text-[9px] font-mono tabular-nums text-muted leading-none">
-                        {lastLap?.duration_sector_3?.toFixed(3) ?? "—"}
-                      </span>
-                    )}
-                  </div>
-                </td>
 
-                {/* Tyre: starting compound → current compound + age */}
-                <td className={`${rowCellPad} px-1.5 sm:px-2`}>
-                  <TyreBadge
-                    stints={stints ?? []}
-                    driverNumber={num}
-                    currentLap={currentLap}
-                    startCompound={startCompoundMap.get(num) ?? null}
-                  />
-                </td>
+                      {showTelemetry && (
+                        <div className="mt-1 grid grid-cols-2 gap-x-2 gap-y-0.5 text-[9px] leading-4 font-mono tabular-nums sm:hidden">
+                          <span className="inline-flex min-w-0 items-center gap-1 text-[#7dd3fc]">
+                            <span className="text-[#89a6bf]">SPD</span>
+                            <span className="w-[3ch] text-right">
+                              {speedDisplay}
+                            </span>
+                          </span>
+                          <span className="inline-flex min-w-0 items-center gap-1 text-[#c4b5fd]">
+                            <span className="text-[#a79ac9]">RPM</span>
+                            <span className="w-[5ch] text-right">
+                              {rpmDisplay}
+                            </span>
+                          </span>
+                          <span className="inline-flex min-w-0 items-center gap-1 text-[#fde68a]">
+                            <span className="text-[#d2bf72]">G</span>
+                            <span className="w-[3ch] text-right">
+                              {gearDisplay}
+                            </span>
+                          </span>
+                          <span
+                            className={`inline-flex min-w-0 items-center gap-1 ${car && car.drs >= 10 ? "text-[#39d743]" : "text-[#9ca3af]"}`}
+                          >
+                            <span className="text-[#9ba1a8]">DRS</span>
+                            <span className="w-[3ch] text-right">
+                              {drsDisplay}
+                            </span>
+                          </span>
+                          <MobilePedalMeter
+                            label="T"
+                            value={car ? car.throttle : null}
+                            color="#39d743"
+                            labelClassName="text-[#6eb989]"
+                          />
+                          <MobilePedalMeter
+                            label="B"
+                            value={car ? car.brake : null}
+                            color="#ff5252"
+                            labelClassName="text-[#c88787]"
+                          />
+                        </div>
+                      )}
+                    </div>
+                  </td>
 
-                {/* Pit stop count (hover: most recent stop time) */}
-                <td
-                  className={`${rowCellPad} px-1 text-center font-mono text-[10px] tabular-nums text-muted sm:px-2 sm:text-[11px]`}
-                  title={
-                    pitInfo && pitInfo.lastStop !== null
-                      ? `${pitInfo.count} stop${pitInfo.count !== 1 ? "s" : ""} · last ${pitInfo.lastStop.toFixed(1)}s`
-                      : undefined
-                  }
-                >
-                  {!retired && inPit ? (
-                    <span className="inline-block bg-[#f5a623] text-black text-[8px] font-black uppercase tracking-widest px-1 py-0.5 animate-pulse">
-                      PIT
-                    </span>
-                  ) : pitInfo ? (
-                    pitInfo.count
-                  ) : (
-                    "—"
+                  {/* Best lap time */}
+                  <td
+                    className={`${rowCellPad} px-1 text-right font-mono text-[11px] min-[390px]:text-[12px] tabular-nums sm:px-2 ${LAP_TIME_COLOUR[lapTier]}`}
+                  >
+                    {fmtTime(lastLap?.lap_duration ?? null)}
+                  </td>
+
+                  {/* Gap to leader */}
+                  <td
+                    className={`${rowCellPad} px-1 text-right font-mono text-[10px] min-[390px]:text-[11px] tabular-nums text-muted sm:px-2`}
+                  >
+                    {fmtGap(intData?.gap_to_leader ?? null)}
+                  </td>
+
+                  {/* Sector bars */}
+                  <td className={`hidden sm:table-cell ${sectorCellClass}`}>
+                    <div className="flex flex-col items-center gap-1">
+                      <SectorBar
+                        tier={t1}
+                        segments={lastLap?.segments_sector_1}
+                        showMinisectors={showMinisectors}
+                        widthClass={sectorBarWidthClass}
+                        title={`S1: ${lastLap?.duration_sector_1?.toFixed(3) ?? "—"}`}
+                      />
+                      {wideSectors && (
+                        <span className="text-[9px] font-mono tabular-nums text-muted leading-none">
+                          {lastLap?.duration_sector_1?.toFixed(3) ?? "—"}
+                        </span>
+                      )}
+                    </div>
+                  </td>
+                  <td className={`hidden sm:table-cell ${sectorCellClass}`}>
+                    <div className="flex flex-col items-center gap-1">
+                      <SectorBar
+                        tier={t2}
+                        segments={lastLap?.segments_sector_2}
+                        showMinisectors={showMinisectors}
+                        widthClass={sectorBarWidthClass}
+                        title={`S2: ${lastLap?.duration_sector_2?.toFixed(3) ?? "—"}`}
+                      />
+                      {wideSectors && (
+                        <span className="text-[9px] font-mono tabular-nums text-muted leading-none">
+                          {lastLap?.duration_sector_2?.toFixed(3) ?? "—"}
+                        </span>
+                      )}
+                    </div>
+                  </td>
+                  <td className={`hidden sm:table-cell ${sectorCellClass}`}>
+                    <div className="flex flex-col items-center gap-1">
+                      <SectorBar
+                        tier={t3}
+                        segments={lastLap?.segments_sector_3}
+                        showMinisectors={showMinisectors}
+                        widthClass={sectorBarWidthClass}
+                        title={`S3: ${lastLap?.duration_sector_3?.toFixed(3) ?? "—"}`}
+                      />
+                      {wideSectors && (
+                        <span className="text-[9px] font-mono tabular-nums text-muted leading-none">
+                          {lastLap?.duration_sector_3?.toFixed(3) ?? "—"}
+                        </span>
+                      )}
+                    </div>
+                  </td>
+
+                  {/* Tyre: starting compound → current compound + age */}
+                  <td className={`${rowCellPad} px-1.5 sm:px-2`}>
+                    <TyreBadge
+                      stints={stints ?? []}
+                      driverNumber={num}
+                      currentLap={currentLap}
+                      startCompound={
+                        wideSectors ? (startCompoundMap.get(num) ?? null) : null
+                      }
+                    />
+                  </td>
+
+                  {/* Pit stop count (hover: most recent stop time) */}
+                  <td
+                    className={`${rowCellPad} px-1 text-center font-mono text-[10px] tabular-nums text-muted sm:px-2 sm:text-[11px]`}
+                    title={
+                      pitInfo && pitInfo.lastStop !== null
+                        ? `${pitInfo.count} stop${pitInfo.count !== 1 ? "s" : ""} · last ${pitInfo.lastStop.toFixed(1)}s`
+                        : undefined
+                    }
+                  >
+                    {!retired && inPit ? (
+                      <span className="inline-block bg-[#f5a623] text-black text-[8px] font-black uppercase tracking-widest px-1 py-0.5 animate-pulse">
+                        PIT
+                      </span>
+                    ) : pitInfo ? (
+                      pitInfo.count
+                    ) : (
+                      "—"
+                    )}
+                  </td>
+
+                  {/* Current lap */}
+                  <td
+                    className={`hidden sm:table-cell ${rowCellPad} px-2 text-center font-mono text-[11px] tabular-nums text-muted`}
+                  >
+                    {currentLap !== null && totalLapCount !== null
+                      ? `${currentLap}/${totalLapCount}`
+                      : (currentLap ?? "—")}
+                  </td>
+
+                  {/* Live car telemetry */}
+                  {showTelemetry && (
+                    <>
+                      {/* Speed */}
+                      <td
+                        className={`hidden lg:table-cell ${rowCellPad} ${telemetryPadClass} text-right font-mono text-[12px] tabular-nums text-white`}
+                      >
+                        {car ? Math.round(car.speed) : "—"}
+                      </td>
+                      {/* Gear */}
+                      <td
+                        className={`hidden lg:table-cell ${rowCellPad} ${telemetryCenterPadClass} text-center font-mono text-[12px] tabular-nums text-white/90`}
+                      >
+                        {car ? (car.n_gear === 0 ? "N" : car.n_gear) : "—"}
+                      </td>
+                      {/* RPM */}
+                      <td
+                        className={`${rpmColumnClass} ${rowCellPad} ${telemetryPadClass} text-right font-mono text-[11px] tabular-nums text-muted`}
+                      >
+                        {car ? Math.round(car.rpm) : "—"}
+                      </td>
+                      {/* Throttle / brake mini bars */}
+                      <td
+                        className={`${pedalColumnClass} ${rowCellPad} ${telemetryCenterPadClass}`}
+                      >
+                        {car ? (
+                          <span
+                            className={`flex flex-col gap-0.5 ${pedalBarsWidthClass} mx-auto`}
+                          >
+                            <MiniBar value={car.throttle} color="#39d743" />
+                            <MiniBar value={car.brake} color="#ff5252" />
+                          </span>
+                        ) : (
+                          <span className="block text-center text-muted">
+                            —
+                          </span>
+                        )}
+                      </td>
+                      {/* DRS */}
+                      <td
+                        className={`${drsColumnClass} ${rowCellPad} ${telemetryCenterPadClass} text-center`}
+                      >
+                        {car ? (
+                          <span
+                            className={`inline-block px-1.5 py-0.5 text-[9px] font-black uppercase tracking-widest ${
+                              car.drs >= 10
+                                ? "bg-[#39d743] text-black"
+                                : "bg-panel text-[#636369]"
+                            }`}
+                            title={`DRS raw value ${car.drs}`}
+                          >
+                            DRS
+                          </span>
+                        ) : (
+                          <span className="text-muted">—</span>
+                        )}
+                      </td>
+                    </>
                   )}
-                </td>
-
-                {/* Current lap */}
-                <td
-                  className={`hidden sm:table-cell ${rowCellPad} px-2 text-center font-mono text-[11px] tabular-nums text-muted`}
-                >
-                  {currentLap !== null && totalLapCount !== null
-                    ? `${currentLap}/${totalLapCount}`
-                    : (currentLap ?? "—")}
-                </td>
-
-                {/* Live car telemetry */}
-                {showTelemetry && (
-                  <>
-                    {/* Speed */}
-                    <td
-                      className={`hidden lg:table-cell ${rowCellPad} px-2 text-right font-mono text-[12px] tabular-nums text-white`}
-                    >
-                      {car ? Math.round(car.speed) : "—"}
-                    </td>
-                    {/* Gear */}
-                    <td
-                      className={`hidden lg:table-cell ${rowCellPad} px-2 text-center font-mono text-[12px] tabular-nums text-white/90`}
-                    >
-                      {car ? (car.n_gear === 0 ? "N" : car.n_gear) : "—"}
-                    </td>
-                    {/* RPM */}
-                    <td
-                      className={`hidden xl:table-cell ${rowCellPad} px-2 text-right font-mono text-[11px] tabular-nums text-muted`}
-                    >
-                      {car ? Math.round(car.rpm) : "—"}
-                    </td>
-                    {/* Throttle / brake mini bars */}
-                    <td className={`hidden lg:table-cell ${rowCellPad} px-2`}>
-                      {car ? (
-                        <span className="flex flex-col gap-0.5 w-16 mx-auto">
-                          <MiniBar value={car.throttle} color="#39d743" />
-                          <MiniBar value={car.brake} color="#ff5252" />
-                        </span>
-                      ) : (
-                        <span className="block text-center text-muted">—</span>
-                      )}
-                    </td>
-                    {/* DRS */}
-                    <td
-                      className={`hidden lg:table-cell ${rowCellPad} px-2 text-center`}
-                    >
-                      {car ? (
-                        <span
-                          className={`inline-block px-1.5 py-0.5 text-[9px] font-black uppercase tracking-widest ${
-                            car.drs >= 10
-                              ? "bg-[#39d743] text-black"
-                              : "bg-panel text-[#636369]"
-                          }`}
-                          title={`DRS raw value ${car.drs}`}
-                        >
-                          DRS
-                        </span>
-                      ) : (
-                        <span className="text-muted">—</span>
-                      )}
-                    </td>
-                  </>
-                )}
-              </tr>
-            );
-          })}
-        </tbody>
-      </table>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
     </div>
   );
 }

@@ -1301,7 +1301,7 @@ export default function RaceWeekend() {
             {/* Desktop layout: split panel (hidden md:flex) */}
             <div className="hidden md:flex flex-1 min-h-0 overflow-hidden">
               {/* Left data panel */}
-              <div className="md:w-[705px] lg:w-[765px] xl:w-[825px] shrink-0 flex flex-col border-r border-panel overflow-hidden">
+              <div className="md:w-[795px] lg:w-[875px] xl:w-[955px] shrink-0 flex flex-col border-r border-panel overflow-hidden">
                 {/* Sub-tabs */}
                 <div className="flex border-b border-panel shrink-0">
                   {(
@@ -1315,7 +1315,7 @@ export default function RaceWeekend() {
                     <button
                       key={tab}
                       onClick={() => setTrackerTab(tab)}
-                      className={`${tab === "timing" ? "flex-[1.2]" : "flex-1"} py-1.5 text-[10px] font-bold uppercase tracking-wider transition-colors ${
+                      className={`${tab === "timing" ? "flex-[1.35]" : "flex-1"} py-1.5 text-[10px] font-bold uppercase tracking-wider transition-colors ${
                         (trackerTab ?? "timing") === tab
                           ? "text-white border-b-2 border-f1red -mb-px bg-surface"
                           : "text-muted hover:text-white bg-track"
