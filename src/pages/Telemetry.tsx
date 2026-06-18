@@ -1,7 +1,10 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import type { Lap } from "@/api/types";
+import { useQuery } from "@tanstack/react-query";
+import { api } from "@/api/endpoints";
+import type { Lap, Location } from "@/api/types";
 import { ErrorMessage } from "@/components/ErrorMessage";
 import { TelemetryChart } from "@/components/TelemetryChart/TelemetryChart";
+import { computeTrackBounds, locationToSvg } from "@/hooks/useTrackMap";
 import { useSearchParams } from "react-router-dom";
 import {
   useCarDataForLap,
@@ -54,6 +57,12 @@ interface SectorWins {
   total: number;
 }
 
+interface TrackPreviewPoint {
+  sx: number;
+  sy: number;
+  dist: number;
+}
+
 type SlotKey = "a" | "b" | "c";
 
 const PANEL = "bg-surface border border-panel";
@@ -70,6 +79,39 @@ const EMPTY_SECTOR_WINS: SectorWins = {
   total: 0,
 };
 const LAYOUT_HINT_DISMISSED_KEY = "telemetryLayoutHintDismissed";
+const TRACK_SVG_W = 360;
+const TRACK_SVG_H = 180;
+
+function interpolateTrackPoint(
+  points: TrackPreviewPoint[],
+  targetDist: number,
+): { sx: number; sy: number } | null {
+  if (points.length === 0) return null;
+  if (targetDist <= 0) {
+    const first = points[0]!;
+    return { sx: first.sx, sy: first.sy };
+  }
+
+  const last = points[points.length - 1]!;
+  if (targetDist >= last.dist) return { sx: last.sx, sy: last.sy };
+
+  let lo = 0;
+  let hi = points.length - 1;
+  while (lo < hi) {
+    const mid = Math.floor((lo + hi) / 2);
+    if (points[mid]!.dist < targetDist) lo = mid + 1;
+    else hi = mid;
+  }
+
+  const right = points[lo]!;
+  const left = points[Math.max(0, lo - 1)]!;
+  const span = Math.max(1e-6, right.dist - left.dist);
+  const t = Math.max(0, Math.min(1, (targetDist - left.dist) / span));
+  return {
+    sx: left.sx + (right.sx - left.sx) * t,
+    sy: left.sy + (right.sy - left.sy) * t,
+  };
+}
 
 function formatLapTime(seconds: number | null): string {
   if (seconds === null || !Number.isFinite(seconds)) return "--:--.---";
@@ -164,6 +206,7 @@ export default function Telemetry() {
   const dataA = useCarDataForLap(sessionKey, driverA, selectedLapA);
   const dataB = useCarDataForLap(sessionKey, driverB, selectedLapB);
   const dataC = useCarDataForLap(sessionKey, driverC, selectedLapC);
+  const [hoveredDistM, setHoveredDistM] = useState<number | null>(null);
 
   const session = sessions.data?.find((s) => s.session_key === sessionKey);
 
@@ -198,6 +241,56 @@ export default function Telemetry() {
     }
     return out;
   }, [laps.data]);
+
+  const selectedLapRefA = useMemo(
+    () =>
+      driverA !== null && selectedLapA !== null
+        ? (lapLookup.get(`${driverA}:${selectedLapA}`) ?? null)
+        : null,
+    [driverA, selectedLapA, lapLookup],
+  );
+
+  const trackLocationA = useQuery<Location[]>({
+    queryKey: [
+      "telemetry-lap-location",
+      sessionKey,
+      driverA,
+      selectedLapA,
+      selectedLapRefA?.date_start,
+      selectedLapRefA?.lap_duration,
+    ],
+    queryFn: async () => {
+      if (
+        sessionKey === null ||
+        driverA === null ||
+        selectedLapRefA?.date_start == null ||
+        selectedLapRefA.lap_duration == null
+      ) {
+        return [];
+      }
+
+      const endMs =
+        new Date(selectedLapRefA.date_start).getTime() +
+        (selectedLapRefA.lap_duration + 2) * 1000;
+
+      const points = await api.locationForDriver(
+        sessionKey,
+        driverA,
+        selectedLapRefA.date_start,
+        new Date(endMs).toISOString(),
+      );
+
+      return [...points].sort(
+        (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime(),
+      );
+    },
+    enabled:
+      sessionKey !== null &&
+      driverA !== null &&
+      selectedLapRefA?.date_start != null &&
+      selectedLapRefA?.lap_duration != null,
+    staleTime: Infinity,
+  });
 
   const bestLapByDriver = useMemo(() => {
     const out = new Map<number, number>();
@@ -356,10 +449,6 @@ export default function Telemetry() {
     () => getLapMeta(driverB, selectedLapB),
     [driverB, selectedLapB, getLapMeta],
   );
-  const lapMetaC = useMemo(
-    () => getLapMeta(driverC, selectedLapC),
-    [driverC, selectedLapC, getLapMeta],
-  );
 
   // Reference axis = driver A; B and C are resampled onto it.
   const dataBResampled = useMemo(
@@ -378,6 +467,80 @@ export default function Telemetry() {
     () => dataA.data?.map((s) => s.distM) ?? [],
     [dataA.data],
   );
+
+  const trackPreview = useMemo(() => {
+    const locations = trackLocationA.data;
+    if (!locations || locations.length < 2) return null;
+
+    const bounds = computeTrackBounds(locations);
+    if (!Number.isFinite(bounds.width) || !Number.isFinite(bounds.height)) {
+      return null;
+    }
+
+    let dist = 0;
+    const points: TrackPreviewPoint[] = locations.map((point, idx) => {
+      if (idx > 0) {
+        const prev = locations[idx - 1]!;
+        const dx = point.x - prev.x;
+        const dy = point.y - prev.y;
+        dist += Math.hypot(dx, dy);
+      }
+      const { sx, sy } = locationToSvg(
+        point.x,
+        point.y,
+        bounds,
+        TRACK_SVG_W,
+        TRACK_SVG_H,
+      );
+      return { sx, sy, dist };
+    });
+
+    const polyline = points
+      .map((p) => `${p.sx.toFixed(1)},${p.sy.toFixed(1)}`)
+      .join(" ");
+    return {
+      points,
+      polyline,
+      totalDist: points[points.length - 1]!.dist,
+    };
+  }, [trackLocationA.data]);
+
+  const hoveredTrackPoint = useMemo(() => {
+    if (!trackPreview || hoveredDistM === null || xDist.length < 2) return null;
+    const chartMaxDist = xDist[xDist.length - 1] ?? 0;
+    if (chartMaxDist <= 0 || trackPreview.totalDist <= 0) return null;
+
+    const progress = Math.max(0, Math.min(1, hoveredDistM / chartMaxDist));
+    return interpolateTrackPoint(
+      trackPreview.points,
+      progress * trackPreview.totalDist,
+    );
+  }, [trackPreview, hoveredDistM, xDist]);
+
+  const handleChartHoverX = useCallback((value: number | null) => {
+    setHoveredDistM((prev) => {
+      if (prev === value) return prev;
+      if (prev !== null && value !== null && Math.abs(prev - value) < 0.5) {
+        return prev;
+      }
+      return value;
+    });
+  }, []);
+
+  const trackHoverInfo = useMemo(() => {
+    if (!trackPreview || hoveredDistM === null || xDist.length < 2) {
+      return null;
+    }
+    const chartMaxDist = xDist[xDist.length - 1] ?? 0;
+    if (chartMaxDist <= 0) return null;
+
+    const progress = Math.max(0, Math.min(1, hoveredDistM / chartMaxDist));
+    return {
+      progressPct: Math.round(progress * 100),
+      distanceM: Math.round(hoveredDistM),
+      lapM: Math.round(chartMaxDist),
+    };
+  }, [hoveredDistM, trackPreview, xDist]);
 
   const plotSlots = useMemo<PlotSlot[]>(() => {
     const out: PlotSlot[] = [];
@@ -434,6 +597,24 @@ export default function Telemetry() {
     });
   }
 
+  const speedSeries = useMemo(
+    () => series("speed", true),
+    [plotSlots, smoothing],
+  );
+  const throttleSeries = useMemo(
+    () => series("throttle", true, true),
+    [plotSlots, smoothing],
+  );
+  const brakeSeries = useMemo(
+    () => series("brake", true, true),
+    [plotSlots, smoothing],
+  );
+  const gearSeries = useMemo(
+    () => series("gear", false),
+    [plotSlots, smoothing],
+  );
+  const rpmSeries = useMemo(() => series("rpm", true), [plotSlots, smoothing]);
+
   const deltaSeries = useMemo(() => {
     if (!dataA.data) return [];
     const out: {
@@ -474,12 +655,6 @@ export default function Telemetry() {
     return values.length ? (values[values.length - 1] ?? null) : null;
   }, [dataA.data, dataBResampled]);
 
-  const finishDeltaC = useMemo(() => {
-    if (!dataA.data || !dataCResampled) return null;
-    const values = computeDelta(dataA.data, dataCResampled);
-    return values.length ? (values[values.length - 1] ?? null) : null;
-  }, [dataA.data, dataCResampled]);
-
   const deltaHintA = useMemo<DeltaHint>(
     () => ({
       text: "Reference",
@@ -492,11 +667,6 @@ export default function Telemetry() {
     () => formatDeltaHint(finishDeltaB),
     [finishDeltaB],
   );
-  const deltaHintC = useMemo(
-    () => formatDeltaHint(finishDeltaC),
-    [finishDeltaC],
-  );
-
   const splitRows = useMemo(() => {
     const slots = [
       { num: driverA, lapNo: selectedLapA, index: 0 },
@@ -835,6 +1005,16 @@ export default function Telemetry() {
             slotLabel="Driver A"
             accent={colorFor(driverA, 0)}
             driverTag={acr(driverA, "A")}
+            driverName={
+              driverA !== null
+                ? (driverByNumber.get(driverA)?.full_name ?? acr(driverA, "A"))
+                : "Unselected"
+            }
+            driverHeadshotUrl={
+              driverA !== null
+                ? (driverByNumber.get(driverA)?.headshot_url ?? null)
+                : null
+            }
             driver={driverA}
             onDriverChange={setDriverA}
             driverOptions={drivers.data ?? []}
@@ -869,6 +1049,16 @@ export default function Telemetry() {
             slotLabel="Driver B"
             accent={colorFor(driverB, 1)}
             driverTag={acr(driverB, "B")}
+            driverName={
+              driverB !== null
+                ? (driverByNumber.get(driverB)?.full_name ?? acr(driverB, "B"))
+                : "Unselected"
+            }
+            driverHeadshotUrl={
+              driverB !== null
+                ? (driverByNumber.get(driverB)?.headshot_url ?? null)
+                : null
+            }
             driver={driverB}
             onDriverChange={setDriverB}
             driverOptions={(drivers.data ?? []).filter(
@@ -901,41 +1091,143 @@ export default function Telemetry() {
             disabled={!sessionKey}
           />
 
-          <DriverLapCard
-            slotLabel="Driver C"
-            accent={colorFor(driverC, 2)}
-            driverTag={acr(driverC, "C")}
-            driver={driverC}
-            onDriverChange={setDriverC}
-            driverOptions={(drivers.data ?? []).filter(
-              (d) => d.driver_number !== driverA && d.driver_number !== driverB,
-            )}
-            driverPlaceholder="Optional"
-            lap={selectedLapC}
-            lapOptions={
-              driverC !== null ? (lapsByDriver.get(driverC) ?? []) : []
-            }
-            onLapChange={setLapC}
-            onBest={() => applyPresetLap("c", "best")}
-            onLatest={() => applyPresetLap("c", "latest")}
-            bestLap={
-              driverC !== null ? (bestLapByDriver.get(driverC) ?? null) : null
-            }
-            latestLap={
-              driverC !== null ? (latestLapByDriver.get(driverC) ?? null) : null
-            }
-            lapMeta={lapMetaC}
-            speedTrace={dataC.data?.map((sample) => sample.speed) ?? []}
-            deltaHint={deltaHintC}
-            sectorWins={
-              driverC !== null
-                ? (sectorWinsByDriver.get(driverC) ?? EMPTY_SECTOR_WINS)
-                : EMPTY_SECTOR_WINS
-            }
-            sectorAnimationSeed={selectedLapC}
-            compact={cardDensity === "compact"}
-            disabled={!sessionKey}
-          />
+          <div className="min-h-[220px] flex flex-col rounded border border-[#3f3f52] bg-[linear-gradient(160deg,#11131d_0%,#0e111b_60%,#161a28_100%)] shadow-[inset_0_1px_0_rgba(255,255,255,0.03),0_12px_32px_rgba(0,0,0,0.45)]">
+            <div className="flex items-center justify-between gap-2 border-b border-[#38383f] bg-[linear-gradient(90deg,rgba(232,0,45,0.12),rgba(21,23,33,0.1))] px-3 py-2">
+              <span className="text-[10px] font-bold uppercase tracking-[0.14em] text-[#c7ccd9]">
+                Track position preview
+              </span>
+              <span className="rounded border border-[#5c2a36] bg-[#2b121a] px-2 py-0.5 text-[9px] font-black uppercase tracking-[0.14em] text-[#ff8aa0]">
+                live hover
+              </span>
+            </div>
+
+            <div className="p-3 flex-1 flex flex-col">
+              <div className="mb-2 flex items-center justify-between gap-2 text-[10px] font-bold uppercase tracking-[0.12em] text-muted">
+                <span className="inline-flex items-center gap-2">
+                  <span className="inline-block h-2 w-2 rounded-full bg-f1red animate-pulse" />
+                  Hover telemetry charts for position
+                </span>
+                <span className="rounded border border-[#414457] bg-[#171a27] px-2 py-0.5 text-[9px] font-black tracking-[0.12em] text-[#c8cde1]">
+                  {trackHoverInfo
+                    ? `${trackHoverInfo.progressPct}% · ${trackHoverInfo.distanceM}m`
+                    : "Awaiting hover"}
+                </span>
+              </div>
+
+              {trackPreview ? (
+                <div className="relative h-full min-h-[160px] overflow-hidden rounded border border-[#34384d] bg-[#0b1020]">
+                  <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_22%_18%,rgba(39,68,158,0.25),transparent_45%),radial-gradient(circle_at_88%_78%,rgba(232,0,45,0.14),transparent_42%)]" />
+                  <svg
+                    viewBox={`0 0 ${TRACK_SVG_W} ${TRACK_SVG_H}`}
+                    className="relative h-full w-full"
+                    role="img"
+                    aria-label="Lap track preview"
+                  >
+                    <defs>
+                      <linearGradient
+                        id="trackLineGradient"
+                        x1="0"
+                        y1="0"
+                        x2="1"
+                        y2="1"
+                      >
+                        <stop offset="0%" stopColor="#d7deee" />
+                        <stop offset="65%" stopColor="#a9b8d0" />
+                        <stop offset="100%" stopColor="#f4f7ff" />
+                      </linearGradient>
+                    </defs>
+
+                    <polyline
+                      points={trackPreview.polyline}
+                      fill="none"
+                      stroke="#3e4a64"
+                      strokeWidth={5.8}
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      opacity={0.7}
+                    />
+                    <polyline
+                      points={trackPreview.polyline}
+                      fill="none"
+                      stroke="url(#trackLineGradient)"
+                      strokeWidth={2.05}
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    />
+
+                    <circle
+                      cx={trackPreview.points[0]?.sx ?? 0}
+                      cy={trackPreview.points[0]?.sy ?? 0}
+                      r={3.2}
+                      fill="#22c55e"
+                      stroke="#06110a"
+                      strokeWidth={1}
+                    />
+                    <circle
+                      cx={
+                        trackPreview.points[trackPreview.points.length - 1]
+                          ?.sx ?? 0
+                      }
+                      cy={
+                        trackPreview.points[trackPreview.points.length - 1]
+                          ?.sy ?? 0
+                      }
+                      r={3.2}
+                      fill="#f97316"
+                      stroke="#1a0c04"
+                      strokeWidth={1}
+                    />
+
+                    {hoveredTrackPoint && (
+                      <>
+                        <circle
+                          cx={hoveredTrackPoint.sx}
+                          cy={hoveredTrackPoint.sy}
+                          r={11}
+                          fill="#e8002d"
+                          opacity={0.14}
+                        />
+                        <circle
+                          cx={hoveredTrackPoint.sx}
+                          cy={hoveredTrackPoint.sy}
+                          r={6}
+                          fill="#e8002d"
+                          opacity={0.35}
+                        />
+                        <circle
+                          cx={hoveredTrackPoint.sx}
+                          cy={hoveredTrackPoint.sy}
+                          r={3.8}
+                          fill="#ff274f"
+                          stroke="#ffffff"
+                          strokeWidth={1.1}
+                        />
+                      </>
+                    )}
+                  </svg>
+                </div>
+              ) : (
+                <div className="flex h-full min-h-[160px] items-center justify-center rounded border border-panel bg-[#10111a] text-xs text-muted text-center px-3">
+                  Select Driver A and a valid lap to draw the track.
+                </div>
+              )}
+
+              {trackPreview && (
+                <div className="mt-2 grid grid-cols-2 gap-2 text-[9px] font-black uppercase tracking-[0.12em]">
+                  <div className="rounded border border-[#42465b] bg-[#151827] px-2 py-1 text-[#cbd3e8]">
+                    Lap span:{" "}
+                    {trackHoverInfo?.lapM ??
+                      Math.round(xDist[xDist.length - 1] ?? 0)}
+                    m
+                  </div>
+                  <div className="rounded border border-[#543347] bg-[#201521] px-2 py-1 text-[#ffc7d4]">
+                    Cursor:{" "}
+                    {trackHoverInfo ? `${trackHoverInfo.distanceM}m` : "-"}
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
         </div>
 
         {session && (
@@ -1034,45 +1326,50 @@ export default function Telemetry() {
                 xData={xDist}
                 yMin={0}
                 yMax={380}
-                height={130}
+                height={230}
                 interactiveControls
-                series={series("speed", true)}
+                onHoverX={handleChartHoverX}
+                series={speedSeries}
               />
               <TelemetryChart
                 title="Throttle (%)"
                 xData={xDist}
                 yMin={0}
                 yMax={100}
-                height={80}
+                height={165}
                 interactiveControls
-                series={series("throttle", true, true)}
+                onHoverX={handleChartHoverX}
+                series={throttleSeries}
               />
               <TelemetryChart
                 title="Brake"
                 xData={xDist}
                 yMin={0}
                 yMax={100}
-                height={70}
+                height={155}
                 interactiveControls
-                series={series("brake", true, true)}
+                onHoverX={handleChartHoverX}
+                series={brakeSeries}
               />
               <TelemetryChart
                 title="Gear"
                 xData={xDist}
                 yMin={0}
                 yMax={9}
-                height={80}
+                height={165}
                 interactiveControls
-                series={series("gear", false)}
+                onHoverX={handleChartHoverX}
+                series={gearSeries}
               />
               <TelemetryChart
                 title="RPM"
                 xData={xDist}
                 yMin={0}
                 yMax={15000}
-                height={90}
+                height={175}
                 interactiveControls
-                series={series("rpm", true)}
+                onHoverX={handleChartHoverX}
+                series={rpmSeries}
               />
 
               {deltaSeries.length > 0 && (
@@ -1086,8 +1383,9 @@ export default function Telemetry() {
                   <TelemetryChart
                     title=""
                     xData={xDist}
-                    height={90}
+                    height={175}
                     interactiveControls
+                    onHoverX={handleChartHoverX}
                     series={deltaSeries}
                   />
                 </div>
@@ -1139,6 +1437,8 @@ function DriverLapCard({
   slotLabel,
   accent,
   driverTag,
+  driverName,
+  driverHeadshotUrl,
   driver,
   onDriverChange,
   driverOptions,
@@ -1161,6 +1461,8 @@ function DriverLapCard({
   slotLabel: string;
   accent: string;
   driverTag: string;
+  driverName: string;
+  driverHeadshotUrl: string | null;
   driver: number | null;
   onDriverChange: (value: number | null) => void;
   driverOptions: {
@@ -1185,18 +1487,53 @@ function DriverLapCard({
   disabled: boolean;
 }) {
   const speedStats = useMemo(() => sparklineStats(speedTrace), [speedTrace]);
+  const [headshotFailed, setHeadshotFailed] = useState(false);
+
+  useEffect(() => {
+    setHeadshotFailed(false);
+  }, [driverHeadshotUrl, driver]);
+
+  const hasHeadshot = !!driverHeadshotUrl && !headshotFailed;
+  const avatarLabel = driverTag.toUpperCase().slice(0, 3);
 
   return (
     <div className="rounded border border-[#353548] bg-[#10111a] p-2">
       <div className="mb-2 flex items-center justify-between gap-2">
-        <div className="flex items-center gap-2">
-          <span className="text-[10px] font-black uppercase tracking-[0.15em] text-muted">
-            {slotLabel}
-          </span>
-          <span
-            className="h-1.5 w-8 rounded-full"
-            style={{ backgroundColor: accent }}
-          />
+        <div className="flex min-w-0 items-center gap-2">
+          <div className="relative h-9 w-9 shrink-0 overflow-hidden rounded border border-[#444458] bg-[#171925]">
+            {hasHeadshot ? (
+              <img
+                src={driverHeadshotUrl}
+                alt={`${driverName} profile`}
+                className="h-full w-full object-cover"
+                onError={() => setHeadshotFailed(true)}
+                loading="lazy"
+              />
+            ) : (
+              <span className="flex h-full w-full items-center justify-center text-[10px] font-black uppercase tracking-[0.12em] text-muted">
+                {avatarLabel}
+              </span>
+            )}
+          </div>
+
+          <div className="min-w-0">
+            <span className="block text-[10px] font-black uppercase tracking-[0.15em] text-muted">
+              {slotLabel}
+            </span>
+            <div className="mt-0.5 flex items-center gap-2">
+              <span
+                className="truncate text-[11px] font-black uppercase tracking-[0.08em]"
+                style={{ color: accent }}
+                title={driverName}
+              >
+                {driverTag}
+              </span>
+              <span
+                className="h-1.5 w-8 rounded-full"
+                style={{ backgroundColor: accent }}
+              />
+            </div>
+          </div>
         </div>
         <div className="flex items-center gap-1">
           <SectorChip

@@ -21,6 +21,7 @@ interface Props {
   readonly yLabel?: string;
   readonly height?: number;
   readonly interactiveControls?: boolean;
+  readonly onHoverX?: (x: number | null) => void;
 }
 
 export function TelemetryChart({
@@ -29,8 +30,9 @@ export function TelemetryChart({
   series,
   yMin,
   yMax,
-  height = 120,
+  height = 180,
   interactiveControls = false,
+  onHoverX,
 }: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
   const plotRef = useRef<uPlot | null>(null);
@@ -178,10 +180,48 @@ export function TelemetryChart({
     }
 
     return () => {
+      onHoverX?.(null);
       plotRef.current?.destroy();
       plotRef.current = null;
     };
-  }, [xData, series, height, title, yMin, yMax]);
+  }, [xData, series, height, title, yMin, yMax, onHoverX]);
+
+  // Track hover x-position with pointer movement only so wheel scrolling does
+  // not trigger chart-hover updates that can disturb page scrolling.
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el || !onHoverX) return;
+
+    const onMouseMove = (event: MouseEvent) => {
+      const plot = plotRef.current;
+      const range = readXScale();
+      if (!plot || !range) return;
+
+      const plotLeft = plot.bbox.left;
+      const plotWidth = plot.bbox.width;
+      if (!Number.isFinite(plotWidth) || plotWidth <= 0) return;
+
+      const rect = el.getBoundingClientRect();
+      const localX = event.clientX - rect.left;
+      const relX = localX - plotLeft;
+      const clampedRelX = Math.max(0, Math.min(plotWidth, relX));
+      const ratio = clampedRelX / plotWidth;
+      const x = range.min + (range.max - range.min) * ratio;
+
+      onHoverX(Number.isFinite(x) ? x : null);
+    };
+
+    const onMouseLeave = () => {
+      onHoverX(null);
+    };
+
+    el.addEventListener("mousemove", onMouseMove);
+    el.addEventListener("mouseleave", onMouseLeave);
+    return () => {
+      el.removeEventListener("mousemove", onMouseMove);
+      el.removeEventListener("mouseleave", onMouseLeave);
+    };
+  }, [onHoverX]);
 
   // Resize observer
   useEffect(() => {
@@ -195,32 +235,17 @@ export function TelemetryChart({
     return () => ro.disconnect();
   }, [height]);
 
-  // Wheel zoom around cursor, plus double-click reset.
+  // Double-click resets the current zoom window.
   useEffect(() => {
     const el = containerRef.current;
     if (!el) return;
-
-    const onWheel = (event: WheelEvent) => {
-      event.preventDefault();
-      const plot = plotRef.current as
-        | (uPlot & { posToVal?: (px: number, scale: string) => number })
-        | null;
-      if (!plot || !plot.posToVal) return;
-
-      const rect = el.getBoundingClientRect();
-      const px = event.clientX - rect.left;
-      const anchor = plot.posToVal(px, "x");
-      zoom(event.deltaY > 0 ? 1.18 : 0.84, anchor);
-    };
 
     const onDoubleClick = () => {
       resetZoom();
     };
 
-    el.addEventListener("wheel", onWheel, { passive: false });
     el.addEventListener("dblclick", onDoubleClick);
     return () => {
-      el.removeEventListener("wheel", onWheel);
       el.removeEventListener("dblclick", onDoubleClick);
     };
   });
@@ -289,7 +314,7 @@ export function TelemetryChart({
             Reset
           </button>
           <span className="ml-auto text-[9px] text-muted hidden sm:inline">
-            Wheel to zoom · drag to select
+            Use controls to zoom · drag to select
           </span>
         </div>
       )}

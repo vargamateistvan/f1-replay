@@ -210,7 +210,7 @@ export function FocusedTelemetry({
             xData={compareTelemetry.xData}
             yMin={0}
             yMax={380}
-            height={118}
+            height={180}
             series={compareTelemetry.speed}
           />
           <TelemetryChart
@@ -218,13 +218,13 @@ export function FocusedTelemetry({
             xData={compareTelemetry.xData}
             yMin={0}
             yMax={100}
-            height={118}
+            height={180}
             series={compareTelemetry.throttle}
           />
           <TelemetryChart
             title={`${driver?.name_acronym ?? "A"} ahead (+)`}
             xData={compareTelemetry.xData}
-            height={118}
+            height={180}
             series={compareTelemetry.delta}
           />
         </div>
