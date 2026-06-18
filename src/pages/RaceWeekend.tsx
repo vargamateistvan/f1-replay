@@ -505,7 +505,7 @@ export default function RaceWeekend() {
       if (new Date(entry.date).getTime() > cutoff) break;
 
       const phase = getSafetyControlPhase(entry);
-      const message = entry.message.toUpperCase();
+      const message = (entry.message ?? "").toUpperCase();
       const clearsTrack = isTrackClearSignal(entry);
 
       if (clearsTrack) {
@@ -783,12 +783,12 @@ export default function RaceWeekend() {
           color: "#f5a623",
         });
       } else if (e.flag === "RED") {
+        const message = (e.message ?? "").trim();
         moments.push({
           ms,
           kind: "red_flag",
           label: "Red Flag",
-          sublabel:
-            e.message.length > 50 ? e.message.slice(0, 47) + "…" : e.message,
+          sublabel: message.length > 50 ? message.slice(0, 47) + "…" : message,
           color: "#e8002d",
         });
       }

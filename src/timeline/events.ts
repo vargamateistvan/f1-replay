@@ -79,7 +79,7 @@ function classifyRaceControlToast(entry: RaceControl): {
   kind: "flag" | "investigation" | "penalty";
   priority: ToastPriority;
 } | null {
-  const message = entry.message.trim();
+  const message = (entry.message ?? "").trim();
   const hasToastFlag = !!entry.flag && TOAST_FLAGS.has(entry.flag);
 
   if (/no further investigation/i.test(message)) return null;
