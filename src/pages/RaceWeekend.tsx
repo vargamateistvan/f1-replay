@@ -557,6 +557,7 @@ export default function RaceWeekend() {
     toastsEnabled,
     toastRadio: settingToastRadio,
     toastRadioAutoplay: settingToastRadioAutoplay,
+    toastSoundsEnabled,
     toastFlag: settingToastFlag,
     toastOvertake: settingToastOvertake,
     toastPit: settingToastPit,
@@ -1096,6 +1097,7 @@ export default function RaceWeekend() {
                 drivers={drivers.data ?? []}
                 onDismiss={dismiss}
                 radioAutoplay={settingToastRadioAutoplay}
+                soundsEnabled={toastSoundsEnabled}
                 maxVisible={notificationMaxVisible}
                 layout="overlay"
               />
@@ -1225,6 +1227,7 @@ export default function RaceWeekend() {
                         drivers={drivers.data ?? []}
                         onDismiss={dismiss}
                         radioAutoplay={settingToastRadioAutoplay}
+                        soundsEnabled={toastSoundsEnabled}
                         maxVisible={notificationMaxVisible}
                         layout="overlay"
                       />

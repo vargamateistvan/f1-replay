@@ -17,7 +17,59 @@ interface Props {
   onDismiss: (id: string) => void;
   layout?: "overlay" | "inline";
   radioAutoplay?: boolean;
+  soundsEnabled?: boolean;
   maxVisible?: 2 | 4 | 6 | 8;
+}
+
+let audioCtx: AudioContext | null = null;
+
+function getAudioContext(): AudioContext | null {
+  if (typeof window === "undefined") return null;
+  const Ctx =
+    window.AudioContext ||
+    (window as typeof window & { webkitAudioContext?: typeof AudioContext })
+      .webkitAudioContext;
+  if (!Ctx) return null;
+  if (!audioCtx) audioCtx = new Ctx();
+  return audioCtx;
+}
+
+function beep(
+  ctx: AudioContext,
+  frequency: number,
+  startAt: number,
+  duration: number,
+  volume = 0.04,
+) {
+  const osc = ctx.createOscillator();
+  const gain = ctx.createGain();
+  osc.type = "sine";
+  osc.frequency.setValueAtTime(frequency, startAt);
+  gain.gain.setValueAtTime(0, startAt);
+  gain.gain.linearRampToValueAtTime(volume, startAt + 0.01);
+  gain.gain.exponentialRampToValueAtTime(0.0001, startAt + duration);
+  osc.connect(gain).connect(ctx.destination);
+  osc.start(startAt);
+  osc.stop(startAt + duration);
+}
+
+function playToastCue(kind: ActiveToast["event"]["kind"]) {
+  const ctx = getAudioContext();
+  if (!ctx) return;
+  const start = ctx.currentTime + 0.01;
+
+  if (kind === "radio") {
+    beep(ctx, 760, start, 0.08, 0.035);
+    beep(ctx, 980, start + 0.09, 0.09, 0.032);
+    return;
+  }
+
+  if (kind === "flag" || kind === "investigation" || kind === "penalty") {
+    beep(ctx, 430, start, 0.1, 0.04);
+    return;
+  }
+
+  beep(ctx, 700, start, 0.045, 0.03);
 }
 
 const FLAG_COLORS: Record<string, { bg: string; text: string; label: string }> =
@@ -37,10 +89,37 @@ export function EventToastStack({
   onDismiss,
   layout = "overlay",
   radioAutoplay = false,
+  soundsEnabled = false,
   maxVisible = 4,
 }: Props) {
   const driverMap = new Map(drivers.map((d) => [d.driver_number, d]));
   const visibleToasts = toasts.slice(0, maxVisible);
+  const playedRef = useRef(new Set<string>());
+
+  useEffect(() => {
+    if (!soundsEnabled) return;
+    if (
+      typeof document !== "undefined" &&
+      document.visibilityState !== "visible"
+    )
+      return;
+
+    const unseen = toasts.filter((at) => !playedRef.current.has(at.event.id));
+    if (unseen.length === 0) return;
+
+    const ctx = getAudioContext();
+    if (!ctx) return;
+    if (ctx.state === "suspended") {
+      void ctx.resume().catch(() => {
+        /* Ignore blocked autoplay contexts. */
+      });
+    }
+
+    for (const at of unseen) {
+      playedRef.current.add(at.event.id);
+      playToastCue(at.event.kind);
+    }
+  }, [toasts, soundsEnabled]);
 
   if (visibleToasts.length === 0) return null;
 

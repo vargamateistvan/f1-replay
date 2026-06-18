@@ -225,6 +225,13 @@ export function SettingsBody() {
         disabled={!settings.toastsEnabled || !settings.toastRadio}
       />
       <SettingRow
+        label="Toast sounds"
+        description="Play short sound cues for new notifications"
+        checked={settings.toastSoundsEnabled}
+        onChange={toggle("toastSoundsEnabled")}
+        disabled={!settings.toastsEnabled}
+      />
+      <SettingRow
         label="Flags & race control"
         checked={settings.toastFlag}
         onChange={toggle("toastFlag")}
