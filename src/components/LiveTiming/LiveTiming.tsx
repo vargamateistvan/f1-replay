@@ -42,6 +42,8 @@ interface Props {
   readonly selectedDriver?: number | null;
   readonly compareDriver?: number | null;
   readonly onSelectDriver?: (driverNumber: number) => void;
+  /** Race finish time (in ms relative to session start) — used to mark post-race outlaps. */
+  readonly chequeredMs?: number | null;
 }
 
 interface SessionBestOwner {
@@ -179,6 +181,7 @@ export function LiveTiming({
   selectedDriver,
   compareDriver,
   onSelectDriver,
+  chequeredMs = null,
 }: Props) {
   const showTelemetry = carData !== undefined;
   const currentT = sessionStartMs + sessionTimeMs;
@@ -610,6 +613,16 @@ export function LiveTiming({
             const retired = retiredDrivers.has(num);
             const selected = selectedDriver === num;
             const compared = compareDriver === num;
+
+            // Check if the last lap is a post-race outlap
+            const isOutlap =
+              lastLap &&
+              lastLap.date_start &&
+              chequeredMs !== undefined &&
+              chequeredMs !== null &&
+              new Date(lastLap.date_start).getTime() - sessionStartMs >=
+                chequeredMs;
+
             const rowBg = selected
               ? "bg-[#2a2a35]"
               : compared
@@ -678,7 +691,12 @@ export function LiveTiming({
                           RET
                         </span>
                       )}
-                      {!retired && inPit && (
+                      {!retired && isOutlap && (
+                        <span className="inline-block bg-[#4b5563] text-[#d0d5dd] text-[9px] font-black uppercase tracking-widest px-1.5 py-0.5">
+                          OUTLAP
+                        </span>
+                      )}
+                      {!retired && !isOutlap && inPit && (
                         <span className="inline-block bg-[#f5a623] text-black text-[9px] font-black uppercase tracking-widest px-1.5 py-0.5 animate-pulse">
                           PIT
                         </span>

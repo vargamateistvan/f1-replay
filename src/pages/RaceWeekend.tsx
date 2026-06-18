@@ -780,8 +780,46 @@ export default function RaceWeekend() {
   ]);
 
   const effectiveDuration = durationMs || DEFAULT_SESSION_MS;
+
+  // Calculate extended duration to include post-race laps and radios (outlap + post-race comms)
+  const postRaceDurationMs = useMemo(() => {
+    if (!isRaceSession || chequeredMs === null || !sessionStartMs) return null;
+
+    let latestMs = chequeredMs;
+
+    // Check for post-race laps (outlaps)
+    if (laps.data?.length) {
+      for (const lap of laps.data) {
+        if (lap.date_start && lap.lap_duration && lap.lap_duration > 0) {
+          const lapStartMs =
+            new Date(lap.date_start).getTime() - sessionStartMs;
+          const lapEndMs = lapStartMs + lap.lap_duration * 1000;
+          if (lapEndMs > chequeredMs) {
+            latestMs = Math.max(latestMs, lapEndMs);
+          }
+        }
+      }
+    }
+
+    // Check for post-race radio messages
+    if (teamRadio.data?.length) {
+      for (const radio of teamRadio.data) {
+        const radioMs = new Date(radio.date).getTime() - sessionStartMs;
+        if (radioMs > chequeredMs) {
+          latestMs = Math.max(latestMs, radioMs);
+        }
+      }
+    }
+
+    return latestMs > chequeredMs ? latestMs : null;
+  }, [isRaceSession, chequeredMs, sessionStartMs, laps.data, teamRadio.data]);
+
   const playbackDurationMs: number =
-    isRaceSession && chequeredMs !== null ? chequeredMs : effectiveDuration;
+    isRaceSession && chequeredMs !== null && postRaceDurationMs !== null
+      ? postRaceDurationMs
+      : isRaceSession && chequeredMs !== null
+        ? chequeredMs
+        : effectiveDuration;
   const finalClassificationTriggerMs: number | null =
     chequeredMs ?? (durationMs > 0 ? durationMs : null);
   const showFinalClassification =
@@ -892,6 +930,7 @@ export default function RaceWeekend() {
       carData={trackerTimingTelemetryEnabled ? carDataAtT : undefined}
       showMinisectors={timingShowMinisectors}
       compactDriverColumn
+      chequeredMs={chequeredMs}
     />
   );
 
@@ -918,6 +957,7 @@ export default function RaceWeekend() {
       showMinisectors={timingShowMinisectors}
       wideSectors
       dense
+      chequeredMs={chequeredMs}
     />
   );
 
