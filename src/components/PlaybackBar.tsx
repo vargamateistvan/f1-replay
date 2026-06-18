@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import {
   FastForward,
   Pause,
@@ -8,6 +8,7 @@ import {
   SkipForward,
 } from "lucide-react";
 import { useTimeline } from "@/timeline/clock";
+import { useMediaQuery } from "@/hooks/useMediaQuery";
 import { SPEEDS } from "@/constants";
 import { atOrBefore, nextAfter } from "@/timeline/events";
 import type { RaceControlMarker, MarkerSummary } from "@/timeline/raceControl";
@@ -35,6 +36,7 @@ interface Props {
 }
 
 function fmtTime(ms: number) {
+  if (ms < 0) ms = 0;
   const s = Math.floor(ms / 1000);
   const m = Math.floor(s / 60);
   const h = Math.floor(m / 60);
@@ -48,6 +50,29 @@ const JUMP_BTN =
   "flex h-8 w-6 items-center justify-center text-xs bg-panel text-muted transition-colors shrink-0 hover:text-white hover:bg-[#38383f] sm:w-7 disabled:opacity-30 disabled:hover:bg-panel disabled:hover:text-muted";
 const CHIP_STRETCH =
   "h-7 shrink-0 px-3 flex items-center justify-center text-[10px] font-black uppercase tracking-widest bg-panel text-muted hover:text-white hover:bg-[#38383f] transition-colors sm:flex-none sm:px-3 disabled:opacity-30 disabled:hover:bg-panel disabled:hover:text-muted";
+
+function SpeedButtons({ className }: { className?: string }) {
+  const { speed, setSpeed } = useTimeline();
+  return (
+    <div className={className}>
+      {SPEEDS.map((s) => (
+        <button
+          key={s}
+          onClick={() => setSpeed(s)}
+          aria-pressed={speed === s}
+          aria-label={`${s}x speed`}
+          className={`text-[10px] font-black uppercase tracking-widest transition-colors ${
+            speed === s
+              ? "bg-f1red text-white"
+              : "bg-panel text-muted hover:text-white hover:bg-[#38383f]"
+          }`}
+        >
+          {s}×
+        </button>
+      ))}
+    </div>
+  );
+}
 
 export function PlaybackBar({
   durationMs,
@@ -68,31 +93,34 @@ export function PlaybackBar({
   showSpeedControls = true,
   showEventChips = true,
 }: Props) {
-  const { t, playing, speed, toggle, setT, setSpeed, setPlaying } =
-    useTimeline();
+  const { t, playing, speed, toggle, setT, setSpeed } = useTimeline();
   const [showMarkers, setShowMarkers] = useState(true);
-  const [isCompactViewport, setIsCompactViewport] = useState(false);
+  const isCompactViewport = useMediaQuery("(max-width: 639px)");
 
+  // Clamp playhead to duration end and stop playback — uses a Zustand
+  // subscription so it doesn't fire on every RAF tick via React's dep array.
   useEffect(() => {
-    const media = window.matchMedia("(max-width: 639px)");
-    const sync = () => setIsCompactViewport(media.matches);
-    sync();
-    media.addEventListener("change", sync);
-    return () => media.removeEventListener("change", sync);
-  }, []);
+    if (durationMs <= 0) return;
+    return useTimeline.subscribe((state) => {
+      if (state.t >= durationMs) {
+        const store = useTimeline.getState();
+        if (state.t !== durationMs) store.setT(durationMs);
+        if (state.playing) store.setPlaying(false);
+      }
+    });
+  }, [durationMs]);
 
-  const clamp = (v: number) =>
-    Math.max(0, durationMs > 0 ? Math.min(v, durationMs) : v);
+  const clamp = useCallback(
+    (v: number) => Math.max(0, durationMs > 0 ? Math.min(v, durationMs) : v),
+    [durationMs],
+  );
 
-  useEffect(() => {
-    if (durationMs <= 0 || t < durationMs) return;
-    if (t !== durationMs) setT(durationMs);
-    if (playing) setPlaying(false);
-  }, [durationMs, playing, setPlaying, setT, t]);
-
-  const jump = (target: number | null) => {
-    if (target !== null) setT(clamp(target));
-  };
+  const jump = useCallback(
+    (target: number | null) => {
+      if (target !== null) setT(clamp(target));
+    },
+    [clamp, setT],
+  );
 
   const prevLap = atOrBefore(lapStarts, t);
   const nextLap = nextAfter(lapStarts, t);
@@ -140,8 +168,8 @@ export function PlaybackBar({
           onClick={() => jump(prevLap)}
           disabled={prevLap === null}
           className={JUMP_BTN}
-          aria-label="Previous lap"
-          title="Previous lap ([)"
+          aria-label="Lap start"
+          title="Lap start ([)"
         >
           <Rewind size={14} strokeWidth={2.2} aria-hidden="true" />
         </button>
@@ -199,38 +227,35 @@ export function PlaybackBar({
             style={{ touchAction: "none" }}
             aria-label="Seek"
           />
-          {durationMs > 0 &&
-            showMarkers &&
-            !isCompactViewport &&
-            raceControlMarkers.length > 0 && (
-              <div className="absolute inset-0">
-                {raceControlMarkers.map((marker) => {
-                  const left = (marker.ms / durationMs) * 100;
-                  if (!Number.isFinite(left) || left < 0 || left > 100)
-                    return null;
-                  const color =
-                    marker.severity === "critical"
-                      ? "bg-red-500"
-                      : marker.severity === "warning"
-                        ? "bg-amber-400"
-                        : "bg-slate-400";
-                  return (
-                    <button
-                      key={marker.id}
-                      type="button"
-                      title={`Jump to ${marker.label}`}
-                      aria-label={`Jump to ${marker.label}`}
-                      onClick={() => jump(marker.ms)}
-                      className={`absolute top-0 h-4 w-1 rounded ${color} opacity-80 hover:opacity-100`}
-                      style={{
-                        left: `${left}%`,
-                        transform: "translateX(-50%)",
-                      }}
-                    />
-                  );
-                })}
-              </div>
-            )}
+          {durationMs > 0 && showMarkers && !isCompactViewport && (
+            <div className="absolute inset-0 pointer-events-none">
+              {raceControlMarkers.map((marker) => {
+                const left = (marker.ms / durationMs) * 100;
+                if (!Number.isFinite(left) || left < 0 || left > 100)
+                  return null;
+                const color =
+                  marker.severity === "critical"
+                    ? "bg-red-500"
+                    : marker.severity === "warning"
+                      ? "bg-amber-400"
+                      : "bg-slate-400";
+                return (
+                  <button
+                    key={marker.id}
+                    type="button"
+                    title={`Jump to ${marker.label}`}
+                    aria-label={`Jump to ${marker.label}`}
+                    onClick={() => jump(marker.ms)}
+                    className={`absolute top-0 h-4 w-1 rounded ${color} opacity-80 hover:opacity-100 pointer-events-auto`}
+                    style={{
+                      left: `${left}%`,
+                      transform: "translateX(-50%)",
+                    }}
+                  />
+                );
+              })}
+            </div>
+          )}
         </div>
 
         {/* Duration — hidden on mobile to reclaim scrubber space */}
@@ -240,8 +265,7 @@ export function PlaybackBar({
 
         {/* Marker legend toggle — desktop only */}
         {markerSummary !== null &&
-          (markerSummary?.critical ?? 0) + (markerSummary?.warning ?? 0) >
-            0 && (
+          (markerSummary.critical ?? 0) + (markerSummary.warning ?? 0) > 0 && (
             <button
               type="button"
               onClick={() => setShowMarkers((v) => !v)}
@@ -274,43 +298,13 @@ export function PlaybackBar({
 
         {/* Speed buttons — desktop only (mobile lives in chips row) */}
         {showSpeedControls && (
-          <div className="hidden sm:flex gap-px shrink-0">
-            {SPEEDS.map((s) => (
-              <button
-                key={s}
-                onClick={() => setSpeed(s)}
-                aria-pressed={speed === s}
-                aria-label={`${s}x speed`}
-                className={`px-2.5 py-1 text-[10px] font-black uppercase tracking-widest transition-colors ${
-                  speed === s
-                    ? "bg-f1red text-white"
-                    : "bg-panel text-muted hover:text-white hover:bg-[#38383f]"
-                }`}
-              >
-                {s}×
-              </button>
-            ))}
-          </div>
+          <SpeedButtons className="hidden sm:flex gap-px shrink-0 [&>button]:px-2.5 [&>button]:py-1" />
         )}
       </div>
 
       {/* ── Speed row — mobile only ──────────────────────────────── */}
       {showSpeedControls && (
-        <div className="sm:hidden flex gap-px">
-          {SPEEDS.map((s) => (
-            <button
-              key={s}
-              onClick={() => setSpeed(s)}
-              aria-pressed={speed === s}
-              aria-label={`${s}x speed`}
-              className={`flex-1 h-7 text-[10px] font-black uppercase tracking-widest transition-colors ${
-                speed === s ? "bg-f1red text-white" : "bg-panel text-muted"
-              }`}
-            >
-              {s}×
-            </button>
-          ))}
-        </div>
+        <SpeedButtons className="sm:hidden flex gap-px [&>button]:flex-1 [&>button]:h-7" />
       )}
 
       {/* ── Event jump chips row ─────────────────────────────────── */}
@@ -337,14 +331,16 @@ export function PlaybackBar({
             </span>
           )}
           <button
-            onClick={() => onReplayNextIncident?.()}
+            onClick={() => {
+              if (onReplayNextIncident) onReplayNextIncident();
+            }}
             disabled={!canReplayNextIncident}
             className={CHIP_STRETCH}
             aria-label="Replay next incident window"
           >
             Incident ›
           </button>
-          {incidentReplayHint && (
+          {incidentReplayHint && canReplayNextIncident && (
             <span className="h-7 flex items-center px-2 text-[9px] font-black uppercase tracking-widest bg-amber-500/20 text-amber-300 border border-amber-500/30 shrink-0">
               {incidentReplayHint}
             </span>
