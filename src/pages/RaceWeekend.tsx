@@ -562,6 +562,8 @@ export default function RaceWeekend() {
     mapShowBattleRings,
     mapShowDriverHud,
     mapShowSectorFlags,
+    mapShowSectorBox,
+    mapShowTrackControls,
     mapShowCompass,
     leaderboardTelemetry,
     timingShowMinisectors,
@@ -999,6 +1001,8 @@ export default function RaceWeekend() {
       showFocusedHud={mapShowDriverHud}
       leaderboard={mapShowLeaderboard ? mapLeaderboard : undefined}
       activeTrackFlagState={mapShowSectorFlags ? activeTrackFlagState : null}
+      showSectorBox={mapShowSectorBox}
+      showTrackControls={mapShowTrackControls}
       showCompass={mapShowCompass}
       activeTrackVehicles={activeTrackVehicles}
       retiredDrivers={retiredDrivers}

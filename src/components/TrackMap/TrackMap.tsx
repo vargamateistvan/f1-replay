@@ -123,6 +123,8 @@ interface Props {
   readonly activeSectorFlag?: ActiveTrackFlag | null;
   readonly activeTrackFlagState?: ActiveTrackFlagState | null;
   readonly activeTrackVehicles?: ActiveTrackVehicles | null;
+  readonly showSectorBox?: boolean;
+  readonly showTrackControls?: boolean;
   readonly showCompass?: boolean;
   readonly showFocusedHud?: boolean;
   readonly onSelectDriver?: (driverNumber: number) => void;
@@ -145,6 +147,8 @@ export function TrackMap({
   activeSectorFlag = null,
   activeTrackFlagState = null,
   activeTrackVehicles = null,
+  showSectorBox = true,
+  showTrackControls = true,
   showCompass = true,
   showFocusedHud = true,
   onSelectDriver,
@@ -1132,66 +1136,68 @@ export function TrackMap({
         </g>
       </svg>
 
-      <div
-        className="absolute top-2 right-2 z-20 flex flex-col gap-1 p-1"
-        style={{
-          background: overlayBackground,
-          backdropFilter: "blur(4px)",
-        }}
-      >
-        <div className="flex items-center gap-1">
-          <button
-            type="button"
-            onClick={() => setZoomLevel((z) => Math.max(0.6, z - 0.2))}
-            className="w-7 h-7 flex items-center justify-center border border-[#4b4b57] text-white/85 hover:text-white hover:border-white/50 transition-colors"
-            title="Zoom out"
-          >
-            <ZoomOut size={14} strokeWidth={2.2} aria-hidden="true" />
-          </button>
-          <button
-            type="button"
-            onClick={() => setZoomLevel((z) => Math.min(3, z + 0.2))}
-            className="w-7 h-7 flex items-center justify-center border border-[#4b4b57] text-white/85 hover:text-white hover:border-white/50 transition-colors"
-            title="Zoom in"
-          >
-            <ZoomIn size={14} strokeWidth={2.2} aria-hidden="true" />
-          </button>
-          <button
-            type="button"
-            onClick={() => setZoomLevel(1)}
-            className="w-7 h-7 flex items-center justify-center border border-[#4b4b57] text-white/85 hover:text-white hover:border-white/50 transition-colors"
-            title="Reset zoom"
-          >
-            <Search size={14} strokeWidth={2.2} aria-hidden="true" />
-          </button>
+      {showTrackControls && (
+        <div
+          className="absolute top-2 right-2 z-20 flex flex-col gap-1 p-1"
+          style={{
+            background: overlayBackground,
+            backdropFilter: "blur(4px)",
+          }}
+        >
+          <div className="flex items-center gap-1">
+            <button
+              type="button"
+              onClick={() => setZoomLevel((z) => Math.max(0.6, z - 0.2))}
+              className="w-7 h-7 flex items-center justify-center border border-[#4b4b57] text-white/85 hover:text-white hover:border-white/50 transition-colors"
+              title="Zoom out"
+            >
+              <ZoomOut size={14} strokeWidth={2.2} aria-hidden="true" />
+            </button>
+            <button
+              type="button"
+              onClick={() => setZoomLevel((z) => Math.min(3, z + 0.2))}
+              className="w-7 h-7 flex items-center justify-center border border-[#4b4b57] text-white/85 hover:text-white hover:border-white/50 transition-colors"
+              title="Zoom in"
+            >
+              <ZoomIn size={14} strokeWidth={2.2} aria-hidden="true" />
+            </button>
+            <button
+              type="button"
+              onClick={() => setZoomLevel(1)}
+              className="w-7 h-7 flex items-center justify-center border border-[#4b4b57] text-white/85 hover:text-white hover:border-white/50 transition-colors"
+              title="Reset zoom"
+            >
+              <Search size={14} strokeWidth={2.2} aria-hidden="true" />
+            </button>
+          </div>
+          <div className="flex items-center gap-1">
+            <button
+              type="button"
+              onClick={() => setRotationDeg((r) => r - 15)}
+              className="w-7 h-7 flex items-center justify-center border border-[#4b4b57] text-white/85 hover:text-white hover:border-white/50 transition-colors"
+              title="Rotate left"
+            >
+              <RotateCcw size={14} strokeWidth={2.2} aria-hidden="true" />
+            </button>
+            <button
+              type="button"
+              onClick={() => setRotationDeg((r) => r + 15)}
+              className="w-7 h-7 flex items-center justify-center border border-[#4b4b57] text-white/85 hover:text-white hover:border-white/50 transition-colors"
+              title="Rotate right"
+            >
+              <RotateCw size={14} strokeWidth={2.2} aria-hidden="true" />
+            </button>
+            <button
+              type="button"
+              onClick={() => setRotationDeg(0)}
+              className="w-7 h-7 flex items-center justify-center border border-[#4b4b57] text-white/85 hover:text-white hover:border-white/50 transition-colors"
+              title="Reset rotation"
+            >
+              <LocateFixed size={14} strokeWidth={2.2} aria-hidden="true" />
+            </button>
+          </div>
         </div>
-        <div className="flex items-center gap-1">
-          <button
-            type="button"
-            onClick={() => setRotationDeg((r) => r - 15)}
-            className="w-7 h-7 flex items-center justify-center border border-[#4b4b57] text-white/85 hover:text-white hover:border-white/50 transition-colors"
-            title="Rotate left"
-          >
-            <RotateCcw size={14} strokeWidth={2.2} aria-hidden="true" />
-          </button>
-          <button
-            type="button"
-            onClick={() => setRotationDeg((r) => r + 15)}
-            className="w-7 h-7 flex items-center justify-center border border-[#4b4b57] text-white/85 hover:text-white hover:border-white/50 transition-colors"
-            title="Rotate right"
-          >
-            <RotateCw size={14} strokeWidth={2.2} aria-hidden="true" />
-          </button>
-          <button
-            type="button"
-            onClick={() => setRotationDeg(0)}
-            className="w-7 h-7 flex items-center justify-center border border-[#4b4b57] text-white/85 hover:text-white hover:border-white/50 transition-colors"
-            title="Reset rotation"
-          >
-            <LocateFixed size={14} strokeWidth={2.2} aria-hidden="true" />
-          </button>
-        </div>
-      </div>
+      )}
 
       {outline.source === "layout" && (
         <div
@@ -1303,7 +1309,7 @@ export function TrackMap({
       {/* PNG export — only shown when there is track + car data to capture */}
       {locationIndexes.size > 0 && (
         <div className="absolute bottom-2 right-2 z-20 flex flex-row items-end gap-2">
-          {hasTrackConditionDisplay && (
+          {showSectorBox && hasTrackConditionDisplay && (
             <div
               className="flex flex-col gap-px"
               style={{ backdropFilter: "blur(4px)" }}

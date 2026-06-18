@@ -19,6 +19,8 @@ export interface AppSettings {
   mapShowBattleRings: boolean;
   mapShowDriverHud: boolean;
   mapShowSectorFlags: boolean;
+  mapShowSectorBox: boolean;
+  mapShowTrackControls: boolean;
   mapShowCompass: boolean;
   // Leaderboard
   leaderboardTelemetry: boolean;
@@ -67,6 +69,8 @@ export const SETTINGS_DEFAULTS: AppSettings = {
   mapShowBattleRings: true,
   mapShowDriverHud: true,
   mapShowSectorFlags: true,
+  mapShowSectorBox: true,
+  mapShowTrackControls: true,
   mapShowCompass: true,
   leaderboardTelemetry: true,
   timingShowMinisectors: true,

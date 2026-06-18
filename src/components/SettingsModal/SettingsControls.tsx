@@ -308,6 +308,18 @@ export function SettingsBody() {
         onChange={toggle("mapShowSectorFlags")}
       />
       <SettingRow
+        label="Sector status box"
+        description="Show S1/S2/S3 flag chips near compass"
+        checked={settings.mapShowSectorBox}
+        onChange={toggle("mapShowSectorBox")}
+      />
+      <SettingRow
+        label="Track controls"
+        description="Show zoom and rotate controls on map"
+        checked={settings.mapShowTrackControls}
+        onChange={toggle("mapShowTrackControls")}
+      />
+      <SettingRow
         label="Compass overlay"
         description="Show north indicator in track controls"
         checked={settings.mapShowCompass}
