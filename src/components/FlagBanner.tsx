@@ -27,6 +27,7 @@ const FLAG_STYLES: Record<string, BannerStyle> = {
   DOUBLE_YELLOW: { bg: "#f5d400", text: "#000", label: "⚑⚑ DOUBLE YELLOW" },
   RED: { bg: "#e8002d", text: "#fff", label: "⚑ RED FLAG" },
   SAFETY_CAR: { bg: "#f5a623", text: "#000", label: "🚗 SAFETY CAR" },
+  VIRTUAL_SC: { bg: "#f5a623", text: "#000", label: "VSC DEPLOYED" },
   VIRTUAL_SAFETY_CAR: { bg: "#f5a623", text: "#000", label: "VSC DEPLOYED" },
   CHEQUERED: { bg: "#fff", text: "#000", label: "🏁 CHEQUERED FLAG" },
   BLACK_AND_WHITE: { bg: "#888", text: "#fff", label: "◩ BLACK & WHITE FLAG" },

@@ -1,4 +1,8 @@
 import type { RaceControl, Position, Pit } from "@/api/types";
+import {
+  getSafetyControlPhase,
+  isTrackClearSignal,
+} from "@/utils/raceControlFlags";
 
 export type RaceControlSeverity = "info" | "warning" | "critical";
 
@@ -43,6 +47,7 @@ const FLAG_TITLE: Record<string, string> = {
   RED: "Red Flag",
   SAFETY_CAR: "Safety Car",
   VIRTUAL_SC: "Virtual Safety Car",
+  VIRTUAL_SAFETY_CAR: "Virtual Safety Car",
   CHEQUERED: "Chequered",
   BLUE: "Blue Flag",
   BLACK_AND_WHITE: "Black And White",
@@ -59,7 +64,14 @@ function classifyKind(entry: RaceControl, flagKey: string): RaceControlKind {
   const category = (entry.category ?? "").toLowerCase();
   const message = (entry.message ?? "").toLowerCase();
 
-  if (flagKey === "SAFETY_CAR" || flagKey === "VIRTUAL_SC") return "safety_car";
+  if (
+    flagKey === "SAFETY_CAR" ||
+    flagKey === "VIRTUAL_SC" ||
+    flagKey === "VIRTUAL_SAFETY_CAR"
+  ) {
+    return "safety_car";
+  }
+  if (getSafetyControlPhase(entry) !== null) return "safety_car";
   if (flagKey !== "") return "flag";
   if (/penalty|drive through|stop\/go|disqualif|black flag/i.test(message))
     return "penalty";
@@ -76,7 +88,13 @@ function classifySeverity(
   description: string,
 ): RaceControlSeverity {
   if (flagKey === "RED") return "critical";
-  if (flagKey === "SAFETY_CAR" || flagKey === "VIRTUAL_SC") return "critical";
+  if (
+    flagKey === "SAFETY_CAR" ||
+    flagKey === "VIRTUAL_SC" ||
+    flagKey === "VIRTUAL_SAFETY_CAR"
+  ) {
+    return "critical";
+  }
   if (flagKey === "YELLOW" || flagKey === "DOUBLE_YELLOW") return "warning";
   if (kind === "penalty") return "warning";
   if (kind === "investigation") return "info";
@@ -352,25 +370,22 @@ export interface IncidentWindow {
 function incidentKindFor(
   e: NormalizedRaceControlEvent,
 ): IncidentWindowKind | null {
+  const phase = getSafetyControlPhase(e.raw);
+  if (phase === "safety_car_start") return "safety_car";
+  if (phase === "vsc_start") return "vsc";
+
   const flagKey = toFlagKey(e.flag);
   if (flagKey === "SAFETY_CAR") return "safety_car";
-  if (flagKey === "VIRTUAL_SC") return "vsc";
+  if (flagKey === "VIRTUAL_SC" || flagKey === "VIRTUAL_SAFETY_CAR")
+    return "vsc";
   if (flagKey === "RED") return "red_flag";
   return null;
 }
 
 function isTrackClear(e: NormalizedRaceControlEvent): boolean {
-  const flagKey = toFlagKey(e.flag);
-  if (flagKey === "GREEN" || flagKey === "CLEAR") return true;
-  const lower = e.description.toLowerCase();
-  return (
-    lower.includes("track clear") ||
-    lower.includes("green flag") ||
-    lower.includes("safety car in this lap") ||
-    lower.includes("safety car ending") ||
-    lower.includes("vsc ending") ||
-    lower.includes("restart")
-  );
+  const phase = getSafetyControlPhase(e.raw);
+  if (phase === "safety_car_end" || phase === "vsc_end") return true;
+  return isTrackClearSignal(e.raw);
 }
 
 export function buildIncidentWindows(
@@ -392,12 +407,24 @@ export function buildIncidentWindows(
   } | null = null;
 
   for (const e of events) {
+    if (openWindow !== null && isTrackClear(e)) {
+      windows.push({ ...openWindow, endMs: e.ms });
+      openWindow = null;
+    }
+
     const kind = incidentKindFor(e);
 
-    if (kind !== null && openWindow === null) {
+    if (kind !== null) {
+      if (openWindow !== null && openWindow.kind !== kind) {
+        windows.push({ ...openWindow, endMs: e.ms });
+        openWindow = null;
+      }
+
+      if (openWindow !== null) continue;
+
       counters[kind]++;
       const num = counters[kind];
-      const kindLabel =
+      const kindLabel: string =
         kind === "safety_car"
           ? `Safety Car ${num > 1 ? num : ""}`.trim()
           : kind === "vsc"
@@ -410,9 +437,6 @@ export function buildIncidentWindows(
         startMs: e.ms,
         startLap: e.lapNumber,
       };
-    } else if (openWindow !== null && isTrackClear(e)) {
-      windows.push({ ...openWindow, endMs: e.ms });
-      openWindow = null;
     }
   }
 

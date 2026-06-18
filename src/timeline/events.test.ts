@@ -3,6 +3,7 @@ import {
   lapStartTimes,
   pitTimes,
   flagTimes,
+  safetyCarTimes,
   overtakeTimes,
   nextAfter,
   prevBefore,
@@ -53,6 +54,17 @@ describe("pitTimes / flagTimes / overtakeTimes", () => {
   it("maps overtake dates", () => {
     const ovt = [{ date: iso(15) }] as unknown as Overtake[];
     expect(overtakeTimes(ovt, START)).toEqual([15_000]);
+  });
+
+  it("includes safety-control phrase events for SC and VSC", () => {
+    const rc = [
+      { date: iso(5), flag: null, message: "SAFETY CAR DEPLOYED" },
+      { date: iso(10), flag: null, message: "SAFETY CAR IN THIS LAP" },
+      { date: iso(12), flag: null, message: "VSC DEPLOYED" },
+      { date: iso(18), flag: null, message: "VSC ENDING" },
+      { date: iso(25), flag: "YELLOW", message: "YELLOW" },
+    ] as unknown as RaceControl[];
+    expect(safetyCarTimes(rc, START)).toEqual([5_000, 10_000, 12_000, 18_000]);
   });
 });
 

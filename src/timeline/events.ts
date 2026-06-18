@@ -1,5 +1,6 @@
 import type { Lap, Pit, RaceControl, Overtake, TeamRadio } from "@/api/types";
 import { pitStopTime } from "@/utils/pit";
+import { isSafetyRelatedRaceControl } from "@/utils/raceControlFlags";
 
 // ─── Normalized toast events ────────────────────────────────────────────────
 
@@ -69,6 +70,7 @@ const TOAST_FLAGS = new Set([
   "RED",
   "SAFETY_CAR",
   "VIRTUAL_SC",
+  "VIRTUAL_SAFETY_CAR",
   "CHEQUERED",
   "BLUE",
 ]);
@@ -270,7 +272,7 @@ export function safetyCarTimes(
   sessionStartMs: number,
 ): number[] {
   return entries
-    .filter((e) => e.flag === "SAFETY_CAR" || e.flag === "VIRTUAL_SC")
+    .filter((e) => isSafetyRelatedRaceControl(e))
     .map((e) => relMs(e.date, sessionStartMs))
     .filter((v) => v >= 0)
     .sort((a, b) => a - b);

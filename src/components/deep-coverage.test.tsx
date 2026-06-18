@@ -410,7 +410,7 @@ describe("deep component coverage", () => {
           { num: 1, pos: 1, acronym: "VER", color: "#3671C6", gap: "LEAD" },
         ]}
         activeSectorFlag={{ flag: "YELLOW", scope: "sector", sector: 2 }}
-        activeTrackVehicles={{ safetyCar: true, medicalCar: true }}
+        activeTrackVehicles={{ safetyCar: true, vsc: false, medicalCar: true }}
         onSelectDriver={onSelectDriver}
       />,
     );

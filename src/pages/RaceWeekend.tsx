@@ -75,6 +75,10 @@ import { DEFAULT_SESSION_MS } from "@/constants";
 import { useSettings } from "@/stores/settings";
 import { deriveRetiredDrivers } from "@/utils/retirement";
 import {
+  getSafetyControlPhase,
+  isTrackClearSignal,
+} from "@/utils/raceControlFlags";
+import {
   isTimedSession,
   isQualiSession,
   detectQualiPhase,
@@ -499,26 +503,35 @@ export default function RaceWeekend() {
     if (!sessionStartMs) return null;
 
     let safetyCar = false;
+    let vsc = false;
     let medicalCar = false;
     const cutoff = sessionStartMs + t;
 
     for (const entry of raceControl.data ?? []) {
       if (new Date(entry.date).getTime() > cutoff) break;
 
+      const phase = getSafetyControlPhase(entry);
       const message = entry.message.toUpperCase();
-      const clearsTrack =
-        entry.flag === "GREEN" ||
-        entry.flag === "CLEAR" ||
-        message.includes("TRACK CLEAR") ||
-        message.includes("GREEN FLAG");
+      const clearsTrack = isTrackClearSignal(entry);
 
       if (clearsTrack) {
         safetyCar = false;
+        vsc = false;
         medicalCar = false;
       }
 
-      if (entry.flag === "SAFETY_CAR") {
+      if (phase === "safety_car_start") {
         safetyCar = true;
+        vsc = false;
+      } else if (phase === "safety_car_end") {
+        safetyCar = false;
+      }
+
+      if (phase === "vsc_start") {
+        vsc = true;
+        safetyCar = false;
+      } else if (phase === "vsc_end") {
+        vsc = false;
       }
 
       if (message.includes("MEDICAL CAR")) {
@@ -534,23 +547,10 @@ export default function RaceWeekend() {
           medicalCar = true;
         }
       }
-
-      if (message.includes("SAFETY CAR") && !message.includes("VIRTUAL")) {
-        if (
-          message.includes("IN THIS LAP") ||
-          message.includes("ENDING") ||
-          message.includes("HAS ENDED") ||
-          message.includes("RESTART")
-        ) {
-          safetyCar = false;
-        } else {
-          safetyCar = true;
-        }
-      }
     }
 
-    if (!safetyCar && !medicalCar) return null;
-    return { safetyCar, medicalCar };
+    if (!safetyCar && !vsc && !medicalCar) return null;
+    return { safetyCar, vsc, medicalCar };
   }, [raceControl.data, sessionStartMs, t]);
 
   const {
@@ -744,18 +744,33 @@ export default function RaceWeekend() {
     for (const e of raceControl.data ?? []) {
       const ms = new Date(e.date).getTime() - sessionStartMs;
       if (ms < 0) continue;
-      if (e.flag === "SAFETY_CAR") {
+      const phase = getSafetyControlPhase(e);
+      if (phase === "safety_car_start") {
         moments.push({
           ms,
           kind: "safety_car",
           label: "Safety Car deployed",
           color: "#f5a623",
         });
-      } else if (e.flag === "VIRTUAL_SC") {
+      } else if (phase === "safety_car_end") {
+        moments.push({
+          ms,
+          kind: "safety_car",
+          label: "Safety Car in this lap",
+          color: "#f5a623",
+        });
+      } else if (phase === "vsc_start") {
         moments.push({
           ms,
           kind: "vsc",
           label: "Virtual Safety Car",
+          color: "#f5a623",
+        });
+      } else if (phase === "vsc_end") {
+        moments.push({
+          ms,
+          kind: "vsc",
+          label: "VSC ending",
           color: "#f5a623",
         });
       } else if (e.flag === "RED") {
