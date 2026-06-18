@@ -33,7 +33,7 @@ function normalizePath(pathname: string): string {
 
 function upsertMetaByName(name: string, content: string) {
   let node = document.head.querySelector<HTMLMetaElement>(
-    `meta[name=\"${name}\"]`,
+    `meta[name="${name}"]`,
   );
   if (!node) {
     node = document.createElement("meta");
@@ -45,7 +45,7 @@ function upsertMetaByName(name: string, content: string) {
 
 function upsertMetaByProperty(property: string, content: string) {
   let node = document.head.querySelector<HTMLMetaElement>(
-    `meta[property=\"${property}\"]`,
+    `meta[property="${property}"]`,
   );
   if (!node) {
     node = document.createElement("meta");
