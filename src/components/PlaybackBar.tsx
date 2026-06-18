@@ -10,7 +10,7 @@ import {
 import { useTimeline } from "@/timeline/clock";
 import { useMediaQuery } from "@/hooks/useMediaQuery";
 import { SPEEDS } from "@/constants";
-import { atOrBefore, nextAfter } from "@/timeline/events";
+import { atOrBefore, nextAfter, prevBefore } from "@/timeline/events";
 import type { RaceControlMarker, MarkerSummary } from "@/timeline/raceControl";
 
 interface Props {
@@ -122,7 +122,7 @@ export function PlaybackBar({
     [clamp, setT],
   );
 
-  const prevLap = atOrBefore(lapStarts, t);
+  const prevLap = prevBefore(lapStarts, t);
   const nextLap = nextAfter(lapStarts, t);
   const nextPit = nextAfter(pitTimes, t);
   const nextFlag = nextAfter(flagTimes, t);

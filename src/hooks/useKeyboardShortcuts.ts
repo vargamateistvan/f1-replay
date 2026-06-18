@@ -1,6 +1,6 @@
 import { useEffect } from "react";
 import { useTimeline } from "@/timeline/clock";
-import { atOrBefore, nextAfter } from "@/timeline/events";
+import { atOrBefore, nextAfter, prevBefore } from "@/timeline/events";
 import { SPEEDS } from "@/constants";
 import type { MainView } from "@/components/Nav";
 
@@ -107,7 +107,7 @@ export function useKeyboardShortcuts({
         }
         case "[": {
           e.preventDefault();
-          const p = atOrBefore(lapStarts, store.t);
+          const p = prevBefore(lapStarts, store.t);
           if (p !== null) store.setT(clamp(p));
           break;
         }
