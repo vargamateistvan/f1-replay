@@ -1356,7 +1356,11 @@ export function TrackMap({
                   Track
                 </span>
                 <span className="text-[10px] font-mono tabular-nums text-white text-right">
-                  {toDisplayTemperature(weatherOverlay.track_temperature, metricSystem).toFixed(1)} {tempUnit}
+                  {toDisplayTemperature(
+                    weatherOverlay.track_temperature,
+                    metricSystem,
+                  ).toFixed(1)}{" "}
+                  {tempUnit}
                 </span>
               </div>
               <div className="flex items-center justify-between gap-2">
@@ -1374,7 +1378,11 @@ export function TrackMap({
                   Wind
                 </span>
                 <span className="text-[10px] font-mono tabular-nums text-white text-right">
-                  {toDisplayWindSpeed(weatherOverlay.wind_speed, metricSystem).toFixed(1)} {windUnit}
+                  {toDisplayWindSpeed(
+                    weatherOverlay.wind_speed,
+                    metricSystem,
+                  ).toFixed(1)}{" "}
+                  {windUnit}
                 </span>
               </div>
             </div>
@@ -1385,7 +1393,11 @@ export function TrackMap({
                   Air
                 </span>
                 <span className="text-[10px] font-mono tabular-nums text-white text-right">
-                  {toDisplayTemperature(weatherOverlay.air_temperature, metricSystem).toFixed(1)} {tempUnit}
+                  {toDisplayTemperature(
+                    weatherOverlay.air_temperature,
+                    metricSystem,
+                  ).toFixed(1)}{" "}
+                  {tempUnit}
                 </span>
               </div>
               <div className="flex items-center justify-between gap-2">

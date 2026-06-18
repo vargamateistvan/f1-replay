@@ -947,7 +947,10 @@ export function Nav() {
                       if (!visibleFacts?.lengthKm) return "N/A";
                       const parsed = Number(visibleFacts.lengthKm);
                       if (!Number.isFinite(parsed)) return "N/A";
-                      const converted = toDisplayDistanceKm(parsed, metricSystem);
+                      const converted = toDisplayDistanceKm(
+                        parsed,
+                        metricSystem,
+                      );
                       return `${converted.toFixed(3)} ${distanceUnitLabel(metricSystem)}`;
                     })(),
                   },
@@ -957,7 +960,10 @@ export function Nav() {
                       if (!visibleFacts?.raceDistanceKm) return "N/A";
                       const parsed = Number(visibleFacts.raceDistanceKm);
                       if (!Number.isFinite(parsed)) return "N/A";
-                      const converted = toDisplayDistanceKm(parsed, metricSystem);
+                      const converted = toDisplayDistanceKm(
+                        parsed,
+                        metricSystem,
+                      );
                       return `${converted.toFixed(3)} ${distanceUnitLabel(metricSystem)}`;
                     })(),
                   },
@@ -991,7 +997,10 @@ export function Nav() {
                       if (!visibleFacts?.altitudeM) return "N/A";
                       const parsed = Number(visibleFacts.altitudeM);
                       if (!Number.isFinite(parsed)) return "N/A";
-                      const converted = toDisplayAltitudeM(parsed, metricSystem);
+                      const converted = toDisplayAltitudeM(
+                        parsed,
+                        metricSystem,
+                      );
                       return `${Math.round(converted)} ${altitudeUnitLabel(metricSystem)}`;
                     })(),
                   },

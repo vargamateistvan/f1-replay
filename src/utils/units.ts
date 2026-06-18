@@ -46,7 +46,10 @@ export function windSpeedUnitLabel(unitSystem: UnitSystem): string {
   return unitSystem === "imperial" ? "mph" : "m/s";
 }
 
-export function toDisplayDistanceKm(km: number, unitSystem: UnitSystem): number {
+export function toDisplayDistanceKm(
+  km: number,
+  unitSystem: UnitSystem,
+): number {
   if (unitSystem === "imperial") return km * KM_TO_MI;
   return km;
 }
@@ -55,7 +58,10 @@ export function distanceUnitLabel(unitSystem: UnitSystem): string {
   return unitSystem === "imperial" ? "mi" : "km";
 }
 
-export function toDisplayAltitudeM(meters: number, unitSystem: UnitSystem): number {
+export function toDisplayAltitudeM(
+  meters: number,
+  unitSystem: UnitSystem,
+): number {
   if (unitSystem === "imperial") return meters * M_TO_FT;
   return meters;
 }

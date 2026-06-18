@@ -69,7 +69,10 @@ function fmtElapsed(ms: number): string {
   return `${String(m).padStart(2, "0")}:${String(sec).padStart(2, "0")}`;
 }
 
-function fmtTemp(temp: number | null, metricSystem: "metric" | "imperial"): string {
+function fmtTemp(
+  temp: number | null,
+  metricSystem: "metric" | "imperial",
+): string {
   if (temp === null || !Number.isFinite(temp)) return "--";
   const value = Math.round(toDisplayTemperature(temp, metricSystem));
   return `${value}°${temperatureUnitLabel(metricSystem)}`;

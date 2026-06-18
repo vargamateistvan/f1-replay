@@ -262,7 +262,9 @@ function DriverStrip({
   drsOn: boolean;
   metricSystem: "metric" | "imperial";
 }) {
-  const speedValue = sample ? Math.round(toDisplaySpeed(sample.speed, metricSystem)) : null;
+  const speedValue = sample
+    ? Math.round(toDisplaySpeed(sample.speed, metricSystem))
+    : null;
   const speedUnit = speedUnitLabel(metricSystem);
 
   return (

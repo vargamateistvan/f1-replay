@@ -614,9 +614,10 @@ export function LiveTiming({
               const speedValue = car
                 ? Math.round(toDisplaySpeed(car.speed, metricSystem))
                 : null;
-              const speedDisplay = speedValue !== null
-                ? String(speedValue).padStart(3, "0")
-                : "---";
+              const speedDisplay =
+                speedValue !== null
+                  ? String(speedValue).padStart(3, "0")
+                  : "---";
               const rpmDisplay = car
                 ? String(Math.round(car.rpm)).padStart(5, "0")
                 : "-----";
@@ -735,7 +736,9 @@ export function LiveTiming({
                       {showTelemetry && (
                         <div className="mt-1 grid grid-cols-2 gap-x-2 gap-y-0.5 text-[9px] leading-4 font-mono tabular-nums sm:hidden">
                           <span className="inline-flex min-w-0 items-center gap-1 text-[#7dd3fc]">
-                            <span className="text-[#89a6bf]">{speedUnitCompact}</span>
+                            <span className="text-[#89a6bf]">
+                              {speedUnitCompact}
+                            </span>
                             <span className="w-[3ch] text-right">
                               {speedDisplay}
                             </span>

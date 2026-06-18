@@ -124,7 +124,9 @@ describe("FocusedTelemetry", () => {
     expect(
       screen.getByRole("button", { name: "Clear comparison driver" }),
     ).toBeInTheDocument();
-    expect(screen.getByText(/Speed \(km\/h\) · L10 vs L10/)).toBeInTheDocument();
+    expect(
+      screen.getByText(/Speed \(km\/h\) · L10 vs L10/),
+    ).toBeInTheDocument();
     fireEvent.click(
       screen.getByRole("button", { name: "Clear comparison driver" }),
     );
