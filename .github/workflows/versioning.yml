@@ -1,0 +1,325 @@
+name: Versioning
+run-name: Versioning by ${{ github.actor }}
+
+concurrency:
+  group: ${{ github.workflow }}-versioning-${{ github.head_ref || github.ref_name }}
+
+permissions:
+  id-token: write
+  contents: write
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  versioning:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      version: ${{ steps.generate-version.outputs.new-version }}
+    steps:
+      - name: Checkout repository with tags
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Generate semantic version
+        id: generate-version
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          default_version="1.0.0"
+          semver_regex='^[0-9]+\.[0-9]+\.[0-9]+$'
+          latest_tag="$(git tag --sort=-v:refname | grep -E "$semver_regex" | head -n 1 || true)"
+
+          if [ -z "$latest_tag" ]; then
+            new_version="$default_version"
+            echo "No previous semantic version tag found. Using default version $new_version"
+          else
+            commit_subjects="$(git log --pretty='%s' "$latest_tag..HEAD" || true)"
+            commit_bodies="$(git log --pretty='%b' "$latest_tag..HEAD" || true)"
+
+            bump="patch"
+
+            if printf '%s\n%s\n' "$commit_subjects" "$commit_bodies" | grep -Eiq 'BREAKING[ -]CHANGE:'; then
+              bump="major"
+            elif printf '%s\n' "$commit_subjects" | grep -Eq '^[a-z]+(\([^)]+\))?!:'; then
+              bump="major"
+            elif printf '%s\n' "$commit_subjects" | grep -Eq '^feat(\([^)]+\))?:'; then
+              bump="minor"
+            else
+              bump="patch"
+            fi
+
+            IFS='.' read -r major minor patch <<< "$latest_tag"
+            case "$bump" in
+              major)
+                major=$((major + 1))
+                minor=0
+                patch=0
+                ;;
+              minor)
+                minor=$((minor + 1))
+                patch=0
+                ;;
+              patch)
+                patch=$((patch + 1))
+                ;;
+            esac
+
+            new_version="$major.$minor.$patch"
+            echo "Resolved next semantic version: $latest_tag -> $new_version ($bump bump)"
+          fi
+
+          echo "new-version=$new_version" >> "$GITHUB_OUTPUT"
+
+      - name: Create and push tag
+        id: create-tag
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          tag_name="${{ steps.generate-version.outputs.new-version }}"
+          git tag -f "$tag_name"
+          git push origin "refs/tags/$tag_name" --force
+
+  generate-release-notes-from-commits:
+    needs:
+      - versioning
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout repository with tags
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Resolve previous tag
+        id: resolve-previous-tag
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          current_tag="${{ needs.versioning.outputs.version }}"
+          previous_tag="$(git tag --sort=-v:refname | grep -E '^[0-9]+\.[0-9]+\.[0-9]+$' | grep -vx "$current_tag" | head -n 1 || true)"
+
+          echo "previous-tag=$previous_tag" >> "$GITHUB_OUTPUT"
+
+      - name: Build release notes from commit messages
+        id: build-notes
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          current_tag="${{ needs.versioning.outputs.version }}"
+          previous_tag="${{ steps.resolve-previous-tag.outputs.previous-tag }}"
+          release_date="$(date -u +%F)"
+          release_title="$current_tag - $release_date"
+
+          echo "release-title=$release_title" >> "$GITHUB_OUTPUT"
+
+          if [ -n "$previous_tag" ]; then
+            commit_shas="$(git rev-list "$previous_tag..HEAD" || true)"
+          else
+            commit_shas="$(git rev-list -n 100 HEAD || true)"
+          fi
+
+          declare -A grouped
+          breaking_changes=""
+          has_entries="false"
+
+          while IFS= read -r sha; do
+            [ -z "${sha:-}" ] && continue
+            has_entries="true"
+
+            short_sha="$(git rev-parse --short "$sha")"
+            subject="$(git log -n 1 --pretty='%s' "$sha")"
+            body="$(git log -n 1 --pretty='%b' "$sha")"
+
+            section="Other Changes"
+            entry="- $subject ($short_sha)"
+            breaking_marker=""
+            breaking_summary=""
+
+            if printf '%s\n' "$subject" | grep -Eq '^[a-z]+(\([^)]+\))?(!)?:[[:space:]]+.+'; then
+              commit_type="$(printf '%s\n' "$subject" | sed -E 's/^([a-z]+)(\([^)]+\))?(!)?:[[:space:]]+(.+)$/\1/')"
+              commit_desc="$(printf '%s\n' "$subject" | sed -E 's/^([a-z]+)(\([^)]+\))?(!)?:[[:space:]]+(.+)$/\4/')"
+
+              if printf '%s\n' "$subject" | grep -Eq '^[a-z]+(\([^)]+\))?!:[[:space:]]+.+'; then
+                breaking_marker=" **BREAKING**"
+                breaking_summary="$commit_desc"
+              fi
+
+              case "$commit_type" in
+                feat) section="Features" ;;
+                fix) section="Fixes" ;;
+                perf) section="Performance" ;;
+                refactor) section="Refactoring" ;;
+                docs) section="Documentation" ;;
+                test) section="Tests" ;;
+                build) section="Build" ;;
+                ci) section="CI" ;;
+                chore) section="Chores" ;;
+                revert) section="Reverts" ;;
+                style) section="Style" ;;
+                *) section="Other Changes" ;;
+              esac
+
+              entry="- $commit_desc$breaking_marker ($short_sha)"
+            fi
+
+            breaking_footer="$(printf '%s\n' "$body" | awk 'BEGIN { IGNORECASE = 1 } /^BREAKING[ -]CHANGE:/ { sub(/^BREAKING[ -]CHANGE:[[:space:]]*/, ""); print; exit }')"
+
+            if [ -n "$breaking_footer" ]; then
+              if [ -z "$breaking_summary" ]; then
+                breaking_summary="$breaking_footer"
+              fi
+              if [[ "$entry" != *"**BREAKING**"* ]]; then
+                entry="${entry% ($short_sha)} **BREAKING** ($short_sha)"
+              fi
+            fi
+
+            if [ -n "$breaking_summary" ]; then
+              breaking_changes+="- $breaking_summary ($short_sha)"$'\n'
+            fi
+
+            grouped["$section"]+="$entry"$'\n'
+          done <<< "$commit_shas"
+
+          {
+            if [ "$has_entries" != "true" ]; then
+              echo "- No commit messages found for this release."
+            else
+              if [ -n "$breaking_changes" ]; then
+                echo "### Breaking Changes"
+                echo
+                printf '%s\n' "$breaking_changes"
+              fi
+
+              ordered_sections=(
+                "Features"
+                "Fixes"
+                "Performance"
+                "Refactoring"
+                "Documentation"
+                "Tests"
+                "Build"
+                "CI"
+                "Chores"
+                "Reverts"
+                "Style"
+                "Other Changes"
+              )
+
+              for section in "${ordered_sections[@]}"; do
+                [ -z "${grouped[$section]:-}" ] && continue
+                echo "### $section"
+                echo
+                printf '%s\n' "${grouped[$section]}"
+              done
+            fi
+          } > release_notes.md
+
+      - name: Create GitHub release with commit-based notes
+        uses: actions/github-script@v7
+        env:
+          RELEASE_TAG: ${{ needs.versioning.outputs.version }}
+          RELEASE_TITLE: ${{ steps.build-notes.outputs.release-title }}
+        with:
+          script: |
+            const fs = require("fs");
+            const { owner, repo } = context.repo;
+            const tag = process.env.RELEASE_TAG;
+            const title = process.env.RELEASE_TITLE || tag;
+            const body = fs.readFileSync("release_notes.md", "utf8");
+
+            let existingRelease = null;
+            try {
+              const existingResponse = await github.rest.repos.getReleaseByTag({
+                owner,
+                repo,
+                tag,
+              });
+              existingRelease = existingResponse.data;
+            } catch (error) {
+              if (error.status !== 404) {
+                throw error;
+              }
+            }
+
+            if (existingRelease) {
+              await github.rest.repos.updateRelease({
+                owner,
+                repo,
+                release_id: existingRelease.id,
+                tag_name: tag,
+                name: title,
+                body,
+                draft: false,
+                prerelease: false,
+              });
+              core.info(`Updated existing release for tag ${tag}`);
+            } else {
+              await github.rest.repos.createRelease({
+                owner,
+                repo,
+                tag_name: tag,
+                name: title,
+                body,
+                draft: false,
+                prerelease: false,
+                target_commitish: context.sha,
+              });
+              core.info(`Created release for tag ${tag}`);
+            }
+
+  move-release-alias-tags:
+    needs:
+      - versioning
+      - generate-release-notes-from-commits
+    if: >-
+      always() &&
+      needs.versioning.result == 'success' &&
+      (needs.generate-release-notes-from-commits.result == 'success' || needs.generate-release-notes-from-commits.result == 'skipped')
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    steps:
+      - name: Move production and latest-release tags
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const { owner, repo } = context.repo;
+            const targetSha = context.sha;
+
+            async function upsertTag(tagName) {
+              const ref = `tags/${tagName}`;
+              try {
+                await github.rest.git.getRef({ owner, repo, ref });
+                await github.rest.git.updateRef({
+                  owner,
+                  repo,
+                  ref,
+                  sha: targetSha,
+                  force: true,
+                });
+                core.info(`Moved tag ${tagName} -> ${targetSha}`);
+              } catch (error) {
+                if (error.status === 404) {
+                  await github.rest.git.createRef({
+                    owner,
+                    repo,
+                    ref: `refs/tags/${tagName}`,
+                    sha: targetSha,
+                  });
+                  core.info(`Created tag ${tagName} -> ${targetSha}`);
+                  return;
+                }
+                throw error;
+              }
+            }
+
+            await upsertTag("production");
+            await upsertTag("latest-release");
