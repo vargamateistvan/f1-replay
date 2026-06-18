@@ -1021,6 +1021,7 @@ export default function RaceWeekend() {
       showTrackControls={mapShowTrackControls}
       showCompass={mapShowCompass}
       showTrackScreenshot={trackScreenshotPngEnabled}
+      weatherOverlay={weatherAtT}
       activeTrackVehicles={activeTrackVehicles}
       retiredDrivers={retiredDrivers}
       onSelectDriver={toggleFocus}
@@ -1211,21 +1212,6 @@ export default function RaceWeekend() {
 
                 {(trackerTab ?? "timing") === "map" && (
                   <div className="min-h-[80vw] bg-[#10101a] flex flex-col md:flex-1 md:min-w-0">
-                    <div className="shrink-0 border-b border-panel">
-                      {weather.isError ? (
-                        <ErrorMessage
-                          message="Failed to load weather"
-                          compact
-                        />
-                      ) : (
-                        <WeatherPanel
-                          entries={weather.data ?? []}
-                          sessionKey={sessionKey}
-                          sessionTimeMs={t}
-                          sessionStartMs={sessionStartMs}
-                        />
-                      )}
-                    </div>
                     <div className="relative flex-1 min-h-[64vw]">
                       <EventToastStack
                         toasts={toasts}
@@ -1402,34 +1388,22 @@ export default function RaceWeekend() {
                     />
                   </div>
                 )}
-
-                {/* Weather strip */}
-                <div className={`shrink-0 border-t border-panel`}>
-                  {weather.isError ? (
-                    <ErrorMessage message="Failed to load weather" compact />
-                  ) : (
-                    <WeatherPanel
-                      entries={weather.data ?? []}
-                      sessionKey={sessionKey}
-                      sessionTimeMs={t}
-                      sessionStartMs={sessionStartMs}
-                    />
-                  )}
-                </div>
               </div>
 
               {/* Track map — fills remaining width */}
-              <div className="flex-1 min-w-0 bg-[#10101a] relative">
-                {drivers.isError ? (
-                  <ErrorMessage message="Failed to load driver data" />
-                ) : (
-                  trackMap
-                )}
-                {isLoadingSessionData && (
-                  <span className="absolute top-2 right-2 text-f1red text-[10px] animate-pulse">
-                    Loading…
-                  </span>
-                )}
+              <div className="flex-1 min-w-0 bg-[#10101a] flex flex-col">
+                <div className="relative flex-1 min-h-0">
+                  {drivers.isError ? (
+                    <ErrorMessage message="Failed to load driver data" />
+                  ) : (
+                    trackMap
+                  )}
+                  {isLoadingSessionData && (
+                    <span className="absolute top-2 right-2 text-f1red text-[10px] animate-pulse">
+                      Loading…
+                    </span>
+                  )}
+                </div>
               </div>
             </div>
           </div>

@@ -1,9 +1,14 @@
 import { useMemo, useState, useEffect, useRef } from "react";
 import {
+  CloudRain,
+  Droplets,
+  Gauge,
   LocateFixed,
   RotateCcw,
   RotateCw,
   Search,
+  Thermometer,
+  Wind,
   ZoomIn,
   ZoomOut,
 } from "lucide-react";
@@ -15,7 +20,7 @@ import { buildIndex, interpolateXY } from "@/timeline/interpolate";
 import { useTimeline } from "@/timeline/clock";
 import { teamColor } from "@/utils/color";
 import { useSettings } from "@/stores/settings";
-import type { CarData, Driver, Location, Stint } from "@/api/types";
+import type { CarData, Driver, Location, Stint, Weather } from "@/api/types";
 import {
   TRACK_SVG_W as SVG_W,
   TRACK_SVG_H as SVG_H,
@@ -33,6 +38,28 @@ import { getCircuitGeometry } from "@/data/circuitGeometry";
 function speedToColor(speed: number): string {
   const hue = Math.round(240 - Math.min(speed / 300, 1) * 240);
   return `hsl(${hue},100%,55%)`;
+}
+
+function windDir(deg: number): string {
+  const dirs = [
+    "N",
+    "NNE",
+    "NE",
+    "ENE",
+    "E",
+    "ESE",
+    "SE",
+    "SSE",
+    "S",
+    "SSW",
+    "SW",
+    "WSW",
+    "W",
+    "WNW",
+    "NW",
+    "NNW",
+  ];
+  return dirs[Math.round(deg / 22.5) % 16] ?? "-";
 }
 
 // Serialize the live SVG to a hi-DPI PNG and trigger a browser download.
@@ -121,6 +148,7 @@ interface Props {
   readonly retiredDrivers?: ReadonlySet<number>;
   readonly focusDriverLap?: number | null;
   readonly leaderboard?: readonly LeaderboardRow[];
+  readonly weatherOverlay?: Weather | null;
   readonly activeSectorFlag?: ActiveTrackFlag | null;
   readonly activeTrackFlagState?: ActiveTrackFlagState | null;
   readonly activeTrackVehicles?: ActiveTrackVehicles | null;
@@ -146,6 +174,7 @@ export function TrackMap({
   retiredDrivers,
   focusDriverLap = null,
   leaderboard,
+  weatherOverlay = null,
   activeSectorFlag = null,
   activeTrackFlagState = null,
   activeTrackVehicles = null,
@@ -168,6 +197,13 @@ export function TrackMap({
   const hudBackground = lightMode
     ? "rgba(238,241,250,0.9)"
     : "rgba(21,21,30,0.85)";
+  const weatherOverlayClass = lightMode
+    ? weatherOverlay?.rainfall && weatherOverlay.rainfall > 0
+      ? "border-l-sky-500 bg-[linear-gradient(135deg,rgba(137,186,255,0.38)_0%,rgba(238,241,250,0.95)_55%)]"
+      : "border-l-[#9ca6bc] bg-[linear-gradient(135deg,rgba(187,193,209,0.45)_0%,rgba(238,241,250,0.95)_55%)]"
+    : weatherOverlay?.rainfall && weatherOverlay.rainfall > 0
+      ? "border-l-sky-400 bg-[linear-gradient(135deg,rgba(18,40,74,0.45)_0%,rgba(21,21,30,0.95)_55%)]"
+      : "border-l-[#4b4b57] bg-[linear-gradient(135deg,rgba(34,36,50,0.45)_0%,rgba(21,21,30,0.95)_55%)]";
 
   useEffect(() => {
     setZoomLevel(1);
@@ -1221,40 +1257,132 @@ export function TrackMap({
         </div>
       )}
 
-      {/* Mini-leaderboard — top-5 positions pinned to bottom-left */}
-      {leaderboard && leaderboard.length > 0 && (
+      {/* Bottom-left overlay: weather (preferred) or top-5 leaderboard fallback */}
+      {weatherOverlay ? (
         <div
-          className="absolute bottom-2 left-2 flex flex-col gap-px pointer-events-none"
-          style={{ minWidth: 110 }}
+          className={`absolute bottom-2 left-2 pointer-events-none border border-panel border-l-2 px-2 py-1.5 ${weatherOverlayClass}`}
+          style={{
+            minWidth: 184,
+            backdropFilter: "blur(4px)",
+          }}
         >
-          {leaderboard.map((row) => (
-            <div
-              key={row.num}
-              className="flex items-center gap-1.5 px-1.5 py-0.5"
-              style={{
-                background: overlayBackground,
-                backdropFilter: "blur(4px)",
-              }}
-            >
-              <span className="text-[9px] font-black tabular-nums text-muted w-4 text-right shrink-0">
-                {row.pos}
+          <div className="flex items-center gap-1.5 text-[8px] font-black uppercase tracking-[0.14em] text-muted">
+            <CloudRain size={10} strokeWidth={2.2} aria-hidden="true" />
+            Track Weather
+            {weatherOverlay.rainfall > 0 && (
+              <span className="ml-auto inline-flex items-center rounded-sm bg-sky-600/85 px-1 py-0.5 text-[7px] font-black tracking-[0.12em] text-white">
+                Rain
               </span>
-              <span
-                className="w-[2px] self-stretch shrink-0 rounded-sm"
-                style={{ background: row.color }}
-              />
-              <span
-                className="text-[10px] font-black uppercase tracking-wide flex-1"
-                style={{ color: row.color }}
-              >
-                {row.acronym}
-              </span>
-              <span className="text-[9px] font-mono tabular-nums text-muted shrink-0">
-                {row.gap}
-              </span>
+            )}
+          </div>
+          <div className="mt-1.5 grid grid-cols-2 gap-x-3">
+            <div className="space-y-1">
+              <div className="flex items-center justify-between gap-2">
+                <span className="inline-flex items-center gap-1 text-[8px] uppercase tracking-[0.12em] text-muted">
+                  <Thermometer size={9} strokeWidth={2.1} aria-hidden="true" />
+                  Track
+                </span>
+                <span className="text-[10px] font-mono tabular-nums text-white text-right">
+                  {weatherOverlay.track_temperature.toFixed(1)} C
+                </span>
+              </div>
+              <div className="flex items-center justify-between gap-2">
+                <span className="inline-flex items-center gap-1 text-[8px] uppercase tracking-[0.12em] text-muted">
+                  <Droplets size={9} strokeWidth={2.1} aria-hidden="true" />
+                  Hum
+                </span>
+                <span className="text-[10px] font-mono tabular-nums text-white text-right">
+                  {weatherOverlay.humidity}%
+                </span>
+              </div>
+              <div className="flex items-center justify-between gap-2">
+                <span className="inline-flex items-center gap-1 text-[8px] uppercase tracking-[0.12em] text-muted">
+                  <Wind size={9} strokeWidth={2.1} aria-hidden="true" />
+                  Wind
+                </span>
+                <span className="text-[10px] font-mono tabular-nums text-white text-right">
+                  {weatherOverlay.wind_speed.toFixed(1)} m/s
+                </span>
+              </div>
             </div>
-          ))}
+            <div className="space-y-1">
+              <div className="flex items-center justify-between gap-2">
+                <span className="inline-flex items-center gap-1 text-[8px] uppercase tracking-[0.12em] text-muted">
+                  <Thermometer size={9} strokeWidth={2.1} aria-hidden="true" />
+                  Air
+                </span>
+                <span className="text-[10px] font-mono tabular-nums text-white text-right">
+                  {weatherOverlay.air_temperature.toFixed(1)} C
+                </span>
+              </div>
+              <div className="flex items-center justify-between gap-2">
+                <span className="inline-flex items-center gap-1 text-[8px] uppercase tracking-[0.12em] text-muted">
+                  <Gauge size={9} strokeWidth={2.1} aria-hidden="true" />
+                  Press
+                </span>
+                <span className="text-[10px] font-mono tabular-nums text-white text-right">
+                  {weatherOverlay.pressure.toFixed(0)} hPa
+                </span>
+              </div>
+              <div className="flex items-center justify-between gap-2">
+                <span className="text-[8px] uppercase tracking-[0.12em] text-muted">
+                  Dir/Rain
+                </span>
+                <span className="text-[10px] font-mono tabular-nums text-right">
+                  <span className="text-white">
+                    {windDir(weatherOverlay.wind_direction)}
+                  </span>
+                  <span className="text-muted"> / </span>
+                  <span
+                    className={
+                      weatherOverlay.rainfall > 0
+                        ? "text-[#7dd3fc]"
+                        : "text-muted"
+                    }
+                  >
+                    {weatherOverlay.rainfall > 0 ? "YES" : "NO"}
+                  </span>
+                </span>
+              </div>
+            </div>
+          </div>
         </div>
+      ) : (
+        leaderboard &&
+        leaderboard.length > 0 && (
+          <div
+            className="absolute bottom-2 left-2 flex flex-col gap-px pointer-events-none"
+            style={{ minWidth: 110 }}
+          >
+            {leaderboard.map((row) => (
+              <div
+                key={row.num}
+                className="flex items-center gap-1.5 px-1.5 py-0.5"
+                style={{
+                  background: overlayBackground,
+                  backdropFilter: "blur(4px)",
+                }}
+              >
+                <span className="text-[9px] font-black tabular-nums text-muted w-4 text-right shrink-0">
+                  {row.pos}
+                </span>
+                <span
+                  className="w-[2px] self-stretch shrink-0 rounded-sm"
+                  style={{ background: row.color }}
+                />
+                <span
+                  className="text-[10px] font-black uppercase tracking-wide flex-1"
+                  style={{ color: row.color }}
+                >
+                  {row.acronym}
+                </span>
+                <span className="text-[9px] font-mono tabular-nums text-muted shrink-0">
+                  {row.gap}
+                </span>
+              </div>
+            ))}
+          </div>
+        )
       )}
 
       {/* Focused-driver HUD — speed / gear / throttle + brake bars */}
