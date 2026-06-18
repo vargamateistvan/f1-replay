@@ -4,7 +4,6 @@ import {
   TrackMap,
   type ActiveTrackFlagState,
   type ActiveTrackVehicles,
-  type LeaderboardRow,
 } from "@/components/TrackMap/TrackMap";
 import { LiveTiming } from "@/components/LiveTiming/LiveTiming";
 import { RaceControlFeed } from "@/components/RaceControl/RaceControl";
@@ -434,46 +433,6 @@ export default function RaceWeekend() {
     return result;
   }, [intervals.data, sessionStartMs, t]);
 
-  // Top-5 leaderboard snapshot for the track-map overlay.
-  const mapLeaderboard = useMemo((): LeaderboardRow[] => {
-    if (!sessionStartMs || !positions.data?.length) return [];
-    const cutoff = sessionStartMs + t;
-    const posMap = new Map<number, number>();
-    for (const p of positions.data) {
-      if (new Date(p.date).getTime() <= cutoff)
-        posMap.set(p.driver_number, p.position);
-    }
-    const intMap = new Map<number, string>();
-    for (const iv of intervals.data ?? []) {
-      if (new Date(iv.date).getTime() > cutoff) continue;
-      const gap = iv.gap_to_leader;
-      intMap.set(
-        iv.driver_number,
-        gap === null
-          ? "LEAD"
-          : typeof gap === "number"
-            ? `+${gap.toFixed(1)}`
-            : String(gap),
-      );
-    }
-    const driverMap = new Map(
-      (drivers.data ?? []).map((d) => [d.driver_number, d]),
-    );
-    return [...posMap.entries()]
-      .sort((a, b) => a[1] - b[1])
-      .slice(0, 5)
-      .map(([num, pos]) => {
-        const d = driverMap.get(num);
-        return {
-          num,
-          pos,
-          acronym: d?.name_acronym ?? String(num),
-          color: teamColor(d?.team_colour),
-          gap: intMap.get(num) ?? "—",
-        };
-      });
-  }, [positions.data, intervals.data, drivers.data, sessionStartMs, t]);
-
   const retiredDrivers = useMemo((): ReadonlySet<number> => {
     return deriveRetiredDrivers({
       positions: positions.data ?? [],
@@ -571,7 +530,6 @@ export default function RaceWeekend() {
     toastPit: settingToastPit,
     toastFastestLap: settingToastFastestLap,
     notificationMaxVisible,
-    mapShowLeaderboard,
     mapShowCompoundBadges,
     mapShowBattleRings,
     mapShowDriverHud,
@@ -1016,7 +974,6 @@ export default function RaceWeekend() {
       battlingDrivers={mapShowBattleRings ? battlingDrivers : undefined}
       focusDriverLap={focusDriverLap}
       showFocusedHud={mapShowDriverHud}
-      leaderboard={mapShowLeaderboard ? mapLeaderboard : undefined}
       activeTrackFlagState={mapShowSectorFlags ? activeTrackFlagState : null}
       showSectorBox={mapShowSectorBox}
       showTrackControls={mapShowTrackControls}

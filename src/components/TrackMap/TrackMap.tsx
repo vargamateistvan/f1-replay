@@ -100,14 +100,6 @@ function exportTrackSnapshot(svgEl: SVGSVGElement): void {
   img.src = url;
 }
 
-export interface LeaderboardRow {
-  num: number;
-  pos: number;
-  acronym: string;
-  color: string;
-  gap: string;
-}
-
 export interface ActiveTrackFlag {
   flag: string;
   scope: string | null;
@@ -147,7 +139,6 @@ interface Props {
   readonly battlingDrivers?: ReadonlySet<number>;
   readonly retiredDrivers?: ReadonlySet<number>;
   readonly focusDriverLap?: number | null;
-  readonly leaderboard?: readonly LeaderboardRow[];
   readonly weatherOverlay?: Weather | null;
   readonly activeSectorFlag?: ActiveTrackFlag | null;
   readonly activeTrackFlagState?: ActiveTrackFlagState | null;
@@ -173,7 +164,6 @@ export function TrackMap({
   battlingDrivers,
   retiredDrivers,
   focusDriverLap = null,
-  leaderboard,
   weatherOverlay = null,
   activeSectorFlag = null,
   activeTrackFlagState = null,
@@ -1257,7 +1247,7 @@ export function TrackMap({
         </div>
       )}
 
-      {/* Bottom-left overlay: weather (preferred) or top-5 leaderboard fallback */}
+      {/* Bottom-left overlay: weather */}
       {weatherOverlay ? (
         <div
           className={`absolute bottom-2 left-2 hidden md:block pointer-events-none border border-panel border-l-2 px-2 py-1.5 ${weatherOverlayClass}`}
@@ -1347,43 +1337,7 @@ export function TrackMap({
             </div>
           </div>
         </div>
-      ) : (
-        leaderboard &&
-        leaderboard.length > 0 && (
-          <div
-            className="absolute bottom-2 left-2 flex flex-col gap-px pointer-events-none"
-            style={{ minWidth: 110 }}
-          >
-            {leaderboard.map((row) => (
-              <div
-                key={row.num}
-                className="flex items-center gap-1.5 px-1.5 py-0.5"
-                style={{
-                  background: overlayBackground,
-                  backdropFilter: "blur(4px)",
-                }}
-              >
-                <span className="text-[9px] font-black tabular-nums text-muted w-4 text-right shrink-0">
-                  {row.pos}
-                </span>
-                <span
-                  className="w-[2px] self-stretch shrink-0 rounded-sm"
-                  style={{ background: row.color }}
-                />
-                <span
-                  className="text-[10px] font-black uppercase tracking-wide flex-1"
-                  style={{ color: row.color }}
-                >
-                  {row.acronym}
-                </span>
-                <span className="text-[9px] font-mono tabular-nums text-muted shrink-0">
-                  {row.gap}
-                </span>
-              </div>
-            ))}
-          </div>
-        )
-      )}
+      ) : null}
 
       {/* Focused-driver HUD — speed / gear / throttle + brake bars */}
       {showFocusedHud &&

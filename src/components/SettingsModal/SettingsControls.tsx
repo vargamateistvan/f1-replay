@@ -278,12 +278,6 @@ export function SettingsBody() {
 
       <SectionHeader>Track Map</SectionHeader>
       <SettingRow
-        label="Mini leaderboard"
-        description="Position list overlay bottom-left"
-        checked={settings.mapShowLeaderboard}
-        onChange={toggle("mapShowLeaderboard")}
-      />
-      <SettingRow
         label="Tyre compound badges"
         description="Compound icons on each driver dot"
         checked={settings.mapShowCompoundBadges}

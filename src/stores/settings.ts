@@ -14,7 +14,6 @@ export interface AppSettings {
   toastFastestLap: boolean;
   notificationMaxVisible: 2 | 4 | 6 | 8;
   // Track Map
-  mapShowLeaderboard: boolean;
   mapShowCompoundBadges: boolean;
   mapShowBattleRings: boolean;
   mapShowDriverHud: boolean;
@@ -66,7 +65,6 @@ export const SETTINGS_DEFAULTS: AppSettings = {
   toastPit: true,
   toastFastestLap: true,
   notificationMaxVisible: 4,
-  mapShowLeaderboard: true,
   mapShowCompoundBadges: true,
   mapShowBattleRings: true,
   mapShowDriverHud: true,
