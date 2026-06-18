@@ -2,7 +2,7 @@ import { useMeetings, useSessions } from "@/hooks/useSession";
 import { isAuthError } from "@/api/client";
 import { isSessionLive } from "@/utils/live";
 import { YEARS } from "@/constants";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 
 interface Props {
   year: number;
@@ -12,10 +12,6 @@ interface Props {
   onMeeting: (k: number) => void;
   onSession: (k: number) => void;
 }
-
-// Prevent double submissions on mobile Safari
-let lastSelectChangeMs = 0;
-const DEBOUNCE_MS = 100;
 
 const CIRCUIT_TYPE_LABEL: Record<string, string> = {
   Permanent: "Permanent",
@@ -38,6 +34,7 @@ export function SessionPicker({
   const sessions = useSessions(meetingKey);
   const [selectLatestSessionOnLoad, setSelectLatestSessionOnLoad] =
     useState(false);
+  const lastSelectChangeRef = useRef(0);
 
   const selectedMeeting = meetings.data?.find(
     (m) => m.meeting_key === meetingKey,
@@ -103,8 +100,8 @@ export function SessionPicker({
             value={year}
             onChange={(e) => {
               const now = Date.now();
-              if (now - lastSelectChangeMs < DEBOUNCE_MS) return;
-              lastSelectChangeMs = now;
+              if (now - lastSelectChangeRef.current < 100) return;
+              lastSelectChangeRef.current = now;
               try {
                 onYear(Number(e.target.value));
               } catch (err) {
@@ -133,8 +130,8 @@ export function SessionPicker({
               value={meetingKey ?? ""}
               onChange={(e) => {
                 const now = Date.now();
-                if (now - lastSelectChangeMs < DEBOUNCE_MS) return;
-                lastSelectChangeMs = now;
+                if (now - lastSelectChangeRef.current < 100) return;
+                lastSelectChangeRef.current = now;
                 try {
                   const val = Number(e.target.value);
                   if (!Number.isNaN(val) && val !== 0) {
@@ -169,8 +166,8 @@ export function SessionPicker({
               value={sessionKey ?? ""}
               onChange={(e) => {
                 const now = Date.now();
-                if (now - lastSelectChangeMs < DEBOUNCE_MS) return;
-                lastSelectChangeMs = now;
+                if (now - lastSelectChangeRef.current < 100) return;
+                lastSelectChangeRef.current = now;
                 try {
                   const val = Number(e.target.value);
                   if (!Number.isNaN(val) && val !== 0) {

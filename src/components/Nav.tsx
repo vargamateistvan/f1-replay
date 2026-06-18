@@ -288,14 +288,23 @@ export function Nav() {
   );
 
   function onYear(y: number) {
+    if (Number.isNaN(y) || !Number.isFinite(y)) {
+      console.warn("Invalid year value:", y);
+      return;
+    }
     try {
       setSearchParams(
         (prev) => {
-          const next = new URLSearchParams(prev);
-          next.set("year", String(y));
-          next.delete("meeting");
-          next.delete("session");
-          return next;
+          try {
+            const next = new URLSearchParams(prev);
+            next.set("year", String(y));
+            next.delete("meeting");
+            next.delete("session");
+            return next;
+          } catch (err) {
+            console.error("Error updating search params:", err);
+            return prev;
+          }
         },
         { replace: true },
       );
@@ -305,13 +314,22 @@ export function Nav() {
   }
 
   function onMeeting(k: number) {
+    if (Number.isNaN(k) || !Number.isFinite(k)) {
+      console.warn("Invalid meeting key:", k);
+      return;
+    }
     try {
       setSearchParams(
         (prev) => {
-          const next = new URLSearchParams(prev);
-          next.set("meeting", String(k));
-          next.delete("session");
-          return next;
+          try {
+            const next = new URLSearchParams(prev);
+            next.set("meeting", String(k));
+            next.delete("session");
+            return next;
+          } catch (err) {
+            console.error("Error updating search params:", err);
+            return prev;
+          }
         },
         { replace: true },
       );
