@@ -15,7 +15,6 @@ import { OvertakeFeed } from "@/components/Overtakes/OvertakeFeed";
 import { FocusedTelemetry } from "@/components/FocusedTelemetry/FocusedTelemetry";
 import { LapChart } from "@/components/LapChart/LapChart";
 import { GapChart } from "@/components/GapChart/GapChart";
-import { FlagBanner } from "@/components/FlagBanner";
 import { QualifyingBanner } from "@/components/QualifyingBanner";
 import { StartingLights } from "@/components/StartingLights";
 import { SessionInfoBar } from "@/components/SessionInfoBar";
@@ -508,6 +507,12 @@ export default function RaceWeekend() {
     let safetyCar = false;
     let vsc = false;
     let medicalCar = false;
+    const LIGHTS_SEQUENCE_MS = 5_000;
+    const formationLap =
+      isRaceSession &&
+      lightsOutMs != null &&
+      t >= 0 &&
+      t < Math.max(0, lightsOutMs - LIGHTS_SEQUENCE_MS);
     const cutoff = sessionStartMs + t;
 
     for (const entry of raceControl.data ?? []) {
@@ -552,9 +557,9 @@ export default function RaceWeekend() {
       }
     }
 
-    if (!safetyCar && !vsc && !medicalCar) return null;
-    return { safetyCar, vsc, medicalCar };
-  }, [raceControl.data, sessionStartMs, t]);
+    if (!safetyCar && !vsc && !medicalCar && !formationLap) return null;
+    return { safetyCar, vsc, medicalCar, formationLap };
+  }, [raceControl.data, sessionStartMs, t, isRaceSession, lightsOutMs]);
 
   const {
     toastsEnabled,
@@ -1025,17 +1030,6 @@ export default function RaceWeekend() {
 
   return (
     <div className="relative flex flex-col pb-[calc(7.5rem+env(safe-area-inset-bottom))] md:h-full md:min-h-0 md:flex-1 md:overflow-hidden md:pb-0">
-      {/* Flag banner — spans full width below nav */}
-      {sessionStartMs > 0 && (
-        <FlagBanner
-          entries={raceControl.data ?? []}
-          sessionTimeMs={t}
-          sessionStartMs={sessionStartMs}
-          isRaceSession={isRaceSession}
-          lightsOutMs={lightsOutMs}
-        />
-      )}
-
       {sessionStartMs > 0 && isQualiSession(sessionName) && qualiPhase && (
         <QualifyingBanner
           phase={qualiPhase}

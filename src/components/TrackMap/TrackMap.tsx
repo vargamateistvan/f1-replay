@@ -101,6 +101,7 @@ export interface ActiveTrackVehicles {
   safetyCar: boolean;
   vsc: boolean;
   medicalCar: boolean;
+  formationLap?: boolean;
 }
 
 interface Props {
@@ -777,8 +778,14 @@ export function TrackMap({
       {activeTrackVehicles &&
         (activeTrackVehicles.safetyCar ||
           activeTrackVehicles.vsc ||
-          activeTrackVehicles.medicalCar) && (
+          activeTrackVehicles.medicalCar ||
+          activeTrackVehicles.formationLap) && (
           <div className="pointer-events-none absolute top-2 left-1/2 z-20 -translate-x-1/2 flex items-center gap-1.5">
+            {activeTrackVehicles.formationLap && (
+              <span className="border border-[#2d3550] bg-[#1c1c2e] px-2 py-0.5 text-[9px] font-black uppercase tracking-[0.16em] text-[#c8c8ff]">
+                Formation Lap
+              </span>
+            )}
             {activeTrackVehicles.safetyCar && (
               <span className="border border-[#704600] bg-[#f5a623] px-2 py-0.5 text-[9px] font-black uppercase tracking-[0.16em] text-black/90">
                 Safety Car
