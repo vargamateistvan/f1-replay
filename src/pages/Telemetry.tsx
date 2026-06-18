@@ -485,6 +485,7 @@ export default function Telemetry() {
         const dy = point.y - prev.y;
         dist += Math.hypot(dx, dy);
       }
+
       const { sx, sy } = locationToSvg(
         point.x,
         point.y,
@@ -492,6 +493,7 @@ export default function Telemetry() {
         TRACK_SVG_W,
         TRACK_SVG_H,
       );
+
       return { sx, sy, dist };
     });
 
@@ -526,21 +528,6 @@ export default function Telemetry() {
       return value;
     });
   }, []);
-
-  const trackHoverInfo = useMemo(() => {
-    if (!trackPreview || hoveredDistM === null || xDist.length < 2) {
-      return null;
-    }
-    const chartMaxDist = xDist[xDist.length - 1] ?? 0;
-    if (chartMaxDist <= 0) return null;
-
-    const progress = Math.max(0, Math.min(1, hoveredDistM / chartMaxDist));
-    return {
-      progressPct: Math.round(progress * 100),
-      distanceM: Math.round(hoveredDistM),
-      lapM: Math.round(chartMaxDist),
-    };
-  }, [hoveredDistM, trackPreview, xDist]);
 
   const plotSlots = useMemo<PlotSlot[]>(() => {
     const out: PlotSlot[] = [];
@@ -849,7 +836,7 @@ export default function Telemetry() {
 
   return (
     <div className="flex flex-col md:h-full md:overflow-hidden">
-      <div className="border-b border-panel bg-[radial-gradient(circle_at_top_left,#2a2136_0%,#1b1d28_40%,#16161f_100%)] px-3 py-3">
+      <div className="bg-[radial-gradient(circle_at_top_left,#2a2136_0%,#1b1d28_40%,#16161f_100%)] px-3 py-3">
         <div className="mb-3 flex flex-wrap items-center gap-2">
           <div className="rounded-sm border border-[#444458] bg-[#12131b] px-2 py-1">
             <span className="text-[10px] font-bold uppercase tracking-[0.12em] text-muted">
@@ -1091,147 +1078,76 @@ export default function Telemetry() {
             disabled={!sessionKey}
           />
 
-          <div className="min-h-[220px] flex flex-col rounded border border-[#3f3f52] bg-[linear-gradient(160deg,#11131d_0%,#0e111b_60%,#161a28_100%)] shadow-[inset_0_1px_0_rgba(255,255,255,0.03),0_12px_32px_rgba(0,0,0,0.45)]">
-            <div className="flex items-center justify-between gap-2 border-b border-[#38383f] bg-[linear-gradient(90deg,rgba(232,0,45,0.12),rgba(21,23,33,0.1))] px-3 py-2">
-              <span className="text-[10px] font-bold uppercase tracking-[0.14em] text-[#c7ccd9]">
+          <div className="h-full rounded border border-[#353548] bg-[#10111a] p-2 flex flex-col">
+            <div className="mb-2 flex items-center gap-2">
+              <span className="text-[10px] font-black uppercase tracking-[0.15em] text-muted">
                 Track position preview
               </span>
-              <span className="rounded border border-[#5c2a36] bg-[#2b121a] px-2 py-0.5 text-[9px] font-black uppercase tracking-[0.14em] text-[#ff8aa0]">
-                live hover
-              </span>
+              <span className="h-1.5 w-8 rounded-full bg-f1red" />
             </div>
 
-            <div className="p-3 flex-1 flex flex-col">
-              <div className="mb-2 flex items-center justify-between gap-2 text-[10px] font-bold uppercase tracking-[0.12em] text-muted">
-                <span className="inline-flex items-center gap-2">
-                  <span className="inline-block h-2 w-2 rounded-full bg-f1red animate-pulse" />
-                  Hover telemetry charts for position
-                </span>
-                <span className="rounded border border-[#414457] bg-[#171a27] px-2 py-0.5 text-[9px] font-black tracking-[0.12em] text-[#c8cde1]">
-                  {trackHoverInfo
-                    ? `${trackHoverInfo.progressPct}% · ${trackHoverInfo.distanceM}m`
-                    : "Awaiting hover"}
-                </span>
+            <div className="mb-2 text-[10px] font-bold uppercase tracking-[0.12em] text-muted">
+              Hover telemetry charts for position
+            </div>
+
+            {trackPreview ? (
+              <div className="relative min-h-[170px] flex-1 overflow-hidden rounded border border-panel bg-[#0b1020]">
+                <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_25%_20%,rgba(39,68,158,0.2),transparent_45%),radial-gradient(circle_at_85%_80%,rgba(232,0,45,0.1),transparent_40%)]" />
+                <svg
+                  viewBox={`0 0 ${TRACK_SVG_W} ${TRACK_SVG_H}`}
+                  className="relative h-full w-full"
+                  role="img"
+                  aria-label="Lap track preview"
+                >
+                  <polyline
+                    points={trackPreview.polyline}
+                    fill="none"
+                    stroke="#3e4a64"
+                    strokeWidth={5.4}
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    opacity={0.7}
+                  />
+                  <polyline
+                    points={trackPreview.polyline}
+                    fill="none"
+                    stroke="#d7deee"
+                    strokeWidth={2}
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+
+                  {hoveredTrackPoint && (
+                    <>
+                      <circle
+                        cx={hoveredTrackPoint.sx}
+                        cy={hoveredTrackPoint.sy}
+                        r={9}
+                        fill="#e8002d"
+                        opacity={0.15}
+                      />
+                      <circle
+                        cx={hoveredTrackPoint.sx}
+                        cy={hoveredTrackPoint.sy}
+                        r={4}
+                        fill="#ff274f"
+                        stroke="#ffffff"
+                        strokeWidth={1.1}
+                      />
+                    </>
+                  )}
+                </svg>
               </div>
-
-              {trackPreview ? (
-                <div className="relative h-full min-h-[160px] overflow-hidden rounded border border-[#34384d] bg-[#0b1020]">
-                  <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_22%_18%,rgba(39,68,158,0.25),transparent_45%),radial-gradient(circle_at_88%_78%,rgba(232,0,45,0.14),transparent_42%)]" />
-                  <svg
-                    viewBox={`0 0 ${TRACK_SVG_W} ${TRACK_SVG_H}`}
-                    className="relative h-full w-full"
-                    role="img"
-                    aria-label="Lap track preview"
-                  >
-                    <defs>
-                      <linearGradient
-                        id="trackLineGradient"
-                        x1="0"
-                        y1="0"
-                        x2="1"
-                        y2="1"
-                      >
-                        <stop offset="0%" stopColor="#d7deee" />
-                        <stop offset="65%" stopColor="#a9b8d0" />
-                        <stop offset="100%" stopColor="#f4f7ff" />
-                      </linearGradient>
-                    </defs>
-
-                    <polyline
-                      points={trackPreview.polyline}
-                      fill="none"
-                      stroke="#3e4a64"
-                      strokeWidth={5.8}
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      opacity={0.7}
-                    />
-                    <polyline
-                      points={trackPreview.polyline}
-                      fill="none"
-                      stroke="url(#trackLineGradient)"
-                      strokeWidth={2.05}
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    />
-
-                    <circle
-                      cx={trackPreview.points[0]?.sx ?? 0}
-                      cy={trackPreview.points[0]?.sy ?? 0}
-                      r={3.2}
-                      fill="#22c55e"
-                      stroke="#06110a"
-                      strokeWidth={1}
-                    />
-                    <circle
-                      cx={
-                        trackPreview.points[trackPreview.points.length - 1]
-                          ?.sx ?? 0
-                      }
-                      cy={
-                        trackPreview.points[trackPreview.points.length - 1]
-                          ?.sy ?? 0
-                      }
-                      r={3.2}
-                      fill="#f97316"
-                      stroke="#1a0c04"
-                      strokeWidth={1}
-                    />
-
-                    {hoveredTrackPoint && (
-                      <>
-                        <circle
-                          cx={hoveredTrackPoint.sx}
-                          cy={hoveredTrackPoint.sy}
-                          r={11}
-                          fill="#e8002d"
-                          opacity={0.14}
-                        />
-                        <circle
-                          cx={hoveredTrackPoint.sx}
-                          cy={hoveredTrackPoint.sy}
-                          r={6}
-                          fill="#e8002d"
-                          opacity={0.35}
-                        />
-                        <circle
-                          cx={hoveredTrackPoint.sx}
-                          cy={hoveredTrackPoint.sy}
-                          r={3.8}
-                          fill="#ff274f"
-                          stroke="#ffffff"
-                          strokeWidth={1.1}
-                        />
-                      </>
-                    )}
-                  </svg>
-                </div>
-              ) : (
-                <div className="flex h-full min-h-[160px] items-center justify-center rounded border border-panel bg-[#10111a] text-xs text-muted text-center px-3">
-                  Select Driver A and a valid lap to draw the track.
-                </div>
-              )}
-
-              {trackPreview && (
-                <div className="mt-2 grid grid-cols-2 gap-2 text-[9px] font-black uppercase tracking-[0.12em]">
-                  <div className="rounded border border-[#42465b] bg-[#151827] px-2 py-1 text-[#cbd3e8]">
-                    Lap span:{" "}
-                    {trackHoverInfo?.lapM ??
-                      Math.round(xDist[xDist.length - 1] ?? 0)}
-                    m
-                  </div>
-                  <div className="rounded border border-[#543347] bg-[#201521] px-2 py-1 text-[#ffc7d4]">
-                    Cursor:{" "}
-                    {trackHoverInfo ? `${trackHoverInfo.distanceM}m` : "-"}
-                  </div>
-                </div>
-              )}
-            </div>
+            ) : (
+              <div className="flex min-h-[170px] flex-1 items-center justify-center rounded border border-panel bg-[#10111a] px-3 text-center text-xs text-muted">
+                Select Driver A and a valid lap to draw the track.
+              </div>
+            )}
           </div>
         </div>
 
         {session && (
-          <span className="mt-3 block text-xs text-muted sm:ml-auto">
+          <span className="mt-1 block text-xs text-muted sm:ml-auto">
             {session.circuit_short_name} · {session.session_name} ·{" "}
             {session.year}
           </span>
@@ -1244,7 +1160,7 @@ export default function Telemetry() {
         )}
       </div>
 
-      <div className="panel-scroll space-y-2 p-3">
+      <div className="panel-scroll space-y-2 border-t border-panel bg-[#11131c] px-3 pb-3 pt-1">
         {(() => {
           if (hasError) {
             return (
