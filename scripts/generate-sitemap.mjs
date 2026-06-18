@@ -40,6 +40,7 @@ function normalizePath(path) {
 }
 
 function buildSitemapXml() {
+  const today = new Date().toISOString().slice(0, 10);
   const urlEntries = routes
     .filter((route) => route.indexable)
     .map((route) => {
@@ -49,6 +50,7 @@ function buildSitemapXml() {
       return [
         "  <url>",
         `    <loc>${xmlEscape(loc)}</loc>`,
+        `    <lastmod>${today}</lastmod>`,
         `    <changefreq>${route.changefreq}</changefreq>`,
         `    <priority>${route.priority}</priority>`,
         "  </url>",

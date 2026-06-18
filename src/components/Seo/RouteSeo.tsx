@@ -4,6 +4,8 @@ import { useLocation } from "react-router-dom";
 const SITE_NAME = "F1 Replay";
 const SITE_URL = "https://f1replay.app";
 const DEFAULT_IMAGE_URL = `${SITE_URL}/og-cover.svg`;
+const DEFAULT_IMAGE_ALT =
+  "F1 Replay app preview showing telemetry, strategy, and live timing";
 
 type RouteDefinition = {
   title: string;
@@ -127,6 +129,7 @@ export function RouteSeo() {
     upsertMetaByName("twitter:title", route.title);
     upsertMetaByName("twitter:description", route.description);
     upsertMetaByName("twitter:image", DEFAULT_IMAGE_URL);
+    upsertMetaByName("twitter:image:alt", DEFAULT_IMAGE_ALT);
 
     if (route.keywords) {
       upsertMetaByName("keywords", route.keywords);
@@ -143,6 +146,7 @@ export function RouteSeo() {
     upsertMetaByProperty("og:url", canonicalUrl);
     upsertMetaByProperty("og:site_name", SITE_NAME);
     upsertMetaByProperty("og:image", DEFAULT_IMAGE_URL);
+    upsertMetaByProperty("og:image:alt", DEFAULT_IMAGE_ALT);
 
     upsertJsonLd({
       "@context": "https://schema.org",

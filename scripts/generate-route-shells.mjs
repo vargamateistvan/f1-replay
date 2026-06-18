@@ -2,6 +2,8 @@ import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { resolve } from "node:path";
 
 const SITE_URL = "https://f1replay.app";
+const DEFAULT_IMAGE_ALT =
+  "F1 Replay app preview showing telemetry, strategy, and live timing";
 const DIST_DIR = resolve(process.cwd(), "dist");
 const INDEX_HTML_PATH = resolve(DIST_DIR, "index.html");
 
@@ -11,6 +13,8 @@ const ROUTE_SHELLS = [
     title: "F1 Telemetry Comparison | Lap-by-Lap Driver Analysis",
     description:
       "Compare Formula 1 driver laps with synchronized speed, throttle, brake, gear, and RPM traces to uncover where lap time is won or lost.",
+    keywords:
+      "F1 telemetry comparison, Formula 1 lap analysis, speed trace, throttle trace",
     robots: "index, follow",
   },
   {
@@ -18,6 +22,7 @@ const ROUTE_SHELLS = [
     title: "F1 Standings Dashboard | Driver & Constructor Points",
     description:
       "Explore Formula 1 championship standings with interactive driver and constructor points views, wins, and podium trends.",
+    keywords: "F1 standings, Formula 1 driver standings, constructor standings",
     robots: "index, follow",
   },
 ];
@@ -97,12 +102,15 @@ function renderRouteShell(indexHtml, route) {
 
   html = setTitle(html, route.title);
   html = setMetaByName(html, "description", route.description);
+  html = setMetaByName(html, "keywords", route.keywords);
   html = setMetaByName(html, "robots", route.robots);
   html = setMetaByName(html, "twitter:title", route.title);
   html = setMetaByName(html, "twitter:description", route.description);
+  html = setMetaByName(html, "twitter:image:alt", DEFAULT_IMAGE_ALT);
   html = setMetaByProperty(html, "og:title", route.title);
   html = setMetaByProperty(html, "og:description", route.description);
   html = setMetaByProperty(html, "og:url", canonical);
+  html = setMetaByProperty(html, "og:image:alt", DEFAULT_IMAGE_ALT);
   html = setCanonical(html, canonical);
   html = setWebPageJsonLd(html, route.path, route.title, route.description);
 
