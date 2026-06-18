@@ -771,6 +771,39 @@ export function TrackMap({
         className="w-full h-full"
         style={{ background: mapBackground }}
       >
+        <defs>
+          {trackGeometry && circuitLayout?.sectors
+            ? circuitLayout.sectors.map((sector) => {
+                const { sx: sx1, sy: sy1 } = locationToSvg(
+                  sector.bounds.minX,
+                  sector.bounds.minY,
+                  bounds,
+                  innerW,
+                  innerH,
+                );
+                const { sx: sx2, sy: sy2 } = locationToSvg(
+                  sector.bounds.maxX,
+                  sector.bounds.maxY,
+                  bounds,
+                  innerW,
+                  innerH,
+                );
+                const x = Math.min(sx1, sx2) + PAD;
+                const y = Math.min(sy1, sy2) + PAD;
+                const w = Math.abs(sx2 - sx1);
+                const h = Math.abs(sy2 - sy1);
+                return (
+                  <clipPath
+                    key={`track-sector-clip-${sector.number}`}
+                    id={`track-sector-clip-${sector.number}`}
+                    clipPathUnits="userSpaceOnUse"
+                  >
+                    <rect x={x} y={y} width={w} height={h} />
+                  </clipPath>
+                );
+              })
+            : null}
+        </defs>
         <g transform={trackTransform}>
           {/* Track surface: thick grey base + thin white highlight */}
           <path
@@ -823,6 +856,11 @@ export function TrackMap({
                     }[effectiveFlag] ?? null)
                   : null;
                 if (!color) return null;
+                const sectorClipPath = circuitLayout?.sectors.some(
+                  (sector) => sector.number === sectorNum,
+                )
+                  ? `url(#track-sector-clip-${sectorNum})`
+                  : undefined;
                 return (
                   <g key={`track-sector-color-${sectorNum}`}>
                     <path
@@ -832,9 +870,13 @@ export function TrackMap({
                       strokeWidth={14}
                       strokeLinecap="round"
                       strokeLinejoin="round"
-                      pathLength={300}
-                      strokeDasharray="100 200"
-                      strokeDashoffset={-(sectorNum - 1) * 100}
+                      {...(sectorClipPath
+                        ? { clipPath: sectorClipPath }
+                        : {
+                            pathLength: 300,
+                            strokeDasharray: "100 200",
+                            strokeDashoffset: -(sectorNum - 1) * 100,
+                          })}
                       opacity={0.22}
                     />
                     <path
@@ -844,9 +886,13 @@ export function TrackMap({
                       strokeWidth={8}
                       strokeLinecap="round"
                       strokeLinejoin="round"
-                      pathLength={300}
-                      strokeDasharray="100 200"
-                      strokeDashoffset={-(sectorNum - 1) * 100}
+                      {...(sectorClipPath
+                        ? { clipPath: sectorClipPath }
+                        : {
+                            pathLength: 300,
+                            strokeDasharray: "100 200",
+                            strokeDashoffset: -(sectorNum - 1) * 100,
+                          })}
                       opacity={0.65}
                     />
                     <path
@@ -856,9 +902,13 @@ export function TrackMap({
                       strokeWidth={2}
                       strokeLinecap="round"
                       strokeLinejoin="round"
-                      pathLength={300}
-                      strokeDasharray="100 200"
-                      strokeDashoffset={-(sectorNum - 1) * 100}
+                      {...(sectorClipPath
+                        ? { clipPath: sectorClipPath }
+                        : {
+                            pathLength: 300,
+                            strokeDasharray: "100 200",
+                            strokeDashoffset: -(sectorNum - 1) * 100,
+                          })}
                       opacity={0.18}
                     />
                   </g>
