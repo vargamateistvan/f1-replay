@@ -969,6 +969,7 @@ export default function RaceWeekend() {
       carData={trackerTimingTelemetryEnabled ? carDataAtT : undefined}
       showMinisectors={timingShowMinisectors}
       compactDriverColumn
+      dense
       chequeredMs={chequeredMs}
     />
   );

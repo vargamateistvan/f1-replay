@@ -953,7 +953,7 @@ export function LiveTiming({
                       >
                         {car ? (
                           <span
-                            className={`inline-block px-1.5 py-0.5 text-[9px] font-black uppercase tracking-widest ${
+                            className={`inline-flex min-w-[2.25rem] items-center justify-center px-1.5 py-0.5 text-center leading-none text-[9px] font-black uppercase tracking-widest ${
                               car.drs >= 10
                                 ? "bg-[#39d743] text-black"
                                 : "bg-panel text-[#636369]"
