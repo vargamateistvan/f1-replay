@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import type { Lap, RaceControl } from "@/api/types";
 import { useSettings } from "@/stores/settings";
 
@@ -13,6 +13,7 @@ interface Props {
   isRaceSession?: boolean;
   totalLapCount?: number | null;
   onShowResults?: () => void;
+  onJumpToSessionTime?: (sessionTimeMs: number) => void;
 }
 
 interface TrackStatus {
@@ -83,8 +84,12 @@ export function SessionInfoBar({
   isRaceSession,
   totalLapCount = null,
   onShowResults,
+  onJumpToSessionTime,
 }: Props) {
   const lightMode = useSettings((s) => s.lightMode);
+  const [isLapDialogOpen, setIsLapDialogOpen] = useState(false);
+  const [lapInput, setLapInput] = useState("");
+  const [lapError, setLapError] = useState<string | null>(null);
   const currentT = sessionStartMs + sessionTimeMs;
   const formationStatus: TrackStatus = lightMode
     ? { label: "FORMATION LAP", bg: "#e8ecf8", color: "#4a5575" }
@@ -99,6 +104,31 @@ export function SessionInfoBar({
     }
     return max > 0 ? max : null;
   }, [laps, currentT]);
+
+  const lapStartsByNumber = useMemo(() => {
+    const starts = new Map<number, number>();
+    for (const lap of laps) {
+      if (!lap.date_start) continue;
+      const absoluteMs = new Date(lap.date_start).getTime();
+      const relativeMs = absoluteMs - sessionStartMs;
+      if (!Number.isFinite(relativeMs) || relativeMs < 0) continue;
+      const existing = starts.get(lap.lap_number);
+      if (existing === undefined || relativeMs < existing) {
+        starts.set(lap.lap_number, relativeMs);
+      }
+    }
+    return starts;
+  }, [laps, sessionStartMs]);
+
+  const selectableLapMax = useMemo(() => {
+    const observedMax = lapStartsByNumber.size
+      ? Math.max(...Array.from(lapStartsByNumber.keys()))
+      : 1;
+    if (totalLapCount !== null && totalLapCount > 0) {
+      return Math.max(totalLapCount, observedMax);
+    }
+    return observedMax;
+  }, [lapStartsByNumber, totalLapCount]);
 
   const isFormationLap =
     isRaceSession && lightsOutMs != null
@@ -119,6 +149,43 @@ export function SessionInfoBar({
       ? `${currentLap}/${totalLapCount}`
       : (currentLap ?? "—");
 
+  useEffect(() => {
+    if (!isLapDialogOpen) return;
+    const defaultLap = currentLap ?? 1;
+    setLapInput(String(defaultLap));
+    setLapError(null);
+  }, [isLapDialogOpen, currentLap]);
+
+  useEffect(() => {
+    if (!isLapDialogOpen) return;
+    function onKeyDown(event: KeyboardEvent) {
+      if (event.key === "Escape") {
+        setIsLapDialogOpen(false);
+      }
+    }
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [isLapDialogOpen]);
+
+  function submitLapSelection() {
+    const parsed = Number(lapInput);
+    if (!Number.isInteger(parsed)) {
+      setLapError("Enter a whole lap number.");
+      return;
+    }
+    if (parsed < 1 || parsed > selectableLapMax) {
+      setLapError(`Enter a lap between 1 and ${selectableLapMax}.`);
+      return;
+    }
+    const targetMs = lapStartsByNumber.get(parsed);
+    if (targetMs === undefined) {
+      setLapError(`Lap ${parsed} is not available in loaded timing data.`);
+      return;
+    }
+    onJumpToSessionTime?.(targetMs);
+    setIsLapDialogOpen(false);
+  }
+
   if (sessionStartMs === 0) return null;
 
   return (
@@ -126,12 +193,17 @@ export function SessionInfoBar({
       {/* Lap counter */}
       <div className="flex min-w-0 flex-1 items-center justify-center gap-2 border-r border-b border-panel px-3 py-2 sm:flex-none sm:justify-start sm:border-b-0 sm:px-4">
         <span className="text-muted">Lap</span>
-        <span
-          className="tabular-nums text-[13px] font-black"
-          style={{ color: isFormationLap ? formationStatus.color : undefined }}
+        <button
+          type="button"
+          onClick={() => setIsLapDialogOpen(true)}
+          className="tabular-nums text-[13px] font-black transition-colors hover:text-f1red"
+          style={{
+            color: isFormationLap ? formationStatus.color : undefined,
+          }}
+          title={`Jump to lap (1-${selectableLapMax})`}
         >
           {lapDisplay}
-        </span>
+        </button>
       </div>
 
       {/* Track status badge - hide during formation lap since lap display shows 'F' */}
@@ -187,6 +259,64 @@ export function SessionInfoBar({
           <span className="text-white/70 truncate normal-case tracking-normal font-medium">
             {latestMsg.message}
           </span>
+        </div>
+      )}
+
+      {isLapDialogOpen && (
+        <div className="fixed inset-0 z-[230] flex items-center justify-center bg-black/70 px-3 py-6 backdrop-blur-sm">
+          <div className="w-full max-w-sm border border-panel bg-[#0f1118] shadow-2xl">
+            <div className="border-b border-panel px-4 py-3">
+              <div className="text-[10px] font-black uppercase tracking-[0.2em] text-f1red">
+                Jump To Lap
+              </div>
+              <div className="mt-1 text-xs text-white/70 normal-case tracking-normal">
+                Enter a lap number between 1 and {selectableLapMax}.
+              </div>
+            </div>
+            <div className="space-y-3 px-4 py-4 normal-case tracking-normal">
+              <label className="block text-[11px] font-semibold uppercase tracking-[0.14em] text-muted">
+                Lap Number
+              </label>
+              <input
+                type="number"
+                min={1}
+                max={selectableLapMax}
+                step={1}
+                value={lapInput}
+                onChange={(event) => {
+                  setLapInput(event.target.value);
+                  if (lapError) setLapError(null);
+                }}
+                onKeyDown={(event) => {
+                  if (event.key === "Enter") {
+                    event.preventDefault();
+                    submitLapSelection();
+                  }
+                }}
+                className="w-full border border-panel bg-track px-3 py-2 text-sm font-semibold text-white outline-none transition-colors focus:border-f1red"
+                autoFocus
+              />
+              {lapError && (
+                <div className="text-xs text-[#ff7b7b]">{lapError}</div>
+              )}
+            </div>
+            <div className="flex items-center justify-end gap-2 border-t border-panel px-4 py-3">
+              <button
+                type="button"
+                onClick={() => setIsLapDialogOpen(false)}
+                className="border border-panel bg-track px-3 py-1.5 text-[10px] font-black uppercase tracking-[0.14em] text-muted transition-colors hover:text-white"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={submitLapSelection}
+                className="border border-f1red bg-f1red px-3 py-1.5 text-[10px] font-black uppercase tracking-[0.14em] text-white transition-colors hover:brightness-110"
+              >
+                Jump
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>

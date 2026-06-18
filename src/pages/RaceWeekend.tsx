@@ -1091,6 +1091,7 @@ export default function RaceWeekend() {
                 ? () => setIsResultsDialogOpen(true)
                 : undefined
             }
+            onJumpToSessionTime={(sessionTimeMs) => setTimelineT(sessionTimeMs)}
           />
           <div className="flex flex-col md:flex-1 md:min-h-0 md:overflow-hidden relative">
             {/* Toast overlay — covers both mobile and desktop tracker content */}
