@@ -114,6 +114,12 @@ Output goes to the `dist/` folder. To preview locally:
 
 `yarn build` also regenerates `public/sitemap.xml` and writes route-specific HTML shells for `/telemetry` and `/standings` into `dist/`.
 
+Validate SEO route metadata (used by runtime SEO tags, sitemap, and prerender shells):
+
+```bash
+yarn validate:seo
+```
+
 ```bash
 yarn preview
 ```

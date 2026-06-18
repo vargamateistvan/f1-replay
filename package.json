@@ -5,6 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "validate:seo": "node scripts/validate-seo-routes.mjs",
     "generate:sitemap": "node scripts/generate-sitemap.mjs",
     "generate:route-shells": "node scripts/generate-route-shells.mjs",
     "build": "yarn generate:sitemap && tsc -b && vite build && yarn generate:route-shells",
