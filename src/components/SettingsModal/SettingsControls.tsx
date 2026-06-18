@@ -325,6 +325,12 @@ export function SettingsBody() {
         checked={settings.mapShowCompass}
         onChange={toggle("mapShowCompass")}
       />
+      <SettingRow
+        label="PNG track snapshot"
+        description="Show download button for track screenshots"
+        checked={settings.trackScreenshotPngEnabled}
+        onChange={toggle("trackScreenshotPngEnabled")}
+      />
 
       <SectionHeader>Data & Interface</SectionHeader>
       <SettingRow

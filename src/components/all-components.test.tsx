@@ -142,6 +142,7 @@ vi.mock("@/stores/settings", () => {
     mapShowSectorFlags: true,
     leaderboardTelemetry: true,
     trackerTimingTelemetry: false,
+    trackScreenshotPngEnabled: true,
     showCoffeeWidget: true,
     defaultSpeed: 1,
     showPlaybackSpeedControls: true,

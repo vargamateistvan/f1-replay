@@ -576,6 +576,7 @@ export default function RaceWeekend() {
     leaderboardTelemetry,
     timingShowMinisectors,
     trackerTimingTelemetry,
+    trackScreenshotPngEnabled,
     defaultSpeed,
     showPlaybackSpeedControls,
     showPlaybackEventChips,
@@ -1012,6 +1013,7 @@ export default function RaceWeekend() {
       showSectorBox={mapShowSectorBox}
       showTrackControls={mapShowTrackControls}
       showCompass={mapShowCompass}
+      showTrackScreenshot={trackScreenshotPngEnabled}
       activeTrackVehicles={activeTrackVehicles}
       retiredDrivers={retiredDrivers}
       onSelectDriver={toggleFocus}

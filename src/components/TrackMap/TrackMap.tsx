@@ -127,6 +127,7 @@ interface Props {
   readonly showTrackControls?: boolean;
   readonly showCompass?: boolean;
   readonly showFocusedHud?: boolean;
+  readonly showTrackScreenshot?: boolean;
   readonly onSelectDriver?: (driverNumber: number) => void;
 }
 
@@ -151,6 +152,7 @@ export function TrackMap({
   showTrackControls = true,
   showCompass = true,
   showFocusedHud = true,
+  showTrackScreenshot = true,
   onSelectDriver,
 }: Props) {
   const { t } = useTimeline();
@@ -1439,15 +1441,17 @@ export function TrackMap({
                 </svg>
               </div>
             )}
-            <button
-              onClick={() =>
-                svgRef.current && exportTrackSnapshot(svgRef.current)
-              }
-              className="px-2 py-0.5 text-[9px] font-bold uppercase tracking-widest bg-[#1e1e2a]/80 border border-[#38383f] text-muted hover:text-white hover:border-white/30 transition-colors backdrop-blur-sm"
-              title="Download track snapshot as PNG"
-            >
-              ↓ PNG
-            </button>
+            {showTrackScreenshot && (
+              <button
+                onClick={() =>
+                  svgRef.current && exportTrackSnapshot(svgRef.current)
+                }
+                className="px-2 py-0.5 text-[9px] font-bold uppercase tracking-widest bg-[#1e1e2a]/80 border border-[#38383f] text-muted hover:text-white hover:border-white/30 transition-colors backdrop-blur-sm"
+                title="Download track snapshot as PNG"
+              >
+                ↓ PNG
+              </button>
+            )}
           </div>
         </div>
       )}
