@@ -11,7 +11,7 @@ import type {
   CarData,
 } from "@/api/types";
 import { teamColor } from "@/utils/color";
-import { laneDuration, pitStopTime } from "@/utils/pit";
+import { laneDuration } from "@/utils/pit";
 import { deriveRetiredDrivers } from "@/utils/retirement";
 import { SECTOR_GREEN_S } from "@/constants";
 import { SectorBar, type SectorTier } from "./SectorBar";
@@ -323,20 +323,6 @@ export function LiveTiming({
     return { s1, s2, s3 };
   }, [completedLaps]);
 
-  // Pit stops per driver up to the playhead: count + most recent stop time (s).
-  const pitInfoMap = useMemo(() => {
-    const m = new Map<number, { count: number; lastStop: number | null }>();
-    for (const p of pits) {
-      if (new Date(p.date).getTime() > currentT) continue;
-      const prev = m.get(p.driver_number) ?? { count: 0, lastStop: null };
-      m.set(p.driver_number, {
-        count: prev.count + 1,
-        lastStop: pitStopTime(p) ?? prev.lastStop,
-      });
-    }
-    return m;
-  }, [pits, currentT]);
-
   // Starting tyre: compound from the driver's first stint (stint_number === 1,
   // per the OpenF1 stints schema). Falls back to the lowest lap_start if a
   // session lacks a stint_number 1 record.
@@ -572,11 +558,6 @@ export function LiveTiming({
               <th className={`${TH} text-left w-[5.25rem] lg:w-[5.75rem]`}>
                 Tyre
               </th>
-              <th
-                className={`${TH} hidden sm:table-cell text-center w-[2.5rem] sm:w-[2.75rem]`}
-              >
-                Pit
-              </th>
               <th className={`${TH} hidden sm:table-cell text-center w-16`}>
                 Lap
               </th>
@@ -617,7 +598,6 @@ export function LiveTiming({
               const inPit = pittingNow.has(num);
               const lastLap = lastLapMap.get(num) ?? null;
               const currentLap = currentLapMap.get(num) ?? null;
-              const pitInfo = pitInfoMap.get(num) ?? null;
               const car = carData?.get(num) ?? null;
               const speedDisplay = car
                 ? String(Math.round(car.speed)).padStart(3, "0")
@@ -856,26 +836,6 @@ export function LiveTiming({
                         wideSectors ? (startCompoundMap.get(num) ?? null) : null
                       }
                     />
-                  </td>
-
-                  {/* Pit stop count (hover: most recent stop time) */}
-                  <td
-                    className={`hidden sm:table-cell ${rowCellPad} px-1 text-center font-mono text-[10px] tabular-nums text-muted sm:px-2 sm:text-[11px]`}
-                    title={
-                      pitInfo && pitInfo.lastStop !== null
-                        ? `${pitInfo.count} stop${pitInfo.count !== 1 ? "s" : ""} · last ${pitInfo.lastStop.toFixed(1)}s`
-                        : undefined
-                    }
-                  >
-                    {!retired && inPit ? (
-                      <span className="inline-block bg-[#f5a623] text-black text-[8px] font-black uppercase tracking-widest px-1 py-0.5 animate-pulse">
-                        PIT
-                      </span>
-                    ) : pitInfo ? (
-                      pitInfo.count
-                    ) : (
-                      "—"
-                    )}
                   </td>
 
                   {/* Current lap */}

@@ -799,36 +799,107 @@ export function TrackMap({
     effectiveFlagForSector(2) != null ||
     effectiveFlagForSector(3) != null;
 
+  const topStatusBadges = (() => {
+    const badges: Array<{
+      key: string;
+      label: string;
+      bg: string;
+      border: string;
+      text: string;
+    }> = [];
+    const seen = new Set<string>();
+
+    const push = (
+      key: string,
+      label: string,
+      bg: string,
+      border: string,
+      text: string,
+    ) => {
+      if (seen.has(key)) return;
+      seen.add(key);
+      badges.push({ key, label, bg, border, text });
+    };
+
+    if (activeTrackVehicles?.formationLap) {
+      push("formation", "Formation Lap", "#1c1c2e", "#2d3550", "#c8c8ff");
+    }
+    if (activeTrackVehicles?.safetyCar) {
+      push("safety_car", "Safety Car", "#f5a623", "#704600", "#101010");
+    }
+    if (activeTrackVehicles?.vsc) {
+      push("vsc", "VSC", "#ffd166", "#7a5400", "#101010");
+    }
+    if (activeTrackVehicles?.medicalCar) {
+      push("medical", "Medical Car", "#e8002d", "#5f121d", "#ffffff");
+    }
+
+    const addFlagBadge = (flag: string, suffix = "") => {
+      if (flag === "GREEN" || flag === "CLEAR") return;
+
+      // Avoid duplicate chips when the same state is already represented by
+      // active track-vehicle status (e.g. SC or VSC).
+      if (
+        (flag === "SAFETY_CAR" && activeTrackVehicles?.safetyCar) ||
+        ((flag === "VIRTUAL_SC" || flag === "VIRTUAL_SAFETY_CAR") &&
+          activeTrackVehicles?.vsc)
+      ) {
+        return;
+      }
+
+      const labelMap: Record<string, string> = {
+        YELLOW: "Yellow Flag",
+        DOUBLE_YELLOW: "Double Yellow",
+        RED: "Red Flag",
+        SAFETY_CAR: "Safety Car",
+        VIRTUAL_SC: "VSC",
+        VIRTUAL_SAFETY_CAR: "VSC",
+      };
+      const color = flagPalette[flag]?.color;
+      const label = labelMap[flag];
+      if (!color || !label) return;
+      const text = flag === "RED" ? "#ffffff" : "#101010";
+      push(
+        `flag_${flag}${suffix}`,
+        `${label}${suffix}`,
+        color,
+        `${color}99`,
+        text,
+      );
+    };
+
+    if (normalizedTrackFlagState?.globalFlag) {
+      addFlagBadge(normalizedTrackFlagState.globalFlag);
+    } else {
+      ([1, 2, 3] as const).forEach((sector) => {
+        const flag = normalizedTrackFlagState?.sectorFlags[sector];
+        if (!flag) return;
+        addFlagBadge(flag, ` S${sector}`);
+      });
+    }
+
+    return badges;
+  })();
+
   return (
     <div className="relative w-full h-full">
-      {activeTrackVehicles &&
-        (activeTrackVehicles.safetyCar ||
-          activeTrackVehicles.vsc ||
-          activeTrackVehicles.medicalCar ||
-          activeTrackVehicles.formationLap) && (
-          <div className="pointer-events-none absolute top-2 left-1/2 z-20 -translate-x-1/2 flex items-center gap-1.5">
-            {activeTrackVehicles.formationLap && (
-              <span className="border border-[#2d3550] bg-[#1c1c2e] px-2 py-0.5 text-[9px] font-black uppercase tracking-[0.16em] text-[#c8c8ff]">
-                Formation Lap
-              </span>
-            )}
-            {activeTrackVehicles.safetyCar && (
-              <span className="border border-[#704600] bg-[#f5a623] px-2 py-0.5 text-[9px] font-black uppercase tracking-[0.16em] text-black/90">
-                Safety Car
-              </span>
-            )}
-            {activeTrackVehicles.vsc && (
-              <span className="border border-[#7a5400] bg-[#ffd166] px-2 py-0.5 text-[9px] font-black uppercase tracking-[0.16em] text-black/90">
-                VSC
-              </span>
-            )}
-            {activeTrackVehicles.medicalCar && (
-              <span className="border border-[#5f121d] bg-[#e8002d] px-2 py-0.5 text-[9px] font-black uppercase tracking-[0.16em] text-white">
-                Medical Car
-              </span>
-            )}
-          </div>
-        )}
+      {topStatusBadges.length > 0 && (
+        <div className="pointer-events-none absolute top-2 left-1/2 z-20 -translate-x-1/2 flex items-center gap-1.5">
+          {topStatusBadges.map((badge) => (
+            <span
+              key={badge.key}
+              className="border px-2 py-0.5 text-[9px] font-black uppercase tracking-[0.16em]"
+              style={{
+                background: badge.bg,
+                borderColor: badge.border,
+                color: badge.text,
+              }}
+            >
+              {badge.label}
+            </span>
+          ))}
+        </div>
+      )}
 
       <svg
         ref={svgRef}
