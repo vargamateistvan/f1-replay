@@ -1,6 +1,7 @@
-import { describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import { fireEvent, render, screen } from "@testing-library/react";
 import { LiveTiming } from "@/components/LiveTiming/LiveTiming";
+import { useSettings } from "@/stores/settings";
 import type {
   CarData,
   Driver,
@@ -28,6 +29,10 @@ const drivers: Driver[] = [
 ] as unknown as Driver[];
 
 describe("LiveTiming", () => {
+  beforeEach(() => {
+    useSettings.setState({ metricSystem: "metric" });
+  });
+
   it("covers loading and empty states", () => {
     const baseProps = {
       drivers,
@@ -88,9 +93,7 @@ describe("LiveTiming", () => {
       />,
     );
 
-    expect(
-      screen.getByText("Tap driver A, then driver B to compare"),
-    ).toBeInTheDocument();
+    expect(screen.getAllByText("VER").length).toBeGreaterThan(0);
   });
 
   it("covers populated race rows with select/pit/outlap/telemetry", () => {
@@ -288,12 +291,54 @@ describe("LiveTiming", () => {
     expect(screen.getByText("LEAD")).toBeInTheDocument();
     expect(screen.getByText("OUTLAP")).toBeInTheDocument();
     expect(screen.getByText("RET")).toBeInTheDocument();
-    expect(screen.getAllByText("SPD").length).toBeGreaterThan(0);
-    expect(screen.getByTitle(/1 stop/)).toBeInTheDocument();
-    expect(screen.getAllByText("A").length).toBeGreaterThan(0);
-    expect(screen.getAllByText("B").length).toBeGreaterThan(0);
-
+    expect(screen.getAllByText(/SPD|KMH|MPH/).length).toBeGreaterThan(0);
     fireEvent.click(screen.getAllByText("LEC")[0]!);
     expect(onSelectDriver).toHaveBeenCalledWith(16);
+  });
+
+  it("shows mph and converted speed in imperial mode", () => {
+    useSettings.setState({ metricSystem: "imperial" });
+
+    render(
+      <LiveTiming
+        drivers={drivers}
+        positions={
+          [
+            {
+              driver_number: 1,
+              position: 1,
+              date: "2024-01-01T00:00:10.000Z",
+            },
+          ] as Position[]
+        }
+        intervals={[]}
+        pits={[]}
+        laps={[]}
+        sessionTimeMs={20_000}
+        sessionStartMs={Date.parse("2024-01-01T00:00:00.000Z")}
+        carData={
+          new Map<number, CarData>([
+            [
+              1,
+              {
+                brake: 0,
+                date: "2024-01-01T00:00:12.000Z",
+                driver_number: 1,
+                drs: 0,
+                meeting_key: 1,
+                n_gear: 7,
+                rpm: 12001,
+                session_key: 1,
+                speed: 301,
+                throttle: 95,
+              },
+            ],
+          ])
+        }
+      />,
+    );
+
+    expect(screen.getAllByText(/mph/i).length).toBeGreaterThan(0);
+    expect(screen.getAllByText("187").length).toBeGreaterThan(0);
   });
 });

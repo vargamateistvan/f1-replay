@@ -39,6 +39,8 @@ export interface AppSettings {
   showNextRaceWeekendBanner: boolean;
   // Appearance
   lightMode: boolean;
+  // Units
+  metricSystem: "metric" | "imperial";
 }
 
 interface SettingsStore extends AppSettings {
@@ -85,6 +87,7 @@ export const SETTINGS_DEFAULTS: AppSettings = {
   showCsvExportButtons: true,
   showNextRaceWeekendBanner: true,
   lightMode: false,
+  metricSystem: "metric",
 };
 
 export const useSettings = create<SettingsStore>()(

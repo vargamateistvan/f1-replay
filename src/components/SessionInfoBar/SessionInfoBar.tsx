@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import type { Lap, RaceControl } from "@/api/types";
 import { useSettings } from "@/stores/settings";
+import { toDisplayTemperature, temperatureUnitLabel } from "@/utils/units";
 
 interface Props {
   laps: Lap[];
@@ -68,9 +69,10 @@ function fmtElapsed(ms: number): string {
   return `${String(m).padStart(2, "0")}:${String(sec).padStart(2, "0")}`;
 }
 
-function fmtTemp(temp: number | null): string {
+function fmtTemp(temp: number | null, metricSystem: "metric" | "imperial"): string {
   if (temp === null || !Number.isFinite(temp)) return "--";
-  return `${Math.round(temp)}°C`;
+  const value = Math.round(toDisplayTemperature(temp, metricSystem));
+  return `${value}°${temperatureUnitLabel(metricSystem)}`;
 }
 
 export function SessionInfoBar({
@@ -87,6 +89,7 @@ export function SessionInfoBar({
   onJumpToSessionTime,
 }: Props) {
   const lightMode = useSettings((s) => s.lightMode);
+  const metricSystem = useSettings((s) => s.metricSystem);
   const [isLapDialogOpen, setIsLapDialogOpen] = useState(false);
   const [lapInput, setLapInput] = useState("");
   const [lapError, setLapError] = useState<string | null>(null);
@@ -230,13 +233,13 @@ export function SessionInfoBar({
       <div className="flex min-w-0 flex-1 items-center justify-center gap-2 border-r border-b border-panel px-3 py-2 sm:flex-none sm:justify-start sm:border-b-0 sm:px-4">
         <span className="text-muted">Air</span>
         <span className="text-white tabular-nums font-mono">
-          {fmtTemp(airTemp)}
+          {fmtTemp(airTemp, metricSystem)}
         </span>
       </div>
       <div className="flex min-w-0 flex-1 items-center justify-center gap-2 border-r border-b border-panel px-3 py-2 sm:flex-none sm:justify-start sm:border-b-0 sm:px-4">
         <span className="text-muted">Track</span>
         <span className="text-white tabular-nums font-mono">
-          {fmtTemp(trackTemp)}
+          {fmtTemp(trackTemp, metricSystem)}
         </span>
       </div>
 

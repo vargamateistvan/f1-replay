@@ -13,6 +13,12 @@ import { useNumberParam, useStringParam } from "@/hooks/useSearchParamState";
 import { AppLogo } from "@/components/AppLogo";
 import { useSettings } from "@/stores/settings";
 import {
+  toDisplayAltitudeM,
+  altitudeUnitLabel,
+  toDisplayDistanceKm,
+  distanceUnitLabel,
+} from "@/utils/units";
+import {
   fetchCircuitFactsFromApi,
   type CircuitFacts,
 } from "@/api/circuitFactsLookup";
@@ -98,6 +104,7 @@ export function Nav() {
   const openSettings = useSettings((s) => s.openModal);
   const openHelp = useSettings((s) => s.openHelp);
   const setSetting = useSettings((s) => s.setSetting);
+  const metricSystem = useSettings((s) => s.metricSystem);
   const showNextRaceWeekendBanner = useSettings(
     (s) => s.showNextRaceWeekendBanner,
   );
@@ -936,15 +943,23 @@ export function Nav() {
                 {[
                   {
                     label: "Length",
-                    value: visibleFacts?.lengthKm
-                      ? `${visibleFacts.lengthKm} km`
-                      : "N/A",
+                    value: (() => {
+                      if (!visibleFacts?.lengthKm) return "N/A";
+                      const parsed = Number(visibleFacts.lengthKm);
+                      if (!Number.isFinite(parsed)) return "N/A";
+                      const converted = toDisplayDistanceKm(parsed, metricSystem);
+                      return `${converted.toFixed(3)} ${distanceUnitLabel(metricSystem)}`;
+                    })(),
                   },
                   {
                     label: "Race Distance",
-                    value: visibleFacts?.raceDistanceKm
-                      ? `${visibleFacts.raceDistanceKm} km`
-                      : "N/A",
+                    value: (() => {
+                      if (!visibleFacts?.raceDistanceKm) return "N/A";
+                      const parsed = Number(visibleFacts.raceDistanceKm);
+                      if (!Number.isFinite(parsed)) return "N/A";
+                      const converted = toDisplayDistanceKm(parsed, metricSystem);
+                      return `${converted.toFixed(3)} ${distanceUnitLabel(metricSystem)}`;
+                    })(),
                   },
                   {
                     label: "Laps",
@@ -972,9 +987,13 @@ export function Nav() {
                   },
                   {
                     label: "Altitude",
-                    value: visibleFacts?.altitudeM
-                      ? `${visibleFacts.altitudeM} m`
-                      : "N/A",
+                    value: (() => {
+                      if (!visibleFacts?.altitudeM) return "N/A";
+                      const parsed = Number(visibleFacts.altitudeM);
+                      if (!Number.isFinite(parsed)) return "N/A";
+                      const converted = toDisplayAltitudeM(parsed, metricSystem);
+                      return `${Math.round(converted)} ${altitudeUnitLabel(metricSystem)}`;
+                    })(),
                   },
                 ].map((item) => (
                   <div

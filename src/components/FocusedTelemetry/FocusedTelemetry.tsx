@@ -7,6 +7,8 @@ import { chunkIndexFor } from "@/hooks/useLocationChunks";
 import { TelemetryChart } from "@/components/TelemetryChart/TelemetryChart";
 import { resampleToAxis, computeDelta, smooth } from "@/utils/telemetry";
 import { teamColor } from "@/utils/color";
+import { useSettings } from "@/stores/settings";
+import { speedUnitLabel, toDisplaySpeed } from "@/utils/units";
 
 interface Props {
   readonly sessionKey: number | null;
@@ -32,6 +34,7 @@ export function FocusedTelemetry({
   onClearCompare,
 }: Props) {
   const { t } = useTimeline();
+  const metricSystem = useSettings((s) => s.metricSystem);
   const chunkIdx = chunkIndexFor(t);
   const { data } = useCarDataWindow(
     sessionKey,
@@ -107,18 +110,19 @@ export function FocusedTelemetry({
     const secondary = resampleToAxis(lapData.data, compareLapData.data);
     if (!secondary.length) return null;
     const xData = lapData.data.map((s) => s.distM);
+    const toDisplay = (speed: number) => toDisplaySpeed(speed, metricSystem);
     return {
       xData,
       speed: [
         {
           label: driver?.name_acronym ?? "A",
           color,
-          data: smooth(lapData.data.map((s) => s.speed)),
+          data: smooth(lapData.data.map((s) => toDisplay(s.speed))),
         },
         {
           label: compareDriver.name_acronym,
           color: compareColor,
-          data: smooth(secondary.map((s) => s.speed)),
+          data: smooth(secondary.map((s) => toDisplay(s.speed))),
         },
       ],
       throttle: [
@@ -150,7 +154,11 @@ export function FocusedTelemetry({
     driver?.name_acronym,
     color,
     compareColor,
+    metricSystem,
   ]);
+
+  const speedUnit = speedUnitLabel(metricSystem);
+  const speedChartMax = metricSystem === "imperial" ? 240 : 380;
 
   return (
     <div className="shrink-0 border-t border-[#38383f] bg-track px-3 py-2 text-xs">
@@ -160,6 +168,7 @@ export function FocusedTelemetry({
           color={color}
           sample={sample}
           drsOn={drsOn}
+          metricSystem={metricSystem}
         />
 
         {compareDriver && (
@@ -172,6 +181,7 @@ export function FocusedTelemetry({
               color={compareColor}
               sample={compareSample}
               drsOn={compareDrsOn}
+              metricSystem={metricSystem}
             />
           </>
         )}
@@ -206,10 +216,10 @@ export function FocusedTelemetry({
       {compareTelemetry && (
         <div className="mt-3 grid gap-2 lg:grid-cols-3">
           <TelemetryChart
-            title={`Speed · L${driverLap ?? "—"} vs L${compareDriverLap ?? "—"}`}
+            title={`Speed (${speedUnit}) · L${driverLap ?? "—"} vs L${compareDriverLap ?? "—"}`}
             xData={compareTelemetry.xData}
             yMin={0}
-            yMax={380}
+            yMax={speedChartMax}
             height={180}
             series={compareTelemetry.speed}
           />
@@ -238,6 +248,7 @@ function DriverStrip({
   color,
   sample,
   drsOn,
+  metricSystem,
 }: {
   acronym: string;
   color: string;
@@ -249,7 +260,11 @@ function DriverStrip({
     brake: number;
   } | null;
   drsOn: boolean;
+  metricSystem: "metric" | "imperial";
 }) {
+  const speedValue = sample ? Math.round(toDisplaySpeed(sample.speed, metricSystem)) : null;
+  const speedUnit = speedUnitLabel(metricSystem);
+
   return (
     <span className="flex items-center gap-4 min-w-0">
       <span className="flex items-center gap-2 shrink-0">
@@ -263,8 +278,8 @@ function DriverStrip({
         <>
           <Metric
             label="Speed"
-            value={`${Math.round(sample.speed)}`}
-            unit="km/h"
+            value={`${speedValue}`}
+            unit={speedUnit}
             w="w-[3ch]"
           />
           <Metric

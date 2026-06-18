@@ -20,6 +20,14 @@ import { buildIndex, interpolateXY } from "@/timeline/interpolate";
 import { useTimeline } from "@/timeline/clock";
 import { teamColor } from "@/utils/color";
 import { useSettings } from "@/stores/settings";
+import {
+  speedUnitLabel,
+  toDisplaySpeed,
+  toDisplayTemperature,
+  temperatureUnitLabel,
+  toDisplayWindSpeed,
+  windSpeedUnitLabel,
+} from "@/utils/units";
 import type { CarData, Driver, Location, Stint, Weather } from "@/api/types";
 import {
   TRACK_SVG_W as SVG_W,
@@ -177,6 +185,7 @@ export function TrackMap({
 }: Props) {
   const { t } = useTimeline();
   const lightMode = useSettings((s) => s.lightMode);
+  const metricSystem = useSettings((s) => s.metricSystem);
   const [zoomLevel, setZoomLevel] = useState(1);
   const [rotationDeg, setRotationDeg] = useState(0);
 
@@ -194,6 +203,9 @@ export function TrackMap({
     : weatherOverlay?.rainfall && weatherOverlay.rainfall > 0
       ? "border-l-sky-400 bg-[linear-gradient(135deg,rgba(18,40,74,0.45)_0%,rgba(21,21,30,0.95)_55%)]"
       : "border-l-[#4b4b57] bg-[linear-gradient(135deg,rgba(34,36,50,0.45)_0%,rgba(21,21,30,0.95)_55%)]";
+  const speedUnit = speedUnitLabel(metricSystem);
+  const tempUnit = temperatureUnitLabel(metricSystem);
+  const windUnit = windSpeedUnitLabel(metricSystem);
 
   useEffect(() => {
     setZoomLevel(1);
@@ -1344,7 +1356,7 @@ export function TrackMap({
                   Track
                 </span>
                 <span className="text-[10px] font-mono tabular-nums text-white text-right">
-                  {weatherOverlay.track_temperature.toFixed(1)} C
+                  {toDisplayTemperature(weatherOverlay.track_temperature, metricSystem).toFixed(1)} {tempUnit}
                 </span>
               </div>
               <div className="flex items-center justify-between gap-2">
@@ -1362,7 +1374,7 @@ export function TrackMap({
                   Wind
                 </span>
                 <span className="text-[10px] font-mono tabular-nums text-white text-right">
-                  {weatherOverlay.wind_speed.toFixed(1)} m/s
+                  {toDisplayWindSpeed(weatherOverlay.wind_speed, metricSystem).toFixed(1)} {windUnit}
                 </span>
               </div>
             </div>
@@ -1373,7 +1385,7 @@ export function TrackMap({
                   Air
                 </span>
                 <span className="text-[10px] font-mono tabular-nums text-white text-right">
-                  {weatherOverlay.air_temperature.toFixed(1)} C
+                  {toDisplayTemperature(weatherOverlay.air_temperature, metricSystem).toFixed(1)} {tempUnit}
                 </span>
               </div>
               <div className="flex items-center justify-between gap-2">
@@ -1432,10 +1444,10 @@ export function TrackMap({
                   className="text-[22px] font-black tabular-nums leading-none"
                   style={{ color }}
                 >
-                  {hudData.speed}
+                  {Math.round(toDisplaySpeed(hudData.speed, metricSystem))}
                 </span>
                 <span className="text-[9px] text-muted uppercase tracking-widest leading-none self-end pb-0.5">
-                  km/h
+                  {speedUnit}
                 </span>
                 <span
                   className="ml-auto text-[18px] font-black tabular-nums leading-none"

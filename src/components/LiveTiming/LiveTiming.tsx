@@ -14,6 +14,12 @@ import { teamColor } from "@/utils/color";
 import { laneDuration } from "@/utils/pit";
 import { deriveRetiredDrivers } from "@/utils/retirement";
 import { SECTOR_GREEN_S } from "@/constants";
+import { useSettings } from "@/stores/settings";
+import {
+  toDisplaySpeed,
+  speedUnitLabel,
+  speedUnitCompactLabel,
+} from "@/utils/units";
 import { SectorBar, type SectorTier } from "./SectorBar";
 import { TyreBadge } from "./TyreBadge";
 import { DriverHeadshot } from "@/components/DriverHeadshot";
@@ -182,6 +188,9 @@ export function LiveTiming({
   onSelectDriver,
   chequeredMs = null,
 }: Props) {
+  const metricSystem = useSettings((s) => s.metricSystem);
+  const speedUnitShort = speedUnitLabel(metricSystem);
+  const speedUnitCompact = speedUnitCompactLabel(metricSystem);
   const showTelemetry = carData !== undefined;
   const currentT = sessionStartMs + sessionTimeMs;
 
@@ -566,7 +575,10 @@ export function LiveTiming({
                   <th
                     className={`${TH} hidden lg:table-cell text-right w-[3.5rem]`}
                   >
-                    Speed
+                    <span className="block leading-none">Speed</span>
+                    <span className="block text-[8px] normal-case tracking-normal text-[#7b7b82] leading-none mt-0.5">
+                      {speedUnitShort}
+                    </span>
                   </th>
                   <th className={`${TH} hidden lg:table-cell text-center w-8`}>
                     Gear
@@ -599,8 +611,11 @@ export function LiveTiming({
               const lastLap = lastLapMap.get(num) ?? null;
               const currentLap = currentLapMap.get(num) ?? null;
               const car = carData?.get(num) ?? null;
-              const speedDisplay = car
-                ? String(Math.round(car.speed)).padStart(3, "0")
+              const speedValue = car
+                ? Math.round(toDisplaySpeed(car.speed, metricSystem))
+                : null;
+              const speedDisplay = speedValue !== null
+                ? String(speedValue).padStart(3, "0")
                 : "---";
               const rpmDisplay = car
                 ? String(Math.round(car.rpm)).padStart(5, "0")
@@ -720,7 +735,7 @@ export function LiveTiming({
                       {showTelemetry && (
                         <div className="mt-1 grid grid-cols-2 gap-x-2 gap-y-0.5 text-[9px] leading-4 font-mono tabular-nums sm:hidden">
                           <span className="inline-flex min-w-0 items-center gap-1 text-[#7dd3fc]">
-                            <span className="text-[#89a6bf]">SPD</span>
+                            <span className="text-[#89a6bf]">{speedUnitCompact}</span>
                             <span className="w-[3ch] text-right">
                               {speedDisplay}
                             </span>
@@ -854,7 +869,7 @@ export function LiveTiming({
                       <td
                         className={`hidden lg:table-cell ${rowCellPad} ${telemetryPadClass} text-right font-mono text-[12px] tabular-nums text-white`}
                       >
-                        {car ? Math.round(car.speed) : "—"}
+                        {speedValue ?? "—"}
                       </td>
                       {/* Gear */}
                       <td

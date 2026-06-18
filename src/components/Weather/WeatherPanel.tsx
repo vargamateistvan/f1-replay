@@ -3,6 +3,12 @@ import { CloudRain, Droplets, Gauge, Thermometer, Wind } from "lucide-react";
 import type { Weather } from "@/api/types";
 import { downloadEndpointCsv } from "@/api/client";
 import { useSettings } from "@/stores/settings";
+import {
+  toDisplayTemperature,
+  toDisplayWindSpeed,
+  temperatureUnitLabel,
+  windSpeedUnitLabel,
+} from "@/utils/units";
 
 // 16-point compass from degrees
 function windDir(deg: number): string {
@@ -42,6 +48,7 @@ export function WeatherPanel({
 }: Props) {
   const showCsvExportButtons = useSettings((s) => s.showCsvExportButtons);
   const lightMode = useSettings((s) => s.lightMode);
+  const metricSystem = useSettings((s) => s.metricSystem);
   const currentT = sessionStartMs + sessionTimeMs;
 
   const w = useMemo(
@@ -71,6 +78,11 @@ export function WeatherPanel({
 
   const windArrow =
     windDir(w.wind_direction) === "—" ? "↑" : `↑ ${windDir(w.wind_direction)}`;
+  const tempUnit = temperatureUnitLabel(metricSystem);
+  const windUnit = windSpeedUnitLabel(metricSystem);
+  const trackTemp = toDisplayTemperature(w.track_temperature, metricSystem);
+  const airTemp = toDisplayTemperature(w.air_temperature, metricSystem);
+  const windSpeed = toDisplayWindSpeed(w.wind_speed, metricSystem);
 
   const containerClass = lightMode
     ? isRaining
@@ -128,7 +140,7 @@ export function WeatherPanel({
               Track
             </div>
             <div className="font-mono tabular-nums text-sm text-white">
-              {w.track_temperature.toFixed(1)}°C
+              {trackTemp.toFixed(1)}°{tempUnit}
               <span className="ml-1 text-[10px] text-[#ffd600]">
                 {trend(trackDelta)}
               </span>
@@ -140,7 +152,7 @@ export function WeatherPanel({
               Air
             </div>
             <div className="font-mono tabular-nums text-sm text-white">
-              {w.air_temperature.toFixed(1)}°C
+              {airTemp.toFixed(1)}°{tempUnit}
             </div>
           </div>
           <div className={cardClass}>
@@ -149,7 +161,8 @@ export function WeatherPanel({
               Wind
             </div>
             <div className="font-mono tabular-nums text-sm text-white">
-              {w.wind_speed.toFixed(1)}
+              {windSpeed.toFixed(1)}
+              <span className="ml-1 text-[10px] text-muted">{windUnit}</span>
             </div>
           </div>
         </div>
@@ -176,7 +189,7 @@ export function WeatherPanel({
           Track
         </span>
         <span className="font-mono tabular-nums text-xs">
-          {w.track_temperature.toFixed(1)}°C
+          {trackTemp.toFixed(1)}°{tempUnit}
           <span className="text-orange-300 ml-0.5 text-[10px] font-bold">
             {trend(trackDelta)}
           </span>
@@ -186,7 +199,7 @@ export function WeatherPanel({
           Air
         </span>
         <span className="font-mono tabular-nums text-xs">
-          {w.air_temperature.toFixed(1)}°C
+          {airTemp.toFixed(1)}°{tempUnit}
         </span>
 
         <span className="text-[10px] font-bold uppercase tracking-widest text-muted flex items-center gap-1">
@@ -207,7 +220,7 @@ export function WeatherPanel({
           Wind
         </span>
         <span className="font-mono tabular-nums text-xs col-span-3">
-          {w.wind_speed.toFixed(1)} m/s {windArrow}
+          {windSpeed.toFixed(1)} {windUnit} {windArrow}
         </span>
       </div>
     </div>

@@ -15,6 +15,7 @@ import { useNumberParam, useStringParam } from "@/hooks/useSearchParamState";
 import { useSettings } from "@/stores/settings";
 import { teamColor } from "@/utils/color";
 import { computeDelta, resampleToAxis, smooth } from "@/utils/telemetry";
+import { speedUnitLabel, toDisplaySpeed } from "@/utils/units";
 
 interface PlotSlot {
   num: number;
@@ -160,6 +161,7 @@ function formatDeltaHint(deltaSeconds: number | null): DeltaHint {
 
 export default function Telemetry() {
   const lightMode = useSettings((s) => s.lightMode);
+  const metricSystem = useSettings((s) => s.metricSystem);
   const [activeMode, setActiveMode] = useState<"quali" | "race" | null>(null);
   const [showLayoutHint, setShowLayoutHint] = useState(() => {
     if (typeof window === "undefined") return false;
@@ -586,10 +588,13 @@ export default function Telemetry() {
     });
   }
 
-  const speedSeries = useMemo(
-    () => series("speed", true),
-    [plotSlots, smoothing],
-  );
+  const speedSeries = useMemo(() => {
+    const base = series("speed", true);
+    return base.map((s) => ({
+      ...s,
+      data: s.data.map((value) => toDisplaySpeed(value, metricSystem)),
+    }));
+  }, [plotSlots, smoothing, metricSystem]);
   const throttleSeries = useMemo(
     () => series("throttle", true, true),
     [plotSlots, smoothing],
@@ -603,6 +608,8 @@ export default function Telemetry() {
     [plotSlots, smoothing],
   );
   const rpmSeries = useMemo(() => series("rpm", true), [plotSlots, smoothing]);
+  const speedUnit = speedUnitLabel(metricSystem);
+  const speedChartMax = metricSystem === "imperial" ? 240 : 380;
 
   const deltaSeries = useMemo(() => {
     if (!dataA.data) return [];
@@ -1274,10 +1281,10 @@ export default function Telemetry() {
               <SplitsTable rows={splitRows} fastest={fastest} />
 
               <TelemetryChart
-                title="Speed (km/h)"
+                title={`Speed (${speedUnit})`}
                 xData={xDist}
                 yMin={0}
-                yMax={380}
+                yMax={speedChartMax}
                 height={230}
                 interactiveControls
                 onHoverX={handleChartHoverX}

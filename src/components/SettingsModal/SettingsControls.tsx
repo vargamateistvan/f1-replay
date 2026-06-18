@@ -155,7 +155,43 @@ export function NotificationLimitSelector({
     </div>
   );
 }
+// ── Unit selector ─────────────────────────────────────────────────────────────
 
+export function UnitSelector({
+  value,
+  onChange,
+}: {
+  value: "metric" | "imperial";
+  onChange: (v: "metric" | "imperial") => void;
+}) {
+  return (
+    <div className="flex items-center justify-between gap-4 py-3 border-b border-[#2a2a35]">
+      <div>
+        <div className="text-[13px] text-white/90 leading-tight">
+          Units
+        </div>
+        <div className="text-[11px] text-muted mt-0.5 leading-tight">
+          Display distances in km or miles, temperature in °C or °F
+        </div>
+      </div>
+      <div className="flex gap-1 shrink-0">
+        {(["metric", "imperial"] as const).map((unit) => (
+          <button
+            key={unit}
+            onClick={() => onChange(unit)}
+            className={`px-3 h-8 text-[11px] font-bold rounded transition-colors ${
+              value === unit
+                ? "bg-f1red text-white"
+                : "bg-[#2a2a35] text-muted hover:text-white hover:bg-[#38383f]"
+            }`}
+          >
+            {unit === "metric" ? "Metric" : "Imperial"}
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
 // ── Settings body (all sections) ──────────────────────────────────────────────
 
 export function SettingsBody() {
@@ -173,6 +209,10 @@ export function SettingsBody() {
         description="Switch to a light colour scheme"
         checked={settings.lightMode}
         onChange={toggle("lightMode")}
+      />
+      <UnitSelector
+        value={settings.metricSystem}
+        onChange={(v) => setSetting("metricSystem", v)}
       />
 
       <SectionHeader>Playback</SectionHeader>
