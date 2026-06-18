@@ -112,7 +112,7 @@ yarn build
 
 Output goes to the `dist/` folder. To preview locally:
 
-`yarn build` also regenerates `public/sitemap.xml` from the current SEO route list.
+`yarn build` also regenerates `public/sitemap.xml` and writes route-specific HTML shells for `/telemetry` and `/standings` into `dist/`.
 
 ```bash
 yarn preview

@@ -6,7 +6,8 @@
   "scripts": {
     "dev": "vite",
     "generate:sitemap": "node scripts/generate-sitemap.mjs",
-    "build": "yarn generate:sitemap && tsc -b && vite build",
+    "generate:route-shells": "node scripts/generate-route-shells.mjs",
+    "build": "yarn generate:sitemap && tsc -b && vite build && yarn generate:route-shells",
     "preview": "vite preview",
     "lint": "eslint .",
     "test": "vitest run --coverage",
