@@ -16,13 +16,17 @@ describe("ErrorDisplay", () => {
     expect(screen.getByText(/Stored fallback/)).toBeInTheDocument();
 
     const runtimeError = new Event("error") as ErrorEvent;
-    Object.defineProperty(runtimeError, "message", { value: "Window exploded" });
+    Object.defineProperty(runtimeError, "message", {
+      value: "Window exploded",
+    });
     Object.defineProperty(runtimeError, "error", {
       value: new Error("Window exploded"),
     });
     window.dispatchEvent(runtimeError);
 
-    const rejectionEvent = new Event("unhandledrejection") as PromiseRejectionEvent;
+    const rejectionEvent = new Event(
+      "unhandledrejection",
+    ) as PromiseRejectionEvent;
     Object.defineProperty(rejectionEvent, "reason", {
       value: new Error("Async exploded"),
     });
@@ -42,7 +46,9 @@ describe("ErrorDisplay", () => {
   });
 
   it("handles invalid stored json gracefully", () => {
-    const errorSpy = vi.spyOn(console, "error").mockImplementation(() => undefined);
+    const errorSpy = vi
+      .spyOn(console, "error")
+      .mockImplementation(() => undefined);
     sessionStorage.setItem("__app_errors", "{invalid");
 
     render(<ErrorDisplay />);

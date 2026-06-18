@@ -4,16 +4,14 @@ import { ResizeHandle } from "@/components/ResizeHandle";
 
 describe("ResizeHandle", () => {
   it("renders separator semantics and title", () => {
-    render(
-      <ResizeHandle
-        onMouseDown={vi.fn()}
-        onTouchStart={vi.fn()}
-      />,
-    );
+    render(<ResizeHandle onMouseDown={vi.fn()} onTouchStart={vi.fn()} />);
 
     const handle = screen.getByRole("separator");
     expect(handle).toHaveAttribute("aria-orientation", "horizontal");
-    expect(handle).toHaveAttribute("title", "Drag to resize · Double-click to reset");
+    expect(handle).toHaveAttribute(
+      "title",
+      "Drag to resize · Double-click to reset",
+    );
   });
 
   it("fires drag and reset handlers", () => {

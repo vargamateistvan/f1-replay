@@ -16,11 +16,7 @@ vi.mock("uplot", () => {
     hooks: { setScale?: Array<() => void> } = {};
     setScaleCalls: Array<{ min: number; max: number }> = [];
 
-    constructor(
-      _opts: unknown,
-      data: unknown[],
-      _target: HTMLElement,
-    ) {
+    constructor(_opts: unknown, data: unknown[], _target: HTMLElement) {
       const x = (data[0] as Float64Array | number[]) ?? [];
       const min = Number((x as ArrayLike<number>)[0] ?? 0);
       const max = Number((x as ArrayLike<number>)[x.length - 1] ?? 100);

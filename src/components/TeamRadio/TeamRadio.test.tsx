@@ -10,9 +10,7 @@ const state = vi.hoisted(() => ({
 
 vi.mock("@/stores/settings", () => ({
   useSettings: (
-    selector:
-      | ((s: { showCsvExportButtons: boolean }) => unknown)
-      | undefined,
+    selector: ((s: { showCsvExportButtons: boolean }) => unknown) | undefined,
   ) => {
     const store = { showCsvExportButtons: state.showCsvExportButtons };
     return selector ? selector(store) : store;
@@ -61,20 +59,24 @@ describe("TeamRadio", () => {
         sessionStartMs={1}
       />,
     );
-    expect(screen.getByText(/coverage is often limited in 2026\+ events/i)).toBeInTheDocument();
+    expect(
+      screen.getByText(/coverage is often limited in 2026\+ events/i),
+    ).toBeInTheDocument();
 
     state.showCsvExportButtons = true;
     rerender(
       <TeamRadioFeed
-        entries={[
-          {
-            date: "2024-01-01T00:00:10.000Z",
-            driver_number: 1,
-            meeting_key: 1,
-            recording_url: "https://example.com/radio.mp3",
-            session_key: 77,
-          },
-        ] as TeamRadio[]}
+        entries={
+          [
+            {
+              date: "2024-01-01T00:00:10.000Z",
+              driver_number: 1,
+              meeting_key: 1,
+              recording_url: "https://example.com/radio.mp3",
+              session_key: 77,
+            },
+          ] as TeamRadio[]
+        }
         sessionKey={77}
         sessionYear={2024}
         drivers={drivers}
@@ -91,7 +93,9 @@ describe("TeamRadio", () => {
     fireEvent.click(screen.getByRole("button", { name: "Stop" }));
     expect(screen.getByRole("button", { name: "Play" })).toBeInTheDocument();
 
-    fireEvent.click(screen.getByRole("button", { name: "Export team radio CSV" }));
+    fireEvent.click(
+      screen.getByRole("button", { name: "Export team radio CSV" }),
+    );
     expect(state.downloadCsv).toHaveBeenCalledWith(
       "team_radio",
       { session_key: 77 },

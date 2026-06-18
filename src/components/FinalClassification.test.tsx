@@ -117,7 +117,9 @@ describe("FinalClassification", () => {
     fireEvent.keyDown(window, { key: "Escape" });
     expect(onClose).toHaveBeenCalledTimes(1);
 
-    fireEvent.click(screen.getByRole("button", { name: "Close results dialog" }));
+    fireEvent.click(
+      screen.getByRole("button", { name: "Close results dialog" }),
+    );
     expect(onClose).toHaveBeenCalledTimes(2);
 
     rerender(

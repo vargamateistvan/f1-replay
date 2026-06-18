@@ -72,7 +72,7 @@ vi.mock("@/api/client", () => ({
   isAuthError: (error: { status?: number; __auth?: boolean } | null) =>
     Boolean(
       error &&
-        (error.__auth === true || error.status === 401 || error.status === 403),
+      (error.__auth === true || error.status === 401 || error.status === 403),
     ),
   downloadEndpointCsv: (...args: unknown[]) => mockState.downloadCsv(...args),
 }));
@@ -84,7 +84,10 @@ vi.mock("@/utils/live", () => ({
 vi.mock("@/stores/settings", () => ({
   useSettings: (
     selector:
-      | ((state: { lightMode: boolean; showCsvExportButtons: boolean }) => unknown)
+      | ((state: {
+          lightMode: boolean;
+          showCsvExportButtons: boolean;
+        }) => unknown)
       | undefined,
   ) => {
     const store = {
@@ -116,11 +119,7 @@ vi.mock("uplot", () => {
     hooks: { setScale?: Array<() => void> } = {};
     setScaleCalls: Array<{ min: number; max: number }> = [];
 
-    constructor(
-      _opts: unknown,
-      data: unknown[],
-      _target: HTMLElement,
-    ) {
+    constructor(_opts: unknown, data: unknown[], _target: HTMLElement) {
       const x = (data[0] as Float64Array | number[]) ?? [];
       const min = Number((x as ArrayLike<number>)[0] ?? 0);
       const max = Number((x as ArrayLike<number>)[x.length - 1] ?? 100);
@@ -212,7 +211,9 @@ describe("component coverage boost", () => {
     expect(screen.getByText(/Stored fallback/)).toBeInTheDocument();
 
     const runtimeError = new Event("error") as ErrorEvent;
-    Object.defineProperty(runtimeError, "message", { value: "Window exploded" });
+    Object.defineProperty(runtimeError, "message", {
+      value: "Window exploded",
+    });
     Object.defineProperty(runtimeError, "error", {
       value: new Error("Window exploded"),
     });
@@ -240,7 +241,9 @@ describe("component coverage boost", () => {
   });
 
   it("covers ErrorDisplay invalid stored JSON handling", () => {
-    const errorSpy = vi.spyOn(console, "error").mockImplementation(() => undefined);
+    const errorSpy = vi
+      .spyOn(console, "error")
+      .mockImplementation(() => undefined);
     sessionStorage.setItem("__app_errors", "{invalid");
 
     render(<ErrorDisplay />);
@@ -456,7 +459,9 @@ describe("component coverage boost", () => {
     const input = screen.getByRole("spinbutton");
     fireEvent.change(input, { target: { value: "99" } });
     fireEvent.click(screen.getByRole("button", { name: "Jump" }));
-    expect(screen.getByText("Enter a lap between 1 and 58.")).toBeInTheDocument();
+    expect(
+      screen.getByText("Enter a lap between 1 and 58."),
+    ).toBeInTheDocument();
 
     fireEvent.change(input, { target: { value: "2" } });
     fireEvent.click(screen.getByRole("button", { name: "Jump" }));
@@ -478,9 +483,7 @@ describe("component coverage boost", () => {
 
     expect(screen.getByText("LEC")).toBeInTheDocument();
 
-    rerender(
-      <DriverHeadshot driver={drivers[0]} accent="#fff" size="sm" />,
-    );
+    rerender(<DriverHeadshot driver={drivers[0]} accent="#fff" size="sm" />);
     expect(screen.getByAltText("Max Verstappen")).toBeInTheDocument();
 
     fireEvent.error(screen.getByAltText("Max Verstappen"));
@@ -488,7 +491,9 @@ describe("component coverage boost", () => {
   });
 
   it("covers ErrorBoundary fallback and retry", () => {
-    const errorSpy = vi.spyOn(console, "error").mockImplementation(() => undefined);
+    const errorSpy = vi
+      .spyOn(console, "error")
+      .mockImplementation(() => undefined);
     function FlakyChild({ shouldCrash }: { shouldCrash: boolean }) {
       if (shouldCrash) {
         throw new Error("Telemetry failed");
@@ -659,7 +664,9 @@ describe("component coverage boost", () => {
     fireEvent.keyDown(window, { key: "Escape" });
     expect(onClose).toHaveBeenCalledTimes(1);
 
-    fireEvent.click(screen.getByRole("button", { name: "Close results dialog" }));
+    fireEvent.click(
+      screen.getByRole("button", { name: "Close results dialog" }),
+    );
     expect(onClose).toHaveBeenCalledTimes(2);
 
     rerender(
@@ -780,7 +787,9 @@ describe("component coverage boost", () => {
         sessionStartMs={1}
       />,
     );
-    expect(screen.getByText("No overtakes yet — scrub forward")).toBeInTheDocument();
+    expect(
+      screen.getByText("No overtakes yet — scrub forward"),
+    ).toBeInTheDocument();
 
     mockState.showCsvExportButtons = true;
     const overtakeEntries = [
@@ -817,7 +826,9 @@ describe("component coverage boost", () => {
     expect(screen.getByText("for P2")).toBeInTheDocument();
     expect(screen.queryByText("for Pnull")).not.toBeInTheDocument();
 
-    fireEvent.click(screen.getByRole("button", { name: "Export overtakes CSV" }));
+    fireEvent.click(
+      screen.getByRole("button", { name: "Export overtakes CSV" }),
+    );
     expect(mockState.downloadCsv).toHaveBeenCalledWith(
       "overtakes",
       { session_key: 10 },
@@ -897,23 +908,25 @@ describe("component coverage boost", () => {
     rerender(
       <GapChart
         drivers={drivers}
-        intervals={[
-          {
-            driver_number: 1,
-            date: "2024-01-01T00:00:10.000Z",
-            gap_to_leader: 0,
-          },
-          {
-            driver_number: 16,
-            date: "2024-01-01T00:00:10.000Z",
-            gap_to_leader: 1.234,
-          },
-          {
-            driver_number: 63,
-            date: "2024-01-01T00:00:15.000Z",
-            gap_to_leader: "1 LAP",
-          },
-        ] as unknown as Interval[]}
+        intervals={
+          [
+            {
+              driver_number: 1,
+              date: "2024-01-01T00:00:10.000Z",
+              gap_to_leader: 0,
+            },
+            {
+              driver_number: 16,
+              date: "2024-01-01T00:00:10.000Z",
+              gap_to_leader: 1.234,
+            },
+            {
+              driver_number: 63,
+              date: "2024-01-01T00:00:15.000Z",
+              gap_to_leader: "1 LAP",
+            },
+          ] as unknown as Interval[]
+        }
         sessionTimeMs={25_000}
         sessionStartMs={sessionStartMs}
         lapStarts={[10_000, 20_000, 30_000]}
@@ -951,8 +964,12 @@ describe("component coverage boost", () => {
       />,
     );
 
-    expect(screen.queryByText("No gap data available yet")).not.toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: "Elapsed" })).not.toBeInTheDocument();
+    expect(
+      screen.queryByText("No gap data available yet"),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: "Elapsed" }),
+    ).not.toBeInTheDocument();
   });
 
   it("covers KeyMoments empty, past/future styling, and jump action", () => {
@@ -961,7 +978,9 @@ describe("component coverage boost", () => {
       <KeyMoments moments={[]} sessionTimeMs={0} onJump={onJump} />,
     );
     expect(
-      screen.getByText("No key moments yet — scrub forward or select a session"),
+      screen.getByText(
+        "No key moments yet — scrub forward or select a session",
+      ),
     ).toBeInTheDocument();
 
     rerender(
@@ -990,7 +1009,9 @@ describe("component coverage boost", () => {
     expect(onJump).toHaveBeenCalledWith(10_000);
     expect(screen.getByText("+0.220")).toBeInTheDocument();
     expect(screen.getByText("VSC")).toBeInTheDocument();
-    expect(screen.getByText("VSC deployed").closest("button")).toHaveClass("opacity-40");
+    expect(screen.getByText("VSC deployed").closest("button")).toHaveClass(
+      "opacity-40",
+    );
   });
 
   it("covers LapChart empty, elapsed/all toggle, and derived current lap", () => {
@@ -1004,7 +1025,9 @@ describe("component coverage boost", () => {
         sessionTimeMs={0}
       />,
     );
-    expect(screen.getByText("No position data for a lap chart yet")).toBeInTheDocument();
+    expect(
+      screen.getByText("No position data for a lap chart yet"),
+    ).toBeInTheDocument();
 
     rerender(
       <LapChart
@@ -1268,24 +1291,22 @@ describe("component coverage boost", () => {
             },
           ] as Stint[]
         }
-        grid={
-          [
-            {
-              position: 2,
-              driver_number: 1,
-              lap_duration: 90.0,
-              meeting_key: 1,
-              session_key: 1,
-            },
-            {
-              position: 1,
-              driver_number: 16,
-              lap_duration: 89.5,
-              meeting_key: 1,
-              session_key: 1,
-            },
-          ]
-        }
+        grid={[
+          {
+            position: 2,
+            driver_number: 1,
+            lap_duration: 90.0,
+            meeting_key: 1,
+            session_key: 1,
+          },
+          {
+            position: 1,
+            driver_number: 16,
+            lap_duration: 89.5,
+            meeting_key: 1,
+            session_key: 1,
+          },
+        ]}
         sessionTimeMs={120_000}
         sessionStartMs={sessionStartMs}
         sessionName="Race"
@@ -1401,10 +1422,14 @@ describe("component coverage boost", () => {
     });
     expect(screen.getByText("No events match filters")).toBeInTheDocument();
 
-    fireEvent.click(screen.getByRole("button", { name: "Clear driver filter" }));
+    fireEvent.click(
+      screen.getByRole("button", { name: "Clear driver filter" }),
+    );
     expect(onClearFocus).toHaveBeenCalled();
 
-    fireEvent.click(screen.getByRole("button", { name: "Export race control CSV" }));
+    fireEvent.click(
+      screen.getByRole("button", { name: "Export race control CSV" }),
+    );
     expect(mockState.downloadCsv).toHaveBeenCalledWith(
       "race_control",
       { session_key: 99 },
@@ -1451,5 +1476,4 @@ describe("component coverage boost", () => {
     fireEvent.doubleClick(chartArea);
     expect(container).toBeTruthy();
   });
-
 });

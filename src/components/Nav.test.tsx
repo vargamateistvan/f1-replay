@@ -4,7 +4,9 @@ import type { ReactNode } from "react";
 import { Nav } from "@/components/Nav";
 
 const state = vi.hoisted(() => ({
-  searchParams: new URLSearchParams("year=2025&meeting=22&session=202&view=tracker"),
+  searchParams: new URLSearchParams(
+    "year=2025&meeting=22&session=202&view=tracker",
+  ),
   setSearchParams: vi.fn(),
   navigate: vi.fn(),
   pathname: "/",
@@ -63,7 +65,9 @@ vi.mock("@/hooks/useSearchParamState", () => ({
 }));
 
 vi.mock("@/stores/settings", () => ({
-  useSettings: (selector: ((s: Record<string, unknown>) => unknown) | undefined) => {
+  useSettings: (
+    selector: ((s: Record<string, unknown>) => unknown) | undefined,
+  ) => {
     const store = {
       openModal: state.openModal,
       openHelp: state.openHelp,
@@ -80,7 +84,9 @@ vi.mock("@/api/circuitFactsLookup", () => ({
 
 describe("Nav", () => {
   beforeEach(() => {
-    state.searchParams = new URLSearchParams("year=2025&meeting=22&session=202&view=tracker");
+    state.searchParams = new URLSearchParams(
+      "year=2025&meeting=22&session=202&view=tracker",
+    );
     state.setSearchParams.mockReset();
     state.navigate.mockReset();
     state.setSessionKey.mockReset();

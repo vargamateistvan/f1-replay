@@ -10,9 +10,7 @@ const state = vi.hoisted(() => ({
 
 vi.mock("@/stores/settings", () => ({
   useSettings: (
-    selector:
-      | ((s: { showCsvExportButtons: boolean }) => unknown)
-      | undefined,
+    selector: ((s: { showCsvExportButtons: boolean }) => unknown) | undefined,
   ) => {
     const store = { showCsvExportButtons: state.showCsvExportButtons };
     return selector ? selector(store) : store;
@@ -70,47 +68,49 @@ describe("RaceControl", () => {
     state.showCsvExportButtons = true;
     rerender(
       <RaceControlFeed
-        entries={[
-          {
-            category: "Flag",
-            date: "2024-01-01T00:00:10.000Z",
-            driver_number: null,
-            flag: "YELLOW",
-            lap_number: 1,
-            meeting_key: 1,
-            message: "Yellow flag sector 2",
-            qualifying_phase: null,
-            scope: "sector",
-            sector: 2,
-            session_key: 99,
-          },
-          {
-            category: "Incident",
-            date: "2024-01-01T00:00:20.000Z",
-            driver_number: 16,
-            flag: null,
-            lap_number: 2,
-            meeting_key: 1,
-            message: "Car 16 under investigation",
-            qualifying_phase: null,
-            scope: null,
-            sector: null,
-            session_key: 99,
-          },
-          {
-            category: "Incident",
-            date: "2024-01-01T00:00:30.000Z",
-            driver_number: 16,
-            flag: null,
-            lap_number: 3,
-            meeting_key: 1,
-            message: "Car 16 receives 5 second time penalty",
-            qualifying_phase: null,
-            scope: null,
-            sector: null,
-            session_key: 99,
-          },
-        ] as RaceControl[]}
+        entries={
+          [
+            {
+              category: "Flag",
+              date: "2024-01-01T00:00:10.000Z",
+              driver_number: null,
+              flag: "YELLOW",
+              lap_number: 1,
+              meeting_key: 1,
+              message: "Yellow flag sector 2",
+              qualifying_phase: null,
+              scope: "sector",
+              sector: 2,
+              session_key: 99,
+            },
+            {
+              category: "Incident",
+              date: "2024-01-01T00:00:20.000Z",
+              driver_number: 16,
+              flag: null,
+              lap_number: 2,
+              meeting_key: 1,
+              message: "Car 16 under investigation",
+              qualifying_phase: null,
+              scope: null,
+              sector: null,
+              session_key: 99,
+            },
+            {
+              category: "Incident",
+              date: "2024-01-01T00:00:30.000Z",
+              driver_number: 16,
+              flag: null,
+              lap_number: 3,
+              meeting_key: 1,
+              message: "Car 16 receives 5 second time penalty",
+              qualifying_phase: null,
+              scope: null,
+              sector: null,
+              session_key: 99,
+            },
+          ] as RaceControl[]
+        }
         sessionKey={99}
         sessionTimeMs={60_000}
         sessionStartMs={Date.parse("2024-01-01T00:00:00.000Z")}
@@ -133,10 +133,14 @@ describe("RaceControl", () => {
     });
     expect(screen.getByText("No events match filters")).toBeInTheDocument();
 
-    fireEvent.click(screen.getByRole("button", { name: "Clear driver filter" }));
+    fireEvent.click(
+      screen.getByRole("button", { name: "Clear driver filter" }),
+    );
     expect(onClearFocus).toHaveBeenCalled();
 
-    fireEvent.click(screen.getByRole("button", { name: "Export race control CSV" }));
+    fireEvent.click(
+      screen.getByRole("button", { name: "Export race control CSV" }),
+    );
     expect(state.downloadCsv).toHaveBeenCalledWith(
       "race_control",
       { session_key: 99 },

@@ -24,22 +24,24 @@ describe("EventToastStack", () => {
     const onDismiss = vi.fn();
     render(
       <EventToastStack
-        toasts={[
-          {
-            addedAt: Date.now(),
-            event: {
-              id: "flag-1",
-              ms: 1000,
-              kind: "flag",
-              priority: "high",
-              payload: {
-                flag: "YELLOW",
-                message: "Yellow flag sector 2",
-                lapNumber: 2,
+        toasts={
+          [
+            {
+              addedAt: Date.now(),
+              event: {
+                id: "flag-1",
+                ms: 1000,
+                kind: "flag",
+                priority: "high",
+                payload: {
+                  flag: "YELLOW",
+                  message: "Yellow flag sector 2",
+                  lapNumber: 2,
+                },
               },
             },
-          },
-        ] as any}
+          ] as any
+        }
         drivers={drivers}
         onDismiss={onDismiss}
       />,
@@ -53,21 +55,23 @@ describe("EventToastStack", () => {
   it("renders radio toast and toggles play/stop", () => {
     render(
       <EventToastStack
-        toasts={[
-          {
-            addedAt: Date.now(),
-            event: {
-              id: "radio-1",
-              ms: 1000,
-              kind: "radio",
-              priority: "high",
-              payload: {
-                driverNumber: 1,
-                recordingUrl: "https://example.com/radio.mp3",
+        toasts={
+          [
+            {
+              addedAt: Date.now(),
+              event: {
+                id: "radio-1",
+                ms: 1000,
+                kind: "radio",
+                priority: "high",
+                payload: {
+                  driverNumber: 1,
+                  recordingUrl: "https://example.com/radio.mp3",
+                },
               },
             },
-          },
-        ] as any}
+          ] as any
+        }
         drivers={drivers}
         onDismiss={vi.fn()}
       />,

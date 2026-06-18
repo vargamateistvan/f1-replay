@@ -10,9 +10,7 @@ const state = vi.hoisted(() => ({
 
 vi.mock("@/stores/settings", () => ({
   useSettings: (
-    selector:
-      | ((s: { showCsvExportButtons: boolean }) => unknown)
-      | undefined,
+    selector: ((s: { showCsvExportButtons: boolean }) => unknown) | undefined,
   ) => {
     const store = { showCsvExportButtons: state.showCsvExportButtons };
     return selector ? selector(store) : store;
@@ -71,7 +69,9 @@ describe("OvertakeFeed", () => {
         sessionStartMs={1}
       />,
     );
-    expect(screen.getByText("No overtakes yet — scrub forward")).toBeInTheDocument();
+    expect(
+      screen.getByText("No overtakes yet — scrub forward"),
+    ).toBeInTheDocument();
 
     state.showCsvExportButtons = true;
     const entries = [
@@ -108,7 +108,9 @@ describe("OvertakeFeed", () => {
     expect(screen.getByText("for P2")).toBeInTheDocument();
     expect(screen.queryByText("for Pnull")).not.toBeInTheDocument();
 
-    fireEvent.click(screen.getByRole("button", { name: "Export overtakes CSV" }));
+    fireEvent.click(
+      screen.getByRole("button", { name: "Export overtakes CSV" }),
+    );
     expect(state.downloadCsv).toHaveBeenCalledWith(
       "overtakes",
       { session_key: 10 },

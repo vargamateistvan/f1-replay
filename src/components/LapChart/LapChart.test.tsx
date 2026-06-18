@@ -45,28 +45,32 @@ describe("LapChart", () => {
         sessionTimeMs={0}
       />,
     );
-    expect(screen.getByText("No position data for a lap chart yet")).toBeInTheDocument();
+    expect(
+      screen.getByText("No position data for a lap chart yet"),
+    ).toBeInTheDocument();
 
     rerender(
       <LapChart
         drivers={drivers}
-        positions={[
-          {
-            driver_number: 1,
-            position: 1,
-            date: "2024-01-01T00:00:10.000Z",
-          },
-          {
-            driver_number: 16,
-            position: 2,
-            date: "2024-01-01T00:00:10.000Z",
-          },
-          {
-            driver_number: 1,
-            position: 2,
-            date: "2024-01-01T00:00:30.000Z",
-          },
-        ] as unknown as Position[]}
+        positions={
+          [
+            {
+              driver_number: 1,
+              position: 1,
+              date: "2024-01-01T00:00:10.000Z",
+            },
+            {
+              driver_number: 16,
+              position: 2,
+              date: "2024-01-01T00:00:10.000Z",
+            },
+            {
+              driver_number: 1,
+              position: 2,
+              date: "2024-01-01T00:00:30.000Z",
+            },
+          ] as unknown as Position[]
+        }
         lapStarts={[10_000, 20_000, 30_000]}
         sessionStartMs={sessionStartMs}
         sessionTimeMs={25_000}

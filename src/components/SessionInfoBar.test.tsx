@@ -77,7 +77,9 @@ describe("SessionInfoBar", () => {
     const input = screen.getByRole("spinbutton");
     fireEvent.change(input, { target: { value: "99" } });
     fireEvent.click(screen.getByRole("button", { name: "Jump" }));
-    expect(screen.getByText("Enter a lap between 1 and 58.")).toBeInTheDocument();
+    expect(
+      screen.getByText("Enter a lap between 1 and 58."),
+    ).toBeInTheDocument();
 
     fireEvent.change(input, { target: { value: "2" } });
     fireEvent.click(screen.getByRole("button", { name: "Jump" }));

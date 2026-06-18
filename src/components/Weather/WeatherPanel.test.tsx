@@ -12,7 +12,10 @@ const weatherPanelState = vi.hoisted(() => ({
 vi.mock("@/stores/settings", () => ({
   useSettings: (
     selector:
-      | ((state: { lightMode: boolean; showCsvExportButtons: boolean }) => unknown)
+      | ((state: {
+          lightMode: boolean;
+          showCsvExportButtons: boolean;
+        }) => unknown)
       | undefined,
   ) => {
     const store = {
@@ -24,7 +27,8 @@ vi.mock("@/stores/settings", () => ({
 }));
 
 vi.mock("@/api/client", () => ({
-  downloadEndpointCsv: (...args: unknown[]) => weatherPanelState.downloadCsv(...args),
+  downloadEndpointCsv: (...args: unknown[]) =>
+    weatherPanelState.downloadCsv(...args),
 }));
 
 describe("WeatherPanel", () => {

@@ -23,42 +23,44 @@ describe("CatchupSummary", () => {
     const onDismiss = vi.fn();
     render(
       <CatchupSummary
-        summary={{
-          fromMs: 0,
-          toMs: 120_000,
-          events: [
-            {
-              id: "f1",
-              ms: 10_000,
-              kind: "fastest_lap",
-              payload: { driverNumber: 1, lapTime: 88.123 },
-            },
-            {
-              id: "o1",
-              ms: 20_000,
-              kind: "overtake",
-              payload: { overtaking: 1, overtaken: 16, position: 2 },
-            },
-            {
-              id: "p1",
-              ms: 25_000,
-              kind: "penalty",
-              payload: { message: "Car 16 receives 5 second time penalty" },
-            },
-            {
-              id: "fl1",
-              ms: 30_000,
-              kind: "flag",
-              payload: { flag: "RED", message: "Red flag", lapNumber: 5 },
-            },
-            {
-              id: "pit1",
-              ms: 35_000,
-              kind: "pit",
-              payload: { driverNumber: 16, lap: 5 },
-            },
-          ],
-        } as any}
+        summary={
+          {
+            fromMs: 0,
+            toMs: 120_000,
+            events: [
+              {
+                id: "f1",
+                ms: 10_000,
+                kind: "fastest_lap",
+                payload: { driverNumber: 1, lapTime: 88.123 },
+              },
+              {
+                id: "o1",
+                ms: 20_000,
+                kind: "overtake",
+                payload: { overtaking: 1, overtaken: 16, position: 2 },
+              },
+              {
+                id: "p1",
+                ms: 25_000,
+                kind: "penalty",
+                payload: { message: "Car 16 receives 5 second time penalty" },
+              },
+              {
+                id: "fl1",
+                ms: 30_000,
+                kind: "flag",
+                payload: { flag: "RED", message: "Red flag", lapNumber: 5 },
+              },
+              {
+                id: "pit1",
+                ms: 35_000,
+                kind: "pit",
+                payload: { driverNumber: 16, lap: 5 },
+              },
+            ],
+          } as any
+        }
         drivers={drivers}
         onDismiss={onDismiss}
       />,

@@ -18,7 +18,9 @@ vi.mock("react-router-dom", () => ({
 }));
 
 vi.mock("@/stores/settings", () => ({
-  useSettings: (selector: ((state: { openHelp: () => void }) => unknown) | undefined) => {
+  useSettings: (
+    selector: ((state: { openHelp: () => void }) => unknown) | undefined,
+  ) => {
     const store = { openHelp: mobileNavState.openHelp };
     return selector ? selector(store) : store;
   },
@@ -43,21 +45,29 @@ describe("MobileNav", () => {
     render(<MobileNav />);
 
     fireEvent.click(screen.getByRole("button", { name: /Tracker/ }));
-    expect(mobileNavState.navigate).toHaveBeenCalledWith("/?year=2025&meeting=22&view=tracker");
+    expect(mobileNavState.navigate).toHaveBeenCalledWith(
+      "/?year=2025&meeting=22&view=tracker",
+    );
 
     fireEvent.click(screen.getByRole("button", { name: /Feeds/ }));
-    expect(mobileNavState.navigate).toHaveBeenCalledWith("/?year=2025&meeting=22&view=commentary");
+    expect(mobileNavState.navigate).toHaveBeenCalledWith(
+      "/?year=2025&meeting=22&view=commentary",
+    );
   });
 
   it("toggles More panel and triggers help action", () => {
     render(<MobileNav />);
 
     fireEvent.click(screen.getByRole("button", { name: /More/ }));
-    expect(screen.getByRole("button", { name: "Telemetry" })).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "Telemetry" }),
+    ).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole("button", { name: "Help" }));
     expect(mobileNavState.openHelp).toHaveBeenCalledTimes(1);
-    expect(screen.queryByRole("button", { name: "Telemetry" })).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: "Telemetry" }),
+    ).not.toBeInTheDocument();
   });
 
   it("forces leaderboard view back to tracker on mobile main route", () => {

@@ -68,7 +68,9 @@ describe("FocusedTelemetry", () => {
       />,
     );
 
-    expect(screen.getByText("No telemetry at this point — scrub into the session")).toBeInTheDocument();
+    expect(
+      screen.getByText("No telemetry at this point — scrub into the session"),
+    ).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "Clear focus" }));
     expect(onClear).toHaveBeenCalled();
   });
@@ -119,9 +121,13 @@ describe("FocusedTelemetry", () => {
       />,
     );
 
-    expect(screen.getByRole("button", { name: "Clear comparison driver" })).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "Clear comparison driver" }),
+    ).toBeInTheDocument();
     expect(screen.getByText(/Speed · L10 vs L10/)).toBeInTheDocument();
-    fireEvent.click(screen.getByRole("button", { name: "Clear comparison driver" }));
+    fireEvent.click(
+      screen.getByRole("button", { name: "Clear comparison driver" }),
+    );
     expect(onClearCompare).toHaveBeenCalled();
   });
 });

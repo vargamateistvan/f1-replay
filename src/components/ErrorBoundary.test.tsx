@@ -4,7 +4,9 @@ import { ErrorBoundary } from "@/components/ErrorBoundary";
 
 describe("ErrorBoundary", () => {
   it("renders fallback when child throws and can recover via retry", () => {
-    const errorSpy = vi.spyOn(console, "error").mockImplementation(() => undefined);
+    const errorSpy = vi
+      .spyOn(console, "error")
+      .mockImplementation(() => undefined);
 
     function FlakyChild({ shouldCrash }: { shouldCrash: boolean }) {
       if (shouldCrash) throw new Error("Telemetry failed");

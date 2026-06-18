@@ -32,7 +32,9 @@ describe("RaceChapters", () => {
     );
 
     expect(
-      screen.getByText("No session loaded — select a race session to see chapters"),
+      screen.getByText(
+        "No session loaded — select a race session to see chapters",
+      ),
     ).toBeInTheDocument();
   });
 

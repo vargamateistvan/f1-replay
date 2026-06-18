@@ -9,7 +9,9 @@ describe("KeyMoments", () => {
       <KeyMoments moments={[]} sessionTimeMs={0} onJump={onJump} />,
     );
     expect(
-      screen.getByText("No key moments yet — scrub forward or select a session"),
+      screen.getByText(
+        "No key moments yet — scrub forward or select a session",
+      ),
     ).toBeInTheDocument();
 
     rerender(
@@ -38,6 +40,8 @@ describe("KeyMoments", () => {
     expect(onJump).toHaveBeenCalledWith(10_000);
     expect(screen.getByText("+0.220")).toBeInTheDocument();
     expect(screen.getByText("VSC")).toBeInTheDocument();
-    expect(screen.getByText("VSC deployed").closest("button")).toHaveClass("opacity-40");
+    expect(screen.getByText("VSC deployed").closest("button")).toHaveClass(
+      "opacity-40",
+    );
   });
 });

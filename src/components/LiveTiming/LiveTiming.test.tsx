@@ -132,119 +132,131 @@ describe("LiveTiming", () => {
     render(
       <LiveTiming
         drivers={drivers}
-        positions={[
-          {
-            driver_number: 1,
-            position: 1,
-            date: "2024-01-01T00:00:10.000Z",
-          },
-          {
-            driver_number: 16,
-            position: 2,
-            date: "2024-01-01T00:00:10.000Z",
-          },
-        ] as Position[]}
-        intervals={[
-          {
-            driver_number: 1,
-            date: "2024-01-01T00:00:10.000Z",
-            gap_to_leader: 0,
-            interval: null,
-          },
-          {
-            driver_number: 16,
-            date: "2024-01-01T00:00:10.000Z",
-            gap_to_leader: 5.234,
-            interval: 5.234,
-          },
-        ] as unknown as Interval[]}
-        pits={[
-          {
-            date: "2024-01-01T00:01:45.000Z",
-            driver_number: 16,
-            lap_number: 1,
-            meeting_key: 1,
-            stop_duration: 2.4,
-            lane_duration: 30,
-            pit_duration: null,
-            session_key: 1,
-          },
-        ] as Pit[]}
-        laps={[
-          {
-            date_start: "2024-01-01T00:00:09.000Z",
-            driver_number: 1,
-            duration_sector_1: 29.5,
-            duration_sector_2: 31.0,
-            duration_sector_3: 30.1,
-            i1_speed: null,
-            i2_speed: null,
-            is_pit_out_lap: false,
-            lap_duration: 90.6,
-            lap_number: 1,
-            meeting_key: 1,
-            segments_sector_1: [2064, 2051],
-            segments_sector_2: [2049],
-            segments_sector_3: [1],
-            session_key: 1,
-            st_speed: null,
-          },
-          {
-            date_start: "2024-01-01T00:00:09.000Z",
-            driver_number: 16,
-            duration_sector_1: 30.5,
-            duration_sector_2: 31.8,
-            duration_sector_3: 31.2,
-            i1_speed: null,
-            i2_speed: null,
-            is_pit_out_lap: false,
-            lap_duration: 93.5,
-            lap_number: 1,
-            meeting_key: 1,
-            segments_sector_1: [2051],
-            segments_sector_2: [2049],
-            segments_sector_3: [0],
-            session_key: 1,
-            st_speed: null,
-          },
-        ] as Lap[]}
-        raceControl={[
-          {
-            category: "Incident",
-            date: "2024-01-01T00:00:11.000Z",
-            driver_number: 16,
-            flag: null,
-            lap_number: 1,
-            meeting_key: 1,
-            message: "Car 16 retired",
-            qualifying_phase: null,
-            scope: null,
-            sector: null,
-            session_key: 1,
-          },
-        ] as RaceControl[]}
-        stints={[
-          {
-            compound: "MEDIUM",
-            driver_number: 1,
-            lap_end: 15,
-            lap_start: 1,
-            meeting_key: 1,
-            session_key: 1,
-            stint_number: 1,
-            tyre_age_at_start: 0,
-          },
-          {
-            compound: "SOFT",
-            driver_number: 1,
-            lap_end: 30,
-            lap_start: 16,
-            meeting_key: 1,
-            session_key: 1,
-            stint_number: 2,
-            tyre_age_at_start: 0,
-          },
-        ] as Stint[]}
+        positions={
+          [
+            {
+              driver_number: 1,
+              position: 1,
+              date: "2024-01-01T00:00:10.000Z",
+            },
+            {
+              driver_number: 16,
+              position: 2,
+              date: "2024-01-01T00:00:10.000Z",
+            },
+          ] as Position[]
+        }
+        intervals={
+          [
+            {
+              driver_number: 1,
+              date: "2024-01-01T00:00:10.000Z",
+              gap_to_leader: 0,
+              interval: null,
+            },
+            {
+              driver_number: 16,
+              date: "2024-01-01T00:00:10.000Z",
+              gap_to_leader: 5.234,
+              interval: 5.234,
+            },
+          ] as unknown as Interval[]
+        }
+        pits={
+          [
+            {
+              date: "2024-01-01T00:01:45.000Z",
+              driver_number: 16,
+              lap_number: 1,
+              meeting_key: 1,
+              stop_duration: 2.4,
+              lane_duration: 30,
+              pit_duration: null,
+              session_key: 1,
+            },
+          ] as Pit[]
+        }
+        laps={
+          [
+            {
+              date_start: "2024-01-01T00:00:09.000Z",
+              driver_number: 1,
+              duration_sector_1: 29.5,
+              duration_sector_2: 31.0,
+              duration_sector_3: 30.1,
+              i1_speed: null,
+              i2_speed: null,
+              is_pit_out_lap: false,
+              lap_duration: 90.6,
+              lap_number: 1,
+              meeting_key: 1,
+              segments_sector_1: [2064, 2051],
+              segments_sector_2: [2049],
+              segments_sector_3: [1],
+              session_key: 1,
+              st_speed: null,
+            },
+            {
+              date_start: "2024-01-01T00:00:09.000Z",
+              driver_number: 16,
+              duration_sector_1: 30.5,
+              duration_sector_2: 31.8,
+              duration_sector_3: 31.2,
+              i1_speed: null,
+              i2_speed: null,
+              is_pit_out_lap: false,
+              lap_duration: 93.5,
+              lap_number: 1,
+              meeting_key: 1,
+              segments_sector_1: [2051],
+              segments_sector_2: [2049],
+              segments_sector_3: [0],
+              session_key: 1,
+              st_speed: null,
+            },
+          ] as Lap[]
+        }
+        raceControl={
+          [
+            {
+              category: "Incident",
+              date: "2024-01-01T00:00:11.000Z",
+              driver_number: 16,
+              flag: null,
+              lap_number: 1,
+              meeting_key: 1,
+              message: "Car 16 retired",
+              qualifying_phase: null,
+              scope: null,
+              sector: null,
+              session_key: 1,
+            },
+          ] as RaceControl[]
+        }
+        stints={
+          [
+            {
+              compound: "MEDIUM",
+              driver_number: 1,
+              lap_end: 15,
+              lap_start: 1,
+              meeting_key: 1,
+              session_key: 1,
+              stint_number: 1,
+              tyre_age_at_start: 0,
+            },
+            {
+              compound: "SOFT",
+              driver_number: 1,
+              lap_end: 30,
+              lap_start: 16,
+              meeting_key: 1,
+              session_key: 1,
+              stint_number: 2,
+              tyre_age_at_start: 0,
+            },
+          ] as Stint[]
+        }
         grid={[
           {
             position: 2,

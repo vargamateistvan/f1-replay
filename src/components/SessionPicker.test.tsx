@@ -27,7 +27,7 @@ vi.mock("@/api/client", () => ({
   isAuthError: (error: { status?: number; __auth?: boolean } | null) =>
     Boolean(
       error &&
-        (error.__auth === true || error.status === 401 || error.status === 403),
+      (error.__auth === true || error.status === 401 || error.status === 403),
     ),
 }));
 
@@ -117,7 +117,7 @@ describe("SessionPicker", () => {
         onYear={onYear}
         onMeeting={onMeeting}
         onSession={onSession}
-      />, 
+      />,
     );
 
     expect(screen.getByText(/OpenF1 returned/)).toBeInTheDocument();

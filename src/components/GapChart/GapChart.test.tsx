@@ -55,23 +55,25 @@ describe("GapChart", () => {
     rerender(
       <GapChart
         drivers={drivers}
-        intervals={[
-          {
-            driver_number: 1,
-            date: "2024-01-01T00:00:10.000Z",
-            gap_to_leader: 0,
-          },
-          {
-            driver_number: 16,
-            date: "2024-01-01T00:00:10.000Z",
-            gap_to_leader: 1.234,
-          },
-          {
-            driver_number: 63,
-            date: "2024-01-01T00:00:15.000Z",
-            gap_to_leader: "1 LAP",
-          },
-        ] as unknown as Interval[]}
+        intervals={
+          [
+            {
+              driver_number: 1,
+              date: "2024-01-01T00:00:10.000Z",
+              gap_to_leader: 0,
+            },
+            {
+              driver_number: 16,
+              date: "2024-01-01T00:00:10.000Z",
+              gap_to_leader: 1.234,
+            },
+            {
+              driver_number: 63,
+              date: "2024-01-01T00:00:15.000Z",
+              gap_to_leader: "1 LAP",
+            },
+          ] as unknown as Interval[]
+        }
         sessionTimeMs={25_000}
         sessionStartMs={sessionStartMs}
         lapStarts={[10_000, 20_000, 30_000]}
@@ -89,25 +91,31 @@ describe("GapChart", () => {
     render(
       <GapChart
         drivers={drivers}
-        intervals={[
-          {
-            driver_number: 1,
-            date: "2024-01-01T00:00:10.000Z",
-            gap_to_leader: 0,
-          },
-          {
-            driver_number: 16,
-            date: "2024-01-01T00:00:15.000Z",
-            gap_to_leader: 2.5,
-          },
-        ] as unknown as Interval[]}
+        intervals={
+          [
+            {
+              driver_number: 1,
+              date: "2024-01-01T00:00:10.000Z",
+              gap_to_leader: 0,
+            },
+            {
+              driver_number: 16,
+              date: "2024-01-01T00:00:15.000Z",
+              gap_to_leader: 2.5,
+            },
+          ] as unknown as Interval[]
+        }
         sessionTimeMs={30_000}
         sessionStartMs={sessionStartMs}
         lapStarts={[]}
       />,
     );
 
-    expect(screen.queryByText("No gap data available yet")).not.toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: "Elapsed" })).not.toBeInTheDocument();
+    expect(
+      screen.queryByText("No gap data available yet"),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: "Elapsed" }),
+    ).not.toBeInTheDocument();
   });
 });
