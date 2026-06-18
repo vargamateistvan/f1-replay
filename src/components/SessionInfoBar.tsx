@@ -155,7 +155,9 @@ export function SessionInfoBar({
       {/* Weather temperatures */}
       <div className="flex min-w-0 flex-1 items-center justify-center gap-2 border-r border-b border-panel px-3 py-2 sm:flex-none sm:justify-start sm:border-b-0 sm:px-4">
         <span className="text-muted">Air</span>
-        <span className="text-white tabular-nums font-mono">{fmtTemp(airTemp)}</span>
+        <span className="text-white tabular-nums font-mono">
+          {fmtTemp(airTemp)}
+        </span>
       </div>
       <div className="flex min-w-0 flex-1 items-center justify-center gap-2 border-r border-b border-panel px-3 py-2 sm:flex-none sm:justify-start sm:border-b-0 sm:px-4">
         <span className="text-muted">Track</span>
