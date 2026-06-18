@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
   FastForward,
   Pause,
@@ -10,7 +10,7 @@ import {
 import { useTimeline } from "@/timeline/clock";
 import { useMediaQuery } from "@/hooks/useMediaQuery";
 import { SPEEDS } from "@/constants";
-import { atOrBefore, nextAfter, prevBefore } from "@/timeline/events";
+import { nextAfter, prevBefore } from "@/timeline/events";
 import type { RaceControlMarker, MarkerSummary } from "@/timeline/raceControl";
 
 interface Props {
@@ -93,22 +93,25 @@ export function PlaybackBar({
   showSpeedControls = true,
   showEventChips = true,
 }: Props) {
-  const { t, playing, speed, toggle, setT, setSpeed } = useTimeline();
+  const { t, playing, toggle, setT, setPlaying } = useTimeline();
   const [showMarkers, setShowMarkers] = useState(true);
   const isCompactViewport = useMediaQuery("(max-width: 639px)");
+  const hasClampedRef = useRef(false);
 
-  // Clamp playhead to duration end and stop playback — uses a Zustand
-  // subscription so it doesn't fire on every RAF tick via React's dep array.
+  // Clamp playhead to duration end and stop playback when reached.
   useEffect(() => {
-    if (durationMs <= 0) return;
-    return useTimeline.subscribe((state) => {
-      if (state.t >= durationMs) {
-        const store = useTimeline.getState();
-        if (state.t !== durationMs) store.setT(durationMs);
-        if (state.playing) store.setPlaying(false);
-      }
-    });
-  }, [durationMs]);
+    if (durationMs <= 0) {
+      hasClampedRef.current = false;
+      return;
+    }
+    if (t >= durationMs && !hasClampedRef.current) {
+      hasClampedRef.current = true;
+      if (t !== durationMs) setT(durationMs);
+      if (playing) setPlaying(false);
+    } else if (t < durationMs) {
+      hasClampedRef.current = false;
+    }
+  }, [durationMs, t, playing, setT, setPlaying]);
 
   const clamp = useCallback(
     (v: number) => Math.max(0, durationMs > 0 ? Math.min(v, durationMs) : v),
