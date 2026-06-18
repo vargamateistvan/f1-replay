@@ -2,6 +2,7 @@ import { useMemo } from "react";
 import { useQuery, useQueries } from "@tanstack/react-query";
 import { api } from "@/api/endpoints";
 import { teamColor } from "@/utils/color";
+import { canonicalTeamName } from "@/utils/identity";
 import { computeStandings, type DriverInfo } from "@/utils/standings";
 import {
   useChampionshipDrivers,
@@ -9,36 +10,6 @@ import {
 } from "@/hooks/useSession";
 
 const SESSION_RESULT_FILTERS = { "position>=": 1 } as const;
-
-function normalizeTeamName(name: string): string {
-  const normalized = name.trim().toLowerCase();
-
-  if (
-    normalized.includes("racing bulls") ||
-    normalized === "rb" ||
-    normalized.includes("alphatauri") ||
-    normalized.includes("toro rosso")
-  ) {
-    return "racing-bulls";
-  }
-  if (
-    normalized.includes("sauber") ||
-    normalized.includes("alfa romeo") ||
-    normalized.includes("stake")
-  ) {
-    return "sauber";
-  }
-  if (normalized.includes("haas")) return "haas";
-  if (normalized.includes("red bull")) return "red-bull";
-  if (normalized.includes("aston martin")) return "aston-martin";
-  if (normalized.includes("mercedes")) return "mercedes";
-  if (normalized.includes("ferrari")) return "ferrari";
-  if (normalized.includes("mclaren")) return "mclaren";
-  if (normalized.includes("alpine")) return "alpine";
-  if (normalized.includes("williams")) return "williams";
-
-  return normalized.replace(/[^a-z0-9]+/g, "-");
-}
 
 // Re-exported for existing import sites (pages/Standings.tsx).
 export type { DriverStanding, ConstructorStanding } from "@/utils/standings";
@@ -123,26 +94,37 @@ export function useStandings(year: number) {
     () => new Map(fallbackDriverStandings.map((d) => [d.driverNumber, d])),
     [fallbackDriverStandings],
   );
-  const fallbackConstructorByTeam = useMemo(
-    () => new Map(fallbackConstructorStandings.map((c) => [c.name, c])),
-    [fallbackConstructorStandings],
-  );
+  const fallbackConstructorByTeam = useMemo(() => {
+    const teamNames = fallbackConstructorStandings.map((c) => c.name);
+    return new Map(
+      fallbackConstructorStandings.map((constructorStanding) => [
+        canonicalTeamName(constructorStanding.name, teamNames),
+        constructorStanding,
+      ]),
+    );
+  }, [fallbackConstructorStandings]);
   const teamColorByName = useMemo(() => {
-    const byName = new Map<string, string>();
-    const byNormalizedName = new Map<string, string>();
+    const knownTeamNames = [
+      ...(driversQ.data ?? []).map((driver) => driver.team_name),
+      ...fallbackConstructorStandings.map(
+        (constructorStanding) => constructorStanding.name,
+      ),
+    ];
+    const byCanonicalName = new Map<string, string>();
 
     for (const d of driversQ.data ?? []) {
       const color = teamColor(d.team_colour);
-      byName.set(d.team_name, color);
-      byNormalizedName.set(normalizeTeamName(d.team_name), color);
+      byCanonicalName.set(
+        canonicalTeamName(d.team_name, knownTeamNames),
+        color,
+      );
     }
 
     for (const c of fallbackConstructorStandings) {
-      byName.set(c.name, c.color);
-      byNormalizedName.set(normalizeTeamName(c.name), c.color);
+      byCanonicalName.set(canonicalTeamName(c.name, knownTeamNames), c.color);
     }
 
-    return { byName, byNormalizedName };
+    return byCanonicalName;
   }, [driversQ.data, fallbackConstructorStandings]);
 
   const driverStandings = useMemo(() => {
@@ -190,10 +172,12 @@ export function useStandings(year: number) {
           b.points_current - a.points_current,
       )
       .map((c) => {
-        const mappedColor =
-          teamColorByName.byName.get(c.team_name) ??
-          teamColorByName.byNormalizedName.get(normalizeTeamName(c.team_name));
-        const fallback = fallbackConstructorByTeam.get(c.team_name);
+        const canonicalName = canonicalTeamName(
+          c.team_name,
+          fallbackConstructorStandings.map((team) => team.name),
+        );
+        const mappedColor = teamColorByName.get(canonicalName);
+        const fallback = fallbackConstructorByTeam.get(canonicalName);
         return {
           position: c.position_current,
           name: c.team_name,

@@ -1,3 +1,8 @@
+import {
+  buildCircuitSearchCandidates,
+  circuitIdentityKeys,
+} from "@/utils/identity";
+
 export interface CircuitFacts {
   lengthKm?: string;
   raceDistanceKm?: string;
@@ -76,14 +81,8 @@ function extractLapRecord(wikitext: string) {
 }
 
 async function resolveWikiPage(shortName: string, countryName: string) {
-  const short = shortName.trim();
-  const shortWithoutCircuit = short.replace(/\bcircuit\b/gi, "").trim();
-  const attempts = [
-    short,
-    `${shortWithoutCircuit} Circuit`,
-    `${shortWithoutCircuit} Formula One circuit`,
-    `${shortWithoutCircuit} circuit ${countryName}`,
-  ];
+  const attempts = buildCircuitSearchCandidates(shortName, countryName);
+  const requestedKeys = new Set(circuitIdentityKeys(shortName));
 
   const seen = new Set<string>();
   for (const query of attempts) {
@@ -98,8 +97,30 @@ async function resolveWikiPage(shortName: string, countryName: string) {
     const json = (await res.json()) as {
       query?: { search?: Array<{ title?: string }> };
     };
-    const page = json?.query?.search?.[0]?.title;
-    if (page) return page;
+    const pages = json?.query?.search ?? [];
+
+    let bestPage: string | null = null;
+    let bestScore = -1;
+
+    for (const entry of pages) {
+      const page = entry.title;
+      if (!page) continue;
+
+      const overlap = circuitIdentityKeys(page).filter((key) =>
+        requestedKeys.has(key),
+      );
+      const score = overlap.reduce(
+        (total, key) => total + Math.max(key.length, 3),
+        0,
+      );
+
+      if (score > bestScore) {
+        bestPage = page;
+        bestScore = score;
+      }
+    }
+
+    if (bestPage) return bestPage;
   }
 
   return null;
