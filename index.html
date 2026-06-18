@@ -58,6 +58,19 @@
   <!-- Google tag (gtag.js) -->
   <script async src="https://www.googletagmanager.com/gtag/js?id=G-R9T6QJHL5X"></script>
   <script>
+    // Decode the SPA redirect format used by 404.html on static hosts (GitHub Pages).
+    (function (l) {
+      if (l.search[1] !== '/') return;
+      var decoded = l.search
+        .slice(1)
+        .split('&')
+        .map(function (s) {
+          return s.replace(/~and~/g, '&');
+        })
+        .join('?');
+      window.history.replaceState(null, '', l.pathname + decoded + l.hash);
+    }(window.location));
+
     window.dataLayer = window.dataLayer || [];
     function gtag() { dataLayer.push(arguments); }
     gtag('js', new Date());

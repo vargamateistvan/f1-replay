@@ -41,7 +41,7 @@ export default function AppCrash({
             Try Again
           </button>
           <a
-            href="#/"
+            href="/"
             className="rounded-md border border-panel bg-track px-5 py-2 text-sm font-semibold text-white transition-colors hover:border-f1red hover:text-f1red"
           >
             Go to Home

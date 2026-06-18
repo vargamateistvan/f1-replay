@@ -62,19 +62,19 @@ The app features a broadcast-style experience with:
 
 ## Tech Stack
 
-| Layer                | Technology                                               |
-| -------------------- | -------------------------------------------------------- |
-| **Framework**        | React 18, TypeScript 5.6                                 |
-| **Build**            | Vite 6                                                   |
-| **Styling**          | Tailwind CSS 3, PostCSS                                  |
-| **State Management** | Zustand (playback timeline)                              |
-| **Data Fetching**    | TanStack React Query 5 (with persistence)                |
-| **Charts**           | uPlot (high-frequency telemetry), Recharts 3 (standings) |
-| **Track Rendering**  | Custom SVG from OpenF1 location data                     |
-| **Routing**          | React Router 6 (HashRouter for GitHub Pages)             |
-| **Testing**          | Vitest, React Testing Library, jsdom                     |
-| **Linting**          | ESLint 9, TypeScript strict mode                         |
-| **Deploy**           | GitHub Pages (Vite static build)                         |
+| Layer                | Technology                                                |
+| -------------------- | --------------------------------------------------------- |
+| **Framework**        | React 18, TypeScript 5.6                                  |
+| **Build**            | Vite 6                                                    |
+| **Styling**          | Tailwind CSS 3, PostCSS                                   |
+| **State Management** | Zustand (playback timeline)                               |
+| **Data Fetching**    | TanStack React Query 5 (with persistence)                 |
+| **Charts**           | uPlot (high-frequency telemetry), Recharts 3 (standings)  |
+| **Track Rendering**  | Custom SVG from OpenF1 location data                      |
+| **Routing**          | React Router 6 (BrowserRouter + static host SPA fallback) |
+| **Testing**          | Vitest, React Testing Library, jsdom                      |
+| **Linting**          | ESLint 9, TypeScript strict mode                          |
+| **Deploy**           | GitHub Pages (Vite static build)                          |
 
 ## Getting Started
 

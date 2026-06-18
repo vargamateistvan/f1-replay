@@ -1,4 +1,4 @@
-import { HashRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { Nav } from "@/components/Nav";
 import { MobileNav } from "@/components/MobileNav";
 import { SettingsModal } from "@/components/SettingsModal/SettingsModal";
@@ -12,7 +12,7 @@ import NotFound from "@/pages/NotFound";
 
 export function AppRouter() {
   return (
-    <HashRouter>
+    <BrowserRouter>
       <RouteSeo />
       <div className="flex flex-col md:h-[100dvh] md:min-h-[100dvh] md:overflow-hidden">
         <Nav />
@@ -29,6 +29,6 @@ export function AppRouter() {
         <SettingsModal />
         <HowItWorksModal />
       </div>
-    </HashRouter>
+    </BrowserRouter>
   );
 }
