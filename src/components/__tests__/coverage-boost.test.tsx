@@ -324,8 +324,8 @@ describe("component coverage boost", () => {
       ],
       isPending: false,
       isError: false,
-      error: { status: 401 },
-    };
+      error: null,
+    } as unknown as typeof mockState.meetings;
     mockState.sessions = {
       data: [
         {
@@ -342,7 +342,7 @@ describe("component coverage boost", () => {
       isPending: false,
       isError: false,
       error: null,
-    };
+    } as unknown as typeof mockState.sessions;
     mockState.live = true;
 
     const onYear = vi.fn();

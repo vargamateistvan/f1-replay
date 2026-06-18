@@ -13,7 +13,9 @@ function wrapper({ children }: { children: React.ReactNode }) {
 
 function useHarness() {
   const [session, setSession] = useNumberParam("session", null);
-  const [view, setView] = useStringParam("view", "tracker");
+  const [view, setView] = useStringParam<
+    "tracker" | "leaderboard" | "commentary"
+  >("view", "tracker");
   const location = useLocation();
   return { session, setSession, view, setView, search: location.search };
 }

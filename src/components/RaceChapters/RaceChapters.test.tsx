@@ -69,6 +69,7 @@ describe("RaceChapters", () => {
           label: "Safety Car",
           startMs: 20_000,
           endMs: 45_000,
+          startLap: null,
         },
         positionChanges: [
           { driverNumber: 1, before: 2, after: 1, delta: 1 },

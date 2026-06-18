@@ -84,7 +84,7 @@ describe("SessionPicker", () => {
       ],
       isPending: false,
       isError: false,
-      error: { status: 401 },
+      error: null,
     } as typeof state.meetings;
     state.sessions = {
       data: [
