@@ -39,6 +39,7 @@ import {
 import { useSearchParams } from "react-router-dom";
 import { useTimeline } from "@/timeline/clock";
 import { useCoarseTime } from "@/hooks/useCoarseTime";
+import { useMediaQuery } from "@/hooks/useMediaQuery";
 import { useLocationChunks, chunkIndexFor } from "@/hooks/useLocationChunks";
 import { useAllCarDataWindow } from "@/hooks/useAllCarDataWindow";
 import { useNumberParam, useStringParam } from "@/hooks/useSearchParamState";
@@ -129,6 +130,7 @@ export default function RaceWeekend() {
   const [focusDriver] = useNumberParam("focus", null);
   const [compareDriver] = useNumberParam("compare", null);
   const [, setSearchParams] = useSearchParams();
+  const isCompactViewport = useMediaQuery("(max-width: 767px)");
   const [isResultsDialogOpen, setIsResultsDialogOpen] = useState(false);
   const [incidentReplayEndMs, setIncidentReplayEndMs] = useState<number | null>(
     null,
@@ -195,11 +197,17 @@ export default function RaceWeekend() {
     (drivers.isPending || positions.isPending || intervals.isPending);
 
   const chunkIdx = chunkIndexFor(t);
+  const isMapVisible =
+    currentView === "tracker" && (trackerTab ?? "timing") === "map";
   const location = useLocationChunks(
-    sessionKey,
-    sessionStartMs || null,
+    isMapVisible ? sessionKey : null,
+    isMapVisible ? sessionStartMs || null : null,
     chunkIdx,
-    t,
+    isMapVisible ? t : undefined,
+    {
+      includeNextChunk: !isCompactViewport,
+      prefetchChunks: !isCompactViewport,
+    },
   );
 
   const lapMarks = useMemo(
