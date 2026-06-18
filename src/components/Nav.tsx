@@ -110,6 +110,8 @@ export function Nav() {
   const [brokenCircuitImages, setBrokenCircuitImages] = useState<
     Record<string, true>
   >({});
+  const [selectLatestSessionOnLoad, setSelectLatestSessionOnLoad] =
+    useState(false);
 
   const [yearParam] = useNumberParam("year", DEFAULT_YEAR);
   const year = yearParam ?? DEFAULT_YEAR;
@@ -184,6 +186,30 @@ export function Nav() {
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, [showCircuitFacts]);
+
+  // Automatically select the latest session once sessions load
+  useEffect(() => {
+    if (
+      selectLatestSessionOnLoad &&
+      sessions.data &&
+      sessions.data.length > 0
+    ) {
+      const latestSession = sessions.data
+        .slice()
+        .sort(
+          (a, b) =>
+            new Date(b.date_start).getTime() - new Date(a.date_start).getTime(),
+        )[0];
+      if (latestSession) {
+        setSearchParams((prev) => {
+          const next = new URLSearchParams(prev);
+          next.set("session", String(latestSession.session_key));
+          return next;
+        });
+        setSelectLatestSessionOnLoad(false);
+      }
+    }
+  }, [selectLatestSessionOnLoad, sessions.data, setSearchParams]);
 
   const startedMeetings = useMemo(
     () =>
@@ -293,9 +319,9 @@ export function Nav() {
       const next = new URLSearchParams(prev);
       next.set("year", String(latest.year));
       next.set("meeting", String(latest.meeting_key));
-      next.delete("session");
       return next;
     });
+    setSelectLatestSessionOnLoad(true);
   }
 
   const circuitLabel = selectedMeeting

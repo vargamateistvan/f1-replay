@@ -2,6 +2,7 @@ import { useMeetings, useSessions } from "@/hooks/useSession";
 import { isAuthError } from "@/api/client";
 import { isSessionLive } from "@/utils/live";
 import { YEARS } from "@/constants";
+import { useEffect, useState } from "react";
 
 interface Props {
   year: number;
@@ -31,6 +32,9 @@ export function SessionPicker({
 }: Props) {
   const meetings = useMeetings(year);
   const sessions = useSessions(meetingKey);
+  const [selectLatestSessionOnLoad, setSelectLatestSessionOnLoad] =
+    useState(false);
+
   const selectedMeeting = meetings.data?.find(
     (m) => m.meeting_key === meetingKey,
   );
@@ -40,6 +44,26 @@ export function SessionPicker({
   );
   const live = isSessionLive(selectedSession);
   const authFailed = isAuthError(meetings.error) || isAuthError(sessions.error);
+
+  // Automatically select the latest session once sessions load
+  useEffect(() => {
+    if (
+      selectLatestSessionOnLoad &&
+      sessions.data &&
+      sessions.data.length > 0
+    ) {
+      const latestSession = sessions.data
+        .slice()
+        .sort(
+          (a, b) =>
+            new Date(b.date_start).getTime() - new Date(a.date_start).getTime(),
+        )[0];
+      if (latestSession) {
+        onSession(latestSession.session_key);
+        setSelectLatestSessionOnLoad(false);
+      }
+    }
+  }, [selectLatestSessionOnLoad, sessions.data, onSession]);
 
   function selectLatestEvent() {
     const latest = meetings.data
@@ -51,6 +75,7 @@ export function SessionPicker({
     if (!latest) return;
     onYear(latest.year);
     onMeeting(latest.meeting_key);
+    setSelectLatestSessionOnLoad(true);
   }
 
   return (
