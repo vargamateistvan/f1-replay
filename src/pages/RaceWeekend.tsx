@@ -632,6 +632,18 @@ export default function RaceWeekend() {
     return m;
   }, [carSamplesByDriver, t]);
 
+  // Latest weather sample at or before the playhead.
+  const weatherAtT = useMemo(() => {
+    if (!sessionStartMs || !(weather.data?.length ?? 0)) return null;
+    const cutoff = sessionStartMs + t;
+    let latest = null;
+    for (const w of weather.data ?? []) {
+      if (new Date(w.date).getTime() > cutoff) break;
+      latest = w;
+    }
+    return latest;
+  }, [weather.data, sessionStartMs, t]);
+
   // Apply default speed when a new session loads.
   useEffect(() => {
     if (!sessionKey) return;
@@ -1065,6 +1077,8 @@ export default function RaceWeekend() {
             raceControl={raceControl.data ?? []}
             sessionTimeMs={t}
             sessionStartMs={sessionStartMs}
+            airTemp={weatherAtT?.air_temperature ?? null}
+            trackTemp={weatherAtT?.track_temperature ?? null}
             isRaceSession={isRaceSession}
             lightsOutMs={lightsOutMs}
             totalLapCount={totalLapCount}
