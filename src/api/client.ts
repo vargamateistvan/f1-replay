@@ -155,26 +155,63 @@ export async function fetchEndpoint<T>(
 
   const requestPromise = (async () => {
     let attempt = 0;
+    let lastError: Error | null = null;
+
     for (;;) {
-      await acquireSlot();
-      const res = await fetch(url, { headers });
+      try {
+        await acquireSlot();
+        const res = await fetch(url, { headers });
 
-      if (res.ok) return res.json() as Promise<T[]>;
+        if (res.ok) {
+          try {
+            const data = await res.json();
+            if (!Array.isArray(data)) {
+              console.warn(
+                `Expected array response from ${path}, got:`,
+                typeof data,
+              );
+              return [];
+            }
+            return data;
+          } catch (parseErr) {
+            console.error("Failed to parse JSON response from", path, parseErr);
+            throw new OpenF1Error(0, `${path} (parse error)`);
+          }
+        }
 
-      // OpenF1 returns 404 + `{"detail":"No results found."}` for empty filters.
-      // Treat that specific case as an empty dataset.
-      if (await isNoResults404(path, res)) return [];
+        // OpenF1 returns 404 + `{"detail":"No results found."}` for empty filters.
+        // Treat that specific case as an empty dataset.
+        if (await isNoResults404(path, res)) return [];
 
-      // Retry on 429 (rate limit) and 5xx (transient server) with backoff.
-      // Auth (401/403) and other 4xx are terminal — fail fast.
-      const retryable = res.status === 429 || res.status >= 500;
-      if (!retryable || attempt >= RATE_MAX_RETRIES) {
-        throw new OpenF1Error(res.status, path);
+        // Retry on 429 (rate limit) and 5xx (transient server) with backoff.
+        // Auth (401/403) and other 4xx are terminal — fail fast.
+        const retryable = res.status === 429 || res.status >= 500;
+        if (!retryable || attempt >= RATE_MAX_RETRIES) {
+          const err = new OpenF1Error(res.status, path);
+          lastError = err;
+          throw err;
+        }
+
+        const backoff = parseRetryAfter(res) ?? 2 ** attempt * 500; // 0.5s,1s,2s,4s…
+        attempt++;
+        await sleep(backoff);
+      } catch (err) {
+        // Network errors, parsing errors, etc.
+        if (err instanceof OpenF1Error) throw err;
+        lastError = err instanceof Error ? err : new Error(String(err));
+
+        if (attempt >= RATE_MAX_RETRIES) {
+          console.error(
+            `fetchEndpoint: max retries exceeded for ${path}:`,
+            lastError,
+          );
+          throw new OpenF1Error(0, `${path} (network error)`);
+        }
+
+        attempt++;
+        const backoff = 2 ** attempt * 500;
+        await sleep(backoff);
       }
-
-      const backoff = parseRetryAfter(res) ?? 2 ** attempt * 500; // 0.5s,1s,2s,4s…
-      attempt++;
-      await sleep(backoff);
     }
   })();
 

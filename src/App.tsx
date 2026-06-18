@@ -4,6 +4,7 @@ import { AppRouter } from "./routes";
 import { useEffect } from "react";
 import { startClock, stopClock } from "./timeline/clock";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
+import { ErrorDisplay } from "@/components/ErrorDisplay";
 import { OpenF1Error } from "@/api/client";
 import { queryPersister } from "@/lib/queryPersister";
 import { useSettings } from "@/stores/settings";
@@ -85,6 +86,7 @@ export default function App() {
       >
         <CoffeeWidgetGate />
         <LightModeGate />
+        <ErrorDisplay />
         <AppRouter />
       </PersistQueryClientProvider>
     </ErrorBoundary>
