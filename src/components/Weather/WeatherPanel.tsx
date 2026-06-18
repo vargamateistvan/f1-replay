@@ -41,6 +41,7 @@ export function WeatherPanel({
   sessionStartMs,
 }: Props) {
   const showCsvExportButtons = useSettings((s) => s.showCsvExportButtons);
+  const lightMode = useSettings((s) => s.lightMode);
   const currentT = sessionStartMs + sessionTimeMs;
 
   const w = useMemo(
@@ -71,13 +72,25 @@ export function WeatherPanel({
   const windArrow =
     windDir(w.wind_direction) === "—" ? "↑" : `↑ ${windDir(w.wind_direction)}`;
 
+  const containerClass = lightMode
+    ? isRaining
+      ? "bg-[linear-gradient(135deg,rgba(137,186,255,0.38)_0%,rgba(238,241,250,0.95)_55%)] border-l-sky-500"
+      : "bg-[linear-gradient(135deg,rgba(187,193,209,0.45)_0%,rgba(238,241,250,0.95)_55%)] border-l-[#9ca6bc]"
+    : isRaining
+      ? "bg-[linear-gradient(135deg,rgba(18,40,74,0.45)_0%,rgba(21,21,30,0.95)_55%)] border-l-sky-400"
+      : "bg-[linear-gradient(135deg,rgba(34,36,50,0.45)_0%,rgba(21,21,30,0.95)_55%)] border-l-[#4b4b57]";
+
+  const exportButtonClass = lightMode
+    ? "h-6 px-2 text-[9px] font-black uppercase tracking-widest rounded transition-colors bg-[#e5e8f2] text-[#3a4256] hover:text-[#12121a] hover:bg-[#d8dde9] border border-[#b4bbcf]"
+    : "h-6 px-2 text-[9px] font-black uppercase tracking-widest rounded transition-colors bg-[#1e1e28] text-muted hover:text-white hover:bg-[#38383f]";
+
+  const cardClass = lightMode
+    ? "rounded-sm border border-[#b7bfd4] bg-[#eef1fa] px-2 py-1.5"
+    : "rounded-sm border border-[#3a3a48] bg-[#161622] px-2 py-1.5";
+
   return (
     <div
-      className={`px-3 py-2 text-xs transition-colors border-l-2 ${
-        isRaining
-          ? "bg-[linear-gradient(135deg,rgba(18,40,74,0.45)_0%,rgba(21,21,30,0.95)_55%)] border-l-sky-400"
-          : "bg-[linear-gradient(135deg,rgba(34,36,50,0.45)_0%,rgba(21,21,30,0.95)_55%)] border-l-[#4b4b57]"
-      }`}
+      className={`px-3 py-2 text-xs transition-colors border-l-2 ${containerClass}`}
     >
       <div className="mb-2 flex items-center gap-2">
         <span className="text-[10px] font-black uppercase tracking-[0.16em] text-white/85">
@@ -93,7 +106,7 @@ export function WeatherPanel({
                 `weather_${sessionKey}.csv`,
               );
             }}
-            className="h-6 px-2 text-[9px] font-black uppercase tracking-widest rounded transition-colors bg-[#1e1e28] text-muted hover:text-white hover:bg-[#38383f]"
+            className={exportButtonClass}
             aria-label="Export weather CSV"
           >
             Export CSV
@@ -109,7 +122,7 @@ export function WeatherPanel({
 
       <div className="grid gap-2 sm:hidden">
         <div className="grid grid-cols-3 gap-2">
-          <div className="rounded-sm border border-[#3a3a48] bg-[#161622] px-2 py-1.5">
+          <div className={cardClass}>
             <div className="text-[9px] font-bold uppercase tracking-widest text-muted flex items-center gap-1">
               <Thermometer size={10} strokeWidth={2.2} aria-hidden="true" />
               Track
@@ -121,7 +134,7 @@ export function WeatherPanel({
               </span>
             </div>
           </div>
-          <div className="rounded-sm border border-[#3a3a48] bg-[#161622] px-2 py-1.5">
+          <div className={cardClass}>
             <div className="text-[9px] font-bold uppercase tracking-widest text-muted flex items-center gap-1">
               <Thermometer size={10} strokeWidth={2.2} aria-hidden="true" />
               Air
@@ -130,7 +143,7 @@ export function WeatherPanel({
               {w.air_temperature.toFixed(1)}°C
             </div>
           </div>
-          <div className="rounded-sm border border-[#3a3a48] bg-[#161622] px-2 py-1.5">
+          <div className={cardClass}>
             <div className="text-[9px] font-bold uppercase tracking-widest text-muted flex items-center gap-1">
               <Wind size={10} strokeWidth={2.2} aria-hidden="true" />
               Wind

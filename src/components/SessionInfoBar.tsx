@@ -1,5 +1,6 @@
 import { useMemo } from "react";
 import type { Lap, RaceControl } from "@/api/types";
+import { useSettings } from "@/stores/settings";
 
 interface Props {
   laps: Lap[];
@@ -74,7 +75,11 @@ export function SessionInfoBar({
   totalLapCount = null,
   onShowResults,
 }: Props) {
+  const lightMode = useSettings((s) => s.lightMode);
   const currentT = sessionStartMs + sessionTimeMs;
+  const formationStatus: TrackStatus = lightMode
+    ? { label: "FORMATION LAP", bg: "#e8ecf8", color: "#4a5575" }
+    : FLAG_STATUS["FORMATION_LAP"]!;
 
   const currentLap = useMemo(() => {
     let max = 0;
@@ -92,9 +97,9 @@ export function SessionInfoBar({
       : false;
 
   const status = useMemo(() => {
-    if (isFormationLap) return FLAG_STATUS["FORMATION_LAP"]!;
+    if (isFormationLap) return formationStatus;
     return deriveStatus(raceControl, currentT);
-  }, [isFormationLap, raceControl, currentT]);
+  }, [formationStatus, isFormationLap, raceControl, currentT]);
   const latestMsg = useMemo(
     () => deriveLatestMessage(raceControl, currentT),
     [raceControl, currentT],
@@ -114,7 +119,7 @@ export function SessionInfoBar({
         <span className="text-muted">Lap</span>
         <span
           className="tabular-nums text-[13px] font-black"
-          style={{ color: isFormationLap ? "#c8c8ff" : undefined }}
+          style={{ color: isFormationLap ? formationStatus.color : undefined }}
         >
           {lapDisplay}
         </span>

@@ -14,6 +14,7 @@ import { useTrackOutline, locationToSvg } from "@/hooks/useTrackMap";
 import { buildIndex, interpolateXY } from "@/timeline/interpolate";
 import { useTimeline } from "@/timeline/clock";
 import { teamColor } from "@/utils/color";
+import { useSettings } from "@/stores/settings";
 import type { CarData, Driver, Location, Stint } from "@/api/types";
 import {
   TRACK_SVG_W as SVG_W,
@@ -136,8 +137,17 @@ export function TrackMap({
   onSelectDriver,
 }: Props) {
   const { t } = useTimeline();
+  const lightMode = useSettings((s) => s.lightMode);
   const [zoomLevel, setZoomLevel] = useState(1);
   const [rotationDeg, setRotationDeg] = useState(0);
+
+  const mapBackground = lightMode ? "#eef1fa" : "#15151e";
+  const overlayBackground = lightMode
+    ? "rgba(238,241,250,0.88)"
+    : "rgba(21,21,30,0.82)";
+  const hudBackground = lightMode
+    ? "rgba(238,241,250,0.9)"
+    : "rgba(21,21,30,0.85)";
 
   useEffect(() => {
     setZoomLevel(1);
@@ -703,7 +713,7 @@ export function TrackMap({
         ref={svgRef}
         viewBox={viewBox}
         className="w-full h-full"
-        style={{ background: "#15151e" }}
+        style={{ background: mapBackground }}
       >
         <g transform={trackTransform}>
           {/* Track surface: thick grey base + thin white highlight */}
@@ -846,7 +856,7 @@ export function TrackMap({
                       cy={focused ? 8 : 5}
                       r={focused ? 2.5 : 1.8}
                       fill={COMPOUND_COLORS[compoundInfo.compound]}
-                      stroke="#15151e"
+                      stroke={mapBackground}
                       strokeWidth={0.5}
                     />
                   )}
@@ -886,7 +896,7 @@ export function TrackMap({
       <div
         className="absolute top-2 right-2 z-20 flex flex-col gap-1 p-1"
         style={{
-          background: "rgba(21,21,30,0.82)",
+          background: overlayBackground,
           backdropFilter: "blur(4px)",
         }}
       >
@@ -948,7 +958,7 @@ export function TrackMap({
         <div
           className="absolute top-14 right-2 px-2 py-1 text-[9px] font-black uppercase tracking-[0.16em] text-white/80 border border-[#38383f]"
           style={{
-            background: "rgba(21,21,30,0.82)",
+            background: overlayBackground,
             backdropFilter: "blur(4px)",
           }}
           title="Using coarse circuit layout fallback because baked geometry and GPS outline data were unavailable"
@@ -968,7 +978,7 @@ export function TrackMap({
               key={row.num}
               className="flex items-center gap-1.5 px-1.5 py-0.5"
               style={{
-                background: "rgba(21,21,30,0.82)",
+                background: overlayBackground,
                 backdropFilter: "blur(4px)",
               }}
             >
@@ -1004,7 +1014,7 @@ export function TrackMap({
             <div
               className="absolute top-2 left-2 pointer-events-none flex flex-col gap-1 px-2 py-1.5"
               style={{
-                background: "rgba(21,21,30,0.85)",
+                background: hudBackground,
                 backdropFilter: "blur(4px)",
                 minWidth: 100,
                 border: `1px solid ${color}33`,

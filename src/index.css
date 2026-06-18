@@ -6,7 +6,243 @@
 
 :root {
   color-scheme: dark;
+  /* Named color channels (R G B) — used by Tailwind's rgb() alpha utility */
+  --color-track:   21 21 30;
+  --color-surface: 31 31 39;
+  --color-panel:   42 42 53;
+  --color-muted:   163 163 163;
 }
+
+/* ── Light mode overrides ─────────────────────────────────────────────────── */
+html.light {
+  color-scheme: light;
+  --color-track:   240 240 245;
+  --color-surface: 248 248 252;
+  --color-panel:   228 228 236;
+  --color-muted:   106 106 120;
+}
+
+html.light body {
+  color: #12121a;
+}
+
+/* text-white → dark in light mode */
+html.light .text-white          { color: #12121a !important; }
+html.light .text-white\/85      { color: rgba(18,18,26,0.85) !important; }
+html.light .text-white\/90      { color: rgba(18,18,26,0.9) !important; }
+html.light .text-white\/80      { color: rgba(18,18,26,0.8) !important; }
+html.light .text-white\/70      { color: rgba(18,18,26,0.7) !important; }
+html.light .text-white\/60      { color: rgba(18,18,26,0.6) !important; }
+html.light .text-white\/50      { color: rgba(18,18,26,0.5) !important; }
+
+/* Hardcoded hex backgrounds */
+html.light .bg-\[\#15151e\]     { background-color: rgb(240 240 245) !important; }
+html.light .bg-\[\#1a1a24\]     { background-color: rgb(234 234 242) !important; }
+html.light .bg-\[\#1e1e28\]     { background-color: rgb(232 232 242) !important; }
+html.light .bg-\[\#2a2a35\]     { background-color: rgb(220 220 232) !important; }
+html.light .bg-\[\#38383f\]     { background-color: rgb(205 205 218) !important; }
+html.light .bg-\[\#0b1020\]     { background-color: rgb(246 248 255) !important; }
+html.light .bg-\[\#0f1118\]     { background-color: rgb(238 240 246) !important; }
+html.light .bg-\[\#10101a\]     { background-color: rgb(236 238 245) !important; }
+html.light .bg-\[\#10111a\]     { background-color: rgb(236 238 245) !important; }
+html.light .bg-\[\#11131c\]     { background-color: rgb(235 238 246) !important; }
+html.light .bg-\[\#12131b\]     { background-color: rgb(234 237 245) !important; }
+html.light .bg-\[\#141521\]     { background-color: rgb(232 235 244) !important; }
+html.light .bg-\[\#151723\]     { background-color: rgb(231 234 244) !important; }
+html.light .bg-\[\#161622\]     { background-color: rgb(232 234 243) !important; }
+html.light .bg-\[\#171823\]     { background-color: rgb(231 234 243) !important; }
+html.light .bg-\[\#171925\]     { background-color: rgb(230 233 242) !important; }
+html.light .bg-\[\#181a24\]     { background-color: rgb(230 233 242) !important; }
+html.light .bg-\[\#191922\]     { background-color: rgb(229 232 241) !important; }
+html.light .bg-\[\#1e1e2a\]     { background-color: rgb(228 231 240) !important; }
+html.light .bg-\[\#23152d\]     { background-color: rgb(236 229 244) !important; }
+html.light .bg-\[\#251a35\]     { background-color: rgb(235 228 244) !important; }
+html.light .bg-\[\#29163a\]     { background-color: rgb(235 227 245) !important; }
+html.light .bg-\[\#2a1b3f\]     { background-color: rgb(234 226 245) !important; }
+
+/* Opacity variants commonly used by Tailwind arbitrary colors */
+html.light .bg-\[\#0f1118\]\/95  { background-color: rgba(238,240,246,0.95) !important; }
+html.light .bg-\[\#15151e\]\/85  { background-color: rgba(240,240,245,0.85) !important; }
+html.light .bg-\[\#1e1e2a\]\/80  { background-color: rgba(228,231,240,0.80) !important; }
+html.light .bg-\[\#0f1118\]\/60  { background-color: rgba(238,240,246,0.60) !important; }
+
+/* Hardcoded hex borders */
+html.light .border-\[\#2a2a35\]   { border-color: rgb(192 192 210) !important; }
+html.light .border-\[\#38383f\]   { border-color: rgb(178 178 196) !important; }
+html.light .border-l-\[\#38383f\] { border-left-color: rgb(178 178 196) !important; }
+html.light .border-\[\#1e1e28\]   { border-color: rgb(202 204 217) !important; }
+html.light .border-\[\#2d2d3b\]   { border-color: rgb(193 195 210) !important; }
+html.light .border-\[\#2f2f3d\]   { border-color: rgb(190 193 208) !important; }
+html.light .border-\[\#353548\]   { border-color: rgb(184 187 203) !important; }
+html.light .border-\[\#363648\]   { border-color: rgb(183 186 202) !important; }
+html.light .border-\[\#3a3a48\]   { border-color: rgb(178 182 198) !important; }
+html.light .border-\[\#3b3b49\]   { border-color: rgb(176 180 196) !important; }
+html.light .border-\[\#444458\]   { border-color: rgb(168 173 191) !important; }
+html.light .border-\[\#46465a\]   { border-color: rgb(165 170 188) !important; }
+html.light .border-\[\#4a4a5d\]   { border-color: rgb(160 166 185) !important; }
+html.light .border-\[\#4b4b57\]   { border-color: rgb(162 168 186) !important; }
+html.light .border-\[\#4f4f65\]   { border-color: rgb(156 162 183) !important; }
+html.light .border-\[\#636369\]   { border-color: rgb(143 148 166) !important; }
+
+/* Hover hardcoded */
+html.light .hover\:bg-\[\#2a2a35\]:hover { background-color: rgb(212 212 226) !important; }
+html.light .hover\:bg-\[\#38383f\]:hover  { background-color: rgb(200 200 214) !important; }
+html.light .hover\:border-\[\#95b7ff\]:hover { border-color: rgb(102 131 196) !important; }
+html.light .hover\:border-\[\#a569d8\]:hover { border-color: rgb(133 96 177) !important; }
+html.light .hover\:border-\[\#8db2de\]:hover { border-color: rgb(112 145 188) !important; }
+
+/* Keep muted labels readable in light mode */
+html.light .text-\[\#636369\] { color: rgb(104 109 128) !important; }
+
+/* Remaining dark gradient strips in telemetry/quali surfaces */
+html.light [class*="bg-[radial-gradient(circle_at_top_left,#2a2136_0%,#1b1d28_40%,#16161f_100%)]"] {
+  background: radial-gradient(
+    circle at top left,
+    #edf1fb 0%,
+    #e8edf8 40%,
+    #e3e9f6 100%
+  ) !important;
+}
+
+html.light [class*="bg-[linear-gradient(180deg,rgba(21,21,30,0.96),rgba(21,21,30,0.86))]"] {
+  background: linear-gradient(
+    180deg,
+    rgba(233, 238, 247, 0.97),
+    rgba(227, 233, 244, 0.9)
+  ) !important;
+}
+
+html.light [class*="bg-[linear-gradient(90deg,#120f17_0%,#1a1520_45%,#10131d_100%)]"] {
+  background: linear-gradient(
+    90deg,
+    #edf1fb 0%,
+    #e8edf8 45%,
+    #e4eaf7 100%
+  ) !important;
+}
+
+/* Additional missed dark neutrals */
+html.light .bg-\[\#111118\] { background-color: rgb(234 237 245) !important; }
+html.light .bg-\[\#171822\] { background-color: rgb(231 234 243) !important; }
+/* Toast / catchup-summary card backgrounds */
+html.light .bg-\[\#1f1f27\] { background-color: rgb(244 245 250) !important; }
+html.light .bg-\[\#1a0e2e\] { background-color: rgb(238 233 252) !important; }
+/* Toast card borders */
+html.light .border-\[\#3f3f4b\] { border-color: rgb(194 197 214) !important; }
+
+/* ── Semantic tinted backgrounds (blue / green / purple) ───────────────────── */
+/* Blue-tinted (expanded cards active, race mode active, reference) */
+html.light .bg-\[\#1a2940\] { background-color: rgb(210 227 248) !important; }
+html.light .bg-\[\#192233\] { background-color: rgb(208 224 246) !important; }
+html.light .bg-\[\#1a2639\] { background-color: rgb(208 225 247) !important; }
+html.light .bg-\[\#172437\] { background-color: rgb(207 224 246) !important; }
+html.light .bg-\[\#162337\] { background-color: rgb(206 223 246) !important; }
+
+/* Green-tinted (auto badge, valid status) */
+html.light .bg-\[\#13261a\] { background-color: rgb(205 237 215) !important; }
+html.light .bg-\[\#112419\] { background-color: rgb(204 236 213) !important; }
+
+/* Purple-tinted (quali mode, sector wins, active lap) */
+html.light .bg-\[\#3b2350\] { background-color: rgb(232 218 250) !important; }
+html.light .bg-\[\#23152d\] { background-color: rgb(236 226 248) !important; }
+html.light .bg-\[\#2a240f\] { background-color: rgb(248 242 204) !important; }
+html.light .bg-\[\#2d1f0e\] { background-color: rgb(250 238 208) !important; }
+html.light .bg-\[\#2a1217\] { background-color: rgb(250 215 220) !important; }
+
+/* ── Semantic borders (matching the tints above) ───────────────────────────── */
+html.light .border-\[\#5483bf\] { border-color: rgb(110 160 218) !important; }
+html.light .border-\[\#4d5f79\] { border-color: rgb(115 148 196) !important; }
+html.light .border-\[\#385b8a\] { border-color: rgb(100 144 204) !important; }
+html.light .border-\[\#35506e\] { border-color: rgb(100 144 200) !important; }
+html.light .border-\[\#3b6b4e\] { border-color: rgb(86 164 116) !important; }
+html.light .border-\[\#276d33\] { border-color: rgb(62 158 90) !important; }
+html.light .border-\[\#63407a\] { border-color: rgb(148 98 188) !important; }
+html.light .border-\[\#5f4c7c\] { border-color: rgb(143 110 192) !important; }
+html.light .border-\[\#9658d9\] { border-color: rgb(148 88 218) !important; }
+html.light .border-\[\#cb9dff\] { border-color: rgb(152 100 210) !important; }
+html.light .border-\[\#9bc9ff\] { border-color: rgb(100 160 218) !important; }
+html.light .border-\[\#7e7422\] { border-color: rgb(160 148 40) !important; }
+html.light .border-\[\#875d18\] { border-color: rgb(168 120 40) !important; }
+html.light .border-\[\#7a2d38\] { border-color: rgb(190 80 100) !important; }
+
+/* ── Light-colored text that becomes invisible on tinted light bg ───────────── */
+/* Blue accent text */
+html.light .text-\[\#d9ecff\]   { color: rgb(20 80 160) !important; }
+html.light .text-\[\#d6e9ff\]   { color: rgb(20 80 160) !important; }
+html.light .text-\[\#d6e7ff\]   { color: rgb(20 80 160) !important; }
+html.light .text-\[\#c9ddff\]   { color: rgb(30 90 170) !important; }
+html.light .text-\[\#9bc9ff\]   { color: rgb(30 100 190) !important; }
+
+/* Purple accent text */
+html.light .text-\[\#dcc3ff\]   { color: rgb(100 40 168) !important; }
+html.light .text-\[\#dec7ff\]   { color: rgb(100 40 168) !important; }
+html.light .text-\[\#d4b7ff\]   { color: rgb(100 40 168) !important; }
+html.light .text-\[\#eddcff\]   { color: rgb(100 40 168) !important; }
+html.light .text-\[\#dfcbff\]   { color: rgb(100 40 168) !important; }
+
+/* Green accent text */
+html.light .text-\[\#9ee0b6\]   { color: rgb(20 120 60) !important; }
+html.light .text-\[\#3fd35a\]   { color: rgb(20 120 60) !important; }
+
+/* Yellow/orange accent text (keep readable on light yellow bg) */
+html.light .text-\[\#f5d400\]   { color: rgb(130 110 0) !important; }
+html.light .text-\[\#f5a623\]   { color: rgb(160 100 10) !important; }
+
+/* Red error text */
+html.light .text-\[\#ff8a8a\]   { color: rgb(180 30 50) !important; }
+
+/* Keep white text on red header bars/chips in light mode */
+html.light .bg-f1red.text-white,
+html.light .bg-\[\#e8002d\].text-white,
+html.light .bg-f1red .text-white,
+html.light .bg-\[\#e8002d\] .text-white {
+  color: #ffffff !important;
+}
+
+html.light .bg-f1red.text-white\/90,
+html.light .bg-\[\#e8002d\].text-white\/90,
+html.light .bg-f1red .text-white\/90,
+html.light .bg-\[\#e8002d\] .text-white\/90 {
+  color: rgba(255, 255, 255, 0.9) !important;
+}
+
+html.light .bg-f1red.text-white\/85,
+html.light .bg-\[\#e8002d\].text-white\/85,
+html.light .bg-f1red .text-white\/85,
+html.light .bg-\[\#e8002d\] .text-white\/85 {
+  color: rgba(255, 255, 255, 0.85) !important;
+}
+
+html.light .bg-f1red.text-white\/80,
+html.light .bg-\[\#e8002d\].text-white\/80,
+html.light .bg-f1red .text-white\/80,
+html.light .bg-\[\#e8002d\] .text-white\/80 {
+  color: rgba(255, 255, 255, 0.8) !important;
+}
+
+html.light .bg-f1red.text-white\/70,
+html.light .bg-\[\#e8002d\].text-white\/70,
+html.light .bg-f1red .text-white\/70,
+html.light .bg-\[\#e8002d\] .text-white\/70 {
+  color: rgba(255, 255, 255, 0.7) !important;
+}
+
+html.light .bg-f1red.text-white\/60,
+html.light .bg-\[\#e8002d\].text-white\/60,
+html.light .bg-f1red .text-white\/60,
+html.light .bg-\[\#e8002d\] .text-white\/60 {
+  color: rgba(255, 255, 255, 0.6) !important;
+}
+
+html.light .bg-f1red.text-white\/50,
+html.light .bg-\[\#e8002d\].text-white\/50,
+html.light .bg-f1red .text-white\/50,
+html.light .bg-\[\#e8002d\] .text-white\/50 {
+  color: rgba(255, 255, 255, 0.5) !important;
+}
+
+/* Scrollbar */
+html.light ::-webkit-scrollbar-thumb { background: rgb(192 192 210); }
 
 body {
   @apply bg-track text-white font-sans antialiased;

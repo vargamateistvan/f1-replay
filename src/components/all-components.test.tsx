@@ -149,6 +149,7 @@ vi.mock("@/stores/settings", () => {
     catchupSummaryEnabled: true,
     showNextRaceWeekendBanner: true,
     isHelpOpen: true,
+    lightMode: false,
   };
   const store = {
     ...defaults,

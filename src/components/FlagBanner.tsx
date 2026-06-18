@@ -1,4 +1,5 @@
 import type { RaceControl } from "@/api/types";
+import { useSettings } from "@/stores/settings";
 
 interface Props {
   entries: RaceControl[];
@@ -15,8 +16,11 @@ interface BannerStyle {
   label: string;
 }
 
-const FORMATION_STYLE: BannerStyle = { bg: "#1c1c2e", text: "#c8c8ff", label: "FORMATION LAP" };
-const LIGHTS_OUT_STYLE: BannerStyle = { bg: "#00c851", text: "#fff", label: "🚦 LIGHTS OUT" };
+const LIGHTS_OUT_STYLE: BannerStyle = {
+  bg: "#00c851",
+  text: "#fff",
+  label: "🚦 LIGHTS OUT",
+};
 
 const FLAG_STYLES: Record<string, BannerStyle> = {
   YELLOW: { bg: "#f5d400", text: "#000", label: "⚑ YELLOW FLAG" },
@@ -46,8 +50,18 @@ function activeFlag(
 
 const LIGHTS_OUT_DURATION_MS = 3_500;
 
-export function FlagBanner({ entries, sessionTimeMs, sessionStartMs, lightsOutMs, isRaceSession }: Props) {
+export function FlagBanner({
+  entries,
+  sessionTimeMs,
+  sessionStartMs,
+  lightsOutMs,
+  isRaceSession,
+}: Props) {
+  const lightMode = useSettings((s) => s.lightMode);
   const currentT = sessionStartMs + sessionTimeMs;
+  const formationStyle: BannerStyle = lightMode
+    ? { bg: "#e8ecf8", text: "#4a5575", label: "FORMATION LAP" }
+    : { bg: "#1c1c2e", text: "#c8c8ff", label: "FORMATION LAP" };
 
   // Formation lap / lights out take priority over regular flags.
   // Suppress the formation-lap text once the lights sequence starts (5 s before
@@ -55,10 +69,16 @@ export function FlagBanner({ entries, sessionTimeMs, sessionStartMs, lightsOutMs
   const LIGHTS_SEQUENCE_MS = 5_000;
   let banner: BannerStyle | null = null;
   if (isRaceSession && lightsOutMs != null) {
-    if (sessionTimeMs >= lightsOutMs && sessionTimeMs < lightsOutMs + LIGHTS_OUT_DURATION_MS) {
+    if (
+      sessionTimeMs >= lightsOutMs &&
+      sessionTimeMs < lightsOutMs + LIGHTS_OUT_DURATION_MS
+    ) {
       banner = LIGHTS_OUT_STYLE;
-    } else if (sessionTimeMs >= 0 && sessionTimeMs < lightsOutMs - LIGHTS_SEQUENCE_MS) {
-      banner = FORMATION_STYLE;
+    } else if (
+      sessionTimeMs >= 0 &&
+      sessionTimeMs < lightsOutMs - LIGHTS_SEQUENCE_MS
+    ) {
+      banner = formationStyle;
     }
     // lightsOutMs - LIGHTS_SEQUENCE_MS ≤ t < lightsOutMs → no banner (StartingLights shown)
   }

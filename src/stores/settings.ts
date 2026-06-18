@@ -33,6 +33,8 @@ export interface AppSettings {
   catchupSummaryEnabled: boolean;
   showCsvExportButtons: boolean;
   showNextRaceWeekendBanner: boolean;
+  // Appearance
+  lightMode: boolean;
 }
 
 interface SettingsStore extends AppSettings {
@@ -74,6 +76,7 @@ export const SETTINGS_DEFAULTS: AppSettings = {
   catchupSummaryEnabled: true,
   showCsvExportButtons: true,
   showNextRaceWeekendBanner: true,
+  lightMode: false,
 };
 
 export const useSettings = create<SettingsStore>()(

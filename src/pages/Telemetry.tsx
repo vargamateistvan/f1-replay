@@ -12,6 +12,7 @@ import {
 } from "@/hooks/useCarDataForLap";
 import { useDrivers, useLaps, useSessions } from "@/hooks/useSession";
 import { useNumberParam, useStringParam } from "@/hooks/useSearchParamState";
+import { useSettings } from "@/stores/settings";
 import { teamColor } from "@/utils/color";
 import { computeDelta, resampleToAxis, smooth } from "@/utils/telemetry";
 
@@ -158,6 +159,7 @@ function formatDeltaHint(deltaSeconds: number | null): DeltaHint {
 }
 
 export default function Telemetry() {
+  const lightMode = useSettings((s) => s.lightMode);
   const [activeMode, setActiveMode] = useState<"quali" | "race" | null>(null);
   const [showLayoutHint, setShowLayoutHint] = useState(() => {
     if (typeof window === "undefined") return false;
@@ -836,7 +838,13 @@ export default function Telemetry() {
 
   return (
     <div className="flex flex-col md:h-full md:overflow-hidden">
-      <div className="bg-[radial-gradient(circle_at_top_left,#2a2136_0%,#1b1d28_40%,#16161f_100%)] px-3 py-3">
+      <div
+        className={`px-3 py-3 ${
+          lightMode
+            ? "bg-[radial-gradient(circle_at_top_left,#edf1fb_0%,#e8edf8_40%,#e3e9f6_100%)]"
+            : "bg-[radial-gradient(circle_at_top_left,#2a2136_0%,#1b1d28_40%,#16161f_100%)]"
+        }`}
+      >
         <div className="mb-3 flex flex-wrap items-center gap-2">
           <div className="rounded-sm border border-[#444458] bg-[#12131b] px-2 py-1">
             <span className="text-[10px] font-bold uppercase tracking-[0.12em] text-muted">
@@ -966,9 +974,19 @@ export default function Telemetry() {
         </div>
 
         {showLayoutHint && (
-          <div className="mb-3 flex items-start gap-2 rounded border border-[#35506e] bg-[#162337] p-2 text-[11px] text-[#d6e7ff]">
+          <div
+            className={`mb-3 flex items-start gap-2 rounded border p-2 text-[11px] ${
+              lightMode
+                ? "border-[#bfd0ee] bg-[#eaf2ff] text-[#334a70]"
+                : "border-[#35506e] bg-[#162337] text-[#d6e7ff]"
+            }`}
+          >
             <div className="leading-snug">
-              <span className="font-black uppercase tracking-[0.1em] text-[#9bc9ff]">
+              <span
+                className={`font-black uppercase tracking-[0.1em] ${
+                  lightMode ? "text-[#3d6fb3]" : "text-[#9bc9ff]"
+                }`}
+              >
                 Layout tip
               </span>
               <span className="ml-2">
@@ -979,7 +997,11 @@ export default function Telemetry() {
             </div>
             <button
               onClick={dismissLayoutHint}
-              className="ml-auto h-6 shrink-0 rounded border border-[#4b6586] px-2 text-[10px] font-black uppercase tracking-[0.1em] text-[#d6e7ff] hover:border-[#8db2de]"
+              className={`ml-auto h-6 shrink-0 rounded border px-2 text-[10px] font-black uppercase tracking-[0.1em] ${
+                lightMode
+                  ? "border-[#9cb7e1] text-[#36527f] hover:border-[#6f94cc]"
+                  : "border-[#4b6586] text-[#d6e7ff] hover:border-[#8db2de]"
+              }`}
               title="Dismiss helper"
             >
               Dismiss
@@ -1160,7 +1182,11 @@ export default function Telemetry() {
         )}
       </div>
 
-      <div className="panel-scroll space-y-2 border-t border-panel bg-[#11131c] px-3 pb-3 pt-1">
+      <div
+        className={`panel-scroll space-y-2 border-t border-panel px-3 pb-3 pt-1 ${
+          lightMode ? "bg-[#edf1f9]" : "bg-[#11131c]"
+        }`}
+      >
         {(() => {
           if (hasError) {
             return (
@@ -1186,7 +1212,13 @@ export default function Telemetry() {
 
           return (
             <>
-              <div className="sticky top-0 z-10 -mx-1 mb-1 border-b border-[#2f2f3d] bg-[linear-gradient(180deg,rgba(21,21,30,0.96),rgba(21,21,30,0.86))] px-1 py-2 backdrop-blur">
+              <div
+                className={`sticky top-0 z-10 -mx-1 mb-1 border-b px-1 py-2 backdrop-blur ${
+                  lightMode
+                    ? "border-[#c7d0e3] bg-[linear-gradient(180deg,rgba(235,240,248,0.96),rgba(229,235,245,0.88))]"
+                    : "border-[#2f2f3d] bg-[linear-gradient(180deg,rgba(21,21,30,0.96),rgba(21,21,30,0.86))]"
+                }`}
+              >
                 <div className="flex flex-wrap items-center gap-2 text-xs">
                   <span
                     className={`rounded border px-2 py-1 text-[10px] font-black uppercase tracking-[0.13em] ${modeClass}`}
@@ -1202,7 +1234,11 @@ export default function Telemetry() {
                   >
                     Smooth {smoothing ? "On" : "Off"}
                   </span>
-                  <span className="h-4 w-px bg-[#3a3a49]" />
+                  <span
+                    className={`h-4 w-px ${
+                      lightMode ? "bg-[#c0c9dc]" : "bg-[#3a3a49]"
+                    }`}
+                  />
                   <span className="text-[10px] font-bold uppercase tracking-[0.12em] text-muted">
                     Compared traces
                   </span>

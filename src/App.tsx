@@ -59,6 +59,18 @@ function CoffeeWidgetGate() {
   return null;
 }
 
+function LightModeGate() {
+  const lightMode = useSettings((s) => s.lightMode);
+  useEffect(() => {
+    if (lightMode) {
+      document.documentElement.classList.add("light");
+    } else {
+      document.documentElement.classList.remove("light");
+    }
+  }, [lightMode]);
+  return null;
+}
+
 export default function App() {
   useEffect(() => {
     startClock();
@@ -72,6 +84,7 @@ export default function App() {
         persistOptions={{ persister: queryPersister, maxAge: PERSIST_MAX_AGE }}
       >
         <CoffeeWidgetGate />
+        <LightModeGate />
         <AppRouter />
       </PersistQueryClientProvider>
     </ErrorBoundary>

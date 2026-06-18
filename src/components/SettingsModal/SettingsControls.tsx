@@ -167,6 +167,14 @@ export function SettingsBody() {
 
   return (
     <>
+      <SectionHeader>Appearance</SectionHeader>
+      <SettingRow
+        label="Light mode"
+        description="Switch to a light colour scheme"
+        checked={settings.lightMode}
+        onChange={toggle("lightMode")}
+      />
+
       <SectionHeader>Playback</SectionHeader>
       <SpeedSelector
         value={settings.defaultSpeed}
