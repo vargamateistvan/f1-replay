@@ -46,6 +46,10 @@ function fmtTime(ms: number) {
     : `${pad(m)}:${pad(s % 60)}`;
 }
 
+function markerTooltip(label: string, ms: number) {
+  return `${label} at ${fmtTime(ms)}`;
+}
+
 const JUMP_BTN =
   "flex h-8 w-6 items-center justify-center text-xs bg-panel text-muted transition-colors shrink-0 hover:text-white hover:bg-[#38383f] sm:w-7 disabled:opacity-30 disabled:hover:bg-panel disabled:hover:text-muted";
 const CHIP_STRETCH =
@@ -242,19 +246,27 @@ export function PlaybackBar({
                     : marker.severity === "warning"
                       ? "bg-amber-400"
                       : "bg-slate-400";
+                const tooltip = markerTooltip(marker.label, marker.ms);
                 return (
                   <button
                     key={marker.id}
                     type="button"
-                    title={`Jump to ${marker.label}`}
-                    aria-label={`Jump to ${marker.label}`}
+                    title={tooltip}
+                    aria-label={`Jump to incident: ${tooltip}`}
                     onClick={() => jump(marker.ms)}
-                    className={`absolute top-0 h-4 w-1 rounded ${color} opacity-80 hover:opacity-100 pointer-events-auto`}
+                    className="group absolute top-1/2 h-5 w-5 rounded-full pointer-events-auto"
                     style={{
                       left: `${left}%`,
-                      transform: "translateX(-50%)",
+                      transform: "translate(-50%, -50%)",
                     }}
-                  />
+                  >
+                    <span
+                      className={`absolute left-1/2 top-1/2 h-4 w-1.5 -translate-x-1/2 -translate-y-1/2 rounded ${color} opacity-90 ring-1 ring-black/35 transition-opacity group-hover:opacity-100`}
+                    />
+                    <span className="pointer-events-none absolute bottom-full left-1/2 z-20 mb-2 w-max max-w-[180px] -translate-x-1/2 whitespace-nowrap rounded border border-panel bg-[#101117] px-2 py-1 text-[10px] font-black uppercase tracking-wider text-white opacity-0 shadow-[0_8px_20px_rgba(0,0,0,0.45)] transition-opacity group-hover:opacity-100 group-focus-visible:opacity-100">
+                      {tooltip}
+                    </span>
+                  </button>
                 );
               })}
             </div>
