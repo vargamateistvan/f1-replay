@@ -134,15 +134,17 @@ export function SessionInfoBar({
         </span>
       </div>
 
-      {/* Track status badge */}
-      <div className="flex min-w-0 flex-1 items-center justify-center border-r border-b border-panel px-3 py-2 sm:flex-none sm:justify-start sm:border-b-0 sm:px-4">
-        <span
-          className="px-2 py-0.5 text-center text-[9px] font-black tracking-widest"
-          style={{ background: status.bg, color: status.color }}
-        >
-          {status.label}
-        </span>
-      </div>
+      {/* Track status badge - hide during formation lap since lap display shows 'F' */}
+      {!isFormationLap && (
+        <div className="flex min-w-0 flex-1 items-center justify-center border-r border-b border-panel px-3 py-2 sm:flex-none sm:justify-start sm:border-b-0 sm:px-4">
+          <span
+            className="px-2 py-0.5 text-center text-[9px] font-black tracking-widest"
+            style={{ background: status.bg, color: status.color }}
+          >
+            {status.label}
+          </span>
+        </div>
+      )}
 
       {/* Elapsed time */}
       <div className="flex min-w-0 flex-1 items-center justify-center gap-2 border-r border-b border-panel px-3 py-2 sm:flex-none sm:justify-start sm:border-b-0 sm:px-4">

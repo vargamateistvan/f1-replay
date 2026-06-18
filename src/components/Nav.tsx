@@ -288,11 +288,13 @@ export function Nav() {
   );
 
   function onYear(y: number) {
+    console.log("[Nav] onYear called with:", y);
     if (Number.isNaN(y) || !Number.isFinite(y)) {
-      console.warn("Invalid year value:", y);
+      console.warn("[Nav] Invalid year value:", y);
       return;
     }
     try {
+      console.log("[Nav] Updating search params for year:", y);
       setSearchParams(
         (prev) => {
           try {
@@ -300,41 +302,67 @@ export function Nav() {
             next.set("year", String(y));
             next.delete("meeting");
             next.delete("session");
+            console.log(
+              "[Nav] Search params updated, new params:",
+              next.toString(),
+            );
             return next;
           } catch (err) {
-            console.error("Error updating search params:", err);
+            console.error(
+              "[Nav] Error updating search params:",
+              err instanceof Error ? err.message : String(err),
+            );
             return prev;
           }
         },
         { replace: true },
       );
+      console.log("[Nav] setSearchParams call completed");
     } catch (err) {
-      console.error("Year navigation error:", err);
+      console.error(
+        "[Nav] Year navigation error:",
+        err instanceof Error ? err.message : String(err),
+      );
+      throw err;
     }
   }
 
   function onMeeting(k: number) {
+    console.log("[Nav] onMeeting called with:", k);
     if (Number.isNaN(k) || !Number.isFinite(k)) {
-      console.warn("Invalid meeting key:", k);
+      console.warn("[Nav] Invalid meeting key:", k);
       return;
     }
     try {
+      console.log("[Nav] Updating search params for meeting:", k);
       setSearchParams(
         (prev) => {
           try {
             const next = new URLSearchParams(prev);
             next.set("meeting", String(k));
             next.delete("session");
+            console.log(
+              "[Nav] Search params updated, new params:",
+              next.toString(),
+            );
             return next;
           } catch (err) {
-            console.error("Error updating search params:", err);
+            console.error(
+              "[Nav] Error updating search params:",
+              err instanceof Error ? err.message : String(err),
+            );
             return prev;
           }
         },
         { replace: true },
       );
+      console.log("[Nav] setSearchParams call completed");
     } catch (err) {
-      console.error("Meeting navigation error:", err);
+      console.error(
+        "[Nav] Meeting navigation error:",
+        err instanceof Error ? err.message : String(err),
+      );
+      throw err;
     }
   }
 
@@ -747,12 +775,22 @@ export function Nav() {
                 value={sessionKey ?? ""}
                 onChange={(e) => {
                   try {
+                    console.log("[Nav] Session selection started", {
+                      value: e.target.value,
+                    });
                     const val = Number(e.target.value);
+                    console.log("[Nav] Session value parsed:", val);
                     if (!Number.isNaN(val)) {
+                      console.log("[Nav] Calling setSessionKey:", val);
                       setSessionKey(val);
+                      console.log("[Nav] setSessionKey completed");
                     }
                   } catch (err) {
-                    console.error("Session selection error:", err);
+                    console.error(
+                      "[Nav] Session selection error:",
+                      err instanceof Error ? err.message : String(err),
+                    );
+                    throw err;
                   }
                 }}
                 disabled={sessions.isPending || !meetingKey}

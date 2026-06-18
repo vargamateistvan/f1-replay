@@ -103,9 +103,19 @@ export function SessionPicker({
               if (now - lastSelectChangeRef.current < 100) return;
               lastSelectChangeRef.current = now;
               try {
-                onYear(Number(e.target.value));
+                console.log("[SessionPicker] Year selection started", {
+                  value: e.target.value,
+                });
+                const val = Number(e.target.value);
+                console.log("[SessionPicker] Year value parsed:", val);
+                onYear(val);
+                console.log("[SessionPicker] onYear completed");
               } catch (err) {
-                console.error("Year selection error:", err);
+                console.error(
+                  "[SessionPicker] Year selection error:",
+                  err instanceof Error ? err.message : String(err),
+                );
+                throw err;
               }
             }}
             className={SELECT}
@@ -133,12 +143,22 @@ export function SessionPicker({
                 if (now - lastSelectChangeRef.current < 100) return;
                 lastSelectChangeRef.current = now;
                 try {
+                  console.log("[SessionPicker] Meeting selection started", {
+                    value: e.target.value,
+                  });
                   const val = Number(e.target.value);
+                  console.log("[SessionPicker] Meeting value parsed:", val);
                   if (!Number.isNaN(val) && val !== 0) {
+                    console.log("[SessionPicker] Calling onMeeting:", val);
                     onMeeting(val);
+                    console.log("[SessionPicker] onMeeting completed");
                   }
                 } catch (err) {
-                  console.error("Meeting selection error:", err);
+                  console.error(
+                    "[SessionPicker] Meeting selection error:",
+                    err instanceof Error ? err.message : String(err),
+                  );
+                  throw err;
                 }
               }}
               disabled={meetings.isPending}
@@ -169,12 +189,22 @@ export function SessionPicker({
                 if (now - lastSelectChangeRef.current < 100) return;
                 lastSelectChangeRef.current = now;
                 try {
+                  console.log("[SessionPicker] Session selection started", {
+                    value: e.target.value,
+                  });
                   const val = Number(e.target.value);
+                  console.log("[SessionPicker] Session value parsed:", val);
                   if (!Number.isNaN(val) && val !== 0) {
+                    console.log("[SessionPicker] Calling onSession:", val);
                     onSession(val);
+                    console.log("[SessionPicker] onSession completed");
                   }
                 } catch (err) {
-                  console.error("Session selection error:", err);
+                  console.error(
+                    "[SessionPicker] Session selection error:",
+                    err instanceof Error ? err.message : String(err),
+                  );
+                  throw err;
                 }
               }}
               disabled={sessions.isPending || !meetingKey}
