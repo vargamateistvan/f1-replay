@@ -572,21 +572,24 @@ export default function Telemetry() {
     driverByNumber,
   ]);
 
-  function series(
-    key: keyof Omit<TelemetrySample, "distM" | "timeS">,
-    smoothable: boolean,
-    withFill = false,
-  ) {
-    return plotSlots.map((s) => {
-      const raw = s.data.map((d) => d[key] as number);
-      return {
-        label: s.label,
-        color: s.color,
-        fill: withFill ? `${s.color}26` : undefined,
-        data: smoothing && smoothable ? smooth(raw) : raw,
-      };
-    });
-  }
+  const series = useCallback(
+    (
+      key: keyof Omit<TelemetrySample, "distM" | "timeS">,
+      smoothable: boolean,
+      withFill = false,
+    ) => {
+      return plotSlots.map((s) => {
+        const raw = s.data.map((d) => d[key] as number);
+        return {
+          label: s.label,
+          color: s.color,
+          fill: withFill ? `${s.color}26` : undefined,
+          data: smoothing && smoothable ? smooth(raw) : raw,
+        };
+      });
+    },
+    [plotSlots, smoothing],
+  );
 
   const speedSeries = useMemo(() => {
     const base = series("speed", true);
@@ -594,20 +597,14 @@ export default function Telemetry() {
       ...s,
       data: s.data.map((value) => toDisplaySpeed(value, metricSystem)),
     }));
-  }, [plotSlots, smoothing, metricSystem]);
+  }, [series, metricSystem]);
   const throttleSeries = useMemo(
     () => series("throttle", true, true),
-    [plotSlots, smoothing],
+    [series],
   );
-  const brakeSeries = useMemo(
-    () => series("brake", true, true),
-    [plotSlots, smoothing],
-  );
-  const gearSeries = useMemo(
-    () => series("gear", false),
-    [plotSlots, smoothing],
-  );
-  const rpmSeries = useMemo(() => series("rpm", true), [plotSlots, smoothing]);
+  const brakeSeries = useMemo(() => series("brake", true, true), [series]);
+  const gearSeries = useMemo(() => series("gear", false), [series]);
+  const rpmSeries = useMemo(() => series("rpm", true), [series]);
   const speedUnit = speedUnitLabel(metricSystem);
   const speedChartMax = metricSystem === "imperial" ? 240 : 380;
 

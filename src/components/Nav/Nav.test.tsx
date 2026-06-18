@@ -19,13 +19,13 @@ const state = vi.hoisted(() => ({
     data: [],
     isPending: false,
     isError: false,
-    error: null,
+    error: null as { status?: number } | null,
   },
   sessions: {
     data: [],
     isPending: false,
     isError: false,
-    error: null,
+    error: null as { status?: number } | null,
   },
   live: false,
   openModal: vi.fn(),
@@ -147,6 +147,8 @@ describe("Nav", () => {
   });
 
   it("renders auth/live banner and handles latest/settings/help actions", async () => {
+    state.meetings.isError = true;
+    state.meetings.error = { status: 401 };
     render(<Nav />);
 
     expect(screen.getByText(/OpenF1 returned/)).toBeInTheDocument();

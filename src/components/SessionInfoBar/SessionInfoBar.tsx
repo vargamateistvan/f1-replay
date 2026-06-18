@@ -97,9 +97,12 @@ export function SessionInfoBar({
   const [lapInput, setLapInput] = useState("");
   const [lapError, setLapError] = useState<string | null>(null);
   const currentT = sessionStartMs + sessionTimeMs;
-  const formationStatus: TrackStatus = lightMode
-    ? { label: "FORMATION LAP", bg: "#e8ecf8", color: "#4a5575" }
-    : FLAG_STATUS["FORMATION_LAP"]!;
+
+  const formationStatus = useMemo<TrackStatus>(() => {
+    return lightMode
+      ? { label: "FORMATION LAP", bg: "#e8ecf8", color: "#4a5575" }
+      : FLAG_STATUS["FORMATION_LAP"]!;
+  }, [lightMode]);
 
   const currentLap = useMemo(() => {
     let max = 0;

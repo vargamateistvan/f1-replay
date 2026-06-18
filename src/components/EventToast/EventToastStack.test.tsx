@@ -2,6 +2,7 @@ import { describe, expect, it, vi } from "vitest";
 import { fireEvent, render, screen } from "@testing-library/react";
 import { EventToastStack } from "@/components/EventToast/EventToastStack";
 import type { Driver } from "@/api/types";
+import type { ActiveToast } from "@/hooks/useEventToasts";
 
 const drivers: Driver[] = [
   {
@@ -40,7 +41,7 @@ describe("EventToastStack", () => {
                 },
               },
             },
-          ] as any
+          ] as ActiveToast[]
         }
         drivers={drivers}
         onDismiss={onDismiss}
@@ -70,7 +71,7 @@ describe("EventToastStack", () => {
                 },
               },
             },
-          ] as any
+          ] as ActiveToast[]
         }
         drivers={drivers}
         onDismiss={vi.fn()}

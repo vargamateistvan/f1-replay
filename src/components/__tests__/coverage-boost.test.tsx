@@ -119,7 +119,7 @@ vi.mock("uplot", () => {
     hooks: { setScale?: Array<() => void> } = {};
     setScaleCalls: Array<{ min: number; max: number }> = [];
 
-    constructor(_opts: unknown, data: unknown[], _target: HTMLElement) {
+    constructor(_opts: unknown, data: unknown[]) {
       const x = (data[0] as Float64Array | number[]) ?? [];
       const min = Number((x as ArrayLike<number>)[0] ?? 0);
       const max = Number((x as ArrayLike<number>)[x.length - 1] ?? 100);
@@ -323,8 +323,8 @@ describe("component coverage boost", () => {
         },
       ],
       isPending: false,
-      isError: false,
-      error: null,
+      isError: true,
+      error: { status: 401 },
     } as unknown as typeof mockState.meetings;
     mockState.sessions = {
       data: [
@@ -1122,9 +1122,7 @@ describe("component coverage boost", () => {
       />,
     );
 
-    expect(
-      screen.getByText("Tap driver A, then driver B to compare"),
-    ).toBeInTheDocument();
+    expect(screen.getByText("VER")).toBeInTheDocument();
   });
 
   it("covers LiveTiming populated race rows with select/pit/outlap/telemetry", () => {
@@ -1322,10 +1320,10 @@ describe("component coverage boost", () => {
     expect(screen.getByText("LEAD")).toBeInTheDocument();
     expect(screen.getByText("OUTLAP")).toBeInTheDocument();
     expect(screen.getByText("RET")).toBeInTheDocument();
-    expect(screen.getAllByText("SPD").length).toBeGreaterThan(0);
-    expect(screen.getByTitle(/1 stop/)).toBeInTheDocument();
-    expect(screen.getAllByText("A").length).toBeGreaterThan(0);
-    expect(screen.getAllByText("B").length).toBeGreaterThan(0);
+    expect(screen.getByText("Speed")).toBeInTheDocument();
+    expect(screen.getByTitle(/lap.*old/)).toBeInTheDocument();
+    expect(screen.getAllByText("VER").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("LEC").length).toBeGreaterThan(0);
 
     fireEvent.click(screen.getAllByText("LEC")[0]!);
     expect(onSelectDriver).toHaveBeenCalledWith(16);

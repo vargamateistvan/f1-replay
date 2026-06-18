@@ -5,10 +5,10 @@ import type { Driver } from "@/api/types";
 
 const state = vi.hoisted(() => ({
   t: 20_000,
-  windowData: [] as any[],
-  compareWindowData: [] as any[],
-  lapData: [] as any[],
-  compareLapData: [] as any[],
+  windowData: [] as unknown[],
+  compareWindowData: [] as unknown[],
+  lapData: [] as unknown[],
+  compareLapData: [] as unknown[],
 }));
 
 vi.mock("@/timeline/clock", () => ({

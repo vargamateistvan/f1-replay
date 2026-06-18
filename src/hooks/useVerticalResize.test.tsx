@@ -1,6 +1,7 @@
 import { renderHook, act } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import { useVerticalResize } from "./useVerticalResize";
+import type React from "react";
 
 describe("useVerticalResize", () => {
   it("updates height on drag, clamps values, and resets", () => {
@@ -14,7 +15,7 @@ describe("useVerticalResize", () => {
       result.current.handleProps.onMouseDown({
         preventDefault: vi.fn(),
         clientY: 200,
-      } as any),
+      } as unknown as React.MouseEvent<Element, MouseEvent>),
     );
 
     act(() => {

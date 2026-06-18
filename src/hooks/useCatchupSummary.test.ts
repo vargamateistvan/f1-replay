@@ -1,12 +1,31 @@
 import { renderHook, act } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 import { useCatchupSummary } from "./useCatchupSummary";
+import type { ToastEvent } from "@/timeline/events";
 
-const events = [
-  { id: "a", ms: 10_000, kind: "flag", payload: {}, priority: "high" },
-  { id: "b", ms: 65_000, kind: "pit", payload: {}, priority: "high" },
-  { id: "c", ms: 80_000, kind: "radio", payload: {}, priority: "high" },
-] as any[];
+const events: ToastEvent[] = [
+  {
+    id: "a",
+    ms: 10_000,
+    kind: "flag",
+    payload: { flag: "YELLOW", message: "Yellow flag", lapNumber: 1 },
+    priority: "high",
+  },
+  {
+    id: "b",
+    ms: 65_000,
+    kind: "pit",
+    payload: { driverNumber: 16, lapNumber: 5, pitDuration: null },
+    priority: "high",
+  },
+  {
+    id: "c",
+    ms: 80_000,
+    kind: "radio",
+    payload: { driverNumber: 1, recordingUrl: "https://example.com/radio.mp3" },
+    priority: "high",
+  },
+];
 
 describe("useCatchupSummary", () => {
   it("creates a summary after a large jump and allows dismiss", () => {

@@ -4,16 +4,16 @@ import { SessionPicker } from "@/components/SessionPicker";
 
 const state = vi.hoisted(() => ({
   meetings: {
-    data: [],
+    data: [] as Array<Record<string, unknown>>,
     isPending: false,
     isError: false,
-    error: null,
+    error: null as { status?: number } | null,
   },
   sessions: {
-    data: [],
+    data: [] as Array<Record<string, unknown>>,
     isPending: false,
     isError: false,
-    error: null,
+    error: null as { status?: number } | null,
   },
   live: false,
 }));
@@ -83,8 +83,8 @@ describe("SessionPicker", () => {
         },
       ],
       isPending: false,
-      isError: false,
-      error: null,
+      isError: true,
+      error: { status: 401 },
     } as typeof state.meetings;
     state.sessions = {
       data: [

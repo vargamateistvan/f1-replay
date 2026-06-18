@@ -1,12 +1,31 @@
 import { renderHook, act } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { useEventToasts } from "./useEventToasts";
+import type { ToastEvent } from "@/timeline/events";
 
-const events = [
-  { id: "low", ms: 1_000, kind: "investigation", payload: {}, priority: "low" },
-  { id: "high-1", ms: 1_500, kind: "flag", payload: {}, priority: "high" },
-  { id: "high-2", ms: 2_000, kind: "pit", payload: {}, priority: "high" },
-] as any[];
+const events: ToastEvent[] = [
+  {
+    id: "low",
+    ms: 1_000,
+    kind: "investigation",
+    payload: { flag: "YELLOW", message: "Noted", lapNumber: 1 },
+    priority: "low",
+  },
+  {
+    id: "high-1",
+    ms: 1_500,
+    kind: "flag",
+    payload: { flag: "YELLOW", message: "Yellow flag", lapNumber: 2 },
+    priority: "high",
+  },
+  {
+    id: "high-2",
+    ms: 2_000,
+    kind: "pit",
+    payload: { driverNumber: 1, lapNumber: 3, pitDuration: null },
+    priority: "high",
+  },
+];
 
 describe("useEventToasts", () => {
   beforeEach(() => {

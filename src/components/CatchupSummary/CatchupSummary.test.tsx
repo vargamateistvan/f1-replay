@@ -2,6 +2,7 @@ import { describe, expect, it, vi } from "vitest";
 import { fireEvent, render, screen } from "@testing-library/react";
 import { CatchupSummary } from "@/components/CatchupSummary/CatchupSummary";
 import type { Driver } from "@/api/types";
+import type { CatchupSummary as CatchupSummaryData } from "@/hooks/useCatchupSummary";
 
 const drivers: Driver[] = [
   {
@@ -59,7 +60,7 @@ describe("CatchupSummary", () => {
                 payload: { driverNumber: 16, lap: 5 },
               },
             ],
-          } as any
+          } as CatchupSummaryData
         }
         drivers={drivers}
         onDismiss={onDismiss}
