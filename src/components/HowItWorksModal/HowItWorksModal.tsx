@@ -233,6 +233,40 @@ export function HowItWorksModal() {
               </ul>
             </section>
 
+            {/* Architecture */}
+            <section>
+              <h3 className="text-[13px] font-bold text-white uppercase tracking-widest mb-2">
+                🧠 How It Works Under The Hood
+              </h3>
+              <ul className="text-[12px] leading-relaxed space-y-1.5 ml-3">
+                <li>
+                  <strong className="text-white">Shared Timeline:</strong> A
+                  single session clock drives map, timing, telemetry, toasts,
+                  and event feeds.
+                </li>
+                <li>
+                  <strong className="text-white">Smart Caching:</strong> API
+                  responses are persisted with TanStack Query, so switching tabs
+                  and revisiting sessions stays fast.
+                </li>
+                <li>
+                  <strong className="text-white">Derived Event Layers:</strong>
+                  Timeline helpers transform raw API rows into markers, toasts,
+                  chapters, and track-state overlays.
+                </li>
+                <li>
+                  <strong className="text-white">Map Interpolation:</strong>
+                  Car positions are interpolated at the current playhead time,
+                  then rendered on SVG geometry for smooth replay motion.
+                </li>
+                <li>
+                  <strong className="text-white">Live Settings:</strong>
+                  Overlay and notification toggles update the UI immediately
+                  without reloading session data.
+                </li>
+              </ul>
+            </section>
+
             {/* Settings */}
             <section>
               <h3 className="text-[13px] font-bold text-white uppercase tracking-widest mb-2">
@@ -335,6 +369,18 @@ export function HowItWorksModal() {
                 Report an issue
               </a>
               .
+            </p>
+
+            <p className="text-[11px] text-muted leading-relaxed pb-2">
+              Author:{" "}
+              <a
+                href="https://github.com/vargamateistvan"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-f1red hover:underline"
+              >
+                github.com/vargamateistvan
+              </a>
             </p>
           </div>
         </div>

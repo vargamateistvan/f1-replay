@@ -156,6 +156,47 @@ yarn preview
 - **Track Heatmap** — overlay lap-based pace heatmap for focused runs
 - **Focused HUD Controls** — tune what appears in focused track-map mode from Settings
 
+## How It Works
+
+F1 Replay is built as a time-synced pipeline where every panel reads from the same
+session clock.
+
+1. Session selection
+
+- User picks meeting/session from the header controls.
+- `RaceWeekend` loads OpenF1 datasets (`drivers`, `laps`, `position`, `intervals`, `stints`, `race_control`, `team_radio`, `weather`, etc.).
+
+2. Data ingestion and caching
+
+- API requests go through `src/api/client.ts` and `src/api/endpoints.ts`.
+- TanStack Query caches responses (persisted via IndexedDB), so revisits and tab switches are fast.
+
+3. Unified timeline
+
+- Playback time is managed by the timeline store in `src/timeline/clock.ts`.
+- `PlaybackBar` updates the shared playhead (`t`), and all views render state for that same moment.
+
+4. Derived event layers
+
+- `src/timeline/events.ts` and `src/timeline/raceControl.ts` convert raw API rows into timeline markers, chapters, notifications, and race-control state.
+- This powers jump chips, toasts, map indicators, and chapter navigation.
+
+5. Track map rendering
+
+- Track geometry is generated from location data and circuit metadata.
+- Car positions are interpolated at the current playhead time and rendered as SVG markers.
+- Overlays (focus-follow camera, battle rings, flags, SC/VSC/formation badges, mini leaderboard, compounds) are derived from live replay state.
+
+6. Telemetry and analysis
+
+- Telemetry views window/filter car data around the selected lap/time.
+- Charts and timing tables reuse shared driver/session data so map, timing, and telemetry stay in sync during playback.
+
+7. Settings-driven UI behavior
+
+- User preferences are stored in Zustand (`src/stores/settings.ts`).
+- Visibility and density features (toasts, overlays, controls, chips, etc.) are toggled live without reloading data.
+
 ## Project Structure
 
 ```
@@ -315,6 +356,35 @@ Please follow the existing code style and add tests for new features.
 
 See [`docs/FEATURES_ROADMAP.md`](docs/FEATURES_ROADMAP.md) for detailed feature planning.
 
+## Missing Features (Current)
+
+The app is feature-rich and most planned broadcast capabilities are already shipped.
+The main remaining gaps are tracked in [`docs/REMAINING_PLAN.md`](docs/REMAINING_PLAN.md).
+
+As of 2026-06-18, the key missing items are:
+
+1. Nav session-picker sub-bar split
+
+- Move year/meeting/session controls out of the crowded top red bar into a dedicated second desktop sub-bar.
+
+2. PlaybackBar compact mobile controls
+
+- Convert speed controls into a compact segmented control and make jump chips collapsible behind a tray toggle on small screens.
+
+3. Toast sound cues (optional)
+
+- Add per-type short audio cues for radio/flag/overtake/pit/fastest-lap toasts with a settings toggle (default off).
+
+4. Deferred / lower-priority items
+
+- Ambient engine audio bed.
+- Full LiveTiming layout rewrite (cosmetic parity pass).
+
+For deeper implementation notes and sequencing, use:
+
+- [`docs/REMAINING_PLAN.md`](docs/REMAINING_PLAN.md)
+- [`docs/FEATURES_ROADMAP.md`](docs/FEATURES_ROADMAP.md)
+
 ## License
 
 This project is open source and available under the MIT License.
@@ -324,6 +394,10 @@ This project is open source and available under the MIT License.
 - **[OpenF1](https://api.openf1.org/)** — public F1 data API
 - **Formula 1** — for inspiring data and context
 - **React, Vite, Tailwind, and the broader open-source community**
+
+## Author
+
+- **vargamateistvan** — [https://github.com/vargamateistvan](https://github.com/vargamateistvan)
 
 ---
 
