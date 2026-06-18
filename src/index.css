@@ -307,3 +307,33 @@ input[type='range']::-moz-range-thumb {
   height: 20px;
   border-radius: 2px;
 }
+
+/* Select and option styling for all browsers */
+select {
+  color-scheme: dark;
+}
+
+select option {
+  background-color: #2a2a35;
+  color: #ffffff;
+}
+
+select option:checked {
+  background-color: #38383f;
+  color: #ffffff;
+}
+
+/* Light mode */
+html.light select {
+  color-scheme: light;
+}
+
+html.light select option {
+  background-color: #e8e8f0;
+  color: #12121a;
+}
+
+html.light select option:checked {
+  background-color: #d0d0e0;
+  color: #12121a;
+}
