@@ -13,6 +13,10 @@ interface Props {
   onSession: (k: number) => void;
 }
 
+// Prevent double submissions on mobile Safari
+let lastSelectChangeMs = 0;
+const DEBOUNCE_MS = 100;
+
 const CIRCUIT_TYPE_LABEL: Record<string, string> = {
   Permanent: "Permanent",
   "Temporary - Street": "Street Circuit",
@@ -97,7 +101,16 @@ export function SessionPicker({
           <select
             aria-label="Season year"
             value={year}
-            onChange={(e) => onYear(Number(e.target.value))}
+            onChange={(e) => {
+              const now = Date.now();
+              if (now - lastSelectChangeMs < DEBOUNCE_MS) return;
+              lastSelectChangeMs = now;
+              try {
+                onYear(Number(e.target.value));
+              } catch (err) {
+                console.error("Year selection error:", err);
+              }
+            }}
             className={SELECT}
           >
             {YEARS.map((y) => (
@@ -118,7 +131,19 @@ export function SessionPicker({
             <select
               aria-label="Event"
               value={meetingKey ?? ""}
-              onChange={(e) => onMeeting(Number(e.target.value))}
+              onChange={(e) => {
+                const now = Date.now();
+                if (now - lastSelectChangeMs < DEBOUNCE_MS) return;
+                lastSelectChangeMs = now;
+                try {
+                  const val = Number(e.target.value);
+                  if (!Number.isNaN(val) && val !== 0) {
+                    onMeeting(val);
+                  }
+                } catch (err) {
+                  console.error("Meeting selection error:", err);
+                }
+              }}
               disabled={meetings.isPending}
               className={`${SELECT} min-w-44`}
             >
@@ -142,7 +167,19 @@ export function SessionPicker({
             <select
               aria-label="Session"
               value={sessionKey ?? ""}
-              onChange={(e) => onSession(Number(e.target.value))}
+              onChange={(e) => {
+                const now = Date.now();
+                if (now - lastSelectChangeMs < DEBOUNCE_MS) return;
+                lastSelectChangeMs = now;
+                try {
+                  const val = Number(e.target.value);
+                  if (!Number.isNaN(val) && val !== 0) {
+                    onSession(val);
+                  }
+                } catch (err) {
+                  console.error("Session selection error:", err);
+                }
+              }}
               disabled={sessions.isPending || !meetingKey}
               className={SELECT}
             >

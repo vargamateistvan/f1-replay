@@ -288,22 +288,36 @@ export function Nav() {
   );
 
   function onYear(y: number) {
-    setSearchParams((prev) => {
-      const next = new URLSearchParams(prev);
-      next.set("year", String(y));
-      next.delete("meeting");
-      next.delete("session");
-      return next;
-    });
+    try {
+      setSearchParams(
+        (prev) => {
+          const next = new URLSearchParams(prev);
+          next.set("year", String(y));
+          next.delete("meeting");
+          next.delete("session");
+          return next;
+        },
+        { replace: true },
+      );
+    } catch (err) {
+      console.error("Year navigation error:", err);
+    }
   }
 
   function onMeeting(k: number) {
-    setSearchParams((prev) => {
-      const next = new URLSearchParams(prev);
-      next.set("meeting", String(k));
-      next.delete("session");
-      return next;
-    });
+    try {
+      setSearchParams(
+        (prev) => {
+          const next = new URLSearchParams(prev);
+          next.set("meeting", String(k));
+          next.delete("session");
+          return next;
+        },
+        { replace: true },
+      );
+    } catch (err) {
+      console.error("Meeting navigation error:", err);
+    }
   }
 
   function selectLatestEvent() {
@@ -713,7 +727,16 @@ export function Nav() {
               <select
                 aria-label="Session"
                 value={sessionKey ?? ""}
-                onChange={(e) => setSessionKey(Number(e.target.value))}
+                onChange={(e) => {
+                  try {
+                    const val = Number(e.target.value);
+                    if (!Number.isNaN(val)) {
+                      setSessionKey(val);
+                    }
+                  } catch (err) {
+                    console.error("Session selection error:", err);
+                  }
+                }}
                 disabled={sessions.isPending || !meetingKey}
                 className={`${SELECT} min-w-0 flex-[1_1_108px] sm:flex-none`}
               >
