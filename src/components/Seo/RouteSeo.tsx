@@ -49,6 +49,11 @@ const ROUTES: Record<string, RouteDefinition> = {
   },
 };
 
+function normalizePath(pathname: string): string {
+  if (!pathname || pathname === "/") return "/";
+  return pathname.endsWith("/") ? pathname.slice(0, -1) : pathname;
+}
+
 function upsertMetaByName(name: string, content: string) {
   let node = document.head.querySelector<HTMLMetaElement>(
     `meta[name=\"${name}\"]`,
@@ -101,7 +106,7 @@ export function RouteSeo() {
   const location = useLocation();
 
   useEffect(() => {
-    const pathname = location.pathname || "/";
+    const pathname = normalizePath(location.pathname || "/");
     const route = ROUTES[pathname] ?? {
       title: "F1 Replay | Formula 1 Data Replay Platform",
       description:
@@ -125,6 +130,11 @@ export function RouteSeo() {
 
     if (route.keywords) {
       upsertMetaByName("keywords", route.keywords);
+    } else {
+      const keywordsMeta = document.head.querySelector<HTMLMetaElement>(
+        'meta[name="keywords"]',
+      );
+      keywordsMeta?.remove();
     }
 
     upsertMetaByProperty("og:type", "website");
