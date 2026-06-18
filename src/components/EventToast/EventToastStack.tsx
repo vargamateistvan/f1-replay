@@ -318,9 +318,9 @@ function FlagToast({
         : cfg;
 
   return (
-    <div className="relative pointer-events-auto rounded-lg bg-[#1f1f27] border border-[#3f3f4b] shadow-xl overflow-hidden w-full">
+    <div className="pointer-events-auto rounded-lg bg-[#1f1f27] border border-[#3f3f4b] shadow-xl overflow-hidden w-full">
       <div
-        className="flex items-center gap-2 px-2.5 py-1 pr-8 md:px-3 md:py-1 md:pr-8"
+        className="flex items-center gap-2 px-2.5 py-1 md:px-3 md:py-1"
         style={{ background: header.bg }}
       >
         <span
@@ -331,18 +331,25 @@ function FlagToast({
         </span>
         {p.lapNumber && (
           <span
-            className="text-[9px] font-mono ml-auto"
+            className="text-[9px] font-mono"
             style={{ color: header.text, opacity: 0.75 }}
           >
             L{p.lapNumber}
           </span>
         )}
+        <button
+          onClick={() => onDismiss(at.event.id)}
+          className="ml-auto flex items-center justify-center w-5 h-5 text-xs transition-opacity opacity-70 hover:opacity-100"
+          style={{ color: header.text, touchAction: "manipulation" }}
+          aria-label="Dismiss"
+        >
+          ×
+        </button>
       </div>
-      <div className="flex items-center gap-1 px-2.5 py-1.5 pr-8 md:px-3 md:py-2 md:pr-8">
+      <div className="flex items-center gap-1 px-2.5 py-1.5 md:px-3 md:py-2">
         <p className="flex-1 text-[10px] text-white/85 leading-snug line-clamp-2">
           {p.message}
         </p>
-        <DismissBtn id={at.event.id} onDismiss={onDismiss} />
       </div>
     </div>
   );
@@ -460,21 +467,29 @@ function FastestLapToast({
 
   return (
     <div
-      className="relative pointer-events-auto rounded-lg shadow-xl overflow-hidden w-full"
+      className="pointer-events-auto rounded-lg shadow-xl overflow-hidden w-full"
       style={{ background: "#1a0e2e", border: "1px solid #9b59f5" }}
     >
       <div
-        className="flex items-center gap-2 px-2.5 py-1 pr-8 md:px-3 md:py-1 md:pr-8"
+        className="flex items-center gap-2 px-2.5 py-1 md:px-3 md:py-1"
         style={{ background: "#9b59f5" }}
       >
         <span className="text-[10px] font-black uppercase tracking-widest text-white">
           Fastest Lap
         </span>
-        <span className="text-[9px] font-mono text-white/75 ml-auto">
+        <span className="text-[9px] font-mono text-white/75">
           L{p.lapNumber}
         </span>
+        <button
+          onClick={() => onDismiss(at.event.id)}
+          className="ml-auto flex items-center justify-center w-5 h-5 text-xs text-white/70 hover:text-white transition-colors"
+          style={{ touchAction: "manipulation" }}
+          aria-label="Dismiss"
+        >
+          ×
+        </button>
       </div>
-      <div className="flex items-center px-2.5 py-1.5 pr-8 md:px-3 md:py-2 md:pr-8">
+      <div className="flex items-center px-2.5 py-1.5 md:px-3 md:py-2">
         <span
           className="font-black text-[12px] md:text-[13px] flex-1"
           style={{ color: "#9b59f5" }}
@@ -487,7 +502,6 @@ function FastestLapToast({
         >
           {fmtLapTime(p.lapTime)}
         </span>
-        <DismissBtn id={at.event.id} onDismiss={onDismiss} />
       </div>
     </div>
   );
