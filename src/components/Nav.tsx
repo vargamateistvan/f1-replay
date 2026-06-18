@@ -324,16 +324,16 @@ export function Nav() {
     setSelectLatestSessionOnLoad(true);
   }
 
-  const circuitLabel = selectedMeeting
-    ? selectedMeeting.location.toUpperCase()
+  const eventLabel = selectedMeeting
+    ? `${selectedMeeting.country_name.toUpperCase()} ${selectedMeeting.year}`
     : null;
   const sessionLabel = selectedSession
     ? selectedSession.session_name.toUpperCase()
     : null;
   const headerLabel =
-    circuitLabel && sessionLabel
-      ? `${circuitLabel} · ${sessionLabel}`
-      : (circuitLabel ?? "SELECT SESSION");
+    eventLabel && sessionLabel
+      ? `${eventLabel} · ${sessionLabel}`
+      : (eventLabel ?? "SELECT SESSION");
 
   const currentView = view ?? "tracker";
   const location = useLocation();
@@ -370,7 +370,13 @@ export function Nav() {
           </span>
         </button>
 
-        <span className="text-white/80 text-[11px] font-bold tracking-widest uppercase mr-auto truncate hidden sm:block">
+        <span className="text-white/80 text-[11px] font-bold tracking-widest uppercase mr-auto truncate hidden sm:flex items-center gap-2">
+          {live && (
+            <span
+              className="w-1.5 h-1.5 rounded-full bg-white/75 animate-pulse shrink-0"
+              aria-hidden="true"
+            />
+          )}
           {headerLabel}
         </span>
 
@@ -739,7 +745,7 @@ export function Nav() {
           {selectedMeeting && (
             <>
               <div
-                className="flex items-center gap-2 border-t border-panel/80 py-1.5"
+                className="flex items-center gap-2 pt-0.5 pb-1.5"
                 style={{
                   paddingLeft: "max(0.5rem, env(safe-area-inset-left))",
                   paddingRight: "max(0.5rem, env(safe-area-inset-right))",
