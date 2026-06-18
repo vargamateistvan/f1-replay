@@ -45,10 +45,11 @@ if (typeof window !== "undefined") {
   });
 
   // Also store errors globally for ErrorDisplay component access
-  (window as any).__getStoredErrors = () => {
+  (window as unknown as Record<string, unknown>).__getStoredErrors = () => {
     try {
       return JSON.parse(sessionStorage.getItem("__app_errors") || "[]");
     } catch {
+      // Ignore parsing errors
       return [];
     }
   };

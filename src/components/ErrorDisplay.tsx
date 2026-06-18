@@ -9,7 +9,7 @@ export function ErrorDisplay() {
       const stored = sessionStorage.getItem("__app_errors");
       if (stored) {
         const parsed = JSON.parse(stored);
-        setErrors(parsed.map((e: any) => e.msg || String(e)));
+        setErrors(parsed.map((e: { msg?: string }) => e.msg || String(e)));
       }
     } catch (e) {
       console.error("Failed to load stored errors:", e);
@@ -48,7 +48,9 @@ export function ErrorDisplay() {
             setErrors([]);
             try {
               sessionStorage.removeItem("__app_errors");
-            } catch {}
+            } catch {
+              // Ignore errors when clearing storage
+            }
           }}
           className="text-white/70 hover:text-white"
         >
