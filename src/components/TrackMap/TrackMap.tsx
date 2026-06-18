@@ -775,9 +775,9 @@ export function TrackMap({
           {/* Track surface: thick grey base + thin white highlight */}
           <path
             d={pathData}
+            strokeWidth={11}
             fill="none"
             stroke="#38383f"
-            strokeWidth={11}
             strokeLinecap="round"
             strokeLinejoin="round"
           />
@@ -798,6 +798,73 @@ export function TrackMap({
             strokeLinejoin="round"
             strokeOpacity={0.15}
           />
+
+          {/* Sector flag colors on track line */}
+          {normalizedTrackFlagState
+            ? ([1, 2, 3] as const).map((sectorNum) => {
+                const effectiveFlag = ((): string | null => {
+                  if (normalizedTrackFlagState.globalFlag === "RED")
+                    return "RED";
+                  return (
+                    normalizedTrackFlagState.sectorFlags[sectorNum] ??
+                    normalizedTrackFlagState.globalFlag
+                  );
+                })();
+                const color = effectiveFlag
+                  ? ({
+                      YELLOW: "#f5d400",
+                      DOUBLE_YELLOW: "#f5d400",
+                      RED: "#e8002d",
+                      SAFETY_CAR: "#f5a623",
+                      VIRTUAL_SC: "#f5a623",
+                      VIRTUAL_SAFETY_CAR: "#f5a623",
+                      GREEN: "#39b54a",
+                      CLEAR: "#39b54a",
+                    }[effectiveFlag] ?? null)
+                  : null;
+                if (!color) return null;
+                return (
+                  <g key={`track-sector-color-${sectorNum}`}>
+                    <path
+                      d={pathData}
+                      fill="none"
+                      stroke={color}
+                      strokeWidth={14}
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      pathLength={300}
+                      strokeDasharray="100 200"
+                      strokeDashoffset={-(sectorNum - 1) * 100}
+                      opacity={0.22}
+                    />
+                    <path
+                      d={pathData}
+                      fill="none"
+                      stroke={color}
+                      strokeWidth={8}
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      pathLength={300}
+                      strokeDasharray="100 200"
+                      strokeDashoffset={-(sectorNum - 1) * 100}
+                      opacity={0.65}
+                    />
+                    <path
+                      d={pathData}
+                      fill="none"
+                      stroke="#ffffff"
+                      strokeWidth={2}
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      pathLength={300}
+                      strokeDasharray="100 200"
+                      strokeDashoffset={-(sectorNum - 1) * 100}
+                      opacity={0.18}
+                    />
+                  </g>
+                );
+              })
+            : null}
 
           {/* Speed heat overlay — shown when a driver is focused and lap data is loaded.
           Segments are colored blue (slow) → green → red (fast) by the driver's

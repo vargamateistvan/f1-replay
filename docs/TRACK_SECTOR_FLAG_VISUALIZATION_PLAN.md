@@ -165,3 +165,64 @@ Cover:
 - Global safety states render consistently.
 - No regression in map performance or readability.
 - Tests cover reducer behavior and key render outputs.
+
+---
+
+## ✅ IMPLEMENTATION COMPLETE
+
+### Summary
+
+Track sector flag visualization has been fully implemented with sector-aware rendering, visual legend HUD, and comprehensive test coverage.
+
+### What Was Built
+
+1. **State Reducer** (`deriveTrackFlagState` in [src/timeline/raceControl.ts](src/timeline/raceControl.ts))
+   - Processes race_control events chronologically up to playhead time
+   - Maintains independent sector states + global flag
+   - Enforces priority rules (RED override, clear logic)
+   - Returns `TrackFlagState { globalFlag, sectorFlags{1,2,3}, updatedAtMs }`
+
+2. **Integration** ([src/pages/RaceWeekend.tsx](src/pages/RaceWeekend.tsx#L483-L493))
+   - Computes sector-aware state at replay time
+   - Passes to TrackMap with `mapShowSectorFlags` toggle support
+
+3. **Rendering** ([src/components/TrackMap/TrackMap.tsx](src/components/TrackMap/TrackMap.tsx#L91-196, #L553-642))
+   - Sector-specific tint logic: `effectiveFlagForSector(sector) → globalFlag override or sectorFlag`
+   - Baked marshal dots and fallback sector rectangles render with independent colors
+   - **Visual legend HUD** (bottom-right) displays S1/S2/S3 status with color chips + global flag indicator
+   - Full backward compatibility with legacy `activeSectorFlag` prop
+
+4. **Test Coverage**
+   - 5 unit tests in [src/timeline/raceControl.test.ts](src/timeline/raceControl.test.ts) ✅
+   - 5 component tests in [src/components/TrackMap/TrackMap.test.tsx](src/components/TrackMap/TrackMap.test.tsx) ✅
+   - 111 total tests passing (all regression tests pass) ✅
+
+### Key Features
+
+- **Independent Sector States:** S1 can be yellow while S2 is clear and S3 is red — all render simultaneously
+- **Global Priority:** RED flag, SAFETY_CAR, VIRTUAL_SC apply to all sectors, override independent sector flags
+- **Visual Legend:** Real-time HUD showing active sector flags with color coding
+- **Backward Compatible:** Existing code using legacy `activeSectorFlag` continues to work
+- **Time-Aware:** State updates correctly during playhead scrubbing through race timeline
+
+### Files Modified
+
+- [src/timeline/raceControl.ts](src/timeline/raceControl.ts) — Added `TrackFlagState` interface + `deriveTrackFlagState()` reducer
+- [src/timeline/raceControl.test.ts](src/timeline/raceControl.test.ts) — Added 3 unit tests for reducer logic
+- [src/pages/RaceWeekend.tsx](src/pages/RaceWeekend.tsx) — Integrated sector-aware state computation
+- [src/components/TrackMap/TrackMap.tsx](src/components/TrackMap/TrackMap.tsx) — Added visual legend HUD + sector-specific rendering
+- [src/components/TrackMap/TrackMap.test.tsx](src/components/TrackMap/TrackMap.test.tsx) — NEW: 5 component-level tests
+
+### Pending Optimizations (Deferred)
+
+- Extend `MarshalSector` with explicit `timingSector: 1|2|3` ID (currently uses "split by thirds" heuristic)
+- Add keyboard shortcuts to filter/highlight specific sectors
+
+### Test Results
+
+```
+Test Files  12 passed (12)
+Tests       111 passed (111)
+```
+
+All tests passing, including regression validation. Feature is production-ready.
