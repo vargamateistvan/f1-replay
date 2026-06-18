@@ -3,6 +3,7 @@ import { Nav } from "@/components/Nav";
 import { MobileNav } from "@/components/MobileNav";
 import { SettingsModal } from "@/components/SettingsModal/SettingsModal";
 import { HowItWorksModal } from "@/components/HowItWorksModal/HowItWorksModal";
+import { RouteSeo } from "@/components/Seo/RouteSeo";
 import RaceWeekend from "@/pages/RaceWeekend";
 import Telemetry from "@/pages/Telemetry";
 import Standings from "@/pages/Standings";
@@ -12,6 +13,7 @@ import NotFound from "@/pages/NotFound";
 export function AppRouter() {
   return (
     <HashRouter>
+      <RouteSeo />
       <div className="flex flex-col md:h-[100dvh] md:min-h-[100dvh] md:overflow-hidden">
         <Nav />
         <main className="flex flex-col flex-1 pb-[calc(3rem+env(safe-area-inset-bottom))] md:min-h-0 md:overflow-hidden md:pb-0">
