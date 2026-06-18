@@ -421,7 +421,7 @@ export function LiveTiming({
   const pedalHeaderWidthClass = compactDriverColumn
     ? "w-[4rem]"
     : "w-[4.75rem]";
-  const drsHeaderWidthClass = compactDriverColumn ? "w-8" : "w-10";
+  const drsHeaderWidthClass = compactDriverColumn ? "w-[3rem]" : "w-[3.5rem]";
   const pedalBarsWidthClass = compactDriverColumn ? "w-12" : "w-16";
   const tableMinWidthClass = showTelemetry
     ? compactDriverColumn
@@ -953,7 +953,7 @@ export function LiveTiming({
                       >
                         {car ? (
                           <span
-                            className={`inline-flex min-w-[2.25rem] items-center justify-center px-1.5 py-0.5 text-center leading-none text-[9px] font-black uppercase tracking-widest ${
+                            className={`mx-auto flex min-w-[2.25rem] items-center justify-center px-1.5 py-0.5 text-center leading-none text-[9px] font-black uppercase tracking-widest ${
                               car.drs >= 10
                                 ? "bg-[#39d743] text-black"
                                 : "bg-panel text-[#636369]"
