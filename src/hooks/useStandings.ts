@@ -10,6 +10,36 @@ import {
 
 const SESSION_RESULT_FILTERS = { "position>=": 1 } as const;
 
+function normalizeTeamName(name: string): string {
+  const normalized = name.trim().toLowerCase();
+
+  if (
+    normalized.includes("racing bulls") ||
+    normalized === "rb" ||
+    normalized.includes("alphatauri") ||
+    normalized.includes("toro rosso")
+  ) {
+    return "racing-bulls";
+  }
+  if (
+    normalized.includes("sauber") ||
+    normalized.includes("alfa romeo") ||
+    normalized.includes("stake")
+  ) {
+    return "sauber";
+  }
+  if (normalized.includes("haas")) return "haas";
+  if (normalized.includes("red bull")) return "red-bull";
+  if (normalized.includes("aston martin")) return "aston-martin";
+  if (normalized.includes("mercedes")) return "mercedes";
+  if (normalized.includes("ferrari")) return "ferrari";
+  if (normalized.includes("mclaren")) return "mclaren";
+  if (normalized.includes("alpine")) return "alpine";
+  if (normalized.includes("williams")) return "williams";
+
+  return normalized.replace(/[^a-z0-9]+/g, "-");
+}
+
 // Re-exported for existing import sites (pages/Standings.tsx).
 export type { DriverStanding, ConstructorStanding } from "@/utils/standings";
 
@@ -97,6 +127,23 @@ export function useStandings(year: number) {
     () => new Map(fallbackConstructorStandings.map((c) => [c.name, c])),
     [fallbackConstructorStandings],
   );
+  const teamColorByName = useMemo(() => {
+    const byName = new Map<string, string>();
+    const byNormalizedName = new Map<string, string>();
+
+    for (const d of driversQ.data ?? []) {
+      const color = teamColor(d.team_colour);
+      byName.set(d.team_name, color);
+      byNormalizedName.set(normalizeTeamName(d.team_name), color);
+    }
+
+    for (const c of fallbackConstructorStandings) {
+      byName.set(c.name, c.color);
+      byNormalizedName.set(normalizeTeamName(c.name), c.color);
+    }
+
+    return { byName, byNormalizedName };
+  }, [driversQ.data, fallbackConstructorStandings]);
 
   const driverStandings = useMemo(() => {
     const apiStandings = championshipDriversQ.data ?? [];
@@ -143,11 +190,14 @@ export function useStandings(year: number) {
           b.points_current - a.points_current,
       )
       .map((c) => {
+        const mappedColor =
+          teamColorByName.byName.get(c.team_name) ??
+          teamColorByName.byNormalizedName.get(normalizeTeamName(c.team_name));
         const fallback = fallbackConstructorByTeam.get(c.team_name);
         return {
           position: c.position_current,
           name: c.team_name,
-          color: fallback?.color ?? "#888",
+          color: mappedColor ?? fallback?.color ?? "#888",
           points: c.points_current,
           wins: fallback?.wins ?? 0,
         };
@@ -156,6 +206,7 @@ export function useStandings(year: number) {
     championshipTeamsQ.data,
     fallbackConstructorByTeam,
     fallbackConstructorStandings,
+    teamColorByName,
   ]);
 
   return {
