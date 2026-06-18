@@ -36,6 +36,7 @@ vi.mock("@/stores/settings", () => ({
     mapShowSectorBox: true,
     mapShowTrackControls: true,
     mapShowCompass: true,
+    mapShowWeather: true,
     trackScreenshotPngEnabled: true,
     showCsvExportButtons: false,
     showNextRaceWeekendBanner: true,

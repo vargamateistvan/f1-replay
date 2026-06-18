@@ -326,6 +326,12 @@ export function SettingsBody() {
         onChange={toggle("mapShowCompass")}
       />
       <SettingRow
+        label="Track weather"
+        description="Show weather panel/overlay in track map view"
+        checked={settings.mapShowWeather}
+        onChange={toggle("mapShowWeather")}
+      />
+      <SettingRow
         label="PNG track snapshot"
         description="Show download button for track screenshots"
         checked={settings.trackScreenshotPngEnabled}

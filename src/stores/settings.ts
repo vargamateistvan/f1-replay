@@ -22,6 +22,7 @@ export interface AppSettings {
   mapShowSectorBox: boolean;
   mapShowTrackControls: boolean;
   mapShowCompass: boolean;
+  mapShowWeather: boolean;
   // Leaderboard
   leaderboardTelemetry: boolean;
   timingShowMinisectors: boolean;
@@ -73,6 +74,7 @@ export const SETTINGS_DEFAULTS: AppSettings = {
   mapShowSectorBox: true,
   mapShowTrackControls: true,
   mapShowCompass: true,
+  mapShowWeather: true,
   leaderboardTelemetry: true,
   timingShowMinisectors: true,
   trackerTimingTelemetry: false,

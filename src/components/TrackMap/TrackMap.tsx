@@ -1260,7 +1260,7 @@ export function TrackMap({
       {/* Bottom-left overlay: weather (preferred) or top-5 leaderboard fallback */}
       {weatherOverlay ? (
         <div
-          className={`absolute bottom-2 left-2 pointer-events-none border border-panel border-l-2 px-2 py-1.5 ${weatherOverlayClass}`}
+          className={`absolute bottom-2 left-2 hidden md:block pointer-events-none border border-panel border-l-2 px-2 py-1.5 ${weatherOverlayClass}`}
           style={{
             minWidth: 184,
             backdropFilter: "blur(4px)",

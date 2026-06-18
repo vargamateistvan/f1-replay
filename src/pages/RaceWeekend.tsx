@@ -579,6 +579,7 @@ export default function RaceWeekend() {
     mapShowSectorBox,
     mapShowTrackControls,
     mapShowCompass,
+    mapShowWeather,
     leaderboardTelemetry,
     timingShowMinisectors,
     trackerTimingTelemetry,
@@ -1021,7 +1022,7 @@ export default function RaceWeekend() {
       showTrackControls={mapShowTrackControls}
       showCompass={mapShowCompass}
       showTrackScreenshot={trackScreenshotPngEnabled}
-      weatherOverlay={weatherAtT}
+      weatherOverlay={mapShowWeather ? weatherAtT : null}
       activeTrackVehicles={activeTrackVehicles}
       retiredDrivers={retiredDrivers}
       onSelectDriver={toggleFocus}
@@ -1212,6 +1213,23 @@ export default function RaceWeekend() {
 
                 {(trackerTab ?? "timing") === "map" && (
                   <div className="min-h-[80vw] bg-[#10101a] flex flex-col md:flex-1 md:min-w-0">
+                    {mapShowWeather && (
+                      <div className="shrink-0 border-b border-panel">
+                        {weather.isError ? (
+                          <ErrorMessage
+                            message="Failed to load weather"
+                            compact
+                          />
+                        ) : (
+                          <WeatherPanel
+                            entries={weather.data ?? []}
+                            sessionKey={sessionKey}
+                            sessionTimeMs={t}
+                            sessionStartMs={sessionStartMs}
+                          />
+                        )}
+                      </div>
+                    )}
                     <div className="relative flex-1 min-h-[64vw]">
                       <EventToastStack
                         toasts={toasts}
