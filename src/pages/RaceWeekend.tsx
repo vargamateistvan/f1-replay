@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { PlaybackBar } from "@/components/PlaybackBar";
 import {
   TrackMap,
-  type ActiveTrackFlag,
+  type ActiveTrackFlagState,
   type ActiveTrackVehicles,
   type LeaderboardRow,
 } from "@/components/TrackMap/TrackMap";
@@ -59,6 +59,7 @@ import {
   buildRaceChapters,
   clusterRaceControlMarkers,
   computeWhatChanged,
+  deriveTrackFlagState,
   normalizeRaceControl,
   summarizeMarkers,
 } from "@/timeline/raceControl";
@@ -482,21 +483,14 @@ export default function RaceWeekend() {
     isRaceSession,
   ]);
 
-  // Current session flag (last flag-bearing RC entry at/before playhead).
-  const activeSectorFlag = useMemo<ActiveTrackFlag | null>(() => {
-    const cutoff = sessionStartMs + t;
-    let active: ActiveTrackFlag | null = null;
-    for (const e of raceControl.data ?? []) {
-      if (new Date(e.date).getTime() > cutoff) break;
-      if (e.flag && e.flag !== "") {
-        active = {
-          flag: e.flag,
-          scope: e.scope,
-          sector: e.sector,
-        };
-      }
-    }
-    return active;
+  // Current session global/sector track flag state at playhead.
+  const activeTrackFlagState = useMemo<ActiveTrackFlagState | null>(() => {
+    if (!sessionStartMs) return null;
+    return deriveTrackFlagState(
+      raceControl.data ?? [],
+      sessionStartMs,
+      sessionStartMs + t,
+    );
   }, [raceControl.data, sessionStartMs, t]);
 
   const activeTrackVehicles = useMemo<ActiveTrackVehicles | null>(() => {
@@ -1004,7 +998,7 @@ export default function RaceWeekend() {
       focusDriverLap={focusDriverLap}
       showFocusedHud={mapShowDriverHud}
       leaderboard={mapShowLeaderboard ? mapLeaderboard : undefined}
-      activeSectorFlag={mapShowSectorFlags ? activeSectorFlag : null}
+      activeTrackFlagState={mapShowSectorFlags ? activeTrackFlagState : null}
       showCompass={mapShowCompass}
       activeTrackVehicles={activeTrackVehicles}
       retiredDrivers={retiredDrivers}

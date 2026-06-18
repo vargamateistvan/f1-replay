@@ -60,6 +60,98 @@ export function toFlagKey(flag: string | null): string {
   return (flag ?? "").trim().toUpperCase().replace(/\s+/g, "_");
 }
 
+export interface TrackFlagState {
+  globalFlag: string | null;
+  sectorFlags: {
+    1: string | null;
+    2: string | null;
+    3: string | null;
+  };
+  updatedAtMs: number;
+}
+
+const TRACK_FLAG_STATE_EMPTY: TrackFlagState = {
+  globalFlag: null,
+  sectorFlags: { 1: null, 2: null, 3: null },
+  updatedAtMs: 0,
+};
+
+function toSectorNumber(sector: number | null): 1 | 2 | 3 | null {
+  if (sector === 1 || sector === 2 || sector === 3) return sector;
+  return null;
+}
+
+function isSectorScoped(
+  scope: string | null,
+  sector: 1 | 2 | 3 | null,
+): sector is 1 | 2 | 3 {
+  if (sector === null) return false;
+  const scopeKey = (scope ?? "").toLowerCase();
+  if (scopeKey.includes("track")) return false;
+  return true;
+}
+
+/**
+ * Derive current global + sector flag state up to a playhead time.
+ *
+ * This enables independent sector coloring (S1/S2/S3) while preserving
+ * global states such as Red Flag / Safety Car / VSC.
+ */
+export function deriveTrackFlagState(
+  entries: RaceControl[],
+  sessionStartMs: number,
+  cutoffMs: number,
+): TrackFlagState | null {
+  if (!sessionStartMs || entries.length === 0) return null;
+
+  const state: TrackFlagState = {
+    globalFlag: null,
+    sectorFlags: { 1: null, 2: null, 3: null },
+    updatedAtMs: 0,
+  };
+
+  for (const entry of entries) {
+    const eventMs = new Date(entry.date).getTime();
+    if (eventMs > cutoffMs) break;
+
+    const flagKey = toFlagKey(entry.flag);
+    const sector = toSectorNumber(entry.sector);
+    const sectorScoped = isSectorScoped(entry.scope, sector);
+    const clearSignal = isTrackClearSignal(entry);
+
+    if (clearSignal) {
+      state.updatedAtMs = eventMs;
+      if (sectorScoped) {
+        state.sectorFlags[sector] = null;
+      } else {
+        state.globalFlag = null;
+        state.sectorFlags = { 1: null, 2: null, 3: null };
+      }
+      continue;
+    }
+
+    if (!flagKey) continue;
+
+    state.updatedAtMs = eventMs;
+    if (sectorScoped) {
+      state.sectorFlags[sector] = flagKey;
+    } else {
+      state.globalFlag = flagKey;
+    }
+  }
+
+  if (
+    state.globalFlag === TRACK_FLAG_STATE_EMPTY.globalFlag &&
+    state.sectorFlags[1] === TRACK_FLAG_STATE_EMPTY.sectorFlags[1] &&
+    state.sectorFlags[2] === TRACK_FLAG_STATE_EMPTY.sectorFlags[2] &&
+    state.sectorFlags[3] === TRACK_FLAG_STATE_EMPTY.sectorFlags[3]
+  ) {
+    return null;
+  }
+
+  return state;
+}
+
 function classifyKind(entry: RaceControl, flagKey: string): RaceControlKind {
   const category = (entry.category ?? "").toLowerCase();
   const message = (entry.message ?? "").toLowerCase();

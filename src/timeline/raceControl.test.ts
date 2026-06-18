@@ -1,6 +1,10 @@
 import { describe, expect, it } from "vitest";
 import type { RaceControl } from "@/api/types";
-import { buildIncidentWindows, normalizeRaceControl } from "./raceControl";
+import {
+  buildIncidentWindows,
+  deriveTrackFlagState,
+  normalizeRaceControl,
+} from "./raceControl";
 
 const START = new Date("2024-01-01T00:00:00Z").getTime();
 const iso = (sec: number) => new Date(START + sec * 1000).toISOString();
@@ -72,5 +76,64 @@ describe("buildIncidentWindows safety control phases", () => {
         startLap: 8,
       },
     ]);
+  });
+});
+
+describe("deriveTrackFlagState", () => {
+  it("tracks independent sector and global flags", () => {
+    const state = deriveTrackFlagState(
+      [
+        rc({ date: iso(10), flag: "YELLOW", scope: "Sector", sector: 2 }),
+        rc({ date: iso(12), flag: "YELLOW", scope: "Sector", sector: 3 }),
+        rc({ date: iso(20), flag: "SAFETY_CAR", scope: "Track" }),
+      ],
+      START,
+      START + 30_000,
+    );
+
+    expect(state).toEqual({
+      globalFlag: "SAFETY_CAR",
+      sectorFlags: {
+        1: null,
+        2: "YELLOW",
+        3: "YELLOW",
+      },
+      updatedAtMs: START + 20_000,
+    });
+  });
+
+  it("clears only scoped sector on green", () => {
+    const state = deriveTrackFlagState(
+      [
+        rc({ date: iso(9), flag: "SAFETY_CAR", scope: "Track" }),
+        rc({ date: iso(10), flag: "YELLOW", scope: "Sector", sector: 2 }),
+        rc({ date: iso(18), flag: "GREEN", scope: "Sector", sector: 2 }),
+      ],
+      START,
+      START + 30_000,
+    );
+
+    expect(state).toEqual({
+      globalFlag: "SAFETY_CAR",
+      sectorFlags: {
+        1: null,
+        2: null,
+        3: null,
+      },
+      updatedAtMs: START + 18_000,
+    });
+  });
+
+  it("returns null when no active flags remain after full clear", () => {
+    const state = deriveTrackFlagState(
+      [
+        rc({ date: iso(8), flag: "YELLOW", scope: "Track" }),
+        rc({ date: iso(12), flag: "GREEN", scope: "Track" }),
+      ],
+      START,
+      START + 30_000,
+    );
+
+    expect(state).toBeNull();
   });
 });

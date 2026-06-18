@@ -87,6 +87,16 @@ export interface ActiveTrackFlag {
   sector: number | null;
 }
 
+export interface ActiveTrackFlagState {
+  globalFlag: string | null;
+  sectorFlags: {
+    1: string | null;
+    2: string | null;
+    3: string | null;
+  };
+  updatedAtMs: number;
+}
+
 export interface ActiveTrackVehicles {
   safetyCar: boolean;
   vsc: boolean;
@@ -111,6 +121,7 @@ interface Props {
   readonly focusDriverLap?: number | null;
   readonly leaderboard?: readonly LeaderboardRow[];
   readonly activeSectorFlag?: ActiveTrackFlag | null;
+  readonly activeTrackFlagState?: ActiveTrackFlagState | null;
   readonly activeTrackVehicles?: ActiveTrackVehicles | null;
   readonly showCompass?: boolean;
   readonly showFocusedHud?: boolean;
@@ -132,6 +143,7 @@ export function TrackMap({
   focusDriverLap = null,
   leaderboard,
   activeSectorFlag = null,
+  activeTrackFlagState = null,
   activeTrackVehicles = null,
   showCompass = true,
   showFocusedHud = true,
@@ -155,13 +167,33 @@ export function TrackMap({
     setRotationDeg(0);
   }, [sessionKey, circuitKey]);
 
-  const scopedSector =
-    activeSectorFlag?.sector != null &&
-    activeSectorFlag.sector >= 1 &&
-    activeSectorFlag.sector <= 3 &&
-    !(activeSectorFlag.scope?.toLowerCase().includes("track") ?? false)
-      ? activeSectorFlag.sector
-      : null;
+  const normalizedTrackFlagState = useMemo<ActiveTrackFlagState | null>(() => {
+    if (activeTrackFlagState) return activeTrackFlagState;
+    if (!activeSectorFlag?.flag) return null;
+
+    const flagKey = activeSectorFlag.flag
+      .trim()
+      .toUpperCase()
+      .replace(/\s+/g, "_");
+
+    const state: ActiveTrackFlagState = {
+      globalFlag: flagKey,
+      sectorFlags: { 1: null, 2: null, 3: null },
+      updatedAtMs: 0,
+    };
+
+    const sector = activeSectorFlag.sector;
+    const isSector =
+      (sector === 1 || sector === 2 || sector === 3) &&
+      !(activeSectorFlag.scope?.toLowerCase().includes("track") ?? false);
+
+    if (isSector) {
+      state.globalFlag = null;
+      state.sectorFlags[sector] = flagKey;
+    }
+
+    return state;
+  }, [activeTrackFlagState, activeSectorFlag]);
 
   // Rolling 5-min car_data window for the focused driver — drives the live HUD overlay.
   const chunkIdx = chunkIndexFor(t);
@@ -505,17 +537,32 @@ export function TrackMap({
   // With baked geometry: precise colored dots at each marshal sector position.
   // Fallback: rectangle tints over legacy sector boxes.
   const sectorFlagTints = useMemo(() => {
-    if (!trackGeometry || !activeSectorFlag) return null;
+    if (!trackGeometry || !normalizedTrackFlagState) return null;
+
     const TINT: Record<string, string> = {
       YELLOW: "#f5d400",
       DOUBLE_YELLOW: "#f5d400",
       RED: "#e8002d",
       SAFETY_CAR: "#f5a623",
       VIRTUAL_SC: "#f5a623",
+      VIRTUAL_SAFETY_CAR: "#f5a623",
       GREEN: "#39b54a",
+      CLEAR: "#39b54a",
     };
-    const tint = TINT[activeSectorFlag.flag];
-    if (!tint) return null;
+
+    const effectiveFlagForSector = (sector: 1 | 2 | 3): string | null => {
+      if (normalizedTrackFlagState.globalFlag === "RED") return "RED";
+      return (
+        normalizedTrackFlagState.sectorFlags[sector] ??
+        normalizedTrackFlagState.globalFlag
+      );
+    };
+
+    const tintForSector = (sector: 1 | 2 | 3): string | null => {
+      const flagKey = effectiveFlagForSector(sector);
+      return flagKey ? (TINT[flagKey] ?? null) : null;
+    };
+
     const { bounds, innerW, innerH } = trackGeometry;
 
     if (hasBaked && circuitGeom && circuitGeom.marshalSectors.length) {
@@ -527,7 +574,8 @@ export function TrackMap({
               | 1
               | 2
               | 3;
-            if (scopedSector !== null && sector !== scopedSector) return null;
+            const tint = tintForSector(sector);
+            if (!tint) return null;
             const { sx, sy } = locationToSvg(
               ms.trackPosition.x,
               ms.trackPosition.y,
@@ -554,8 +602,9 @@ export function TrackMap({
     return (
       <>
         {circuitLayout.sectors.map((sector) => {
-          if (scopedSector !== null && sector.number !== scopedSector)
-            return null;
+          const sectorNum = sector.number as 1 | 2 | 3;
+          const tint = tintForSector(sectorNum);
+          if (!tint) return null;
           const { sx: sx1, sy: sy1 } = locationToSvg(
             sector.bounds.minX,
             sector.bounds.minY,
@@ -593,8 +642,7 @@ export function TrackMap({
     circuitLayout,
     circuitGeom,
     hasBaked,
-    activeSectorFlag,
-    scopedSector,
+    normalizedTrackFlagState,
   ]);
 
   // Current-moment car telemetry for the focused driver — binary search on the rolling
