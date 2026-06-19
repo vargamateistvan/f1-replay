@@ -376,6 +376,12 @@ export function SettingsBody() {
         onChange={toggle("mapShowDriverNumberInside")}
       />
       <SettingRow
+        label="Enhanced track visuals"
+        description="Show finish line, sector markers, direction arrows and elevation accents"
+        checked={settings.mapShowEnhancedVisuals}
+        onChange={toggle("mapShowEnhancedVisuals")}
+      />
+      <SettingRow
         label="PNG track snapshot"
         description="Show download button for track screenshots"
         checked={settings.trackScreenshotPngEnabled}

@@ -39,6 +39,7 @@ vi.mock("@/stores/settings", () => ({
     mapShowWeather: true,
     mapShowDriverAcronym: true,
     mapShowDriverNumberInside: false,
+    mapShowEnhancedVisuals: true,
     trackScreenshotPngEnabled: true,
     showCsvExportButtons: false,
     showNextRaceWeekendBanner: true,

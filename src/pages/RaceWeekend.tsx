@@ -538,6 +538,7 @@ export default function RaceWeekend() {
     mapShowTrackControls,
     mapShowCompass,
     mapShowWeather,
+    mapShowEnhancedVisuals,
     leaderboardTelemetry,
     timingShowMinisectors,
     trackerTimingTelemetry,
@@ -985,6 +986,7 @@ export default function RaceWeekend() {
       showTrackControls={mapShowTrackControls}
       showCompass={mapShowCompass}
       showTrackScreenshot={trackScreenshotPngEnabled}
+      showEnhancedVisuals={mapShowEnhancedVisuals}
       weatherOverlay={mapShowWeather ? weatherAtT : null}
       activeTrackVehicles={activeTrackVehicles}
       retiredDrivers={retiredDrivers}
