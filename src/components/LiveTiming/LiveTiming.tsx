@@ -192,6 +192,12 @@ export function LiveTiming({
   const speedUnitShort = speedUnitLabel(metricSystem);
   const speedUnitCompact = speedUnitCompactLabel(metricSystem);
   const showTelemetry = carData !== undefined;
+  const showDrs =
+    showTelemetry &&
+    carData !== undefined &&
+    [...carData.values()].some(
+      (c) => (c.drs as unknown as number | null) != null,
+    );
   const currentT = sessionStartMs + sessionTimeMs;
 
   const driverByNumber = useMemo(
@@ -593,11 +599,13 @@ export function LiveTiming({
                   >
                     Thr/Brk
                   </th>
-                  <th
-                    className={`${TH} ${drsColumnClass} text-center ${drsHeaderWidthClass}`}
-                  >
-                    DRS
-                  </th>
+                  {showDrs && (
+                    <th
+                      className={`${TH} ${drsColumnClass} text-center ${drsHeaderWidthClass}`}
+                    >
+                      DRS
+                    </th>
+                  )}
                 </>
               )}
             </tr>
@@ -761,14 +769,16 @@ export function LiveTiming({
                               {gearDisplay}
                             </span>
                           </span>
-                          <span
-                            className={`inline-flex min-w-0 items-center gap-1 ${car && car.drs >= 10 ? "text-[#39d743]" : "text-[#9ca3af]"}`}
-                          >
-                            <span className="text-[#9ba1a8]">DRS</span>
-                            <span className="w-[3ch] text-right">
-                              {drsDisplay}
+                          {showDrs && (
+                            <span
+                              className={`inline-flex min-w-0 items-center gap-1 ${car && car.drs >= 10 ? "text-[#39d743]" : "text-[#9ca3af]"}`}
+                            >
+                              <span className="text-[#9ba1a8]">DRS</span>
+                              <span className="w-[3ch] text-right">
+                                {drsDisplay}
+                              </span>
                             </span>
-                          </span>
+                          )}
                           <MobilePedalMeter
                             label="T"
                             value={car ? car.throttle : null}
@@ -910,24 +920,26 @@ export function LiveTiming({
                         )}
                       </td>
                       {/* DRS */}
-                      <td
-                        className={`${drsColumnClass} ${rowCellPad} ${telemetryCenterPadClass} text-center`}
-                      >
-                        {car ? (
-                          <span
-                            className={`mx-auto flex min-w-[2.25rem] items-center justify-center px-1.5 py-0.5 text-center leading-none text-[9px] font-black uppercase tracking-widest ${
-                              car.drs >= 10
-                                ? "bg-[#39d743] text-black"
-                                : "bg-panel text-[#636369]"
-                            }`}
-                            title={`DRS raw value ${car.drs}`}
-                          >
-                            DRS
-                          </span>
-                        ) : (
-                          <span className="text-muted">—</span>
-                        )}
-                      </td>
+                      {showDrs && (
+                        <td
+                          className={`${drsColumnClass} ${rowCellPad} ${telemetryCenterPadClass} text-center`}
+                        >
+                          {car ? (
+                            <span
+                              className={`mx-auto flex min-w-[2.25rem] items-center justify-center px-1.5 py-0.5 text-center leading-none text-[9px] font-black uppercase tracking-widest ${
+                                car.drs >= 10
+                                  ? "bg-[#39d743] text-black"
+                                  : "bg-panel text-[#636369]"
+                              }`}
+                              title={`DRS raw value ${car.drs}`}
+                            >
+                              DRS
+                            </span>
+                          ) : (
+                            <span className="text-muted">—</span>
+                          )}
+                        </td>
+                      )}
                     </>
                   )}
                 </tr>
