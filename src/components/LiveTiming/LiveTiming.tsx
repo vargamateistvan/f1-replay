@@ -716,19 +716,21 @@ export function LiveTiming({
                             {Math.abs(gained)}
                           </span>
                         )}
-                        {retired && (
-                          <span className="hidden min-[390px]:inline-block bg-[#3a1010] text-[#ff5252] text-[9px] font-black uppercase tracking-widest px-1.5 py-0.5">
-                            RET
-                          </span>
-                        )}
-                        {!retired && isOutlap && (
-                          <span className="inline-block bg-[#4b5563] text-[#d0d5dd] text-[9px] font-black uppercase tracking-widest px-1.5 py-0.5">
-                            OUTLAP
-                          </span>
-                        )}
-                        {!retired && !isOutlap && inPit && (
-                          <span className="inline-block bg-[#f5a623] text-black text-[9px] font-black uppercase tracking-widest px-1.5 py-0.5 animate-pulse">
-                            PIT
+                        {(retired || isOutlap || inPit) && (
+                          <span className="ml-auto shrink-0">
+                            {retired ? (
+                              <span className="hidden min-[390px]:inline-block bg-[#3a1010] text-[#ff5252] text-[9px] font-black uppercase tracking-widest px-1.5 py-0.5">
+                                RET
+                              </span>
+                            ) : isOutlap ? (
+                              <span className="inline-block bg-[#4b5563] text-[#d0d5dd] text-[9px] font-black uppercase tracking-widest px-1.5 py-0.5">
+                                OUTLAP
+                              </span>
+                            ) : (
+                              <span className="inline-block bg-[#f5a623] text-black text-[9px] font-black uppercase tracking-widest px-1.5 py-0.5 animate-pulse">
+                                PIT
+                              </span>
+                            )}
                           </span>
                         )}
                       </span>
