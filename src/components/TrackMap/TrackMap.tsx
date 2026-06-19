@@ -1225,6 +1225,7 @@ export function TrackMap({
                     <text
                       x={focused ? 10 : 7}
                       y={-5}
+                      transform={`rotate(${-rotationDeg.toFixed(1)} ${(focused ? 10 : 7).toFixed(1)} ${(-5).toFixed(1)})`}
                       fontSize={focused ? 9 : 8}
                       fill={color}
                       fontFamily="Inter, sans-serif"
