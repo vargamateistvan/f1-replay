@@ -150,6 +150,7 @@ export function TeamRadioFeed({
                     src={e.recording_url}
                     autoPlay
                     onEnded={() => setPlaying(null)}
+                    onError={() => setPlaying(null)}
                     className="hidden"
                   >
                     <track kind="captions" />
