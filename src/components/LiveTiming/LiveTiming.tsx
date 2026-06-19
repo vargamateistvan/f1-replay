@@ -402,7 +402,7 @@ export function LiveTiming({
     : "py-3 px-1 sm:px-2";
 
   const sectorBarWidthClass = wideSectors ? "w-14" : "w-7";
-  const rowCellPad = dense ? "py-1.5" : "py-3";
+  const rowCellPad = dense ? "py-1" : "py-3";
   const sectorHeaderWidthClass = wideSectors
     ? "w-[4rem] lg:w-[4.5rem]"
     : "w-[2.8rem] lg:w-[3rem]";
@@ -426,8 +426,8 @@ export function LiveTiming({
       : "min-w-[58rem]";
 
   const driverCellCompactClass = compactDriverColumn
-    ? "py-1.5 px-1 sm:px-2"
-    : "py-1.5 px-1.5 sm:px-2";
+    ? "py-1 px-1 sm:px-1.5"
+    : "py-1 px-1 sm:px-1.5";
 
   if (isLoading) {
     return (
@@ -681,7 +681,7 @@ export function LiveTiming({
                 >
                   {/* Position */}
                   <td
-                    className={`${rowCellPad} px-1.5 font-black text-sm tabular-nums text-white/90 sm:px-2`}
+                    className={`${rowCellPad} px-1.5 font-black ${dense ? "text-xs" : "text-sm"} tabular-nums text-white/90 sm:px-2`}
                   >
                     {pos}
                   </td>
@@ -699,11 +699,13 @@ export function LiveTiming({
                         />
                         {/* Team colour bar */}
                         <span
-                          className="w-[2px] h-4 shrink-0 rounded-sm"
+                          className={`w-[2px] ${dense ? "h-3" : "h-4"} shrink-0 rounded-sm`}
                           style={{ background: color }}
                         />
                         {/* Surname in CAPS */}
-                        <span className="min-w-0 truncate font-bold text-[10px] min-[390px]:text-[11px] tracking-[0.03em] min-[390px]:tracking-[0.05em] uppercase text-white">
+                        <span
+                          className={`min-w-0 truncate font-bold ${dense ? "text-[9px] min-[390px]:text-[10px]" : "text-[10px] min-[390px]:text-[11px]"} tracking-[0.03em] min-[390px]:tracking-[0.05em] uppercase text-white`}
+                        >
                           {driver?.name_acronym ?? num}
                         </span>
                         {/* Places gained/lost */}
@@ -736,7 +738,9 @@ export function LiveTiming({
                       </span>
 
                       {showTelemetry && (
-                        <div className="mt-1 grid grid-cols-2 gap-x-2 gap-y-0.5 text-[9px] leading-4 font-mono tabular-nums sm:hidden">
+                        <div
+                          className={`grid grid-cols-2 gap-x-2 gap-y-0.5 font-mono tabular-nums sm:hidden ${dense ? "mt-0.5 text-[8px] leading-3.5" : "mt-1 text-[9px] leading-4"}`}
+                        >
                           <span className="inline-flex min-w-0 items-center gap-1 text-[#7dd3fc]">
                             <span className="text-[#89a6bf]">
                               {speedUnitCompact}
@@ -784,14 +788,14 @@ export function LiveTiming({
 
                   {/* Best lap time */}
                   <td
-                    className={`${rowCellPad} px-1 text-right font-mono text-[11px] min-[390px]:text-[12px] tabular-nums sm:px-2 ${LAP_TIME_COLOUR[lapTier]}`}
+                    className={`${rowCellPad} px-1 text-right font-mono ${dense ? "text-[10px] min-[390px]:text-[11px]" : "text-[11px] min-[390px]:text-[12px]"} tabular-nums sm:px-2 ${LAP_TIME_COLOUR[lapTier]}`}
                   >
                     {fmtTime(lastLap?.lap_duration ?? null)}
                   </td>
 
                   {/* Gap to leader */}
                   <td
-                    className={`${rowCellPad} px-1 text-right font-mono text-[10px] min-[390px]:text-[11px] tabular-nums text-muted sm:px-2`}
+                    className={`${rowCellPad} px-1 text-right font-mono ${dense ? "text-[9px] min-[390px]:text-[10px]" : "text-[10px] min-[390px]:text-[11px]"} tabular-nums text-muted sm:px-2`}
                   >
                     {fmtGap(intData?.gap_to_leader ?? null)}
                   </td>
@@ -860,7 +864,7 @@ export function LiveTiming({
 
                   {/* Current lap */}
                   <td
-                    className={`hidden sm:table-cell ${rowCellPad} px-2 text-center font-mono text-[11px] tabular-nums text-muted`}
+                    className={`hidden sm:table-cell ${rowCellPad} px-2 text-center font-mono ${dense ? "text-[10px]" : "text-[11px]"} tabular-nums text-muted`}
                   >
                     {currentLap !== null && totalLapCount !== null
                       ? `${currentLap}/${totalLapCount}`
