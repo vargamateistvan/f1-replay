@@ -63,7 +63,7 @@ export function TeamRadioFeed({
       emptyMessage =
         "No radio messages for this session. OpenF1 coverage is often limited in 2026+ events.";
     } else {
-      emptyMessage = "No radio messages yet - scrub forward";
+      emptyMessage = "No radio messages yet — scrub forward";
     }
   }
 
