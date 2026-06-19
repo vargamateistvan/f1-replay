@@ -965,6 +965,168 @@ export function TrackMap({
     return diff < 30_000 ? s : null;
   }, [hudRawData, sessionStartMs, t, focusDriver]);
 
+  const trackConditionRibbonOverlay = useMemo(() => {
+    if (!showEnhancedVisuals || !trackGeometry) return null;
+
+    const RIBBON_COLORS: Record<string, string> = {
+      YELLOW: "#f5d400",
+      DOUBLE_YELLOW: "#f5d400",
+      RED: "#e8002d",
+      SAFETY_CAR: "#f5a623",
+      VIRTUAL_SC: "#f5a623",
+      VIRTUAL_SAFETY_CAR: "#f5a623",
+      GREEN: "#39b54a",
+      CLEAR: "#39b54a",
+    };
+
+    const flagForSector = (sector: 1 | 2 | 3): string => {
+      if (!normalizedTrackFlagState) return "CLEAR";
+      if (normalizedTrackFlagState.globalFlag === "RED") return "RED";
+      return (
+        normalizedTrackFlagState.sectorFlags[sector] ??
+        normalizedTrackFlagState.globalFlag ??
+        "CLEAR"
+      );
+    };
+
+    const { pathData } = trackGeometry;
+    const base = (
+      <path
+        key="ribbon-base"
+        d={pathData}
+        fill="none"
+        stroke={lightMode ? "#c9d1e3" : "#293043"}
+        strokeWidth={20}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        opacity={lightMode ? 0.35 : 0.45}
+      />
+    );
+
+    const segments = ([1, 2, 3] as const).map((sectorNum) => {
+      const flag = flagForSector(sectorNum);
+      const color = RIBBON_COLORS[flag] ?? RIBBON_COLORS.CLEAR;
+      const clipPath = circuitLayout?.sectors.some(
+        (s) => s.number === sectorNum,
+      )
+        ? `url(#track-sector-clip-${sectorNum})`
+        : undefined;
+      const active = flag !== "CLEAR" && flag !== "GREEN";
+      return (
+        <path
+          key={`ribbon-sector-${sectorNum}`}
+          d={pathData}
+          fill="none"
+          stroke={color}
+          strokeWidth={20}
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          {...(clipPath
+            ? { clipPath }
+            : {
+                pathLength: 300,
+                strokeDasharray: "100 200",
+                strokeDashoffset: -(sectorNum - 1) * 100,
+              })}
+          opacity={active ? 0.5 : 0.24}
+        />
+      );
+    });
+
+    return (
+      <>
+        {base}
+        {segments}
+      </>
+    );
+  }, [
+    showEnhancedVisuals,
+    trackGeometry,
+    normalizedTrackFlagState,
+    circuitLayout,
+    lightMode,
+  ]);
+
+  const marshalLightNodes = useMemo(() => {
+    if (
+      !showEnhancedVisuals ||
+      !trackGeometry ||
+      !circuitGeom?.marshalSectors.length
+    )
+      return null;
+
+    const LIGHT_COLORS: Record<string, string> = {
+      YELLOW: "#f5d400",
+      DOUBLE_YELLOW: "#f5d400",
+      RED: "#e8002d",
+      SAFETY_CAR: "#f5a623",
+      VIRTUAL_SC: "#f5a623",
+      VIRTUAL_SAFETY_CAR: "#f5a623",
+      GREEN: "#39b54a",
+      CLEAR: "#39b54a",
+    };
+
+    const flagForSector = (sector: 1 | 2 | 3): string => {
+      if (!normalizedTrackFlagState) return "CLEAR";
+      if (normalizedTrackFlagState.globalFlag === "RED") return "RED";
+      return (
+        normalizedTrackFlagState.sectorFlags[sector] ??
+        normalizedTrackFlagState.globalFlag ??
+        "CLEAR"
+      );
+    };
+
+    const { bounds, innerW, innerH } = trackGeometry;
+    const total = circuitGeom.marshalSectors.length;
+
+    return (
+      <>
+        {circuitGeom.marshalSectors.map((ms, i) => {
+          const sector = (i < total / 3 ? 1 : i < (2 * total) / 3 ? 2 : 3) as
+            | 1
+            | 2
+            | 3;
+          const flag = flagForSector(sector);
+          if (flag === "CLEAR" || flag === "GREEN") return null;
+          const color = LIGHT_COLORS[flag] ?? LIGHT_COLORS.YELLOW;
+          const { sx, sy } = locationToSvg(
+            ms.trackPosition.x,
+            ms.trackPosition.y,
+            bounds,
+            innerW,
+            innerH,
+          );
+          const cx = sx + PAD;
+          const cy = sy + PAD;
+          return (
+            <g key={`marshal-light-${ms.number}`}>
+              <circle cx={cx} cy={cy} r={3.1} fill={color} opacity={0.35}>
+                <animate
+                  attributeName="r"
+                  values="2.4;4.8;2.4"
+                  dur="1.25s"
+                  repeatCount="indefinite"
+                />
+                <animate
+                  attributeName="opacity"
+                  values="0.25;0.62;0.25"
+                  dur="1.25s"
+                  repeatCount="indefinite"
+                />
+              </circle>
+              <circle cx={cx} cy={cy} r={1.45} fill={color} opacity={0.95} />
+            </g>
+          );
+        })}
+      </>
+    );
+  }, [
+    showEnhancedVisuals,
+    trackGeometry,
+    circuitGeom,
+    normalizedTrackFlagState,
+  ]);
+
   const svgRef = useRef<SVGSVGElement>(null);
 
   if (!sessionKey) {
@@ -1231,6 +1393,26 @@ export function TrackMap({
             : null}
         </defs>
         <g transform={trackTransform}>
+          {/* Track condition ribbon: real-time sector/global status around the circuit edge */}
+          {trackConditionRibbonOverlay}
+
+          {/* Elevation contour shadow under the asphalt */}
+          {showEnhancedVisuals &&
+            elevationSegments.length > 0 &&
+            elevationSegments.map((seg, i) => (
+              <line
+                key={`elev-shadow-${i}`}
+                x1={seg.x1}
+                y1={seg.y1}
+                x2={seg.x2}
+                y2={seg.y2}
+                stroke={seg.color}
+                strokeWidth={14}
+                strokeLinecap="round"
+                opacity={seg.opacity * 0.15}
+              />
+            ))}
+
           {/* Track surface: thick grey base + thin white highlight */}
           <path
             d={pathData}
@@ -1441,6 +1623,9 @@ export function TrackMap({
 
           {/* Marshal sector dots (baked geometry only) */}
           {marshalSectorOverlays}
+
+          {/* Mini marshal lights that pulse when local flags are active */}
+          {marshalLightNodes}
 
           {/* Active flag tint over marshal sectors / sector boxes */}
           {sectorFlagTints}
