@@ -400,6 +400,70 @@ export function TrackMap({
     });
   }, [trackGeometry, heatData.data]);
 
+  const heatStats = useMemo(() => {
+    const samples = heatData.data;
+    if (!samples?.length) return null;
+    let min = Number.POSITIVE_INFINITY;
+    let max = Number.NEGATIVE_INFINITY;
+    let sum = 0;
+    for (const sample of samples) {
+      const speed = sample.speed;
+      if (speed < min) min = speed;
+      if (speed > max) max = speed;
+      sum += speed;
+    }
+    const avg = sum / samples.length;
+    return {
+      min: Math.round(toDisplaySpeed(min, metricSystem)),
+      avg: Math.round(toDisplaySpeed(avg, metricSystem)),
+      max: Math.round(toDisplaySpeed(max, metricSystem)),
+    };
+  }, [heatData.data, metricSystem]);
+
+  // Start/finish marker anchored to the first outline segment.
+  const startFinishOverlay = useMemo(() => {
+    if (!trackGeometry || trackGeometry.svgPts.length < 2) return null;
+    const p0 = trackGeometry.svgPts[0]!;
+    const p1 = trackGeometry.svgPts[1]!;
+    const dx = p1.sx - p0.sx;
+    const dy = p1.sy - p0.sy;
+    const len = Math.hypot(dx, dy) || 1;
+    const nx = -dy / len;
+    const ny = dx / len;
+    const half = 7;
+    const cx = p0.sx + PAD;
+    const cy = p0.sy + PAD;
+    const x1 = cx + nx * half;
+    const y1 = cy + ny * half;
+    const x2 = cx - nx * half;
+    const y2 = cy - ny * half;
+    return (
+      <g>
+        <line
+          x1={x1}
+          y1={y1}
+          x2={x2}
+          y2={y2}
+          stroke="#ffffff"
+          strokeWidth={4}
+          strokeLinecap="round"
+          opacity={0.85}
+        />
+        <line
+          x1={x1}
+          y1={y1}
+          x2={x2}
+          y2={y2}
+          stroke="#0b0d15"
+          strokeWidth={2.2}
+          strokeLinecap="round"
+          strokeDasharray="2 2"
+          opacity={0.95}
+        />
+      </g>
+    );
+  }, [trackGeometry]);
+
   // Corner number labels from baked geometry — placed at each corner's trackPosition.
   const cornerOverlays = useMemo(() => {
     if (!trackGeometry || !circuitGeom || !circuitGeom.corners.length)
@@ -960,6 +1024,15 @@ export function TrackMap({
           {/* Track surface: thick grey base + thin white highlight */}
           <path
             d={pathData}
+            strokeWidth={16}
+            fill="none"
+            stroke="#1f2028"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeOpacity={0.55}
+          />
+          <path
+            d={pathData}
             strokeWidth={11}
             fill="none"
             stroke="#38383f"
@@ -982,6 +1055,16 @@ export function TrackMap({
             strokeLinecap="round"
             strokeLinejoin="round"
             strokeOpacity={0.15}
+          />
+          <path
+            d={pathData}
+            fill="none"
+            stroke="#d7d7e0"
+            strokeWidth={0.75}
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeDasharray="1.2 5"
+            strokeOpacity={0.2}
           />
 
           {/* Sector flag colors on track line */}
@@ -1138,6 +1221,9 @@ export function TrackMap({
           {/* Corner numbers (baked geometry only) */}
           {cornerOverlays}
 
+          {/* Start/finish */}
+          {startFinishOverlay}
+
           {/* Car dots — when a driver is focused, dim the rest and enlarge the pick */}
           {carPositions
             .slice()
@@ -1226,6 +1312,7 @@ export function TrackMap({
                     <text
                       x={0}
                       y={0}
+                      transform={`rotate(${-rotationDeg.toFixed(1)} 0 0)`}
                       textAnchor="middle"
                       dominantBaseline="middle"
                       fontSize={focused ? (num >= 10 ? 5.2 : 5.8) : 4.4}
@@ -1343,6 +1430,34 @@ export function TrackMap({
             >
               <LocateFixed size={14} strokeWidth={2.2} aria-hidden="true" />
             </button>
+          </div>
+        </div>
+      )}
+
+      {focusDriver !== null && heatSegments.length > 0 && heatStats && (
+        <div
+          className="absolute top-2 left-1/2 z-20 -translate-x-1/2 pointer-events-none border border-[#3f4252] px-2 py-1"
+          style={{
+            background: overlayBackground,
+            backdropFilter: "blur(4px)",
+            minWidth: 186,
+          }}
+        >
+          <div className="flex items-center justify-between text-[8px] font-black uppercase tracking-[0.14em] text-muted">
+            <span>Lap Speed</span>
+            <span>{speedUnit}</span>
+          </div>
+          <div
+            className="mt-1 h-1.5"
+            style={{
+              background:
+                "linear-gradient(90deg, hsl(240,100%,55%) 0%, hsl(120,100%,55%) 50%, hsl(0,100%,55%) 100%)",
+            }}
+          />
+          <div className="mt-1 flex items-center justify-between text-[9px] font-mono tabular-nums text-white">
+            <span>{heatStats.min}</span>
+            <span className="text-muted">AVG {heatStats.avg}</span>
+            <span>{heatStats.max}</span>
           </div>
         </div>
       )}
