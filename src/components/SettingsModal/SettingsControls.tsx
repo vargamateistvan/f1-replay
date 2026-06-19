@@ -167,9 +167,7 @@ export function UnitSelector({
   return (
     <div className="flex items-center justify-between gap-4 py-3 border-b border-[#2a2a35]">
       <div>
-        <div className="text-[13px] text-white/90 leading-tight">
-          Units
-        </div>
+        <div className="text-[13px] text-white/90 leading-tight">Units</div>
         <div className="text-[11px] text-muted mt-0.5 leading-tight">
           Display distances in km or miles, temperature in °C or °F
         </div>
@@ -364,6 +362,12 @@ export function SettingsBody() {
         description="Show weather panel/overlay in track map view"
         checked={settings.mapShowWeather}
         onChange={toggle("mapShowWeather")}
+      />
+      <SettingRow
+        label="Driver number inside dot"
+        description="Hide 3-letter labels and render driver numbers in car circles"
+        checked={settings.mapShowDriverNumberInside}
+        onChange={toggle("mapShowDriverNumberInside")}
       />
       <SettingRow
         label="PNG track snapshot"

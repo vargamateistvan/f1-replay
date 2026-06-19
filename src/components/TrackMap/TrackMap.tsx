@@ -186,6 +186,9 @@ export function TrackMap({
   const { t } = useTimeline();
   const lightMode = useSettings((s) => s.lightMode);
   const metricSystem = useSettings((s) => s.metricSystem);
+  const mapShowDriverNumberInside = useSettings(
+    (s) => s.mapShowDriverNumberInside,
+  );
   const [zoomLevel, setZoomLevel] = useState(1);
   const [rotationDeg, setRotationDeg] = useState(0);
 
@@ -1148,10 +1151,18 @@ export function TrackMap({
               const { sx, sy } = locationToSvg(x, y, bounds, innerW, innerH);
               const focused = focusDriver === num;
               const dimmed = focusDriver !== null && !focused;
-              const showLabel = focusDriver === null || focused;
+              const showLabel =
+                (focusDriver === null || focused) && !mapShowDriverNumberInside;
               const pulsing = pulseSet.has(num);
               const isBattling = battlingDrivers?.has(num) ?? false;
               const compoundInfo = activeCompounds?.get(num);
+              const dotRadius = mapShowDriverNumberInside
+                ? focused
+                  ? 8
+                  : 6.6
+                : focused
+                  ? 6.5
+                  : 4.5;
               return (
                 <g
                   key={num}
@@ -1196,7 +1207,7 @@ export function TrackMap({
                   )}
                   {focused && (
                     <circle
-                      r={9}
+                      r={dotRadius + 2.5}
                       fill="none"
                       stroke={color}
                       strokeWidth={1.5}
@@ -1204,12 +1215,29 @@ export function TrackMap({
                     />
                   )}
                   <circle
-                    r={focused ? 6.5 : 4.5}
+                    r={dotRadius}
                     fill={color}
                     stroke="#ffffff"
                     strokeWidth={focused ? 1.6 : 1.2}
                     strokeOpacity={focused ? 0.9 : 0.6}
                   />
+                  {mapShowDriverNumberInside && (
+                    <text
+                      x={0}
+                      y={0}
+                      textAnchor="middle"
+                      dominantBaseline="middle"
+                      fontSize={focused ? (num >= 10 ? 5.2 : 5.8) : 4.4}
+                      fill="#ffffff"
+                      stroke="rgba(0,0,0,0.58)"
+                      strokeWidth={0.6}
+                      paintOrder="stroke"
+                      fontFamily="Inter, sans-serif"
+                      fontWeight="900"
+                    >
+                      {num}
+                    </text>
+                  )}
                   {/* Compound badge: small dot in tyre-compound colour */}
                   {compoundInfo && (
                     <circle
