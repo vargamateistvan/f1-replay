@@ -1015,6 +1015,24 @@ export default function RaceWeekend() {
       {/* ── LEADERBOARD VIEW ──────────────────────────────────────────── */}
       {currentView === "leaderboard" && (
         <div className="flex flex-col md:flex-1 md:min-h-0 md:overflow-hidden">
+          <SessionInfoBar
+            laps={laps.data ?? []}
+            raceControl={raceControl.data ?? []}
+            sessionTimeMs={t}
+            sessionStartMs={sessionStartMs}
+            airTemp={weatherAtT?.air_temperature ?? null}
+            trackTemp={weatherAtT?.track_temperature ?? null}
+            isRaceSession={isRaceSession}
+            lightsOutMs={lightsOutMs}
+            totalLapCount={totalLapCount}
+            onShowResults={
+              showFinalClassification && !sessionResult.isError
+                ? () => setIsResultsDialogOpen(true)
+                : undefined
+            }
+            onJumpToSessionTime={(sessionTimeMs) => setTimelineT(sessionTimeMs)}
+          />
+
           {/* Loading indicator */}
           {isLoadingSessionData && (
             <div className="border-b border-panel bg-track px-3 py-2 sm:px-4">
