@@ -1,4 +1,4 @@
-import { useMemo, useState, useEffect, useRef } from "react";
+import { useMemo, useState, useEffect, useRef, type ReactNode } from "react";
 import {
   CloudRain,
   Droplets,
@@ -622,7 +622,7 @@ export function TrackMap({
     const { svgPts } = trackGeometry;
     const n = svgPts.length;
     const count = 10;
-    const arrows: JSX.Element[] = [];
+    const arrows: ReactNode[] = [];
 
     for (let i = 0; i < count; i++) {
       const idx = Math.floor((i / count) * (n - 1));
