@@ -21,6 +21,9 @@ export const MAX_FRAME_STEP_MS = 250;
 // ── Location replay chunks ──────────────────────────────────────────────────--
 // 5-minute windows keep each fetch ≤ ~22k rows (20 drivers × 3.7 Hz × 300 s).
 export const CHUNK_MS = 5 * 60 * 1000;
+// Location endpoint can return very large payloads; use smaller chunking there
+// to reduce per-request JSON parse/indexing spikes on fast playback.
+export const LOCATION_CHUNK_MS = 2 * 60 * 1000;
 
 // ── Live session detection / polling ───────────────────────────────────────--
 // Buffer so "live" activates just before lights-out and lingers past the flag.

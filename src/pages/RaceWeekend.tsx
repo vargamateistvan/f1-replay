@@ -38,7 +38,10 @@ import { useSearchParams } from "react-router-dom";
 import { useTimeline } from "@/timeline/clock";
 import { useCoarseTime } from "@/hooks/useCoarseTime";
 import { useMediaQuery } from "@/hooks/useMediaQuery";
-import { useLocationChunks, chunkIndexFor } from "@/hooks/useLocationChunks";
+import {
+  useLocationChunks,
+  locationChunkIndexFor,
+} from "@/hooks/useLocationChunks";
 import { useAllCarDataWindow } from "@/hooks/useAllCarDataWindow";
 import { useNumberParam, useStringParam } from "@/hooks/useSearchParamState";
 import { useTimelineUrlSync } from "@/hooks/useTimelineUrlSync";
@@ -158,6 +161,7 @@ export default function RaceWeekend() {
   const setSessionStart = useTimeline((s) => s.setSessionStart);
   const setTimelineT = useTimeline((s) => s.setT);
   const setTimelinePlaying = useTimeline((s) => s.setPlaying);
+  const playbackSpeed = useTimeline((s) => s.speed);
   // Throttled to ~10 Hz. Step-based panels (LiveTiming, Strategy, Weather, etc.)
   // don't need 60 fps; TrackMap drives its own 60 Hz loop internally.
   const t = useCoarseTime();
@@ -194,7 +198,7 @@ export default function RaceWeekend() {
     sessionKey !== null &&
     (drivers.isPending || positions.isPending || intervals.isPending);
 
-  const chunkIdx = chunkIndexFor(t);
+  const chunkIdx = locationChunkIndexFor(t);
   const isMapVisible =
     currentView === "tracker" &&
     (!isCompactViewport || (trackerTab ?? "timing") === "map");
@@ -206,6 +210,7 @@ export default function RaceWeekend() {
     {
       includeNextChunk: !isCompactViewport,
       prefetchChunks: !isCompactViewport,
+      playbackSpeed,
     },
   );
 

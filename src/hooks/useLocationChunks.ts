@@ -2,15 +2,19 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useMemo } from "react";
 import { api } from "@/api/endpoints";
 import type { Location } from "@/api/types";
-import { CHUNK_MS } from "@/constants";
+import { CHUNK_MS, LOCATION_CHUNK_MS } from "@/constants";
 
 function chunkKey(sessionKey: number, idx: number) {
   return ["location-chunk", sessionKey, idx] as const;
 }
 
 function chunkDates(sessionStartMs: number, idx: number) {
-  const start = new Date(sessionStartMs + idx * CHUNK_MS).toISOString();
-  const end = new Date(sessionStartMs + (idx + 1) * CHUNK_MS).toISOString();
+  const start = new Date(
+    sessionStartMs + idx * LOCATION_CHUNK_MS,
+  ).toISOString();
+  const end = new Date(
+    sessionStartMs + (idx + 1) * LOCATION_CHUNK_MS,
+  ).toISOString();
   return { start, end };
 }
 
@@ -19,15 +23,41 @@ function fetchChunk(sessionKey: number, sessionStartMs: number, idx: number) {
   return api.locationWindow(sessionKey, start, end);
 }
 
+export function mergeLocationChunkData(
+  previous: Location[] | undefined,
+  current: Location[] | undefined,
+  next: Location[] | undefined,
+  includeNextChunk: boolean,
+): Location[] {
+  return [
+    ...(previous ?? []),
+    ...(current ?? []),
+    ...(includeNextChunk ? (next ?? []) : []),
+  ];
+}
+
 export function chunkIndexFor(tMs: number): number {
   return Math.max(0, Math.floor(tMs / CHUNK_MS));
 }
 
+export function locationChunkIndexFor(tMs: number): number {
+  return Math.max(0, Math.floor(tMs / LOCATION_CHUNK_MS));
+}
+
+export function getLocationPrefetchOffsets(playbackSpeed: number): number[] {
+  if (playbackSpeed >= 16) return [2, 3, 4, 5, 6, 7, 8];
+  if (playbackSpeed >= 8) return [2, 3, 4, 5, 6];
+  return [2, 3];
+}
+
+export function getEarlyLocationPrefetchMs(playbackSpeed: number): number {
+  if (playbackSpeed >= 16) return 4 * 60_000;
+  if (playbackSpeed >= 8) return 3 * 60_000;
+  return 60_000;
+}
+
 // How many chunks to keep on each side of the current position.
 const EVICT_RADIUS = 4;
-
-// How many ms before the next chunk boundary to start prefetching +3.
-const EARLY_PREFETCH_MS = 60_000;
 
 // Returns merged Location[] for the current 5-min window + the next (prefetched).
 // chunkIdx should be computed by the caller as chunkIndexFor(t).
@@ -41,6 +71,7 @@ export function useLocationChunks(
   options?: {
     includeNextChunk?: boolean;
     prefetchChunks?: boolean;
+    playbackSpeed?: number;
   },
 ): { data: Location[]; isPending: boolean } {
   const qc = useQueryClient();
@@ -48,11 +79,25 @@ export function useLocationChunks(
   const enabled = sessionKey !== null && sessionStartMs !== null;
   const includeNextChunk = options?.includeNextChunk ?? true;
   const prefetchChunks = options?.prefetchChunks ?? true;
+  const playbackSpeed = options?.playbackSpeed ?? 1;
+  const prefetchOffsets = getLocationPrefetchOffsets(playbackSpeed);
+  const earlyPrefetchMs = getEarlyLocationPrefetchMs(playbackSpeed);
+  const furthestPrefetchOffset =
+    prefetchOffsets[prefetchOffsets.length - 1] ?? 3;
+  const keepRadius = Math.max(EVICT_RADIUS, furthestPrefetchOffset);
 
   const current = useQuery<Location[]>({
     queryKey: chunkKey(sessionKey!, chunkIdx),
     queryFn: () => fetchChunk(sessionKey!, sessionStartMs!, chunkIdx),
     enabled,
+    staleTime: Infinity,
+    gcTime: Infinity,
+  });
+
+  const previous = useQuery<Location[]>({
+    queryKey: chunkKey(sessionKey!, Math.max(0, chunkIdx - 1)),
+    queryFn: () => fetchChunk(sessionKey!, sessionStartMs!, chunkIdx - 1),
+    enabled: enabled && chunkIdx > 0,
     staleTime: Infinity,
     gcTime: Infinity,
   });
@@ -65,10 +110,11 @@ export function useLocationChunks(
     gcTime: Infinity,
   });
 
-  // Prefetch +2 and +3 so there's always two chunks of headroom during fast-forward.
+  // Prefetch farther ahead at high playback speeds so fast-forward does not outrun
+  // the network. Base headroom is +2/+3, then +4 at 8x and +5 at 16x.
   useEffect(() => {
     if (!enabled || !prefetchChunks) return;
-    for (const offset of [2, 3]) {
+    for (const offset of prefetchOffsets) {
       qc.prefetchQuery({
         queryKey: chunkKey(sessionKey!, chunkIdx + offset),
         queryFn: () =>
@@ -76,22 +122,38 @@ export function useLocationChunks(
         staleTime: Infinity,
       });
     }
-  }, [qc, enabled, prefetchChunks, sessionKey, sessionStartMs, chunkIdx]);
+  }, [
+    qc,
+    enabled,
+    prefetchChunks,
+    prefetchOffsets,
+    sessionKey,
+    sessionStartMs,
+    chunkIdx,
+  ]);
 
-  // Early-prefetch +2 when the playhead is within 60 s of the next boundary so
-  // the network request starts before chunkIdx increments.
+  // Early-prefetch the furthest future chunk when the playhead is near the next
+  // boundary so the network request starts before chunkIdx increments.
   const nearBoundary =
-    tMs !== undefined && tMs % CHUNK_MS > CHUNK_MS - EARLY_PREFETCH_MS;
+    tMs !== undefined &&
+    tMs % LOCATION_CHUNK_MS > LOCATION_CHUNK_MS - earlyPrefetchMs;
   useEffect(() => {
     if (!enabled || !nearBoundary || !prefetchChunks) return;
     qc.prefetchQuery({
-      queryKey: chunkKey(sessionKey!, chunkIdx + 2),
-      queryFn: () => fetchChunk(sessionKey!, sessionStartMs!, chunkIdx + 2),
+      queryKey: chunkKey(sessionKey!, chunkIdx + furthestPrefetchOffset),
+      queryFn: () =>
+        fetchChunk(
+          sessionKey!,
+          sessionStartMs!,
+          chunkIdx + furthestPrefetchOffset,
+        ),
       staleTime: Infinity,
     });
   }, [
     qc,
+    earlyPrefetchMs,
     enabled,
+    furthestPrefetchOffset,
     nearBoundary,
     prefetchChunks,
     sessionKey,
@@ -101,7 +163,7 @@ export function useLocationChunks(
 
   // Evict chunks outside the keep window to bound memory on long replays.
   // We inspect the cache for all location-chunk queries for this session and
-  // remove any whose index falls outside [chunkIdx - EVICT_RADIUS, chunkIdx + EVICT_RADIUS].
+  // remove any whose index falls outside [chunkIdx - keepRadius, chunkIdx + keepRadius].
   useEffect(() => {
     if (!enabled) return;
     const queries = qc.getQueryCache().findAll({
@@ -111,22 +173,25 @@ export function useLocationChunks(
     for (const query of queries) {
       const key = query.queryKey as ["location-chunk", number, number];
       const idx = key[2];
-      if (Math.abs(idx - chunkIdx) > EVICT_RADIUS) {
+      if (Math.abs(idx - chunkIdx) > keepRadius) {
         qc.removeQueries({ queryKey: key, exact: true });
       }
     }
-  }, [qc, enabled, sessionKey, chunkIdx]);
+  }, [qc, enabled, sessionKey, chunkIdx, keepRadius]);
 
   // Stable reference: only rebuilds when a chunk actually arrives, not every render.
   // Without this memo, RaceWeekend's t-subscription causes a new array every frame,
   // which forces TrackMap to rebuild all typed-array location indexes at 60 fps.
   const data = useMemo(
-    () => [
-      ...(current.data ?? []),
-      ...(includeNextChunk ? (next.data ?? []) : []),
-    ],
-    [current.data, includeNextChunk, next.data],
+    () =>
+      mergeLocationChunkData(
+        previous.data,
+        current.data,
+        next.data,
+        includeNextChunk,
+      ),
+    [previous.data, current.data, includeNextChunk, next.data],
   );
 
-  return { data, isPending: current.isPending };
+  return { data, isPending: current.isPending && data.length === 0 };
 }
