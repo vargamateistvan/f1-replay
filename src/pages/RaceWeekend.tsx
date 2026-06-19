@@ -841,6 +841,12 @@ export default function RaceWeekend() {
     return total > 0 ? total : null;
   }, [isRaceSession, laps.data, sessionResult.data]);
 
+  const commentaryLapLabel = useMemo(() => {
+    if (currentLap <= 0) return "—";
+    if (totalLapCount === null) return String(currentLap);
+    return `${currentLap}/${totalLapCount}`;
+  }, [currentLap, totalLapCount]);
+
   // ── Session countdown (practice / qualifying) ────────────────────────────
   const sessionName = session?.session_name ?? "";
   const countdownMs =
@@ -1388,6 +1394,24 @@ export default function RaceWeekend() {
       {/* ── COMMENTARY VIEW ───────────────────────────────────────────── */}
       {currentView === "commentary" && (
         <div className="flex flex-col md:flex-1 md:min-h-0 md:overflow-hidden">
+          <SessionInfoBar
+            laps={laps.data ?? []}
+            raceControl={raceControl.data ?? []}
+            sessionTimeMs={t}
+            sessionStartMs={sessionStartMs}
+            airTemp={weatherAtT?.air_temperature ?? null}
+            trackTemp={weatherAtT?.track_temperature ?? null}
+            isRaceSession={isRaceSession}
+            lightsOutMs={lightsOutMs}
+            totalLapCount={totalLapCount}
+            onShowResults={
+              showFinalClassification && !sessionResult.isError
+                ? () => setIsResultsDialogOpen(true)
+                : undefined
+            }
+            onJumpToSessionTime={(sessionTimeMs) => setTimelineT(sessionTimeMs)}
+          />
+
           {/* Compact weather strip */}
           <div className="shrink-0 border-b border-panel">
             {weather.isError ? (
@@ -1426,6 +1450,16 @@ export default function RaceWeekend() {
                 <span className="hidden sm:inline">{label}</span>
               </button>
             ))}
+          </div>
+
+          {/* Live lap status */}
+          <div className="shrink-0 border-b border-panel bg-surface/70 px-3 py-1.5">
+            <span className="text-[10px] font-black uppercase tracking-[0.12em] text-muted">
+              Lap{" "}
+              <span className="text-white tabular-nums">
+                {commentaryLapLabel}
+              </span>
+            </span>
           </div>
 
           {/* Content */}
