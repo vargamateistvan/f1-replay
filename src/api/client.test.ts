@@ -221,7 +221,7 @@ describe("fetchEndpoint - rate limiter", () => {
       fetchEndpoint("drivers", { session_key: 1 }),
     ).rejects.toSatisfy(
       (e: unknown) =>
-        e instanceof OpenF1Error && (e as OpenF1Error).status === 401,
+        e instanceof OpenF1Error && (e as { status: number }).status === 401,
     );
   });
 
