@@ -198,9 +198,9 @@ export function SessionInfoBar({
   if (sessionStartMs === 0) return null;
 
   return (
-    <div className="shrink-0 flex flex-wrap items-stretch border-b border-panel bg-track text-[10px] font-bold uppercase tracking-[0.1em]">
+    <div className="shrink-0 flex items-stretch overflow-x-auto border-b border-panel bg-track text-[10px] font-bold uppercase tracking-[0.1em]">
       {/* Lap counter */}
-      <div className="flex min-w-0 flex-1 items-center justify-center gap-2 border-r border-b border-panel px-3 py-2 sm:flex-none sm:justify-start sm:border-b-0 sm:px-4">
+      <div className="flex shrink-0 items-center justify-center gap-2 border-r border-panel px-2.5 py-2 sm:justify-start sm:px-4">
         <span className="text-muted">Lap</span>
         <button
           type="button"
@@ -217,7 +217,7 @@ export function SessionInfoBar({
 
       {/* Track status badge - hide during formation lap since lap display shows 'F' */}
       {!isFormationLap && (
-        <div className="flex min-w-0 flex-1 items-center justify-center border-r border-b border-panel px-3 py-2 sm:flex-none sm:justify-start sm:border-b-0 sm:px-4">
+        <div className="flex shrink-0 items-center justify-center border-r border-panel px-2.5 py-2 sm:justify-start sm:px-4">
           <span
             className="px-2 py-0.5 text-center text-[9px] font-black tracking-widest"
             style={{ background: status.bg, color: status.color }}
@@ -228,7 +228,7 @@ export function SessionInfoBar({
       )}
 
       {/* Elapsed time */}
-      <div className="flex min-w-0 flex-1 items-center justify-center gap-2 border-r border-b border-panel px-3 py-2 sm:flex-none sm:justify-start sm:border-b-0 sm:px-4">
+      <div className="flex shrink-0 items-center justify-center gap-2 border-r border-panel px-2.5 py-2 sm:justify-start sm:px-4">
         <span className="text-muted">Time</span>
         <span className="text-white tabular-nums font-mono">
           {fmtElapsed(sessionTimeMs)}
@@ -236,13 +236,13 @@ export function SessionInfoBar({
       </div>
 
       {/* Weather temperatures */}
-      <div className="flex min-w-0 flex-1 items-center justify-center gap-2 border-r border-b border-panel px-3 py-2 sm:flex-none sm:justify-start sm:border-b-0 sm:px-4">
+      <div className="flex shrink-0 items-center justify-center gap-2 border-r border-panel px-2.5 py-2 sm:justify-start sm:px-4">
         <span className="text-muted">Air</span>
         <span className="text-white tabular-nums font-mono">
           {fmtTemp(airTemp, metricSystem)}
         </span>
       </div>
-      <div className="flex min-w-0 flex-1 items-center justify-center gap-2 border-r border-b border-panel px-3 py-2 sm:flex-none sm:justify-start sm:border-b-0 sm:px-4">
+      <div className="flex shrink-0 items-center justify-center gap-2 border-r border-panel px-2.5 py-2 sm:justify-start sm:px-4">
         <span className="text-muted">Track</span>
         <span className="text-white tabular-nums font-mono">
           {fmtTemp(trackTemp, metricSystem)}
@@ -252,7 +252,7 @@ export function SessionInfoBar({
       {onShowResults && (
         <button
           onClick={onShowResults}
-          className="min-w-0 flex-1 border-r border-b border-panel px-3 py-2 text-[10px] font-black uppercase tracking-[0.12em] text-white transition-colors hover:bg-white/5 hover:text-f1red sm:flex-none sm:border-b-0 sm:px-4 sm:tracking-[0.16em]"
+          className="shrink-0 border-r border-panel px-3 py-2 text-[10px] font-black uppercase tracking-[0.12em] text-white transition-colors hover:bg-white/5 hover:text-f1red sm:px-4 sm:tracking-[0.16em]"
         >
           <span className="sm:hidden">Results</span>
           <span className="hidden sm:inline">Show Results</span>
@@ -261,7 +261,7 @@ export function SessionInfoBar({
 
       {/* Latest RC message */}
       {latestMsg && (
-        <div className="flex min-w-0 basis-full items-center gap-2 px-3 py-2 sm:flex-1 sm:px-4">
+        <div className="hidden min-w-0 flex-1 items-center gap-2 px-4 py-2 sm:flex">
           {latestMsg.lap_number !== null && (
             <span className="text-muted shrink-0">L{latestMsg.lap_number}</span>
           )}
