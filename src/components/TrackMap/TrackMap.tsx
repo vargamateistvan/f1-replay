@@ -186,6 +186,7 @@ export function TrackMap({
   const { t } = useTimeline();
   const lightMode = useSettings((s) => s.lightMode);
   const metricSystem = useSettings((s) => s.metricSystem);
+  const mapShowDriverAcronym = useSettings((s) => s.mapShowDriverAcronym);
   const mapShowDriverNumberInside = useSettings(
     (s) => s.mapShowDriverNumberInside,
   );
@@ -1152,7 +1153,7 @@ export function TrackMap({
               const focused = focusDriver === num;
               const dimmed = focusDriver !== null && !focused;
               const showLabel =
-                (focusDriver === null || focused) && !mapShowDriverNumberInside;
+                (focusDriver === null || focused) && mapShowDriverAcronym;
               const pulsing = pulseSet.has(num);
               const isBattling = battlingDrivers?.has(num) ?? false;
               const compoundInfo = activeCompounds?.get(num);

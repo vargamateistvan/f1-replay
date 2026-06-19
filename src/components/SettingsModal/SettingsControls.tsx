@@ -364,8 +364,14 @@ export function SettingsBody() {
         onChange={toggle("mapShowWeather")}
       />
       <SettingRow
+        label="Driver acronym labels"
+        description="Show 3-letter driver labels next to car dots"
+        checked={settings.mapShowDriverAcronym}
+        onChange={toggle("mapShowDriverAcronym")}
+      />
+      <SettingRow
         label="Driver number inside dot"
-        description="Hide 3-letter labels and render driver numbers in car circles"
+        description="Show driver number centered in each car dot"
         checked={settings.mapShowDriverNumberInside}
         onChange={toggle("mapShowDriverNumberInside")}
       />
