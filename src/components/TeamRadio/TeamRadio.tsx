@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { Play, Square } from "lucide-react";
 import type { TeamRadio as TeamRadioEntry, Driver } from "@/api/types";
 import { downloadEndpointCsv } from "@/api/client";
@@ -39,10 +39,33 @@ export function TeamRadioFeed({
 
   const driverByNumber = new Map(drivers.map((d) => [d.driver_number, d]));
 
-  const visible = entries
-    .filter((e) => new Date(e.date).getTime() <= currentT)
-    .slice(-30)
-    .reverse();
+  const visible = useMemo(() => {
+    const entriesInView = entries.filter(
+      (e) => new Date(e.date).getTime() <= currentT,
+    );
+    if (entriesInView.length === 0) return [];
+
+    // If the playhead is at/after the latest radio event (e.g. jumped to end),
+    // expose the full feed instead of the rolling last-N window.
+    const latestEntry = entriesInView.at(-1);
+    if (!latestEntry) return [];
+    const latestEntryMs = new Date(latestEntry.date).getTime();
+    const showAll = currentT >= latestEntryMs;
+
+    return showAll
+      ? [...entriesInView].reverse()
+      : entriesInView.slice(-30).reverse();
+  }, [entries, currentT]);
+
+  let emptyMessage = "Select a session";
+  if (sessionStartMs !== 0) {
+    if (sessionYear !== null && sessionYear >= 2026) {
+      emptyMessage =
+        "No radio messages for this session. OpenF1 coverage is often limited in 2026+ events.";
+    } else {
+      emptyMessage = "No radio messages yet - scrub forward";
+    }
+  }
 
   function play(url: string) {
     if (playing === url) {
@@ -53,16 +76,7 @@ export function TeamRadioFeed({
   }
 
   if (visible.length === 0) {
-    const sparseCoverage = sessionYear !== null && sessionYear >= 2026;
-    return (
-      <div className="text-muted text-xs p-3">
-        {sessionStartMs
-          ? sparseCoverage
-            ? "No radio messages for this session. OpenF1 coverage is often limited in 2026+ events."
-            : "No radio messages yet — scrub forward"
-          : "Select a session"}
-      </div>
-    );
+    return <div className="text-muted text-xs p-3">{emptyMessage}</div>;
   }
 
   return (
@@ -85,14 +99,14 @@ export function TeamRadioFeed({
           </button>
         </div>
       )}
-      {visible.map((e, i) => {
+      {visible.map((e) => {
         const driver = driverByNumber.get(e.driver_number);
         const color = teamColor(driver?.team_colour);
         const entryMs = new Date(e.date).getTime();
         const isPlaying = playing === e.recording_url;
         return (
           <div
-            key={i}
+            key={`${e.driver_number}-${e.date}-${e.recording_url}`}
             className="flex items-start gap-2 border-b border-[#2a2a35] pb-1.5 pt-0.5"
           >
             {/* Team colour bar */}
@@ -137,7 +151,9 @@ export function TeamRadioFeed({
                     autoPlay
                     onEnded={() => setPlaying(null)}
                     className="hidden"
-                  />
+                  >
+                    <track kind="captions" />
+                  </audio>
                 )}
               </div>
             </div>

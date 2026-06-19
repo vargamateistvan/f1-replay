@@ -37,14 +37,23 @@ export function OvertakeFeed({
     [drivers],
   );
 
-  const visible = useMemo(
-    () =>
-      entries
-        .filter((e) => new Date(e.date).getTime() <= currentT)
-        .slice(-40)
-        .reverse(),
-    [entries, currentT],
-  );
+  const visible = useMemo(() => {
+    const entriesInView = entries.filter(
+      (e) => new Date(e.date).getTime() <= currentT,
+    );
+    if (entriesInView.length === 0) return [];
+
+    // If the playhead is at/after the latest pass event (e.g. jumped to end),
+    // expose the full feed instead of the rolling last-N window.
+    const latestEntry = entriesInView.at(-1);
+    if (!latestEntry) return [];
+    const latestEntryMs = new Date(latestEntry.date).getTime();
+    const showAll = currentT >= latestEntryMs;
+
+    return showAll
+      ? [...entriesInView].reverse()
+      : entriesInView.slice(-40).reverse();
+  }, [entries, currentT]);
 
   if (visible.length === 0) {
     return (
@@ -76,7 +85,7 @@ export function OvertakeFeed({
           </button>
         </div>
       )}
-      {visible.map((e, i) => {
+      {visible.map((e) => {
         const over = driverByNumber.get(e.overtaking_driver_number);
         const under = driverByNumber.get(e.overtaken_driver_number);
         const overColor = teamColor(over?.team_colour);
@@ -84,7 +93,7 @@ export function OvertakeFeed({
         const ms = new Date(e.date).getTime() - sessionStartMs;
         return (
           <div
-            key={i}
+            key={`${e.overtaking_driver_number}-${e.overtaken_driver_number}-${e.date}-${e.position ?? "na"}`}
             className="flex items-center gap-2 border-b border-[#2a2a35] pb-1.5 pt-0.5 text-xs"
           >
             <span className="text-[#39d743] text-[10px]">▲</span>
