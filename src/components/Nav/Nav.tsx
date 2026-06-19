@@ -127,6 +127,12 @@ export function Nav() {
   const [view] = useStringParam<MainView>("view", "tracker");
 
   const meetings = useMeetings(year);
+  // Always fetch the current calendar year so the "next race weekend" banner
+  // is not affected by the user browsing a past year's sessions.
+  const currentCalendarYear = new Date().getFullYear();
+  const currentYearMeetings = useMeetings(
+    year === currentCalendarYear ? year : currentCalendarYear,
+  );
   const sessions = useSessions(meetingKey);
   const authFailed = isAuthError(meetings.error) || isAuthError(sessions.error);
 
@@ -228,7 +234,7 @@ export function Nav() {
 
   const nextMeeting = useMemo(
     () =>
-      (meetings.data ?? [])
+      (currentYearMeetings.data ?? [])
         .filter(
           (m) =>
             !m.is_cancelled &&
@@ -239,21 +245,21 @@ export function Nav() {
           (a, b) =>
             new Date(a.date_start).getTime() - new Date(b.date_start).getTime(),
         )[0] ?? null,
-    [meetings.data, nowMs],
+    [currentYearMeetings.data, nowMs],
   );
 
   const nextMeetingSessions = useSessions(nextMeeting?.meeting_key ?? null);
 
   const nextMeetingRound = useMemo(() => {
     if (!nextMeeting) return null;
-    const heldCount = (meetings.data ?? []).filter(
+    const heldCount = (currentYearMeetings.data ?? []).filter(
       (m) =>
         !m.is_cancelled &&
         isRaceWeekend(m.meeting_name, m.meeting_official_name) &&
         new Date(m.date_end).getTime() <= nowMs,
     ).length;
     return heldCount + 1;
-  }, [meetings.data, nextMeeting, nowMs]);
+  }, [currentYearMeetings.data, nextMeeting, nowMs]);
 
   const nextMeetingDateRange = useMemo(() => {
     if (!nextMeeting) return null;
