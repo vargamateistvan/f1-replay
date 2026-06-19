@@ -147,7 +147,7 @@ export function EventToastStack({
         className={[
           "pointer-events-none flex flex-col gap-1.5",
           layout === "overlay"
-            ? "fixed z-40 right-2 top-[max(0.5rem,env(safe-area-inset-top))] w-[198px] md:right-4 md:top-[max(0.75rem,env(safe-area-inset-top))] md:w-[220px]"
+            ? "fixed z-40 right-2 top-[calc(4.5rem+env(safe-area-inset-top))] w-[198px] md:right-4 md:top-[calc(3.75rem+env(safe-area-inset-top))] md:w-[220px]"
             : "relative z-10 w-[198px] ml-auto px-1 pt-0.5 pb-0.5 md:self-end md:w-[220px] md:px-0 md:pt-1 md:pb-1",
         ].join(" ")}
         role="region"

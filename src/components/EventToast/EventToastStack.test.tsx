@@ -53,6 +53,38 @@ describe("EventToastStack", () => {
     expect(onDismiss).toHaveBeenCalledWith("flag-1");
   });
 
+  it("places overlay notifications below the header area", () => {
+    render(
+      <EventToastStack
+        toasts={
+          [
+            {
+              addedAt: Date.now(),
+              event: {
+                id: "flag-2",
+                ms: 1000,
+                kind: "flag",
+                priority: "high",
+                payload: {
+                  flag: "RED",
+                  message: "Red flag",
+                  lapNumber: 3,
+                },
+              },
+            },
+          ] as ActiveToast[]
+        }
+        drivers={drivers}
+        onDismiss={vi.fn()}
+        layout="overlay"
+      />,
+    );
+
+    expect(
+      screen.getByRole("region", { name: "Live race notifications" }),
+    ).toHaveClass("top-[calc(4.5rem+env(safe-area-inset-top))]");
+  });
+
   it("renders radio toast and toggles play/stop", () => {
     render(
       <EventToastStack
