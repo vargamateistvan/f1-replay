@@ -88,7 +88,14 @@ function ConstructorTooltip({
 // ── Driver standings ──────────────────────────────────────────────────────────
 function DriverTable({ standings }: { standings: DriverStanding[] }) {
   if (standings.length === 0)
-    return <div className="text-muted text-xs p-4">No data yet</div>;
+    return (
+      <div className="min-h-32">
+        <ErrorMessage
+          message="No data found for the selected season"
+          variant="empty"
+        />
+      </div>
+    );
   return (
     <div className="overflow-auto">
       <table className="w-full border-collapse">
@@ -200,7 +207,14 @@ function DriverChart({ standings }: { standings: DriverStanding[] }) {
 // ── Constructor standings ─────────────────────────────────────────────────────
 function ConstructorTable({ standings }: { standings: ConstructorStanding[] }) {
   if (standings.length === 0)
-    return <div className="text-muted text-xs p-4">No data yet</div>;
+    return (
+      <div className="min-h-32">
+        <ErrorMessage
+          message="No data found for the selected season"
+          variant="empty"
+        />
+      </div>
+    );
   return (
     <div className="overflow-auto">
       <table className="w-full border-collapse">

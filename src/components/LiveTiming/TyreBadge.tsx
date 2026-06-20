@@ -63,7 +63,7 @@ export function TyreBadge({
       )}
       <CompoundDot compound={active.compound} />
       <span className="hidden rounded bg-panel px-1.5 py-0.5 text-[9px] font-black uppercase tracking-[0.08em] text-white/75 tabular-nums min-[430px]:inline-block">
-        {age}L
+        {age}
       </span>
     </span>
   );

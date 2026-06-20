@@ -1,6 +1,7 @@
 import { useEffect, useRef } from "react";
 import uPlot from "uplot";
 import "uplot/dist/uPlot.min.css";
+import { ErrorMessage } from "@/components/ErrorMessage";
 
 export interface ChartSeries {
   label: string;
@@ -253,10 +254,10 @@ export function TelemetryChart({
   if (xData.length === 0) {
     return (
       <div
-        className="flex items-center justify-center text-muted text-xs bg-surface rounded border border-panel"
         style={{ height }}
+        className="bg-surface rounded border border-panel"
       >
-        No data
+        <ErrorMessage message="No data found" variant="empty" />
       </div>
     );
   }

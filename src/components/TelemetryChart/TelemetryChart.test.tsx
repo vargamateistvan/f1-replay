@@ -47,7 +47,7 @@ describe("TelemetryChart", () => {
       <TelemetryChart title="Speed" xData={[]} series={[]} height={160} />,
     );
 
-    expect(screen.getByText("No data")).toBeInTheDocument();
+    expect(screen.getByText("No data found")).toBeInTheDocument();
 
     rerender(
       <TelemetryChart

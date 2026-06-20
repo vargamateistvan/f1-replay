@@ -889,7 +889,7 @@ describe("component coverage boost", () => {
     );
 
     expect(screen.getByText("→")).toBeInTheDocument();
-    expect(screen.getByText("4L")).toBeInTheDocument();
+    expect(screen.getByText("4")).toBeInTheDocument();
     expect(screen.getByTitle("SOFT · 4 laps old")).toBeInTheDocument();
   });
 
@@ -1441,7 +1441,7 @@ describe("component coverage boost", () => {
       <TelemetryChart title="Speed" xData={[]} series={[]} height={160} />,
     );
 
-    expect(screen.getByText("No data")).toBeInTheDocument();
+    expect(screen.getByText("No data found")).toBeInTheDocument();
 
     rerender(
       <TelemetryChart

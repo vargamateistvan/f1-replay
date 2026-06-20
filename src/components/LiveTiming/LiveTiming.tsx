@@ -48,6 +48,7 @@ interface Props {
   readonly selectedDriver?: number | null;
   readonly compareDriver?: number | null;
   readonly onSelectDriver?: (driverNumber: number) => void;
+  readonly fullWidthTable?: boolean;
   /** Race finish time (in ms relative to session start) — used to mark post-race outlaps. */
   readonly chequeredMs?: number | null;
 }
@@ -186,6 +187,7 @@ export function LiveTiming({
   totalLapCount = null,
   selectedDriver,
   onSelectDriver,
+  fullWidthTable = false,
   chequeredMs = null,
 }: Props) {
   const metricSystem = useSettings((s) => s.metricSystem);
@@ -539,7 +541,7 @@ export function LiveTiming({
       )}
       <div className="overflow-x-auto">
         <table
-          className={`w-max min-w-full ${tableMinWidthClass} border-collapse table-auto`}
+          className={`${fullWidthTable ? "w-full" : "w-max min-w-full"} ${tableMinWidthClass} border-collapse table-auto`}
         >
           <thead>
             <tr className="sticky top-0 bg-track z-10 border-b border-[#38383f]">

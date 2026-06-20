@@ -16,4 +16,10 @@ describe("ErrorMessage", () => {
     rerender(<ErrorMessage />);
     expect(screen.getByText("Failed to load data")).toBeInTheDocument();
   });
+
+  it("renders empty variant", () => {
+    render(<ErrorMessage message="No data found" variant="empty" />);
+    expect(screen.getByText("◌")).toBeInTheDocument();
+    expect(screen.getByText("No data found")).toBeInTheDocument();
+  });
 });

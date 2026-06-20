@@ -39,6 +39,7 @@ import { useTimeline } from "@/timeline/clock";
 import { useCoarseTime } from "@/hooks/useCoarseTime";
 import { useMediaQuery } from "@/hooks/useMediaQuery";
 import {
+  chunkIndexFor,
   useLocationChunks,
   locationChunkIndexFor,
 } from "@/hooks/useLocationChunks";
@@ -198,14 +199,15 @@ export default function RaceWeekend() {
     sessionKey !== null &&
     (drivers.isPending || positions.isPending || intervals.isPending);
 
-  const chunkIdx = locationChunkIndexFor(t);
+  const locationChunkIdx = locationChunkIndexFor(t);
+  const telemetryChunkIdx = chunkIndexFor(t);
   const isMapVisible =
     currentView === "tracker" &&
     (!isCompactViewport || (trackerTab ?? "timing") === "map");
   const location = useLocationChunks(
     isMapVisible ? sessionKey : null,
     isMapVisible ? sessionStartMs || null : null,
-    chunkIdx,
+    locationChunkIdx,
     isMapVisible ? t : undefined,
     {
       includeNextChunk: !isCompactViewport,
@@ -570,7 +572,7 @@ export default function RaceWeekend() {
   const allCarData = useAllCarDataWindow(
     sessionKey,
     sessionStartMs,
-    chunkIdx,
+    telemetryChunkIdx,
     telemetryEnabled,
   );
 
@@ -968,6 +970,7 @@ export default function RaceWeekend() {
       showMinisectors={timingShowMinisectors}
       wideSectors
       dense
+      fullWidthTable
       chequeredMs={chequeredMs}
     />
   );
@@ -1002,7 +1005,7 @@ export default function RaceWeekend() {
   // ── View layouts ─────────────────────────────────────────────────────────────
 
   return (
-    <div className="relative flex flex-col pb-[calc(7.5rem+env(safe-area-inset-bottom))] md:h-full md:min-h-0 md:flex-1 md:overflow-hidden md:pb-0">
+    <div className="relative flex flex-col overflow-x-hidden pb-[calc(7.5rem+env(safe-area-inset-bottom))] md:h-full md:min-h-0 md:flex-1 md:overflow-hidden md:pb-0">
       {sessionStartMs > 0 && isQualiSession(sessionName) && qualiPhase && (
         <QualifyingBanner
           phase={qualiPhase}
@@ -1294,21 +1297,21 @@ export default function RaceWeekend() {
             {/* Desktop layout: split panel (hidden md:flex) */}
             <div className="hidden md:flex flex-1 min-h-0 overflow-hidden">
               {/* Left data panel */}
-              <div className="md:w-[795px] lg:w-[875px] xl:w-[955px] shrink-0 flex flex-col border-r border-panel overflow-hidden">
+              <div className="md:w-[745px] lg:w-[905px] xl:w-[905px] shrink-0 flex flex-col border-r border-panel overflow-hidden">
                 {/* Sub-tabs */}
                 <div className="flex border-b border-panel shrink-0">
                   {(
                     [
                       ["timing", "Timing"],
                       ["strategy", "Tyre Strategy"],
-                      ["chart", "Lap Chart"],
-                      ["gap", "Gap Chart"],
+                      ["chart", "Laps"],
+                      ["gap", "Gap"],
                     ] as [TrackerTab, string][]
                   ).map(([tab, label]) => (
                     <button
                       key={tab}
                       onClick={() => setTrackerTab(tab)}
-                      className={`${tab === "timing" ? "flex-[1.35]" : "flex-1"} py-1.5 text-[10px] font-bold uppercase tracking-wider transition-colors ${
+                      className={`flex-1 px-2 py-1 text-[10px] font-bold uppercase tracking-wider transition-colors ${
                         (trackerTab ?? "timing") === tab
                           ? "text-white border-b-2 border-f1red -mb-px bg-surface"
                           : "text-muted hover:text-white bg-track"
