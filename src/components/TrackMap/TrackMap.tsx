@@ -160,6 +160,7 @@ interface Props {
   readonly showCompass?: boolean;
   readonly showFocusedHud?: boolean;
   readonly showTrackScreenshot?: boolean;
+  readonly showCornerNumbers?: boolean;
   readonly showEnhancedVisuals?: boolean;
   readonly onSelectDriver?: (driverNumber: number) => void;
 }
@@ -186,6 +187,7 @@ export function TrackMap({
   showCompass = true,
   showFocusedHud = true,
   showTrackScreenshot = true,
+  showCornerNumbers = true,
   showEnhancedVisuals = true,
   onSelectDriver,
 }: Props) {
@@ -760,52 +762,127 @@ export function TrackMap({
     );
   }, [trackGeometry, lightMode]);
 
-  // Corner number labels from baked geometry — placed at each corner's trackPosition.
+  const cornerMarkers = useMemo(() => {
+    if (!trackGeometry)
+      return [] as Array<{ x: number; y: number; label: string }>;
+
+    if (circuitGeom?.corners.length) {
+      const { bounds, innerW, innerH } = trackGeometry;
+      return circuitGeom.corners.map((corner) => {
+        const { sx, sy } = locationToSvg(
+          corner.trackPosition.x,
+          corner.trackPosition.y,
+          bounds,
+          innerW,
+          innerH,
+        );
+        return {
+          x: sx + PAD,
+          y: sy + PAD,
+          label: `${corner.number}${corner.letter}`,
+        };
+      });
+    }
+
+    const pts = trackGeometry.svgPts;
+    const n = pts.length;
+    if (n < 24) return [];
+
+    const sampleOffset = Math.max(3, Math.floor(n / 90));
+    const minGap = Math.max(8, Math.floor(n / 26));
+    const targetMax = 24;
+    const candidates: Array<{ idx: number; score: number }> = [];
+
+    for (let i = 0; i < n; i++) {
+      const prev = pts[(i - sampleOffset + n) % n]!;
+      const curr = pts[i]!;
+      const next = pts[(i + sampleOffset) % n]!;
+
+      const ax = curr.sx - prev.sx;
+      const ay = curr.sy - prev.sy;
+      const bx = next.sx - curr.sx;
+      const by = next.sy - curr.sy;
+      const aLen = Math.hypot(ax, ay);
+      const bLen = Math.hypot(bx, by);
+      if (aLen < 0.001 || bLen < 0.001) continue;
+
+      const cos = Math.max(
+        -1,
+        Math.min(1, (ax * bx + ay * by) / (aLen * bLen)),
+      );
+      const turnDeg = 180 - (Math.acos(cos) * 180) / Math.PI;
+
+      if (turnDeg >= 18) {
+        candidates.push({ idx: i, score: turnDeg });
+      }
+    }
+
+    candidates.sort((a, b) => b.score - a.score);
+    const selected: number[] = [];
+
+    for (const candidate of candidates) {
+      if (selected.length >= targetMax) break;
+      const tooClose = selected.some((idx) => {
+        const diff = Math.abs(idx - candidate.idx);
+        const ringDiff = Math.min(diff, n - diff);
+        return ringDiff < minGap;
+      });
+      if (!tooClose) selected.push(candidate.idx);
+    }
+
+    selected.sort((a, b) => a - b);
+
+    return selected.map((idx, i) => ({
+      x: pts[idx]!.sx,
+      y: pts[idx]!.sy,
+      label: String(i + 1),
+    }));
+  }, [trackGeometry, circuitGeom]);
+
+  // Corner labels from baked geometry when available, otherwise curvature-derived fallback.
   const cornerOverlays = useMemo(() => {
-    if (!trackGeometry || !circuitGeom || !circuitGeom.corners.length)
-      return null;
-    const { bounds, innerW, innerH } = trackGeometry;
+    if (!cornerMarkers.length) return null;
     return (
       <>
-        {circuitGeom.corners.map((corner) => {
-          const { sx, sy } = locationToSvg(
-            corner.trackPosition.x,
-            corner.trackPosition.y,
-            bounds,
-            innerW,
-            innerH,
-          );
-          const cx = sx + PAD,
-            cy = sy + PAD;
+        {cornerMarkers.map((corner) => {
+          const cx = corner.x;
+          const cy = corner.y;
           return (
-            <g key={`corner-${corner.number}`} opacity={0.55}>
+            <g key={`corner-${corner.label}`}>
               <circle
                 cx={cx}
                 cy={cy}
-                r={5}
-                fill="none"
-                stroke="#6b6b7a"
-                strokeWidth={0.8}
+                r={7.5}
+                fill={
+                  lightMode ? "rgba(243,246,255,0.9)" : "rgba(20,24,34,0.82)"
+                }
+                stroke={lightMode ? "#273247" : "#d7def2"}
+                strokeWidth={1.3}
+                opacity={0.95}
               />
               <text
                 x={cx}
-                y={cy + 0.5}
+                y={cy + 0.2}
                 textAnchor="middle"
                 dominantBaseline="middle"
-                fontSize={4.5}
-                fill="#9b9baa"
+                fontSize={7.2}
+                fill={lightMode ? "#1f2a3f" : "#edf3ff"}
                 fontFamily="Inter, sans-serif"
-                fontWeight="700"
+                fontWeight="900"
+                paintOrder="stroke"
+                stroke={
+                  lightMode ? "rgba(255,255,255,0.95)" : "rgba(12,15,22,0.9)"
+                }
+                strokeWidth={1.2}
               >
-                {corner.number}
-                {corner.letter}
+                {corner.label}
               </text>
             </g>
           );
         })}
       </>
     );
-  }, [trackGeometry, circuitGeom]);
+  }, [cornerMarkers, lightMode]);
 
   // Marshal sector tick marks from baked geometry.
   // Coloured by timing-sector (S1/S2/S3) based on which third of the circuit each belongs to.
@@ -1732,7 +1809,7 @@ export function TrackMap({
           {sectorFlagTints}
 
           {/* Corner numbers (baked geometry only) */}
-          {cornerOverlays}
+          {showCornerNumbers && cornerOverlays}
 
           {showEnhancedVisuals &&
             brakingHotspots.map((hotspot) => (

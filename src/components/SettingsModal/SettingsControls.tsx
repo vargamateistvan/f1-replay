@@ -376,6 +376,12 @@ export function SettingsBody() {
         onChange={toggle("mapShowDriverNumberInside")}
       />
       <SettingRow
+        label="Corner numbers"
+        description="Display turn/corner numbers at each corner on the track"
+        checked={settings.mapShowCornerNumbers}
+        onChange={toggle("mapShowCornerNumbers")}
+      />
+      <SettingRow
         label="Enhanced track visuals"
         description="Show finish line, sector markers, ghost delta map, braking hotspots, overtake arcs, condition ribbon, marshal lights and elevation contours"
         checked={settings.mapShowEnhancedVisuals}
