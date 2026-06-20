@@ -29,8 +29,8 @@ export function AppRouter() {
             <Route path="*" element={<NotFound />} />
           </Routes>
         </main>
-        <footer className="border-t border-panel bg-track/90 px-4 py-2 text-[11px] text-muted">
-          <div className="mx-auto flex w-full max-w-6xl items-center justify-center gap-4 sm:justify-end">
+        <footer className="border-t border-panel bg-track/90 px-3 py-1 text-[10px] text-muted">
+          <div className="mx-auto flex w-full max-w-6xl items-center justify-center gap-2.5 sm:justify-end">
             <Link
               to="/privacy"
               className="text-f1red/85 transition-colors hover:text-f1red"
