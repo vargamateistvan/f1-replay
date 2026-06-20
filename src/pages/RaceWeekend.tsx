@@ -984,7 +984,6 @@ export default function RaceWeekend() {
       circuitKey={session?.circuit_key ?? null}
       activeCompounds={mapShowCompoundBadges ? activeCompounds : undefined}
       battlingDrivers={mapShowBattleRings ? battlingDrivers : undefined}
-      overtakes={overtakes.data ?? []}
       focusDriverLap={focusDriverLap}
       showFocusedHud={mapShowDriverHud}
       activeTrackFlagState={mapShowSectorFlags ? activeTrackFlagState : null}

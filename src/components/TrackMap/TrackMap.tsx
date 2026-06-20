@@ -32,14 +32,7 @@ import {
   toDisplayWindSpeed,
   windSpeedUnitLabel,
 } from "@/utils/units";
-import type {
-  CarData,
-  Driver,
-  Location,
-  Overtake,
-  Stint,
-  Weather,
-} from "@/api/types";
+import type { CarData, Driver, Location, Stint, Weather } from "@/api/types";
 import {
   TRACK_SVG_W as SVG_W,
   TRACK_SVG_H as SVG_H,
@@ -157,7 +150,6 @@ interface Props {
   >;
   readonly battlingDrivers?: ReadonlySet<number>;
   readonly retiredDrivers?: ReadonlySet<number>;
-  readonly overtakes?: readonly Overtake[];
   readonly focusDriverLap?: number | null;
   readonly weatherOverlay?: Weather | null;
   readonly activeSectorFlag?: ActiveTrackFlag | null;
@@ -184,7 +176,6 @@ export function TrackMap({
   activeCompounds,
   battlingDrivers,
   retiredDrivers,
-  overtakes,
   focusDriverLap = null,
   weatherOverlay = null,
   activeSectorFlag = null,
@@ -1276,65 +1267,6 @@ export function TrackMap({
 
   const pulseSet = new Set(pulseDrivers ?? []);
 
-  const recentOvertakeArcs = showEnhancedVisuals
-    ? (overtakes ?? [])
-        .map((entry) => ({
-          entry,
-          ms: new Date(entry.date).getTime() - sessionStartMs,
-        }))
-        .filter(({ ms }) => ms <= t && t - ms <= 12_000)
-        .map(({ entry, ms }) => {
-          const overtaking = carPositions.find(
-            (car) => car.num === entry.overtaking_driver_number,
-          );
-          const overtaken = carPositions.find(
-            (car) => car.num === entry.overtaken_driver_number,
-          );
-          if (!overtaking || !overtaken) return null;
-
-          const a = locationToSvg(
-            overtaking.x,
-            overtaking.y,
-            bounds,
-            innerW,
-            innerH,
-          );
-          const b = locationToSvg(
-            overtaken.x,
-            overtaken.y,
-            bounds,
-            innerW,
-            innerH,
-          );
-          const ax = a.sx + PAD;
-          const ay = a.sy + PAD;
-          const bx = b.sx + PAD;
-          const by = b.sy + PAD;
-          const midX = (ax + bx) / 2;
-          const midY = (ay + by) / 2;
-          const dx = bx - ax;
-          const dy = by - ay;
-          const len = Math.hypot(dx, dy) || 1;
-          const nx = -dy / len;
-          const ny = dx / len;
-          const lift = Math.min(18, 8 + len * 0.18);
-          const age = t - ms;
-          const opacity = Math.max(0.18, 0.82 - age / 14_000);
-          const driver = driverByNumber.get(entry.overtaking_driver_number);
-
-          return {
-            key: `overtake-arc-${entry.overtaking_driver_number}-${entry.overtaken_driver_number}-${ms}`,
-            path: `M${ax.toFixed(1)},${ay.toFixed(1)} Q${(midX + nx * lift).toFixed(1)},${(midY + ny * lift).toFixed(1)} ${bx.toFixed(1)},${by.toFixed(1)}`,
-            labelX: midX + nx * (lift + 5),
-            labelY: midY + ny * (lift + 5),
-            label: driver?.name_acronym ?? entry.overtaking_driver_number,
-            color: teamColor(driver?.team_colour, "#ffffff"),
-            opacity,
-          };
-        })
-        .filter((arc): arc is NonNullable<typeof arc> => arc != null)
-    : [];
-
   // Follow-cam: zoom in on the focused driver, clamped to the SVG boundary.
   let viewX = 0;
   let viewY = 0;
@@ -1827,33 +1759,6 @@ export function TrackMap({
 
           {showEnhancedVisuals ? sectorBoundaryOverlays : null}
           {showEnhancedVisuals ? directionArrows : null}
-
-          {showEnhancedVisuals &&
-            recentOvertakeArcs.map((arc) => (
-              <g key={arc.key}>
-                <path
-                  d={arc.path}
-                  fill="none"
-                  stroke={arc.color}
-                  strokeWidth={2.3}
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  opacity={arc.opacity}
-                />
-                <text
-                  x={arc.labelX}
-                  y={arc.labelY}
-                  textAnchor="middle"
-                  fontSize={6.2}
-                  fill={arc.color}
-                  fontFamily="Inter, sans-serif"
-                  fontWeight="900"
-                  opacity={arc.opacity}
-                >
-                  {arc.label}
-                </text>
-              </g>
-            ))}
 
           {/* Car dots — when a driver is focused, dim the rest and enlarge the pick */}
           {carPositions
