@@ -156,6 +156,7 @@ interface Props {
   readonly showCompass?: boolean;
   readonly showFocusedHud?: boolean;
   readonly showTrackScreenshot?: boolean;
+  readonly showEnhancedVisuals?: boolean;
   readonly onSelectDriver?: (driverNumber: number) => void;
 }
 
