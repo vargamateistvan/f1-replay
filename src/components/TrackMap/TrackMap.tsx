@@ -1,4 +1,4 @@
-import { useMemo, useState, useEffect, useRef } from "react";
+import { useMemo, useState, useEffect, useRef, useCallback } from "react";
 import {
   CloudRain,
   Droplets,
@@ -192,6 +192,24 @@ export function TrackMap({
   );
   const [zoomLevel, setZoomLevel] = useState(1);
   const [rotationDeg, setRotationDeg] = useState(0);
+  const rotationStorageKey = useMemo(
+    () =>
+      `f1-replay:track-rotation:${sessionKey ?? "none"}:${circuitKey ?? "none"}`,
+    [sessionKey, circuitKey],
+  );
+
+  const setAndPersistRotation = useCallback(
+    (next: number) => {
+      setRotationDeg(next);
+      if (typeof window === "undefined") return;
+      try {
+        window.localStorage.setItem(rotationStorageKey, String(next));
+      } catch {
+        // Ignore storage errors (private mode / quota).
+      }
+    },
+    [rotationStorageKey],
+  );
 
   const mapBackground = lightMode ? "#eef1fa" : "#15151e";
   const overlayBackground = lightMode
@@ -213,8 +231,18 @@ export function TrackMap({
 
   useEffect(() => {
     setZoomLevel(1);
-    setRotationDeg(0);
-  }, [sessionKey, circuitKey]);
+    if (typeof window === "undefined") {
+      setRotationDeg(0);
+      return;
+    }
+    try {
+      const saved = window.localStorage.getItem(rotationStorageKey);
+      const parsed = saved === null ? Number.NaN : Number(saved);
+      setRotationDeg(Number.isFinite(parsed) ? parsed : 0);
+    } catch {
+      setRotationDeg(0);
+    }
+  }, [rotationStorageKey]);
 
   const normalizedTrackFlagState = useMemo<ActiveTrackFlagState | null>(() => {
     if (activeTrackFlagState) return activeTrackFlagState;
@@ -1410,7 +1438,7 @@ export function TrackMap({
           <div className="flex items-center gap-1">
             <button
               type="button"
-              onClick={() => setRotationDeg((r) => r - 15)}
+              onClick={() => setAndPersistRotation(rotationDeg - 15)}
               className="w-7 h-7 flex items-center justify-center border border-[#4b4b57] text-white/85 hover:text-white hover:border-white/50 transition-colors"
               title="Rotate left"
             >
@@ -1418,7 +1446,7 @@ export function TrackMap({
             </button>
             <button
               type="button"
-              onClick={() => setRotationDeg((r) => r + 15)}
+              onClick={() => setAndPersistRotation(rotationDeg + 15)}
               className="w-7 h-7 flex items-center justify-center border border-[#4b4b57] text-white/85 hover:text-white hover:border-white/50 transition-colors"
               title="Rotate right"
             >
@@ -1426,7 +1454,7 @@ export function TrackMap({
             </button>
             <button
               type="button"
-              onClick={() => setRotationDeg(0)}
+              onClick={() => setAndPersistRotation(0)}
               className="w-7 h-7 flex items-center justify-center border border-[#4b4b57] text-white/85 hover:text-white hover:border-white/50 transition-colors"
               title="Reset rotation"
             >
