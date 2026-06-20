@@ -992,7 +992,7 @@ export function TrackMap({
   return (
     <div className="relative w-full h-full">
       {topStatusBadges.length > 0 && (
-        <div className="pointer-events-none absolute top-2 left-1/2 z-20 -translate-x-1/2 flex items-center gap-1.5">
+        <div className="pointer-events-none absolute top-2 left-1/2 z-20 -translate-x-1/2 flex flex-col items-center gap-1">
           {topStatusBadges.map((badge) => (
             <span
               key={badge.key}
