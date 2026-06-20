@@ -1,4 +1,11 @@
-import { useMemo, useState, useEffect, useRef, useCallback } from "react";
+import {
+  useMemo,
+  useState,
+  useEffect,
+  useRef,
+  useCallback,
+  type ReactElement,
+} from "react";
 import {
   CloudRain,
   Droplets,
@@ -196,6 +203,8 @@ export function TrackMap({
   const mapShowDriverNumberInside = useSettings(
     (s) => s.mapShowDriverNumberInside,
   );
+  const mapShowDrsZones = useSettings((s) => s.mapShowDrsZones);
+  const mapShowCornerNumbers = useSettings((s) => s.mapShowCornerNumbers);
   const [zoomLevel, setZoomLevel] = useState(1);
   const [rotationDeg, setRotationDeg] = useState(0);
   const finishPatternId = `finish-checker-${sessionKey ?? "na"}`;
@@ -439,77 +448,6 @@ export function TrackMap({
       };
     });
   }, [trackGeometry, heatData.data]);
-
-  const elevationSegments = useMemo(() => {
-    if (!trackGeometry || !hasBaked) return [];
-    const referenceDriver = focusDriver ?? drivers[0]?.driver_number ?? null;
-    if (referenceDriver == null) return [];
-
-    const samples = locationData
-      .filter((loc) => loc.driver_number === referenceDriver)
-      .map((loc) => ({
-        t: new Date(loc.date).getTime(),
-        x: loc.x,
-        y: loc.y,
-        z: loc.z,
-      }))
-      .sort((a, b) => a.t - b.t);
-
-    if (samples.length < 2) return [];
-
-    const cumulative: number[] = [0];
-    for (let i = 1; i < samples.length; i++) {
-      const prev = samples[i - 1]!;
-      const curr = samples[i]!;
-      cumulative.push(
-        cumulative[i - 1]! + Math.hypot(curr.x - prev.x, curr.y - prev.y),
-      );
-    }
-
-    const totalDist = cumulative.at(-1) || 1;
-    if (totalDist <= 0) return [];
-
-    const normSamples = samples.map((sample, i) => ({
-      norm: cumulative[i]! / totalDist,
-      z: sample.z,
-    }));
-
-    let minZ = Number.POSITIVE_INFINITY;
-    let maxZ = Number.NEGATIVE_INFINITY;
-    for (const sample of normSamples) {
-      if (sample.z < minZ) minZ = sample.z;
-      if (sample.z > maxZ) maxZ = sample.z;
-    }
-
-    const zRange = maxZ - minZ;
-    if (!Number.isFinite(zRange) || zRange < 0.5) return [];
-
-    const { svgPts, normArc } = trackGeometry;
-    return svgPts.slice(0, -1).map((pt, i) => {
-      const next = svgPts[i + 1]!;
-      const midNorm = (normArc[i]! + normArc[i + 1]!) / 2;
-      let lo = 0;
-      let hi = normSamples.length - 1;
-      while (lo < hi) {
-        const mid = (lo + hi) >>> 1;
-        if (normSamples[mid]!.norm < midNorm) lo = mid + 1;
-        else hi = mid;
-      }
-
-      const sample = normSamples[lo] ?? normSamples.at(-1)!;
-      const ratio = (sample.z - minZ) / zRange;
-      const hue = Math.round(220 - ratio * 190);
-      const lightness = lightMode ? 42 : 58;
-      return {
-        x1: pt.sx,
-        y1: pt.sy,
-        x2: next.sx,
-        y2: next.sy,
-        color: `hsl(${hue},78%,${lightness}%)`,
-        opacity: 0.14 + ratio * 0.34,
-      };
-    });
-  }, [trackGeometry, hasBaked, focusDriver, drivers, locationData, lightMode]);
 
   const deltaSegments = useMemo(() => {
     const currentSamples = heatData.data;
@@ -807,6 +745,11 @@ export function TrackMap({
     );
   }, [trackGeometry, circuitGeom]);
 
+  const visibleCornerOverlays = useMemo(
+    () => (mapShowCornerNumbers ? cornerOverlays : null),
+    [cornerOverlays, mapShowCornerNumbers],
+  );
+
   // Marshal sector tick marks from baked geometry.
   // Coloured by timing-sector (S1/S2/S3) based on which third of the circuit each belongs to.
   const marshalSectorOverlays = useMemo(() => {
@@ -852,9 +795,11 @@ export function TrackMap({
   // Memoize DRS + legacy sector rectangles (shown only when no baked geometry).
   const staticOverlays = useMemo(() => {
     if (!trackGeometry) return null;
-    const { bounds, innerW, innerH } = trackGeometry;
-    const drsElements =
-      circuitLayout?.drsZones.map((zone, idx) => {
+    const { bounds, innerW, innerH, svgPts } = trackGeometry;
+
+    let drsElements: ReactElement[] = [];
+    if (mapShowDrsZones && circuitLayout?.drsZones.length) {
+      drsElements = circuitLayout.drsZones.map((zone, idx) => {
         const { sx: sx1, sy: sy1 } = locationToSvg(
           zone.line.x1,
           zone.line.y1,
@@ -870,7 +815,7 @@ export function TrackMap({
           innerH,
         );
         return (
-          <g key={`drs-${idx}`}>
+          <g key={`drs-layout-${idx}`}>
             <line
               x1={sx1 + PAD}
               y1={sy1 + PAD}
@@ -878,14 +823,130 @@ export function TrackMap({
               y2={sy2 + PAD}
               stroke="#4da6ff"
               strokeWidth={3}
-              opacity={0.8}
+              strokeDasharray="4 2"
+              opacity={0.85}
             />
             <circle cx={sx1 + PAD} cy={sy1 + PAD} r={2.5} fill="#4da6ff" />
           </g>
         );
-      }) ?? [];
+      });
+    }
 
-    // Legacy sector rectangles — only when no baked marshal sectors available.
+    // Enhanced DRS visualization: detection point + activation zone with purple coloring
+    if (mapShowDrsZones && drsElements.length === 0 && svgPts.length > 24) {
+      const flagColor = (() => {
+        if (!normalizedTrackFlagState) return "#c854d4";
+        if (normalizedTrackFlagState.globalFlag === "RED") return "#e8002d";
+        if (
+          normalizedTrackFlagState.globalFlag === "YELLOW" ||
+          normalizedTrackFlagState.globalFlag === "DOUBLE_YELLOW"
+        )
+          return "#f5d400";
+        return "#c854d4";
+      })();
+
+      const n = svgPts.length;
+      const zones = [
+        { start: 0.18, end: 0.29, label: "DRS 1" },
+        { start: 0.62, end: 0.73, label: "DRS 2" },
+      ] as const;
+      drsElements = zones.map((zone, idx) => {
+        const i1 = Math.floor(zone.start * (n - 1));
+        const detPt = svgPts[i1]!;
+        return (
+          <g key={`drs-fallback-${idx}`}>
+            {/* Detection point: double-ring indicator */}
+            <circle
+              cx={detPt.sx}
+              cy={detPt.sy}
+              r={7.5}
+              fill="none"
+              stroke={flagColor}
+              strokeWidth={2.2}
+              opacity={0.95}
+            />
+            <circle
+              cx={detPt.sx}
+              cy={detPt.sy}
+              r={4.5}
+              fill={flagColor}
+              opacity={0.85}
+            />
+            {/* Label at detection point */}
+            <text
+              x={detPt.sx + 12}
+              y={detPt.sy - 9}
+              fontSize={7.5}
+              fill={flagColor}
+              fontFamily="Inter, sans-serif"
+              fontWeight="900"
+              letterSpacing="0.1em"
+            >
+              {zone.label}
+            </text>
+          </g>
+        );
+      });
+    }
+
+    // If we have layout DRS data, upgrade it with enhanced visualization
+    if (
+      mapShowDrsZones &&
+      drsElements.length > 0 &&
+      circuitLayout?.drsZones.length
+    ) {
+      const flagColor = (() => {
+        if (!normalizedTrackFlagState) return "#c854d4";
+        if (normalizedTrackFlagState.globalFlag === "RED") return "#e8002d";
+        if (
+          normalizedTrackFlagState.globalFlag === "YELLOW" ||
+          normalizedTrackFlagState.globalFlag === "DOUBLE_YELLOW"
+        )
+          return "#f5d400";
+        return "#c854d4";
+      })();
+
+      drsElements = circuitLayout.drsZones.map((zone, idx) => {
+        const { sx: detX, sy: detY } = locationToSvg(
+          zone.line.x1,
+          zone.line.y1,
+          bounds,
+          innerW,
+          innerH,
+        );
+        const dx = detX + PAD;
+        const dy = detY + PAD;
+
+        return (
+          <g key={`drs-layout-enhanced-${idx}`}>
+            {/* Detection point: double-ring + center dot */}
+            <circle
+              cx={dx}
+              cy={dy}
+              r={7.5}
+              fill="none"
+              stroke={flagColor}
+              strokeWidth={2.2}
+              opacity={0.95}
+            />
+            <circle cx={dx} cy={dy} r={4.5} fill={flagColor} opacity={0.85} />
+            {/* Label at detection point */}
+            <text
+              x={dx + 12}
+              y={dy - 9}
+              fontSize={7.5}
+              fontWeight="900"
+              fill={flagColor}
+              fontFamily="Inter, sans-serif"
+              letterSpacing="0.1em"
+            >
+              DRS {idx + 1}
+            </text>
+          </g>
+        );
+      });
+    }
+
     const sectorRects =
       !hasBaked && circuitLayout
         ? circuitLayout.sectors.map((sector) => {
@@ -903,10 +964,10 @@ export function TrackMap({
               innerW,
               innerH,
             );
-            const x = Math.min(sx1, sx2) + PAD,
-              y = Math.min(sy1, sy2) + PAD;
-            const w = Math.abs(sx2 - sx1),
-              h = Math.abs(sy2 - sy1);
+            const x = Math.min(sx1, sx2) + PAD;
+            const y = Math.min(sy1, sy2) + PAD;
+            const w = Math.abs(sx2 - sx1);
+            const h = Math.abs(sy2 - sy1);
             return (
               <g key={`sector-${sector.number}`} opacity={0.15}>
                 <rect
@@ -940,7 +1001,13 @@ export function TrackMap({
         {drsElements}
       </>
     );
-  }, [trackGeometry, circuitLayout, hasBaked]);
+  }, [
+    trackGeometry,
+    circuitLayout,
+    hasBaked,
+    mapShowDrsZones,
+    normalizedTrackFlagState,
+  ]);
 
   // Flag tint overlaid when a flag is active.
   // With baked geometry: precise colored dots at each marshal sector position.
@@ -1162,8 +1229,6 @@ export function TrackMap({
       SAFETY_CAR: "#f5a623",
       VIRTUAL_SC: "#f5a623",
       VIRTUAL_SAFETY_CAR: "#f5a623",
-      GREEN: "#39b54a",
-      CLEAR: "#39b54a",
     };
 
     const flagForSector = (sector: 1 | 2 | 3): string => {
@@ -1485,21 +1550,6 @@ export function TrackMap({
         <g transform={trackTransform}>
           {trackConditionRibbonOverlay}
 
-          {showEnhancedVisuals &&
-            elevationSegments.map((segment, i) => (
-              <line
-                key={`elev-shadow-${i}`}
-                x1={segment.x1}
-                y1={segment.y1}
-                x2={segment.x2}
-                y2={segment.y2}
-                stroke={segment.color}
-                strokeWidth={14}
-                strokeLinecap="round"
-                opacity={segment.opacity * 0.15}
-              />
-            ))}
-
           {/* Track surface: thick grey base + thin white highlight */}
           <path
             d={pathData}
@@ -1670,6 +1720,44 @@ export function TrackMap({
               );
             })()}
 
+          {/* DRS zone green track highlighting */}
+          {mapShowDrsZones && (
+            <g key="drs-track-highlights">
+              {/* Use fallback DRS zone ranges to color track segments green */}
+              {[
+                { start: 0.18, end: 0.29 },
+                { start: 0.62, end: 0.73 },
+              ].map((zone, idx) => (
+                <g key={`drs-track-${idx}`}>
+                  <path
+                    d={pathData}
+                    fill="none"
+                    stroke="#3db856"
+                    strokeWidth={14}
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    pathLength={100}
+                    strokeDasharray={`${(zone.end - zone.start) * 100} 100`}
+                    strokeDashoffset={-(zone.start * 100)}
+                    opacity={0.9}
+                  />
+                  <path
+                    d={pathData}
+                    fill="none"
+                    stroke="#39b54a"
+                    strokeWidth={8}
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    pathLength={100}
+                    strokeDasharray={`${(zone.end - zone.start) * 100} 100`}
+                    strokeDashoffset={-(zone.start * 100)}
+                    opacity={0.95}
+                  />
+                </g>
+              ))}
+            </g>
+          )}
+
           {/* Speed heat overlay — shown when a driver is focused and lap data is loaded.
           Segments are colored blue (slow) → green → red (fast) by the driver's
           recorded speed at each track position on their last completed lap. */}
@@ -1704,22 +1792,6 @@ export function TrackMap({
               />
             ))}
 
-          {showEnhancedVisuals &&
-            elevationSegments.length > 0 &&
-            elevationSegments.map((segment, i) => (
-              <line
-                key={`elev-accent-${i}`}
-                x1={segment.x1}
-                y1={segment.y1}
-                x2={segment.x2}
-                y2={segment.y2}
-                stroke={segment.color}
-                strokeWidth={2.2}
-                strokeLinecap="round"
-                opacity={segment.opacity}
-              />
-            ))}
-
           {/* Sectors + DRS overlays (session-static, memoized) */}
           {staticOverlays}
 
@@ -1732,8 +1804,7 @@ export function TrackMap({
           {sectorFlagTints}
 
           {/* Corner numbers (baked geometry only) */}
-          {cornerOverlays}
-
+          {visibleCornerOverlays}
           {showEnhancedVisuals &&
             brakingHotspots.map((hotspot) => (
               <g key={hotspot.key}>

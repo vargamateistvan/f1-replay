@@ -25,6 +25,8 @@ export interface AppSettings {
   mapShowDriverAcronym: boolean;
   mapShowDriverNumberInside: boolean;
   mapShowEnhancedVisuals: boolean;
+  mapShowDrsZones: boolean;
+  mapShowCornerNumbers: boolean;
   // Leaderboard
   leaderboardTelemetry: boolean;
   timingShowMinisectors: boolean;
@@ -81,6 +83,8 @@ export const SETTINGS_DEFAULTS: AppSettings = {
   mapShowDriverAcronym: true,
   mapShowDriverNumberInside: false,
   mapShowEnhancedVisuals: true,
+  mapShowDrsZones: true,
+  mapShowCornerNumbers: true,
   leaderboardTelemetry: true,
   timingShowMinisectors: true,
   trackerTimingTelemetry: false,

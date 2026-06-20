@@ -377,7 +377,7 @@ export function SettingsBody() {
       />
       <SettingRow
         label="Enhanced track visuals"
-        description="Show finish line, sector markers, ghost delta map, braking hotspots, overtake arcs, condition ribbon, marshal lights and elevation contours"
+        description="Show finish line, sector markers, ghost delta map, braking hotspots, overtake arcs, condition ribbon and marshal lights"
         checked={settings.mapShowEnhancedVisuals}
         onChange={toggle("mapShowEnhancedVisuals")}
       />
@@ -386,6 +386,18 @@ export function SettingsBody() {
         description="Show download button for track screenshots"
         checked={settings.trackScreenshotPngEnabled}
         onChange={toggle("trackScreenshotPngEnabled")}
+      />
+      <SettingRow
+        label="DRS zones overlay"
+        description="Highlight DRS activation lines on the track map"
+        checked={settings.mapShowDrsZones}
+        onChange={toggle("mapShowDrsZones")}
+      />
+      <SettingRow
+        label="Corner number labels"
+        description="Show turn numbers from official circuit geometry"
+        checked={settings.mapShowCornerNumbers}
+        onChange={toggle("mapShowCornerNumbers")}
       />
 
       <SectionHeader>Data & Interface</SectionHeader>
