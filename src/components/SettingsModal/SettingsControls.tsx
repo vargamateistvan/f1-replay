@@ -377,7 +377,7 @@ export function SettingsBody() {
       />
       <SettingRow
         label="Enhanced track visuals"
-        description="Show finish line, sector markers, direction arrows, condition ribbon, marshal lights and elevation contours"
+        description="Show finish line, sector markers, ghost delta map, braking hotspots, overtake arcs, condition ribbon, marshal lights and elevation contours"
         checked={settings.mapShowEnhancedVisuals}
         onChange={toggle("mapShowEnhancedVisuals")}
       />

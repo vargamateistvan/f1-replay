@@ -12,7 +12,10 @@ import {
   ZoomIn,
   ZoomOut,
 } from "lucide-react";
-import { useCarDataForLap } from "@/hooks/useCarDataForLap";
+import {
+  useCarDataForLap,
+  type TelemetrySample,
+} from "@/hooks/useCarDataForLap";
 import { useCarDataWindow } from "@/hooks/useCarDataWindow";
 import { chunkIndexFor } from "@/hooks/useLocationChunks";
 import { useTrackOutline, locationToSvg } from "@/hooks/useTrackMap";
@@ -20,6 +23,7 @@ import { buildIndex, interpolateXY } from "@/timeline/interpolate";
 import { useTimeline } from "@/timeline/clock";
 import { teamColor } from "@/utils/color";
 import { useSettings } from "@/stores/settings";
+import { resampleToAxis } from "@/utils/telemetry";
 import {
   speedUnitLabel,
   toDisplaySpeed,
@@ -28,7 +32,14 @@ import {
   toDisplayWindSpeed,
   windSpeedUnitLabel,
 } from "@/utils/units";
-import type { CarData, Driver, Location, Stint, Weather } from "@/api/types";
+import type {
+  CarData,
+  Driver,
+  Location,
+  Overtake,
+  Stint,
+  Weather,
+} from "@/api/types";
 import {
   TRACK_SVG_W as SVG_W,
   TRACK_SVG_H as SVG_H,
@@ -146,6 +157,7 @@ interface Props {
   >;
   readonly battlingDrivers?: ReadonlySet<number>;
   readonly retiredDrivers?: ReadonlySet<number>;
+  readonly overtakes?: readonly Overtake[];
   readonly focusDriverLap?: number | null;
   readonly weatherOverlay?: Weather | null;
   readonly activeSectorFlag?: ActiveTrackFlag | null;
@@ -172,6 +184,7 @@ export function TrackMap({
   activeCompounds,
   battlingDrivers,
   retiredDrivers,
+  overtakes,
   focusDriverLap = null,
   weatherOverlay = null,
   activeSectorFlag = null,
@@ -182,6 +195,7 @@ export function TrackMap({
   showCompass = true,
   showFocusedHud = true,
   showTrackScreenshot = true,
+  showEnhancedVisuals = true,
   onSelectDriver,
 }: Props) {
   const { t } = useTimeline();
@@ -193,6 +207,7 @@ export function TrackMap({
   );
   const [zoomLevel, setZoomLevel] = useState(1);
   const [rotationDeg, setRotationDeg] = useState(0);
+  const finishPatternId = `finish-checker-${sessionKey ?? "na"}`;
   const rotationStorageKey = useMemo(
     () =>
       `f1-replay:track-rotation:${sessionKey ?? "none"}:${circuitKey ?? "none"}`,
@@ -398,6 +413,11 @@ export function TrackMap({
     focusDriver,
     focusDriverLap ?? null,
   );
+  const referenceHeatData = useCarDataForLap(
+    sessionKey,
+    focusDriver,
+    focusDriverLap != null && focusDriverLap > 1 ? focusDriverLap - 1 : null,
+  );
 
   // Map telemetry distance onto track arc positions to build colored segments.
   const heatSegments = useMemo(() => {
@@ -425,6 +445,156 @@ export function TrackMap({
         x2: svgPts[i + 1]!.sx,
         y2: svgPts[i + 1]!.sy,
         speed: sample.speed,
+      };
+    });
+  }, [trackGeometry, heatData.data]);
+
+  const elevationSegments = useMemo(() => {
+    if (!trackGeometry || !hasBaked) return [];
+    const referenceDriver = focusDriver ?? drivers[0]?.driver_number ?? null;
+    if (referenceDriver == null) return [];
+
+    const samples = locationData
+      .filter((loc) => loc.driver_number === referenceDriver)
+      .map((loc) => ({
+        t: new Date(loc.date).getTime(),
+        x: loc.x,
+        y: loc.y,
+        z: loc.z,
+      }))
+      .sort((a, b) => a.t - b.t);
+
+    if (samples.length < 2) return [];
+
+    const cumulative: number[] = [0];
+    for (let i = 1; i < samples.length; i++) {
+      const prev = samples[i - 1]!;
+      const curr = samples[i]!;
+      cumulative.push(
+        cumulative[i - 1]! + Math.hypot(curr.x - prev.x, curr.y - prev.y),
+      );
+    }
+
+    const totalDist = cumulative.at(-1) || 1;
+    if (totalDist <= 0) return [];
+
+    const normSamples = samples.map((sample, i) => ({
+      norm: cumulative[i]! / totalDist,
+      z: sample.z,
+    }));
+
+    let minZ = Number.POSITIVE_INFINITY;
+    let maxZ = Number.NEGATIVE_INFINITY;
+    for (const sample of normSamples) {
+      if (sample.z < minZ) minZ = sample.z;
+      if (sample.z > maxZ) maxZ = sample.z;
+    }
+
+    const zRange = maxZ - minZ;
+    if (!Number.isFinite(zRange) || zRange < 0.5) return [];
+
+    const { svgPts, normArc } = trackGeometry;
+    return svgPts.slice(0, -1).map((pt, i) => {
+      const next = svgPts[i + 1]!;
+      const midNorm = (normArc[i]! + normArc[i + 1]!) / 2;
+      let lo = 0;
+      let hi = normSamples.length - 1;
+      while (lo < hi) {
+        const mid = (lo + hi) >>> 1;
+        if (normSamples[mid]!.norm < midNorm) lo = mid + 1;
+        else hi = mid;
+      }
+
+      const sample = normSamples[lo] ?? normSamples.at(-1)!;
+      const ratio = (sample.z - minZ) / zRange;
+      const hue = Math.round(220 - ratio * 190);
+      const lightness = lightMode ? 42 : 58;
+      return {
+        x1: pt.sx,
+        y1: pt.sy,
+        x2: next.sx,
+        y2: next.sy,
+        color: `hsl(${hue},78%,${lightness}%)`,
+        opacity: 0.14 + ratio * 0.34,
+      };
+    });
+  }, [trackGeometry, hasBaked, focusDriver, drivers, locationData, lightMode]);
+
+  const deltaSegments = useMemo(() => {
+    const currentSamples = heatData.data;
+    const referenceSamples = referenceHeatData.data;
+    if (
+      !trackGeometry ||
+      !currentSamples?.length ||
+      !referenceSamples?.length
+    ) {
+      return [];
+    }
+
+    const resampledReference = resampleToAxis(currentSamples, referenceSamples);
+    const { svgPts, normArc } = trackGeometry;
+    const totalDist = currentSamples.at(-1)?.distM || 1;
+
+    return svgPts.slice(0, -1).map((pt, i) => {
+      const midNorm = (normArc[i]! + normArc[i + 1]!) / 2;
+      const targetDist = midNorm * totalDist;
+      let lo = 0;
+      let hi = currentSamples.length - 1;
+      while (lo < hi) {
+        const mid = (lo + hi) >>> 1;
+        if (currentSamples[mid]!.distM < targetDist) lo = mid + 1;
+        else hi = mid;
+      }
+      const current = currentSamples[lo] ?? currentSamples.at(-1)!;
+      const reference = resampledReference[lo] ?? resampledReference.at(-1)!;
+      const deltaS = reference.timeS - current.timeS;
+      const intensity = Math.min(Math.abs(deltaS) / 0.18, 1);
+      return {
+        x1: pt.sx,
+        y1: pt.sy,
+        x2: svgPts[i + 1]!.sx,
+        y2: svgPts[i + 1]!.sy,
+        color: deltaS >= 0 ? "#33d17a" : "#ff5b6e",
+        opacity: 0.1 + intensity * 0.38,
+      };
+    });
+  }, [trackGeometry, heatData.data, referenceHeatData.data]);
+
+  const brakingHotspots = useMemo(() => {
+    const samples = heatData.data;
+    if (!trackGeometry || !samples?.length) return [];
+
+    const totalDist = samples.at(-1)?.distM || 1;
+    const peaks: TelemetrySample[] = [];
+    let currentPeak: TelemetrySample | null = null;
+
+    for (const sample of samples) {
+      const hardBrake = sample.brake >= 72 && sample.speed >= 90;
+      if (hardBrake) {
+        if (!currentPeak || sample.brake > currentPeak.brake) {
+          currentPeak = sample;
+        }
+      } else if (currentPeak) {
+        peaks.push(currentPeak);
+        currentPeak = null;
+      }
+    }
+    if (currentPeak) peaks.push(currentPeak);
+
+    const { svgPts, normArc } = trackGeometry;
+    return peaks.slice(0, 8).map((sample, index) => {
+      const sampleNorm = totalDist > 0 ? sample.distM / totalDist : 0;
+      const pointIndex = normArc.findIndex((value) => value >= sampleNorm);
+      const point =
+        svgPts[pointIndex === -1 ? svgPts.length - 1 : pointIndex] ??
+        svgPts[0]!;
+      const intensity = Math.min((sample.brake - 70) / 30, 1);
+      return {
+        key: `brake-hotspot-${index}-${sample.distM.toFixed(0)}`,
+        x: point.sx,
+        y: point.sy,
+        radius: 4 + intensity * 5,
+        opacity: 0.14 + intensity * 0.24,
       };
     });
   }, [trackGeometry, heatData.data]);
@@ -460,8 +630,8 @@ export function TrackMap({
     const nx = -dy / len;
     const ny = dx / len;
     const half = 7;
-    const cx = p0.sx + PAD;
-    const cy = p0.sy + PAD;
+    const cx = p0.sx;
+    const cy = p0.sy;
     const x1 = cx + nx * half;
     const y1 = cy + ny * half;
     const x2 = cx - nx * half;
@@ -473,25 +643,131 @@ export function TrackMap({
           y1={y1}
           x2={x2}
           y2={y2}
-          stroke="#ffffff"
+          stroke={lightMode ? "#111318" : "#f2f4fb"}
           strokeWidth={4}
           strokeLinecap="round"
-          opacity={0.85}
+          opacity={0.95}
         />
         <line
           x1={x1}
           y1={y1}
           x2={x2}
           y2={y2}
-          stroke="#0b0d15"
-          strokeWidth={2.2}
+          stroke={`url(#${finishPatternId})`}
+          strokeWidth={6}
           strokeLinecap="round"
-          strokeDasharray="2 2"
-          opacity={0.95}
+          opacity={1}
         />
       </g>
     );
-  }, [trackGeometry]);
+  }, [trackGeometry, lightMode, finishPatternId]);
+
+  const sectorBoundaryOverlays = useMemo(() => {
+    if (!trackGeometry || trackGeometry.svgPts.length < 6) return null;
+    const { svgPts, normArc } = trackGeometry;
+
+    const markerFor = (target: number, label: "S1" | "S2") => {
+      const idx = Math.max(
+        1,
+        normArc.findIndex((value) => value >= target),
+      );
+      if (idx <= 0) return null;
+      const point = svgPts[idx]!;
+      const prev = svgPts[idx - 1]!;
+      const dx = point.sx - prev.sx;
+      const dy = point.sy - prev.sy;
+      const len = Math.hypot(dx, dy) || 1;
+      const nx = -dy / len;
+      const ny = dx / len;
+      const half = 6.5;
+      const x1 = point.sx + nx * half;
+      const y1 = point.sy + ny * half;
+      const x2 = point.sx - nx * half;
+      const y2 = point.sy - ny * half;
+      const lx = point.sx + nx * 9.8;
+      const ly = point.sy + ny * 9.8;
+
+      return (
+        <g key={`sector-boundary-${label}`}>
+          <line
+            x1={x1}
+            y1={y1}
+            x2={x2}
+            y2={y2}
+            stroke="#9aa4be"
+            strokeWidth={3}
+            strokeLinecap="round"
+            opacity={0.82}
+          />
+          <circle
+            cx={point.sx}
+            cy={point.sy}
+            r={3.1}
+            fill={mapBackground}
+            stroke="#aeb8cf"
+            strokeWidth={0.8}
+            opacity={0.95}
+          />
+          <text
+            x={lx}
+            y={ly}
+            transform={`rotate(${-rotationDeg.toFixed(1)} ${lx.toFixed(1)} ${ly.toFixed(1)})`}
+            textAnchor="middle"
+            dominantBaseline="middle"
+            fontSize={4.8}
+            fill={lightMode ? "#2a3246" : "#d4dbee"}
+            fontFamily="Inter, sans-serif"
+            fontWeight="900"
+            letterSpacing="0.04em"
+          >
+            {label}
+          </text>
+        </g>
+      );
+    };
+
+    return (
+      <>
+        {markerFor(1 / 3, "S1")}
+        {markerFor(2 / 3, "S2")}
+      </>
+    );
+  }, [trackGeometry, mapBackground, rotationDeg, lightMode]);
+
+  const directionArrows = useMemo(() => {
+    if (!trackGeometry || trackGeometry.svgPts.length < 12) return null;
+    const { svgPts } = trackGeometry;
+    const count = 10;
+
+    return (
+      <>
+        {Array.from({ length: count }, (_, i) => {
+          const idx = Math.floor((i / count) * (svgPts.length - 1));
+          const point = svgPts[idx]!;
+          const next = svgPts[(idx + 1) % svgPts.length]!;
+          const angle =
+            (Math.atan2(next.sy - point.sy, next.sx - point.sx) * 180) /
+            Math.PI;
+          return (
+            <g
+              key={`arrow-${idx}`}
+              transform={`translate(${point.sx.toFixed(1)} ${point.sy.toFixed(1)}) rotate(${angle.toFixed(1)})`}
+              opacity={0.62}
+            >
+              <path
+                d="M-3.4,-1.5 L2.8,0 L-3.4,1.5"
+                fill="none"
+                stroke={lightMode ? "#303647" : "#d8deee"}
+                strokeWidth={0.9}
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+            </g>
+          );
+        })}
+      </>
+    );
+  }, [trackGeometry, lightMode]);
 
   // Corner number labels from baked geometry — placed at each corner's trackPosition.
   const cornerOverlays = useMemo(() => {
@@ -804,6 +1080,162 @@ export function TrackMap({
     return diff < 30_000 ? s : null;
   }, [hudRawData, sessionStartMs, t, focusDriver]);
 
+  const trackConditionRibbonOverlay = useMemo(() => {
+    if (!showEnhancedVisuals || !trackGeometry) return null;
+
+    const ribbonColors: Record<string, string> = {
+      YELLOW: "#f5d400",
+      DOUBLE_YELLOW: "#f5d400",
+      RED: "#e8002d",
+      SAFETY_CAR: "#f5a623",
+      VIRTUAL_SC: "#f5a623",
+      VIRTUAL_SAFETY_CAR: "#f5a623",
+      GREEN: "#39b54a",
+      CLEAR: "#39b54a",
+    };
+
+    const flagForSector = (sector: 1 | 2 | 3): string => {
+      if (!normalizedTrackFlagState) return "CLEAR";
+      if (normalizedTrackFlagState.globalFlag === "RED") return "RED";
+      return (
+        normalizedTrackFlagState.sectorFlags[sector] ??
+        normalizedTrackFlagState.globalFlag ??
+        "CLEAR"
+      );
+    };
+
+    const { pathData } = trackGeometry;
+    return (
+      <>
+        <path
+          d={pathData}
+          fill="none"
+          stroke={lightMode ? "#c9d1e3" : "#293043"}
+          strokeWidth={20}
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          opacity={lightMode ? 0.35 : 0.45}
+        />
+        {([1, 2, 3] as const).map((sectorNum) => {
+          const flag = flagForSector(sectorNum);
+          const color = ribbonColors[flag] ?? ribbonColors.CLEAR;
+          const clipPath = circuitLayout?.sectors.some(
+            (sector) => sector.number === sectorNum,
+          )
+            ? `url(#track-sector-clip-${sectorNum})`
+            : undefined;
+          const active = flag !== "CLEAR" && flag !== "GREEN";
+          return (
+            <path
+              key={`ribbon-sector-${sectorNum}`}
+              d={pathData}
+              fill="none"
+              stroke={color}
+              strokeWidth={20}
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              {...(clipPath
+                ? { clipPath }
+                : {
+                    pathLength: 300,
+                    strokeDasharray: "100 200",
+                    strokeDashoffset: -(sectorNum - 1) * 100,
+                  })}
+              opacity={active ? 0.5 : 0.24}
+            />
+          );
+        })}
+      </>
+    );
+  }, [
+    showEnhancedVisuals,
+    trackGeometry,
+    normalizedTrackFlagState,
+    circuitLayout,
+    lightMode,
+  ]);
+
+  const marshalLightNodes = useMemo(() => {
+    if (
+      !showEnhancedVisuals ||
+      !trackGeometry ||
+      !circuitGeom?.marshalSectors.length
+    ) {
+      return null;
+    }
+
+    const lightColors: Record<string, string> = {
+      YELLOW: "#f5d400",
+      DOUBLE_YELLOW: "#f5d400",
+      RED: "#e8002d",
+      SAFETY_CAR: "#f5a623",
+      VIRTUAL_SC: "#f5a623",
+      VIRTUAL_SAFETY_CAR: "#f5a623",
+      GREEN: "#39b54a",
+      CLEAR: "#39b54a",
+    };
+
+    const flagForSector = (sector: 1 | 2 | 3): string => {
+      if (!normalizedTrackFlagState) return "CLEAR";
+      if (normalizedTrackFlagState.globalFlag === "RED") return "RED";
+      return (
+        normalizedTrackFlagState.sectorFlags[sector] ??
+        normalizedTrackFlagState.globalFlag ??
+        "CLEAR"
+      );
+    };
+
+    const { bounds, innerW, innerH } = trackGeometry;
+    const total = circuitGeom.marshalSectors.length;
+
+    return (
+      <>
+        {circuitGeom.marshalSectors.map((marshalSector, i) => {
+          const sector = (i < total / 3 ? 1 : i < (2 * total) / 3 ? 2 : 3) as
+            | 1
+            | 2
+            | 3;
+          const flag = flagForSector(sector);
+          if (flag === "CLEAR" || flag === "GREEN") return null;
+          const color = lightColors[flag] ?? lightColors.YELLOW;
+          const { sx, sy } = locationToSvg(
+            marshalSector.trackPosition.x,
+            marshalSector.trackPosition.y,
+            bounds,
+            innerW,
+            innerH,
+          );
+          const cx = sx + PAD;
+          const cy = sy + PAD;
+          return (
+            <g key={`marshal-light-${marshalSector.number}`}>
+              <circle cx={cx} cy={cy} r={3.1} fill={color} opacity={0.35}>
+                <animate
+                  attributeName="r"
+                  values="2.4;4.8;2.4"
+                  dur="1.25s"
+                  repeatCount="indefinite"
+                />
+                <animate
+                  attributeName="opacity"
+                  values="0.25;0.62;0.25"
+                  dur="1.25s"
+                  repeatCount="indefinite"
+                />
+              </circle>
+              <circle cx={cx} cy={cy} r={1.45} fill={color} opacity={0.95} />
+            </g>
+          );
+        })}
+      </>
+    );
+  }, [
+    showEnhancedVisuals,
+    trackGeometry,
+    circuitGeom,
+    normalizedTrackFlagState,
+  ]);
+
   const svgRef = useRef<SVGSVGElement>(null);
 
   if (!sessionKey) {
@@ -843,6 +1275,65 @@ export function TrackMap({
   }
 
   const pulseSet = new Set(pulseDrivers ?? []);
+
+  const recentOvertakeArcs = showEnhancedVisuals
+    ? (overtakes ?? [])
+        .map((entry) => ({
+          entry,
+          ms: new Date(entry.date).getTime() - sessionStartMs,
+        }))
+        .filter(({ ms }) => ms <= t && t - ms <= 12_000)
+        .map(({ entry, ms }) => {
+          const overtaking = carPositions.find(
+            (car) => car.num === entry.overtaking_driver_number,
+          );
+          const overtaken = carPositions.find(
+            (car) => car.num === entry.overtaken_driver_number,
+          );
+          if (!overtaking || !overtaken) return null;
+
+          const a = locationToSvg(
+            overtaking.x,
+            overtaking.y,
+            bounds,
+            innerW,
+            innerH,
+          );
+          const b = locationToSvg(
+            overtaken.x,
+            overtaken.y,
+            bounds,
+            innerW,
+            innerH,
+          );
+          const ax = a.sx + PAD;
+          const ay = a.sy + PAD;
+          const bx = b.sx + PAD;
+          const by = b.sy + PAD;
+          const midX = (ax + bx) / 2;
+          const midY = (ay + by) / 2;
+          const dx = bx - ax;
+          const dy = by - ay;
+          const len = Math.hypot(dx, dy) || 1;
+          const nx = -dy / len;
+          const ny = dx / len;
+          const lift = Math.min(18, 8 + len * 0.18);
+          const age = t - ms;
+          const opacity = Math.max(0.18, 0.82 - age / 14_000);
+          const driver = driverByNumber.get(entry.overtaking_driver_number);
+
+          return {
+            key: `overtake-arc-${entry.overtaking_driver_number}-${entry.overtaken_driver_number}-${ms}`,
+            path: `M${ax.toFixed(1)},${ay.toFixed(1)} Q${(midX + nx * lift).toFixed(1)},${(midY + ny * lift).toFixed(1)} ${bx.toFixed(1)},${by.toFixed(1)}`,
+            labelX: midX + nx * (lift + 5),
+            labelY: midY + ny * (lift + 5),
+            label: driver?.name_acronym ?? entry.overtaking_driver_number,
+            color: teamColor(driver?.team_colour, "#ffffff"),
+            opacity,
+          };
+        })
+        .filter((arc): arc is NonNullable<typeof arc> => arc != null)
+    : [];
 
   // Follow-cam: zoom in on the focused driver, clamped to the SVG boundary.
   let viewX = 0;
@@ -1017,6 +1508,16 @@ export function TrackMap({
         style={{ background: mapBackground }}
       >
         <defs>
+          <pattern
+            id={finishPatternId}
+            width="4"
+            height="4"
+            patternUnits="userSpaceOnUse"
+          >
+            <rect x="0" y="0" width="4" height="4" fill="#ffffff" />
+            <rect x="0" y="0" width="2" height="2" fill="#111111" />
+            <rect x="2" y="2" width="2" height="2" fill="#111111" />
+          </pattern>
           {trackGeometry && circuitLayout?.sectors
             ? circuitLayout.sectors.map((sector) => {
                 const { sx: sx1, sy: sy1 } = locationToSvg(
@@ -1050,6 +1551,23 @@ export function TrackMap({
             : null}
         </defs>
         <g transform={trackTransform}>
+          {trackConditionRibbonOverlay}
+
+          {showEnhancedVisuals &&
+            elevationSegments.map((segment, i) => (
+              <line
+                key={`elev-shadow-${i}`}
+                x1={segment.x1}
+                y1={segment.y1}
+                x2={segment.x2}
+                y2={segment.y2}
+                stroke={segment.color}
+                strokeWidth={14}
+                strokeLinecap="round"
+                opacity={segment.opacity * 0.15}
+              />
+            ))}
+
           {/* Track surface: thick grey base + thin white highlight */}
           <path
             d={pathData}
@@ -1238,11 +1756,45 @@ export function TrackMap({
               />
             ))}
 
+          {showEnhancedVisuals &&
+            deltaSegments.length > 0 &&
+            deltaSegments.map((seg, i) => (
+              <line
+                key={`delta-${i}`}
+                x1={seg.x1}
+                y1={seg.y1}
+                x2={seg.x2}
+                y2={seg.y2}
+                stroke={seg.color}
+                strokeWidth={7.5}
+                strokeLinecap="round"
+                opacity={seg.opacity}
+              />
+            ))}
+
+          {showEnhancedVisuals &&
+            elevationSegments.length > 0 &&
+            elevationSegments.map((segment, i) => (
+              <line
+                key={`elev-accent-${i}`}
+                x1={segment.x1}
+                y1={segment.y1}
+                x2={segment.x2}
+                y2={segment.y2}
+                stroke={segment.color}
+                strokeWidth={2.2}
+                strokeLinecap="round"
+                opacity={segment.opacity}
+              />
+            ))}
+
           {/* Sectors + DRS overlays (session-static, memoized) */}
           {staticOverlays}
 
           {/* Marshal sector dots (baked geometry only) */}
           {marshalSectorOverlays}
+
+          {marshalLightNodes}
 
           {/* Active flag tint over marshal sectors / sector boxes */}
           {sectorFlagTints}
@@ -1250,8 +1802,58 @@ export function TrackMap({
           {/* Corner numbers (baked geometry only) */}
           {cornerOverlays}
 
+          {showEnhancedVisuals &&
+            brakingHotspots.map((hotspot) => (
+              <g key={hotspot.key}>
+                <circle
+                  cx={hotspot.x}
+                  cy={hotspot.y}
+                  r={hotspot.radius}
+                  fill="#ff6a3d"
+                  opacity={hotspot.opacity}
+                />
+                <circle
+                  cx={hotspot.x}
+                  cy={hotspot.y}
+                  r={Math.max(2.3, hotspot.radius * 0.4)}
+                  fill="#ffd4b8"
+                  opacity={Math.min(0.92, hotspot.opacity + 0.28)}
+                />
+              </g>
+            ))}
+
           {/* Start/finish */}
           {startFinishOverlay}
+
+          {showEnhancedVisuals ? sectorBoundaryOverlays : null}
+          {showEnhancedVisuals ? directionArrows : null}
+
+          {showEnhancedVisuals &&
+            recentOvertakeArcs.map((arc) => (
+              <g key={arc.key}>
+                <path
+                  d={arc.path}
+                  fill="none"
+                  stroke={arc.color}
+                  strokeWidth={2.3}
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  opacity={arc.opacity}
+                />
+                <text
+                  x={arc.labelX}
+                  y={arc.labelY}
+                  textAnchor="middle"
+                  fontSize={6.2}
+                  fill={arc.color}
+                  fontFamily="Inter, sans-serif"
+                  fontWeight="900"
+                  opacity={arc.opacity}
+                >
+                  {arc.label}
+                </text>
+              </g>
+            ))}
 
           {/* Car dots — when a driver is focused, dim the rest and enlarge the pick */}
           {carPositions
