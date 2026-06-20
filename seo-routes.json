@@ -38,5 +38,25 @@
     "changefreq": "monthly",
     "priority": "0.3",
     "prerender": false
+  },
+  {
+    "path": "/privacy",
+    "title": "Privacy Policy | F1 Replay",
+    "description": "Learn how F1 Replay handles analytics, cookies, consent preferences, and privacy-related requests.",
+    "keywords": "F1 Replay privacy policy, cookies, analytics consent",
+    "noindex": false,
+    "changefreq": "yearly",
+    "priority": "0.2",
+    "prerender": true
+  },
+  {
+    "path": "/terms",
+    "title": "Terms of Service | F1 Replay",
+    "description": "Read the Terms of Service for F1 Replay, including acceptable use, disclaimers, and limitations of liability.",
+    "keywords": "F1 Replay terms of service, legal terms",
+    "noindex": false,
+    "changefreq": "yearly",
+    "priority": "0.2",
+    "prerender": true
   }
 ]

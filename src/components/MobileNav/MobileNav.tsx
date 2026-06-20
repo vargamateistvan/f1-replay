@@ -43,7 +43,7 @@ export function MobileNav() {
       style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
     >
       {showMore && (
-        <div className="grid grid-cols-4 gap-px border-b border-panel bg-[#111118] px-2 py-2">
+        <div className="grid grid-cols-3 gap-px border-b border-panel bg-[#111118] px-2 py-2">
           <button
             onClick={() => goTo(`/telemetry?${searchParams}`)}
             className="h-10 rounded-sm bg-panel px-2 text-[10px] font-black uppercase tracking-[0.12em] text-white"
@@ -70,6 +70,18 @@ export function MobileNav() {
             className="h-10 rounded-sm bg-panel px-2 text-[10px] font-black uppercase tracking-[0.12em] text-white"
           >
             Help
+          </button>
+          <button
+            onClick={() => goTo("/privacy")}
+            className="h-10 rounded-sm bg-panel px-2 text-[10px] font-black uppercase tracking-[0.12em] text-white"
+          >
+            Privacy
+          </button>
+          <button
+            onClick={() => goTo("/terms")}
+            className="h-10 rounded-sm bg-panel px-2 text-[10px] font-black uppercase tracking-[0.12em] text-white"
+          >
+            Terms
           </button>
         </div>
       )}

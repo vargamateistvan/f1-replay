@@ -1,4 +1,4 @@
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Link } from "react-router-dom";
 import { Nav } from "@/components/Nav";
 import { MobileNav } from "@/components/MobileNav";
 import { SettingsModal } from "@/components/SettingsModal/SettingsModal";
@@ -8,6 +8,8 @@ import RaceWeekend from "@/pages/RaceWeekend";
 import Telemetry from "@/pages/Telemetry";
 import Standings from "@/pages/Standings";
 import Settings from "@/pages/Settings";
+import Privacy from "@/pages/Privacy";
+import Terms from "@/pages/Terms";
 import NotFound from "@/pages/NotFound";
 
 export function AppRouter() {
@@ -22,9 +24,39 @@ export function AppRouter() {
             <Route path="/telemetry" element={<Telemetry />} />
             <Route path="/standings" element={<Standings />} />
             <Route path="/settings" element={<Settings />} />
+            <Route path="/privacy" element={<Privacy />} />
+            <Route path="/terms" element={<Terms />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </main>
+        <footer className="border-t border-panel bg-track/90 px-4 py-2 text-[11px] text-muted">
+          <div className="mx-auto flex w-full max-w-6xl items-center justify-center gap-4 sm:justify-end">
+            <Link
+              to="/privacy"
+              className="text-f1red/85 transition-colors hover:text-f1red"
+            >
+              Privacy
+            </Link>
+            <span aria-hidden="true" className="text-[#5a5a68]">
+              |
+            </span>
+            <Link
+              to="/terms"
+              className="text-f1red/85 transition-colors hover:text-f1red"
+            >
+              Terms
+            </Link>
+            <span aria-hidden="true" className="text-[#5a5a68]">
+              |
+            </span>
+            <a
+              href="/.well-known/security.txt"
+              className="text-f1red/85 transition-colors hover:text-f1red"
+            >
+              Security
+            </a>
+          </div>
+        </footer>
         <MobileNav />
         <SettingsModal />
         <HowItWorksModal />
