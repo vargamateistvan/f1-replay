@@ -30,7 +30,7 @@ export function AppRouter() {
           </Routes>
         </main>
         <footer className="border-t border-panel bg-track/90 px-3 py-1 text-[10px] text-muted">
-          <div className="mx-auto flex w-full max-w-6xl items-center justify-center gap-2.5 sm:justify-end">
+          <div className="mx-auto flex w-full items-center justify-end gap-2.5">
             <Link
               to="/privacy"
               className="text-f1red/85 transition-colors hover:text-f1red"
