@@ -412,6 +412,7 @@ export function Nav() {
   const location = useLocation();
   const navigate = useNavigate();
   const isMainRoute = location.pathname === "/";
+  const isTelemetryRoute = location.pathname === "/telemetry";
 
   function viewHref(id: MainView) {
     const params = new URLSearchParams(searchParams);
@@ -566,8 +567,8 @@ export function Nav() {
         </button>
       </div>
 
-      {/* ── Next race weekend banner (main route) ───────────────── */}
-      {isMainRoute &&
+      {/* ── Next race weekend banner (main + telemetry routes) ─── */}
+      {(isMainRoute || isTelemetryRoute) &&
         showNextRaceWeekendBanner &&
         nextMeeting &&
         nextMeetingCountdown && (
@@ -718,8 +719,8 @@ export function Nav() {
         </div>
       )}
 
-      {/* ── Dark sub-bar: session pickers (main route only) ─────── */}
-      {isMainRoute && (
+      {/* ── Dark sub-bar: session pickers (main + telemetry routes) */}
+      {(isMainRoute || isTelemetryRoute) && (
         <div className="bg-track border-b border-panel">
           <div
             className="flex flex-wrap items-center gap-1 py-1.5"
