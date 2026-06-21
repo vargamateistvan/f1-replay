@@ -106,6 +106,9 @@ const LAP_TIME_COLOUR: Record<string, string> = {
 const TH =
   "py-1.5 px-1.5 text-[9px] font-bold uppercase tracking-[0.12em] text-[#636369] select-none sm:px-2";
 
+const TH_COMPACT =
+  "py-1 px-1.5 text-[9px] font-bold uppercase tracking-[0.1em] text-[#636369] select-none sm:px-2";
+
 function MiniBar({ value, color }: { value: number; color: string }) {
   return (
     <span className="block h-1.5 bg-panel overflow-hidden rounded-sm">
@@ -400,17 +403,19 @@ export function LiveTiming({
   const hasSectorReference = Boolean(
     sessionBestOwners.s1 || sessionBestOwners.s2 || sessionBestOwners.s3,
   );
+  const leaderboardDense = dense && fullWidthTable;
+  const headerCellClass = leaderboardDense ? TH_COMPACT : TH;
 
   const driverColClass = compactDriverColumn
-    ? `${TH} text-left w-[5.75rem] min-[390px]:w-[6.5rem] sm:w-[6.5rem] lg:w-[7rem]`
-    : `${TH} text-left w-[6.75rem] min-[390px]:w-[7.5rem] sm:w-[8rem] lg:w-[8.5rem]`;
+    ? `${headerCellClass} text-left w-[5.75rem] min-[390px]:w-[6.5rem] sm:w-[6.5rem] lg:w-[7rem]`
+    : `${headerCellClass} text-left w-[6.75rem] min-[390px]:w-[7.5rem] sm:w-[8rem] lg:w-[8.5rem]`;
 
   const driverCellClass = compactDriverColumn
     ? "py-3 px-1 sm:px-1.5"
     : "py-3 px-1 sm:px-2";
 
   const sectorBarWidthClass = wideSectors ? "w-14" : "w-7";
-  const rowCellPad = dense ? "py-1" : "py-3";
+  const rowCellPad = leaderboardDense ? "py-0.5" : dense ? "py-1" : "py-3";
   const sectorHeaderWidthClass = wideSectors
     ? "w-[4rem] lg:w-[4.5rem]"
     : "w-[2.8rem] lg:w-[3rem]";
@@ -433,8 +438,8 @@ export function LiveTiming({
       ? "min-w-[52rem]"
       : "min-w-[58rem]";
 
-  const driverCellCompactClass = compactDriverColumn
-    ? "py-1 px-1 sm:px-1.5"
+  const driverCellCompactClass = leaderboardDense
+    ? "py-0.5 px-1 sm:px-1.5"
     : "py-1 px-1 sm:px-1.5";
 
   if (isLoading) {
@@ -545,65 +550,71 @@ export function LiveTiming({
         >
           <thead>
             <tr className="sticky top-0 bg-track z-10 border-b border-[#38383f]">
-              <th className={`${TH} text-left w-8`}>P</th>
+              <th className={`${headerCellClass} text-left w-8`}>P</th>
               <th className={driverColClass}>Driver</th>
               <th
-                className={`${TH} text-right w-[4.75rem] min-[390px]:w-[5.25rem] sm:w-[5.5rem]`}
+                className={`${headerCellClass} text-right w-[4.75rem] min-[390px]:w-[5.25rem] sm:w-[5.5rem]`}
               >
                 Best Lap
               </th>
               <th
-                className={`${TH} text-right w-[4.25rem] min-[390px]:w-[4.75rem] sm:w-[5rem]`}
+                className={`${headerCellClass} text-right w-[4.25rem] min-[390px]:w-[4.75rem] sm:w-[5rem]`}
               >
                 Gap
               </th>
               <th
-                className={`${TH} hidden sm:table-cell text-center ${sectorHeaderWidthClass}`}
+                className={`${headerCellClass} hidden sm:table-cell text-center ${sectorHeaderWidthClass}`}
               >
                 S1
               </th>
               <th
-                className={`${TH} hidden sm:table-cell text-center ${sectorHeaderWidthClass}`}
+                className={`${headerCellClass} hidden sm:table-cell text-center ${sectorHeaderWidthClass}`}
               >
                 S2
               </th>
               <th
-                className={`${TH} hidden sm:table-cell text-center ${sectorHeaderWidthClass}`}
+                className={`${headerCellClass} hidden sm:table-cell text-center ${sectorHeaderWidthClass}`}
               >
                 S3
               </th>
-              <th className={`${TH} text-left w-[5.25rem] lg:w-[5.75rem]`}>
+              <th
+                className={`${headerCellClass} text-left w-[5.25rem] lg:w-[5.75rem]`}
+              >
                 Tyre
               </th>
-              <th className={`${TH} hidden sm:table-cell text-center w-16`}>
+              <th
+                className={`${headerCellClass} hidden sm:table-cell text-center w-16`}
+              >
                 Lap
               </th>
               {showTelemetry && (
                 <>
                   <th
-                    className={`${TH} hidden lg:table-cell text-right w-[3.5rem]`}
+                    className={`${headerCellClass} hidden lg:table-cell text-right w-[3.5rem]`}
                   >
                     <span className="block leading-none">Speed</span>
                     <span className="block text-[8px] normal-case tracking-normal text-[#7b7b82] leading-none mt-0.5">
                       {speedUnitShort}
                     </span>
                   </th>
-                  <th className={`${TH} hidden lg:table-cell text-center w-8`}>
+                  <th
+                    className={`${headerCellClass} hidden lg:table-cell text-center w-8`}
+                  >
                     Gear
                   </th>
                   <th
-                    className={`${TH} ${rpmColumnClass} text-right w-[4.75rem]`}
+                    className={`${headerCellClass} ${rpmColumnClass} text-right w-[4.75rem]`}
                   >
                     RPM
                   </th>
                   <th
-                    className={`${TH} ${pedalColumnClass} text-center ${pedalHeaderWidthClass}`}
+                    className={`${headerCellClass} ${pedalColumnClass} text-center ${pedalHeaderWidthClass}`}
                   >
                     Thr/Brk
                   </th>
                   {showDrs && (
                     <th
-                      className={`${TH} ${drsColumnClass} text-center ${drsHeaderWidthClass}`}
+                      className={`${headerCellClass} ${drsColumnClass} text-center ${drsHeaderWidthClass}`}
                     >
                       DRS
                     </th>
@@ -705,7 +716,7 @@ export function LiveTiming({
                         <DriverHeadshot
                           driver={driver}
                           accent={color}
-                          size="xs"
+                          size={leaderboardDense ? "xxs" : "xs"}
                         />
                         {/* Team colour bar */}
                         <span
