@@ -3,12 +3,24 @@ import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 import { fileURLToPath, URL } from "node:url";
 
+const sentryRelease = process.env.SENTRY_RELEASE;
+
 export default defineConfig({
   base: "/",
-  plugins: [react(), sentryVitePlugin({
-    org: "f1-replay",
-    project: "f1-replay"
-  })],
+  plugins: [
+    react(),
+    sentryVitePlugin({
+      org: "f1-replay",
+      project: "f1-replay",
+      ...(sentryRelease
+        ? {
+            release: {
+              name: sentryRelease,
+            },
+          }
+        : {}),
+    }),
+  ],
   resolve: {
     alias: {
       "@": fileURLToPath(new URL("./src", import.meta.url)),
@@ -25,6 +37,6 @@ export default defineConfig({
       },
     },
 
-    sourcemap: true
+    sourcemap: true,
   },
 });

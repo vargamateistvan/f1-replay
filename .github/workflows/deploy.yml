@@ -44,9 +44,12 @@ jobs:
         run: |
           cat > .env.sentry-build-plugin <<'EOF'
           SENTRY_AUTH_TOKEN=${{ secrets.SENTRY_AUTH_TOKEN }}
+          SENTRY_RELEASE=${{ github.sha }}
           EOF
 
       - name: Build
+        env:
+          VITE_APP_VERSION: ${{ github.sha }}
         run: yarn build
 
       - uses: actions/upload-pages-artifact@v3
