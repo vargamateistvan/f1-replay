@@ -721,9 +721,9 @@ export function Nav() {
 
       {/* ── Dark sub-bar: session pickers (main + telemetry routes) */}
       {(isMainRoute || isTelemetryRoute) && (
-        <div className="bg-track border-b border-panel">
+        <div className="border-b border-panel bg-[linear-gradient(180deg,#11131b,#0f1118)]">
           <div
-            className="flex flex-wrap items-center gap-1 py-1.5"
+            className="flex flex-wrap items-center gap-1.5 py-1.5"
             style={{
               paddingLeft: "max(0.5rem, env(safe-area-inset-left))",
               paddingRight: "max(0.5rem, env(safe-area-inset-right))",
@@ -774,6 +774,44 @@ export function Nav() {
                   </option>
                 ))}
               </select>
+            )}
+
+            {selectedMeeting && (
+              <div className="min-w-0 flex items-center gap-1.5 rounded border border-panel/80 bg-[#181b27] px-2 py-1">
+                {selectedMeeting.circuit_image && !isCircuitImageBroken && (
+                  <img
+                    src={selectedMeeting.circuit_image}
+                    alt={`${selectedMeeting.circuit_short_name} circuit`}
+                    className="hidden lg:block h-5 w-7 object-cover rounded-sm border border-panel/80"
+                    loading="lazy"
+                    referrerPolicy="no-referrer"
+                    onError={() =>
+                      markCircuitImageBroken(selectedMeeting.circuit_image)
+                    }
+                  />
+                )}
+                {selectedMeeting.country_flag && (
+                  <img
+                    src={selectedMeeting.country_flag}
+                    alt={`${selectedMeeting.country_name} flag`}
+                    className="h-3.5 w-5 object-cover rounded-[2px] border border-panel/80"
+                    loading="lazy"
+                    referrerPolicy="no-referrer"
+                  />
+                )}
+                <span className="text-[10px] text-white/90 font-semibold truncate max-w-[170px] sm:max-w-[230px]">
+                  {selectedMeeting.meeting_name}
+                </span>
+                <span className="hidden sm:inline text-[9px] text-muted uppercase tracking-widest">
+                  {CIRCUIT_TYPE_LABEL[selectedMeeting.circuit_type] ??
+                    selectedMeeting.circuit_type}
+                </span>
+                {selectedMeeting.is_cancelled && (
+                  <span className="bg-red-500/15 border border-red-500/40 text-red-300 text-[9px] font-bold uppercase tracking-widest px-1.5 py-0.5 rounded-sm">
+                    Cancelled
+                  </span>
+                )}
+              </div>
             )}
 
             <span className="hidden sm:inline text-[9px] font-bold uppercase tracking-widest text-muted shrink-0">
@@ -834,63 +872,6 @@ export function Nav() {
               Latest
             </button>
           </div>
-
-          {selectedMeeting && (
-            <>
-              <div
-                className="flex items-center gap-2 pt-0.5 pb-1.5"
-                style={{
-                  paddingLeft: "max(0.5rem, env(safe-area-inset-left))",
-                  paddingRight: "max(0.5rem, env(safe-area-inset-right))",
-                }}
-              >
-                {selectedMeeting.circuit_image && !isCircuitImageBroken && (
-                  <img
-                    src={selectedMeeting.circuit_image}
-                    alt={`${selectedMeeting.circuit_short_name} circuit`}
-                    className="hidden sm:block h-6 w-8 object-cover rounded-sm border border-panel/80"
-                    loading="lazy"
-                    referrerPolicy="no-referrer"
-                    onError={() =>
-                      markCircuitImageBroken(selectedMeeting.circuit_image)
-                    }
-                  />
-                )}
-                {selectedMeeting.country_flag && (
-                  <img
-                    src={selectedMeeting.country_flag}
-                    alt={`${selectedMeeting.country_name} flag`}
-                    className="h-4 w-6 object-cover rounded-[2px] border border-panel/80"
-                    loading="lazy"
-                    referrerPolicy="no-referrer"
-                  />
-                )}
-                <span className="text-[10px] text-white/90 font-semibold truncate">
-                  {selectedMeeting.meeting_name}
-                </span>
-                <span className="text-[9px] text-muted uppercase tracking-widest">
-                  {CIRCUIT_TYPE_LABEL[selectedMeeting.circuit_type] ??
-                    selectedMeeting.circuit_type}
-                </span>
-                {TRACK_FACTS_ENABLED && (
-                  <button
-                    type="button"
-                    onClick={() => setShowCircuitFacts((v) => !v)}
-                    className="ml-auto text-[9px] font-black uppercase tracking-widest text-muted hover:text-white transition-colors"
-                    aria-label="Toggle circuit facts"
-                    aria-expanded={showCircuitFacts}
-                  >
-                    {showCircuitFacts ? "Hide Facts" : "Track Facts"}
-                  </button>
-                )}
-                {selectedMeeting.is_cancelled && (
-                  <span className="bg-red-500/15 border border-red-500/40 text-red-300 text-[9px] font-bold uppercase tracking-widest px-1.5 py-0.5 rounded-sm">
-                    Cancelled
-                  </span>
-                )}
-              </div>
-            </>
-          )}
         </div>
       )}
 
