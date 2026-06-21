@@ -313,6 +313,12 @@ export function SettingsBody() {
         checked={settings.trackerTimingTelemetry}
         onChange={toggle("trackerTimingTelemetry")}
       />
+      <SettingRow
+        label="Mobile timing car data"
+        description="Show speed, RPM, gear, DRS, throttle and brake in tracker timing rows on mobile"
+        checked={settings.trackerTimingMobileCarData}
+        onChange={toggle("trackerTimingMobileCarData")}
+      />
 
       <SectionHeader>Track Map</SectionHeader>
       <SettingRow

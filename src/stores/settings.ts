@@ -30,6 +30,7 @@ export interface AppSettings {
   timingShowMinisectors: boolean;
   // Driver Tracker
   trackerTimingTelemetry: boolean;
+  trackerTimingMobileCarData: boolean;
   trackScreenshotPngEnabled: boolean;
   // Support
   showCoffeeWidget: boolean;
@@ -84,6 +85,7 @@ export const SETTINGS_DEFAULTS: AppSettings = {
   leaderboardTelemetry: true,
   timingShowMinisectors: true,
   trackerTimingTelemetry: false,
+  trackerTimingMobileCarData: false,
   trackScreenshotPngEnabled: true,
   showCoffeeWidget: true,
   defaultSpeed: 1,

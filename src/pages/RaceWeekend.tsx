@@ -549,6 +549,7 @@ export default function RaceWeekend() {
     leaderboardTelemetry,
     timingShowMinisectors,
     trackerTimingTelemetry,
+    trackerTimingMobileCarData,
     trackScreenshotPngEnabled,
     defaultSpeed,
     showPlaybackSpeedControls,
@@ -563,7 +564,9 @@ export default function RaceWeekend() {
   // Fetched only when the leaderboard view is active AND the setting is on — it's
   // a ~22k-row window per chunk, so we don't pay for it on other views.
   const trackerTimingTelemetryEnabled =
-    (leaderboardTelemetry || trackerTimingTelemetry) &&
+    (leaderboardTelemetry ||
+      trackerTimingTelemetry ||
+      trackerTimingMobileCarData) &&
     currentView === "tracker" &&
     (trackerTab ?? "timing") === "timing";
   const telemetryEnabled =
@@ -941,6 +944,7 @@ export default function RaceWeekend() {
       onSelectDriver={toggleFocus}
       carData={trackerTimingTelemetryEnabled ? carDataAtT : undefined}
       showMinisectors={timingShowMinisectors}
+      showDenseMobileTelemetry={trackerTimingMobileCarData}
       compactDriverColumn
       dense
       chequeredMs={chequeredMs}

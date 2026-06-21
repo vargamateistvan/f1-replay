@@ -44,6 +44,7 @@ interface Props {
   readonly compactDriverColumn?: boolean;
   readonly wideSectors?: boolean;
   readonly dense?: boolean;
+  readonly showDenseMobileTelemetry?: boolean;
   readonly isLoading?: boolean;
   readonly selectedDriver?: number | null;
   readonly compareDriver?: number | null;
@@ -184,6 +185,7 @@ export function LiveTiming({
   compactDriverColumn = false,
   wideSectors = false,
   dense = false,
+  showDenseMobileTelemetry = false,
   sessionTimeMs,
   sessionStartMs,
   isLoading,
@@ -768,54 +770,55 @@ export function LiveTiming({
                         )}
                       </span>
 
-                      {showTelemetry && !dense && (
-                        <div
-                          className={`grid grid-cols-2 gap-x-2 gap-y-0.5 font-mono tabular-nums sm:hidden ${dense ? "mt-0.5 text-[8px] leading-3.5" : "mt-1 text-[9px] leading-4"}`}
-                        >
-                          <span className="inline-flex min-w-0 items-center gap-1 text-[#7dd3fc]">
-                            <span className="text-[#89a6bf]">
-                              {speedUnitCompact}
-                            </span>
-                            <span className="w-[3ch] text-right">
-                              {speedDisplay}
-                            </span>
-                          </span>
-                          <span className="inline-flex min-w-0 items-center gap-1 text-[#c4b5fd]">
-                            <span className="text-[#a79ac9]">RPM</span>
-                            <span className="w-[5ch] text-right">
-                              {rpmDisplay}
-                            </span>
-                          </span>
-                          <span className="inline-flex min-w-0 items-center gap-1 text-[#fde68a]">
-                            <span className="text-[#d2bf72]">G</span>
-                            <span className="w-[3ch] text-right">
-                              {gearDisplay}
-                            </span>
-                          </span>
-                          {showDrs && (
-                            <span
-                              className={`inline-flex min-w-0 items-center gap-1 ${car && car.drs >= 10 ? "text-[#39d743]" : "text-[#9ca3af]"}`}
-                            >
-                              <span className="text-[#9ba1a8]">DRS</span>
+                      {showTelemetry &&
+                        (!dense || showDenseMobileTelemetry) && (
+                          <div
+                            className={`grid grid-cols-2 gap-x-2 gap-y-0.5 font-mono tabular-nums sm:hidden ${dense ? "mt-0.5 text-[8px] leading-3.5" : "mt-1 text-[9px] leading-4"}`}
+                          >
+                            <span className="inline-flex min-w-0 items-center gap-1 text-[#7dd3fc]">
+                              <span className="text-[#89a6bf]">
+                                {speedUnitCompact}
+                              </span>
                               <span className="w-[3ch] text-right">
-                                {drsDisplay}
+                                {speedDisplay}
                               </span>
                             </span>
-                          )}
-                          <MobilePedalMeter
-                            label="T"
-                            value={car ? car.throttle : null}
-                            color="#39d743"
-                            labelClassName="text-[#6eb989]"
-                          />
-                          <MobilePedalMeter
-                            label="B"
-                            value={car ? car.brake : null}
-                            color="#ff5252"
-                            labelClassName="text-[#c88787]"
-                          />
-                        </div>
-                      )}
+                            <span className="inline-flex min-w-0 items-center gap-1 text-[#c4b5fd]">
+                              <span className="text-[#a79ac9]">RPM</span>
+                              <span className="w-[5ch] text-right">
+                                {rpmDisplay}
+                              </span>
+                            </span>
+                            <span className="inline-flex min-w-0 items-center gap-1 text-[#fde68a]">
+                              <span className="text-[#d2bf72]">G</span>
+                              <span className="w-[3ch] text-right">
+                                {gearDisplay}
+                              </span>
+                            </span>
+                            {showDrs && (
+                              <span
+                                className={`inline-flex min-w-0 items-center gap-1 ${car && car.drs >= 10 ? "text-[#39d743]" : "text-[#9ca3af]"}`}
+                              >
+                                <span className="text-[#9ba1a8]">DRS</span>
+                                <span className="w-[3ch] text-right">
+                                  {drsDisplay}
+                                </span>
+                              </span>
+                            )}
+                            <MobilePedalMeter
+                              label="T"
+                              value={car ? car.throttle : null}
+                              color="#39d743"
+                              labelClassName="text-[#6eb989]"
+                            />
+                            <MobilePedalMeter
+                              label="B"
+                              value={car ? car.brake : null}
+                              color="#ff5252"
+                              labelClassName="text-[#c88787]"
+                            />
+                          </div>
+                        )}
                     </div>
                   </td>
 
