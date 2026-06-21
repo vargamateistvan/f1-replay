@@ -124,9 +124,9 @@ export function FinalClassificationDialog({
     <div
       ref={backdropRef}
       onClick={handleBackdropClick}
-      className="fixed inset-0 z-[220] flex items-center justify-center bg-black/75 px-3 py-6 backdrop-blur-sm sm:px-6"
+      className="fixed inset-0 z-[220] flex items-start justify-center overflow-y-auto bg-black/75 px-3 py-4 backdrop-blur-sm sm:items-center sm:px-6 sm:py-6"
     >
-      <div className="flex max-h-[90dvh] w-full max-w-5xl flex-col overflow-hidden border border-panel bg-[#0f1118] shadow-2xl">
+      <div className="my-auto flex max-h-[calc(100dvh-2rem)] w-full max-w-5xl flex-col overflow-hidden border border-panel bg-[#0f1118] shadow-2xl sm:max-h-[90dvh]">
         <div className="flex items-center justify-between border-b border-panel px-4 py-3 sm:px-5">
           <div>
             <div className="text-[10px] font-black uppercase tracking-[0.2em] text-f1red">
@@ -150,7 +150,7 @@ export function FinalClassificationDialog({
           drivers={drivers}
           sessionName={sessionName}
           hideHeader
-          tableClassName="min-h-0 flex-1 overflow-auto"
+          tableClassName="min-h-0 flex-1 overflow-y-auto overscroll-contain"
         />
       </div>
     </div>
@@ -260,7 +260,10 @@ function FinalClassificationContent({
         </div>
       )}
 
-      <div className={tableClassName}>
+      <div
+        className={tableClassName}
+        style={{ WebkitOverflowScrolling: "touch" }}
+      >
         <table className="w-full border-collapse">
           <thead>
             <tr className="sticky top-0 border-b border-panel bg-track/95 text-[10px] font-black uppercase tracking-[0.16em] text-muted">
