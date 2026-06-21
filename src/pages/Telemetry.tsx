@@ -162,6 +162,7 @@ export default function Telemetry() {
   const lightMode = useSettings((s) => s.lightMode);
   const metricSystem = useSettings((s) => s.metricSystem);
   const [activeMode, setActiveMode] = useState<"quali" | "race" | null>(null);
+  const [isCardsAccordionOpen, setIsCardsAccordionOpen] = useState(true);
   const [searchParams] = useSearchParams();
   const [isNarrowViewport, setIsNarrowViewport] = useState(() =>
     typeof window === "undefined"
@@ -857,160 +858,188 @@ export default function Telemetry() {
           </div>
         </div>
 
-        <div className="grid grid-cols-1 gap-1.5 lg:grid-cols-3">
-          <DriverLapCard
-            slotLabel="Driver A"
-            accent={colorFor(driverA, 0)}
-            driverTag={acr(driverA, "A")}
-            driverName={
-              driverA !== null
-                ? (driverByNumber.get(driverA)?.full_name ?? acr(driverA, "A"))
-                : "Unselected"
+        <div className="mb-2 flex items-center justify-between">
+          <span className="text-[10px] font-bold uppercase tracking-[0.12em] text-muted">
+            Driver & track preview
+          </span>
+          <button
+            type="button"
+            onClick={() => setIsCardsAccordionOpen((open) => !open)}
+            className="h-7 border border-[#4f4f65] bg-[#191922] px-2 text-[10px] font-black uppercase tracking-widest text-white transition-colors hover:border-[#95b7ff]"
+            aria-expanded={isCardsAccordionOpen}
+            title={
+              isCardsAccordionOpen
+                ? "Collapse preview cards"
+                : "Expand preview cards"
             }
-            driverHeadshotUrl={
-              driverA !== null
-                ? (driverByNumber.get(driverA)?.headshot_url ?? null)
-                : null
-            }
-            driver={driverA}
-            onDriverChange={setDriverA}
-            driverOptions={drivers.data ?? []}
-            driverPlaceholder="Select anchor"
-            lap={selectedLapA}
-            lapOptions={
-              driverA !== null ? (lapsByDriver.get(driverA) ?? []) : []
-            }
-            onLapChange={setLapA}
-            onBest={() => applyPresetLap("a", "best")}
-            onLatest={() => applyPresetLap("a", "latest")}
-            bestLap={
-              driverA !== null ? (bestLapByDriver.get(driverA) ?? null) : null
-            }
-            latestLap={
-              driverA !== null ? (latestLapByDriver.get(driverA) ?? null) : null
-            }
-            lapMeta={lapMetaA}
-            speedTrace={dataA.data?.map((sample) => sample.speed) ?? []}
-            deltaHint={deltaHintA}
-            sectorWins={
-              driverA !== null
-                ? (sectorWinsByDriver.get(driverA) ?? EMPTY_SECTOR_WINS)
-                : EMPTY_SECTOR_WINS
-            }
-            sectorAnimationSeed={selectedLapA}
-            compact={cardDensity === "compact"}
-            disabled={!sessionKey}
-          />
-
-          <DriverLapCard
-            slotLabel="Driver B"
-            accent={colorFor(driverB, 1)}
-            driverTag={acr(driverB, "B")}
-            driverName={
-              driverB !== null
-                ? (driverByNumber.get(driverB)?.full_name ?? acr(driverB, "B"))
-                : "Unselected"
-            }
-            driverHeadshotUrl={
-              driverB !== null
-                ? (driverByNumber.get(driverB)?.headshot_url ?? null)
-                : null
-            }
-            driver={driverB}
-            onDriverChange={setDriverB}
-            driverOptions={(drivers.data ?? []).filter(
-              (d) => d.driver_number !== driverA && d.driver_number !== driverC,
-            )}
-            driverPlaceholder="Optional"
-            lap={selectedLapB}
-            lapOptions={
-              driverB !== null ? (lapsByDriver.get(driverB) ?? []) : []
-            }
-            onLapChange={setLapB}
-            onBest={() => applyPresetLap("b", "best")}
-            onLatest={() => applyPresetLap("b", "latest")}
-            bestLap={
-              driverB !== null ? (bestLapByDriver.get(driverB) ?? null) : null
-            }
-            latestLap={
-              driverB !== null ? (latestLapByDriver.get(driverB) ?? null) : null
-            }
-            lapMeta={lapMetaB}
-            speedTrace={dataB.data?.map((sample) => sample.speed) ?? []}
-            deltaHint={deltaHintB}
-            sectorWins={
-              driverB !== null
-                ? (sectorWinsByDriver.get(driverB) ?? EMPTY_SECTOR_WINS)
-                : EMPTY_SECTOR_WINS
-            }
-            sectorAnimationSeed={selectedLapB}
-            compact={cardDensity === "compact"}
-            disabled={!sessionKey}
-          />
-
-          <div className="h-full lg:h-[248px] rounded border border-[#353548] bg-[#10111a] p-1.5 flex flex-col">
-            <div className="mb-1 flex items-center gap-1.5">
-              <span className="text-[10px] font-black uppercase tracking-[0.15em] text-muted">
-                Track position preview
-              </span>
-              <span className="h-1.5 w-8 rounded-full bg-f1red" />
-            </div>
-
-            {trackPreview ? (
-              <div className="relative min-h-[112px] flex-1 overflow-hidden rounded border border-panel bg-[#0b1020]">
-                <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_25%_20%,rgba(39,68,158,0.2),transparent_45%),radial-gradient(circle_at_85%_80%,rgba(232,0,45,0.1),transparent_40%)]" />
-                <svg
-                  viewBox={`0 0 ${TRACK_SVG_W} ${TRACK_SVG_H}`}
-                  className="relative h-full w-full"
-                  role="img"
-                  aria-label="Lap track preview"
-                >
-                  <polyline
-                    points={trackPreview.polyline}
-                    fill="none"
-                    stroke="#3e4a64"
-                    strokeWidth={5.4}
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    opacity={0.7}
-                  />
-                  <polyline
-                    points={trackPreview.polyline}
-                    fill="none"
-                    stroke="#d7deee"
-                    strokeWidth={2}
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  />
-
-                  {hoveredTrackPoint && (
-                    <>
-                      <circle
-                        cx={hoveredTrackPoint.sx}
-                        cy={hoveredTrackPoint.sy}
-                        r={9}
-                        fill="#e8002d"
-                        opacity={0.15}
-                      />
-                      <circle
-                        cx={hoveredTrackPoint.sx}
-                        cy={hoveredTrackPoint.sy}
-                        r={4}
-                        fill="#ff274f"
-                        stroke="#ffffff"
-                        strokeWidth={1.1}
-                      />
-                    </>
-                  )}
-                </svg>
-              </div>
-            ) : (
-              <div className="flex min-h-[112px] flex-1 items-center justify-center rounded border border-panel bg-[#10111a] px-3 text-center text-xs text-muted">
-                Select Driver A and a valid lap to draw the track.
-              </div>
-            )}
-          </div>
+          >
+            {isCardsAccordionOpen ? "Hide" : "Show"}
+          </button>
         </div>
+
+        {isCardsAccordionOpen && (
+          <div className="grid grid-cols-1 gap-1.5 lg:grid-cols-3">
+            <DriverLapCard
+              slotLabel="Driver A"
+              accent={colorFor(driverA, 0)}
+              driverTag={acr(driverA, "A")}
+              driverName={
+                driverA !== null
+                  ? (driverByNumber.get(driverA)?.full_name ??
+                    acr(driverA, "A"))
+                  : "Unselected"
+              }
+              driverHeadshotUrl={
+                driverA !== null
+                  ? (driverByNumber.get(driverA)?.headshot_url ?? null)
+                  : null
+              }
+              driver={driverA}
+              onDriverChange={setDriverA}
+              driverOptions={drivers.data ?? []}
+              driverPlaceholder="Select anchor"
+              lap={selectedLapA}
+              lapOptions={
+                driverA !== null ? (lapsByDriver.get(driverA) ?? []) : []
+              }
+              onLapChange={setLapA}
+              onBest={() => applyPresetLap("a", "best")}
+              onLatest={() => applyPresetLap("a", "latest")}
+              bestLap={
+                driverA !== null ? (bestLapByDriver.get(driverA) ?? null) : null
+              }
+              latestLap={
+                driverA !== null
+                  ? (latestLapByDriver.get(driverA) ?? null)
+                  : null
+              }
+              lapMeta={lapMetaA}
+              speedTrace={dataA.data?.map((sample) => sample.speed) ?? []}
+              deltaHint={deltaHintA}
+              sectorWins={
+                driverA !== null
+                  ? (sectorWinsByDriver.get(driverA) ?? EMPTY_SECTOR_WINS)
+                  : EMPTY_SECTOR_WINS
+              }
+              sectorAnimationSeed={selectedLapA}
+              compact={cardDensity === "compact"}
+              disabled={!sessionKey}
+            />
+
+            <DriverLapCard
+              slotLabel="Driver B"
+              accent={colorFor(driverB, 1)}
+              driverTag={acr(driverB, "B")}
+              driverName={
+                driverB !== null
+                  ? (driverByNumber.get(driverB)?.full_name ??
+                    acr(driverB, "B"))
+                  : "Unselected"
+              }
+              driverHeadshotUrl={
+                driverB !== null
+                  ? (driverByNumber.get(driverB)?.headshot_url ?? null)
+                  : null
+              }
+              driver={driverB}
+              onDriverChange={setDriverB}
+              driverOptions={(drivers.data ?? []).filter(
+                (d) =>
+                  d.driver_number !== driverA && d.driver_number !== driverC,
+              )}
+              driverPlaceholder="Optional"
+              lap={selectedLapB}
+              lapOptions={
+                driverB !== null ? (lapsByDriver.get(driverB) ?? []) : []
+              }
+              onLapChange={setLapB}
+              onBest={() => applyPresetLap("b", "best")}
+              onLatest={() => applyPresetLap("b", "latest")}
+              bestLap={
+                driverB !== null ? (bestLapByDriver.get(driverB) ?? null) : null
+              }
+              latestLap={
+                driverB !== null
+                  ? (latestLapByDriver.get(driverB) ?? null)
+                  : null
+              }
+              lapMeta={lapMetaB}
+              speedTrace={dataB.data?.map((sample) => sample.speed) ?? []}
+              deltaHint={deltaHintB}
+              sectorWins={
+                driverB !== null
+                  ? (sectorWinsByDriver.get(driverB) ?? EMPTY_SECTOR_WINS)
+                  : EMPTY_SECTOR_WINS
+              }
+              sectorAnimationSeed={selectedLapB}
+              compact={cardDensity === "compact"}
+              disabled={!sessionKey}
+            />
+
+            <div className="h-full lg:h-[248px] rounded border border-[#353548] bg-[#10111a] p-1.5 flex flex-col">
+              <div className="mb-1 flex items-center gap-1.5">
+                <span className="text-[10px] font-black uppercase tracking-[0.15em] text-muted">
+                  Track position preview
+                </span>
+                <span className="h-1.5 w-8 rounded-full bg-f1red" />
+              </div>
+
+              {trackPreview ? (
+                <div className="relative min-h-[112px] flex-1 overflow-hidden rounded border border-panel bg-[#0b1020]">
+                  <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_25%_20%,rgba(39,68,158,0.2),transparent_45%),radial-gradient(circle_at_85%_80%,rgba(232,0,45,0.1),transparent_40%)]" />
+                  <svg
+                    viewBox={`0 0 ${TRACK_SVG_W} ${TRACK_SVG_H}`}
+                    className="relative h-full w-full"
+                    role="img"
+                    aria-label="Lap track preview"
+                  >
+                    <polyline
+                      points={trackPreview.polyline}
+                      fill="none"
+                      stroke="#3e4a64"
+                      strokeWidth={5.4}
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      opacity={0.7}
+                    />
+                    <polyline
+                      points={trackPreview.polyline}
+                      fill="none"
+                      stroke="#d7deee"
+                      strokeWidth={2}
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    />
+
+                    {hoveredTrackPoint && (
+                      <>
+                        <circle
+                          cx={hoveredTrackPoint.sx}
+                          cy={hoveredTrackPoint.sy}
+                          r={9}
+                          fill="#e8002d"
+                          opacity={0.15}
+                        />
+                        <circle
+                          cx={hoveredTrackPoint.sx}
+                          cy={hoveredTrackPoint.sy}
+                          r={4}
+                          fill="#ff274f"
+                          stroke="#ffffff"
+                          strokeWidth={1.1}
+                        />
+                      </>
+                    )}
+                  </svg>
+                </div>
+              ) : (
+                <div className="flex min-h-[112px] flex-1 items-center justify-center rounded border border-panel bg-[#10111a] px-3 text-center text-xs text-muted">
+                  Select Driver A and a valid lap to draw the track.
+                </div>
+              )}
+            </div>
+          </div>
+        )}
 
         {session && (
           <span className="mt-1 block text-xs text-muted sm:ml-auto">
