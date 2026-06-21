@@ -80,7 +80,6 @@ const EMPTY_SECTOR_WINS: SectorWins = {
   s3: false,
   total: 0,
 };
-const LAYOUT_HINT_DISMISSED_KEY = "telemetryLayoutHintDismissed";
 const TRACK_SVG_W = 360;
 const TRACK_SVG_H = 180;
 
@@ -163,11 +162,7 @@ export default function Telemetry() {
   const lightMode = useSettings((s) => s.lightMode);
   const metricSystem = useSettings((s) => s.metricSystem);
   const [activeMode, setActiveMode] = useState<"quali" | "race" | null>(null);
-  const [showLayoutHint, setShowLayoutHint] = useState(() => {
-    if (typeof window === "undefined") return false;
-    return window.localStorage.getItem(LAYOUT_HINT_DISMISSED_KEY) !== "1";
-  });
-  const [searchParams, setSearchParams] = useSearchParams();
+  const [searchParams] = useSearchParams();
   const [isNarrowViewport, setIsNarrowViewport] = useState(() =>
     typeof window === "undefined"
       ? false
@@ -175,13 +170,12 @@ export default function Telemetry() {
   );
 
   const rawCardDensity = searchParams.get("card");
-  const hasCardDensityOverride =
-    rawCardDensity === "compact" || rawCardDensity === "expanded";
-  const cardDensity: "compact" | "expanded" = hasCardDensityOverride
-    ? (rawCardDensity as "compact" | "expanded")
-    : isNarrowViewport
-      ? "compact"
-      : "expanded";
+  const cardDensity: "compact" | "expanded" =
+    rawCardDensity === "compact" || rawCardDensity === "expanded"
+      ? rawCardDensity
+      : isNarrowViewport
+        ? "compact"
+        : "expanded";
   const [meetingKey] = useNumberParam("meeting", null);
   const [sessionKey] = useNumberParam("session", null);
 
@@ -768,42 +762,6 @@ export default function Telemetry() {
     return () => media.removeEventListener("change", onChange);
   }, []);
 
-  const setCardDensity = (next: "compact" | "expanded") => {
-    setSearchParams(
-      (prev) => {
-        const p = new URLSearchParams(prev);
-        p.set("card", next);
-        return p;
-      },
-      { replace: true },
-    );
-  };
-
-  const resetCardDensity = () => {
-    setSearchParams(
-      (prev) => {
-        const p = new URLSearchParams(prev);
-        p.delete("card");
-        return p;
-      },
-      { replace: true },
-    );
-  };
-
-  const dismissLayoutHint = () => {
-    if (typeof window !== "undefined") {
-      window.localStorage.setItem(LAYOUT_HINT_DISMISSED_KEY, "1");
-    }
-    setShowLayoutHint(false);
-  };
-
-  const reopenLayoutHint = () => {
-    if (typeof window !== "undefined") {
-      window.localStorage.removeItem(LAYOUT_HINT_DISMISSED_KEY);
-    }
-    setShowLayoutHint(true);
-  };
-
   // When the session changes (driven by the global Nav picker), clear local state.
   useEffect(() => {
     setActiveMode(null);
@@ -836,64 +794,6 @@ export default function Telemetry() {
         }`}
       >
         <div className="mb-3 flex flex-wrap items-center gap-2">
-          <div className="rounded-sm border border-[#444458] bg-[#12131b] px-2 py-1">
-            <span className="text-[10px] font-bold uppercase tracking-[0.12em] text-muted">
-              Telemetry compare mode
-            </span>
-          </div>
-
-          <button
-            onClick={() =>
-              setCardDensity(
-                cardDensity === "expanded" ? "compact" : "expanded",
-              )
-            }
-            className={`h-[34px] border px-3 text-[10px] font-black uppercase tracking-widest transition-colors ${
-              cardDensity === "expanded"
-                ? "border-[#5483bf] bg-[#1a2940] text-[#d9ecff]"
-                : "border-[#4f4f65] bg-[#191922] text-white hover:border-[#95b7ff]"
-            }`}
-            title="Switch between compact and expanded telemetry driver cards"
-          >
-            {cardDensity === "expanded" ? "Expanded cards" : "Compact cards"}
-          </button>
-
-          <button
-            onClick={resetCardDensity}
-            disabled={!hasCardDensityOverride}
-            className="h-[34px] border border-[#4f4f65] bg-[#191922] px-3 text-[10px] font-black uppercase tracking-widest text-white transition-colors hover:border-[#95b7ff] disabled:cursor-not-allowed disabled:opacity-40"
-            title="Clear manual card layout and return to responsive auto mode"
-          >
-            Reset layout
-          </button>
-
-          <span
-            className={`h-[34px] inline-flex items-center rounded border px-2 text-[10px] font-black uppercase tracking-[0.12em] ${
-              hasCardDensityOverride
-                ? "border-[#4d5f79] bg-[#192233] text-[#c9ddff]"
-                : "border-[#3b6b4e] bg-[#13261a] text-[#9ee0b6]"
-            }`}
-            title={
-              hasCardDensityOverride
-                ? "Manual card layout is active"
-                : "Responsive auto card layout is active"
-            }
-          >
-            {hasCardDensityOverride ? "Manual" : "Auto"}
-          </span>
-
-          <button
-            onClick={() => setSmooth(smoothing ? "0" : "1")}
-            className={`h-[34px] px-3 text-[10px] font-black uppercase tracking-widest transition-colors ${
-              smoothing
-                ? "bg-f1red text-white"
-                : "bg-panel text-muted hover:text-white"
-            }`}
-            title="Low-pass smoothing on speed/throttle/brake/RPM"
-          >
-            Smooth
-          </button>
-
           <button
             onClick={applyBestToAll}
             className="h-[34px] border border-[#4f4f65] bg-[#191922] px-3 text-[10px] font-black uppercase tracking-widest text-white transition-colors hover:border-f1red"
@@ -952,52 +852,8 @@ export default function Telemetry() {
                 </option>
               ))}
             </select>
-            <button
-              onClick={reopenLayoutHint}
-              className="h-[34px] w-[34px] inline-flex items-center justify-center rounded border border-[#4f4f65] bg-[#191922] text-[12px] font-black text-white transition-colors hover:border-[#95b7ff]"
-              title="Show layout help"
-              aria-label="Show layout help"
-            >
-              ?
-            </button>
           </div>
         </div>
-
-        {showLayoutHint && (
-          <div
-            className={`mb-3 flex items-start gap-2 rounded border p-2 text-[11px] ${
-              lightMode
-                ? "border-[#bfd0ee] bg-[#eaf2ff] text-[#334a70]"
-                : "border-[#35506e] bg-[#162337] text-[#d6e7ff]"
-            }`}
-          >
-            <div className="leading-snug">
-              <span
-                className={`font-black uppercase tracking-[0.1em] ${
-                  lightMode ? "text-[#3d6fb3]" : "text-[#9bc9ff]"
-                }`}
-              >
-                Layout tip
-              </span>
-              <span className="ml-2">
-                Use Compact/Expanded to set card richness, Reset layout to
-                return to responsive behavior, and the Auto/Manual badge to see
-                who is in control.
-              </span>
-            </div>
-            <button
-              onClick={dismissLayoutHint}
-              className={`ml-auto h-6 shrink-0 rounded border px-2 text-[10px] font-black uppercase tracking-[0.1em] ${
-                lightMode
-                  ? "border-[#9cb7e1] text-[#36527f] hover:border-[#6f94cc]"
-                  : "border-[#4b6586] text-[#d6e7ff] hover:border-[#8db2de]"
-              }`}
-              title="Dismiss helper"
-            >
-              Dismiss
-            </button>
-          </div>
-        )}
 
         <div className="grid grid-cols-1 gap-1.5 lg:grid-cols-3">
           <DriverLapCard
