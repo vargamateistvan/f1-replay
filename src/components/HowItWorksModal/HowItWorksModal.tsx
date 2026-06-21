@@ -91,7 +91,7 @@ export function HowItWorksModal() {
                 </li>
                 <li>
                   <strong className="text-white">Speed Control:</strong> Adjust
-                  playback speed (0.5×, 1×, 2×, 4×, 8×)
+                  playback speed (1×, 2×, 4×, 8×, 16×)
                 </li>
                 <li>
                   <strong className="text-white">Keyboard:</strong> Arrow keys
@@ -229,6 +229,11 @@ export function HowItWorksModal() {
                 <li>
                   <strong className="text-white">Commentary:</strong> Event
                   feeds (radio, race control, overtakes, weather)
+                </li>
+                <li>
+                  <strong className="text-white">Final Results:</strong> Open
+                  the Final Classification dialog with podium cards and complete
+                  race result table after sessions finish
                 </li>
               </ul>
             </section>
