@@ -23,7 +23,9 @@ Sentry.init({
   integrations: [
     Sentry.browserTracingIntegration(),
     Sentry.replayIntegration(),
+    Sentry.consoleLoggingIntegration({ levels: ["log", "warn", "error"] }),
   ],
+  enableLogs: true,
   tracesSampleRate: 1,
   tracePropagationTargets: ["localhost", /^https:\/\/yourserver\.io\/api/],
   // Session Replay
@@ -31,8 +33,12 @@ Sentry.init({
   replaysOnErrorSampleRate: 1,
 });
 
+Sentry.logger.info("App bootstrap initialized", {
+  log_source: "bootstrap",
+});
+
 // Mobile Safari error prevention and logging
-if (typeof window !== "undefined") {
+if (typeof globalThis.window !== "undefined") {
   // Store recent errors in sessionStorage for debugging
   const storeError = (msg: string) => {
     try {
@@ -42,30 +48,66 @@ if (typeof window !== "undefined") {
       if (errors.length > 10) errors.shift();
       sessionStorage.setItem("__app_errors", JSON.stringify(errors));
     } catch (e) {
+      Sentry.logger.error("Failed to persist recent app error", {
+        log_source: "bootstrap",
+      });
       console.error("Failed to store error:", e);
     }
   };
 
   // Intercept all errors
-  window.addEventListener("error", (event) => {
+  globalThis.addEventListener("error", (event) => {
     const msg = event.error?.message || event.message || "Unknown error";
     storeError(`Error: ${msg}`);
+    Sentry.logger.error("Unhandled window error", {
+      log_source: "window_error",
+      message: msg,
+      filename: event.filename,
+      lineno: event.lineno,
+      colno: event.colno,
+    });
+    if (event.error instanceof Error) {
+      Sentry.captureException(event.error, {
+        tags: { log_source: "window_error" },
+      });
+    } else {
+      Sentry.captureMessage(msg, {
+        level: "error",
+        tags: { log_source: "window_error" },
+      });
+    }
     console.log("GlobalError:", msg);
     event.preventDefault();
     return true;
   });
 
-  window.addEventListener("unhandledrejection", (event) => {
+  globalThis.addEventListener("unhandledrejection", (event) => {
     const msg =
       event.reason?.message || String(event.reason) || "Promise rejection";
     storeError(`Rejection: ${msg}`);
+    Sentry.logger.error("Unhandled promise rejection", {
+      log_source: "promise_rejection",
+      message: msg,
+    });
+    if (event.reason instanceof Error) {
+      Sentry.captureException(event.reason, {
+        tags: { log_source: "promise_rejection" },
+      });
+    } else {
+      Sentry.captureMessage(msg, {
+        level: "error",
+        tags: { log_source: "promise_rejection" },
+      });
+    }
     console.log("GlobalRejection:", msg);
     event.preventDefault();
     return true;
   });
 
   // Also store errors globally for ErrorDisplay component access
-  (window as unknown as Record<string, unknown>).__getStoredErrors = () => {
+  (
+    globalThis as typeof globalThis & Record<string, unknown>
+  ).__getStoredErrors = () => {
     try {
       return JSON.parse(sessionStorage.getItem("__app_errors") || "[]");
     } catch {
@@ -80,5 +122,12 @@ const root = document.getElementById("root");
 if (root) {
   createRoot(root).render(<App />);
 } else {
+  Sentry.logger.error("Root element not found during app bootstrap", {
+    log_source: "bootstrap",
+  });
+  Sentry.captureMessage("Root element not found", {
+    level: "error",
+    tags: { log_source: "bootstrap" },
+  });
   console.error("Root element not found");
 }

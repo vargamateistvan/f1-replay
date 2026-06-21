@@ -3,6 +3,7 @@ import {
   RATE_MAX_PER_MINUTE,
   RATE_MAX_RETRIES,
 } from "@/constants";
+import * as Sentry from "@sentry/react";
 
 const BASE = "https://api.openf1.org/v1";
 
@@ -31,6 +32,20 @@ type QueryParams = Record<string, string | number | boolean>;
 
 // Identical concurrent GETs (same URL + auth header) share one network request.
 const inFlightJsonRequests = new Map<string, Promise<unknown[]>>();
+
+function logApiWarning(message: string, extra: Record<string, unknown>) {
+  Sentry.logger.warn(message, {
+    log_source: "openf1_api",
+    ...extra,
+  });
+}
+
+function logApiError(message: string, extra: Record<string, unknown>) {
+  Sentry.logger.error(message, {
+    log_source: "openf1_api",
+    ...extra,
+  });
+}
 
 export function isAuthError(err: unknown): err is OpenF1Error {
   return (
@@ -166,6 +181,11 @@ export async function fetchEndpoint<T>(
           try {
             const data = await res.json();
             if (!Array.isArray(data)) {
+              logApiWarning("OpenF1 returned non-array JSON payload", {
+                path,
+                url,
+                payload_type: typeof data,
+              });
               console.warn(
                 `Expected array response from ${path}, got:`,
                 typeof data,
@@ -174,6 +194,20 @@ export async function fetchEndpoint<T>(
             }
             return data;
           } catch (parseErr) {
+            logApiError("Failed to parse OpenF1 JSON response", {
+              path,
+              url,
+              attempt,
+            });
+            Sentry.captureException(
+              parseErr instanceof Error
+                ? parseErr
+                : new Error(String(parseErr)),
+              {
+                tags: { log_source: "openf1_api", failure_type: "parse" },
+                extra: { path, url, attempt },
+              },
+            );
             console.error("Failed to parse JSON response from", path, parseErr);
             throw new OpenF1Error(0, `${path} (parse error)`);
           }
@@ -187,12 +221,30 @@ export async function fetchEndpoint<T>(
         // Auth (401/403) and other 4xx are terminal — fail fast.
         const retryable = res.status === 429 || res.status >= 500;
         if (!retryable || attempt >= RATE_MAX_RETRIES) {
+          logApiError("OpenF1 request failed", {
+            path,
+            url,
+            status: res.status,
+            attempt,
+            retryable,
+          });
           const err = new OpenF1Error(res.status, path);
           lastError = err;
+          Sentry.captureException(err, {
+            tags: { log_source: "openf1_api", failure_type: "http" },
+            extra: { path, url, status: res.status, attempt, retryable },
+          });
           throw err;
         }
 
         const backoff = parseRetryAfter(res) ?? 2 ** attempt * 500; // 0.5s,1s,2s,4s…
+        logApiWarning("Retrying OpenF1 request after retryable response", {
+          path,
+          url,
+          status: res.status,
+          attempt: attempt + 1,
+          backoff_ms: backoff,
+        });
         attempt++;
         await sleep(backoff);
       } catch (err) {
@@ -201,6 +253,16 @@ export async function fetchEndpoint<T>(
         lastError = err instanceof Error ? err : new Error(String(err));
 
         if (attempt >= RATE_MAX_RETRIES) {
+          logApiError("OpenF1 request exhausted network retries", {
+            path,
+            url,
+            attempt,
+            error_message: lastError.message,
+          });
+          Sentry.captureException(lastError, {
+            tags: { log_source: "openf1_api", failure_type: "network" },
+            extra: { path, url, attempt },
+          });
           console.error(
             `fetchEndpoint: max retries exceeded for ${path}:`,
             lastError,
@@ -210,6 +272,13 @@ export async function fetchEndpoint<T>(
 
         attempt++;
         const backoff = 2 ** attempt * 500;
+        logApiWarning("Retrying OpenF1 request after network error", {
+          path,
+          url,
+          attempt,
+          backoff_ms: backoff,
+          error_message: lastError.message,
+        });
         await sleep(backoff);
       }
     }
@@ -262,10 +331,29 @@ export async function downloadEndpointCsv(
 
     const retryable = res.status === 429 || res.status >= 500;
     if (!retryable || attempt >= RATE_MAX_RETRIES) {
-      throw new OpenF1Error(res.status, path);
+      const err = new OpenF1Error(res.status, path);
+      logApiError("OpenF1 CSV download failed", {
+        path,
+        url,
+        status: res.status,
+        attempt,
+        retryable,
+      });
+      Sentry.captureException(err, {
+        tags: { log_source: "openf1_api", failure_type: "csv_download" },
+        extra: { path, url, status: res.status, attempt, retryable },
+      });
+      throw err;
     }
 
     const backoff = parseRetryAfter(res) ?? 2 ** attempt * 500;
+    logApiWarning("Retrying OpenF1 CSV download", {
+      path,
+      url,
+      status: res.status,
+      attempt: attempt + 1,
+      backoff_ms: backoff,
+    });
     attempt++;
     await sleep(backoff);
   }
