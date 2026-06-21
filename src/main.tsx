@@ -26,11 +26,13 @@ Sentry.init({
   },
   integrations: [
     Sentry.browserTracingIntegration(),
+    Sentry.browserProfilingIntegration(),
     Sentry.replayIntegration(),
     Sentry.consoleLoggingIntegration({ levels: ["log", "warn", "error"] }),
   ],
   enableLogs: true,
   tracesSampleRate: 1,
+  profileSessionSampleRate: 1,
   tracePropagationTargets: ["localhost", /^https:\/\/yourserver\.io\/api/],
   // Session Replay
   replaysSessionSampleRate: 0.1,

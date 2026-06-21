@@ -26,6 +26,16 @@ export default defineConfig({
       "@": fileURLToPath(new URL("./src", import.meta.url)),
     },
   },
+  server: {
+    headers: {
+      "Document-Policy": "js-profiling",
+    },
+  },
+  preview: {
+    headers: {
+      "Document-Policy": "js-profiling",
+    },
+  },
   build: {
     rollupOptions: {
       output: {
