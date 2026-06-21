@@ -39,6 +39,22 @@ Sentry.init({
   replaysOnErrorSampleRate: 1,
 });
 
+if (typeof globalThis.document !== "undefined") {
+  const policy = (
+    globalThis.document as Document & {
+      policy?: { allowedFeatures?: () => string[] };
+    }
+  ).policy;
+  const allowed = policy?.allowedFeatures?.();
+
+  if (Array.isArray(allowed) && !allowed.includes("js-profiling")) {
+    Sentry.logger.warn("Document-Policy js-profiling is not enabled", {
+      log_source: "profiling",
+      mode: import.meta.env.MODE,
+    });
+  }
+}
+
 Sentry.logger.info("App bootstrap initialized", {
   log_source: "bootstrap",
 });
