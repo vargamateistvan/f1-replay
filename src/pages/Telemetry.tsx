@@ -1231,7 +1231,7 @@ export default function Telemetry() {
                 xData={xDist}
                 yMin={0}
                 yMax={speedChartMax}
-                height={230}
+                height={280}
                 interactiveControls
                 onHoverX={handleChartHoverX}
                 series={speedSeries}
@@ -1241,7 +1241,7 @@ export default function Telemetry() {
                 xData={xDist}
                 yMin={0}
                 yMax={100}
-                height={165}
+                height={210}
                 interactiveControls
                 onHoverX={handleChartHoverX}
                 series={throttleSeries}
@@ -1251,7 +1251,7 @@ export default function Telemetry() {
                 xData={xDist}
                 yMin={0}
                 yMax={100}
-                height={155}
+                height={200}
                 interactiveControls
                 onHoverX={handleChartHoverX}
                 series={brakeSeries}
@@ -1261,7 +1261,7 @@ export default function Telemetry() {
                 xData={xDist}
                 yMin={0}
                 yMax={9}
-                height={165}
+                height={210}
                 interactiveControls
                 onHoverX={handleChartHoverX}
                 series={gearSeries}
@@ -1271,7 +1271,7 @@ export default function Telemetry() {
                 xData={xDist}
                 yMin={0}
                 yMax={15000}
-                height={175}
+                height={220}
                 interactiveControls
                 onHoverX={handleChartHoverX}
                 series={rpmSeries}
@@ -1288,7 +1288,7 @@ export default function Telemetry() {
                   <TelemetryChart
                     title=""
                     xData={xDist}
-                    height={175}
+                    height={220}
                     interactiveControls
                     onHoverX={handleChartHoverX}
                     series={deltaSeries}
