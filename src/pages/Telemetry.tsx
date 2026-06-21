@@ -1503,7 +1503,8 @@ function SpeedSparkline({
   return (
     <svg
       viewBox={`0 0 ${width} ${height}`}
-      className="h-10 w-full"
+      className="block h-10 w-full"
+      preserveAspectRatio="none"
       aria-label="Lap speed sparkline"
       role="img"
     >
