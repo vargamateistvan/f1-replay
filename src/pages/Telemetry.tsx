@@ -756,20 +756,6 @@ export default function Telemetry() {
     !dataA.isError &&
     (dataA.data == null || dataA.data.length === 0);
 
-  const modeLabel =
-    activeMode === "quali"
-      ? "Quali"
-      : activeMode === "race"
-        ? "Race"
-        : "Custom";
-
-  const modeClass =
-    activeMode === "quali"
-      ? "border-[#cb9dff] bg-[#3b2350] text-[#eddcff]"
-      : activeMode === "race"
-        ? "border-[#9bc9ff] bg-[#1a2639] text-[#d6e9ff]"
-        : "border-[#4a4a5d] bg-[#171823] text-muted";
-
   useEffect(() => {
     if (typeof window === "undefined") return;
     const media = window.matchMedia("(max-width: 1023px)");
@@ -1013,7 +999,7 @@ export default function Telemetry() {
           </div>
         )}
 
-        <div className="grid grid-cols-1 gap-2 lg:grid-cols-3">
+        <div className="grid grid-cols-1 gap-1.5 lg:grid-cols-3">
           <DriverLapCard
             slotLabel="Driver A"
             accent={colorFor(driverA, 0)}
@@ -1104,20 +1090,16 @@ export default function Telemetry() {
             disabled={!sessionKey}
           />
 
-          <div className="h-full rounded border border-[#353548] bg-[#10111a] p-2 flex flex-col">
-            <div className="mb-2 flex items-center gap-2">
+          <div className="h-full lg:min-h-[248px] rounded border border-[#353548] bg-[#10111a] p-1.5 flex flex-col">
+            <div className="mb-1 flex items-center gap-1.5">
               <span className="text-[10px] font-black uppercase tracking-[0.15em] text-muted">
                 Track position preview
               </span>
               <span className="h-1.5 w-8 rounded-full bg-f1red" />
             </div>
 
-            <div className="mb-2 text-[10px] font-bold uppercase tracking-[0.12em] text-muted">
-              Hover telemetry charts for position
-            </div>
-
             {trackPreview ? (
-              <div className="relative min-h-[170px] flex-1 overflow-hidden rounded border border-panel bg-[#0b1020]">
+              <div className="relative min-h-[112px] flex-1 overflow-hidden rounded border border-panel bg-[#0b1020]">
                 <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_25%_20%,rgba(39,68,158,0.2),transparent_45%),radial-gradient(circle_at_85%_80%,rgba(232,0,45,0.1),transparent_40%)]" />
                 <svg
                   viewBox={`0 0 ${TRACK_SVG_W} ${TRACK_SVG_H}`}
@@ -1165,7 +1147,7 @@ export default function Telemetry() {
                 </svg>
               </div>
             ) : (
-              <div className="flex min-h-[170px] flex-1 items-center justify-center rounded border border-panel bg-[#10111a] px-3 text-center text-xs text-muted">
+              <div className="flex min-h-[112px] flex-1 items-center justify-center rounded border border-panel bg-[#10111a] px-3 text-center text-xs text-muted">
                 Select Driver A and a valid lap to draw the track.
               </div>
             )}
@@ -1216,39 +1198,6 @@ export default function Telemetry() {
 
           return (
             <>
-              <div
-                className={`sticky top-0 z-10 -mx-1 mb-1 border-b px-1 py-2 backdrop-blur ${
-                  lightMode
-                    ? "border-[#c7d0e3] bg-[linear-gradient(180deg,rgba(235,240,248,0.96),rgba(229,235,245,0.88))]"
-                    : "border-[#2f2f3d] bg-[linear-gradient(180deg,rgba(21,21,30,0.96),rgba(21,21,30,0.86))]"
-                }`}
-              >
-                <div className="flex flex-wrap items-center gap-2 text-xs">
-                  <span
-                    className={`rounded border px-2 py-1 text-[10px] font-black uppercase tracking-[0.13em] ${modeClass}`}
-                  >
-                    {modeLabel} mode
-                  </span>
-                  <span
-                    className={`rounded border px-2 py-1 text-[10px] font-black uppercase tracking-[0.13em] ${
-                      smoothing
-                        ? "border-[#9658d9] bg-[#29163a] text-[#dec7ff]"
-                        : "border-[#4a4a5d] bg-[#171823] text-muted"
-                    }`}
-                  >
-                    Smooth {smoothing ? "On" : "Off"}
-                  </span>
-                  <span
-                    className={`h-4 w-px ${
-                      lightMode ? "bg-[#c0c9dc]" : "bg-[#3a3a49]"
-                    }`}
-                  />
-                  <span className="text-[10px] font-bold uppercase tracking-[0.12em] text-muted">
-                    Compared traces
-                  </span>
-                </div>
-              </div>
-
               <div className="mb-1 flex flex-wrap gap-5 text-xs">
                 {plotSlots.map((s) => {
                   const lapForSlot =
@@ -1453,10 +1402,10 @@ function DriverLapCard({
   const avatarLabel = driverTag.toUpperCase().slice(0, 3);
 
   return (
-    <div className="rounded border border-[#353548] bg-[#10111a] p-2">
-      <div className="mb-2 flex items-center justify-between gap-2">
+    <div className="h-full lg:min-h-[248px] rounded border border-[#353548] bg-[#10111a] p-1.5">
+      <div className="mb-1.5 flex items-center justify-between gap-1.5">
         <div className="flex min-w-0 items-center gap-2">
-          <div className="relative h-9 w-9 shrink-0 overflow-hidden rounded border border-[#444458] bg-[#171925]">
+          <div className="relative h-7 w-7 shrink-0 overflow-hidden rounded border border-[#444458] bg-[#171925]">
             {hasHeadshot ? (
               <img
                 src={driverHeadshotUrl}
@@ -1521,7 +1470,7 @@ function DriverLapCard({
         </div>
       </div>
 
-      <div className="grid grid-cols-1 gap-2 sm:grid-cols-[minmax(0,1fr)_120px]">
+      <div className="grid grid-cols-1 gap-1.5 sm:grid-cols-[minmax(0,1fr)_108px]">
         <DriverSelect
           label="Driver"
           value={driver}
@@ -1550,11 +1499,11 @@ function DriverLapCard({
       </div>
 
       {!compact && (
-        <div className="mt-2 flex flex-wrap items-center gap-1.5">
+        <div className="mt-1.5 flex flex-wrap items-center gap-1">
           <button
             onClick={onBest}
             disabled={driver === null || bestLap === null}
-            className="h-7 border border-[#46465a] bg-[#181a24] px-2 text-[10px] font-bold uppercase tracking-[0.12em] text-white disabled:opacity-50"
+            className="h-6 border border-[#46465a] bg-[#181a24] px-2 text-[10px] font-bold uppercase tracking-[0.12em] text-white disabled:opacity-50"
             title="Select best valid lap"
           >
             Best {bestLap !== null ? `L${bestLap}` : ""}
@@ -1563,7 +1512,7 @@ function DriverLapCard({
           <button
             onClick={onLatest}
             disabled={driver === null || latestLap === null}
-            className="h-7 border border-[#46465a] bg-[#181a24] px-2 text-[10px] font-bold uppercase tracking-[0.12em] text-white disabled:opacity-50"
+            className="h-6 border border-[#46465a] bg-[#181a24] px-2 text-[10px] font-bold uppercase tracking-[0.12em] text-white disabled:opacity-50"
             title="Select latest valid lap"
           >
             Latest {latestLap !== null ? `L${latestLap}` : ""}
@@ -1571,7 +1520,7 @@ function DriverLapCard({
         </div>
       )}
 
-      <div className="mt-2 flex flex-wrap items-center gap-1.5">
+      <div className="mt-1.5 flex flex-wrap items-center gap-1">
         <span className="rounded border border-[#444458] bg-[#151723] px-2 py-1 text-[10px] font-bold uppercase tracking-[0.1em] text-muted">
           {lapMeta.timeText}
         </span>
@@ -1589,7 +1538,7 @@ function DriverLapCard({
       </div>
 
       {!compact && (
-        <div className="mt-2 overflow-hidden rounded border border-[#363648] bg-[#141521]">
+        <div className="mt-1.5 overflow-hidden rounded border border-[#363648] bg-[#141521]">
           <div className="flex items-center justify-between border-b border-[#2d2d3b] px-2 py-1">
             <span className="text-[10px] font-bold uppercase tracking-[0.12em] text-muted">
               Speed trace
@@ -1601,7 +1550,7 @@ function DriverLapCard({
               </span>
             )}
           </div>
-          <div className="px-2 py-1.5">
+          <div className="px-2 py-1">
             <SpeedSparkline
               values={speedTrace}
               color={accent}
@@ -1649,14 +1598,14 @@ function SpeedSparkline({
 }) {
   if (values.length < 2) {
     return (
-      <div className="flex h-12 items-center justify-center text-[10px] font-semibold uppercase tracking-[0.12em] text-muted">
+      <div className="flex h-10 items-center justify-center text-[10px] font-semibold uppercase tracking-[0.12em] text-muted">
         No trace
       </div>
     );
   }
 
   const width = 320;
-  const height = 42;
+  const height = 34;
   const min = Math.min(...values);
   const max = Math.max(...values);
   const span = Math.max(1, max - min);
@@ -1677,7 +1626,7 @@ function SpeedSparkline({
   return (
     <svg
       viewBox={`0 0 ${width} ${height}`}
-      className="h-12 w-full"
+      className="h-10 w-full"
       aria-label="Lap speed sparkline"
       role="img"
     >
