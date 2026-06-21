@@ -4,6 +4,7 @@ import { useSettings } from "@/stores/settings";
 export function HowItWorksModal() {
   const { isHelpOpen, closeHelp } = useSettings();
   const backdropRef = useRef<HTMLDivElement>(null);
+  const coffeeWidgetRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (!isHelpOpen) return;
@@ -13,6 +14,32 @@ export function HowItWorksModal() {
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, [isHelpOpen, closeHelp]);
+
+  useEffect(() => {
+    if (!isHelpOpen || import.meta.env.MODE === "test") return;
+    const mount = coffeeWidgetRef.current;
+    if (!mount) return;
+
+    mount.innerHTML = "";
+
+    const script = document.createElement("script");
+    script.src = "https://cdnjs.buymeacoffee.com/1.0.0/button.prod.min.js";
+    script.async = true;
+    script.setAttribute("data-name", "bmc-button");
+    script.setAttribute("data-slug", "matt_varga");
+    script.setAttribute("data-color", "#E8002D");
+    script.setAttribute("data-emoji", "🍕");
+    script.setAttribute("data-font", "Comic");
+    script.setAttribute("data-text", "Buy me a pizza");
+    script.setAttribute("data-outline-color", "#2a2a35");
+    script.setAttribute("data-font-color", "#ffffff");
+    script.setAttribute("data-coffee-color", "#1a1a24");
+    mount.appendChild(script);
+
+    return () => {
+      mount.innerHTML = "";
+    };
+  }, [isHelpOpen]);
 
   if (!isHelpOpen) return null;
 
@@ -382,6 +409,13 @@ export function HowItWorksModal() {
                 github.com/vargamateistvan
               </a>
             </p>
+
+            <section className="pt-1 pb-3">
+              <p className="text-[11px] text-muted leading-relaxed pb-2">
+                Enjoying the project? Support development with a slice.
+              </p>
+              <div ref={coffeeWidgetRef} />
+            </section>
           </div>
         </div>
       </div>
