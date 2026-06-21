@@ -31,6 +31,16 @@ function normalizeValue(
   return value;
 }
 
+function formatGapValue(value: string | null): string | null {
+  if (!value) return null;
+  const trimmed = value.trim();
+  if (!trimmed) return null;
+  if (trimmed.startsWith("+") || trimmed.startsWith("-")) return trimmed;
+
+  const numericLike = /^\d+(?:[.:]\d+)*$/.test(trimmed);
+  return numericLike ? `+${trimmed}` : trimmed;
+}
+
 function formatDurationClock(seconds: number | number[] | null): string | null {
   if (seconds === null) return null;
 
@@ -63,7 +73,7 @@ function resultStatus(result: SessionResult): string {
 function resultDetail(result: SessionResult): string {
   if (result.dsq || result.dns || result.dnf) {
     return (
-      normalizeValue(result.gap_to_leader) ??
+      formatGapValue(normalizeValue(result.gap_to_leader)) ??
       formatRelativeDurationClock(result.duration) ??
       "Not classified"
     );
@@ -72,7 +82,7 @@ function resultDetail(result: SessionResult): string {
     return formatDurationClock(result.duration) ?? "Winner";
   }
   return (
-    normalizeValue(result.gap_to_leader) ??
+    formatGapValue(normalizeValue(result.gap_to_leader)) ??
     formatRelativeDurationClock(result.duration) ??
     "—"
   );
@@ -276,7 +286,6 @@ function FinalClassificationContent({
               <th className="px-4 py-2 text-left">Driver</th>
               <th className="hidden px-4 py-2 text-left md:table-cell">Team</th>
               <th className="px-4 py-2 text-right">Laps</th>
-              <th className="px-4 py-2 text-right">Status</th>
               <th className="px-4 py-2 text-right sm:px-5">Gap / Time</th>
             </tr>
           </thead>
@@ -313,9 +322,6 @@ function FinalClassificationContent({
                 </td>
                 <td className="px-4 py-2.5 text-right font-mono tabular-nums text-white">
                   {entry.result.number_of_laps ?? "—"}
-                </td>
-                <td className="px-4 py-2.5 text-right text-muted">
-                  {entry.status}
                 </td>
                 <td className="px-4 py-2.5 text-right font-mono tabular-nums text-white sm:px-5">
                   {entry.detail}

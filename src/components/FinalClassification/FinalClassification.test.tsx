@@ -39,7 +39,7 @@ describe("FinalClassification", () => {
         dns: false,
         dsq: false,
         duration: 5050.123,
-        gap_to_leader: "+8.765",
+        gap_to_leader: "8.765",
         meeting_key: 1,
         session_key: 1,
       },
@@ -82,8 +82,9 @@ describe("FinalClassification", () => {
     expect(screen.getByText("Final Classification")).toBeInTheDocument();
     expect(screen.getAllByText("P1").length).toBeGreaterThan(0);
     expect(screen.getAllByText("CLASSIFIED").length).toBeGreaterThan(0);
-    expect(screen.getByText("DNS")).toBeInTheDocument();
+    expect(screen.queryByText("DNS")).not.toBeInTheDocument();
     expect(screen.getByText("DNS noted")).toBeInTheDocument();
+    expect(screen.getAllByText("+8.765").length).toBeGreaterThan(0);
     expect(screen.getAllByText("01:24:01.250").length).toBeGreaterThan(0);
   });
 
