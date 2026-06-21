@@ -12,8 +12,12 @@ import "@fontsource/jetbrains-mono/latin-700.css";
 import "./index.css";
 import App from "./App.tsx";
 
+const sentryDsn = import.meta.env.VITE_SENTRY_DSN;
+
 Sentry.init({
-  dsn: "https://6910191e596b31cc3bc8e8a0eac15f82@o4511602563940352.ingest.de.sentry.io/4511602567151696",
+  dsn: sentryDsn,
+  environment: import.meta.env.MODE,
+  release: import.meta.env.VITE_APP_VERSION,
   dataCollection: {
     // To disable sending user data and HTTP bodies, uncomment the lines below. For more info visit:
     // https://docs.sentry.io/platforms/javascript/guides/react/configuration/options/#dataCollection
