@@ -173,10 +173,28 @@ export function TelemetryChart({
       const range = readXScale();
       if (range) currentRangeRef.current = range;
     };
+
+    const onSetCursor = (u: uPlot) => {
+      if (!onHoverX) return;
+
+      const idx = u.cursor?.idx;
+      if (idx == null || idx < 0 || idx >= xData.length) {
+        onHoverX(null);
+        return;
+      }
+
+      const x = xData[idx];
+      onHoverX(Number.isFinite(x) ? x : null);
+    };
+
     if (nextPlot.hooks) {
       nextPlot.hooks.setScale = [
         ...(nextPlot.hooks.setScale ?? []),
         onSetScale,
+      ];
+      nextPlot.hooks.setCursor = [
+        ...(nextPlot.hooks.setCursor ?? []),
+        onSetCursor,
       ];
     }
 
@@ -187,8 +205,8 @@ export function TelemetryChart({
     };
   }, [xData, series, height, title, yMin, yMax, onHoverX]);
 
-  // Track hover x-position with pointer movement only so wheel scrolling does
-  // not trigger chart-hover updates that can disturb page scrolling.
+  // Fallback hover tracking for test environments that do not emit uPlot
+  // cursor hooks from synthetic pointer events.
   useEffect(() => {
     const el = containerRef.current;
     if (!el || !onHoverX) return;
