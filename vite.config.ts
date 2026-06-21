@@ -2,8 +2,9 @@ import { sentryVitePlugin } from "@sentry/vite-plugin";
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 import { fileURLToPath, URL } from "node:url";
+import { env } from "node:process";
 
-const sentryRelease = process.env.SENTRY_RELEASE;
+const sentryRelease = env.SENTRY_RELEASE;
 
 export default defineConfig({
   base: "/",
