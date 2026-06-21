@@ -20,6 +20,10 @@ interface Props {
   readonly yMin?: number;
   readonly yMax?: number;
   readonly yLabel?: string;
+  readonly legendUnit?: string;
+  readonly legendDecimals?: number;
+  readonly distanceUnit?: string;
+  readonly distanceScale?: number;
   readonly height?: number;
   readonly interactiveControls?: boolean;
   readonly onHoverX?: (x: number | null) => void;
@@ -34,6 +38,10 @@ export function TelemetryChart({
   height = 180,
   interactiveControls = false,
   onHoverX,
+  legendUnit,
+  legendDecimals,
+  distanceUnit = "m",
+  distanceScale = 1,
 }: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
   const plotRef = useRef<uPlot | null>(null);
@@ -127,7 +135,15 @@ export function TelemetryChart({
           stroke: "#6b7280",
           grid: { stroke: "#1e2d4a", width: 1 },
           ticks: { stroke: "#1e2d4a" },
-          values: (_u, vals) => vals.map((v) => `${Math.round(v)}m`),
+          values: (_u, vals) =>
+            vals.map((v) => {
+              const displayed = v * distanceScale;
+              const formatted =
+                Math.abs(displayed) >= 100
+                  ? Math.round(displayed).toString()
+                  : displayed.toFixed(1);
+              return `${formatted} ${distanceUnit}`;
+            }),
         },
         {
           stroke: "#6b7280",
@@ -136,7 +152,18 @@ export function TelemetryChart({
         },
       ],
       series: [
-        { label: "Dist" },
+        {
+          label: `Dist (${distanceUnit})`,
+          value: (_u: uPlot, rawValue: number | null) => {
+            if (rawValue == null || !Number.isFinite(rawValue)) return "-";
+            const displayed = rawValue * distanceScale;
+            const formatted =
+              Math.abs(displayed) >= 100
+                ? Math.round(displayed).toString()
+                : displayed.toFixed(1);
+            return `${formatted} ${distanceUnit}`;
+          },
+        },
         ...series.map((s) => ({
           label: s.label,
           stroke: s.color,
@@ -144,6 +171,20 @@ export function TelemetryChart({
           fill: s.fill,
           points: { show: s.points ?? false },
           scale: s.scale ?? "y",
+          value: (_u: uPlot, rawValue: number | null) => {
+            if (rawValue == null || !Number.isFinite(rawValue)) return "-";
+            const decimals =
+              typeof legendDecimals === "number"
+                ? Math.max(0, legendDecimals)
+                : Math.abs(rawValue) >= 100
+                  ? 0
+                  : 1;
+            const rounded =
+              decimals === 0
+                ? Math.round(rawValue).toString()
+                : rawValue.toFixed(decimals);
+            return legendUnit ? `${rounded} ${legendUnit}` : rounded;
+          },
         })),
       ],
     };
@@ -203,7 +244,19 @@ export function TelemetryChart({
       plotRef.current?.destroy();
       plotRef.current = null;
     };
-  }, [xData, series, height, title, yMin, yMax, onHoverX]);
+  }, [
+    xData,
+    series,
+    height,
+    title,
+    yMin,
+    yMax,
+    onHoverX,
+    legendUnit,
+    legendDecimals,
+    distanceUnit,
+    distanceScale,
+  ]);
 
   // Fallback hover tracking for test environments that do not emit uPlot
   // cursor hooks from synthetic pointer events.
@@ -281,7 +334,7 @@ export function TelemetryChart({
   }
 
   return (
-    <div className="bg-surface rounded border border-panel overflow-hidden">
+    <div className="bg-surface rounded border border-panel overflow-hidden [&_.u-legend]:text-[11px] [&_.u-legend]:font-medium [&_.u-legend_.u-label]:pr-2 [&_.u-legend_.u-value]:inline-block [&_.u-legend_.u-value]:min-w-[84px] [&_.u-legend_.u-value]:text-right [&_.u-legend_.u-value]:font-mono [&_.u-legend_.u-value]:[font-variant-numeric:tabular-nums]">
       {interactiveControls && (
         <div className="flex items-center gap-1 border-b border-panel bg-[#11131c] px-2 py-1">
           <span className="text-[9px] uppercase tracking-widest text-muted">

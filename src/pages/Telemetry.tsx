@@ -601,6 +601,8 @@ export default function Telemetry() {
   const rpmSeries = useMemo(() => series("rpm", true), [series]);
   const speedUnit = speedUnitLabel(metricSystem);
   const speedChartMax = metricSystem === "imperial" ? 240 : 380;
+  const distanceUnit = metricSystem === "imperial" ? "mi" : "m";
+  const distanceScale = metricSystem === "imperial" ? 0.000621371 : 1;
 
   const deltaSeries = useMemo(() => {
     if (!dataA.data) return [];
@@ -1090,6 +1092,9 @@ export default function Telemetry() {
                 height={280}
                 interactiveControls
                 onHoverX={handleChartHoverX}
+                legendUnit={speedUnit}
+                distanceUnit={distanceUnit}
+                distanceScale={distanceScale}
                 series={speedSeries}
               />
               <TelemetryChart
@@ -1100,6 +1105,9 @@ export default function Telemetry() {
                 height={210}
                 interactiveControls
                 onHoverX={handleChartHoverX}
+                legendUnit="%"
+                distanceUnit={distanceUnit}
+                distanceScale={distanceScale}
                 series={throttleSeries}
               />
               <TelemetryChart
@@ -1110,6 +1118,9 @@ export default function Telemetry() {
                 height={200}
                 interactiveControls
                 onHoverX={handleChartHoverX}
+                legendUnit="%"
+                distanceUnit={distanceUnit}
+                distanceScale={distanceScale}
                 series={brakeSeries}
               />
               <TelemetryChart
@@ -1120,6 +1131,10 @@ export default function Telemetry() {
                 height={210}
                 interactiveControls
                 onHoverX={handleChartHoverX}
+                legendUnit="gear"
+                legendDecimals={0}
+                distanceUnit={distanceUnit}
+                distanceScale={distanceScale}
                 series={gearSeries}
               />
               <TelemetryChart
@@ -1130,6 +1145,9 @@ export default function Telemetry() {
                 height={220}
                 interactiveControls
                 onHoverX={handleChartHoverX}
+                legendUnit="rpm"
+                distanceUnit={distanceUnit}
+                distanceScale={distanceScale}
                 series={rpmSeries}
               />
 
@@ -1147,6 +1165,9 @@ export default function Telemetry() {
                     height={220}
                     interactiveControls
                     onHoverX={handleChartHoverX}
+                    legendUnit="s"
+                    distanceUnit={distanceUnit}
+                    distanceScale={distanceScale}
                     series={deltaSeries}
                   />
                 </div>
