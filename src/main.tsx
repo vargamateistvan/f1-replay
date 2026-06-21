@@ -20,10 +20,15 @@ Sentry.init({
     // userInfo: false,
     // httpBodies: []
   },
-  integrations: [Sentry.replayIntegration()],
+  integrations: [
+    Sentry.browserTracingIntegration(),
+    Sentry.replayIntegration(),
+  ],
+  tracesSampleRate: 1,
+  tracePropagationTargets: ["localhost", /^https:\/\/yourserver\.io\/api/],
   // Session Replay
   replaysSessionSampleRate: 0.1,
-  replaysOnErrorSampleRate: 1.0,
+  replaysOnErrorSampleRate: 1,
 });
 
 // Mobile Safari error prevention and logging
