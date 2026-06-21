@@ -124,7 +124,7 @@ export function FinalClassificationDialog({
     <div
       ref={backdropRef}
       onClick={handleBackdropClick}
-      className="fixed inset-0 z-[220] flex items-start justify-center overflow-y-auto bg-black/75 px-3 py-4 backdrop-blur-sm sm:items-center sm:px-6 sm:py-6"
+      className="fixed inset-0 z-[220] flex touch-pan-y items-start justify-center overflow-y-auto bg-black/75 px-3 py-4 backdrop-blur-sm sm:items-center sm:px-6 sm:py-6"
     >
       <div className="my-auto flex max-h-[calc(100dvh-2rem)] w-full max-w-5xl flex-col overflow-hidden border border-panel bg-[#0f1118] shadow-2xl sm:max-h-[90dvh]">
         <div className="flex items-center justify-between border-b border-panel px-4 py-3 sm:px-5">
@@ -150,7 +150,8 @@ export function FinalClassificationDialog({
           drivers={drivers}
           sessionName={sessionName}
           hideHeader
-          tableClassName="min-h-0 flex-1 overflow-y-auto overscroll-contain"
+          contentClassName="min-h-0 flex-1 overflow-y-auto overscroll-contain"
+          tableClassName=""
         />
       </div>
     </div>
@@ -159,6 +160,7 @@ export function FinalClassificationDialog({
 
 interface ContentProps extends Props {
   readonly hideHeader?: boolean;
+  readonly contentClassName?: string;
   readonly tableClassName: string;
 }
 
@@ -167,6 +169,7 @@ function FinalClassificationContent({
   drivers,
   sessionName,
   hideHeader = false,
+  contentClassName,
   tableClassName,
 }: ContentProps) {
   const driverByNumber = useMemo(
@@ -192,7 +195,9 @@ function FinalClassificationContent({
   );
 
   return (
-    <div className="flex min-h-0 flex-col bg-[#0f1118]/95 backdrop-blur">
+    <div
+      className={`flex min-h-0 flex-col bg-[#0f1118]/95 backdrop-blur ${contentClassName ?? ""}`.trim()}
+    >
       {!hideHeader && (
         <div className="border-b border-panel px-4 py-3 sm:px-5">
           <div className="text-[10px] font-black uppercase tracking-[0.2em] text-f1red">
