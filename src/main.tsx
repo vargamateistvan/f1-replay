@@ -20,6 +20,10 @@ Sentry.init({
     // userInfo: false,
     // httpBodies: []
   },
+  integrations: [Sentry.replayIntegration()],
+  // Session Replay
+  replaysSessionSampleRate: 0.1,
+  replaysOnErrorSampleRate: 1.0,
 });
 
 // Mobile Safari error prevention and logging
