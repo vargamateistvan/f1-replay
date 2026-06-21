@@ -37,6 +37,13 @@ Sentry.logger.info("App bootstrap initialized", {
   log_source: "bootstrap",
 });
 
+if (typeof globalThis.performance !== "undefined") {
+  Sentry.metrics.gauge(
+    "page_load_time",
+    Math.round(globalThis.performance.now()),
+  );
+}
+
 // Mobile Safari error prevention and logging
 if (typeof globalThis.window !== "undefined") {
   // Store recent errors in sessionStorage for debugging

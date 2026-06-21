@@ -175,7 +175,12 @@ export async function fetchEndpoint<T>(
     for (;;) {
       try {
         await acquireSlot();
+        const requestStartedAt = globalThis.performance?.now() ?? Date.now();
         const res = await fetch(url, { headers });
+        const responseTimeMs = Math.round(
+          (globalThis.performance?.now() ?? Date.now()) - requestStartedAt,
+        );
+        Sentry.metrics.distribution("response_time", responseTimeMs);
 
         if (res.ok) {
           try {
@@ -309,7 +314,12 @@ export async function downloadEndpointCsv(
   let attempt = 0;
   for (;;) {
     await acquireSlot();
+    const requestStartedAt = globalThis.performance?.now() ?? Date.now();
     const res = await fetch(url, { headers });
+    const responseTimeMs = Math.round(
+      (globalThis.performance?.now() ?? Date.now()) - requestStartedAt,
+    );
+    Sentry.metrics.distribution("response_time", responseTimeMs);
 
     if (res.ok) {
       const csv = await res.text();
