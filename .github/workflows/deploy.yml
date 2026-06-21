@@ -40,6 +40,12 @@ jobs:
       - name: Test
         run: yarn test
 
+      - name: Create Sentry build env file
+        run: |
+          cat > .env.sentry-build-plugin <<'EOF'
+          SENTRY_AUTH_TOKEN=${{ secrets.SENTRY_AUTH_TOKEN }}
+          EOF
+
       - name: Build
         run: yarn build
 

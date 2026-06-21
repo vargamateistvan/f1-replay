@@ -33,6 +33,20 @@ const queryClient = new QueryClient({
 // Live-session queries (staleTime: 0) are restored as stale and immediately refetched.
 const PERSIST_MAX_AGE = 30 * 24 * 60 * 60 * 1000;
 
+function ErrorButton() {
+  return (
+    <button
+      type="button"
+      onClick={() => {
+        throw new Error("This is your first error!");
+      }}
+      className="fixed bottom-4 right-4 z-50 rounded-md border border-zinc-500/40 bg-zinc-900/90 px-3 py-2 text-xs font-semibold text-white shadow-lg transition hover:bg-zinc-800"
+    >
+      Break the world
+    </button>
+  );
+}
+
 function CoffeeWidgetGate() {
   const showCoffeeWidget = useSettings((s) => s.showCoffeeWidget);
   useEffect(() => {
@@ -88,6 +102,7 @@ export default function App() {
         <LightModeGate />
         <ErrorDisplay />
         <AppRouter />
+        <ErrorButton />
       </PersistQueryClientProvider>
     </ErrorBoundary>
   );

@@ -1,4 +1,5 @@
 import { createRoot } from "react-dom/client";
+import * as Sentry from "@sentry/react";
 import "@fontsource/inter/latin-400.css";
 import "@fontsource/inter/latin-500.css";
 import "@fontsource/inter/latin-600.css";
@@ -10,6 +11,16 @@ import "@fontsource/jetbrains-mono/latin-600.css";
 import "@fontsource/jetbrains-mono/latin-700.css";
 import "./index.css";
 import App from "./App.tsx";
+
+Sentry.init({
+  dsn: "https://6910191e596b31cc3bc8e8a0eac15f82@o4511602563940352.ingest.de.sentry.io/4511602567151696",
+  dataCollection: {
+    // To disable sending user data and HTTP bodies, uncomment the lines below. For more info visit:
+    // https://docs.sentry.io/platforms/javascript/guides/react/configuration/options/#dataCollection
+    // userInfo: false,
+    // httpBodies: []
+  },
+});
 
 // Mobile Safari error prevention and logging
 if (typeof window !== "undefined") {
