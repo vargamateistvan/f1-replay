@@ -948,7 +948,7 @@ export default function Telemetry() {
             disabled={!sessionKey}
           />
 
-          <div className="h-full lg:min-h-[248px] rounded border border-[#353548] bg-[#10111a] p-1.5 flex flex-col">
+          <div className="h-full lg:h-[248px] rounded border border-[#353548] bg-[#10111a] p-1.5 flex flex-col">
             <div className="mb-1 flex items-center gap-1.5">
               <span className="text-[10px] font-black uppercase tracking-[0.15em] text-muted">
                 Track position preview
@@ -1279,7 +1279,7 @@ function DriverLapCard({
   const avatarLabel = driverTag.toUpperCase().slice(0, 3);
 
   return (
-    <div className="h-full lg:min-h-[248px] rounded border border-[#353548] bg-[#10111a] p-1.5">
+    <div className="h-full lg:h-[248px] rounded border border-[#353548] bg-[#10111a] p-1.5">
       <div className="mb-1.5 flex items-center justify-between gap-1.5">
         <div className="flex min-w-0 items-center gap-2">
           <div className="relative h-7 w-7 shrink-0 overflow-hidden rounded border border-[#444458] bg-[#171925]">
