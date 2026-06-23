@@ -8,7 +8,7 @@ describe("ErrorBoundary", () => {
       .spyOn(console, "error")
       .mockImplementation(() => undefined);
 
-    function FlakyChild({ shouldCrash }: { shouldCrash: boolean }) {
+    function FlakyChild({ shouldCrash }: Readonly<{ shouldCrash: boolean }>) {
       if (shouldCrash) throw new Error("Telemetry failed");
       return <div>Recovered child</div>;
     }
@@ -30,6 +30,36 @@ describe("ErrorBoundary", () => {
 
     fireEvent.click(screen.getByRole("button", { name: "Try Again" }));
     expect(screen.getByText("Recovered child")).toBeInTheDocument();
+    expect(errorSpy).toHaveBeenCalled();
+  });
+
+  it("recovers via Go to Home without hard navigation", () => {
+    const errorSpy = vi
+      .spyOn(console, "error")
+      .mockImplementation(() => undefined);
+
+    function FlakyChild({ shouldCrash }: Readonly<{ shouldCrash: boolean }>) {
+      if (shouldCrash) throw new Error("Track map failed");
+      return <div>Recovered child</div>;
+    }
+
+    const { rerender } = render(
+      <ErrorBoundary>
+        <FlakyChild shouldCrash />
+      </ErrorBoundary>,
+    );
+
+    expect(screen.getByText("Safety Car Deployed")).toBeInTheDocument();
+
+    rerender(
+      <ErrorBoundary>
+        <FlakyChild shouldCrash={false} />
+      </ErrorBoundary>,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "Go to Home" }));
+    expect(screen.getByText("Recovered child")).toBeInTheDocument();
+    expect(globalThis.window.location.pathname).toBe("/");
     expect(errorSpy).toHaveBeenCalled();
   });
 });

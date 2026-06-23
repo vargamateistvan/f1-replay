@@ -3,12 +3,14 @@ import { AppLogo } from "@/components/AppLogo";
 interface AppCrashProps {
   message?: string;
   onRetry?: () => void;
+  onGoHome?: () => void;
 }
 
 export default function AppCrash({
   message = "Unexpected runtime error",
   onRetry,
-}: AppCrashProps) {
+  onGoHome,
+}: Readonly<AppCrashProps>) {
   return (
     <section className="relative flex min-h-[100dvh] w-full flex-col items-center justify-center overflow-hidden bg-track px-6 text-center">
       <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top,_rgba(232,0,45,0.23),_transparent_58%)]" />
@@ -40,12 +42,13 @@ export default function AppCrash({
           >
             Try Again
           </button>
-          <a
-            href="/"
+          <button
+            type="button"
+            onClick={onGoHome}
             className="rounded-md border border-panel bg-track px-5 py-2 text-sm font-semibold text-white transition-colors hover:border-f1red hover:text-f1red"
           >
             Go to Home
-          </a>
+          </button>
         </div>
       </div>
     </section>
