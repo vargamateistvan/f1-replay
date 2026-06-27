@@ -748,6 +748,11 @@ export default function Telemetry() {
     (dataA.isPending && driverA !== null) ||
     (dataB.isPending && driverB !== null) ||
     (dataC.isPending && driverC !== null);
+  const isLoadingEventSession =
+    meetingKey !== null &&
+    (sessionKey === null ||
+      sessions.isPending ||
+      (sessionKey !== null && (drivers.isPending || laps.isPending)));
 
   const hasError = dataA.isError || dataB.isError || dataC.isError;
 
@@ -793,7 +798,20 @@ export default function Telemetry() {
   }, [driverA, driverB, driverC, setLapA, setLapB, setLapC]);
 
   return (
-    <div className="flex flex-col md:h-full md:overflow-hidden">
+    <div className="relative flex flex-col md:h-full md:overflow-hidden">
+      {isLoadingEventSession && (
+        <div className="absolute inset-0 z-40 flex items-center justify-center bg-[#0b0c12]/86 backdrop-blur-sm">
+          <div className="mx-4 w-full max-w-sm rounded border border-panel bg-surface px-4 py-4 text-center shadow-2xl">
+            <div className="text-f1red text-[11px] font-black uppercase tracking-[0.16em] animate-pulse">
+              Loading Event
+            </div>
+            <div className="mt-2 text-xs text-muted">
+              Fetching sessions and loading telemetry context.
+            </div>
+          </div>
+        </div>
+      )}
+
       <div
         className={`px-3 py-3 ${
           lightMode

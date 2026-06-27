@@ -198,6 +198,9 @@ export default function RaceWeekend() {
   const isLoadingSessionData =
     sessionKey !== null &&
     (drivers.isPending || positions.isPending || intervals.isPending);
+  const isLoadingEventSession =
+    meetingKey !== null &&
+    (sessionKey === null || sessions.isPending || isLoadingSessionData);
 
   const locationChunkIdx = locationChunkIndexFor(t);
   const telemetryChunkIdx = chunkIndexFor(t);
@@ -1010,6 +1013,19 @@ export default function RaceWeekend() {
 
   return (
     <div className="relative flex flex-col overflow-x-hidden pb-[calc(7.5rem+env(safe-area-inset-bottom))] md:h-full md:min-h-0 md:flex-1 md:overflow-hidden md:pb-0">
+      {isLoadingEventSession && (
+        <div className="absolute inset-0 z-40 flex items-center justify-center bg-[#0b0c12]/86 backdrop-blur-sm">
+          <div className="mx-4 w-full max-w-sm rounded border border-panel bg-surface px-4 py-4 text-center shadow-2xl">
+            <div className="text-f1red text-[11px] font-black uppercase tracking-[0.16em] animate-pulse">
+              Loading Event
+            </div>
+            <div className="mt-2 text-xs text-muted">
+              Fetching the latest session and preparing track data.
+            </div>
+          </div>
+        </div>
+      )}
+
       {sessionStartMs > 0 && isQualiSession(sessionName) && qualiPhase && (
         <QualifyingBanner
           phase={qualiPhase}
