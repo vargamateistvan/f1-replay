@@ -53,7 +53,12 @@ export function SessionPicker({
       sessions.data &&
       sessions.data.length > 0
     ) {
-      const latestSession = sessions.data
+      const now = Date.now();
+      const startedSessions = sessions.data.filter(
+        (s) => new Date(s.date_start).getTime() <= now,
+      );
+      const pool = startedSessions.length > 0 ? startedSessions : sessions.data;
+      const latestSession = pool
         .slice()
         .sort(
           (a, b) =>

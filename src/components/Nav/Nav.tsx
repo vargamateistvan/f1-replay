@@ -207,7 +207,11 @@ export function Nav() {
       sessions.data &&
       sessions.data.length > 0
     ) {
-      const latestSession = sessions.data
+      const startedSessions = sessions.data.filter(
+        (s) => new Date(s.date_start).getTime() <= nowMs,
+      );
+      const pool = startedSessions.length > 0 ? startedSessions : sessions.data;
+      const latestSession = pool
         .slice()
         .sort(
           (a, b) =>
@@ -222,7 +226,7 @@ export function Nav() {
         setSelectLatestSessionOnLoad(false);
       }
     }
-  }, [selectLatestSessionOnLoad, sessions.data, setSearchParams]);
+  }, [selectLatestSessionOnLoad, sessions.data, setSearchParams, nowMs]);
 
   const startedMeetings = useMemo(
     () =>
