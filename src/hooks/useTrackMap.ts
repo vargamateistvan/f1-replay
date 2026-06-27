@@ -275,6 +275,10 @@ export function useTrackOutline(
       const bounds = computeTrackBounds(points);
       return { points, bounds, source: "baked" as const };
     })(),
+    // Show an immediate coarse outline while GPS data is loading.
+    // Unlike initialData, placeholderData still allows queryFn to run.
+    placeholderData: (previousData) =>
+      previousData ?? deriveLayoutOutline(circuitShortName),
     enabled: sessionKey !== null || circuitKey !== null,
     staleTime: Infinity,
   });
