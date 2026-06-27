@@ -373,6 +373,7 @@ export function Nav() {
         },
         { replace: true },
       );
+      setSelectLatestSessionOnLoad(true);
       console.log("[Nav] setSearchParams call completed");
     } catch (err) {
       console.error(

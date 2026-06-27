@@ -156,6 +156,7 @@ export function SessionPicker({
                   if (!Number.isNaN(val) && val !== 0) {
                     console.log("[SessionPicker] Calling onMeeting:", val);
                     onMeeting(val);
+                    setSelectLatestSessionOnLoad(true);
                     console.log("[SessionPicker] onMeeting completed");
                   }
                 } catch (err) {
