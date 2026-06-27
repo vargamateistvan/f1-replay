@@ -1,5 +1,9 @@
 import { describe, expect, it } from "vitest";
-import { computeTrackBounds, locationToSvg } from "./useTrackMap";
+import {
+  computeTrackAutoRotationDeg,
+  computeTrackBounds,
+  locationToSvg,
+} from "./useTrackMap";
 
 describe("useTrackMap utilities", () => {
   it("computes track bounds from points", () => {
@@ -32,5 +36,56 @@ describe("useTrackMap utilities", () => {
 
     expect(sx).toBeCloseTo(300);
     expect(sy).toBeCloseTo(200);
+  });
+
+  it("prefers the start-finish region straight for default heading", () => {
+    const deg = computeTrackAutoRotationDeg([
+      { x: 0, y: 0 },
+      { x: 10, y: 0 },
+      { x: 20, y: 0 },
+      { x: 20, y: 20 },
+      { x: 20, y: 40 },
+      { x: 10, y: 40 },
+      { x: 0, y: 20 },
+    ]);
+
+    expect(deg).toBeCloseTo(0);
+  });
+
+  it("falls back to the longest straight when start region is weak", () => {
+    const deg = computeTrackAutoRotationDeg([
+      { x: 0, y: 0 },
+      { x: 0.02, y: 0.02 },
+      { x: 0.04, y: 0.03 },
+      { x: 0.05, y: 0.05 },
+      { x: 0.05, y: 40 },
+      { x: 0.04, y: 80 },
+      { x: 0, y: 80.1 },
+    ]);
+
+    expect(Math.abs(deg)).toBeCloseTo(90, 1);
+  });
+
+  it("normalizes opposite-direction straight to horizontal level", () => {
+    const deg = computeTrackAutoRotationDeg([
+      { x: 20, y: 0 },
+      { x: 10, y: 0 },
+      { x: 0, y: 0 },
+      { x: -10, y: 0 },
+    ]);
+
+    expect(deg).toBeCloseTo(0);
+  });
+
+  it("supports Y-flipped coordinates used by SVG map transforms", () => {
+    const deg = computeTrackAutoRotationDeg(
+      [
+        { x: 0, y: 0 },
+        { x: 0, y: 10 },
+      ],
+      true,
+    );
+
+    expect(deg).toBeCloseTo(90);
   });
 });

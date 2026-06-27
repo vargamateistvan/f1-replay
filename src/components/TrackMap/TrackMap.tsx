@@ -18,7 +18,11 @@ import {
 } from "@/hooks/useCarDataForLap";
 import { useCarDataWindow } from "@/hooks/useCarDataWindow";
 import { chunkIndexFor } from "@/hooks/useLocationChunks";
-import { useTrackOutline, locationToSvg } from "@/hooks/useTrackMap";
+import {
+  computeTrackAutoRotationDeg,
+  useTrackOutline,
+  locationToSvg,
+} from "@/hooks/useTrackMap";
 import { buildIndex, interpolateXY } from "@/timeline/interpolate";
 import { useTimeline } from "@/timeline/clock";
 import { teamColor } from "@/utils/color";
@@ -73,6 +77,15 @@ function windDir(deg: number): string {
   ];
   return dirs[Math.round(deg / 22.5) % 16] ?? "-";
 }
+
+function normalizeDeg(deg: number): number {
+  let value = deg;
+  while (value < -180) value += 360;
+  while (value > 180) value -= 360;
+  return value;
+}
+
+const ROTATION_STEP_DEG = 15;
 
 // Serialize the live SVG to a hi-DPI PNG and trigger a browser download.
 // Uses XMLSerializer → Image → Canvas pipeline — no extra dependencies.
@@ -207,10 +220,11 @@ export function TrackMap({
 
   const setAndPersistRotation = useCallback(
     (next: number) => {
-      setRotationDeg(next);
+      const normalized = normalizeDeg(next);
+      setRotationDeg(normalized);
       if (typeof window === "undefined") return;
       try {
-        window.localStorage.setItem(rotationStorageKey, String(next));
+        window.localStorage.setItem(rotationStorageKey, String(normalized));
       } catch {
         // Ignore storage errors (private mode / quota).
       }
@@ -235,21 +249,6 @@ export function TrackMap({
   const speedUnit = speedUnitLabel(metricSystem);
   const tempUnit = temperatureUnitLabel(metricSystem);
   const windUnit = windSpeedUnitLabel(metricSystem);
-
-  useEffect(() => {
-    setZoomLevel(1);
-    if (typeof window === "undefined") {
-      setRotationDeg(0);
-      return;
-    }
-    try {
-      const saved = window.localStorage.getItem(rotationStorageKey);
-      const parsed = saved === null ? Number.NaN : Number(saved);
-      setRotationDeg(Number.isFinite(parsed) ? parsed : 0);
-    } catch {
-      setRotationDeg(0);
-    }
-  }, [rotationStorageKey]);
 
   const normalizedTrackFlagState = useMemo<ActiveTrackFlagState | null>(() => {
     if (activeTrackFlagState) return activeTrackFlagState;
@@ -395,6 +394,36 @@ export function TrackMap({
 
     return { pathData, bounds, innerW, innerH, svgPts, normArc };
   }, [outline]);
+
+  const defaultRotationDeg = useMemo(
+    () => computeTrackAutoRotationDeg(outline?.points ?? [], true),
+    [outline],
+  );
+
+  const rotateLeft = useCallback(() => {
+    setAndPersistRotation(rotationDeg - ROTATION_STEP_DEG);
+  }, [rotationDeg, setAndPersistRotation]);
+
+  const rotateRight = useCallback(() => {
+    setAndPersistRotation(rotationDeg + ROTATION_STEP_DEG);
+  }, [rotationDeg, setAndPersistRotation]);
+
+  useEffect(() => {
+    setZoomLevel(1);
+    if (typeof window === "undefined") {
+      setRotationDeg(defaultRotationDeg);
+      return;
+    }
+    try {
+      const saved = window.localStorage.getItem(rotationStorageKey);
+      const parsed = saved === null ? Number.NaN : Number(saved);
+      setRotationDeg(
+        Number.isFinite(parsed) ? normalizeDeg(parsed) : defaultRotationDeg,
+      );
+    } catch {
+      setRotationDeg(defaultRotationDeg);
+    }
+  }, [rotationStorageKey, defaultRotationDeg]);
 
   // Fetch telemetry for the focused driver's last completed lap.
   // Only fires when a driver is focused and a lap number is known; result is
@@ -1946,7 +1975,7 @@ export function TrackMap({
           <div className="flex items-center gap-1">
             <button
               type="button"
-              onClick={() => setAndPersistRotation(rotationDeg - 15)}
+              onClick={rotateLeft}
               className="w-7 h-7 flex items-center justify-center border border-[#4b4b57] text-white/85 hover:text-white hover:border-white/50 transition-colors"
               title="Rotate left"
             >
@@ -1954,7 +1983,7 @@ export function TrackMap({
             </button>
             <button
               type="button"
-              onClick={() => setAndPersistRotation(rotationDeg + 15)}
+              onClick={rotateRight}
               className="w-7 h-7 flex items-center justify-center border border-[#4b4b57] text-white/85 hover:text-white hover:border-white/50 transition-colors"
               title="Rotate right"
             >
@@ -1962,7 +1991,7 @@ export function TrackMap({
             </button>
             <button
               type="button"
-              onClick={() => setAndPersistRotation(0)}
+              onClick={() => setAndPersistRotation(defaultRotationDeg)}
               className="w-7 h-7 flex items-center justify-center border border-[#4b4b57] text-white/85 hover:text-white hover:border-white/50 transition-colors"
               title="Reset rotation"
             >

@@ -118,6 +118,80 @@ export function locationToSvg(
   return { sx, sy };
 }
 
+function normalizeRotationDeg(deg: number): number {
+  let normalized = deg;
+  while (normalized <= -180) normalized += 360;
+  while (normalized > 180) normalized -= 360;
+  return normalized;
+}
+
+function normalizeHorizontalLevelDeg(deg: number): number {
+  let normalized = normalizeRotationDeg(deg);
+  if (normalized <= -90) normalized += 180;
+  else if (normalized > 90) normalized -= 180;
+  return normalizeRotationDeg(normalized);
+}
+
+interface HeadingCandidate {
+  dx: number;
+  dy: number;
+  lenSq: number;
+}
+
+function bestHeadingInRange(
+  points: readonly { x: number; y: number }[],
+  startIdx: number,
+  endIdx: number,
+  lookahead: number,
+): HeadingCandidate | null {
+  let best: HeadingCandidate | null = null;
+  for (let i = startIdx; i < endIdx; i++) {
+    const a = points[i]!;
+    const b = points[i + lookahead]!;
+    const dx = b.x - a.x;
+    const dy = b.y - a.y;
+    const lenSq = dx * dx + dy * dy;
+    if (lenSq <= Number.EPSILON) continue;
+    if (!best || lenSq > best.lenSq) best = { dx, dy, lenSq };
+  }
+  return best;
+}
+
+/**
+ * Computes a default map rotation that levels the major straight.
+ *
+ * Preference order:
+ * 1) Straight near lap start (proxy for pit/start-finish straight).
+ * 2) Longest straight-like segment across the full track.
+ */
+export function computeTrackAutoRotationDeg(
+  points: readonly { x: number; y: number }[],
+  flipY = false,
+): number {
+  if (points.length < 2) return 0;
+
+  const lookahead = Math.max(1, Math.min(12, Math.floor(points.length * 0.015)));
+  const maxStart = points.length - lookahead;
+  if (maxStart <= 0) return 0;
+
+  const startWindowEnd = Math.max(
+    1,
+    Math.min(maxStart, Math.floor(points.length * 0.14)),
+  );
+
+  const nearStart = bestHeadingInRange(points, 0, startWindowEnd, lookahead);
+  const global = bestHeadingInRange(points, 0, maxStart, lookahead);
+  const best =
+    nearStart && global && nearStart.lenSq >= global.lenSq * 0.2
+      ? nearStart
+      : (global ?? nearStart);
+  if (!best) return 0;
+
+  const dy = flipY ? -best.dy : best.dy;
+  const headingDeg = (Math.atan2(dy, best.dx) * 180) / Math.PI;
+  return normalizeHorizontalLevelDeg(-headingDeg);
+}
+
 /**
  * Returns a clean track outline as `{ points, bounds }`.
  *

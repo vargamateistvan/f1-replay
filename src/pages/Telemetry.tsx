@@ -4,7 +4,11 @@ import { api } from "@/api/endpoints";
 import type { Lap, Location } from "@/api/types";
 import { ErrorMessage } from "@/components/ErrorMessage";
 import { TelemetryChart } from "@/components/TelemetryChart/TelemetryChart";
-import { computeTrackBounds, locationToSvg } from "@/hooks/useTrackMap";
+import {
+  computeTrackAutoRotationDeg,
+  computeTrackBounds,
+  locationToSvg,
+} from "@/hooks/useTrackMap";
 import { useSearchParams } from "react-router-dom";
 import {
   useCarDataForLap,
@@ -503,6 +507,7 @@ export default function Telemetry() {
       points,
       polyline,
       totalDist: points[points.length - 1]!.dist,
+      rotationDeg: computeTrackAutoRotationDeg(locations, true),
     };
   }, [trackLocationA.data]);
 
@@ -993,43 +998,47 @@ export default function Telemetry() {
                     role="img"
                     aria-label="Lap track preview"
                   >
-                    <polyline
-                      points={trackPreview.polyline}
-                      fill="none"
-                      stroke="#3e4a64"
-                      strokeWidth={5.4}
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      opacity={0.7}
-                    />
-                    <polyline
-                      points={trackPreview.polyline}
-                      fill="none"
-                      stroke="#d7deee"
-                      strokeWidth={2}
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    />
+                    <g
+                      transform={`rotate(${trackPreview.rotationDeg.toFixed(1)} ${(TRACK_SVG_W / 2).toFixed(1)} ${(TRACK_SVG_H / 2).toFixed(1)})`}
+                    >
+                      <polyline
+                        points={trackPreview.polyline}
+                        fill="none"
+                        stroke="#3e4a64"
+                        strokeWidth={5.4}
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        opacity={0.7}
+                      />
+                      <polyline
+                        points={trackPreview.polyline}
+                        fill="none"
+                        stroke="#d7deee"
+                        strokeWidth={2}
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      />
 
-                    {hoveredTrackPoint && (
-                      <>
-                        <circle
-                          cx={hoveredTrackPoint.sx}
-                          cy={hoveredTrackPoint.sy}
-                          r={9}
-                          fill="#e8002d"
-                          opacity={0.15}
-                        />
-                        <circle
-                          cx={hoveredTrackPoint.sx}
-                          cy={hoveredTrackPoint.sy}
-                          r={4}
-                          fill="#ff274f"
-                          stroke="#ffffff"
-                          strokeWidth={1.1}
-                        />
-                      </>
-                    )}
+                      {hoveredTrackPoint && (
+                        <>
+                          <circle
+                            cx={hoveredTrackPoint.sx}
+                            cy={hoveredTrackPoint.sy}
+                            r={9}
+                            fill="#e8002d"
+                            opacity={0.15}
+                          />
+                          <circle
+                            cx={hoveredTrackPoint.sx}
+                            cy={hoveredTrackPoint.sy}
+                            r={4}
+                            fill="#ff274f"
+                            stroke="#ffffff"
+                            strokeWidth={1.1}
+                          />
+                        </>
+                      )}
+                    </g>
                   </svg>
                 </div>
               ) : (
