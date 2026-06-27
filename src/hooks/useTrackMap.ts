@@ -170,7 +170,10 @@ export function computeTrackAutoRotationDeg(
 ): number {
   if (points.length < 2) return 0;
 
-  const lookahead = Math.max(1, Math.min(12, Math.floor(points.length * 0.015)));
+  const lookahead = Math.max(
+    1,
+    Math.min(12, Math.floor(points.length * 0.015)),
+  );
   const maxStart = points.length - lookahead;
   if (maxStart <= 0) return 0;
 
