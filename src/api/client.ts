@@ -63,6 +63,16 @@ export function isAuthError(err: unknown): err is OpenF1Error {
 const startTimes: number[] = []; // ms timestamps of recent request starts
 const waiters: Array<() => void> = [];
 
+// When any request receives a 429 we stamp a global block so all queued
+// requests wait out the full backoff rather than firing immediately.
+let blockedUntil = 0;
+
+/** Pause all pending requests for at least `ms` milliseconds. */
+function blockRateLimiter(ms: number) {
+  blockedUntil = Math.max(blockedUntil, Date.now() + ms);
+  schedulePump(ms);
+}
+
 function pruneOlderThan(cutoff: number) {
   // startTimes is append-only and sorted, so drop from the front.
   while (startTimes.length > 0 && startTimes[0] < cutoff) startTimes.shift();
@@ -71,6 +81,10 @@ function pruneOlderThan(cutoff: number) {
 // How long until a new request may start without breaching either window.
 // Returns 0 if a slot is available right now.
 function msUntilSlot(now: number): number {
+  // Respect a global block set by a 429 response.
+  const blockRemaining = blockedUntil - now;
+  if (blockRemaining > 0) return blockRemaining;
+
   pruneOlderThan(now - 60_000);
   const inLastSecond = startTimes.filter((t) => t > now - 1_000).length;
   const inLastMinute = startTimes.length;
@@ -242,7 +256,9 @@ export async function fetchEndpoint<T>(
           throw err;
         }
 
-        const backoff = parseRetryAfter(res) ?? 2 ** attempt * 500; // 0.5s,1s,2s,4s…
+        const backoff = parseRetryAfter(res) ?? 2 ** attempt * 1_000; // 1s,2s,4s,8s…
+        // Block all other queued requests too — they'll hit the same 429 otherwise.
+        blockRateLimiter(backoff);
         logApiWarning("Retrying OpenF1 request after retryable response", {
           path,
           url,
@@ -356,7 +372,8 @@ export async function downloadEndpointCsv(
       throw err;
     }
 
-    const backoff = parseRetryAfter(res) ?? 2 ** attempt * 500;
+    const backoff = parseRetryAfter(res) ?? 2 ** attempt * 1_000;
+    blockRateLimiter(backoff);
     logApiWarning("Retrying OpenF1 CSV download", {
       path,
       url,

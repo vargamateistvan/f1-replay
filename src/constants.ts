@@ -76,7 +76,9 @@ export const RACE_POINTS = [25, 18, 15, 12, 10, 8, 6, 4, 2, 1] as const;
 export const SPRINT_POINTS = [8, 7, 6, 5, 4, 3, 2, 1] as const;
 
 // ── API rate limiting ───────────────────────────────────────────────────────--
-// OpenF1 free tier: 3 req/s and 30 req/min. Keep headroom under both.
-export const RATE_MAX_PER_SECOND = 3;
-export const RATE_MAX_PER_MINUTE = 30;
-export const RATE_MAX_RETRIES = 4;
+// OpenF1 free tier: 3 req/s and 30 req/min.
+// We cap at 2/s and 25/min to keep headroom and avoid hitting server limits
+// after a fresh page load (server window doesn't reset with the client).
+export const RATE_MAX_PER_SECOND = 2;
+export const RATE_MAX_PER_MINUTE = 25;
+export const RATE_MAX_RETRIES = 6;
