@@ -30,6 +30,7 @@ vi.mock("@/hooks/useLocationChunks", () => ({
 vi.mock("@/hooks/useTrackMap", () => ({
   useTrackOutline: vi.fn(() => ({ data: null, isPending: false })),
   locationToSvg: vi.fn((v: number) => ({ sx: v, sy: v })),
+  computeTrackAutoRotationDeg: vi.fn(() => 0),
   computeTrackBounds: vi.fn(() => ({ minX: 0, minY: 0, maxX: 1, maxY: 1 })),
 }));
 

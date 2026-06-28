@@ -75,6 +75,7 @@ vi.mock("@/hooks/useTrackMap", () => ({
     isPending: testState.outlinePending,
   }),
   locationToSvg: (x: number, y: number) => ({ sx: x * 5, sy: y * 3 }),
+  computeTrackAutoRotationDeg: () => 0,
 }));
 
 vi.mock("@/data/circuits", () => ({

@@ -89,6 +89,7 @@ vi.mock("@/hooks/useLocationChunks", () => ({
 vi.mock("@/hooks/useTrackMap", () => ({
   useTrackOutline: vi.fn(() => ({ data: null, isPending: false })),
   locationToSvg: vi.fn((v: number) => v),
+  computeTrackAutoRotationDeg: vi.fn(() => 0),
 }));
 
 vi.mock("@/data/circuits", () => ({
