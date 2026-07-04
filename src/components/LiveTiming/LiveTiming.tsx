@@ -226,6 +226,17 @@ export function LiveTiming({
     return m;
   }, [grid]);
 
+  const startPosMap = useMemo(() => {
+    const m = new Map<number, number>();
+    const sortedByDate = [...positions].sort(
+      (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime(),
+    );
+    for (const p of sortedByDate) {
+      if (!m.has(p.driver_number)) m.set(p.driver_number, p.position);
+    }
+    return m;
+  }, [positions]);
+
   const intMap = useMemo(() => {
     const m = new Map<number, Interval>();
     for (const i of intervals)
@@ -584,7 +595,12 @@ export function LiveTiming({
                 S3
               </th>
               <th
-                className={`${headerCellClass} text-left w-[5.25rem] lg:w-[5.75rem]`}
+                className={`${headerCellClass} text-left w-[2.75rem] min-[390px]:w-[2.25rem] sm:w-[2.5rem]`}
+              >
+                Pos
+              </th>
+              <th
+                className={`${headerCellClass} text-left w-[2.25rem] lg:w-[2.5rem]`}
               >
                 Tyre
               </th>
@@ -678,8 +694,8 @@ export function LiveTiming({
                 sessionBest.lap,
               );
 
-              const gridPos = gridMap.get(num) ?? null;
-              const gained = gridPos !== null ? gridPos - pos : null;
+              const startPos = gridMap.get(num) ?? startPosMap.get(num) ?? null;
+              const gained = startPos !== null ? startPos - pos : null;
               const retired = retiredDrivers.has(num);
               const selected = selectedDriver === num;
 
@@ -735,16 +751,6 @@ export function LiveTiming({
                         >
                           {driver?.name_acronym ?? num}
                         </span>
-                        {/* Places gained/lost */}
-                        {gained !== null && gained !== 0 && (
-                          <span
-                            className={`hidden min-[390px]:inline text-[9px] font-bold tabular-nums ${gained > 0 ? "text-[#39b54a]" : "text-[#ff5252]"}`}
-                            title={`${gained > 0 ? "Gained" : "Lost"} ${Math.abs(gained)} since start (P${gridPos})`}
-                          >
-                            {gained > 0 ? "▲" : "▼"}
-                            {Math.abs(gained)}
-                          </span>
-                        )}
                         {(retired || isOutlap || inPit) && (
                           <span className="ml-auto shrink-0">
                             {retired ? (
@@ -892,8 +898,35 @@ export function LiveTiming({
                     </div>
                   </td>
 
+                  {/* Position gain/loss from start */}
+                  <td
+                    className={`${rowCellPad} align-middle px-1 text-left font-black ${dense ? "text-[11px]" : "text-xs min-[390px]:text-sm"} tabular-nums sm:px-2`}
+                    title={
+                      startPos !== null
+                        ? `Started P${startPos}`
+                        : "Starting position unavailable"
+                    }
+                  >
+                    {gained === null || gained === 0 ? (
+                      <span className="inline-flex items-center gap-1 text-[#8a8a91]">
+                        <span aria-hidden="true">-</span>
+                        <span>0</span>
+                      </span>
+                    ) : gained > 0 ? (
+                      <span className="inline-flex items-center gap-1 text-[#39d743]">
+                        <span aria-hidden="true">↑</span>
+                        <span>{gained}</span>
+                      </span>
+                    ) : (
+                      <span className="inline-flex items-center gap-1 text-[#ffd400]">
+                        <span aria-hidden="true">↓</span>
+                        <span>{Math.abs(gained)}</span>
+                      </span>
+                    )}
+                  </td>
+
                   {/* Tyre: starting compound → current compound + age */}
-                  <td className={`${rowCellPad} align-middle px-1.5 sm:px-2`}>
+                  <td className={`${rowCellPad} align-middle px-1 sm:px-1.5`}>
                     <TyreBadge
                       stints={stints ?? []}
                       driverNumber={num}

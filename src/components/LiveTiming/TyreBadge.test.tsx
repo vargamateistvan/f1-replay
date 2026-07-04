@@ -32,8 +32,10 @@ describe("TyreBadge", () => {
       />,
     );
 
-    expect(screen.getByText("→")).toBeInTheDocument();
     expect(screen.getByText("4")).toBeInTheDocument();
+    expect(
+      screen.getByText("Starting compound was MEDIUM"),
+    ).toBeInTheDocument();
     expect(screen.getByTitle("SOFT · 4 laps old")).toBeInTheDocument();
   });
 });
