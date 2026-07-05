@@ -33,7 +33,7 @@ const CHAPTER_CONFIG: Record<
 > = {
   start: {
     badge: "START",
-    bg: "#1e1e28",
+    bg: "rgb(var(--color-track) / 1)",
     text: "#9ca3af",
     trackCls: "border-l-[#636369]",
   },
@@ -63,7 +63,7 @@ const CHAPTER_CONFIG: Record<
   },
   finish: {
     badge: "FINISH",
-    bg: "#1e1e28",
+    bg: "rgb(var(--color-track) / 1)",
     text: "#9ca3af",
     trackCls: "border-l-[#636369]",
   },
@@ -96,12 +96,12 @@ function WhatChangedCard({ snapshot, drivers }: WhatChangedCardProps) {
   }
 
   return (
-    <div className="mx-2 mb-2 rounded border border-[#2a2a35] bg-[#12121a] text-[10px]">
-      <div className="px-2 py-1 border-b border-[#2a2a35] text-[9px] font-black uppercase tracking-widest text-muted">
+    <div className="mx-2 mb-2 rounded border border-panel bg-track text-[10px]">
+      <div className="px-2 py-1 border-b border-panel text-[9px] font-black uppercase tracking-widest text-muted">
         What Changed
       </div>
 
-      <div className="divide-y divide-[#2a2a35]">
+      <div className="divide-y divide-panel">
         {/* Gainers */}
         {gainers.map((c) => {
           const d = driverMap.get(c.driverNumber);
