@@ -12,7 +12,9 @@ import "@fontsource/jetbrains-mono/latin-700.css";
 import "./index.css";
 import App from "./App.tsx";
 
-const sentryDsn = import.meta.env.VITE_SENTRY_DSN;
+const sentryDsn =
+  import.meta.env.VITE_SENTRY_DSN ||
+  "https://6910191e596b31cc3bc8e8a0eac15f82@o4511602563940352.ingest.de.sentry.io/4511602567151696";
 
 Sentry.init({
   dsn: sentryDsn,
