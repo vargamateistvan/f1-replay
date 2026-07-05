@@ -20,7 +20,7 @@ const CIRCUIT_TYPE_LABEL: Record<string, string> = {
 };
 
 const SELECT =
-  "bg-panel text-white border border-[#38383f] text-xs font-medium px-3 py-1.5 focus:outline-none focus:border-muted";
+  "bg-panel text-white border border-[#38383f] text-xs font-medium px-3 py-1.5 focus:outline-none focus:border-muted transition-colors disabled:opacity-60 disabled:cursor-not-allowed light:bg-white light:text-black light:border-slate-300 light:focus:border-slate-500 light:[color-scheme:light] light:[&>option]:bg-white light:[&>option]:text-black";
 
 export function SessionPicker({
   year,
@@ -95,8 +95,8 @@ export function SessionPicker({
           <span className="font-bold">.env.local</span> and restart.
         </div>
       )}
-      <div className="bg-surface border-b border-panel">
-        <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 px-4 py-2">
+      <div className="bg-surface border-b border-panel light:bg-white light:border-slate-300/80">
+        <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 px-4 py-2 light:bg-white">
           <span className="text-[10px] font-bold uppercase tracking-widest text-muted">
             Year
           </span>
@@ -242,14 +242,14 @@ export function SessionPicker({
             type="button"
             onClick={selectLatestEvent}
             disabled={meetings.isPending || !meetings.data?.length}
-            className="h-7 px-2 text-[10px] font-black uppercase tracking-widest rounded bg-[#1e1e28] text-muted hover:text-white hover:bg-[#38383f] disabled:opacity-40 disabled:cursor-not-allowed"
+            className="h-7 px-2 text-[10px] font-black uppercase tracking-widest rounded bg-[#1e1e28] text-muted hover:text-white hover:bg-[#38383f] disabled:opacity-40 disabled:cursor-not-allowed light:bg-white light:text-slate-600 light:border light:border-slate-300 light:hover:text-slate-900 light:hover:bg-slate-100"
           >
             Latest Event
           </button>
         </div>
 
         {selectedMeeting && (
-          <div className="flex items-center gap-2 px-4 py-1.5 border-t border-panel/80">
+          <div className="flex items-center gap-2 px-4 py-1.5 border-t border-panel/80 light:bg-white light:border-slate-200">
             {selectedMeeting.circuit_image && (
               <img
                 src={selectedMeeting.circuit_image}

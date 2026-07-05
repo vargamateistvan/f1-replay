@@ -32,7 +32,7 @@ const VIEW_TABS: { id: MainView; label: string }[] = [
 ];
 
 const SELECT =
-  "bg-[#151823] text-white border border-[#38383f] text-[11px] font-medium px-2 py-1 focus:outline-none focus:border-muted appearance-none cursor-pointer transition-colors disabled:opacity-60 disabled:cursor-not-allowed light:bg-white light:text-black light:border-slate-300 light:focus:border-slate-500 light:[color-scheme:light] light:[&>option]:bg-white light:[&>option]:text-black";
+  "bg-surface text-white border border-panel text-[11px] font-medium px-2 py-1 focus:outline-none focus:border-muted appearance-none cursor-pointer transition-colors disabled:opacity-60 disabled:cursor-not-allowed light:bg-white light:text-black light:border-slate-300 light:focus:border-slate-500 light:[color-scheme:light] light:[&>option]:bg-white light:[&>option]:text-black";
 
 const CIRCUIT_TYPE_LABEL: Record<string, string> = {
   Permanent: "Permanent",
@@ -726,9 +726,9 @@ export function Nav() {
 
       {/* ── Dark sub-bar: session pickers (main + telemetry routes) */}
       {(isMainRoute || isTelemetryRoute) && (
-        <div className="border-b border-panel bg-[linear-gradient(180deg,#11131b,#0f1118)] light:bg-surface light:bg-none light:border-slate-300/80">
+        <div className="border-b border-panel bg-[linear-gradient(180deg,#11131b,#0f1118)] light:!bg-white light:!bg-none light:border-slate-300/80">
           <div
-            className="flex flex-wrap items-center gap-1.5 py-1.5"
+            className="flex flex-wrap items-center gap-1.5 py-1.5 light:!bg-white"
             style={{
               paddingLeft: "max(0.5rem, env(safe-area-inset-left))",
               paddingRight: "max(0.5rem, env(safe-area-inset-right))",
@@ -782,7 +782,7 @@ export function Nav() {
             )}
 
             {selectedMeeting && (
-              <div className="min-w-0 flex items-center gap-1.5 rounded border border-panel/80 bg-[#181b27] px-2 py-1 light:bg-white light:border-slate-300/90">
+              <div className="min-w-0 flex items-center gap-1.5 rounded border border-panel/80 bg-track px-2 py-1 light:bg-white light:border-slate-300/90">
                 {selectedMeeting.circuit_image && !isCircuitImageBroken && (
                   <img
                     src={selectedMeeting.circuit_image}

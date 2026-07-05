@@ -110,6 +110,11 @@ html.light [class*="bg-[linear-gradient(180deg,rgba(21,21,30,0.96),rgba(21,21,30
   ) !important;
 }
 
+/* Nav session picker strip (hard-coded dark gradient) */
+html.light [class*="bg-[linear-gradient(180deg,#11131b,#0f1118)]"] {
+  background: #ffffff !important;
+}
+
 html.light [class*="bg-[linear-gradient(90deg,#120f17_0%,#1a1520_45%,#10131d_100%)]"] {
   background: linear-gradient(
     90deg,
