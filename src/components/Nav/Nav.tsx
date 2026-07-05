@@ -32,7 +32,7 @@ const VIEW_TABS: { id: MainView; label: string }[] = [
 ];
 
 const SELECT =
-  "bg-transparent text-white border border-[#38383f] text-[11px] font-medium px-2 py-1 focus:outline-none focus:border-muted appearance-none cursor-pointer";
+  "bg-[#151823] text-white border border-[#38383f] text-[11px] font-medium px-2 py-1 focus:outline-none focus:border-muted appearance-none cursor-pointer transition-colors disabled:opacity-60 disabled:cursor-not-allowed light:bg-white light:text-black light:border-slate-300 light:focus:border-slate-500 light:[color-scheme:light] light:[&>option]:bg-white light:[&>option]:text-black";
 
 const CIRCUIT_TYPE_LABEL: Record<string, string> = {
   Permanent: "Permanent",
@@ -726,7 +726,7 @@ export function Nav() {
 
       {/* ── Dark sub-bar: session pickers (main + telemetry routes) */}
       {(isMainRoute || isTelemetryRoute) && (
-        <div className="border-b border-panel bg-[linear-gradient(180deg,#11131b,#0f1118)]">
+        <div className="border-b border-panel bg-[linear-gradient(180deg,#11131b,#0f1118)] light:bg-surface light:bg-none light:border-slate-300/80">
           <div
             className="flex flex-wrap items-center gap-1.5 py-1.5"
             style={{
@@ -782,7 +782,7 @@ export function Nav() {
             )}
 
             {selectedMeeting && (
-              <div className="min-w-0 flex items-center gap-1.5 rounded border border-panel/80 bg-[#181b27] px-2 py-1">
+              <div className="min-w-0 flex items-center gap-1.5 rounded border border-panel/80 bg-[#181b27] px-2 py-1 light:bg-white light:border-slate-300/90">
                 {selectedMeeting.circuit_image && !isCircuitImageBroken && (
                   <img
                     src={selectedMeeting.circuit_image}
@@ -804,10 +804,10 @@ export function Nav() {
                     referrerPolicy="no-referrer"
                   />
                 )}
-                <span className="text-[10px] text-white/90 font-semibold truncate max-w-[170px] sm:max-w-[230px]">
+                <span className="text-[10px] text-white/90 font-semibold truncate max-w-[170px] sm:max-w-[230px] light:text-slate-800">
                   {selectedMeeting.meeting_name}
                 </span>
-                <span className="hidden sm:inline text-[9px] text-muted uppercase tracking-widest">
+                <span className="hidden sm:inline text-[9px] text-muted uppercase tracking-widest light:text-slate-500">
                   {CIRCUIT_TYPE_LABEL[selectedMeeting.circuit_type] ??
                     selectedMeeting.circuit_type}
                 </span>
@@ -872,7 +872,7 @@ export function Nav() {
               type="button"
               onClick={selectLatestEvent}
               disabled={meetings.isPending || !meetings.data?.length}
-              className="h-6 px-2 text-[9px] font-black uppercase tracking-widest rounded transition-colors bg-[#1e1e28] text-muted hover:text-white hover:bg-[#38383f] disabled:opacity-40 disabled:cursor-not-allowed"
+              className="h-6 px-2 text-[9px] font-black uppercase tracking-widest rounded transition-colors bg-[#1e1e28] text-muted hover:text-white hover:bg-[#38383f] disabled:opacity-40 disabled:cursor-not-allowed light:bg-white light:text-slate-600 light:border light:border-slate-300 light:hover:text-slate-900 light:hover:bg-slate-100"
             >
               Latest
             </button>

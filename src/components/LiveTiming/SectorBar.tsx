@@ -20,8 +20,8 @@ function minisectorClass(code: number): string {
   if (code >= 2064) return "bg-[#9b59f5]";
   if (code === 2051) return "bg-[#f5d400]";
   if (code >= 2049) return "bg-[#39b54a]";
-  if (code > 0) return "bg-white/35";
-  return "bg-panel";
+  if (code > 0) return "bg-white/35 light:bg-slate-500/40";
+  return "bg-panel light:bg-slate-300/80";
 }
 
 export function SectorBar({
@@ -35,8 +35,8 @@ export function SectorBar({
     fastest: "bg-[#9b59f5]",
     personal: "bg-[#f5d400]",
     fast: "bg-[#39b54a]",
-    normal: "bg-white/30",
-    none: "bg-panel",
+    normal: "bg-white/30 light:bg-slate-500/45",
+    none: "bg-panel light:bg-slate-300/80",
   };
 
   if (showMinisectors && segments && segments.length > 0) {

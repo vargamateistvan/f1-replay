@@ -9,21 +9,17 @@ interface Props {
 
 type Compound = Stint["compound"];
 
-const COMPOUND_STYLE: Record<
-  Compound,
-  { color: string; letter: string; letterColor: string }
-> = {
-  SOFT: { color: "#ff3b30", letter: "S", letterColor: "#ffffff" },
-  MEDIUM: { color: "#ffd400", letter: "M", letterColor: "#ffffff" },
-  HARD: { color: "#f2f2f2", letter: "H", letterColor: "#111111" },
-  INTERMEDIATE: { color: "#39d743", letter: "I", letterColor: "#ffffff" },
-  WET: { color: "#39a3ff", letter: "W", letterColor: "#ffffff" },
-  UNKNOWN: { color: "#7b7b82", letter: "?", letterColor: "#ffffff" },
+const COMPOUND_STYLE: Record<Compound, { color: string; letter: string }> = {
+  SOFT: { color: "#ff3b30", letter: "S" },
+  MEDIUM: { color: "#ffd400", letter: "M" },
+  HARD: { color: "#f2f2f2", letter: "H" },
+  INTERMEDIATE: { color: "#39d743", letter: "I" },
+  WET: { color: "#39a3ff", letter: "W" },
+  UNKNOWN: { color: "#7b7b82", letter: "?" },
 };
 
 function CompoundRing({ compound }: { compound: Compound }) {
-  const { color, letter, letterColor } =
-    COMPOUND_STYLE[compound] ?? COMPOUND_STYLE.UNKNOWN;
+  const { color, letter } = COMPOUND_STYLE[compound] ?? COMPOUND_STYLE.UNKNOWN;
 
   return (
     <span className="relative inline-flex h-5 w-5 shrink-0 items-center justify-center sm:h-6 sm:w-6">
@@ -39,9 +35,10 @@ function CompoundRing({ compound }: { compound: Compound }) {
         />
       </svg>
       <span
-        className="relative text-[9px] font-black uppercase leading-none sm:text-[10px]"
-        style={{ color: letterColor }}
-      >
+        className="absolute inset-[4px] rounded-full bg-track light:bg-white"
+        aria-hidden="true"
+      />
+      <span className="relative text-[9px] font-black uppercase leading-none text-white sm:text-[10px] light:text-black">
         {letter}
       </span>
     </span>
