@@ -419,4 +419,57 @@ describe("LiveTiming", () => {
     expect(rows[3]).toHaveTextContent("D03");
     expect(screen.getAllByText("OUT Q1").length).toBe(5);
   });
+
+  it("highlights a row when a timed-session lap is just completed", () => {
+    const sessionStartMs = Date.parse("2024-01-01T00:00:00.000Z");
+
+    render(
+      <LiveTiming
+        drivers={drivers}
+        positions={
+          [
+            {
+              driver_number: 1,
+              position: 1,
+              date: "2024-01-01T00:00:11.000Z",
+            },
+          ] as Position[]
+        }
+        intervals={[]}
+        pits={[]}
+        laps={
+          [
+            {
+              date_start: "2024-01-01T00:00:00.000Z",
+              driver_number: 1,
+              duration_sector_1: 30,
+              duration_sector_2: 30,
+              duration_sector_3: 30,
+              i1_speed: null,
+              i2_speed: null,
+              is_pit_out_lap: false,
+              lap_duration: 10,
+              lap_number: 1,
+              meeting_key: 1,
+              segments_sector_1: [2049],
+              segments_sector_2: [2049],
+              segments_sector_3: [2049],
+              session_key: 1,
+              st_speed: null,
+            },
+          ] as Lap[]
+        }
+        sessionName="Practice 1"
+        sessionTimeMs={11_000}
+        sessionStartMs={sessionStartMs}
+      />,
+    );
+
+    const row = screen
+      .getAllByRole("row")
+      .find((candidate) => candidate.textContent?.includes("VER"));
+    expect(row).toBeDefined();
+    expect(row).toHaveClass("ring-1");
+    expect(row).toHaveClass("ring-inset");
+  });
 });

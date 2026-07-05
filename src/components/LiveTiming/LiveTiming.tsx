@@ -73,6 +73,7 @@ interface SortedRow {
 }
 
 const Q3_GRID_SIZE = 10;
+const LAP_SET_FLASH_MS = 4_000;
 
 function fmtGap(val: number | string | null) {
   if (val === null) return "—";
@@ -925,6 +926,22 @@ export function LiveTiming({
                 new Date(lastLap.date_start).getTime() - sessionStartMs >=
                   chequeredMs;
 
+              const lastLapEndMs =
+                lastLap && lastLap.date_start && lastLap.lap_duration !== null
+                  ? new Date(lastLap.date_start).getTime() +
+                    lastLap.lap_duration * 1000
+                  : null;
+              const justSetLap =
+                isTimedSession(sessionName ?? "") &&
+                lastLapEndMs !== null &&
+                currentT >= lastLapEndMs &&
+                currentT - lastLapEndMs <= LAP_SET_FLASH_MS;
+              const lastLapIsBest =
+                justSetLap &&
+                bestLap !== null &&
+                lastLap !== null &&
+                bestLap.lap_number === lastLap.lap_number;
+
               const rowBg = selected
                 ? "bg-[#2a2a35]"
                 : eliminated
@@ -934,12 +951,17 @@ export function LiveTiming({
                     : idx % 2 === 1
                       ? "bg-white/[0.02] hover:bg-white/[0.06]"
                       : "hover:bg-white/[0.06]";
+              const lapFlashClass = justSetLap
+                ? lastLapIsBest
+                  ? "ring-1 ring-inset ring-[#39d743]/60 bg-[#173726]/45"
+                  : "ring-1 ring-inset ring-[#3ea6ff]/55 bg-[#11263a]/45"
+                : "";
 
               return (
                 <tr
                   key={num}
                   onClick={() => onSelectDriver?.(num)}
-                  className={`border-b border-[#1e1e28] transition-colors ${rowHeightClass} ${onSelectDriver ? "cursor-pointer" : ""} ${rowBg}`}
+                  className={`border-b border-[#1e1e28] transition-colors ${rowHeightClass} ${onSelectDriver ? "cursor-pointer" : ""} ${rowBg} ${lapFlashClass}`}
                 >
                   {/* Position */}
                   <td
