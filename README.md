@@ -104,6 +104,25 @@ The app features a broadcast-style experience with:
    ```
    The app will be available at `http://localhost:5173`
 
+### Optional: Enable Live MQTT Push (OpenF1)
+
+Live sessions can now consume OpenF1's MQTT-over-WebSocket feed (instead of only
+polling REST). This is opt-in and falls back to REST polling automatically when
+no MQTT token is configured.
+
+Create `.env.local` with:
+
+```bash
+# OAuth2 access token for OpenF1 MQTT (used as MQTT password)
+VITE_OPENF1_MQTT_TOKEN=your_openf1_oauth_access_token
+
+# Optional; default is "f1-replay"
+VITE_OPENF1_MQTT_USERNAME=your_email_or_any_non_empty_string
+
+# Optional; defaults to OpenF1 public WSS endpoint
+VITE_OPENF1_MQTT_WSS_URL=wss://mqtt.openf1.org:8084/mqtt
+```
+
 ### Building for Production
 
 ```bash

@@ -38,6 +38,7 @@ import { useSearchParams } from "react-router-dom";
 import { useTimeline } from "@/timeline/clock";
 import { useCoarseTime } from "@/hooks/useCoarseTime";
 import { useMediaQuery } from "@/hooks/useMediaQuery";
+import { useOpenF1LiveMqtt } from "@/hooks/useOpenF1LiveMqtt";
 import {
   chunkIndexFor,
   useLocationChunks,
@@ -146,6 +147,7 @@ export default function RaceWeekend() {
   const sessions = useSessions(meetingKey);
   const session = sessions.data?.find((s) => s.session_key === sessionKey);
   const live = isSessionLive(session);
+  useOpenF1LiveMqtt(sessionKey, live);
 
   const drivers = useDrivers(sessionKey);
   const positions = usePositions(sessionKey, live);

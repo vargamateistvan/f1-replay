@@ -33,6 +33,13 @@ export const LIVE_BUFFER_MS = 30 * 60 * 1000;
 // that change less often (weather/race control/team radio/overtakes).
 export const LIVE_POLL_FAST_MS = 15_000;
 export const LIVE_POLL_SLOW_MS = 30_000;
+// OpenF1 MQTT-over-WebSocket endpoint for browser clients.
+export const OPENF1_MQTT_WSS_URL = "wss://mqtt.openf1.org:8084/mqtt";
+// Grace period for reconnect attempts before giving up the current connection attempt.
+export const OPENF1_MQTT_CONNECT_TIMEOUT_MS = 10_000;
+// Keep this modest: MQTT updates are high frequency and query caches already hold
+// full-session data from REST. These caps protect memory in long live sessions.
+export const LIVE_MQTT_MAX_ROWS = 4_000;
 
 // ── Track map (SVG) ─────────────────────────────────────────────────────────--
 export const TRACK_SVG_W = 600;
