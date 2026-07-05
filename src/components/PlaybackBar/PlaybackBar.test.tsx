@@ -49,4 +49,20 @@ describe("PlaybackBar marker interactions", () => {
 
     expect(timelineState.setT).toHaveBeenCalledWith(45_000);
   });
+
+  it("jumps forward to Q2 and Q3 phase starts", () => {
+    render(
+      <PlaybackBar
+        durationMs={120_000}
+        q2StartMs={30_000}
+        q3StartMs={60_000}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "Forward to Q2" }));
+    fireEvent.click(screen.getByRole("button", { name: "Forward to Q3" }));
+
+    expect(timelineState.setT).toHaveBeenCalledWith(30_000);
+    expect(timelineState.setT).toHaveBeenCalledWith(60_000);
+  });
 });

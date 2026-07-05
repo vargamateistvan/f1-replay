@@ -873,6 +873,27 @@ export default function RaceWeekend() {
     ? detectQualiPhase(raceControl.data ?? [], sessionStartMs, t)
     : null;
 
+  const qualiPhaseStartTimes = useMemo(() => {
+    if (!sessionStartMs || !isQualiSession(sessionName)) {
+      return {
+        q2StartMs: null as number | null,
+        q3StartMs: null as number | null,
+      };
+    }
+
+    let q2StartMs: number | null = null;
+    let q3StartMs: number | null = null;
+    for (const entry of raceControl.data ?? []) {
+      const relMs = new Date(entry.date).getTime() - sessionStartMs;
+      const msg = (entry.message ?? "").toUpperCase();
+      if (q2StartMs === null && /\bQ2\b/.test(msg)) q2StartMs = relMs;
+      if (q3StartMs === null && /\bQ3\b/.test(msg)) q3StartMs = relMs;
+      if (q2StartMs !== null && q3StartMs !== null) break;
+    }
+
+    return { q2StartMs, q3StartMs };
+  }, [raceControl.data, sessionName, sessionStartMs]);
+
   useEffect(() => {
     if (!showFinalClassification) {
       setIsResultsDialogOpen(false);
@@ -1194,6 +1215,8 @@ export default function RaceWeekend() {
                   incidentReplayHint={incidentReplayHint}
                   countdownMs={countdownMs}
                   qualiPhase={qualiPhase}
+                  q2StartMs={qualiPhaseStartTimes.q2StartMs}
+                  q3StartMs={qualiPhaseStartTimes.q3StartMs}
                   mobileInline
                   showSpeedControls={showPlaybackSpeedControls}
                   showEventChips={showPlaybackEventChips}
@@ -1672,6 +1695,8 @@ export default function RaceWeekend() {
           incidentReplayHint={incidentReplayHint}
           countdownMs={countdownMs}
           qualiPhase={qualiPhase}
+          q2StartMs={qualiPhaseStartTimes.q2StartMs}
+          q3StartMs={qualiPhaseStartTimes.q3StartMs}
           showSpeedControls={showPlaybackSpeedControls}
           showEventChips={showPlaybackEventChips}
         />

@@ -30,6 +30,9 @@ interface Props {
   countdownMs?: number | null;
   /** Active qualifying phase label e.g. "Q1" — shown alongside the countdown */
   qualiPhase?: string | null;
+  /** Session-relative start times for qualifying phase jumps. */
+  q2StartMs?: number | null;
+  q3StartMs?: number | null;
   mobileInline?: boolean;
   showSpeedControls?: boolean;
   showEventChips?: boolean;
@@ -93,6 +96,8 @@ export function PlaybackBar({
   incidentReplayHint = null,
   countdownMs = null,
   qualiPhase = null,
+  q2StartMs = null,
+  q3StartMs = null,
   mobileInline = false,
   showSpeedControls = true,
   showEventChips = true,
@@ -344,6 +349,26 @@ export function PlaybackBar({
                 {countdownMs <= 0 ? "ENDED" : fmtTime(countdownMs)}
               </span>
             </span>
+          )}
+          {(q2StartMs !== null || q3StartMs !== null) && (
+            <>
+              <button
+                onClick={() => jump(q2StartMs)}
+                disabled={q2StartMs === null || q2StartMs <= t}
+                className={CHIP_STRETCH}
+                aria-label="Forward to Q2"
+              >
+                Q2 ›
+              </button>
+              <button
+                onClick={() => jump(q3StartMs)}
+                disabled={q3StartMs === null || q3StartMs <= t}
+                className={CHIP_STRETCH}
+                aria-label="Forward to Q3"
+              >
+                Q3 ›
+              </button>
+            </>
           )}
           <button
             onClick={() => {
