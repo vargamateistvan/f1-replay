@@ -2,18 +2,35 @@ import { describe, expect, it, vi, beforeEach } from "vitest";
 import { fireEvent, render, screen } from "@testing-library/react";
 import { PlaybackBar } from "@/components/PlaybackBar";
 
-const timelineState = {
-  t: 0,
-  playing: false,
-  speed: 1,
-  toggle: vi.fn(),
-  setT: vi.fn(),
-  setSpeed: vi.fn(),
-  setPlaying: vi.fn(),
-};
+const { timelineState, mockUseTimeline } = vi.hoisted(() => {
+  const timelineState = {
+    t: 0,
+    playing: false,
+    speed: 1,
+    toggle: vi.fn(),
+    setT: vi.fn(),
+    setSpeed: vi.fn(),
+    setPlaying: vi.fn(),
+  };
+
+  const mockUseTimeline = vi.fn((selector?: (s: typeof timelineState) => any) => {
+    if (typeof selector === "function") {
+      return selector(timelineState);
+    }
+    return timelineState;
+  }) as any;
+
+  mockUseTimeline.getState = () => timelineState;
+  mockUseTimeline.subscribe = vi.fn((listener: (s: typeof timelineState) => void) => {
+    listener(timelineState);
+    return () => {};
+  });
+
+  return { timelineState, mockUseTimeline };
+});
 
 vi.mock("@/timeline/clock", () => ({
-  useTimeline: () => timelineState,
+  useTimeline: mockUseTimeline,
 }));
 
 vi.mock("@/hooks/useMediaQuery", () => ({
