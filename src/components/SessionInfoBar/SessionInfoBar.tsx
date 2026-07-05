@@ -13,6 +13,7 @@ interface Props {
   lightsOutMs?: number | null;
   isRaceSession?: boolean;
   totalLapCount?: number | null;
+  onShowEliminations?: () => void;
   onShowResults?: () => void;
   onJumpToSessionTime?: (sessionTimeMs: number) => void;
 }
@@ -88,9 +89,10 @@ export function SessionInfoBar({
   lightsOutMs,
   isRaceSession,
   totalLapCount = null,
+  onShowEliminations,
   onShowResults,
   onJumpToSessionTime,
-}: Props) {
+}: Readonly<Props>) {
   const lightMode = useSettings((s) => s.lightMode);
   const metricSystem = useSettings((s) => s.metricSystem);
   const [isLapDialogOpen, setIsLapDialogOpen] = useState(false);
@@ -101,7 +103,7 @@ export function SessionInfoBar({
   const formationStatus = useMemo<TrackStatus>(() => {
     return lightMode
       ? { label: "FORMATION LAP", bg: "#e8ecf8", color: "#4a5575" }
-      : FLAG_STATUS["FORMATION_LAP"]!;
+      : FLAG_STATUS["FORMATION_LAP"];
   }, [lightMode]);
 
   const currentLap = useMemo(() => {
@@ -152,11 +154,14 @@ export function SessionInfoBar({
     () => deriveLatestMessage(raceControl, currentT),
     [raceControl, currentT],
   );
-  const lapDisplay = isFormationLap
-    ? "F"
-    : currentLap !== null && totalLapCount !== null
-      ? `${currentLap}/${totalLapCount}`
-      : (currentLap ?? "—");
+  let lapDisplay: string | number = "—";
+  if (isFormationLap) {
+    lapDisplay = "F";
+  } else if (currentLap !== null && totalLapCount !== null) {
+    lapDisplay = `${currentLap}/${totalLapCount}`;
+  } else if (currentLap !== null) {
+    lapDisplay = currentLap;
+  }
 
   useEffect(() => {
     if (!isLapDialogOpen) return;
@@ -172,8 +177,8 @@ export function SessionInfoBar({
         setIsLapDialogOpen(false);
       }
     }
-    window.addEventListener("keydown", onKeyDown);
-    return () => window.removeEventListener("keydown", onKeyDown);
+    globalThis.addEventListener("keydown", onKeyDown);
+    return () => globalThis.removeEventListener("keydown", onKeyDown);
   }, [isLapDialogOpen]);
 
   function submitLapSelection() {
@@ -249,6 +254,16 @@ export function SessionInfoBar({
         </span>
       </div>
 
+      {onShowEliminations && (
+        <button
+          onClick={onShowEliminations}
+          className="shrink-0 border-r border-panel px-3 py-2 text-[10px] font-black uppercase tracking-[0.12em] text-white transition-colors hover:bg-white/5 hover:text-f1red sm:px-4 sm:tracking-[0.16em]"
+        >
+          <span className="sm:hidden">Out</span>
+          <span className="hidden sm:inline">Eliminated</span>
+        </button>
+      )}
+
       {onShowResults && (
         <button
           onClick={onShowResults}
@@ -283,10 +298,14 @@ export function SessionInfoBar({
               </div>
             </div>
             <div className="space-y-3 px-4 py-4 normal-case tracking-normal">
-              <label className="block text-[11px] font-semibold uppercase tracking-[0.14em] text-muted">
+              <label
+                htmlFor="lap-jump-input"
+                className="block text-[11px] font-semibold uppercase tracking-[0.14em] text-muted"
+              >
                 Lap Number
               </label>
               <input
+                id="lap-jump-input"
                 type="number"
                 min={1}
                 max={selectableLapMax}

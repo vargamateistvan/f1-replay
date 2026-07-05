@@ -134,6 +134,8 @@ export default function RaceWeekend() {
   const [, setSearchParams] = useSearchParams();
   const isCompactViewport = useMediaQuery("(max-width: 767px)");
   const [isResultsDialogOpen, setIsResultsDialogOpen] = useState(false);
+  const [isQualiEliminationsDialogOpen, setIsQualiEliminationsDialogOpen] =
+    useState(false);
   const [incidentReplayEndMs, setIncidentReplayEndMs] = useState<number | null>(
     null,
   );
@@ -881,6 +883,12 @@ export default function RaceWeekend() {
     }
   }, [showFinalClassification, sessionResult.isError]);
 
+  useEffect(() => {
+    if (!isQualiSession(sessionName) || !qualiPhase) {
+      setIsQualiEliminationsDialogOpen(false);
+    }
+  }, [qualiPhase, sessionName]);
+
   useKeyboardShortcuts({
     lapStarts: lapMarks,
     eventTimes: keyMomentMarks,
@@ -1055,6 +1063,11 @@ export default function RaceWeekend() {
             isRaceSession={isRaceSession}
             lightsOutMs={lightsOutMs}
             totalLapCount={totalLapCount}
+            onShowEliminations={
+              isQualiSession(sessionName) && qualiPhase
+                ? () => setIsQualiEliminationsDialogOpen(true)
+                : undefined
+            }
             onShowResults={
               showFinalClassification && !sessionResult.isError
                 ? () => setIsResultsDialogOpen(true)
@@ -1100,6 +1113,11 @@ export default function RaceWeekend() {
             isRaceSession={isRaceSession}
             lightsOutMs={lightsOutMs}
             totalLapCount={totalLapCount}
+            onShowEliminations={
+              isQualiSession(sessionName) && qualiPhase
+                ? () => setIsQualiEliminationsDialogOpen(true)
+                : undefined
+            }
             onShowResults={
               showFinalClassification && !sessionResult.isError
                 ? () => setIsResultsDialogOpen(true)
@@ -1452,6 +1470,11 @@ export default function RaceWeekend() {
             isRaceSession={isRaceSession}
             lightsOutMs={lightsOutMs}
             totalLapCount={totalLapCount}
+            onShowEliminations={
+              isQualiSession(sessionName) && qualiPhase
+                ? () => setIsQualiEliminationsDialogOpen(true)
+                : undefined
+            }
             onShowResults={
               showFinalClassification && !sessionResult.isError
                 ? () => setIsResultsDialogOpen(true)
@@ -1592,6 +1615,23 @@ export default function RaceWeekend() {
           <ErrorMessage message="Failed to load final classification" compact />
         </div>
       )}
+
+      {sessionStartMs > 0 &&
+        isQualiSession(sessionName) &&
+        qualiPhase &&
+        isQualiEliminationsDialogOpen && (
+          <QualifyingBanner
+            phase={qualiPhase}
+            drivers={drivers.data ?? []}
+            positions={positions.data ?? []}
+            sessionTimeMs={t}
+            sessionStartMs={sessionStartMs}
+            countdownMs={countdownMs}
+            openByDefault
+            dialogOnly
+            onClose={() => setIsQualiEliminationsDialogOpen(false)}
+          />
+        )}
 
       {showFinalClassification &&
         !sessionResult.isError &&

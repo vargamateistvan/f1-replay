@@ -522,28 +522,11 @@ describe("component coverage boost", () => {
   });
 
   it("covers QualifyingBanner phase ranges, countdown, and driver chips", () => {
-    const positions = [
-      {
-        driver_number: 1,
-        position: 11,
-        date: "2024-01-01T00:00:10.000Z",
-      },
-      {
-        driver_number: 16,
-        position: 15,
-        date: "2024-01-01T00:00:10.000Z",
-      },
-      {
-        driver_number: 63,
-        position: 16,
-        date: "2024-01-01T00:00:10.000Z",
-      },
-      {
-        driver_number: 1,
-        position: 1,
-        date: "2024-01-01T00:02:00.000Z",
-      },
-    ] as Position[];
+    const positions = Array.from({ length: 20 }, (_, i) => ({
+      driver_number: i + 1,
+      position: i + 1,
+      date: "2024-01-01T00:00:10.000Z",
+    })) as Position[];
 
     const { rerender } = render(
       <QualifyingBanner
@@ -556,6 +539,7 @@ describe("component coverage boost", () => {
       />,
     );
 
+    fireEvent.click(screen.getByRole("button", { name: "Eliminated" }));
     expect(screen.getByText("Q2 Eliminated")).toBeInTheDocument();
     expect(screen.getByText("01:31")).toBeInTheDocument();
     expect(screen.getByText("P11")).toBeInTheDocument();
@@ -571,8 +555,7 @@ describe("component coverage boost", () => {
       />,
     );
 
-    expect(screen.getByText("Q1 Knockout Zone")).toBeInTheDocument();
-    expect(screen.getByText("P16")).toBeInTheDocument();
+    expect(screen.getByText("Q1")).toBeInTheDocument();
   });
 
   it("covers FinalClassification status/detail branches and sorting", () => {

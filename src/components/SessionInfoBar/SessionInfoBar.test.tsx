@@ -22,6 +22,7 @@ describe("SessionInfoBar", () => {
   });
 
   it("covers formation lap, jump dialog and callbacks", async () => {
+    const onShowEliminations = vi.fn();
     const onShowResults = vi.fn();
     const onJumpToSessionTime = vi.fn();
     const sessionStartMs = Date.parse("2024-01-01T00:00:00.000Z");
@@ -57,6 +58,7 @@ describe("SessionInfoBar", () => {
         lightsOutMs={60_000}
         isRaceSession
         totalLapCount={58}
+        onShowEliminations={onShowEliminations}
         onShowResults={onShowResults}
         onJumpToSessionTime={onJumpToSessionTime}
       />,
@@ -67,6 +69,9 @@ describe("SessionInfoBar", () => {
     expect(screen.getByText("Yellow in sector 2")).toBeInTheDocument();
     expect(screen.getByText("23°C")).toBeInTheDocument();
     expect(screen.getByText("35°C")).toBeInTheDocument();
+
+    fireEvent.click(screen.getByText("Eliminated"));
+    expect(onShowEliminations).toHaveBeenCalled();
 
     fireEvent.click(screen.getByText("Show Results"));
     expect(onShowResults).toHaveBeenCalled();

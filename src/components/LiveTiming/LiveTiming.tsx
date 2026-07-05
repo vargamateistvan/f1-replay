@@ -20,6 +20,12 @@ import {
   speedUnitLabel,
   speedUnitCompactLabel,
 } from "@/utils/units";
+import {
+  detectQualiPhase,
+  isQualiSession,
+  isTimedSession,
+  type QualiPhase,
+} from "@/utils/session";
 import { SectorBar, type SectorTier } from "./SectorBar";
 import { TyreBadge } from "./TyreBadge";
 import { DriverHeadshot } from "@/components/DriverHeadshot";
@@ -59,6 +65,14 @@ interface SessionBestOwner {
   lapNumber: number;
   time: number;
 }
+
+interface SortedRow {
+  driverNumber: number;
+  displayPosition: number;
+  eliminatedPhase: QualiPhase | null;
+}
+
+const Q3_GRID_SIZE = 10;
 
 function fmtGap(val: number | string | null) {
   if (val === null) return "—";
@@ -289,6 +303,23 @@ export function LiveTiming({
     return m;
   }, [laps, currentT]);
 
+  const bestLapMap = useMemo(() => {
+    const m = new Map<number, Lap & { lap_duration: number }>();
+    for (const lap of completedLaps) {
+      if (lap.lap_duration === null) continue;
+      const prev = m.get(lap.driver_number);
+      if (
+        !prev ||
+        lap.lap_duration < prev.lap_duration ||
+        (lap.lap_duration === prev.lap_duration &&
+          lap.lap_number < prev.lap_number)
+      ) {
+        m.set(lap.driver_number, lap as Lap & { lap_duration: number });
+      }
+    }
+    return m;
+  }, [completedLaps]);
+
   // Session-best sector times and lap times
   const sessionBest = useMemo(() => {
     let s1: number | null = null,
@@ -408,10 +439,182 @@ export function LiveTiming({
     });
   }, [positions, laps, raceControl, currentT, sessionName]);
 
-  const sorted = useMemo(
-    () => [...posMap.entries()].sort((a, b) => a[1] - b[1]),
-    [posMap],
-  );
+  const referenceOrderMap = useMemo(() => {
+    const m = new Map<number, number>();
+    for (const [driverNumber, position] of [...posMap.entries()].sort(
+      (a, b) => a[1] - b[1],
+    )) {
+      m.set(driverNumber, position);
+    }
+    for (const [driverNumber, position] of [...startPosMap.entries()].sort(
+      (a, b) => a[1] - b[1],
+    )) {
+      if (!m.has(driverNumber)) m.set(driverNumber, position);
+    }
+    for (const [driverNumber, position] of [...gridMap.entries()].sort(
+      (a, b) => a[1] - b[1],
+    )) {
+      if (!m.has(driverNumber)) m.set(driverNumber, position);
+    }
+    const fallbackBase = m.size + 1;
+    for (const d of drivers) {
+      if (!m.has(d.driver_number)) {
+        m.set(d.driver_number, fallbackBase + d.driver_number / 1000);
+      }
+    }
+    return m;
+  }, [posMap, startPosMap, gridMap, drivers]);
+
+  const qualiPhase = useMemo(() => {
+    if (!isQualiSession(sessionName ?? "")) return null;
+    return detectQualiPhase(raceControl, sessionStartMs, sessionTimeMs);
+  }, [raceControl, sessionName, sessionStartMs, sessionTimeMs]);
+
+  const qualiPhaseStarts = useMemo(() => {
+    let q2StartMs: number | null = null;
+    let q3StartMs: number | null = null;
+    for (const entry of raceControl) {
+      const relMs = new Date(entry.date).getTime() - sessionStartMs;
+      if (relMs > sessionTimeMs) break;
+      const msg = (entry.message ?? "").toUpperCase();
+      if (q2StartMs === null && /\bQ2\b/.test(msg)) q2StartMs = relMs;
+      if (q3StartMs === null && /\bQ3\b/.test(msg)) q3StartMs = relMs;
+    }
+    return { q2StartMs, q3StartMs };
+  }, [raceControl, sessionStartMs, sessionTimeMs]);
+
+  const timedOrder = useMemo(() => {
+    const activeDriverNumbers = new Set<number>();
+    drivers.forEach((d) => activeDriverNumbers.add(d.driver_number));
+    posMap.forEach((_, driverNumber) => activeDriverNumbers.add(driverNumber));
+    const fieldSize = Math.max(activeDriverNumbers.size, drivers.length);
+    const eliminatedTotal = Math.max(0, fieldSize - Q3_GRID_SIZE);
+    const q1EliminationCount = Math.floor(eliminatedTotal / 2);
+    const q2EliminationCount = eliminatedTotal - q1EliminationCount;
+
+    const completed = laps
+      .filter(
+        (lap): lap is Lap & { date_start: string; lap_duration: number } =>
+          !!lap.date_start && lap.lap_duration !== null,
+      )
+      .map((lap) => ({
+        ...lap,
+        endMs: new Date(lap.date_start).getTime() + lap.lap_duration * 1000,
+      }))
+      .sort((a, b) => a.endMs - b.endMs);
+
+    const referenceAt = (driverNumber: number) =>
+      referenceOrderMap.get(driverNumber) ?? Number.MAX_SAFE_INTEGER;
+
+    const rankAt = (cutoffAbsMs: number) => {
+      const bestByDriver = new Map<number, number>();
+      for (const lap of completed) {
+        if (lap.endMs > cutoffAbsMs) break;
+        const prev = bestByDriver.get(lap.driver_number);
+        if (prev === undefined || lap.lap_duration < prev) {
+          bestByDriver.set(lap.driver_number, lap.lap_duration);
+        }
+      }
+
+      return [...activeDriverNumbers].sort((a, b) => {
+        const aBest = bestByDriver.get(a) ?? null;
+        const bBest = bestByDriver.get(b) ?? null;
+        if (aBest !== null && bBest !== null && aBest !== bBest)
+          return aBest - bBest;
+        if (aBest !== null && bBest === null) return -1;
+        if (aBest === null && bBest !== null) return 1;
+        return referenceAt(a) - referenceAt(b);
+      });
+    };
+
+    const currentOrder = rankAt(currentT);
+
+    if (!isQualiSession(sessionName ?? "") || !qualiPhase) {
+      return {
+        order: currentOrder,
+        eliminatedQ1: [] as number[],
+        eliminatedQ2: [] as number[],
+      };
+    }
+
+    const q1CutoffAbs =
+      qualiPhaseStarts.q2StartMs !== null
+        ? sessionStartMs + Math.max(0, qualiPhaseStarts.q2StartMs - 1)
+        : currentT;
+    const q1Ranking = rankAt(q1CutoffAbs);
+    const eliminatedQ1 = q1Ranking.slice(
+      Math.max(0, q1Ranking.length - q1EliminationCount),
+    );
+
+    if (qualiPhase === "Q2") {
+      const active = currentOrder.filter((n) => !eliminatedQ1.includes(n));
+      return {
+        order: [...active, ...eliminatedQ1],
+        eliminatedQ1,
+        eliminatedQ2: [] as number[],
+      };
+    }
+
+    const q2CutoffAbs =
+      qualiPhaseStarts.q3StartMs !== null
+        ? sessionStartMs + Math.max(0, qualiPhaseStarts.q3StartMs - 1)
+        : currentT;
+    const q2Ranking = rankAt(q2CutoffAbs).filter(
+      (n) => !eliminatedQ1.includes(n),
+    );
+    const eliminatedQ2 = q2Ranking.slice(
+      Math.max(0, q2Ranking.length - q2EliminationCount),
+    );
+    const active = currentOrder.filter(
+      (n) => !eliminatedQ1.includes(n) && !eliminatedQ2.includes(n),
+    );
+
+    return {
+      order: [...active, ...eliminatedQ2, ...eliminatedQ1],
+      eliminatedQ1,
+      eliminatedQ2,
+    };
+  }, [
+    drivers,
+    posMap,
+    laps,
+    currentT,
+    referenceOrderMap,
+    sessionName,
+    qualiPhase,
+    qualiPhaseStarts.q2StartMs,
+    qualiPhaseStarts.q3StartMs,
+    sessionStartMs,
+  ]);
+
+  const sorted = useMemo<SortedRow[]>(() => {
+    const timed = isTimedSession(sessionName ?? "");
+    if (timed) {
+      return timedOrder.order.map((driverNumber, idx) => ({
+        driverNumber,
+        displayPosition: idx + 1,
+        eliminatedPhase: timedOrder.eliminatedQ2.includes(driverNumber)
+          ? "Q2"
+          : timedOrder.eliminatedQ1.includes(driverNumber)
+            ? "Q1"
+            : null,
+      }));
+    }
+
+    return [...posMap.entries()]
+      .sort((a, b) => a[1] - b[1])
+      .map(([driverNumber, displayPosition]) => ({
+        driverNumber,
+        displayPosition,
+        eliminatedPhase: null,
+      }));
+  }, [posMap, sessionName, timedOrder]);
+
+  const leaderBestLap = useMemo(() => {
+    const leader = sorted[0];
+    if (!leader) return null;
+    return bestLapMap.get(leader.driverNumber)?.lap_duration ?? null;
+  }, [sorted, bestLapMap]);
 
   const hasSectorReference = Boolean(
     sessionBestOwners.s1 || sessionBestOwners.s2 || sessionBestOwners.s3,
@@ -646,12 +849,15 @@ export function LiveTiming({
             </tr>
           </thead>
           <tbody>
-            {sorted.map(([num, pos], idx) => {
+            {sorted.map((row, idx) => {
+              const num = row.driverNumber;
+              const pos = row.displayPosition;
               const driver = driverByNumber.get(num);
               const intData = intMap.get(num);
               const color = teamColor(driver?.team_colour);
               const inPit = pittingNow.has(num);
               const lastLap = lastLapMap.get(num) ?? null;
+              const bestLap = bestLapMap.get(num) ?? null;
               const currentLap = currentLapMap.get(num) ?? null;
               const car = carData?.get(num) ?? null;
               const speedValue = car
@@ -690,14 +896,25 @@ export function LiveTiming({
                 pb.s3,
               );
               const lapTier = lapTimeTier(
-                lastLap?.lap_duration ?? null,
+                bestLap?.lap_duration ?? null,
                 sessionBest.lap,
               );
 
               const startPos = gridMap.get(num) ?? startPosMap.get(num) ?? null;
               const gained = startPos !== null ? startPos - pos : null;
               const retired = retiredDrivers.has(num);
+              const eliminated = row.eliminatedPhase !== null;
               const selected = selectedDriver === num;
+
+              const timedGap =
+                leaderBestLap !== null && bestLap?.lap_duration !== undefined
+                  ? Math.max(0, bestLap.lap_duration - leaderBestLap)
+                  : null;
+              const gapValue = isTimedSession(sessionName ?? "")
+                ? pos === 1
+                  ? 0
+                  : timedGap
+                : (intData?.gap_to_leader ?? null);
 
               // Check if the last lap is a post-race outlap
               const isOutlap =
@@ -710,11 +927,13 @@ export function LiveTiming({
 
               const rowBg = selected
                 ? "bg-[#2a2a35]"
-                : retired
-                  ? "opacity-50"
-                  : idx % 2 === 1
-                    ? "bg-white/[0.02] hover:bg-white/[0.06]"
-                    : "hover:bg-white/[0.06]";
+                : eliminated
+                  ? "bg-[#22162e]/70"
+                  : retired
+                    ? "opacity-50"
+                    : idx % 2 === 1
+                      ? "bg-white/[0.02] hover:bg-white/[0.06]"
+                      : "hover:bg-white/[0.06]";
 
               return (
                 <tr
@@ -751,9 +970,15 @@ export function LiveTiming({
                         >
                           {driver?.name_acronym ?? num}
                         </span>
-                        {(retired || isOutlap || inPit) && (
+                        {(eliminated || retired || isOutlap || inPit) && (
                           <span className="ml-auto shrink-0">
-                            {retired ? (
+                            {eliminated ? (
+                              <span
+                                className={`inline-flex bg-[#3a214a] text-[#e7c7ff] font-black uppercase tracking-widest ${statusBadgeClass}`}
+                              >
+                                OUT {row.eliminatedPhase}
+                              </span>
+                            ) : retired ? (
                               <span
                                 className={`hidden min-[390px]:inline-flex bg-[#3a1010] text-[#ff5252] font-black uppercase tracking-widest ${statusBadgeClass}`}
                               >
@@ -832,14 +1057,14 @@ export function LiveTiming({
                   <td
                     className={`${rowCellPad} align-middle px-1 text-right font-mono ${dense ? "text-[10px] min-[390px]:text-[11px]" : "text-[11px] min-[390px]:text-[12px]"} tabular-nums sm:px-2 ${LAP_TIME_COLOUR[lapTier]}`}
                   >
-                    {fmtTime(lastLap?.lap_duration ?? null)}
+                    {fmtTime(bestLap?.lap_duration ?? null)}
                   </td>
 
                   {/* Gap to leader */}
                   <td
                     className={`${rowCellPad} align-middle px-1 text-right font-mono ${dense ? "text-[9px] min-[390px]:text-[10px]" : "text-[10px] min-[390px]:text-[11px]"} tabular-nums text-muted sm:px-2`}
                   >
-                    {fmtGap(intData?.gap_to_leader ?? null)}
+                    {fmtGap(gapValue)}
                   </td>
 
                   {/* Sector bars */}

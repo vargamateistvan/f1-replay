@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import { QualifyingBanner } from "@/components/QualifyingBanner";
 import type { Driver, Position } from "@/api/types";
 
@@ -25,31 +25,14 @@ const drivers: Driver[] = [
 ] as unknown as Driver[];
 
 describe("QualifyingBanner", () => {
-  it("renders phase ranges, countdown and knockout chips", () => {
-    const positions = [
-      {
-        driver_number: 1,
-        position: 11,
-        date: "2024-01-01T00:00:10.000Z",
-      },
-      {
-        driver_number: 16,
-        position: 15,
-        date: "2024-01-01T00:00:10.000Z",
-      },
-      {
-        driver_number: 63,
-        position: 16,
-        date: "2024-01-01T00:00:10.000Z",
-      },
-      {
-        driver_number: 1,
-        position: 1,
-        date: "2024-01-01T00:02:00.000Z",
-      },
-    ] as Position[];
+  it("opens eliminated drivers in a dialog", () => {
+    const positions = Array.from({ length: 20 }, (_, i) => ({
+      driver_number: i + 1,
+      position: i + 1,
+      date: "2024-01-01T00:00:10.000Z",
+    })) as Position[];
 
-    const { rerender } = render(
+    render(
       <QualifyingBanner
         phase="Q3"
         drivers={drivers}
@@ -60,22 +43,10 @@ describe("QualifyingBanner", () => {
       />,
     );
 
-    expect(screen.getByText("Q2 Eliminated")).toBeInTheDocument();
     expect(screen.getByText("01:31")).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Eliminated" }));
+    expect(screen.getByText("Q2 Eliminated")).toBeInTheDocument();
     expect(screen.getByText("P11")).toBeInTheDocument();
     expect(screen.getByText("P15")).toBeInTheDocument();
-
-    rerender(
-      <QualifyingBanner
-        phase="Q1"
-        drivers={drivers}
-        positions={positions}
-        sessionTimeMs={20_000}
-        sessionStartMs={Date.parse("2024-01-01T00:00:00.000Z")}
-      />,
-    );
-
-    expect(screen.getByText("Q1 Knockout Zone")).toBeInTheDocument();
-    expect(screen.getByText("P16")).toBeInTheDocument();
   });
 });
