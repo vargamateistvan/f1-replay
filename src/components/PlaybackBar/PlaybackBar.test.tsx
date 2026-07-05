@@ -13,22 +13,30 @@ const { timelineState, mockUseTimeline } = vi.hoisted(() => {
     setPlaying: vi.fn(),
   };
 
+  type TimelineState = typeof timelineState;
+  type SelectorReturn = number | boolean | (() => void);
+
+  interface MockUseTimeline {
+    (selector: (s: TimelineState) => SelectorReturn): SelectorReturn;
+    (selector?: undefined): TimelineState;
+    getState: () => TimelineState;
+    subscribe: (listener: (s: TimelineState) => void) => () => void;
+  }
+
   const mockUseTimeline = vi.fn(
-    (selector?: (s: typeof timelineState) => any) => {
+    (selector?: (s: TimelineState) => SelectorReturn) => {
       if (typeof selector === "function") {
         return selector(timelineState);
       }
       return timelineState;
     },
-  ) as any;
+  ) as unknown as MockUseTimeline;
 
   mockUseTimeline.getState = () => timelineState;
-  mockUseTimeline.subscribe = vi.fn(
-    (listener: (s: typeof timelineState) => void) => {
-      listener(timelineState);
-      return () => {};
-    },
-  );
+  mockUseTimeline.subscribe = vi.fn((listener: (s: TimelineState) => void) => {
+    listener(timelineState);
+    return () => {};
+  });
 
   return { timelineState, mockUseTimeline };
 });
