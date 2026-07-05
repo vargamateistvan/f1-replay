@@ -1055,17 +1055,6 @@ export default function RaceWeekend() {
         </div>
       )}
 
-      {sessionStartMs > 0 && isQualiSession(sessionName) && qualiPhase && (
-        <QualifyingBanner
-          phase={qualiPhase}
-          drivers={drivers.data ?? []}
-          positions={positions.data ?? []}
-          sessionTimeMs={t}
-          sessionStartMs={sessionStartMs}
-          countdownMs={countdownMs}
-        />
-      )}
-
       {/* Starting lights — absolute overlay, race sessions only */}
       {sessionStartMs > 0 && isRaceSession && lightsOutMs != null && (
         <StartingLights t={t} lightsOutMs={lightsOutMs} />
@@ -1079,6 +1068,8 @@ export default function RaceWeekend() {
             raceControl={raceControl.data ?? []}
             sessionTimeMs={t}
             sessionStartMs={sessionStartMs}
+            qualiPhase={qualiPhase}
+            countdownMs={countdownMs}
             airTemp={weatherAtT?.air_temperature ?? null}
             trackTemp={weatherAtT?.track_temperature ?? null}
             isRaceSession={isRaceSession}
@@ -1129,6 +1120,8 @@ export default function RaceWeekend() {
             raceControl={raceControl.data ?? []}
             sessionTimeMs={t}
             sessionStartMs={sessionStartMs}
+            qualiPhase={qualiPhase}
+            countdownMs={countdownMs}
             airTemp={weatherAtT?.air_temperature ?? null}
             trackTemp={weatherAtT?.track_temperature ?? null}
             isRaceSession={isRaceSession}
@@ -1488,6 +1481,8 @@ export default function RaceWeekend() {
             raceControl={raceControl.data ?? []}
             sessionTimeMs={t}
             sessionStartMs={sessionStartMs}
+            qualiPhase={qualiPhase}
+            countdownMs={countdownMs}
             airTemp={weatherAtT?.air_temperature ?? null}
             trackTemp={weatherAtT?.track_temperature ?? null}
             isRaceSession={isRaceSession}

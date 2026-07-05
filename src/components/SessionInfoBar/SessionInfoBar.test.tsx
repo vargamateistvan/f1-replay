@@ -98,4 +98,30 @@ describe("SessionInfoBar", () => {
       expect(screen.queryByText("Jump To Lap")).not.toBeInTheDocument();
     });
   });
+
+  it("renders qualifying elimination tile in the left slot", () => {
+    const onShowEliminations = vi.fn();
+    const sessionStartMs = Date.parse("2024-01-01T00:00:00.000Z");
+
+    render(
+      <SessionInfoBar
+        laps={[] as Lap[]}
+        raceControl={[] as RaceControl[]}
+        sessionTimeMs={0}
+        sessionStartMs={sessionStartMs}
+        qualiPhase="Q2"
+        countdownMs={2_305_000}
+        onShowEliminations={onShowEliminations}
+      />,
+    );
+
+    expect(screen.queryByText("Lap")).not.toBeInTheDocument();
+    expect(screen.getByText("Q2")).toBeInTheDocument();
+    expect(screen.getByText("38:25")).toBeInTheDocument();
+
+    fireEvent.click(
+      screen.getByRole("button", { name: "Show eliminated drivers" }),
+    );
+    expect(onShowEliminations).toHaveBeenCalledTimes(1);
+  });
 });
