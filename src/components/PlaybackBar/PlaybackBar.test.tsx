@@ -13,18 +13,22 @@ const { timelineState, mockUseTimeline } = vi.hoisted(() => {
     setPlaying: vi.fn(),
   };
 
-  const mockUseTimeline = vi.fn((selector?: (s: typeof timelineState) => any) => {
-    if (typeof selector === "function") {
-      return selector(timelineState);
-    }
-    return timelineState;
-  }) as any;
+  const mockUseTimeline = vi.fn(
+    (selector?: (s: typeof timelineState) => any) => {
+      if (typeof selector === "function") {
+        return selector(timelineState);
+      }
+      return timelineState;
+    },
+  ) as any;
 
   mockUseTimeline.getState = () => timelineState;
-  mockUseTimeline.subscribe = vi.fn((listener: (s: typeof timelineState) => void) => {
-    listener(timelineState);
-    return () => {};
-  });
+  mockUseTimeline.subscribe = vi.fn(
+    (listener: (s: typeof timelineState) => void) => {
+      listener(timelineState);
+      return () => {};
+    },
+  );
 
   return { timelineState, mockUseTimeline };
 });

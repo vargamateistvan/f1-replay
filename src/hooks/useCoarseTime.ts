@@ -1,5 +1,5 @@
-import { useState, useEffect } from 'react'
-import { useTimeline } from '@/timeline/clock'
+import { useState, useEffect } from "react";
+import { useTimeline } from "@/timeline/clock";
 
 // Returns `t` (session-relative ms) throttled to at most once per `intervalMs`.
 // Use this in step-based panels (LiveTiming, StrategyBar, Weather, etc.) so they
@@ -8,23 +8,23 @@ import { useTimeline } from '@/timeline/clock'
 export function useCoarseTime(intervalMs = 100): number {
   const [coarse, setCoarse] = useState(() => {
     try {
-      return useTimeline.getState().t
+      return useTimeline.getState().t;
     } catch {
-      return 0
+      return 0;
     }
-  })
+  });
 
   useEffect(() => {
-    let lastUpdate = 0
+    let lastUpdate = 0;
     const unsubscribe = useTimeline.subscribe?.((s) => {
-      const now = Date.now()
+      const now = Date.now();
       if (now - lastUpdate >= intervalMs) {
-        lastUpdate = now
-        setCoarse(s.t)
+        lastUpdate = now;
+        setCoarse(s.t);
       }
-    })
-    return unsubscribe ?? (() => {})
-  }, [intervalMs])
+    });
+    return unsubscribe ?? (() => {});
+  }, [intervalMs]);
 
-  return coarse
+  return coarse;
 }
