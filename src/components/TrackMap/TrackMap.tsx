@@ -1904,9 +1904,10 @@ export function TrackMap({
                   )}
                   {showLabel && (
                     <text
-                      x={focused ? 10 : 7}
+                      x={focused ? 15 : 10}
                       y={-5}
-                      transform={`rotate(${-rotationDeg.toFixed(1)} ${(focused ? 10 : 7).toFixed(1)} ${(-5).toFixed(1)})`}
+                      textAnchor="end"
+                      transform={`rotate(${-rotationDeg.toFixed(1)} ${(focused ? 15 : 10).toFixed(1)} ${(-5).toFixed(1)})`}
                       fontSize={focused ? 9 : 8}
                       fill={color}
                       fontFamily="Inter, sans-serif"
@@ -1928,6 +1929,8 @@ export function TrackMap({
               x={SVG_W / 2}
               y={SVG_H / 2}
               textAnchor="middle"
+              dominantBaseline="middle"
+              transform={`rotate(${-rotationDeg.toFixed(1)} ${SVG_W / 2} ${SVG_H / 2})`}
               fill="#636369"
               fontSize={11}
               fontFamily="Inter, sans-serif"
