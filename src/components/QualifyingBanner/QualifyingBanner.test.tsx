@@ -45,8 +45,12 @@ describe("QualifyingBanner", () => {
 
     expect(screen.getByText("01:31")).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "Eliminated" }));
-    expect(screen.getByText("Q2 Eliminated")).toBeInTheDocument();
+    expect(screen.getByText("Q1 & Q2 Eliminated")).toBeInTheDocument();
+    expect(screen.getAllByText("Q2 Eliminated").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("Q1 Eliminated").length).toBeGreaterThan(0);
     expect(screen.getByText("P11")).toBeInTheDocument();
     expect(screen.getByText("P15")).toBeInTheDocument();
+    expect(screen.getByText("P16")).toBeInTheDocument();
+    expect(screen.getByText("P20")).toBeInTheDocument();
   });
 });

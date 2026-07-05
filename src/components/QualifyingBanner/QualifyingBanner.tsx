@@ -20,6 +20,12 @@ interface EliminatedDriver {
   position: number;
 }
 
+interface EliminationGroup {
+  title: string;
+  subtitle: string;
+  range: [number, number] | null;
+}
+
 const Q3_GRID_SIZE = 10;
 
 function fmtCountdown(ms: number): string {
@@ -35,40 +41,65 @@ function bannerMeta(
 ): {
   title: string;
   subtitle: string;
-  range: [number, number] | null;
+  groups: EliminationGroup[];
 } {
   const eliminatedTotal = Math.max(0, fieldSize - Q3_GRID_SIZE);
   const q1EliminationCount = Math.floor(eliminatedTotal / 2);
   const q2EliminationCount = eliminatedTotal - q1EliminationCount;
+  const q1MinPos = fieldSize - q1EliminationCount + 1;
+  const q2MinPos = Q3_GRID_SIZE + 1;
+  const q2MaxPos = Q3_GRID_SIZE + q2EliminationCount;
 
   if (phase === "Q1") {
     return {
       title: "Q1 Running",
       subtitle: "No drivers eliminated yet",
-      range: null,
+      groups: [],
     };
   }
   if (phase === "Q2") {
-    const minPos = fieldSize - q1EliminationCount + 1;
+    const q1Subtitle =
+      q1EliminationCount === 1
+        ? "1 driver out"
+        : `${q1EliminationCount} drivers out`;
     return {
       title: "Q1 Eliminated",
-      subtitle:
-        q1EliminationCount === 1
-          ? "1 driver out"
-          : `${q1EliminationCount} drivers out`,
-      range: q1EliminationCount > 0 ? [Math.max(1, minPos), fieldSize] : null,
+      subtitle: q1Subtitle,
+      groups: [
+        {
+          title: "Q1 Eliminated",
+          subtitle: q1Subtitle,
+          range:
+            q1EliminationCount > 0 ? [Math.max(1, q1MinPos), fieldSize] : null,
+        },
+      ],
     };
   }
 
-  const q2MinPos = Q3_GRID_SIZE + 1;
-  const q2MaxPos = Q3_GRID_SIZE + q2EliminationCount;
+  const q1Subtitle =
+    q1EliminationCount === 1
+      ? "1 driver out"
+      : `${q1EliminationCount} drivers out`;
+  const q2Subtitle =
+    q2EliminationCount === 1
+      ? "1 driver out"
+      : `${q2EliminationCount} drivers out`;
   return {
-    title: "Q2 Eliminated",
-    subtitle:
-      q2EliminationCount === 1
-        ? "1 driver out"
-        : `${q2EliminationCount} drivers out`,
-    range: q2EliminationCount > 0 ? [q2MinPos, q2MaxPos] : null,
+    title: "Q1 & Q2 Eliminated",
+    subtitle: `${Math.max(0, q1EliminationCount + q2EliminationCount)} drivers out`,
+    groups: [
+      {
+        title: "Q2 Eliminated",
+        subtitle: q2Subtitle,
+        range: q2EliminationCount > 0 ? [q2MinPos, q2MaxPos] : null,
+      },
+      {
+        title: "Q1 Eliminated",
+        subtitle: q1Subtitle,
+        range:
+          q1EliminationCount > 0 ? [Math.max(1, q1MinPos), fieldSize] : null,
+      },
+    ],
   };
 }
 
@@ -111,15 +142,24 @@ export function QualifyingBanner({
     return bannerMeta(phase, fieldSize);
   }, [phase, fieldSize]);
 
-  const eliminatedDrivers = useMemo<EliminatedDriver[]>(() => {
-    if (!phase || !meta) return [];
-    const range = meta.range;
-    if (!range) return [];
-    const [minPos, maxPos] = range;
-    return [...latestPositions.entries()]
-      .map(([driverNumber, position]) => ({ driverNumber, position }))
-      .filter((entry) => entry.position >= minPos && entry.position <= maxPos)
-      .sort((a, b) => a.position - b.position);
+  const eliminatedGroups = useMemo(() => {
+    if (!phase || !meta)
+      return [] as Array<EliminationGroup & { drivers: EliminatedDriver[] }>;
+    return meta.groups
+      .map((group) => {
+        if (!group.range) {
+          return { ...group, drivers: [] as EliminatedDriver[] };
+        }
+        const [minPos, maxPos] = group.range;
+        const driversInGroup = [...latestPositions.entries()]
+          .map(([driverNumber, position]) => ({ driverNumber, position }))
+          .filter(
+            (entry) => entry.position >= minPos && entry.position <= maxPos,
+          )
+          .sort((a, b) => a.position - b.position);
+        return { ...group, drivers: driversInGroup };
+      })
+      .filter((group) => group.range !== null);
   }, [phase, meta, latestPositions]);
 
   useEffect(() => {
@@ -194,39 +234,61 @@ export function QualifyingBanner({
             </div>
 
             <div className="px-4 py-4 sm:px-5">
-              {eliminatedDrivers.length === 0 ? (
+              {eliminatedGroups.every((group) => group.drivers.length === 0) ? (
                 <div className="rounded border border-panel bg-track px-3 py-3 text-sm text-muted">
                   No eliminated drivers available yet.
                 </div>
               ) : (
-                <div className="grid gap-2 sm:grid-cols-2">
-                  {eliminatedDrivers.map((entry) => {
-                    const driver = driverByNumber.get(entry.driverNumber);
-                    const color = teamColor(driver?.team_colour);
-                    return (
-                      <div
-                        key={entry.driverNumber}
-                        className="flex items-center gap-2 rounded border border-panel bg-track px-3 py-2"
-                      >
-                        <span className="font-mono text-xs tabular-nums text-white/65">
-                          P{entry.position}
+                <div className="space-y-4">
+                  {eliminatedGroups.map((group) => (
+                    <div key={group.title} className="space-y-2">
+                      <div className="flex items-center justify-between border-b border-panel/80 pb-1">
+                        <span className="text-[10px] font-black uppercase tracking-[0.14em] text-white/90">
+                          {group.title}
                         </span>
-                        <span
-                          className="h-4 w-[3px] rounded-sm"
-                          style={{ background: color }}
-                        />
-                        <span
-                          className="text-xs font-black uppercase tracking-[0.12em]"
-                          style={{ color }}
-                        >
-                          {driver?.name_acronym ?? entry.driverNumber}
-                        </span>
-                        <span className="ml-auto text-[10px] uppercase tracking-[0.12em] text-white/55">
-                          out
+                        <span className="text-[10px] uppercase tracking-[0.12em] text-white/55">
+                          {group.subtitle}
                         </span>
                       </div>
-                    );
-                  })}
+                      {group.drivers.length === 0 ? (
+                        <div className="rounded border border-panel bg-track px-3 py-2 text-xs text-muted">
+                          No drivers locked out in this group yet.
+                        </div>
+                      ) : (
+                        <div className="grid gap-2 sm:grid-cols-2">
+                          {group.drivers.map((entry) => {
+                            const driver = driverByNumber.get(
+                              entry.driverNumber,
+                            );
+                            const color = teamColor(driver?.team_colour);
+                            return (
+                              <div
+                                key={`${group.title}-${entry.driverNumber}`}
+                                className="flex items-center gap-2 rounded border border-panel bg-track px-3 py-2"
+                              >
+                                <span className="font-mono text-xs tabular-nums text-white/65">
+                                  P{entry.position}
+                                </span>
+                                <span
+                                  className="h-4 w-[3px] rounded-sm"
+                                  style={{ background: color }}
+                                />
+                                <span
+                                  className="text-xs font-black uppercase tracking-[0.12em]"
+                                  style={{ color }}
+                                >
+                                  {driver?.name_acronym ?? entry.driverNumber}
+                                </span>
+                                <span className="ml-auto text-[10px] uppercase tracking-[0.12em] text-white/55">
+                                  out
+                                </span>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      )}
+                    </div>
+                  ))}
                 </div>
               )}
             </div>
