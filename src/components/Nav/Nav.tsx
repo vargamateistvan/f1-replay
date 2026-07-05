@@ -579,7 +579,7 @@ export function Nav() {
         nextMeetingCountdown && (
           <div className="border-b border-panel">
             <div
-              className="flex items-center gap-3 min-w-0 bg-black py-1.5"
+              className="flex items-center gap-3 min-w-0 bg-track py-1.5 border-t border-panel"
               role="button"
               tabIndex={0}
               onClick={() => setShowNextAgenda(true)}
@@ -599,37 +599,39 @@ export function Nav() {
                   <img
                     src={nextMeeting.country_flag}
                     alt={`${nextMeeting.country_name} flag`}
-                    className="h-4 w-6 object-cover rounded-[2px] border border-white/20 shrink-0"
+                    className="h-4 w-6 object-cover rounded-[2px] border border-white/20 shrink-0 light:border-slate-300"
                     loading="lazy"
                     referrerPolicy="no-referrer"
                   />
                 )}
                 <div className="min-w-0">
-                  <div className="text-[11px] font-black text-white tracking-wide truncate">
+                  <div className="text-[11px] font-black text-white tracking-wide truncate light:text-slate-900">
                     {nextMeeting.country_name}{" "}
-                    <span className="text-white/60">›</span>
+                    <span className="text-white/60 light:text-slate-500">
+                      ›
+                    </span>
                   </div>
-                  <div className="text-[9px] font-semibold uppercase tracking-[0.08em] text-white/60 truncate">
+                  <div className="text-[9px] font-semibold uppercase tracking-[0.08em] text-white/60 truncate light:text-slate-500">
                     {nextMeeting.circuit_short_name}
                   </div>
                 </div>
               </div>
 
               <div className="min-w-0">
-                <div className="flex items-center gap-2 text-[9px] font-black uppercase tracking-[0.14em] text-white/85">
+                <div className="flex items-center gap-2 text-[9px] font-black uppercase tracking-[0.14em] text-white/85 light:text-slate-700">
                   {nextMeetingRound !== null && (
                     <span className="shrink-0">
                       R{String(nextMeetingRound).padStart(2, "0")}
                     </span>
                   )}
-                  <span className="text-white/45">|</span>
+                  <span className="text-white/45 light:text-slate-400">|</span>
                   <span className="shrink-0">
                     {nextMeetingDateRange ?? "TBA"}
                   </span>
                 </div>
               </div>
 
-              <span className="ml-auto h-6 px-2 rounded-sm bg-white/5 text-[9px] font-mono text-f1red shrink-0 inline-flex items-center">
+              <span className="ml-auto h-6 px-2 rounded-sm bg-white/5 text-[9px] font-mono text-f1red shrink-0 inline-flex items-center light:bg-slate-100">
                 {nextMeetingCountdown}
               </span>
 
@@ -641,7 +643,7 @@ export function Nav() {
                 }}
                 aria-label="Hide next race banner"
                 title="Hide banner"
-                className="h-6 w-6 shrink-0 inline-flex items-center justify-center rounded-sm text-white/65 hover:text-white hover:bg-white/10"
+                className="h-6 w-6 shrink-0 inline-flex items-center justify-center rounded-sm text-white/65 hover:text-white hover:bg-white/10 light:text-slate-500 light:hover:text-slate-800 light:hover:bg-slate-100"
               >
                 ×
               </button>
