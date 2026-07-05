@@ -270,6 +270,15 @@ export function LiveTiming({
     return s;
   }, [pits, currentT]);
 
+  const pitCountMap = useMemo(() => {
+    const m = new Map<number, number>();
+    for (const p of pits) {
+      if (new Date(p.date).getTime() > currentT) continue;
+      m.set(p.driver_number, (m.get(p.driver_number) ?? 0) + 1);
+    }
+    return m;
+  }, [pits, currentT]);
+
   const completedLaps = useMemo(
     () =>
       laps.filter(
@@ -809,6 +818,11 @@ export function LiveTiming({
                 Tyre
               </th>
               <th
+                className={`${headerCellClass} text-center w-[2.25rem] lg:w-[2.5rem]`}
+              >
+                Pit
+              </th>
+              <th
                 className={`${headerCellClass} hidden sm:table-cell text-center w-16`}
               >
                 Lap
@@ -1182,6 +1196,13 @@ export function LiveTiming({
                         wideSectors ? (startCompoundMap.get(num) ?? null) : null
                       }
                     />
+                  </td>
+
+                  {/* Pit stops completed up to current playhead */}
+                  <td
+                    className={`${rowCellPad} align-middle px-1 text-center font-mono ${dense ? "text-[10px]" : "text-[11px] min-[390px]:text-[12px]"} tabular-nums text-muted sm:px-1.5`}
+                  >
+                    {pitCountMap.get(num) ?? 0}
                   </td>
 
                   {/* Current lap */}
