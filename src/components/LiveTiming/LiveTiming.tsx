@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { memo, useMemo } from "react";
 import type {
   Driver,
   Position,
@@ -1263,3 +1263,5 @@ export function LiveTiming({
     </div>
   );
 }
+
+export default memo(LiveTiming);

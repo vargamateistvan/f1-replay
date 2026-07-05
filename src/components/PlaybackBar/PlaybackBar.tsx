@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { memo, useCallback, useEffect, useRef, useState } from "react";
 import {
   FastForward,
   Pause,
@@ -8,6 +8,7 @@ import {
   SkipForward,
 } from "lucide-react";
 import { useTimeline } from "@/timeline/clock";
+import { useCoarseTime } from "@/hooks/useCoarseTime";
 import { useMediaQuery } from "@/hooks/useMediaQuery";
 import { SPEEDS } from "@/constants";
 import { nextAfter, prevBefore } from "@/timeline/events";
@@ -58,8 +59,13 @@ const JUMP_BTN =
 const CHIP_STRETCH =
   "h-7 shrink-0 px-3 flex items-center justify-center text-[10px] font-black uppercase tracking-widest bg-panel text-muted hover:text-white hover:bg-[#38383f] transition-colors sm:flex-none sm:px-3 disabled:opacity-30 disabled:hover:bg-panel disabled:hover:text-muted";
 
-function SpeedButtons({ className }: { className?: string }) {
-  const { speed, setSpeed } = useTimeline();
+const SpeedButtons = memo(function SpeedButtons({
+  className,
+}: {
+  className?: string;
+}) {
+  const speed = useTimeline((s) => s.speed);
+  const setSpeed = useTimeline((s) => s.setSpeed);
   return (
     <div className={className}>
       {SPEEDS.map((s) => (
@@ -79,7 +85,7 @@ function SpeedButtons({ className }: { className?: string }) {
       ))}
     </div>
   );
-}
+});
 
 export function PlaybackBar({
   durationMs,
@@ -102,7 +108,13 @@ export function PlaybackBar({
   showSpeedControls = true,
   showEventChips = true,
 }: Props) {
-  const { t, playing, toggle, setT, setPlaying } = useTimeline();
+  // Subscribe to t at ~30 fps — smooth enough for a scrubber without forcing
+  // a full re-render on every 60-fps RAF tick.
+  const t = useCoarseTime(33);
+  const playing = useTimeline((s) => s.playing);
+  const toggle = useTimeline((s) => s.toggle);
+  const setT = useTimeline((s) => s.setT);
+  const setPlaying = useTimeline((s) => s.setPlaying);
   const [showMarkers, setShowMarkers] = useState(true);
   const isCompactViewport = useMediaQuery("(max-width: 639px)");
   const hasClampedRef = useRef(false);

@@ -1,6 +1,6 @@
 import { useMemo } from "react";
 import type { Driver } from "@/api/types";
-import { useTimeline } from "@/timeline/clock";
+import { useCoarseTime } from "@/hooks/useCoarseTime";
 import { useCarDataWindow } from "@/hooks/useCarDataWindow";
 import { useCarDataForLap } from "@/hooks/useCarDataForLap";
 import { chunkIndexFor } from "@/hooks/useLocationChunks";
@@ -33,7 +33,9 @@ export function FocusedTelemetry({
   onClear,
   onClearCompare,
 }: Props) {
-  const { t } = useTimeline();
+  // chunkIndexFor(t) only changes every 5 minutes — 500 ms resolution is more
+  // than sufficient and avoids 60-fps re-renders from a direct useTimeline() call.
+  const t = useCoarseTime(500);
   const metricSystem = useSettings((s) => s.metricSystem);
   const chunkIdx = chunkIndexFor(t);
   const { data } = useCarDataWindow(

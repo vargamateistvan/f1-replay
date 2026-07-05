@@ -18,13 +18,13 @@ import {
 } from "@/hooks/useCarDataForLap";
 import { useCarDataWindow } from "@/hooks/useCarDataWindow";
 import { chunkIndexFor } from "@/hooks/useLocationChunks";
+import { useCoarseTime } from "@/hooks/useCoarseTime";
 import {
   computeTrackAutoRotationDeg,
   useTrackOutline,
   locationToSvg,
 } from "@/hooks/useTrackMap";
 import { buildIndex, interpolateXY } from "@/timeline/interpolate";
-import { useTimeline } from "@/timeline/clock";
 import { teamColor } from "@/utils/color";
 import { useSettings } from "@/stores/settings";
 import { resampleToAxis } from "@/utils/telemetry";
@@ -202,7 +202,7 @@ export function TrackMap({
   showEnhancedVisuals = true,
   onSelectDriver,
 }: Props) {
-  const { t } = useTimeline();
+  const t = useCoarseTime(100);
   const lightMode = useSettings((s) => s.lightMode);
   const metricSystem = useSettings((s) => s.metricSystem);
   const mapShowDriverAcronym = useSettings((s) => s.mapShowDriverAcronym);

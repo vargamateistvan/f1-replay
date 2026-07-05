@@ -5,7 +5,7 @@ import {
   type ActiveTrackFlagState,
   type ActiveTrackVehicles,
 } from "@/components/TrackMap/TrackMap";
-import { LiveTiming } from "@/components/LiveTiming/LiveTiming";
+import LiveTiming from "@/components/LiveTiming/LiveTiming";
 import { RaceControlFeed } from "@/components/RaceControl/RaceControl";
 import { WeatherPanel } from "@/components/Weather/WeatherPanel";
 import { StrategyBar } from "@/components/Strategy/StrategyBar";
@@ -168,6 +168,9 @@ export default function RaceWeekend() {
   // Throttled to ~10 Hz. Step-based panels (LiveTiming, Strategy, Weather, etc.)
   // don't need 60 fps; TrackMap drives its own 60 Hz loop internally.
   const t = useCoarseTime();
+  // Coarse time at 2 Hz (500 ms) — for memos that are time-aware but don't need
+  // frame-rate updates (lap state, battle detection, etc.)
+  const tSlow = useCoarseTime(500);
 
   const sessionStartMs = session ? new Date(session.date_start).getTime() : 0;
   const sessionEndMs = session ? new Date(session.date_end).getTime() : 0;
@@ -335,9 +338,9 @@ export default function RaceWeekend() {
   const nextReplayIncident = useMemo(() => {
     const MIN_AHEAD_MS = 250;
     return incidentWindows.find(
-      (w) => w.endMs !== null && w.startMs > t + MIN_AHEAD_MS,
+      (w) => w.endMs !== null && w.startMs > tSlow + MIN_AHEAD_MS,
     );
-  }, [incidentWindows, t]);
+  }, [incidentWindows, tSlow]);
 
   const firstReplayIncident = useMemo(
     () => incidentWindows.find((w) => w.endMs !== null),
@@ -348,12 +351,12 @@ export default function RaceWeekend() {
     const out: number[] = [];
     for (const o of overtakes.data ?? []) {
       const ms = new Date(o.date).getTime() - sessionStartMs;
-      if (ms <= t && t - ms <= OVERTAKE_PULSE_MS) {
+      if (ms <= tSlow && tSlow - ms <= OVERTAKE_PULSE_MS) {
         out.push(o.overtaking_driver_number, o.overtaken_driver_number);
       }
     }
     return out;
-  }, [overtakes.data, sessionStartMs, t]);
+  }, [overtakes.data, sessionStartMs, tSlow]);
 
   // Last completed lap number for the focused driver — used to load heat overlay data.
   // Use the latest lap with a valid duration whose end time is at/before the playhead.
@@ -366,12 +369,12 @@ export default function RaceWeekend() {
       if (lap.lap_duration === null) continue;
       const lapStart = new Date(lap.date_start).getTime() - sessionStartMs;
       const lapEnd = lapStart + lap.lap_duration * 1000;
-      if (lapEnd > t) continue;
+      if (lapEnd > tSlow) continue;
       if (latestCompleted === null || lap.lap_number > latestCompleted)
         latestCompleted = lap.lap_number;
     }
     return latestCompleted;
-  }, [focusDriver, laps.data, sessionStartMs, t]);
+  }, [focusDriver, laps.data, sessionStartMs, tSlow]);
 
   const compareDriverLap = useMemo(() => {
     if (compareDriver === null || !laps.data?.length || !sessionStartMs)
@@ -382,12 +385,12 @@ export default function RaceWeekend() {
       if (lap.lap_duration === null) continue;
       const lapStart = new Date(lap.date_start).getTime() - sessionStartMs;
       const lapEnd = lapStart + lap.lap_duration * 1000;
-      if (lapEnd > t) continue;
+      if (lapEnd > tSlow) continue;
       if (latestCompleted === null || lap.lap_number > latestCompleted)
         latestCompleted = lap.lap_number;
     }
     return latestCompleted;
-  }, [compareDriver, laps.data, sessionStartMs, t]);
+  }, [compareDriver, laps.data, sessionStartMs, tSlow]);
 
   // Current tyre compound + age per driver at the playhead.
   // Rebuilds when lap/stint data arrives or when the coarse time crosses a lap boundary.
@@ -402,7 +405,7 @@ export default function RaceWeekend() {
     for (const lap of laps.data) {
       if (!lap.date_start) continue;
       const lapRelMs = new Date(lap.date_start).getTime() - sessionStartMs;
-      if (lapRelMs > t) continue;
+      if (lapRelMs > tSlow) continue;
       const prev = currentLapByDriver.get(lap.driver_number);
       if (prev === undefined || lap.lap_number > prev)
         currentLapByDriver.set(lap.driver_number, lap.lap_number);
@@ -421,13 +424,13 @@ export default function RaceWeekend() {
         });
     }
     return result;
-  }, [laps.data, stints.data, sessionStartMs, t]);
+  }, [laps.data, stints.data, sessionStartMs, tSlow]);
 
   // Cars within 1.0 s of the car ahead → highlight DRS battle on the map.
   const battlingDrivers = useMemo(() => {
     const result = new Set<number>();
     if (!intervals.data?.length || !sessionStartMs) return result;
-    const cutoffMs = sessionStartMs + t;
+    const cutoffMs = sessionStartMs + tSlow;
     const latest = new Map<
       number,
       { ms: number; interval: number | string | null }
@@ -443,14 +446,14 @@ export default function RaceWeekend() {
       if (typeof interval === "number" && interval <= 1.0) result.add(num);
     }
     return result;
-  }, [intervals.data, sessionStartMs, t]);
+  }, [intervals.data, sessionStartMs, tSlow]);
 
   const retiredDrivers = useMemo((): ReadonlySet<number> => {
     return deriveRetiredDrivers({
       positions: positions.data ?? [],
       laps: laps.data ?? [],
       raceControl: raceControl.data ?? [],
-      currentT: sessionStartMs + t,
+      currentT: sessionStartMs + tSlow,
       isRaceSession,
     });
   }, [
@@ -458,7 +461,7 @@ export default function RaceWeekend() {
     laps.data,
     raceControl.data,
     sessionStartMs,
-    t,
+    tSlow,
     isRaceSession,
   ]);
 
@@ -468,9 +471,9 @@ export default function RaceWeekend() {
     return deriveTrackFlagState(
       raceControl.data ?? [],
       sessionStartMs,
-      sessionStartMs + t,
+      sessionStartMs + tSlow,
     );
-  }, [raceControl.data, sessionStartMs, t]);
+  }, [raceControl.data, sessionStartMs, tSlow]);
 
   const activeTrackVehicles = useMemo<ActiveTrackVehicles | null>(() => {
     if (!sessionStartMs) return null;
@@ -482,9 +485,9 @@ export default function RaceWeekend() {
     const formationLap =
       isRaceSession &&
       lightsOutMs != null &&
-      t >= 0 &&
-      t < Math.max(0, lightsOutMs - LIGHTS_SEQUENCE_MS);
-    const cutoff = sessionStartMs + t;
+      tSlow >= 0 &&
+      tSlow < Math.max(0, lightsOutMs - LIGHTS_SEQUENCE_MS);
+    const cutoff = sessionStartMs + tSlow;
 
     for (const entry of raceControl.data ?? []) {
       if (new Date(entry.date).getTime() > cutoff) break;
@@ -530,7 +533,7 @@ export default function RaceWeekend() {
 
     if (!safetyCar && !vsc && !medicalCar && !formationLap) return null;
     return { safetyCar, vsc, medicalCar, formationLap };
-  }, [raceControl.data, sessionStartMs, t, isRaceSession, lightsOutMs]);
+  }, [raceControl.data, sessionStartMs, tSlow, isRaceSession, lightsOutMs]);
 
   const {
     toastsEnabled,
@@ -610,26 +613,26 @@ export default function RaceWeekend() {
       let hi = arr.length;
       while (lo < hi) {
         const mid = (lo + hi) >>> 1;
-        if (arr[mid]!.ms <= t) lo = mid + 1;
+        if (arr[mid]!.ms <= tSlow) lo = mid + 1;
         else hi = mid;
       }
       const s = arr[lo - 1]?.d;
       if (s) m.set(num, s);
     }
     return m;
-  }, [carSamplesByDriver, t]);
+  }, [carSamplesByDriver, tSlow]);
 
   // Latest weather sample at or before the playhead.
   const weatherAtT = useMemo(() => {
     if (!sessionStartMs || !(weather.data?.length ?? 0)) return null;
-    const cutoff = sessionStartMs + t;
+    const cutoff = sessionStartMs + tSlow;
     let latest = null;
     for (const w of weather.data ?? []) {
       if (new Date(w.date).getTime() > cutoff) break;
       latest = w;
     }
     return latest;
-  }, [weather.data, sessionStartMs, t]);
+  }, [weather.data, sessionStartMs, tSlow]);
 
   // Apply default speed when a new session loads.
   useEffect(() => {
