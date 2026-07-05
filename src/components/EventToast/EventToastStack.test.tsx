@@ -82,7 +82,7 @@ describe("EventToastStack", () => {
 
     expect(
       screen.getByRole("region", { name: "Live race notifications" }),
-    ).toHaveClass("top-[calc(4.5rem+env(safe-area-inset-top))]");
+    ).toHaveClass("top-[calc(4.5rem+env(safe-area-inset-top)+20px)]");
   });
 
   it("renders radio toast and toggles play/stop", () => {
