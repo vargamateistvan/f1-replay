@@ -7,6 +7,7 @@ const SITE_URL = "https://f1replay.app";
 const DEFAULT_IMAGE_URL = `${SITE_URL}/og-cover.svg`;
 const DEFAULT_IMAGE_ALT =
   "F1 Replay app preview showing telemetry, strategy, and live timing";
+const DEFAULT_LOCALE = "en_US";
 
 type RouteDefinition = {
   path: string;
@@ -18,6 +19,8 @@ type RouteDefinition = {
   priority: string;
   prerender: boolean;
 };
+
+type JsonLd = Record<string, unknown>;
 
 const ROUTES: Record<string, RouteDefinition> = Object.fromEntries(
   (routeEntries as RouteDefinition[]).map((route) => [
@@ -67,7 +70,20 @@ function upsertCanonical(href: string) {
   node.setAttribute("href", href);
 }
 
-function upsertJsonLd(jsonLd: Record<string, unknown>) {
+function upsertHreflang(hreflang: string, href: string) {
+  let node = document.head.querySelector<HTMLLinkElement>(
+    `link[rel="alternate"][hreflang="${hreflang}"]`,
+  );
+  if (!node) {
+    node = document.createElement("link");
+    node.setAttribute("rel", "alternate");
+    node.setAttribute("hreflang", hreflang);
+    document.head.appendChild(node);
+  }
+  node.setAttribute("href", href);
+}
+
+function upsertJsonLd(jsonLd: JsonLd | JsonLd[]) {
   const id = "route-seo-jsonld";
   let node = document.getElementById(id) as HTMLScriptElement | null;
   if (!node) {
@@ -77,6 +93,85 @@ function upsertJsonLd(jsonLd: Record<string, unknown>) {
     document.head.appendChild(node);
   }
   node.textContent = JSON.stringify(jsonLd);
+}
+
+function collectBreadcrumbs(pathname: string) {
+  const segments = pathname.split("/").filter(Boolean);
+  if (segments.length === 0) return [];
+
+  const crumbs: Array<{ name: string; url: string }> = [
+    { name: "Home", url: `${SITE_URL}/` },
+  ];
+
+  let currentPath = "";
+  for (const segment of segments) {
+    currentPath += `/${segment}`;
+    const route = ROUTES[normalizePath(currentPath)];
+    if (!route) continue;
+    crumbs.push({ name: route.title, url: `${SITE_URL}${route.path}` });
+  }
+
+  return crumbs;
+}
+
+function buildRouteSchemas(
+  pathname: string,
+  title: string,
+  description: string,
+  canonicalUrl: string,
+): JsonLd[] {
+  const schemas: JsonLd[] = [
+    {
+      "@context": "https://schema.org",
+      "@type": "WebPage",
+      name: title,
+      description,
+      url: canonicalUrl,
+      inLanguage: "en",
+      isPartOf: {
+        "@type": "WebSite",
+        name: SITE_NAME,
+        url: SITE_URL,
+      },
+      primaryImageOfPage: {
+        "@type": "ImageObject",
+        url: DEFAULT_IMAGE_URL,
+      },
+    },
+  ];
+
+  const breadcrumbs = collectBreadcrumbs(pathname);
+  if (breadcrumbs.length > 1) {
+    schemas.push({
+      "@context": "https://schema.org",
+      "@type": "BreadcrumbList",
+      itemListElement: breadcrumbs.map((crumb, index) => ({
+        "@type": "ListItem",
+        position: index + 1,
+        name: crumb.name,
+        item: crumb.url,
+      })),
+    });
+  }
+
+  if (pathname === "/") {
+    schemas.push({
+      "@context": "https://schema.org",
+      "@type": "SoftwareApplication",
+      name: SITE_NAME,
+      applicationCategory: "SportsApplication",
+      operatingSystem: "Web",
+      url: `${SITE_URL}/`,
+      description,
+      offers: {
+        "@type": "Offer",
+        price: "0",
+        priceCurrency: "USD",
+      },
+    });
+  }
+
+  return schemas;
 }
 
 export function RouteSeo() {
@@ -94,11 +189,22 @@ export function RouteSeo() {
 
     const canonicalUrl = `${SITE_URL}${route.path}`;
     const robotsValue = route.noindex ? "noindex, follow" : "index, follow";
+    const routeSchemas = buildRouteSchemas(
+      pathname,
+      route.title,
+      route.description,
+      canonicalUrl,
+    );
 
     document.title = route.title;
     upsertCanonical(canonicalUrl);
+    upsertHreflang("en", canonicalUrl);
+    upsertHreflang("x-default", canonicalUrl);
 
     upsertMetaByName("description", route.description);
+    upsertMetaByName("application-name", SITE_NAME);
+    upsertMetaByName("apple-mobile-web-app-title", SITE_NAME);
+    upsertMetaByName("format-detection", "telephone=no");
     upsertMetaByName("robots", robotsValue);
     upsertMetaByName("twitter:card", "summary_large_image");
     upsertMetaByName("twitter:title", route.title);
@@ -120,21 +226,13 @@ export function RouteSeo() {
     upsertMetaByProperty("og:description", route.description);
     upsertMetaByProperty("og:url", canonicalUrl);
     upsertMetaByProperty("og:site_name", SITE_NAME);
+    upsertMetaByProperty("og:locale", DEFAULT_LOCALE);
     upsertMetaByProperty("og:image", DEFAULT_IMAGE_URL);
+    upsertMetaByProperty("og:image:width", "1200");
+    upsertMetaByProperty("og:image:height", "630");
     upsertMetaByProperty("og:image:alt", DEFAULT_IMAGE_ALT);
 
-    upsertJsonLd({
-      "@context": "https://schema.org",
-      "@type": "WebPage",
-      name: route.title,
-      description: route.description,
-      url: canonicalUrl,
-      isPartOf: {
-        "@type": "WebSite",
-        name: SITE_NAME,
-        url: SITE_URL,
-      },
-    });
+    upsertJsonLd(routeSchemas);
   }, [location.pathname]);
 
   return null;
