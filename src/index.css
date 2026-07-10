@@ -249,6 +249,11 @@ html.light ::-webkit-scrollbar-thumb { background: rgb(192 192 210); }
 
 body {
   @apply bg-track text-white font-sans antialiased;
+  /* Prevent pull-to-refresh on mobile browsers (Chrome Android, etc.) from
+     triggering a full page reload and destroying SPA state. This does NOT
+     affect scrolling within child containers — only the document-level
+     overscroll bounce/reload gesture. */
+  overscroll-behavior-y: none;
 }
 
 /* Desktop: fixed app shell */
