@@ -51,7 +51,7 @@ function logApiError(message: string, extra: Record<string, unknown>) {
 if (typeof window !== "undefined") {
   // Intercept fetch errors to prevent cascading failures
   const originalFetch = window.fetch;
-  window.fetch = function(...args: unknown[]) {
+  window.fetch = function (...args: unknown[]) {
     return originalFetch
       .apply(window, args as [RequestInfo | URL, RequestInit?])
       .catch((err: unknown) => {
