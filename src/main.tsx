@@ -151,7 +151,28 @@ if (typeof globalThis.window !== "undefined") {
 // Initialize app
 const root = document.getElementById("root");
 if (root) {
-  createRoot(root).render(<App />);
+  try {
+    createRoot(root).render(<App />);
+  } catch (e) {
+    // Catch any errors during root render
+    const msg = e instanceof Error ? e.message : String(e);
+    console.error("Critical error during root render:", msg);
+    Sentry.captureException(e, {
+      tags: { log_source: "root_render_error" },
+      level: "fatal",
+    });
+    // Display fallback UI
+    root.innerHTML = `
+      <div style="display:flex; align-items:center; justify-content:center; min-height:100vh; background:#1a1a1a; color:#fff; font-family:monospace; text-align:center; padding:20px;">
+        <div>
+          <h1 style="color:#e80000; margin-bottom:10px;">Critical Error</h1>
+          <p style="margin-bottom:10px;">${msg}</p>
+          <p style="color:#999; font-size:12px;">Refreshing page or clearing cache may help.</p>
+          <button onclick="location.href='/'" style="margin-top:20px; padding:10px 20px; background:#e80000; color:white; border:none; border-radius:4px; cursor:pointer;">Go Home</button>
+        </div>
+      </div>
+    `;
+  }
 } else {
   Sentry.logger.error("Root element not found during app bootstrap", {
     log_source: "bootstrap",

@@ -47,6 +47,24 @@ function logApiError(message: string, extra: Record<string, unknown>) {
   });
 }
 
+// Prevent accidental reloads on network errors
+if (typeof window !== "undefined") {
+  // Intercept fetch errors to prevent cascading failures
+  const originalFetch = window.fetch;
+  window.fetch = function(...args: unknown[]) {
+    return originalFetch
+      .apply(window, args as [RequestInfo | URL, RequestInit?])
+      .catch((err: unknown) => {
+        // Log network errors but don't re-throw to prevent hard crash
+        logApiError("Network fetch failed", {
+          error: String(err),
+          message: err instanceof Error ? err.message : "Unknown",
+        });
+        throw err;
+      });
+  };
+}
+
 export function isAuthError(err: unknown): err is OpenF1Error {
   return (
     err instanceof OpenF1Error && (err.status === 401 || err.status === 403)
