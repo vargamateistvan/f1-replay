@@ -161,19 +161,24 @@ export function useLocationChunks(
     chunkIdx,
   ]);
 
-  // Evict chunks outside the keep window to bound memory on long replays.
-  // We inspect the cache for all location-chunk queries for this session and
-  // remove any whose index falls outside [chunkIdx - keepRadius, chunkIdx + keepRadius].
+  // Evict chunks outside the keep window to bound memory on long replays, and
+  // drop every chunk left over from a previously viewed session — with
+  // staleTime/gcTime: Infinity these never expire on their own, so without
+  // this a few session switches accumulate enough location data (thousands
+  // of points per chunk) to trip mobile browsers' memory-pressure reload.
   useEffect(() => {
     if (!enabled) return;
     const queries = qc.getQueryCache().findAll({
-      queryKey: ["location-chunk", sessionKey!],
+      queryKey: ["location-chunk"],
       exact: false,
     });
     for (const query of queries) {
       const key = query.queryKey as ["location-chunk", number, number];
-      const idx = key[2];
-      if (Math.abs(idx - chunkIdx) > keepRadius) {
+      const [, keySessionKey, idx] = key;
+      if (
+        keySessionKey !== sessionKey ||
+        Math.abs(idx - chunkIdx) > keepRadius
+      ) {
         qc.removeQueries({ queryKey: key, exact: true });
       }
     }

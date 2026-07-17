@@ -53,7 +53,7 @@ if (typeof window !== "undefined") {
   const originalFetch = window.fetch;
   window.fetch = function (...args: unknown[]) {
     return originalFetch
-      .apply(window, args as [RequestInfo | URL, RequestInit?])
+      .apply(window, args as Parameters<typeof fetch>)
       .catch((err: unknown) => {
         // Log network errors but don't re-throw to prevent hard crash
         logApiError("Network fetch failed", {
