@@ -1,13 +1,11 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { useQuery } from "@tanstack/react-query";
-import { api } from "@/api/endpoints";
-import type { Lap, Location } from "@/api/types";
+import type { Lap } from "@/api/types";
 import { ErrorMessage } from "@/components/ErrorMessage";
 import { TelemetryChart } from "@/components/TelemetryChart/TelemetryChart";
 import {
   computeTrackAutoRotationDeg,
-  computeTrackBounds,
   locationToSvg,
+  useTrackOutline,
 } from "@/hooks/useTrackMap";
 import { useSearchParams } from "react-router-dom";
 import {
@@ -245,55 +243,12 @@ export default function Telemetry() {
     return out;
   }, [laps.data]);
 
-  const selectedLapRefA = useMemo(
-    () =>
-      driverA !== null && selectedLapA !== null
-        ? (lapLookup.get(`${driverA}:${selectedLapA}`) ?? null)
-        : null,
-    [driverA, selectedLapA, lapLookup],
+  const trackOutlineA = useTrackOutline(
+    sessionKey,
+    driverA,
+    session?.circuit_key ?? null,
+    session?.circuit_short_name ?? null,
   );
-
-  const trackLocationA = useQuery<Location[]>({
-    queryKey: [
-      "telemetry-lap-location",
-      sessionKey,
-      driverA,
-      selectedLapA,
-      selectedLapRefA?.date_start,
-      selectedLapRefA?.lap_duration,
-    ],
-    queryFn: async () => {
-      if (
-        sessionKey === null ||
-        driverA === null ||
-        selectedLapRefA?.date_start == null ||
-        selectedLapRefA.lap_duration == null
-      ) {
-        return [];
-      }
-
-      const endMs =
-        new Date(selectedLapRefA.date_start).getTime() +
-        (selectedLapRefA.lap_duration + 2) * 1000;
-
-      const points = await api.locationForDriver(
-        sessionKey,
-        driverA,
-        selectedLapRefA.date_start,
-        new Date(endMs).toISOString(),
-      );
-
-      return [...points].sort(
-        (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime(),
-      );
-    },
-    enabled:
-      sessionKey !== null &&
-      driverA !== null &&
-      selectedLapRefA?.date_start != null &&
-      selectedLapRefA?.lap_duration != null,
-    staleTime: Infinity,
-  });
 
   const bestLapByDriver = useMemo(() => {
     const out = new Map<number, number>();
@@ -472,18 +427,18 @@ export default function Telemetry() {
   );
 
   const trackPreview = useMemo(() => {
-    const locations = trackLocationA.data;
-    if (!locations || locations.length < 2) return null;
+    const outline = trackOutlineA.data;
+    if (!outline || outline.points.length < 2) return null;
 
-    const bounds = computeTrackBounds(locations);
+    const { points: outlinePoints, bounds } = outline;
     if (!Number.isFinite(bounds.width) || !Number.isFinite(bounds.height)) {
       return null;
     }
 
     let dist = 0;
-    const points: TrackPreviewPoint[] = locations.map((point, idx) => {
+    const points: TrackPreviewPoint[] = outlinePoints.map((point, idx) => {
       if (idx > 0) {
-        const prev = locations[idx - 1]!;
+        const prev = outlinePoints[idx - 1]!;
         const dx = point.x - prev.x;
         const dy = point.y - prev.y;
         dist += Math.hypot(dx, dy);
@@ -507,9 +462,9 @@ export default function Telemetry() {
       points,
       polyline,
       totalDist: points[points.length - 1]!.dist,
-      rotationDeg: computeTrackAutoRotationDeg(locations, true),
+      rotationDeg: computeTrackAutoRotationDeg(outlinePoints, true),
     };
-  }, [trackLocationA.data]);
+  }, [trackOutlineA.data]);
 
   const hoveredTrackPoint = useMemo(() => {
     if (!trackPreview || hoveredDistM === null || xDist.length < 2) return null;
