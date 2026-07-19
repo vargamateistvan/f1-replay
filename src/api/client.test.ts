@@ -52,7 +52,7 @@ describe("fetchEndpoint - in-flight deduplication", () => {
     let capturedUrl = "";
     vi.stubGlobal(
       "fetch",
-      vi.fn((input: RequestInfo | URL) => {
+      vi.fn((input: unknown) => {
         capturedUrl = String(input);
         return Promise.resolve({ ok: true, json: async () => [] });
       }),
