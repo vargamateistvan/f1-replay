@@ -8,7 +8,7 @@ import {
   OPENF1_MQTT_WSS_URL,
 } from "@/constants";
 
-type MqttPayload = {
+export type MqttPayload = {
   _id?: number;
   _key?: string;
   session_key?: number;
@@ -30,47 +30,54 @@ type TopicConfig = {
   maxRows?: number;
 };
 
+function parseTimestampOrMin(date: string | undefined): number {
+  const ms = Date.parse(date ?? "");
+  // Invalid dates sort to the front so they are first to be evicted when
+  // maxRows trimming is applied (we keep the latest rows at the end).
+  return Number.isFinite(ms) ? ms : Number.NEGATIVE_INFINITY;
+}
+
 const TOPIC_TO_QUERY = {
   "v1/position": {
     topic: "v1/position",
     queryKeyName: "positions",
     buildKey: (row: MqttPayload) =>
       row._key ?? `${row.date}_${row.driver_number}`,
-    buildSortKey: (row: MqttPayload) => Date.parse(row.date ?? ""),
+    buildSortKey: (row: MqttPayload) => parseTimestampOrMin(row.date),
   },
   "v1/intervals": {
     topic: "v1/intervals",
     queryKeyName: "intervals",
     buildKey: (row: MqttPayload) =>
       row._key ?? `${row.date}_${row.driver_number}`,
-    buildSortKey: (row: MqttPayload) => Date.parse(row.date ?? ""),
+    buildSortKey: (row: MqttPayload) => parseTimestampOrMin(row.date),
   },
   "v1/laps": {
     topic: "v1/laps",
     queryKeyName: "laps",
     buildKey: (row: MqttPayload) =>
       row._key ?? `${row.driver_number}_${row.lap_number}_${row.date_start}`,
-    buildSortKey: (row: MqttPayload) => Date.parse(row.date_start ?? ""),
+    buildSortKey: (row: MqttPayload) => parseTimestampOrMin(row.date_start),
   },
   "v1/race_control": {
     topic: "v1/race_control",
     queryKeyName: "raceControl",
     buildKey: (row: MqttPayload) =>
       row._key ?? `${row.date}_${row.message}_${row.driver_number ?? -1}`,
-    buildSortKey: (row: MqttPayload) => Date.parse(row.date ?? ""),
+    buildSortKey: (row: MqttPayload) => parseTimestampOrMin(row.date),
   },
   "v1/team_radio": {
     topic: "v1/team_radio",
     queryKeyName: "teamRadio",
     buildKey: (row: MqttPayload) =>
       row._key ?? `${row.date}_${row.driver_number}_${row.recording_url}`,
-    buildSortKey: (row: MqttPayload) => Date.parse(row.date ?? ""),
+    buildSortKey: (row: MqttPayload) => parseTimestampOrMin(row.date),
   },
   "v1/weather": {
     topic: "v1/weather",
     queryKeyName: "weather",
     buildKey: (row: MqttPayload) => row._key ?? `${row.date}`,
-    buildSortKey: (row: MqttPayload) => Date.parse(row.date ?? ""),
+    buildSortKey: (row: MqttPayload) => parseTimestampOrMin(row.date),
   },
   "v1/overtakes": {
     topic: "v1/overtakes",
@@ -78,11 +85,11 @@ const TOPIC_TO_QUERY = {
     buildKey: (row: MqttPayload) =>
       row._key ??
       `${row.date}_${row.overtaking_driver_number}_${row.overtaken_driver_number}`,
-    buildSortKey: (row: MqttPayload) => Date.parse(row.date ?? ""),
+    buildSortKey: (row: MqttPayload) => parseTimestampOrMin(row.date),
   },
 } as const;
 
-function mergeRow(
+export function mergeRow(
   prev: MqttPayload[] | undefined,
   incoming: MqttPayload,
   config: Pick<TopicConfig, "buildKey" | "buildSortKey" | "maxRows">,
@@ -98,7 +105,12 @@ function mergeRow(
     next.push(incoming);
   }
 
-  next.sort((a, b) => config.buildSortKey(a) - config.buildSortKey(b));
+  next.sort((a, b) => {
+    const aTs = config.buildSortKey(a);
+    const bTs = config.buildSortKey(b);
+    if (aTs === bTs) return 0;
+    return aTs < bTs ? -1 : 1;
+  });
 
   const maxRows = config.maxRows ?? LIVE_MQTT_MAX_ROWS;
   if (next.length <= maxRows) return next;
