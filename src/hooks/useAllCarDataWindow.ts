@@ -1,5 +1,5 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useEffect } from "react";
+import { useEffect, useMemo } from "react";
 import { api } from "@/api/endpoints";
 import type { CarData } from "@/api/types";
 import { CHUNK_MS } from "@/constants";
@@ -68,14 +68,19 @@ export function useAllCarDataWindow(
     }
   }, [qc, on, sessionKey, chunkIdx]);
 
-  return {
-    // Include previous chunk so playhead-aligned lookup can always find the
-    // latest sample <= t right after chunk boundaries.
-    data: [
+  const data = useMemo(
+    () => [
       ...(previous.data ?? []),
       ...(current.data ?? []),
       ...(next.data ?? []),
     ],
+    [previous.data, current.data, next.data],
+  );
+
+  return {
+    // Include previous chunk so playhead-aligned lookup can always find the
+    // latest sample <= t right after chunk boundaries.
+    data,
     isPending: on && current.isPending,
   };
 }

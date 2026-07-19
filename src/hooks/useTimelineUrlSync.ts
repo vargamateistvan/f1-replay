@@ -1,6 +1,7 @@
 import { useEffect, useRef } from "react";
 import { useSearchParams } from "react-router-dom";
 import { useTimeline } from "@/timeline/clock";
+import { SPEEDS } from "@/constants";
 
 // Throttle URL writes so scrubbing/playback doesn't spam history (we use replace,
 // so this only bounds churn, not back-stack growth).
@@ -36,7 +37,12 @@ export function useTimelineUrlSync(sessionKey: number | null, ready: boolean) {
     }
     if (sp.get("speed") !== null) {
       const speed = Number(sp.get("speed"));
-      if (!Number.isNaN(speed)) store.setSpeed(speed);
+      if (
+        !Number.isNaN(speed) &&
+        SPEEDS.includes(speed as (typeof SPEEDS)[number])
+      ) {
+        store.setSpeed(speed);
+      }
     }
   }, [ready, sessionKey]);
 
