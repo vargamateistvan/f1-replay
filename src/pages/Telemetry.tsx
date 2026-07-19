@@ -1207,13 +1207,13 @@ function DriverSelect({
   placeholder: string;
 }) {
   return (
-    <div className="flex min-w-0 flex-col gap-1 sm:flex-row sm:items-center sm:gap-2">
+    <div className="flex min-w-0 flex-col gap-1">
       <span className={LABEL}>{label}</span>
       <select
         value={value ?? ""}
         onChange={(e) => onChange(Number(e.target.value) || null)}
         disabled={disabled}
-        className={`${SELECT} min-w-0 w-full sm:w-auto`}
+        className={`${SELECT} min-w-0 w-full`}
       >
         <option value="">{placeholder}</option>
         {options.map((d) => (
