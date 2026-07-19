@@ -11,6 +11,7 @@ import { WeatherPanel } from "@/components/Weather/WeatherPanel";
 import { StrategyBar } from "@/components/Strategy/StrategyBar";
 import { TeamRadioFeed } from "@/components/TeamRadio/TeamRadio";
 import { OvertakeFeed } from "@/components/Overtakes/OvertakeFeed";
+import { PitFeed } from "@/components/Pits/PitFeed";
 import { FocusedTelemetry } from "@/components/FocusedTelemetry/FocusedTelemetry";
 import { LapChart } from "@/components/LapChart/LapChart";
 import { GapChart } from "@/components/GapChart/GapChart";
@@ -94,7 +95,13 @@ import type { Stint, CarData } from "@/api/types";
 
 // Sub-tab options per view
 type TrackerTab = "timing" | "chart" | "gap" | "map" | "strategy";
-type CommentaryTab = "rc" | "radio" | "passes" | "moments" | "chapters";
+type CommentaryTab =
+  | "rc"
+  | "radio"
+  | "pits"
+  | "passes"
+  | "moments"
+  | "chapters";
 
 export interface KeyMoment {
   ms: number;
@@ -1529,11 +1536,12 @@ export default function RaceWeekend() {
           </div>
 
           {/* Sub-tabs */}
-          <div className="grid grid-cols-5 w-full border-b border-panel shrink-0 bg-track sm:flex sm:overflow-x-auto">
+          <div className="grid grid-cols-6 w-full border-b border-panel shrink-0 bg-track sm:flex sm:overflow-x-auto">
             {(
               [
                 ["rc", "Race Control", "RC"],
                 ["radio", "Team Radio", "Radio"],
+                ["pits", "Pit Stops", "Pits"],
                 ["passes", "Overtakes", "Passes"],
                 ["moments", "Key Moments", "Moments"],
                 ["chapters", "Chapters", "Chptrs"],
@@ -1590,6 +1598,18 @@ export default function RaceWeekend() {
                   entries={teamRadio.data ?? []}
                   sessionKey={sessionKey}
                   sessionYear={session?.year ?? null}
+                  drivers={drivers.data ?? []}
+                  sessionTimeMs={t}
+                  sessionStartMs={sessionStartMs}
+                />
+              ))}
+            {commentaryTab === "pits" &&
+              (pits.isError ? (
+                <ErrorMessage message="Failed to load pit stops" />
+              ) : (
+                <PitFeed
+                  entries={pits.data ?? []}
+                  sessionKey={sessionKey}
                   drivers={drivers.data ?? []}
                   sessionTimeMs={t}
                   sessionStartMs={sessionStartMs}
