@@ -344,10 +344,38 @@ export default function RaceWeekend() {
     );
   }, [incidentWindows, tSlow]);
 
+  const currentReplayIncident = useMemo(
+    () =>
+      incidentWindows.find(
+        (w) => w.endMs !== null && w.startMs <= tSlow && w.endMs >= tSlow,
+      ),
+    [incidentWindows, tSlow],
+  );
+
   const firstReplayIncident = useMemo(
     () => incidentWindows.find((w) => w.endMs !== null),
     [incidentWindows],
   );
+
+  const replayCurrentIncident = () => {
+    const chosen = currentReplayIncident;
+    if (!chosen || chosen.endMs === null) return;
+    setIncidentReplayHint("Replaying current incident");
+    setTimelineT(chosen.startMs);
+    setIncidentReplayEndMs(chosen.endMs);
+    setTimelinePlaying(true);
+  };
+
+  const replayNextIncident = () => {
+    const chosen = nextReplayIncident ?? firstReplayIncident;
+    if (!chosen || chosen.endMs === null) return;
+    if (!nextReplayIncident && firstReplayIncident) {
+      setIncidentReplayHint("Wrapped to first incident");
+    }
+    setTimelineT(chosen.startMs);
+    setIncidentReplayEndMs(chosen.endMs);
+    setTimelinePlaying(true);
+  };
 
   const pulseDrivers = useMemo(() => {
     const out: number[] = [];
@@ -1196,20 +1224,13 @@ export default function RaceWeekend() {
                   radioTimes={radioMarks}
                   raceControlMarkers={raceControlMarkers}
                   markerSummary={markerSummary}
+                  canReplayCurrentIncident={currentReplayIncident !== undefined}
+                  onReplayCurrentIncident={replayCurrentIncident}
                   canReplayNextIncident={
                     nextReplayIncident !== undefined ||
                     firstReplayIncident !== undefined
                   }
-                  onReplayNextIncident={() => {
-                    const chosen = nextReplayIncident ?? firstReplayIncident;
-                    if (!chosen || chosen.endMs === null) return;
-                    if (!nextReplayIncident && firstReplayIncident) {
-                      setIncidentReplayHint("Wrapped to first incident");
-                    }
-                    setTimelineT(chosen.startMs);
-                    setIncidentReplayEndMs(chosen.endMs);
-                    setTimelinePlaying(true);
-                  }}
+                  onReplayNextIncident={replayNextIncident}
                   incidentReplayHint={incidentReplayHint}
                   countdownMs={countdownMs}
                   qualiPhase={qualiPhase}
@@ -1678,20 +1699,13 @@ export default function RaceWeekend() {
           radioTimes={radioMarks}
           raceControlMarkers={raceControlMarkers}
           markerSummary={markerSummary}
+          canReplayCurrentIncident={currentReplayIncident !== undefined}
+          onReplayCurrentIncident={replayCurrentIncident}
           canReplayNextIncident={
             nextReplayIncident !== undefined ||
             firstReplayIncident !== undefined
           }
-          onReplayNextIncident={() => {
-            const chosen = nextReplayIncident ?? firstReplayIncident;
-            if (!chosen || chosen.endMs === null) return;
-            if (!nextReplayIncident && firstReplayIncident) {
-              setIncidentReplayHint("Wrapped to first incident");
-            }
-            setTimelineT(chosen.startMs);
-            setIncidentReplayEndMs(chosen.endMs);
-            setTimelinePlaying(true);
-          }}
+          onReplayNextIncident={replayNextIncident}
           incidentReplayHint={incidentReplayHint}
           countdownMs={countdownMs}
           qualiPhase={qualiPhase}

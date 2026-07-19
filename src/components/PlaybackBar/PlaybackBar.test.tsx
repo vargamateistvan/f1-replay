@@ -94,4 +94,32 @@ describe("PlaybackBar marker interactions", () => {
     expect(timelineState.setT).toHaveBeenCalledWith(30_000);
     expect(timelineState.setT).toHaveBeenCalledWith(60_000);
   });
+
+  it("triggers replay current incident action when enabled", () => {
+    const onReplayCurrentIncident = vi.fn();
+
+    render(
+      <PlaybackBar
+        durationMs={120_000}
+        canReplayCurrentIncident
+        onReplayCurrentIncident={onReplayCurrentIncident}
+      />,
+    );
+
+    fireEvent.click(
+      screen.getByRole("button", { name: "Replay current incident window" }),
+    );
+
+    expect(onReplayCurrentIncident).toHaveBeenCalledTimes(1);
+  });
+
+  it("disables replay current incident action when unavailable", () => {
+    render(
+      <PlaybackBar durationMs={120_000} canReplayCurrentIncident={false} />,
+    );
+
+    expect(
+      screen.getByRole("button", { name: "Replay current incident window" }),
+    ).toBeDisabled();
+  });
 });

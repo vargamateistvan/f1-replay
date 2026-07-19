@@ -24,6 +24,8 @@ interface Props {
   radioTimes?: number[];
   raceControlMarkers?: RaceControlMarker[];
   markerSummary?: MarkerSummary | null;
+  canReplayCurrentIncident?: boolean;
+  onReplayCurrentIncident?: () => void;
   canReplayNextIncident?: boolean;
   onReplayNextIncident?: () => void;
   incidentReplayHint?: string | null;
@@ -97,6 +99,8 @@ export function PlaybackBar({
   radioTimes = [],
   raceControlMarkers = [],
   markerSummary = null,
+  canReplayCurrentIncident = false,
+  onReplayCurrentIncident,
   canReplayNextIncident = false,
   onReplayNextIncident,
   incidentReplayHint = null,
@@ -382,6 +386,16 @@ export function PlaybackBar({
               </button>
             </>
           )}
+          <button
+            onClick={() => {
+              if (onReplayCurrentIncident) onReplayCurrentIncident();
+            }}
+            disabled={!canReplayCurrentIncident}
+            className={CHIP_STRETCH}
+            aria-label="Replay current incident window"
+          >
+            Incident ⟳
+          </button>
           <button
             onClick={() => {
               if (onReplayNextIncident) onReplayNextIncident();
