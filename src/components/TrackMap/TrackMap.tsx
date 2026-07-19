@@ -46,7 +46,11 @@ import {
   FOLLOW_ZOOM_W,
   FOLLOW_ZOOM_H,
 } from "@/constants";
-import { clampFollowView, lerpCameraView, type CameraView } from "./trackCamera";
+import {
+  clampFollowView,
+  lerpCameraView,
+  type CameraView,
+} from "./trackCamera";
 import { getCircuitLayout } from "@/data/circuits";
 import { getCircuitGeometry } from "@/data/circuitGeometry";
 
@@ -1329,7 +1333,9 @@ export function TrackMap({
   }
 
   const cameraAlpha =
-    focusDriver !== null ? FOLLOW_CAMERA_FOCUS_ALPHA : FOLLOW_CAMERA_RETURN_ALPHA;
+    focusDriver !== null
+      ? FOLLOW_CAMERA_FOCUS_ALPHA
+      : FOLLOW_CAMERA_RETURN_ALPHA;
   const smoothedView = lerpCameraView(
     cameraViewRef.current,
     nextViewTarget,
