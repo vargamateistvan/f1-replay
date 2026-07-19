@@ -256,4 +256,132 @@ describe("fetchEndpoint - rate limiter", () => {
     const result = await fetchEndpoint("sessions", { meeting_key: 100 });
     expect(result).toEqual(payload);
   });
+
+  it("retries 429 responses using Retry-After seconds header", async () => {
+    vi.useFakeTimers();
+    try {
+      const { fetchEndpoint } = await importFreshClient();
+
+      let callCount = 0;
+      vi.stubGlobal(
+        "fetch",
+        vi.fn(() => {
+          callCount++;
+          if (callCount === 1) {
+            return Promise.resolve({
+              ok: false,
+              status: 429,
+              headers: {
+                get: (key: string) => (key === "Retry-After" ? "2" : null),
+              },
+              clone: () => ({ json: async () => ({}) }),
+            });
+          }
+          return Promise.resolve({ ok: true, json: async () => [] });
+        }),
+      );
+
+      const p = fetchEndpoint("sessions", { meeting_key: 1 });
+
+      await vi.runOnlyPendingTimersAsync();
+      await Promise.resolve();
+      expect(callCount).toBe(1);
+
+      await vi.advanceTimersByTimeAsync(1_900);
+      expect(callCount).toBe(1);
+
+      await vi.advanceTimersByTimeAsync(100);
+      await vi.runOnlyPendingTimersAsync();
+      await expect(p).resolves.toEqual([]);
+      expect(callCount).toBe(2);
+    } finally {
+      vi.useRealTimers();
+    }
+  }, 10_000);
+
+  it("retries 429 responses using Retry-After date header", async () => {
+    vi.useFakeTimers();
+    try {
+      vi.setSystemTime(new Date("2026-01-01T00:00:00.000Z"));
+      const { fetchEndpoint } = await importFreshClient();
+
+      const retryAt = new Date(Date.now() + 2_000).toUTCString();
+      let callCount = 0;
+      vi.stubGlobal(
+        "fetch",
+        vi.fn(() => {
+          callCount++;
+          if (callCount === 1) {
+            return Promise.resolve({
+              ok: false,
+              status: 429,
+              headers: {
+                get: (key: string) => (key === "Retry-After" ? retryAt : null),
+              },
+              clone: () => ({ json: async () => ({}) }),
+            });
+          }
+          return Promise.resolve({ ok: true, json: async () => [] });
+        }),
+      );
+
+      const p = fetchEndpoint("sessions", { meeting_key: 2 });
+
+      await vi.runOnlyPendingTimersAsync();
+      await Promise.resolve();
+      expect(callCount).toBe(1);
+
+      await vi.advanceTimersByTimeAsync(1_900);
+      expect(callCount).toBe(1);
+
+      await vi.advanceTimersByTimeAsync(100);
+      await vi.runOnlyPendingTimersAsync();
+      await expect(p).resolves.toEqual([]);
+      expect(callCount).toBe(2);
+    } finally {
+      vi.useRealTimers();
+    }
+  }, 10_000);
+
+  it("blocks queued requests globally during 429 backoff", async () => {
+    vi.useFakeTimers();
+    try {
+      const { fetchEndpoint } = await importFreshClient();
+
+      let callCount = 0;
+      vi.stubGlobal(
+        "fetch",
+        vi.fn(() => {
+          callCount++;
+          if (callCount === 1) {
+            return Promise.resolve({
+              ok: false,
+              status: 429,
+              headers: {
+                get: (key: string) => (key === "Retry-After" ? "2" : null),
+              },
+              clone: () => ({ json: async () => ({}) }),
+            });
+          }
+          return Promise.resolve({ ok: true, json: async () => [] });
+        }),
+      );
+
+      const p1 = fetchEndpoint("sessions", { meeting_key: 10 });
+      await vi.runOnlyPendingTimersAsync();
+      await Promise.resolve();
+      expect(callCount).toBe(1);
+
+      const p2 = fetchEndpoint("sessions", { meeting_key: 11 });
+      await vi.advanceTimersByTimeAsync(1_900);
+      expect(callCount).toBe(1);
+
+      await vi.advanceTimersByTimeAsync(500);
+      await vi.runOnlyPendingTimersAsync();
+      await expect(Promise.all([p1, p2])).resolves.toEqual([[], []]);
+      expect(callCount).toBe(3);
+    } finally {
+      vi.useRealTimers();
+    }
+  }, 10_000);
 });
