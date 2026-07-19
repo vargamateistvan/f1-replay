@@ -35,4 +35,40 @@ describe("useTimelineUrlSync", () => {
 
     expect(useTimeline.getState().speed).toBe(2);
   });
+
+  it("ignores zero speed from URL", () => {
+    useTimeline.getState().setSpeed(4);
+    window.history.replaceState({}, "", "/race?speed=0");
+
+    renderHook(() => useTimelineUrlSync(1, true), { wrapper });
+
+    expect(useTimeline.getState().speed).toBe(4);
+  });
+
+  it("ignores negative speed from URL", () => {
+    useTimeline.getState().setSpeed(16);
+    window.history.replaceState({}, "", "/race?speed=-2");
+
+    renderHook(() => useTimelineUrlSync(1, true), { wrapper });
+
+    expect(useTimeline.getState().speed).toBe(16);
+  });
+
+  it("ignores decimal speed from URL", () => {
+    useTimeline.getState().setSpeed(1);
+    window.history.replaceState({}, "", "/race?speed=1.5");
+
+    renderHook(() => useTimelineUrlSync(1, true), { wrapper });
+
+    expect(useTimeline.getState().speed).toBe(1);
+  });
+
+  it("ignores non-numeric speed from URL", () => {
+    useTimeline.getState().setSpeed(8);
+    window.history.replaceState({}, "", "/race?speed=fast");
+
+    renderHook(() => useTimelineUrlSync(1, true), { wrapper });
+
+    expect(useTimeline.getState().speed).toBe(8);
+  });
 });
