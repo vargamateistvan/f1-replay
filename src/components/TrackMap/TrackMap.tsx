@@ -46,6 +46,7 @@ import {
   FOLLOW_ZOOM_W,
   FOLLOW_ZOOM_H,
 } from "@/constants";
+import { clampFollowView, lerpCameraView, type CameraView } from "./trackCamera";
 import { getCircuitLayout } from "@/data/circuits";
 import { getCircuitGeometry } from "@/data/circuitGeometry";
 
@@ -86,6 +87,8 @@ function normalizeDeg(deg: number): number {
 }
 
 const ROTATION_STEP_DEG = 15;
+const FOLLOW_CAMERA_FOCUS_ALPHA = 0.35;
+const FOLLOW_CAMERA_RETURN_ALPHA = 0.2;
 
 // Serialize the live SVG to a hi-DPI PNG and trigger a browser download.
 // Uses XMLSerializer → Image → Canvas pipeline — no extra dependencies.
@@ -211,6 +214,7 @@ export function TrackMap({
   );
   const [zoomLevel, setZoomLevel] = useState(1);
   const [rotationDeg, setRotationDeg] = useState(0);
+  const cameraViewRef = useRef<CameraView>({ x: 0, y: 0, w: SVG_W, h: SVG_H });
   const finishPatternId = `finish-checker-${sessionKey ?? "na"}`;
   const rotationStorageKey = useMemo(
     () =>
@@ -1296,11 +1300,9 @@ export function TrackMap({
 
   const pulseSet = new Set(pulseDrivers ?? []);
 
-  // Follow-cam: zoom in on the focused driver, clamped to the SVG boundary.
-  let viewX = 0;
-  let viewY = 0;
-  let viewW = SVG_W;
-  let viewH = SVG_H;
+  // Follow-cam: smoothly zooms/pans towards the focused driver. If a focused
+  // car sample is temporarily missing, keep the previous camera to avoid snap-back.
+  let nextViewTarget: CameraView = { x: 0, y: 0, w: SVG_W, h: SVG_H };
   if (focusDriver !== null) {
     const focusedPos = carPositions.find((c) => c.num === focusDriver);
     if (focusedPos) {
@@ -1313,20 +1315,32 @@ export function TrackMap({
       );
       const cx = sx + PAD;
       const cy = sy + PAD;
-      const vx = Math.max(
-        0,
-        Math.min(SVG_W - FOLLOW_ZOOM_W, cx - FOLLOW_ZOOM_W / 2),
+      nextViewTarget = clampFollowView(
+        cx,
+        cy,
+        SVG_W,
+        SVG_H,
+        FOLLOW_ZOOM_W,
+        FOLLOW_ZOOM_H,
       );
-      const vy = Math.max(
-        0,
-        Math.min(SVG_H - FOLLOW_ZOOM_H, cy - FOLLOW_ZOOM_H / 2),
-      );
-      viewX = vx;
-      viewY = vy;
-      viewW = FOLLOW_ZOOM_W;
-      viewH = FOLLOW_ZOOM_H;
+    } else {
+      nextViewTarget = cameraViewRef.current;
     }
   }
+
+  const cameraAlpha =
+    focusDriver !== null ? FOLLOW_CAMERA_FOCUS_ALPHA : FOLLOW_CAMERA_RETURN_ALPHA;
+  const smoothedView = lerpCameraView(
+    cameraViewRef.current,
+    nextViewTarget,
+    cameraAlpha,
+  );
+  cameraViewRef.current = smoothedView;
+
+  const viewX = smoothedView.x;
+  const viewY = smoothedView.y;
+  const viewW = smoothedView.w;
+  const viewH = smoothedView.h;
 
   const viewBox = `${viewX.toFixed(1)} ${viewY.toFixed(1)} ${viewW.toFixed(1)} ${viewH.toFixed(1)}`;
   const pivotX = viewX + viewW / 2;
