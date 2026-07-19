@@ -25,12 +25,14 @@ describe("useAllCarDataWindow", () => {
     const currentData = [{ date: "2024-01-01T00:00:01Z", driver_number: 1 }];
     const nextData = [{ date: "2024-01-01T00:00:02Z", driver_number: 1 }];
 
-    mockUseQuery.mockImplementation((options: { queryKey: readonly unknown[] }) => {
-      const idx = options.queryKey[2] as number;
-      if (idx === 4) return { data: previousData, isPending: false };
-      if (idx === 5) return { data: currentData, isPending: false };
-      return { data: nextData, isPending: false };
-    });
+    mockUseQuery.mockImplementation(
+      (options: { queryKey: readonly unknown[] }) => {
+        const idx = options.queryKey[2] as number;
+        if (idx === 4) return { data: previousData, isPending: false };
+        if (idx === 5) return { data: currentData, isPending: false };
+        return { data: nextData, isPending: false };
+      },
+    );
 
     const { result, rerender } = renderHook(() =>
       useAllCarDataWindow(1, 1_000, 5, true),
@@ -54,19 +56,24 @@ describe("useAllCarDataWindow", () => {
       { date: "2024-01-01T00:00:02Z", driver_number: 1 },
     ];
 
-    mockUseQuery.mockImplementation((options: { queryKey: readonly unknown[] }) => {
-      const idx = options.queryKey[2] as number;
-      if (idx === 4) return { data: previousData, isPending: false };
-      if (idx === 5) return { data: currentData, isPending: false };
-      return { data: nextData, isPending: false };
-    });
+    mockUseQuery.mockImplementation(
+      (options: { queryKey: readonly unknown[] }) => {
+        const idx = options.queryKey[2] as number;
+        if (idx === 4) return { data: previousData, isPending: false };
+        if (idx === 5) return { data: currentData, isPending: false };
+        return { data: nextData, isPending: false };
+      },
+    );
 
     const { result, rerender } = renderHook(() =>
       useAllCarDataWindow(1, 1_000, 5, true),
     );
 
     const firstRef = result.current.data;
-    previousData = [...previousData, { date: "2024-01-01T00:00:03Z", driver_number: 1 }];
+    previousData = [
+      ...previousData,
+      { date: "2024-01-01T00:00:03Z", driver_number: 1 },
+    ];
     rerender();
 
     expect(result.current.data).not.toBe(firstRef);
