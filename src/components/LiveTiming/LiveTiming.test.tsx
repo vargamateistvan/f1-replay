@@ -255,6 +255,32 @@ describe("LiveTiming", () => {
         raceControl={
           [
             {
+              category: "Investigation",
+              date: "2024-01-01T00:00:10.500Z",
+              driver_number: 1,
+              flag: null,
+              lap_number: 1,
+              meeting_key: 1,
+              message: "Car 1 under investigation for track limits",
+              qualifying_phase: null,
+              scope: null,
+              sector: null,
+              session_key: 1,
+            },
+            {
+              category: "Penalty",
+              date: "2024-01-01T00:00:10.700Z",
+              driver_number: 16,
+              flag: null,
+              lap_number: 1,
+              meeting_key: 1,
+              message: "Car 16 time penalty 5 seconds",
+              qualifying_phase: null,
+              scope: null,
+              sector: null,
+              session_key: 1,
+            },
+            {
               category: "Incident",
               date: "2024-01-01T00:00:11.000Z",
               driver_number: 16,
@@ -326,6 +352,8 @@ describe("LiveTiming", () => {
     expect(screen.getByText("+5.234")).toBeInTheDocument();
     expect(screen.getByText("OUTLAP")).toBeInTheDocument();
     expect(screen.getByText("RET")).toBeInTheDocument();
+    expect(screen.getByLabelText("Under investigation")).toBeInTheDocument();
+    expect(screen.getByLabelText("Penalty issued")).toBeInTheDocument();
     expect(screen.getAllByText(/SPD|KMH|MPH/).length).toBeGreaterThan(0);
     fireEvent.click(screen.getAllByText("LEC")[0]!);
     expect(onSelectDriver).toHaveBeenCalledWith(16);
@@ -665,5 +693,139 @@ describe("LiveTiming", () => {
 
     expect(screen.getByText("Interval")).toBeInTheDocument();
     expect(screen.getByText("+1.111")).toBeInTheDocument();
+  });
+
+  it("marks all drivers referenced in a multi-car noted incident", () => {
+    const sessionStartMs = Date.parse("2024-01-01T15:00:00.000Z");
+    const incidentDrivers = [
+      {
+        driver_number: 44,
+        name_acronym: "HAM",
+        full_name: "Lewis Hamilton",
+        team_colour: "00D2BE",
+      },
+      {
+        driver_number: 63,
+        name_acronym: "RUS",
+        full_name: "George Russell",
+        team_colour: "00D2BE",
+      },
+    ] as unknown as Driver[];
+
+    render(
+      <LiveTiming
+        drivers={incidentDrivers}
+        positions={
+          [
+            {
+              driver_number: 44,
+              position: 1,
+              date: "2024-01-01T15:04:20.000Z",
+            },
+            {
+              driver_number: 63,
+              position: 2,
+              date: "2024-01-01T15:04:20.000Z",
+            },
+          ] as Position[]
+        }
+        intervals={[]}
+        pits={[]}
+        laps={[]}
+        raceControl={
+          [
+            {
+              category: "Incident",
+              date: "2024-01-01T15:04:29.000Z",
+              driver_number: null,
+              flag: null,
+              lap_number: 6,
+              meeting_key: 1,
+              message:
+                "TURN 6 INCIDENT INVOLVING CARS 44 (HAM) AND 63 (RUS) NOTED - CAUSING A COLLISION",
+              qualifying_phase: null,
+              scope: null,
+              sector: null,
+              session_key: 1,
+            },
+          ] as unknown as RaceControl[]
+        }
+        sessionName="Race"
+        sessionTimeMs={4 * 60_000 + 35_000}
+        sessionStartMs={sessionStartMs}
+      />,
+    );
+
+    expect(screen.getAllByLabelText("Under investigation").length).toBe(2);
+    expect(screen.queryByText("PIT")).not.toBeInTheDocument();
+  });
+
+  it("clears the warning marker once a penalty is served", () => {
+    const sessionStartMs = Date.parse("2024-01-01T15:00:00.000Z");
+    const incidentDrivers = [
+      {
+        driver_number: 44,
+        name_acronym: "HAM",
+        full_name: "Lewis Hamilton",
+        team_colour: "00D2BE",
+      },
+    ] as unknown as Driver[];
+
+    render(
+      <LiveTiming
+        drivers={incidentDrivers}
+        positions={
+          [
+            {
+              driver_number: 44,
+              position: 1,
+              date: "2024-01-01T15:04:20.000Z",
+            },
+          ] as Position[]
+        }
+        intervals={[]}
+        pits={[]}
+        laps={[]}
+        raceControl={
+          [
+            {
+              category: "Incident",
+              date: "2024-01-01T15:04:29.000Z",
+              driver_number: 44,
+              flag: null,
+              lap_number: 6,
+              meeting_key: 1,
+              message:
+                "TURN 6 INCIDENT INVOLVING CAR 44 (HAM) NOTED - CAUSING A COLLISION",
+              qualifying_phase: null,
+              scope: null,
+              sector: null,
+              session_key: 1,
+            },
+            {
+              category: "Penalty",
+              date: "2024-01-01T15:06:00.000Z",
+              driver_number: 44,
+              flag: null,
+              lap_number: 8,
+              meeting_key: 1,
+              message: "CAR 44 TIME PENALTY SERVED",
+              qualifying_phase: null,
+              scope: null,
+              sector: null,
+              session_key: 1,
+            },
+          ] as unknown as RaceControl[]
+        }
+        sessionName="Race"
+        sessionTimeMs={6 * 60_000 + 5_000}
+        sessionStartMs={sessionStartMs}
+      />,
+    );
+
+    expect(
+      screen.queryByLabelText("Under investigation"),
+    ).not.toBeInTheDocument();
+    expect(screen.queryByLabelText("Penalty issued")).not.toBeInTheDocument();
   });
 });

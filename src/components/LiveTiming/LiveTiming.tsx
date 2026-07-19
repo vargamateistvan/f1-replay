@@ -26,6 +26,7 @@ import {
   isTimedSession,
   type QualiPhase,
 } from "@/utils/session";
+import { normalizeRaceControl } from "@/timeline/raceControl";
 import { SectorBar, type SectorTier } from "./SectorBar";
 import { TyreBadge } from "./TyreBadge";
 import { DriverHeadshot } from "@/components/DriverHeadshot";
@@ -201,6 +202,49 @@ function displayLastName(driver: Driver | undefined, driverNumber: number) {
   return parts.at(-1) ?? driver.name_acronym ?? String(driverNumber);
 }
 
+function classifyPenaltyStatus(
+  description: string,
+  kind: "penalty" | "investigation",
+): "noted" | "investigating" | "penalty" | "cleared" {
+  const lower = description.toLowerCase();
+  if (/no further investigation|no action taken|not investigated/i.test(lower))
+    return "cleared";
+  if (
+    /penalty served|served penalty|has served/i.test(lower) &&
+    !/to be served/i.test(lower)
+  ) {
+    return "cleared";
+  }
+  if (
+    /penalty|drive.through|stop.go|time penalty|grid drop|disqualif|reprimand|lap time deleted/i.test(
+      lower,
+    )
+  ) {
+    return "penalty";
+  }
+  if (/under investigation/i.test(lower)) return "investigating";
+  if (/noted|alleged/i.test(lower)) return "noted";
+  return kind === "penalty" ? "penalty" : "noted";
+}
+
+interface PenaltyMarkerState {
+  status: "noted" | "investigating" | "penalty" | "cleared";
+  detail: string;
+}
+
+function extractInvolvedDriverNumbers(description: string): number[] {
+  const sections = [...description.matchAll(/\bCARS?\b([^\-.]*)/gi)];
+  if (sections.length === 0) return [];
+  const found = new Set<number>();
+  for (const section of sections) {
+    const matches = section[1]?.match(/\b\d{1,3}\b/g) ?? [];
+    for (const value of matches) {
+      found.add(Number(value));
+    }
+  }
+  return [...found];
+}
+
 export function LiveTiming({
   drivers,
   positions,
@@ -287,6 +331,33 @@ export function LiveTiming({
     }
     return s;
   }, [pits, currentT]);
+
+  const penaltyStatusByDriver = useMemo(() => {
+    if (!sessionStartMs || raceControl.length === 0)
+      return new Map<number, PenaltyMarkerState>();
+
+    const visibleEvents = normalizeRaceControl(
+      raceControl,
+      sessionStartMs,
+    ).filter((event) => event.ms <= sessionTimeMs);
+
+    const byDriver = new Map<number, PenaltyMarkerState>();
+    for (const event of visibleEvents) {
+      if (event.kind !== "penalty" && event.kind !== "investigation") continue;
+
+      const status = classifyPenaltyStatus(event.description, event.kind);
+      const targets =
+        event.driverNumber !== null
+          ? [event.driverNumber]
+          : extractInvolvedDriverNumbers(event.description);
+
+      for (const driverNumber of targets) {
+        byDriver.set(driverNumber, { status, detail: event.description });
+      }
+    }
+
+    return byDriver;
+  }, [raceControl, sessionStartMs, sessionTimeMs]);
 
   const pitCountMap = useMemo(() => {
     const m = new Map<number, number>();
@@ -896,6 +967,18 @@ export function LiveTiming({
               const intData = intMap.get(num);
               const color = teamColor(driver?.team_colour);
               const inPit = pittingNow.has(num);
+              const penaltyMarker = penaltyStatusByDriver.get(num) ?? null;
+              const penaltyStatus = penaltyMarker?.status ?? null;
+              const markerDetail = penaltyMarker?.detail ?? null;
+              const hasInvestigationMarker =
+                penaltyStatus === "investigating" || penaltyStatus === "noted";
+              const hasPenaltyMarker = penaltyStatus === "penalty";
+              const investigationTitle = markerDetail
+                ? `Under investigation: ${markerDetail}`
+                : "Under investigation";
+              const penaltyTitle = markerDetail
+                ? `Penalty issued: ${markerDetail}`
+                : "Penalty issued";
               const lastLap = lastLapMap.get(num) ?? null;
               const bestLap = bestLapMap.get(num) ?? null;
               const currentLap = currentLapMap.get(num) ?? null;
@@ -1058,8 +1141,31 @@ export function LiveTiming({
                             driverLabel
                           )}
                         </span>
-                        {(eliminated || retired || isOutlap || inPit) && (
-                          <span className="ml-auto shrink-0">
+                        {(hasInvestigationMarker ||
+                          hasPenaltyMarker ||
+                          eliminated ||
+                          retired ||
+                          isOutlap ||
+                          inPit) && (
+                          <span className="ml-auto inline-flex shrink-0 items-center gap-1">
+                            {hasInvestigationMarker && (
+                              <span
+                                className={`bg-[#f5a623] text-black font-black uppercase tracking-widest ${statusBadgeClass}`}
+                                title={investigationTitle}
+                                aria-label="Under investigation"
+                              >
+                                !
+                              </span>
+                            )}
+                            {hasPenaltyMarker && (
+                              <span
+                                className={`bg-[#ff5252] text-white font-black uppercase tracking-widest ${statusBadgeClass}`}
+                                title={penaltyTitle}
+                                aria-label="Penalty issued"
+                              >
+                                !
+                              </span>
+                            )}
                             {eliminated ? (
                               <span
                                 className={`inline-flex bg-[#3a214a] text-[#e7c7ff] font-black uppercase tracking-widest ${statusBadgeClass}`}
@@ -1078,13 +1184,13 @@ export function LiveTiming({
                               >
                                 OUTLAP
                               </span>
-                            ) : (
+                            ) : inPit ? (
                               <span
                                 className={`bg-[#f5a623] text-black font-black uppercase tracking-widest animate-pulse ${statusBadgeClass}`}
                               >
                                 PIT
                               </span>
-                            )}
+                            ) : null}
                           </span>
                         )}
                       </span>
