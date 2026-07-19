@@ -5,7 +5,12 @@ import {
 } from "@/constants";
 import * as Sentry from "@sentry/react";
 
-const BASE = "https://api.openf1.org/v1";
+const DEFAULT_BASE = import.meta.env.DEV
+  ? "/openf1/v1"
+  : "https://api.openf1.org/v1";
+
+const BASE =
+  (import.meta.env.VITE_OPENF1_API_BASE as string | undefined) ?? DEFAULT_BASE;
 
 // Optional bearer token. OpenF1's historical tier is documented as free/no-auth,
 // but if the API starts gating requests (401/403) you can supply a token via the

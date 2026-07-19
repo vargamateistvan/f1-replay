@@ -28,6 +28,14 @@ export default defineConfig({
     },
   },
   server: {
+    proxy: {
+      "/openf1": {
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/openf1/, ""),
+        secure: true,
+        target: "https://api.openf1.org",
+      },
+    },
     headers: {
       "Document-Policy": "js-profiling",
     },

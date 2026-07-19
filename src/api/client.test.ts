@@ -14,6 +14,7 @@ async function importFreshClient() {
 
 afterEach(() => {
   vi.restoreAllMocks();
+  vi.unstubAllEnvs();
 });
 
 // isAuthError
@@ -44,6 +45,24 @@ describe("isAuthError", () => {
 // In-flight deduplication
 
 describe("fetchEndpoint - in-flight deduplication", () => {
+  it("uses the configured base url when present", async () => {
+    vi.stubEnv("VITE_OPENF1_API_BASE", "/openf1/v1");
+    const { fetchEndpoint } = await importFreshClient();
+
+    let capturedUrl = "";
+    vi.stubGlobal(
+      "fetch",
+      vi.fn((input: RequestInfo | URL) => {
+        capturedUrl = String(input);
+        return Promise.resolve({ ok: true, json: async () => [] });
+      }),
+    );
+
+    await fetchEndpoint("meetings", { year: 2026 });
+
+    expect(capturedUrl).toBe("/openf1/v1/meetings?year=2026");
+  });
+
   it("deduplicates concurrent requests to the same URL", async () => {
     const { fetchEndpoint } = await importFreshClient();
 
