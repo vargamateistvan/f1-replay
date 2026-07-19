@@ -538,7 +538,10 @@ export function TrackMap({
       }
 
       const sample = normSamples[lo] ?? normSamples.at(-1)!;
-      const ratio = (sample.z - minZ) / zRange;
+      const rawRatio = (sample.z - minZ) / zRange;
+      const ratio = Number.isFinite(rawRatio)
+        ? Math.max(0, Math.min(rawRatio, 1))
+        : 0;
       const hue = Math.round(220 - ratio * 190);
       const lightness = lightMode ? 42 : 58;
       return {
@@ -580,7 +583,10 @@ export function TrackMap({
       const current = currentSamples[lo] ?? currentSamples.at(-1)!;
       const reference = resampledReference[lo] ?? resampledReference.at(-1)!;
       const deltaS = reference.timeS - current.timeS;
-      const intensity = Math.min(Math.abs(deltaS) / 0.18, 1);
+      const rawIntensity = Math.abs(deltaS) / 0.18;
+      const intensity = Number.isFinite(rawIntensity)
+        ? Math.min(rawIntensity, 1)
+        : 0;
       return {
         x1: pt.sx,
         y1: pt.sy,
@@ -620,7 +626,10 @@ export function TrackMap({
       const point =
         svgPts[pointIndex === -1 ? svgPts.length - 1 : pointIndex] ??
         svgPts[0]!;
-      const intensity = Math.min((sample.brake - 70) / 30, 1);
+      const rawIntensity = (sample.brake - 70) / 30;
+      const intensity = Number.isFinite(rawIntensity)
+        ? Math.max(0, Math.min(rawIntensity, 1))
+        : 0;
       return {
         key: `brake-hotspot-${index}-${sample.distM.toFixed(0)}`,
         x: point.sx,

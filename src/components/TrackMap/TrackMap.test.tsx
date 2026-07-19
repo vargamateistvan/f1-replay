@@ -7,15 +7,30 @@ import { useTrackOutline } from "@/hooks/useTrackMap";
 let timelineT = 0;
 
 vi.mock("@/timeline/clock", () => ({
-  useTimeline: vi.fn(() => ({
-    t: timelineT,
-    playing: false,
-    speed: 1,
-    toggle: vi.fn(),
-    setT: vi.fn(),
-    setSpeed: vi.fn(),
-    setPlaying: vi.fn(),
-  })),
+  useTimeline: vi.fn(
+    (
+      selector?: (state: {
+        t: number;
+        playing: boolean;
+        speed: number;
+        toggle: () => void;
+        setT: (value: number) => void;
+        setSpeed: (value: number) => void;
+        setPlaying: (value: boolean) => void;
+      }) => unknown,
+    ) => {
+      const state = {
+        t: timelineT,
+        playing: false,
+        speed: 1,
+        toggle: vi.fn(),
+        setT: vi.fn(),
+        setSpeed: vi.fn(),
+        setPlaying: vi.fn(),
+      };
+      return selector ? selector(state) : state;
+    },
+  ),
 }));
 
 vi.mock("@/hooks/useCarDataWindow", () => ({
