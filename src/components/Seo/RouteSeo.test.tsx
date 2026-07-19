@@ -5,7 +5,13 @@ import { RouteSeo } from "@/components/Seo/RouteSeo";
 
 function renderWithRouter(pathname: string) {
   return render(
-    <MemoryRouter initialEntries={[pathname]}>
+    <MemoryRouter
+      initialEntries={[pathname]}
+      future={{
+        v7_startTransition: true,
+        v7_relativeSplatPath: true,
+      }}
+    >
       <RouteSeo />
     </MemoryRouter>,
   );

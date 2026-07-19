@@ -6,7 +6,17 @@ import { useTimeline } from "@/timeline/clock";
 import { useTimelineUrlSync } from "./useTimelineUrlSync";
 
 function wrapper({ children }: { children: React.ReactNode }) {
-  return <MemoryRouter initialEntries={["/race"]}>{children}</MemoryRouter>;
+  return (
+    <MemoryRouter
+      initialEntries={["/race"]}
+      future={{
+        v7_startTransition: true,
+        v7_relativeSplatPath: true,
+      }}
+    >
+      {children}
+    </MemoryRouter>
+  );
 }
 
 describe("useTimelineUrlSync", () => {

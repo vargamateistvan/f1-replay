@@ -187,7 +187,16 @@ vi.mock("@/stores/settings", () => {
 });
 
 function wrap(ui: ReactElement) {
-  return render(<MemoryRouter>{ui}</MemoryRouter>);
+  return render(
+    <MemoryRouter
+      future={{
+        v7_startTransition: true,
+        v7_relativeSplatPath: true,
+      }}
+    >
+      {ui}
+    </MemoryRouter>,
+  );
 }
 
 const drivers: Driver[] = [

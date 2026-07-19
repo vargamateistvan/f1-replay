@@ -6,7 +6,13 @@ import { useNumberParam, useStringParam } from "./useSearchParamState";
 
 function wrapper({ children }: { children: React.ReactNode }) {
   return (
-    <MemoryRouter initialEntries={["/race?session=10"]}>
+    <MemoryRouter
+      initialEntries={["/race?session=10"]}
+      future={{
+        v7_startTransition: true,
+        v7_relativeSplatPath: true,
+      }}
+    >
       {children}
     </MemoryRouter>
   );
