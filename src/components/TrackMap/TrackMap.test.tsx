@@ -100,7 +100,10 @@ const mockOutline = {
 describe("TrackMap sector flag state rendering", () => {
   beforeEach(() => {
     timelineT = 0;
-    vi.mocked(useTrackOutline).mockReturnValue({ data: null, isPending: false });
+    vi.mocked(useTrackOutline).mockReturnValue({
+      data: null,
+      isPending: false,
+    });
   });
 
   it("keeps follow-camera viewport stable when focused sample is temporarily missing", () => {
