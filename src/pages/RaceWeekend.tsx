@@ -79,6 +79,7 @@ import { teamColor } from "@/utils/color";
 import { DEFAULT_SESSION_MS } from "@/constants";
 import { useSettings } from "@/stores/settings";
 import { deriveRetiredDrivers } from "@/utils/retirement";
+import { computeBattlingDrivers } from "@/utils/battles";
 import {
   getSafetyControlPhase,
   isTrackClearSignal,
@@ -458,24 +459,8 @@ export default function RaceWeekend() {
 
   // Cars within 1.0 s of the car ahead → highlight DRS battle on the map.
   const battlingDrivers = useMemo(() => {
-    const result = new Set<number>();
-    if (!intervals.data?.length || !sessionStartMs) return result;
-    const cutoffMs = sessionStartMs + tSlow;
-    const latest = new Map<
-      number,
-      { ms: number; interval: number | string | null }
-    >();
-    for (const iv of intervals.data) {
-      const ms = new Date(iv.date).getTime();
-      if (ms > cutoffMs) continue;
-      const prev = latest.get(iv.driver_number);
-      if (!prev || ms > prev.ms)
-        latest.set(iv.driver_number, { ms, interval: iv.interval });
-    }
-    for (const [num, { interval }] of latest) {
-      if (typeof interval === "number" && interval <= 1.0) result.add(num);
-    }
-    return result;
+    if (!intervals.data?.length || !sessionStartMs) return new Set<number>();
+    return computeBattlingDrivers(intervals.data, sessionStartMs + tSlow, 1.0);
   }, [intervals.data, sessionStartMs, tSlow]);
 
   const retiredDrivers = useMemo((): ReadonlySet<number> => {
