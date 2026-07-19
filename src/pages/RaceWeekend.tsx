@@ -1022,6 +1022,8 @@ export default function RaceWeekend() {
       onSelectDriver={toggleFocus}
       carData={telemetryEnabled ? carDataAtT : undefined}
       showMinisectors={timingShowMinisectors}
+      showIntervalColumn
+      showFullLastName
       wideSectors
       dense
       fullWidthTable

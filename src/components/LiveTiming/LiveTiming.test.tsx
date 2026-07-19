@@ -96,6 +96,39 @@ describe("LiveTiming", () => {
     expect(screen.getAllByText("VER").length).toBeGreaterThan(0);
   });
 
+  it("shows full surnames when enabled", () => {
+    const sessionStartMs = Date.parse("2024-01-01T00:00:00.000Z");
+    const positions = [
+      {
+        driver_number: 1,
+        position: 1,
+        date: "2024-01-01T00:00:10.000Z",
+      },
+      {
+        driver_number: 16,
+        position: 2,
+        date: "2024-01-01T00:00:10.000Z",
+      },
+    ] as Position[];
+
+    render(
+      <LiveTiming
+        drivers={drivers}
+        positions={positions}
+        intervals={[]}
+        pits={[]}
+        laps={[]}
+        sessionTimeMs={20_000}
+        sessionStartMs={sessionStartMs}
+        showFullLastName
+      />,
+    );
+
+    expect(screen.getByText("Verstappen")).toBeInTheDocument();
+    expect(screen.getByText("Leclerc")).toBeInTheDocument();
+    expect(screen.getAllByText("VER").length).toBeGreaterThan(0);
+  });
+
   it("covers populated race rows with select/pit/outlap/telemetry", () => {
     const onSelectDriver = vi.fn();
     const sessionStartMs = Date.parse("2024-01-01T00:00:00.000Z");
@@ -161,7 +194,7 @@ describe("LiveTiming", () => {
               driver_number: 16,
               date: "2024-01-01T00:00:10.000Z",
               gap_to_leader: 5.234,
-              interval: 5.234,
+              interval: 1.111,
             },
           ] as unknown as Interval[]
         }
@@ -289,6 +322,8 @@ describe("LiveTiming", () => {
     );
 
     expect(screen.getByText("LEAD")).toBeInTheDocument();
+    expect(screen.queryByText("Interval")).not.toBeInTheDocument();
+    expect(screen.getByText("+5.234")).toBeInTheDocument();
     expect(screen.getByText("OUTLAP")).toBeInTheDocument();
     expect(screen.getByText("RET")).toBeInTheDocument();
     expect(screen.getAllByText(/SPD|KMH|MPH/).length).toBeGreaterThan(0);
@@ -471,5 +506,164 @@ describe("LiveTiming", () => {
     expect(row).toBeDefined();
     expect(row).toHaveClass("ring-1");
     expect(row).toHaveClass("ring-inset");
+  });
+
+  it("derives timed-session intervals from the car ahead", () => {
+    const sessionStartMs = Date.parse("2024-01-01T00:00:00.000Z");
+    const timedDrivers = [
+      ...drivers,
+      {
+        driver_number: 63,
+        name_acronym: "RUS",
+        full_name: "George Russell",
+        team_colour: "00D2BE",
+      },
+    ] as unknown as Driver[];
+
+    render(
+      <LiveTiming
+        drivers={timedDrivers}
+        positions={
+          [
+            {
+              driver_number: 1,
+              position: 1,
+              date: "2024-01-01T00:01:40.000Z",
+            },
+            {
+              driver_number: 16,
+              position: 2,
+              date: "2024-01-01T00:01:40.000Z",
+            },
+            {
+              driver_number: 63,
+              position: 3,
+              date: "2024-01-01T00:01:40.000Z",
+            },
+          ] as Position[]
+        }
+        intervals={[]}
+        pits={[]}
+        laps={
+          [
+            {
+              date_start: "2024-01-01T00:00:00.000Z",
+              driver_number: 1,
+              duration_sector_1: 30,
+              duration_sector_2: 30,
+              duration_sector_3: 30,
+              i1_speed: null,
+              i2_speed: null,
+              is_pit_out_lap: false,
+              lap_duration: 90,
+              lap_number: 1,
+              meeting_key: 1,
+              segments_sector_1: [2049],
+              segments_sector_2: [2049],
+              segments_sector_3: [2049],
+              session_key: 1,
+              st_speed: null,
+            },
+            {
+              date_start: "2024-01-01T00:00:00.000Z",
+              driver_number: 16,
+              duration_sector_1: 30.4,
+              duration_sector_2: 30.4,
+              duration_sector_3: 30.4,
+              i1_speed: null,
+              i2_speed: null,
+              is_pit_out_lap: false,
+              lap_duration: 91.2,
+              lap_number: 1,
+              meeting_key: 1,
+              segments_sector_1: [2049],
+              segments_sector_2: [2049],
+              segments_sector_3: [2049],
+              session_key: 1,
+              st_speed: null,
+            },
+            {
+              date_start: "2024-01-01T00:00:00.000Z",
+              driver_number: 63,
+              duration_sector_1: 31,
+              duration_sector_2: 31,
+              duration_sector_3: 31,
+              i1_speed: null,
+              i2_speed: null,
+              is_pit_out_lap: false,
+              lap_duration: 93,
+              lap_number: 1,
+              meeting_key: 1,
+              segments_sector_1: [2049],
+              segments_sector_2: [2049],
+              segments_sector_3: [2049],
+              session_key: 1,
+              st_speed: null,
+            },
+          ] as Lap[]
+        }
+        sessionName="Practice 1"
+        sessionTimeMs={100_000}
+        sessionStartMs={sessionStartMs}
+        showIntervalColumn
+      />,
+    );
+
+    expect(screen.getByText("Interval")).toBeInTheDocument();
+    const rows = screen.getAllByRole("row");
+    expect(rows[2]).toHaveTextContent("LEC");
+    expect(rows[2]).toHaveTextContent("+1.200");
+    expect(rows[3]).toHaveTextContent("RUS");
+    expect(rows[3]).toHaveTextContent("+3.000");
+    expect(rows[3]).toHaveTextContent("+1.800");
+  });
+
+  it("shows race-session interval values only when enabled", () => {
+    const sessionStartMs = Date.parse("2024-01-01T00:00:00.000Z");
+
+    render(
+      <LiveTiming
+        drivers={drivers}
+        positions={
+          [
+            {
+              driver_number: 1,
+              position: 1,
+              date: "2024-01-01T00:00:10.000Z",
+            },
+            {
+              driver_number: 16,
+              position: 2,
+              date: "2024-01-01T00:00:10.000Z",
+            },
+          ] as Position[]
+        }
+        intervals={
+          [
+            {
+              driver_number: 1,
+              date: "2024-01-01T00:00:10.000Z",
+              gap_to_leader: 0,
+              interval: null,
+            },
+            {
+              driver_number: 16,
+              date: "2024-01-01T00:00:10.000Z",
+              gap_to_leader: 5.234,
+              interval: 1.111,
+            },
+          ] as unknown as Interval[]
+        }
+        pits={[]}
+        laps={[]}
+        sessionName="Race"
+        sessionTimeMs={20_000}
+        sessionStartMs={sessionStartMs}
+        showIntervalColumn
+      />,
+    );
+
+    expect(screen.getByText("Interval")).toBeInTheDocument();
+    expect(screen.getByText("+1.111")).toBeInTheDocument();
   });
 });

@@ -51,6 +51,8 @@ interface Props {
   readonly wideSectors?: boolean;
   readonly dense?: boolean;
   readonly showDenseMobileTelemetry?: boolean;
+  readonly showIntervalColumn?: boolean;
+  readonly showFullLastName?: boolean;
   readonly isLoading?: boolean;
   readonly selectedDriver?: number | null;
   readonly compareDriver?: number | null;
@@ -79,6 +81,13 @@ function fmtGap(val: number | string | null) {
   if (val === null) return "—";
   if (typeof val === "string") return val;
   if (val === 0) return "LEAD";
+  return `+${val.toFixed(3)}`;
+}
+
+function fmtInterval(val: number | string | null) {
+  if (val === null) return "—";
+  if (typeof val === "string") return val;
+  if (Math.abs(val) < 0.0005) return "—";
   return `+${val.toFixed(3)}`;
 }
 
@@ -185,6 +194,13 @@ function isRaceSession(sessionName?: string) {
   return n.includes("race") || n.includes("sprint");
 }
 
+function displayLastName(driver: Driver | undefined, driverNumber: number) {
+  if (!driver) return String(driverNumber);
+  if (driver.last_name) return driver.last_name;
+  const parts = driver.full_name?.trim().split(/\s+/).filter(Boolean) ?? [];
+  return parts.at(-1) ?? driver.name_acronym ?? String(driverNumber);
+}
+
 export function LiveTiming({
   drivers,
   positions,
@@ -201,6 +217,8 @@ export function LiveTiming({
   wideSectors = false,
   dense = false,
   showDenseMobileTelemetry = false,
+  showIntervalColumn = false,
+  showFullLastName = false,
   sessionTimeMs,
   sessionStartMs,
   isLoading,
@@ -792,6 +810,13 @@ export function LiveTiming({
               >
                 Gap
               </th>
+              {showIntervalColumn && (
+                <th
+                  className={`${headerCellClass} hidden sm:table-cell text-right w-[4.25rem] min-[390px]:w-[4.75rem] sm:w-[5rem]`}
+                >
+                  Interval
+                </th>
+              )}
               <th
                 className={`${headerCellClass} hidden sm:table-cell text-center ${sectorHeaderWidthClass}`}
               >
@@ -875,6 +900,10 @@ export function LiveTiming({
               const bestLap = bestLapMap.get(num) ?? null;
               const currentLap = currentLapMap.get(num) ?? null;
               const car = carData?.get(num) ?? null;
+              const mobileDriverLabel = driver?.name_acronym ?? num;
+              const driverLabel = showFullLastName
+                ? displayLastName(driver, num)
+                : mobileDriverLabel;
               const speedValue = car
                 ? Math.round(toDisplaySpeed(car.speed, metricSystem))
                 : null;
@@ -930,6 +959,18 @@ export function LiveTiming({
                   ? 0
                   : timedGap
                 : (intData?.gap_to_leader ?? null);
+              const previousDriverNumber =
+                sorted[idx - 1]?.driverNumber ?? null;
+              const previousBestLap =
+                previousDriverNumber !== null
+                  ? (bestLapMap.get(previousDriverNumber)?.lap_duration ?? null)
+                  : null;
+              const intervalValue = isTimedSession(sessionName ?? "")
+                ? previousBestLap !== null &&
+                  bestLap?.lap_duration !== undefined
+                  ? Math.max(0, bestLap.lap_duration - previousBestLap)
+                  : null
+                : (intData?.interval ?? null);
 
               // Check if the last lap is a post-race outlap
               const isOutlap =
@@ -1004,7 +1045,18 @@ export function LiveTiming({
                         <span
                           className={`min-w-0 truncate font-bold ${dense ? "text-[9px] min-[390px]:text-[10px]" : "text-[10px] min-[390px]:text-[11px]"} tracking-[0.03em] min-[390px]:tracking-[0.05em] uppercase text-white`}
                         >
-                          {driver?.name_acronym ?? num}
+                          {showFullLastName ? (
+                            <>
+                              <span className="sm:hidden">
+                                {mobileDriverLabel}
+                              </span>
+                              <span className="hidden sm:inline">
+                                {driverLabel}
+                              </span>
+                            </>
+                          ) : (
+                            driverLabel
+                          )}
                         </span>
                         {(eliminated || retired || isOutlap || inPit) && (
                           <span className="ml-auto shrink-0">
@@ -1102,6 +1154,15 @@ export function LiveTiming({
                   >
                     {fmtGap(gapValue)}
                   </td>
+
+                  {/* Interval to car ahead */}
+                  {showIntervalColumn && (
+                    <td
+                      className={`hidden sm:table-cell ${rowCellPad} align-middle px-1 text-right font-mono ${dense ? "text-[9px] min-[390px]:text-[10px]" : "text-[10px] min-[390px]:text-[11px]"} tabular-nums text-muted sm:px-2`}
+                    >
+                      {fmtInterval(intervalValue)}
+                    </td>
+                  )}
 
                   {/* Sector bars */}
                   <td
