@@ -1,5 +1,12 @@
 import { useEffect, useState } from "react";
 
+function isCrossOriginFrameError(value: unknown): boolean {
+  const message = value instanceof Error ? value.message : String(value);
+  return /blocked a frame with origin|cross-origin frame|secure connection to the server cannot be made|certificate for this server is invalid/i.test(
+    message,
+  );
+}
+
 export function ErrorDisplay() {
   const [errors, setErrors] = useState<string[]>([]);
 
@@ -17,12 +24,20 @@ export function ErrorDisplay() {
 
     // Listen for new errors
     const handleError = (event: ErrorEvent) => {
+      if (isCrossOriginFrameError(event.error ?? event.message)) {
+        event.preventDefault();
+        return;
+      }
       const msg = `${event.error?.message || event.message}`;
       setErrors((prev) => [...prev.slice(-9), msg]);
       event.preventDefault();
     };
 
     const handleRejection = (event: PromiseRejectionEvent) => {
+      if (isCrossOriginFrameError(event.reason)) {
+        event.preventDefault();
+        return;
+      }
       const msg = `Promise: ${event.reason?.message || event.reason}`;
       setErrors((prev) => [...prev.slice(-9), msg]);
       event.preventDefault();

@@ -16,6 +16,13 @@ const sentryDsn =
   import.meta.env.VITE_SENTRY_DSN ||
   "https://6910191e596b31cc3bc8e8a0eac15f82@o4511602563940352.ingest.de.sentry.io/4511602567151696";
 
+function isCrossOriginFrameError(value: unknown): boolean {
+  const message = value instanceof Error ? value.message : String(value);
+  return /blocked a frame with origin|cross-origin frame|secure connection to the server cannot be made|certificate for this server is invalid/i.test(
+    message,
+  );
+}
+
 Sentry.init({
   dsn: sentryDsn,
   environment: import.meta.env.MODE,
@@ -89,6 +96,10 @@ if (typeof globalThis.window !== "undefined") {
   // Intercept all errors
   globalThis.addEventListener("error", (event) => {
     const msg = event.error?.message || event.message || "Unknown error";
+    if (isCrossOriginFrameError(event.error ?? msg)) {
+      event.preventDefault();
+      return true;
+    }
     storeError(`Error: ${msg}`);
     Sentry.logger.error("Unhandled window error", {
       log_source: "window_error",
@@ -115,6 +126,10 @@ if (typeof globalThis.window !== "undefined") {
   globalThis.addEventListener("unhandledrejection", (event) => {
     const msg =
       event.reason?.message || String(event.reason) || "Promise rejection";
+    if (isCrossOriginFrameError(event.reason ?? msg)) {
+      event.preventDefault();
+      return true;
+    }
     storeError(`Rejection: ${msg}`);
     Sentry.logger.error("Unhandled promise rejection", {
       log_source: "promise_rejection",
