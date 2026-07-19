@@ -1643,6 +1643,7 @@ function SplitsTable({
   if (rows.length === 0) return null;
 
   const fmt = (v: number | null) => (v === null ? "-" : v.toFixed(3));
+  const fmtLap = (v: number | null) => formatLapTime(v);
   const cls = (v: number | null, best: number | null) =>
     v !== null && best !== null && v === best ? "text-[#b48ead]" : "text-white";
 
@@ -1696,7 +1697,7 @@ function SplitsTable({
                   fastest.lap,
                 )}`}
               >
-                {fmt(r.lap)}
+                {fmtLap(r.lap)}
               </td>
             </tr>
           ))}
