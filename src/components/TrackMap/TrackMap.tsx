@@ -219,6 +219,10 @@ export function TrackMap({
   const [zoomLevel, setZoomLevel] = useState(1);
   const [rotationDeg, setRotationDeg] = useState(0);
   const cameraViewRef = useRef<CameraView>({ x: 0, y: 0, w: SVG_W, h: SVG_H });
+
+  useEffect(() => {
+    cameraViewRef.current = { x: 0, y: 0, w: SVG_W, h: SVG_H };
+  }, [sessionKey]);
   const finishPatternId = `finish-checker-${sessionKey ?? "na"}`;
   const rotationStorageKey = useMemo(
     () =>
