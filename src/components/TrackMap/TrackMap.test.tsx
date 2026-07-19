@@ -109,23 +109,31 @@ const mockOutline = {
     { x: 100, y: 100 },
     { x: 0, y: 100 },
   ],
-  bounds: { minX: 0, minY: 0, maxX: 100, maxY: 100 },
+  bounds: { minX: 0, minY: 0, maxX: 100, maxY: 100, width: 100, height: 100 },
+  source: "layout" as const,
 };
+
+function mockTrackOutlineQueryResult(
+  data: ReturnType<typeof useTrackOutline>["data"],
+): ReturnType<typeof useTrackOutline> {
+  return {
+    data,
+    isPending: false,
+  } as ReturnType<typeof useTrackOutline>;
+}
 
 describe("TrackMap sector flag state rendering", () => {
   beforeEach(() => {
     timelineT = 0;
-    vi.mocked(useTrackOutline).mockReturnValue({
-      data: null,
-      isPending: false,
-    });
+    vi.mocked(useTrackOutline).mockReturnValue(
+      mockTrackOutlineQueryResult(null),
+    );
   });
 
   it("keeps follow-camera viewport stable when focused sample is temporarily missing", () => {
-    vi.mocked(useTrackOutline).mockReturnValue({
-      data: mockOutline,
-      isPending: false,
-    });
+    vi.mocked(useTrackOutline).mockReturnValue(
+      mockTrackOutlineQueryResult(mockOutline),
+    );
 
     timelineT = 10_000;
     const { container, rerender } = render(
