@@ -5,9 +5,7 @@ import {
 } from "@/constants";
 import * as Sentry from "@sentry/react";
 
-const DEFAULT_BASE = import.meta.env.DEV
-  ? "/openf1/v1"
-  : "https://api.openf1.org/v1";
+const DEFAULT_BASE = "https://api.openf1.org/v1";
 
 const BASE =
   (import.meta.env.VITE_OPENF1_API_BASE as string | undefined) ?? DEFAULT_BASE;
