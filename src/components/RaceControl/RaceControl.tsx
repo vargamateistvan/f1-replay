@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import type { RaceControl as RaceControlEntry, Driver } from "@/api/types";
 import { downloadEndpointCsv } from "@/api/client";
 import { useSettings } from "@/stores/settings";
@@ -83,6 +83,8 @@ const KIND_GROUPS: KindGroup[] = [
 ];
 
 const ALL_GROUP_KEYS = new Set(KIND_GROUPS.map((g) => g.key));
+const INITIAL_RENDER_LIMIT = 180;
+const RENDER_STEP = 120;
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -131,6 +133,7 @@ export function RaceControlFeed({
   );
   const [search, setSearch] = useState("");
   const [showPenalties, setShowPenalties] = useState(false);
+  const [renderLimit, setRenderLimit] = useState(INITIAL_RENDER_LIMIT);
 
   const normalized = useMemo(
     () => normalizeRaceControl(entries, sessionStartMs),
@@ -194,6 +197,34 @@ export function RaceControlFeed({
     () => groupEventsByLap(filteredEntries).reverse(),
     [filteredEntries],
   );
+
+  useEffect(() => {
+    setRenderLimit(INITIAL_RENDER_LIMIT);
+  }, [sessionKey, focusDriver, search, activeGroups, filteredEntries.length]);
+
+  const totalFilteredEvents = filteredEntries.length;
+  const hasMoreEvents = totalFilteredEvents > renderLimit;
+
+  const visibleLapGroups = useMemo(() => {
+    let remaining = renderLimit;
+    const groups: Array<{
+      lapNumber: number | null;
+      events: typeof filteredEntries;
+    }> = [];
+
+    for (const group of lapGroups) {
+      if (remaining <= 0) break;
+      const count = Math.min(group.events.length, remaining);
+      if (count <= 0) continue;
+      groups.push({
+        lapNumber: group.lapNumber,
+        events: group.events.slice(group.events.length - count),
+      });
+      remaining -= count;
+    }
+
+    return groups;
+  }, [lapGroups, renderLimit]);
 
   const penaltyStates = useMemo(
     () => (showPenalties ? buildPenaltyStates(visibleEntries) : []),
@@ -366,12 +397,23 @@ export function RaceControlFeed({
 
       {/* ── Lap-grouped feed ───────────────────────────────────── */}
       <div className="panel-scroll">
-        {lapGroups.length === 0 && (
+        {visibleLapGroups.length === 0 && (
           <div className="p-2 text-muted text-xs">
             {sessionStartMs ? "No events match filters" : "Select a session"}
           </div>
         )}
-        {lapGroups.map((group) => (
+        {hasMoreEvents && (
+          <div className="px-2 py-1.5 border-b border-[#2a2a35] bg-[#171721] sticky top-0 z-20">
+            <button
+              type="button"
+              onClick={() => setRenderLimit((prev) => prev + RENDER_STEP)}
+              className="h-6 px-2 text-[9px] font-black uppercase tracking-widest rounded transition-colors bg-[#1e1e28] text-muted hover:text-white hover:bg-[#38383f]"
+            >
+              Load older ({totalFilteredEvents - renderLimit} hidden)
+            </button>
+          </div>
+        )}
+        {visibleLapGroups.map((group) => (
           <div key={group.lapNumber ?? "session"} className="mb-0.5">
             {/* Lap header */}
             <div className="sticky top-0 z-10 px-2 py-0.5 bg-[#1a1a24] border-b border-[#2a2a35] text-[9px] font-black uppercase tracking-widest text-muted select-none">

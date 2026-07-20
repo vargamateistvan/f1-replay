@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import type { Driver, Pit } from "@/api/types";
 import { downloadEndpointCsv } from "@/api/client";
 import { useSettings } from "@/stores/settings";
@@ -31,14 +31,19 @@ export function PitFeed({
   sessionStartMs,
 }: Props) {
   const showCsvExportButtons = useSettings((s) => s.showCsvExportButtons);
+  const [renderLimit, setRenderLimit] = useState(120);
   const currentT = sessionStartMs + sessionTimeMs;
+
+  useEffect(() => {
+    setRenderLimit(120);
+  }, [sessionKey, entries.length]);
 
   const driverByNumber = useMemo(
     () => new Map(drivers.map((d) => [d.driver_number, d])),
     [drivers],
   );
 
-  const visible = useMemo(() => {
+  const visibleAll = useMemo(() => {
     const entriesInView = entries.filter(
       (e) => new Date(e.date).getTime() <= currentT,
     );
@@ -53,6 +58,12 @@ export function PitFeed({
       ? [...entriesInView].reverse()
       : entriesInView.slice(-40).reverse();
   }, [entries, currentT]);
+
+  const visible = useMemo(
+    () => visibleAll.slice(0, renderLimit),
+    [visibleAll, renderLimit],
+  );
+  const hasMore = visible.length < visibleAll.length;
 
   if (visible.length === 0) {
     return (
@@ -120,6 +131,17 @@ export function PitFeed({
           </div>
         );
       })}
+      {hasMore && (
+        <div className="flex justify-center pt-1">
+          <button
+            type="button"
+            onClick={() => setRenderLimit((v) => v + 120)}
+            className="h-6 px-2 text-[9px] font-black uppercase tracking-widest rounded transition-colors bg-[#1e1e28] text-muted hover:text-white hover:bg-[#38383f]"
+          >
+            Load older ({visibleAll.length - visible.length} left)
+          </button>
+        </div>
+      )}
     </div>
   );
 }

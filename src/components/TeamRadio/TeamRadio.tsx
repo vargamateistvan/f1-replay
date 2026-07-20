@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Play, Square } from "lucide-react";
 import type { TeamRadio as TeamRadioEntry, Driver } from "@/api/types";
 import { downloadEndpointCsv } from "@/api/client";
@@ -35,11 +35,16 @@ export function TeamRadioFeed({
 }: Props) {
   const showCsvExportButtons = useSettings((s) => s.showCsvExportButtons);
   const [playing, setPlaying] = useState<string | null>(null);
+  const [renderLimit, setRenderLimit] = useState(120);
   const currentT = sessionStartMs + sessionTimeMs;
+
+  useEffect(() => {
+    setRenderLimit(120);
+  }, [sessionKey, entries.length]);
 
   const driverByNumber = new Map(drivers.map((d) => [d.driver_number, d]));
 
-  const visible = useMemo(() => {
+  const visibleAll = useMemo(() => {
     const entriesInView = entries.filter(
       (e) => new Date(e.date).getTime() <= currentT,
     );
@@ -56,6 +61,12 @@ export function TeamRadioFeed({
       ? [...entriesInView].reverse()
       : entriesInView.slice(-30).reverse();
   }, [entries, currentT]);
+
+  const visible = useMemo(
+    () => visibleAll.slice(0, renderLimit),
+    [visibleAll, renderLimit],
+  );
+  const hasMore = visible.length < visibleAll.length;
 
   let emptyMessage = "Select a session";
   if (sessionStartMs !== 0) {
@@ -161,6 +172,17 @@ export function TeamRadioFeed({
           </div>
         );
       })}
+      {hasMore && (
+        <div className="flex justify-center pt-1">
+          <button
+            type="button"
+            onClick={() => setRenderLimit((v) => v + 120)}
+            className="h-6 px-2 text-[9px] font-black uppercase tracking-widest rounded transition-colors bg-[#1e1e28] text-muted hover:text-white hover:bg-[#38383f]"
+          >
+            Load older ({visibleAll.length - visible.length} left)
+          </button>
+        </div>
+      )}
     </div>
   );
 }
