@@ -8,6 +8,7 @@ import type {
   RadioPayload,
 } from "@/timeline/events";
 import { teamColor } from "@/utils/color";
+import { TooltipCard } from "@/components/TooltipCard/TooltipCard";
 
 interface Props {
   summary: CatchupSummaryData;
@@ -51,21 +52,12 @@ function EventText({
   return (
     <span className="group/tooltip relative flex min-w-0 flex-1">
       <span className={className}>{text}</span>
-      <span
-        role="tooltip"
-        className="pointer-events-none absolute left-0 top-full z-20 mt-2 w-full min-w-[200px] max-w-[280px] border border-panel bg-track px-3 py-2 text-[10px] text-white opacity-0 shadow-[0_12px_28px_rgba(0,0,0,0.4)] transition duration-150 group-hover/tooltip:opacity-100"
-      >
-        <span
-          className={`absolute inset-y-0 left-0 w-1 ${tooltipAccentClassName ?? "bg-f1red"}`}
-          aria-hidden="true"
-        />
-        <span className="block pl-2 text-[8px] font-black uppercase tracking-[0.18em] text-muted">
-          Full event
-        </span>
-        <span className="mt-1 block pl-2 text-[11px] font-semibold leading-5 text-white/88">
-          {text}
-        </span>
-      </span>
+      <TooltipCard
+        title="Full event"
+        text={text}
+        accentClassName={tooltipAccentClassName}
+        className="pointer-events-none absolute left-0 top-full z-20 mt-2 w-full min-w-[200px] max-w-[280px] opacity-0 transition duration-150 group-hover/tooltip:opacity-100"
+      />
     </span>
   );
 }

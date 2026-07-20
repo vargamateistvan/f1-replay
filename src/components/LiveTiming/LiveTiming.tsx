@@ -1,4 +1,5 @@
 import { memo, useEffect, useMemo, useRef, useState } from "react";
+import type { ReactNode } from "react";
 import { createPortal } from "react-dom";
 import type {
   Driver,
@@ -31,6 +32,7 @@ import { normalizeRaceControl } from "@/timeline/raceControl";
 import { SectorBar, type SectorTier } from "./SectorBar";
 import { TyreBadge } from "./TyreBadge";
 import { DriverHeadshot } from "@/components/DriverHeadshot";
+import { TooltipCard } from "@/components/TooltipCard/TooltipCard";
 
 interface Props {
   readonly drivers: Driver[];
@@ -76,17 +78,19 @@ interface SortedRow {
   eliminatedPhase: QualiPhase | null;
 }
 
+type TimingDisplayValue = number | string | null;
+
 const Q3_GRID_SIZE = 10;
 const LAP_SET_FLASH_MS = 4_000;
 
-function fmtGap(val: number | string | null) {
+function fmtGap(val: TimingDisplayValue) {
   if (val === null) return "—";
   if (typeof val === "string") return val;
   if (val === 0) return "LEAD";
   return `+${val.toFixed(3)}`;
 }
 
-function fmtInterval(val: number | string | null) {
+function fmtInterval(val: TimingDisplayValue) {
   if (val === null) return "—";
   if (typeof val === "string") return val;
   if (Math.abs(val) < 0.0005) return "—";
@@ -186,22 +190,13 @@ function StatusBadgeTooltip({
       {open &&
         typeof document !== "undefined" &&
         createPortal(
-          <span
-            role="tooltip"
-            className="pointer-events-none fixed z-[9999] w-56 max-w-[calc(100vw-2rem)] border border-panel bg-track px-3 py-2 text-left text-[10px] text-white shadow-[0_12px_28px_rgba(0,0,0,0.4)]"
+          <TooltipCard
+            title="Status"
+            text={tooltip}
+            accentClassName={tooltipAccentClassName}
+            className="pointer-events-none fixed z-[9999] w-56 max-w-[calc(100vw-2rem)]"
             style={{ top: position.top, left: position.left }}
-          >
-            <span
-              className={`absolute inset-y-0 left-0 w-1 ${tooltipAccentClassName ?? "bg-f1red"}`}
-              aria-hidden="true"
-            />
-            <span className="block pl-2 text-[8px] font-black uppercase tracking-[0.18em] text-muted">
-              Status
-            </span>
-            <span className="mt-1 block whitespace-normal break-words pl-2 text-[11px] font-semibold leading-5 text-white/88">
-              {tooltip}
-            </span>
-          </span>,
+          />,
           document.body,
         )}
     </span>
@@ -775,15 +770,20 @@ export function LiveTiming({
   const sorted = useMemo<SortedRow[]>(() => {
     const timed = isTimedSession(sessionName ?? "");
     if (timed) {
-      return timedOrder.order.map((driverNumber, idx) => ({
-        driverNumber,
-        displayPosition: idx + 1,
-        eliminatedPhase: timedOrder.eliminatedQ2.includes(driverNumber)
-          ? "Q2"
-          : timedOrder.eliminatedQ1.includes(driverNumber)
-            ? "Q1"
-            : null,
-      }));
+      return timedOrder.order.map((driverNumber, idx) => {
+        let eliminatedPhase: QualiPhase | null = null;
+        if (timedOrder.eliminatedQ2.includes(driverNumber)) {
+          eliminatedPhase = "Q2";
+        } else if (timedOrder.eliminatedQ1.includes(driverNumber)) {
+          eliminatedPhase = "Q1";
+        }
+
+        return {
+          driverNumber,
+          displayPosition: idx + 1,
+          eliminatedPhase,
+        };
+      });
     }
 
     return [...posMap.entries()]
@@ -816,7 +816,9 @@ export function LiveTiming({
     : "py-3 px-1 sm:px-2";
 
   const sectorBarWidthClass = wideSectors ? "w-14" : "w-7";
-  const rowCellPad = leaderboardDense ? "py-0.5" : dense ? "py-0" : "py-3";
+  let rowCellPad = "py-3";
+  if (leaderboardDense) rowCellPad = "py-0.5";
+  else if (dense) rowCellPad = "py-0";
   const sectorHeaderWidthClass = wideSectors
     ? "w-[4rem] lg:w-[4.5rem]"
     : "w-[2.8rem] lg:w-[3rem]";
@@ -845,7 +847,9 @@ export function LiveTiming({
   const statusBadgeClass = dense
     ? "inline-flex h-3.5 items-center px-1 text-[8px] leading-none"
     : "inline-block text-[9px] px-1.5 py-0.5";
-  const rowHeightClass = fullWidthTable ? "h-8" : dense ? "h-[30px]" : "h-11";
+  let rowHeightClass = "h-11";
+  if (fullWidthTable) rowHeightClass = "h-8";
+  else if (dense) rowHeightClass = "h-[30px]";
 
   if (isLoading) {
     return (
@@ -1123,35 +1127,36 @@ export function LiveTiming({
                 leaderBestLap !== null && bestLap?.lap_duration !== undefined
                   ? Math.max(0, bestLap.lap_duration - leaderBestLap)
                   : null;
-              const gapValue = isTimedSession(sessionName ?? "")
-                ? pos === 1
-                  ? 0
-                  : timedGap
-                : (intData?.gap_to_leader ?? null);
+              let gapValue: TimingDisplayValue = intData?.gap_to_leader ?? null;
+              if (isTimedSession(sessionName ?? "")) {
+                gapValue = pos === 1 ? 0 : timedGap;
+              }
               const previousDriverNumber =
                 sorted[idx - 1]?.driverNumber ?? null;
               const previousBestLap =
                 previousDriverNumber !== null
                   ? (bestLapMap.get(previousDriverNumber)?.lap_duration ?? null)
                   : null;
-              const intervalValue = isTimedSession(sessionName ?? "")
-                ? previousBestLap !== null &&
+              let intervalValue: TimingDisplayValue = intData?.interval ?? null;
+              if (isTimedSession(sessionName ?? "")) {
+                intervalValue =
+                  previousBestLap !== null &&
                   bestLap?.lap_duration !== undefined
-                  ? Math.max(0, bestLap.lap_duration - previousBestLap)
-                  : null
-                : (intData?.interval ?? null);
+                    ? Math.max(0, bestLap.lap_duration - previousBestLap)
+                    : null;
+              }
 
               // Check if the last lap is a post-race outlap
               const isOutlap =
-                lastLap &&
-                lastLap.date_start &&
+                lastLap?.date_start !== undefined &&
+                lastLap.date_start !== null &&
                 chequeredMs !== undefined &&
                 chequeredMs !== null &&
                 new Date(lastLap.date_start).getTime() - sessionStartMs >=
                   chequeredMs;
 
               const lastLapEndMs =
-                lastLap && lastLap.date_start && lastLap.lap_duration !== null
+                lastLap?.date_start && lastLap.lap_duration !== null
                   ? new Date(lastLap.date_start).getTime() +
                     lastLap.lap_duration * 1000
                   : null;
@@ -1166,20 +1171,78 @@ export function LiveTiming({
                 lastLap !== null &&
                 bestLap.lap_number === lastLap.lap_number;
 
-              const rowBg = selected
-                ? "bg-[#2a2a35]"
-                : eliminated
-                  ? "bg-[#22162e]/70"
-                  : retired
-                    ? "opacity-50"
-                    : idx % 2 === 1
-                      ? "bg-white/[0.02] hover:bg-white/[0.06]"
-                      : "hover:bg-white/[0.06]";
-              const lapFlashClass = justSetLap
-                ? lastLapIsBest
+              let rowBg = "hover:bg-white/[0.06]";
+              if (selected) rowBg = "bg-[#2a2a35]";
+              else if (eliminated) rowBg = "bg-[#22162e]/70";
+              else if (retired) rowBg = "opacity-50";
+              else if (idx % 2 === 1)
+                rowBg = "bg-white/[0.02] hover:bg-white/[0.06]";
+
+              let lapFlashClass = "";
+              if (justSetLap) {
+                lapFlashClass = lastLapIsBest
                   ? "ring-1 ring-inset ring-[#39d743]/60 bg-[#173726]/45"
-                  : "ring-1 ring-inset ring-[#3ea6ff]/55 bg-[#11263a]/45"
-                : "";
+                  : "ring-1 ring-inset ring-[#3ea6ff]/55 bg-[#11263a]/45";
+              }
+
+              let statusContent: ReactNode = null;
+              if (eliminated) {
+                statusContent = (
+                  <span
+                    className={`inline-flex bg-[#3a214a] text-[#e7c7ff] font-black uppercase tracking-widest ${statusBadgeClass}`}
+                  >
+                    OUT {row.eliminatedPhase}
+                  </span>
+                );
+              } else if (retired) {
+                statusContent = (
+                  <span
+                    className={`hidden min-[390px]:inline-flex bg-[#3a1010] text-[#ff5252] font-black uppercase tracking-widest ${statusBadgeClass}`}
+                  >
+                    RET
+                  </span>
+                );
+              } else if (isOutlap) {
+                statusContent = (
+                  <span
+                    className={`bg-[#4b5563] text-[#d0d5dd] font-black uppercase tracking-widest ${statusBadgeClass}`}
+                  >
+                    OUTLAP
+                  </span>
+                );
+              } else if (inPit) {
+                statusContent = (
+                  <span
+                    className={`bg-[#f5a623] text-black font-black uppercase tracking-widest animate-pulse ${statusBadgeClass}`}
+                  >
+                    PIT
+                  </span>
+                );
+              }
+
+              let gainedContent: ReactNode;
+              if (gained === null || gained === 0) {
+                gainedContent = (
+                  <span className="inline-flex items-center gap-1 text-[#8a8a91]">
+                    <span aria-hidden="true">-</span>
+                    <span>0</span>
+                  </span>
+                );
+              } else if (gained > 0) {
+                gainedContent = (
+                  <span className="inline-flex items-center gap-1 text-[#39d743]">
+                    <span aria-hidden="true">↑</span>
+                    <span>{gained}</span>
+                  </span>
+                );
+              } else {
+                gainedContent = (
+                  <span className="inline-flex items-center gap-1 text-[#ffd400]">
+                    <span aria-hidden="true">↓</span>
+                    <span>{Math.abs(gained)}</span>
+                  </span>
+                );
+              }
 
               return (
                 <tr
@@ -1252,31 +1315,7 @@ export function LiveTiming({
                                 tooltipAccentClassName="bg-[#ff5252]"
                               />
                             )}
-                            {eliminated ? (
-                              <span
-                                className={`inline-flex bg-[#3a214a] text-[#e7c7ff] font-black uppercase tracking-widest ${statusBadgeClass}`}
-                              >
-                                OUT {row.eliminatedPhase}
-                              </span>
-                            ) : retired ? (
-                              <span
-                                className={`hidden min-[390px]:inline-flex bg-[#3a1010] text-[#ff5252] font-black uppercase tracking-widest ${statusBadgeClass}`}
-                              >
-                                RET
-                              </span>
-                            ) : isOutlap ? (
-                              <span
-                                className={`bg-[#4b5563] text-[#d0d5dd] font-black uppercase tracking-widest ${statusBadgeClass}`}
-                              >
-                                OUTLAP
-                              </span>
-                            ) : inPit ? (
-                              <span
-                                className={`bg-[#f5a623] text-black font-black uppercase tracking-widest animate-pulse ${statusBadgeClass}`}
-                              >
-                                PIT
-                              </span>
-                            ) : null}
+                            {statusContent}
                           </span>
                         )}
                       </span>
@@ -1421,22 +1460,7 @@ export function LiveTiming({
                         : "Starting position unavailable"
                     }
                   >
-                    {gained === null || gained === 0 ? (
-                      <span className="inline-flex items-center gap-1 text-[#8a8a91]">
-                        <span aria-hidden="true">-</span>
-                        <span>0</span>
-                      </span>
-                    ) : gained > 0 ? (
-                      <span className="inline-flex items-center gap-1 text-[#39d743]">
-                        <span aria-hidden="true">↑</span>
-                        <span>{gained}</span>
-                      </span>
-                    ) : (
-                      <span className="inline-flex items-center gap-1 text-[#ffd400]">
-                        <span aria-hidden="true">↓</span>
-                        <span>{Math.abs(gained)}</span>
-                      </span>
-                    )}
+                    {gainedContent}
                   </td>
 
                   {/* Tyre: starting compound → current compound + age */}
