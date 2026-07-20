@@ -192,6 +192,8 @@ export default function RaceWeekend() {
     "ctab",
     "rc",
   );
+  const activeTrackerTab = trackerTab ?? "timing";
+  const activeCommentaryTab = commentaryTab ?? "rc";
   const [focusDriver] = useNumberParam("focus", null);
   const [compareDriver] = useNumberParam("compare", null);
   const [, setSearchParams] = useSearchParams();
@@ -275,7 +277,14 @@ export default function RaceWeekend() {
   const telemetryChunkIdx = chunkIndexFor(t);
   const isMapVisible =
     currentView === "tracker" &&
-    (!isCompactViewport || (trackerTab ?? "timing") === "map");
+    (!isCompactViewport || activeTrackerTab === "map");
+  const shouldTrackToasts = currentView === "tracker";
+  const shouldBuildCommentaryMoments =
+    currentView === "commentary" && activeCommentaryTab === "moments";
+  const shouldBuildCommentaryChapters =
+    currentView === "commentary" && activeCommentaryTab === "chapters";
+  const shouldBuildToastEvents =
+    shouldTrackToasts || shouldBuildCommentaryMoments;
   const location = useLocationChunks(
     isMapVisible ? sessionKey : null,
     isMapVisible ? sessionStartMs || null : null,
@@ -378,26 +387,30 @@ export default function RaceWeekend() {
     return lastChequered;
   }, [raceControl.data, sessionStartMs]);
 
-  const raceChapters = useMemo(
-    () =>
-      buildRaceChapters(
-        incidentWindows,
-        durationMs || DEFAULT_SESSION_MS,
-        chequeredMs,
-      ),
-    [incidentWindows, durationMs, chequeredMs],
-  );
+  const raceChapters = useMemo(() => {
+    if (!shouldBuildCommentaryChapters) return [];
+    return buildRaceChapters(
+      incidentWindows,
+      durationMs || DEFAULT_SESSION_MS,
+      chequeredMs,
+    );
+  }, [incidentWindows, durationMs, chequeredMs, shouldBuildCommentaryChapters]);
 
-  const whatChangedSnapshots = useMemo(
-    () =>
-      computeWhatChanged(
-        incidentWindows,
-        positions.data ?? [],
-        pits.data ?? [],
-        sessionStartMs,
-      ),
-    [incidentWindows, positions.data, pits.data, sessionStartMs],
-  );
+  const whatChangedSnapshots = useMemo(() => {
+    if (!shouldBuildCommentaryChapters) return [];
+    return computeWhatChanged(
+      incidentWindows,
+      positions.data ?? [],
+      pits.data ?? [],
+      sessionStartMs,
+    );
+  }, [
+    incidentWindows,
+    positions.data,
+    pits.data,
+    sessionStartMs,
+    shouldBuildCommentaryChapters,
+  ]);
 
   const nextReplayIncident = useMemo(() => {
     const MIN_AHEAD_MS = 250;
@@ -440,6 +453,7 @@ export default function RaceWeekend() {
   };
 
   const pulseDrivers = useMemo(() => {
+    if (!isMapVisible) return [];
     const out: number[] = [];
     for (const o of overtakes.data ?? []) {
       const ms = new Date(o.date).getTime() - sessionStartMs;
@@ -448,7 +462,7 @@ export default function RaceWeekend() {
       }
     }
     return out;
-  }, [overtakes.data, sessionStartMs, tSlow]);
+  }, [overtakes.data, sessionStartMs, tSlow, isMapVisible]);
 
   // Last completed lap number for the focused driver — used to load heat overlay data.
   // Use the latest lap with a valid duration whose end time is at/before the playhead.
@@ -717,30 +731,28 @@ export default function RaceWeekend() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [sessionKey]);
 
-  const toastEvents = useMemo(
-    () =>
-      sessionStartMs
-        ? buildToastEvents(
-            teamRadio.data ?? [],
-            raceControl.data ?? [],
-            overtakes.data ?? [],
-            pits.data ?? [],
-            sessionStartMs,
-            laps.data ?? [],
-          )
-        : [],
-    [
-      teamRadio.data,
-      raceControl.data,
-      overtakes.data,
-      pits.data,
+  const toastEvents = useMemo(() => {
+    if (!shouldBuildToastEvents || !sessionStartMs) return [];
+    return buildToastEvents(
+      teamRadio.data ?? [],
+      raceControl.data ?? [],
+      overtakes.data ?? [],
+      pits.data ?? [],
       sessionStartMs,
-      laps.data,
-    ],
-  );
+      laps.data ?? [],
+    );
+  }, [
+    teamRadio.data,
+    raceControl.data,
+    overtakes.data,
+    pits.data,
+    sessionStartMs,
+    laps.data,
+    shouldBuildToastEvents,
+  ]);
 
   const filteredToastEvents = useMemo(() => {
-    if (!toastsEnabled) return [];
+    if (!shouldTrackToasts || !toastsEnabled) return [];
     return toastEvents.filter((ev) => {
       if (ev.kind === "radio") return settingToastRadio;
       if (
@@ -756,6 +768,7 @@ export default function RaceWeekend() {
     });
   }, [
     toastEvents,
+    shouldTrackToasts,
     toastsEnabled,
     settingToastRadio,
     settingToastFlag,
@@ -770,6 +783,7 @@ export default function RaceWeekend() {
 
   // Key moments: lead changes + fastest laps (from toastEvents) + SC/Red flag events.
   const keyMoments = useMemo((): KeyMoment[] => {
+    if (!shouldBuildCommentaryMoments) return [];
     if (!sessionStartMs) return [];
     const driverMap = new Map(
       (drivers.data ?? []).map((d) => [d.driver_number, d]),
@@ -870,6 +884,7 @@ export default function RaceWeekend() {
     raceControl.data,
     drivers.data,
     sessionStartMs,
+    shouldBuildCommentaryMoments,
   ]);
 
   const effectiveDuration = durationMs || DEFAULT_SESSION_MS;
