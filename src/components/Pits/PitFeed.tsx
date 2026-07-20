@@ -23,6 +23,21 @@ function fmtSessionTime(ms: number) {
     : `${pad(m)}:${pad(s % 60)}`;
 }
 
+function upperBoundByTime<T>(
+  arr: readonly T[],
+  value: number,
+  getTime: (item: T) => number,
+) {
+  let lo = 0;
+  let hi = arr.length;
+  while (lo < hi) {
+    const mid = (lo + hi) >> 1;
+    if (getTime(arr[mid]!) <= value) lo = mid + 1;
+    else hi = mid;
+  }
+  return lo;
+}
+
 export function PitFeed({
   entries,
   sessionKey = null,
@@ -43,21 +58,27 @@ export function PitFeed({
     [drivers],
   );
 
+  const datedEntries = useMemo(
+    () =>
+      entries
+        .map((entry) => ({ entry, dateMs: new Date(entry.date).getTime() }))
+        .sort((a, b) => a.dateMs - b.dateMs),
+    [entries],
+  );
+
   const visibleAll = useMemo(() => {
-    const entriesInView = entries.filter(
-      (e) => new Date(e.date).getTime() <= currentT,
-    );
+    const endIndex = upperBoundByTime(datedEntries, currentT, (e) => e.dateMs);
+    const entriesInView = endIndex > 0 ? datedEntries.slice(0, endIndex) : [];
     if (entriesInView.length === 0) return [];
 
     const latestEntry = entriesInView.at(-1);
     if (!latestEntry) return [];
-    const latestEntryMs = new Date(latestEntry.date).getTime();
-    const showAll = currentT >= latestEntryMs;
+    const showAll = currentT >= latestEntry.dateMs;
 
     return showAll
       ? [...entriesInView].reverse()
       : entriesInView.slice(-40).reverse();
-  }, [entries, currentT]);
+  }, [datedEntries, currentT]);
 
   const visible = useMemo(
     () => visibleAll.slice(0, renderLimit),
@@ -96,10 +117,10 @@ export function PitFeed({
         </div>
       )}
 
-      {visible.map((entry, idx) => {
+      {visible.map(({ entry, dateMs }, idx) => {
         const driver = driverByNumber.get(entry.driver_number);
         const color = teamColor(driver?.team_colour);
-        const ms = new Date(entry.date).getTime() - sessionStartMs;
+        const ms = dateMs - sessionStartMs;
         const stop = pitStopTime(entry);
         const lane = laneDuration(entry);
 

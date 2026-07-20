@@ -25,6 +25,21 @@ function fmtSessionTime(entryDateMs: number, sessionStartMs: number) {
     : `${pad(m)}:${pad(s % 60)}`;
 }
 
+function upperBoundByTime<T>(
+  arr: readonly T[],
+  value: number,
+  getTime: (item: T) => number,
+) {
+  let lo = 0;
+  let hi = arr.length;
+  while (lo < hi) {
+    const mid = (lo + hi) >> 1;
+    if (getTime(arr[mid]!) <= value) lo = mid + 1;
+    else hi = mid;
+  }
+  return lo;
+}
+
 export function TeamRadioFeed({
   entries,
   sessionKey = null,
@@ -42,25 +57,34 @@ export function TeamRadioFeed({
     setRenderLimit(120);
   }, [sessionKey, entries.length]);
 
-  const driverByNumber = new Map(drivers.map((d) => [d.driver_number, d]));
+  const driverByNumber = useMemo(
+    () => new Map(drivers.map((d) => [d.driver_number, d])),
+    [drivers],
+  );
+
+  const datedEntries = useMemo(
+    () =>
+      entries
+        .map((entry) => ({ entry, dateMs: new Date(entry.date).getTime() }))
+        .sort((a, b) => a.dateMs - b.dateMs),
+    [entries],
+  );
 
   const visibleAll = useMemo(() => {
-    const entriesInView = entries.filter(
-      (e) => new Date(e.date).getTime() <= currentT,
-    );
+    const endIndex = upperBoundByTime(datedEntries, currentT, (e) => e.dateMs);
+    const entriesInView = endIndex > 0 ? datedEntries.slice(0, endIndex) : [];
     if (entriesInView.length === 0) return [];
 
     // If the playhead is at/after the latest radio event (e.g. jumped to end),
     // expose the full feed instead of the rolling last-N window.
     const latestEntry = entriesInView.at(-1);
     if (!latestEntry) return [];
-    const latestEntryMs = new Date(latestEntry.date).getTime();
-    const showAll = currentT >= latestEntryMs;
+    const showAll = currentT >= latestEntry.dateMs;
 
     return showAll
       ? [...entriesInView].reverse()
       : entriesInView.slice(-30).reverse();
-  }, [entries, currentT]);
+  }, [datedEntries, currentT]);
 
   const visible = useMemo(
     () => visibleAll.slice(0, renderLimit),
@@ -110,10 +134,9 @@ export function TeamRadioFeed({
           </button>
         </div>
       )}
-      {visible.map((e) => {
+      {visible.map(({ entry: e, dateMs: entryMs }) => {
         const driver = driverByNumber.get(e.driver_number);
         const color = teamColor(driver?.team_colour);
-        const entryMs = new Date(e.date).getTime();
         const isPlaying = playing === e.recording_url;
         return (
           <div

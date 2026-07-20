@@ -22,6 +22,21 @@ function fmtSessionTime(ms: number) {
     : `${pad(m)}:${pad(s % 60)}`;
 }
 
+function upperBoundByTime<T>(
+  arr: readonly T[],
+  value: number,
+  getTime: (item: T) => number,
+) {
+  let lo = 0;
+  let hi = arr.length;
+  while (lo < hi) {
+    const mid = (lo + hi) >> 1;
+    if (getTime(arr[mid]!) <= value) lo = mid + 1;
+    else hi = mid;
+  }
+  return lo;
+}
+
 export function OvertakeFeed({
   entries,
   sessionKey = null,
@@ -42,23 +57,29 @@ export function OvertakeFeed({
     [drivers],
   );
 
+  const datedEntries = useMemo(
+    () =>
+      entries
+        .map((entry) => ({ entry, dateMs: new Date(entry.date).getTime() }))
+        .sort((a, b) => a.dateMs - b.dateMs),
+    [entries],
+  );
+
   const visibleAll = useMemo(() => {
-    const entriesInView = entries.filter(
-      (e) => new Date(e.date).getTime() <= currentT,
-    );
+    const endIndex = upperBoundByTime(datedEntries, currentT, (e) => e.dateMs);
+    const entriesInView = endIndex > 0 ? datedEntries.slice(0, endIndex) : [];
     if (entriesInView.length === 0) return [];
 
     // If the playhead is at/after the latest pass event (e.g. jumped to end),
     // expose the full feed instead of the rolling last-N window.
     const latestEntry = entriesInView.at(-1);
     if (!latestEntry) return [];
-    const latestEntryMs = new Date(latestEntry.date).getTime();
-    const showAll = currentT >= latestEntryMs;
+    const showAll = currentT >= latestEntry.dateMs;
 
     return showAll
       ? [...entriesInView].reverse()
       : entriesInView.slice(-40).reverse();
-  }, [entries, currentT]);
+  }, [datedEntries, currentT]);
 
   const visible = useMemo(
     () => visibleAll.slice(0, renderLimit),
@@ -96,12 +117,12 @@ export function OvertakeFeed({
           </button>
         </div>
       )}
-      {visible.map((e) => {
+      {visible.map(({ entry: e, dateMs }) => {
         const over = driverByNumber.get(e.overtaking_driver_number);
         const under = driverByNumber.get(e.overtaken_driver_number);
         const overColor = teamColor(over?.team_colour);
         const underColor = teamColor(under?.team_colour);
-        const ms = new Date(e.date).getTime() - sessionStartMs;
+        const ms = dateMs - sessionStartMs;
         return (
           <div
             key={`${e.overtaking_driver_number}-${e.overtaken_driver_number}-${e.date}-${e.position ?? "na"}`}
