@@ -75,4 +75,33 @@ describe("CatchupSummary", () => {
     fireEvent.click(screen.getAllByRole("button", { name: "Dismiss" })[0]!);
     expect(onDismiss).toHaveBeenCalled();
   });
+
+  it("renders a styled tooltip for long event messages", () => {
+    render(
+      <CatchupSummary
+        summary={
+          {
+            fromMs: 0,
+            toMs: 45_000,
+            events: [
+              {
+                id: "penalty-long",
+                ms: 25_000,
+                kind: "penalty",
+                payload: {
+                  message:
+                    "Car 16 receives a five second time penalty for leaving the track and gaining a lasting advantage at Turn 12",
+                },
+              },
+            ],
+          } as CatchupSummaryData
+        }
+        drivers={drivers}
+        onDismiss={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByRole("tooltip")).toBeInTheDocument();
+    expect(screen.getByText("Full event")).toBeInTheDocument();
+  });
 });

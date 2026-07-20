@@ -352,8 +352,16 @@ describe("LiveTiming", () => {
     expect(screen.getByText("+5.234")).toBeInTheDocument();
     expect(screen.getByText("OUTLAP")).toBeInTheDocument();
     expect(screen.getByText("RET")).toBeInTheDocument();
-    expect(screen.getByLabelText("Under investigation")).toBeInTheDocument();
+    const investigationBadge = screen.getByLabelText("Under investigation");
+    expect(investigationBadge).toBeInTheDocument();
     expect(screen.getByLabelText("Penalty issued")).toBeInTheDocument();
+    fireEvent.mouseEnter(investigationBadge);
+    expect(screen.getByRole("tooltip")).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        "Under investigation: Car 1 under investigation for track limits",
+      ),
+    ).toBeInTheDocument();
     expect(screen.getAllByText(/SPD|KMH|MPH/).length).toBeGreaterThan(0);
     fireEvent.click(screen.getAllByText("LEC")[0]!);
     expect(onSelectDriver).toHaveBeenCalledWith(16);

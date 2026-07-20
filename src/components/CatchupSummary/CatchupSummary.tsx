@@ -15,6 +15,8 @@ interface Props {
   onDismiss: () => void;
 }
 
+const TOOLTIP_TEXT_THRESHOLD = 34;
+
 function fmtDuration(ms: number): string {
   const s = Math.floor(ms / 1000);
   const m = Math.floor(s / 60);
@@ -27,6 +29,45 @@ function fmtLapTime(sec: number): string {
   const m = Math.floor(sec / 60);
   const s = (sec % 60).toFixed(3).padStart(6, "0");
   return m > 0 ? `${m}:${s}` : s;
+}
+
+function needsTooltip(text: string): boolean {
+  return text.trim().length > TOOLTIP_TEXT_THRESHOLD;
+}
+
+function EventText({
+  text,
+  className,
+  tooltipAccentClassName,
+}: Readonly<{
+  text: string;
+  className: string;
+  tooltipAccentClassName?: string;
+}>) {
+  if (!needsTooltip(text)) {
+    return <span className={className}>{text}</span>;
+  }
+
+  return (
+    <span className="group/tooltip relative flex min-w-0 flex-1">
+      <span className={className}>{text}</span>
+      <span
+        role="tooltip"
+        className="pointer-events-none absolute left-0 top-full z-20 mt-2 w-full min-w-[200px] max-w-[280px] border border-panel bg-track px-3 py-2 text-[10px] text-white opacity-0 shadow-[0_12px_28px_rgba(0,0,0,0.4)] transition duration-150 group-hover/tooltip:opacity-100"
+      >
+        <span
+          className={`absolute inset-y-0 left-0 w-1 ${tooltipAccentClassName ?? "bg-f1red"}`}
+          aria-hidden="true"
+        />
+        <span className="block pl-2 text-[8px] font-black uppercase tracking-[0.18em] text-muted">
+          Full event
+        </span>
+        <span className="mt-1 block pl-2 text-[11px] font-semibold leading-5 text-white/88">
+          {text}
+        </span>
+      </span>
+    </span>
+  );
 }
 
 export function CatchupSummary({ summary, drivers, onDismiss }: Props) {
@@ -145,9 +186,11 @@ export function CatchupSummary({ summary, drivers, onDismiss }: Props) {
                         className="w-[3px] self-stretch shrink-0"
                         style={{ background: color }}
                       />
-                      <span className="text-[11px] text-white/80 flex-1 truncate">
-                        {p.message}
-                      </span>
+                      <EventText
+                        text={p.message}
+                        className="text-[11px] text-white/80 flex-1 truncate"
+                        tooltipAccentClassName="bg-[#f5a623]"
+                      />
                     </div>
                   );
                 }
@@ -161,9 +204,11 @@ export function CatchupSummary({ summary, drivers, onDismiss }: Props) {
                       <span className="text-[8px] font-black px-1 py-0.5 bg-[#e8002d] text-white uppercase tracking-widest shrink-0">
                         PENALTY
                       </span>
-                      <span className="text-[11px] text-white/80 flex-1 truncate">
-                        {p.message}
-                      </span>
+                      <EventText
+                        text={p.message}
+                        className="text-[11px] text-white/80 flex-1 truncate"
+                        tooltipAccentClassName="bg-[#e8002d]"
+                      />
                     </div>
                   );
                 }
@@ -177,9 +222,11 @@ export function CatchupSummary({ summary, drivers, onDismiss }: Props) {
                       <span className="text-[8px] font-black px-1 py-0.5 bg-[#f5a623] text-black uppercase tracking-widest shrink-0">
                         NOTE
                       </span>
-                      <span className="text-[11px] text-white/80 flex-1 truncate">
-                        {p.message}
-                      </span>
+                      <EventText
+                        text={p.message}
+                        className="text-[11px] text-white/80 flex-1 truncate"
+                        tooltipAccentClassName="bg-[#f5a623]"
+                      />
                     </div>
                   );
                 }
@@ -219,12 +266,15 @@ export function CatchupSummary({ summary, drivers, onDismiss }: Props) {
                       <span className="text-[8px] font-black px-1 py-0.5 bg-[#3d78ff] text-white uppercase tracking-widest shrink-0">
                         PIT
                       </span>
-                      <span className="text-[11px] text-white/80 flex-1 truncate">
-                        {d?.name_acronym ?? p.driverNumber}
-                        {typeof p.lapNumber === "number"
-                          ? ` · Lap ${p.lapNumber}`
-                          : ""}
-                      </span>
+                      <EventText
+                        text={
+                          typeof p.lapNumber === "number"
+                            ? `${d?.name_acronym ?? p.driverNumber} · Lap ${p.lapNumber}`
+                            : `${d?.name_acronym ?? p.driverNumber}`
+                        }
+                        className="text-[11px] text-white/80 flex-1 truncate"
+                        tooltipAccentClassName="bg-[#3d78ff]"
+                      />
                       {typeof p.pitDuration === "number" && (
                         <span className="text-[10px] font-mono tabular-nums text-white/70">
                           {p.pitDuration.toFixed(1)}s
@@ -244,9 +294,11 @@ export function CatchupSummary({ summary, drivers, onDismiss }: Props) {
                       <span className="text-[8px] font-black px-1 py-0.5 bg-[#6b6b7a] text-white uppercase tracking-widest shrink-0">
                         RADIO
                       </span>
-                      <span className="text-[11px] text-white/80 flex-1 truncate">
-                        {d?.name_acronym ?? p.driverNumber} team radio
-                      </span>
+                      <EventText
+                        text={`${d?.name_acronym ?? p.driverNumber} team radio`}
+                        className="text-[11px] text-white/80 flex-1 truncate"
+                        tooltipAccentClassName="bg-[#6b6b7a]"
+                      />
                     </div>
                   );
                 }

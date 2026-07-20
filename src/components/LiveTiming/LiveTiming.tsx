@@ -1,4 +1,5 @@
-import { memo, useMemo } from "react";
+import { memo, useEffect, useMemo, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import type {
   Driver,
   Position,
@@ -120,6 +121,91 @@ function lapTimeTier(
   if (lapTime <= sessionBest + 0.001) return "fastest";
   if (lapTime - sessionBest <= SECTOR_GREEN_S) return "fast";
   return "normal";
+}
+
+function StatusBadgeTooltip({
+  label,
+  tooltip,
+  badgeClassName,
+  tooltipAccentClassName,
+  ariaLabel,
+}: Readonly<{
+  label: string;
+  tooltip: string;
+  badgeClassName: string;
+  tooltipAccentClassName?: string;
+  ariaLabel: string;
+}>) {
+  const anchorRef = useRef<HTMLSpanElement | null>(null);
+  const [open, setOpen] = useState(false);
+  const [position, setPosition] = useState({ top: 0, left: 0 });
+
+  useEffect(() => {
+    if (!open) return;
+
+    const updatePosition = () => {
+      const rect = anchorRef.current?.getBoundingClientRect();
+      if (!rect) return;
+
+      const tooltipWidth = 224;
+      const viewportPad = 8;
+      const left = Math.min(
+        Math.max(viewportPad, rect.left),
+        window.innerWidth - tooltipWidth - viewportPad,
+      );
+
+      setPosition({
+        top: rect.bottom + 8,
+        left,
+      });
+    };
+
+    updatePosition();
+    window.addEventListener("resize", updatePosition);
+    window.addEventListener("scroll", updatePosition, true);
+
+    return () => {
+      window.removeEventListener("resize", updatePosition);
+      window.removeEventListener("scroll", updatePosition, true);
+    };
+  }, [open]);
+
+  return (
+    <span className="relative inline-flex shrink-0">
+      <span
+        ref={anchorRef}
+        className={badgeClassName}
+        aria-label={ariaLabel}
+        onMouseEnter={() => setOpen(true)}
+        onMouseLeave={() => setOpen(false)}
+        onFocus={() => setOpen(true)}
+        onBlur={() => setOpen(false)}
+      >
+        {label}
+      </span>
+      {open &&
+        typeof document !== "undefined" &&
+        createPortal(
+          <span
+            role="tooltip"
+            className="pointer-events-none fixed z-[9999] w-56 max-w-[calc(100vw-2rem)] border border-panel bg-track px-3 py-2 text-left text-[10px] text-white shadow-[0_12px_28px_rgba(0,0,0,0.4)]"
+            style={{ top: position.top, left: position.left }}
+          >
+            <span
+              className={`absolute inset-y-0 left-0 w-1 ${tooltipAccentClassName ?? "bg-f1red"}`}
+              aria-hidden="true"
+            />
+            <span className="block pl-2 text-[8px] font-black uppercase tracking-[0.18em] text-muted">
+              Status
+            </span>
+            <span className="mt-1 block whitespace-normal break-words pl-2 text-[11px] font-semibold leading-5 text-white/88">
+              {tooltip}
+            </span>
+          </span>,
+          document.body,
+        )}
+    </span>
+  );
 }
 
 const LAP_TIME_COLOUR: Record<string, string> = {
@@ -1149,22 +1235,22 @@ export function LiveTiming({
                           inPit) && (
                           <span className="ml-auto inline-flex shrink-0 items-center gap-1">
                             {hasInvestigationMarker && (
-                              <span
-                                className={`bg-[#f5a623] text-black font-black uppercase tracking-widest ${statusBadgeClass}`}
-                                title={investigationTitle}
-                                aria-label="Under investigation"
-                              >
-                                !
-                              </span>
+                              <StatusBadgeTooltip
+                                label="!"
+                                tooltip={investigationTitle}
+                                ariaLabel="Under investigation"
+                                badgeClassName={`bg-[#f5a623] text-black font-black uppercase tracking-widest cursor-help ${statusBadgeClass}`}
+                                tooltipAccentClassName="bg-[#f5a623]"
+                              />
                             )}
                             {hasPenaltyMarker && (
-                              <span
-                                className={`bg-[#ff5252] text-white font-black uppercase tracking-widest ${statusBadgeClass}`}
-                                title={penaltyTitle}
-                                aria-label="Penalty issued"
-                              >
-                                !
-                              </span>
+                              <StatusBadgeTooltip
+                                label="!"
+                                tooltip={penaltyTitle}
+                                ariaLabel="Penalty issued"
+                                badgeClassName={`bg-[#ff5252] text-white font-black uppercase tracking-widest cursor-help ${statusBadgeClass}`}
+                                tooltipAccentClassName="bg-[#ff5252]"
+                              />
                             )}
                             {eliminated ? (
                               <span
