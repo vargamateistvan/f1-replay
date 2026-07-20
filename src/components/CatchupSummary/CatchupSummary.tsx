@@ -117,8 +117,47 @@ interface FilterChip {
   label: string;
   count: number;
   color: string;
-  activeTextClass: string;
 }
+
+type ChipConfig = {
+  kind: ToastKind;
+  mkLabel: (n: number) => string;
+  color: string;
+};
+
+const CHIP_CONFIGS: ChipConfig[] = [
+  {
+    kind: "pit",
+    mkLabel: (n) => `${n} pit stop${n > 1 ? "s" : ""}`,
+    color: "#3d78ff",
+  },
+  {
+    kind: "flag",
+    mkLabel: (n) => `${n} flag${n > 1 ? "s" : ""}`,
+    color: "#f5a623",
+  },
+  {
+    kind: "penalty",
+    mkLabel: (n) => `${n} ${n > 1 ? "penalties" : "penalty"}`,
+    color: "#e8002d",
+  },
+  {
+    kind: "overtake",
+    mkLabel: (n) => `${n} overtake${n > 1 ? "s" : ""}`,
+    color: "#22c55e",
+  },
+  {
+    kind: "fastest_lap",
+    mkLabel: (n) => `${n} fastest lap${n > 1 ? "s" : ""}`,
+    color: "#9b59f5",
+  },
+  {
+    kind: "investigation",
+    mkLabel: (n) => `${n} ${n > 1 ? "investigations" : "investigation"}`,
+    color: "#f5a623",
+  },
+  { kind: "radio", mkLabel: (n) => `${n} radio`, color: "#6b6b7a" },
+];
 
 export function CatchupSummary({ summary, drivers, onDismiss }: Props) {
   const driverMap = new Map(drivers.map((d) => [d.driver_number, d]));
@@ -208,7 +247,7 @@ export function CatchupSummary({ summary, drivers, onDismiss }: Props) {
   const visibleEvents = summary.events.filter((ev) => activeKinds.has(ev.kind));
 
   return (
-    <div className="absolute bottom-14 left-1/2 -translate-x-1/2 z-40 pointer-events-auto w-[min(340px,90vw)]">
+    <div className="absolute bottom-14 left-1/2 -translate-x-1/2 z-40 pointer-events-auto w-[min(380px,92vw)]">
       <div className="bg-[#1f1f27] border border-[#38383f] shadow-2xl overflow-hidden max-h-[70vh] flex flex-col">
         {/* Header */}
         <div className="flex items-center gap-2 px-3 py-2 bg-[#15151e] border-b border-[#38383f]">
@@ -229,17 +268,41 @@ export function CatchupSummary({ summary, drivers, onDismiss }: Props) {
         </div>
 
         <div className="min-h-0 overflow-y-auto">
-          {/* Headline counts */}
-          {headlineParts.length > 0 && (
-            <div className="px-3 py-2 border-b border-[#2a2a35]">
-              <p className="text-[11px] text-white/80">
-                {headlineParts.join(" · ")}
-              </p>
+          {/* Filter chips */}
+          {allChips.length > 0 && (
+            <div className="px-3 py-2 border-b border-[#2a2a35] flex flex-wrap gap-1.5">
+              {allChips.map((chip) => {
+                const isActive = activeKinds.has(chip.kind);
+                return (
+                  <button
+                    key={chip.kind}
+                    onClick={() => toggleKind(chip.kind)}
+                    className={[
+                      "text-[10px] font-bold px-2 py-0.5 rounded-sm border transition-all",
+                      "focus:outline-none focus-visible:ring-1 focus-visible:ring-white/40",
+                      isActive
+                        ? "border-transparent text-black"
+                        : "border-[#38383f] text-white/40 bg-transparent",
+                    ].join(" ")}
+                    style={
+                      isActive
+                        ? {
+                            backgroundColor: chip.color,
+                            borderColor: chip.color,
+                          }
+                        : {}
+                    }
+                    aria-pressed={isActive}
+                  >
+                    {chip.label}
+                  </button>
+                );
+              })}
             </div>
           )}
 
           {/* Event list */}
-          {visibleEvents.length > 0 && (
+          {visibleEvents.length > 0 ? (
             <div className="divide-y divide-[#2a2a35]">
               {visibleEvents.map((ev) => {
                 if (ev.kind === "fastest_lap") {
@@ -259,6 +322,11 @@ export function CatchupSummary({ summary, drivers, onDismiss }: Props) {
                       >
                         {d?.name_acronym ?? p.driverNumber}
                       </span>
+                      {typeof p.lapNumber === "number" && (
+                        <span className="text-[9px] text-white/40 font-mono">
+                          Lap {p.lapNumber}
+                        </span>
+                      )}
                       <span
                         className="text-[10px] font-mono tabular-nums"
                         style={{ color: "#9b59f5" }}
@@ -296,11 +364,19 @@ export function CatchupSummary({ summary, drivers, onDismiss }: Props) {
                         className="text-[11px] text-white/80 flex-1 truncate"
                         tooltipAccentClassName="bg-[#f5a623]"
                       />
+                      {typeof p.lapNumber === "number" && (
+                        <span className="text-[9px] text-white/40 font-mono shrink-0">
+                          Lap {p.lapNumber}
+                        </span>
+                      )}
                     </div>
                   );
                 }
                 if (ev.kind === "penalty") {
-                  const p = ev.payload as { message: string };
+                  const p = ev.payload as {
+                    message: string;
+                    lapNumber?: number | null;
+                  };
                   return (
                     <div
                       key={ev.id}
@@ -314,11 +390,19 @@ export function CatchupSummary({ summary, drivers, onDismiss }: Props) {
                         className="text-[11px] text-white/80 flex-1 truncate"
                         tooltipAccentClassName="bg-[#e8002d]"
                       />
+                      {typeof p.lapNumber === "number" && (
+                        <span className="text-[9px] text-white/40 font-mono shrink-0">
+                          Lap {p.lapNumber}
+                        </span>
+                      )}
                     </div>
                   );
                 }
                 if (ev.kind === "investigation") {
-                  const p = ev.payload as { message: string };
+                  const p = ev.payload as {
+                    message: string;
+                    lapNumber?: number | null;
+                  };
                   return (
                     <div
                       key={ev.id}
@@ -332,6 +416,11 @@ export function CatchupSummary({ summary, drivers, onDismiss }: Props) {
                         className="text-[11px] text-white/80 flex-1 truncate"
                         tooltipAccentClassName="bg-[#f5a623]"
                       />
+                      {typeof p.lapNumber === "number" && (
+                        <span className="text-[9px] text-white/40 font-mono shrink-0">
+                          Lap {p.lapNumber}
+                        </span>
+                      )}
                     </div>
                   );
                 }
@@ -371,17 +460,16 @@ export function CatchupSummary({ summary, drivers, onDismiss }: Props) {
                       <span className="text-[8px] font-black px-1 py-0.5 bg-[#3d78ff] text-white uppercase tracking-widest shrink-0">
                         PIT
                       </span>
-                      <EventText
-                        text={
-                          typeof p.lapNumber === "number"
-                            ? `${d?.name_acronym ?? p.driverNumber} · Lap ${p.lapNumber}`
-                            : `${d?.name_acronym ?? p.driverNumber}`
-                        }
-                        className="text-[11px] text-white/80 flex-1 truncate"
-                        tooltipAccentClassName="bg-[#3d78ff]"
-                      />
+                      <span className="text-[11px] text-white/80 flex-1 truncate">
+                        {d?.name_acronym ?? p.driverNumber}
+                      </span>
+                      {typeof p.lapNumber === "number" && (
+                        <span className="text-[9px] text-white/40 font-mono shrink-0">
+                          Lap {p.lapNumber}
+                        </span>
+                      )}
                       {typeof p.pitDuration === "number" && (
-                        <span className="text-[10px] font-mono tabular-nums text-white/70">
+                        <span className="text-[10px] font-mono tabular-nums text-white/70 shrink-0">
                           {p.pitDuration.toFixed(1)}s
                         </span>
                       )}
@@ -410,6 +498,10 @@ export function CatchupSummary({ summary, drivers, onDismiss }: Props) {
                 return null;
               })}
             </div>
+          ) : (
+            <p className="text-[11px] text-white/30 px-3 py-3 text-center">
+              No events match the selected filters
+            </p>
           )}
         </div>
 

@@ -4,6 +4,7 @@ import type { TeamRadio as TeamRadioEntry, Driver } from "@/api/types";
 import { downloadEndpointCsv } from "@/api/client";
 import { useSettings } from "@/stores/settings";
 import { teamColor } from "@/utils/color";
+import { upperBoundByValue } from "@/utils/sortedTime";
 
 interface Props {
   readonly entries: TeamRadioEntry[];
@@ -23,21 +24,6 @@ function fmtSessionTime(entryDateMs: number, sessionStartMs: number) {
   return h > 0
     ? `${h}:${pad(m % 60)}:${pad(s % 60)}`
     : `${pad(m)}:${pad(s % 60)}`;
-}
-
-function upperBoundByTime<T>(
-  arr: readonly T[],
-  value: number,
-  getTime: (item: T) => number,
-) {
-  let lo = 0;
-  let hi = arr.length;
-  while (lo < hi) {
-    const mid = (lo + hi) >> 1;
-    if (getTime(arr[mid]!) <= value) lo = mid + 1;
-    else hi = mid;
-  }
-  return lo;
 }
 
 export function TeamRadioFeed({
@@ -71,7 +57,7 @@ export function TeamRadioFeed({
   );
 
   const visibleAll = useMemo(() => {
-    const endIndex = upperBoundByTime(datedEntries, currentT, (e) => e.dateMs);
+    const endIndex = upperBoundByValue(datedEntries, currentT, (e) => e.dateMs);
     const entriesInView = endIndex > 0 ? datedEntries.slice(0, endIndex) : [];
     if (entriesInView.length === 0) return [];
 

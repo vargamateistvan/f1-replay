@@ -7,6 +7,7 @@ import { chunkIndexFor } from "@/hooks/useLocationChunks";
 import { TelemetryChart } from "@/components/TelemetryChart/TelemetryChart";
 import { resampleToAxis, computeDelta, smooth } from "@/utils/telemetry";
 import { teamColor } from "@/utils/color";
+import { lastAtOrBefore } from "@/utils/sortedTime";
 import { useSettings } from "@/stores/settings";
 import { speedUnitLabel, toDisplaySpeed } from "@/utils/units";
 
@@ -71,16 +72,10 @@ export function FocusedTelemetry({
   );
 
   // Last sample at or before the playhead (binary search).
-  const sample = useMemo(() => {
-    let lo = 0;
-    let hi = samples.length;
-    while (lo < hi) {
-      const mid = (lo + hi) >>> 1;
-      if (samples[mid]!.ms <= t) lo = mid + 1;
-      else hi = mid;
-    }
-    return samples[lo - 1]?.d ?? null;
-  }, [samples, t]);
+  const sample = useMemo(
+    () => lastAtOrBefore(samples, t, (entry) => entry.ms)?.d ?? null,
+    [samples, t],
+  );
 
   const compareSamples = useMemo(
     () =>
@@ -90,16 +85,10 @@ export function FocusedTelemetry({
     [compareData, sessionStartMs],
   );
 
-  const compareSample = useMemo(() => {
-    let lo = 0;
-    let hi = compareSamples.length;
-    while (lo < hi) {
-      const mid = (lo + hi) >>> 1;
-      if (compareSamples[mid]!.ms <= t) lo = mid + 1;
-      else hi = mid;
-    }
-    return compareSamples[lo - 1]?.d ?? null;
-  }, [compareSamples, t]);
+  const compareSample = useMemo(
+    () => lastAtOrBefore(compareSamples, t, (entry) => entry.ms)?.d ?? null,
+    [compareSamples, t],
+  );
 
   const color = teamColor(driver?.team_colour, "#ffffff");
   const drsOn = (sample?.drs ?? 0) >= 10;
