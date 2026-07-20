@@ -35,6 +35,7 @@ export function SessionPicker({
   const [selectLatestSessionOnLoad, setSelectLatestSessionOnLoad] =
     useState(false);
   const lastSelectChangeRef = useRef(0);
+  const autoLatestBootstrappedRef = useRef(false);
 
   const selectedMeeting = meetings.data?.find(
     (m) => m.meeting_key === meetingKey,
@@ -83,6 +84,17 @@ export function SessionPicker({
     onMeeting(latest.meeting_key);
     setSelectLatestSessionOnLoad(true);
   }
+
+  // First mount behavior: if nothing is selected yet, auto-run Latest Event.
+  useEffect(() => {
+    if (autoLatestBootstrappedRef.current) return;
+    if (meetings.isPending) return;
+
+    autoLatestBootstrappedRef.current = true;
+    if (meetingKey !== null || sessionKey !== null) return;
+
+    selectLatestEvent();
+  }, [meetings.isPending, meetingKey, sessionKey]);
 
   return (
     <div>

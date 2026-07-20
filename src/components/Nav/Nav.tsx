@@ -4,7 +4,7 @@ import {
   useLocation,
   useNavigate,
 } from "react-router-dom";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useMeetings, useSessions } from "@/hooks/useSession";
 import { isAuthError } from "@/api/client";
 import { isSessionLive } from "@/utils/live";
@@ -119,6 +119,7 @@ export function Nav() {
   >({});
   const [selectLatestSessionOnLoad, setSelectLatestSessionOnLoad] =
     useState(false);
+  const autoLatestBootstrappedRef = useRef(false);
 
   const [yearParam] = useNumberParam("year", DEFAULT_YEAR);
   const year = yearParam ?? DEFAULT_YEAR;
@@ -349,6 +350,18 @@ export function Nav() {
     });
     setSelectLatestSessionOnLoad(true);
   }
+
+  // First app load behavior: mimic pressing "Latest" automatically when
+  // no explicit meeting/session is selected in the URL/state.
+  useEffect(() => {
+    if (autoLatestBootstrappedRef.current) return;
+    if (meetings.isPending) return;
+
+    autoLatestBootstrappedRef.current = true;
+    if (meetingKey !== null || sessionKey !== null) return;
+
+    selectLatestEvent();
+  }, [meetings.isPending, meetingKey, sessionKey]);
 
   const eventLabel = selectedMeeting
     ? `${selectedMeeting.country_name.toUpperCase()} ${selectedMeeting.year}`
