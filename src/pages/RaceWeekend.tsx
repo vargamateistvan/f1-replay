@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { lazy, Suspense, useEffect, useMemo, useState } from "react";
 import { PlaybackBar } from "@/components/PlaybackBar";
 import {
   TrackMap,
@@ -6,15 +6,7 @@ import {
   type ActiveTrackVehicles,
 } from "@/components/TrackMap/TrackMap";
 import LiveTiming from "@/components/LiveTiming/LiveTiming";
-import { RaceControlFeed } from "@/components/RaceControl/RaceControl";
 import { WeatherPanel } from "@/components/Weather/WeatherPanel";
-import { StrategyBar } from "@/components/Strategy/StrategyBar";
-import { TeamRadioFeed } from "@/components/TeamRadio/TeamRadio";
-import { OvertakeFeed } from "@/components/Overtakes/OvertakeFeed";
-import { PitFeed } from "@/components/Pits/PitFeed";
-import { FocusedTelemetry } from "@/components/FocusedTelemetry/FocusedTelemetry";
-import { LapChart } from "@/components/LapChart/LapChart";
-import { GapChart } from "@/components/GapChart/GapChart";
 import { QualifyingBanner } from "@/components/QualifyingBanner";
 import { StartingLights } from "@/components/StartingLights";
 import { SessionInfoBar } from "@/components/SessionInfoBar";
@@ -68,11 +60,9 @@ import {
   normalizeRaceControl,
   summarizeMarkers,
 } from "@/timeline/raceControl";
-import { RaceChapters } from "@/components/RaceChapters/RaceChapters";
 import { useEventToasts } from "@/hooks/useEventToasts";
 import { useCatchupSummary } from "@/hooks/useCatchupSummary";
 import { EventToastStack } from "@/components/EventToast/EventToastStack";
-import { KeyMoments } from "@/components/KeyMoments/KeyMoments";
 import { CatchupSummary } from "@/components/CatchupSummary/CatchupSummary";
 import type { FastestLapPayload } from "@/timeline/events";
 import { isSessionLive } from "@/utils/live";
@@ -115,6 +105,65 @@ const PANEL = "bg-surface border border-panel";
 const PANEL_TITLE =
   "text-[10px] font-bold text-muted px-3 py-2 border-b border-[#38383f] uppercase tracking-[0.12em] border-l-2 border-l-f1red bg-track";
 const OVERTAKE_PULSE_MS = 4_000;
+
+const FocusedTelemetry = lazy(() =>
+  import("@/components/FocusedTelemetry/FocusedTelemetry").then((m) => ({
+    default: m.FocusedTelemetry,
+  })),
+);
+const StrategyBar = lazy(() =>
+  import("@/components/Strategy/StrategyBar").then((m) => ({
+    default: m.StrategyBar,
+  })),
+);
+const LapChart = lazy(() =>
+  import("@/components/LapChart/LapChart").then((m) => ({
+    default: m.LapChart,
+  })),
+);
+const GapChart = lazy(() =>
+  import("@/components/GapChart/GapChart").then((m) => ({
+    default: m.GapChart,
+  })),
+);
+const RaceControlFeed = lazy(() =>
+  import("@/components/RaceControl/RaceControl").then((m) => ({
+    default: m.RaceControlFeed,
+  })),
+);
+const TeamRadioFeed = lazy(() =>
+  import("@/components/TeamRadio/TeamRadio").then((m) => ({
+    default: m.TeamRadioFeed,
+  })),
+);
+const PitFeed = lazy(() =>
+  import("@/components/Pits/PitFeed").then((m) => ({
+    default: m.PitFeed,
+  })),
+);
+const OvertakeFeed = lazy(() =>
+  import("@/components/Overtakes/OvertakeFeed").then((m) => ({
+    default: m.OvertakeFeed,
+  })),
+);
+const KeyMoments = lazy(() =>
+  import("@/components/KeyMoments/KeyMoments").then((m) => ({
+    default: m.KeyMoments,
+  })),
+);
+const RaceChapters = lazy(() =>
+  import("@/components/RaceChapters/RaceChapters").then((m) => ({
+    default: m.RaceChapters,
+  })),
+);
+
+function PanelFallback() {
+  return (
+    <div className="flex h-full min-h-[120px] items-center justify-center text-[10px] font-bold uppercase tracking-[0.12em] text-muted animate-pulse">
+      Loading Panel
+    </div>
+  );
+}
 
 export default function RaceWeekend() {
   // Session selection is driven by the URL — Nav writes these, we just read them
@@ -1251,26 +1300,28 @@ export default function RaceWeekend() {
                     {/* Focused telemetry */}
                     {focusDriver !== null && (
                       <div className="shrink-0 border-t border-panel">
-                        <FocusedTelemetry
-                          sessionKey={sessionKey}
-                          driver={
-                            drivers.data?.find(
-                              (d) => d.driver_number === focusDriver,
-                            ) ?? null
-                          }
-                          compareDriver={
-                            drivers.data?.find(
-                              (d) => d.driver_number === compareDriver,
-                            ) ?? null
-                          }
-                          sessionStartMs={sessionStartMs}
-                          driverLap={focusDriverLap}
-                          compareDriverLap={compareDriverLap}
-                          onClear={clearFocusSelection}
-                          onClearCompare={() =>
-                            setFocusSelection(focusDriver, null)
-                          }
-                        />
+                        <Suspense fallback={<PanelFallback />}>
+                          <FocusedTelemetry
+                            sessionKey={sessionKey}
+                            driver={
+                              drivers.data?.find(
+                                (d) => d.driver_number === focusDriver,
+                              ) ?? null
+                            }
+                            compareDriver={
+                              drivers.data?.find(
+                                (d) => d.driver_number === compareDriver,
+                              ) ?? null
+                            }
+                            sessionStartMs={sessionStartMs}
+                            driverLap={focusDriverLap}
+                            compareDriverLap={compareDriverLap}
+                            onClear={clearFocusSelection}
+                            onClearCompare={() =>
+                              setFocusSelection(focusDriver, null)
+                            }
+                          />
+                        </Suspense>
                       </div>
                     )}
                   </>
@@ -1327,42 +1378,48 @@ export default function RaceWeekend() {
                       Tyre Strategy
                     </div>
                     <div className="min-h-0 overflow-y-auto md:panel-scroll [-webkit-overflow-scrolling:touch]">
-                      <StrategyBar
-                        stints={stints.data ?? []}
-                        drivers={drivers.data ?? []}
-                        laps={laps.data ?? []}
-                        pits={pits.data ?? []}
-                        sessionTimeMs={t}
-                        sessionStartMs={sessionStartMs}
-                        currentLap={currentLap}
-                      />
+                      <Suspense fallback={<PanelFallback />}>
+                        <StrategyBar
+                          stints={stints.data ?? []}
+                          drivers={drivers.data ?? []}
+                          laps={laps.data ?? []}
+                          pits={pits.data ?? []}
+                          sessionTimeMs={t}
+                          sessionStartMs={sessionStartMs}
+                          currentLap={currentLap}
+                        />
+                      </Suspense>
                     </div>
                   </div>
                 )}
 
                 {(trackerTab ?? "timing") === "chart" && (
                   <div className="h-[52vh] min-h-[280px] bg-[#10101a]">
-                    <LapChart
-                      drivers={drivers.data ?? []}
-                      positions={positions.data ?? []}
-                      lapStarts={lapMarks}
-                      sessionStartMs={sessionStartMs}
-                      sessionTimeMs={t}
-                      currentLap={currentLap}
-                    />
+                    <Suspense fallback={<PanelFallback />}>
+                      <LapChart
+                        drivers={drivers.data ?? []}
+                        positions={positions.data ?? []}
+                        lapStarts={lapMarks}
+                        sessionStartMs={sessionStartMs}
+                        sessionTimeMs={t}
+                        currentLap={currentLap}
+                      />
+                    </Suspense>
                   </div>
                 )}
 
                 {(trackerTab ?? "timing") === "gap" && (
                   <div className="h-[52vh] min-h-[280px] bg-[#10101a]">
-                    <GapChart
-                      drivers={drivers.data ?? []}
-                      intervals={intervals.data ?? []}
-                      lapStarts={lapMarks}
-                      currentLap={currentLap}
-                      sessionStartMs={sessionStartMs}
-                      sessionTimeMs={t}
-                    />
+                    <Suspense fallback={<PanelFallback />}>
+                      <GapChart
+                        drivers={drivers.data ?? []}
+                        intervals={intervals.data ?? []}
+                        lapStarts={lapMarks}
+                        currentLap={currentLap}
+                        sessionStartMs={sessionStartMs}
+                        sessionTimeMs={t}
+                      />
+                    </Suspense>
                   </div>
                 )}
               </div>
@@ -1412,63 +1469,71 @@ export default function RaceWeekend() {
                         Tyre Strategy
                       </div>
                       <div className="min-h-0 overflow-y-auto md:panel-scroll [-webkit-overflow-scrolling:touch]">
-                        <StrategyBar
-                          stints={stints.data ?? []}
-                          drivers={drivers.data ?? []}
-                          laps={laps.data ?? []}
-                          pits={pits.data ?? []}
-                          sessionTimeMs={t}
-                          sessionStartMs={sessionStartMs}
-                          currentLap={currentLap}
-                        />
+                        <Suspense fallback={<PanelFallback />}>
+                          <StrategyBar
+                            stints={stints.data ?? []}
+                            drivers={drivers.data ?? []}
+                            laps={laps.data ?? []}
+                            pits={pits.data ?? []}
+                            sessionTimeMs={t}
+                            sessionStartMs={sessionStartMs}
+                            currentLap={currentLap}
+                          />
+                        </Suspense>
                       </div>
                     </div>
                   )}
                   {(trackerTab ?? "timing") === "chart" && (
-                    <LapChart
-                      drivers={drivers.data ?? []}
-                      positions={positions.data ?? []}
-                      lapStarts={lapMarks}
-                      sessionStartMs={sessionStartMs}
-                      sessionTimeMs={t}
-                      currentLap={currentLap}
-                    />
+                    <Suspense fallback={<PanelFallback />}>
+                      <LapChart
+                        drivers={drivers.data ?? []}
+                        positions={positions.data ?? []}
+                        lapStarts={lapMarks}
+                        sessionStartMs={sessionStartMs}
+                        sessionTimeMs={t}
+                        currentLap={currentLap}
+                      />
+                    </Suspense>
                   )}
                   {(trackerTab ?? "timing") === "gap" && (
-                    <GapChart
-                      drivers={drivers.data ?? []}
-                      intervals={intervals.data ?? []}
-                      lapStarts={lapMarks}
-                      currentLap={currentLap}
-                      sessionStartMs={sessionStartMs}
-                      sessionTimeMs={t}
-                    />
+                    <Suspense fallback={<PanelFallback />}>
+                      <GapChart
+                        drivers={drivers.data ?? []}
+                        intervals={intervals.data ?? []}
+                        lapStarts={lapMarks}
+                        currentLap={currentLap}
+                        sessionStartMs={sessionStartMs}
+                        sessionTimeMs={t}
+                      />
+                    </Suspense>
                   )}
                 </div>
 
                 {/* Focused driver telemetry */}
                 {focusDriver !== null && (
                   <div className="shrink-0 border-t border-panel">
-                    <FocusedTelemetry
-                      sessionKey={sessionKey}
-                      driver={
-                        drivers.data?.find(
-                          (d) => d.driver_number === focusDriver,
-                        ) ?? null
-                      }
-                      compareDriver={
-                        drivers.data?.find(
-                          (d) => d.driver_number === compareDriver,
-                        ) ?? null
-                      }
-                      sessionStartMs={sessionStartMs}
-                      driverLap={focusDriverLap}
-                      compareDriverLap={compareDriverLap}
-                      onClear={clearFocusSelection}
-                      onClearCompare={() =>
-                        setFocusSelection(focusDriver, null)
-                      }
-                    />
+                    <Suspense fallback={<PanelFallback />}>
+                      <FocusedTelemetry
+                        sessionKey={sessionKey}
+                        driver={
+                          drivers.data?.find(
+                            (d) => d.driver_number === focusDriver,
+                          ) ?? null
+                        }
+                        compareDriver={
+                          drivers.data?.find(
+                            (d) => d.driver_number === compareDriver,
+                          ) ?? null
+                        }
+                        sessionStartMs={sessionStartMs}
+                        driverLap={focusDriverLap}
+                        compareDriverLap={compareDriverLap}
+                        onClear={clearFocusSelection}
+                        onClearCompare={() =>
+                          setFocusSelection(focusDriver, null)
+                        }
+                      />
+                    </Suspense>
                   </div>
                 )}
               </div>
@@ -1578,75 +1643,87 @@ export default function RaceWeekend() {
               (raceControl.isError ? (
                 <ErrorMessage message="Failed to load race control" />
               ) : (
-                <RaceControlFeed
-                  entries={raceControl.data ?? []}
-                  sessionKey={sessionKey}
-                  sessionTimeMs={t}
-                  sessionStartMs={sessionStartMs}
-                  drivers={drivers.data ?? []}
-                  focusDriver={focusDriver}
-                  onClearFocus={
-                    focusDriver !== null ? clearFocusSelection : undefined
-                  }
-                />
+                <Suspense fallback={<PanelFallback />}>
+                  <RaceControlFeed
+                    entries={raceControl.data ?? []}
+                    sessionKey={sessionKey}
+                    sessionTimeMs={t}
+                    sessionStartMs={sessionStartMs}
+                    drivers={drivers.data ?? []}
+                    focusDriver={focusDriver}
+                    onClearFocus={
+                      focusDriver !== null ? clearFocusSelection : undefined
+                    }
+                  />
+                </Suspense>
               ))}
             {commentaryTab === "radio" &&
               (teamRadio.isError ? (
                 <ErrorMessage message="Failed to load team radio" />
               ) : (
-                <TeamRadioFeed
-                  entries={teamRadio.data ?? []}
-                  sessionKey={sessionKey}
-                  sessionYear={session?.year ?? null}
-                  drivers={drivers.data ?? []}
-                  sessionTimeMs={t}
-                  sessionStartMs={sessionStartMs}
-                />
+                <Suspense fallback={<PanelFallback />}>
+                  <TeamRadioFeed
+                    entries={teamRadio.data ?? []}
+                    sessionKey={sessionKey}
+                    sessionYear={session?.year ?? null}
+                    drivers={drivers.data ?? []}
+                    sessionTimeMs={t}
+                    sessionStartMs={sessionStartMs}
+                  />
+                </Suspense>
               ))}
             {commentaryTab === "pits" &&
               (pits.isError ? (
                 <ErrorMessage message="Failed to load pit stops" />
               ) : (
-                <PitFeed
-                  entries={pits.data ?? []}
-                  sessionKey={sessionKey}
-                  drivers={drivers.data ?? []}
-                  sessionTimeMs={t}
-                  sessionStartMs={sessionStartMs}
-                />
+                <Suspense fallback={<PanelFallback />}>
+                  <PitFeed
+                    entries={pits.data ?? []}
+                    sessionKey={sessionKey}
+                    drivers={drivers.data ?? []}
+                    sessionTimeMs={t}
+                    sessionStartMs={sessionStartMs}
+                  />
+                </Suspense>
               ))}
             {commentaryTab === "passes" &&
               (overtakes.isError ? (
                 <ErrorMessage message="Failed to load overtakes" />
               ) : (
-                <OvertakeFeed
-                  entries={overtakes.data ?? []}
-                  sessionKey={sessionKey}
-                  drivers={drivers.data ?? []}
-                  sessionTimeMs={t}
-                  sessionStartMs={sessionStartMs}
-                />
+                <Suspense fallback={<PanelFallback />}>
+                  <OvertakeFeed
+                    entries={overtakes.data ?? []}
+                    sessionKey={sessionKey}
+                    drivers={drivers.data ?? []}
+                    sessionTimeMs={t}
+                    sessionStartMs={sessionStartMs}
+                  />
+                </Suspense>
               ))}
             {commentaryTab === "moments" && (
-              <KeyMoments
-                moments={keyMoments}
-                sessionTimeMs={t}
-                onJump={(ms) => useTimeline.getState().setT(ms)}
-              />
+              <Suspense fallback={<PanelFallback />}>
+                <KeyMoments
+                  moments={keyMoments}
+                  sessionTimeMs={t}
+                  onJump={(ms) => useTimeline.getState().setT(ms)}
+                />
+              </Suspense>
             )}
             {commentaryTab === "chapters" && (
-              <RaceChapters
-                chapters={raceChapters}
-                snapshots={whatChangedSnapshots}
-                drivers={drivers.data ?? []}
-                sessionTimeMs={t}
-                onJump={(ms) => useTimeline.getState().setT(ms)}
-                onPlayWindow={(startMs, endMs) => {
-                  setTimelineT(startMs);
-                  setIncidentReplayEndMs(endMs);
-                  setTimelinePlaying(true);
-                }}
-              />
+              <Suspense fallback={<PanelFallback />}>
+                <RaceChapters
+                  chapters={raceChapters}
+                  snapshots={whatChangedSnapshots}
+                  drivers={drivers.data ?? []}
+                  sessionTimeMs={t}
+                  onJump={(ms) => useTimeline.getState().setT(ms)}
+                  onPlayWindow={(startMs, endMs) => {
+                    setTimelineT(startMs);
+                    setIncidentReplayEndMs(endMs);
+                    setTimelinePlaying(true);
+                  }}
+                />
+              </Suspense>
             )}
           </div>
         </div>
