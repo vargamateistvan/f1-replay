@@ -1,7 +1,7 @@
 import { createPortal } from "react-dom";
 import { useEffect, useRef, useState } from "react";
 import type { CatchupSummary as CatchupSummaryData } from "@/hooks/useCatchupSummary";
-import { FastForward } from "lucide-react";
+import { FastForward, Play, Square } from "lucide-react";
 import type { Driver } from "@/api/types";
 import type {
   OvertakePayload,
@@ -13,6 +13,7 @@ import type {
 } from "@/timeline/events";
 import { teamColor } from "@/utils/color";
 import { TooltipCard } from "@/components/TooltipCard/TooltipCard";
+import { useSettings } from "@/stores/settings";
 
 interface Props {
   summary: CatchupSummaryData;
@@ -123,6 +124,317 @@ function EventText({
   );
 }
 
+// ─── Per-event row renderer ───────────────────────────────────────────────────
+
+const FLAG_COLORS: Record<string, string> = {
+  RED: "#e8002d",
+  SAFETY_CAR: "#f5a623",
+  VIRTUAL_SC: "#f5a623",
+  VIRTUAL_SAFETY_CAR: "#f5a623",
+  YELLOW: "#f5d400",
+  DOUBLE_YELLOW: "#f5d400",
+  CHEQUERED: "#ffffff",
+  BLUE: "#3d78ff",
+};
+
+const DARK_FLAG_TEXT = new Set(["YELLOW", "DOUBLE_YELLOW", "CHEQUERED"]);
+
+function CatchupEventRow({
+  ev,
+  driverMap,
+  playingUrl,
+  onToggleRadio,
+}: {
+  ev: import("@/timeline/events").ToastEvent;
+  driverMap: Map<number, import("@/api/types").Driver>;
+  playingUrl: string | null;
+  onToggleRadio: (url: string) => void;
+}) {
+  if (ev.kind === "fastest_lap") {
+    const p = ev.payload as FastestLapPayload;
+    const d = driverMap.get(p.driverNumber);
+    const driverColor = teamColor(d?.team_colour);
+    return (
+      <div
+        className="px-3 py-2 border-l-2"
+        style={{ borderLeftColor: "#9b59f5" }}
+      >
+        <div className="flex items-center justify-between gap-2">
+          <div className="flex items-center gap-1.5">
+            <span className="text-[8px] font-black px-1 py-0.5 bg-[#9b59f5] text-white uppercase tracking-widest shrink-0">
+              FASTEST
+            </span>
+            <span
+              className="text-[12px] font-black"
+              style={{ color: driverColor }}
+            >
+              {d?.name_acronym ?? p.driverNumber}
+            </span>
+            {d?.full_name && (
+              <span className="text-[10px] text-white/50">{d.full_name}</span>
+            )}
+          </div>
+          <span className="text-[10px] font-mono tabular-nums text-white/40 shrink-0">
+            {fmtRaceTime(ev.ms)}
+          </span>
+        </div>
+        <div className="flex items-center gap-2 mt-0.5">
+          {typeof p.lapNumber === "number" && (
+            <span className="text-[9px] text-white/40 font-mono">
+              Lap {p.lapNumber}
+            </span>
+          )}
+          <span
+            className="text-[10px] font-mono tabular-nums font-bold"
+            style={{ color: "#9b59f5" }}
+          >
+            {fmtLapTime(p.lapTime)}
+          </span>
+        </div>
+      </div>
+    );
+  }
+
+  if (ev.kind === "flag") {
+    const p = ev.payload as FlagPayload;
+    const color = FLAG_COLORS[p.flag] ?? "#636369";
+    const flagLabel = p.flag
+      .replaceAll("_", " ")
+      .replace(/\b\w/g, (c) => c.toUpperCase());
+    return (
+      <div className="px-3 py-2 border-l-2" style={{ borderLeftColor: color }}>
+        <div className="flex items-center justify-between gap-2">
+          <span
+            className="text-[8px] font-black px-1 py-0.5 uppercase tracking-widest shrink-0"
+            style={{
+              backgroundColor: color,
+              color: DARK_FLAG_TEXT.has(p.flag) ? "#000" : "#fff",
+            }}
+          >
+            {flagLabel}
+          </span>
+          <span className="text-[10px] font-mono tabular-nums text-white/40 shrink-0">
+            {fmtRaceTime(ev.ms)}
+          </span>
+        </div>
+        <div className="mt-0.5">
+          <EventText
+            text={p.message}
+            className="text-[10px] text-white/70 block"
+            tooltipAccentClassName=""
+          />
+          {typeof p.lapNumber === "number" && (
+            <span className="text-[9px] text-white/40 font-mono">
+              Lap {p.lapNumber}
+            </span>
+          )}
+        </div>
+      </div>
+    );
+  }
+
+  if (ev.kind === "penalty") {
+    const p = ev.payload as FlagPayload;
+    return (
+      <div className="px-3 py-2 border-l-2 border-l-[#e8002d]">
+        <div className="flex items-center justify-between gap-2">
+          <span className="text-[8px] font-black px-1 py-0.5 bg-[#e8002d] text-white uppercase tracking-widest shrink-0">
+            PENALTY
+          </span>
+          <span className="text-[10px] font-mono tabular-nums text-white/40 shrink-0">
+            {fmtRaceTime(ev.ms)}
+          </span>
+        </div>
+        <div className="mt-0.5">
+          <EventText
+            text={p.message}
+            className="text-[10px] text-white/70 block"
+            tooltipAccentClassName="bg-[#e8002d]"
+          />
+          {typeof p.lapNumber === "number" && (
+            <span className="text-[9px] text-white/40 font-mono">
+              Lap {p.lapNumber}
+            </span>
+          )}
+        </div>
+      </div>
+    );
+  }
+
+  if (ev.kind === "investigation") {
+    const p = ev.payload as FlagPayload;
+    return (
+      <div className="px-3 py-2 border-l-2 border-l-[#f5a623]">
+        <div className="flex items-center justify-between gap-2">
+          <span className="text-[8px] font-black px-1 py-0.5 bg-[#f5a623] text-black uppercase tracking-widest shrink-0">
+            INVESTIGATION
+          </span>
+          <span className="text-[10px] font-mono tabular-nums text-white/40 shrink-0">
+            {fmtRaceTime(ev.ms)}
+          </span>
+        </div>
+        <div className="mt-0.5">
+          <EventText
+            text={p.message}
+            className="text-[10px] text-white/70 block"
+            tooltipAccentClassName="bg-[#f5a623]"
+          />
+          {typeof p.lapNumber === "number" && (
+            <span className="text-[9px] text-white/40 font-mono">
+              Lap {p.lapNumber}
+            </span>
+          )}
+        </div>
+      </div>
+    );
+  }
+
+  if (ev.kind === "overtake") {
+    const p = ev.payload as OvertakePayload;
+    const overtaking = driverMap.get(p.overtaking);
+    const overtaken = driverMap.get(p.overtaken);
+    const colorA = teamColor(overtaking?.team_colour);
+    const colorB = teamColor(overtaken?.team_colour);
+    return (
+      <div className="px-3 py-2 border-l-2 border-l-[#22c55e]">
+        <div className="flex items-center justify-between gap-2">
+          <div className="flex items-center gap-1.5">
+            <span className="text-[12px] font-black" style={{ color: colorA }}>
+              {overtaking?.name_acronym ?? p.overtaking}
+            </span>
+            <span className="text-[9px] text-white/30">▸</span>
+            <span className="text-[11px] font-bold" style={{ color: colorB }}>
+              {overtaken?.name_acronym ?? p.overtaken}
+            </span>
+            {p.position && (
+              <span className="text-[9px] font-mono text-white/50">
+                P{p.position}
+              </span>
+            )}
+          </div>
+          <span className="text-[10px] font-mono tabular-nums text-white/40 shrink-0">
+            {fmtRaceTime(ev.ms)}
+          </span>
+        </div>
+      </div>
+    );
+  }
+
+  if (ev.kind === "pit") {
+    const p = ev.payload as PitPayload;
+    const d = driverMap.get(p.driverNumber);
+    const driverColor = teamColor(d?.team_colour);
+    return (
+      <div className="px-3 py-2 border-l-2 border-l-[#3d78ff]">
+        <div className="flex items-center justify-between gap-2">
+          <div className="flex items-center gap-1.5">
+            <span className="text-[8px] font-black px-1 py-0.5 bg-[#3d78ff] text-white uppercase tracking-widest shrink-0">
+              PIT
+            </span>
+            <span
+              className="text-[12px] font-black"
+              style={{ color: driverColor }}
+            >
+              {d?.name_acronym ?? p.driverNumber}
+            </span>
+            {d?.full_name && (
+              <span className="text-[10px] text-white/50">{d.full_name}</span>
+            )}
+          </div>
+          <span className="text-[10px] font-mono tabular-nums text-white/40 shrink-0">
+            {fmtRaceTime(ev.ms)}
+          </span>
+        </div>
+        <div className="flex items-center gap-2 mt-0.5">
+          {typeof p.lapNumber === "number" && (
+            <span className="text-[9px] text-white/40 font-mono">
+              Lap {p.lapNumber}
+            </span>
+          )}
+          {typeof p.pitDuration === "number" && (
+            <span className="text-[9px] font-mono tabular-nums text-white/60">
+              {p.pitDuration.toFixed(1)}s stop
+            </span>
+          )}
+        </div>
+      </div>
+    );
+  }
+
+  if (ev.kind === "radio") {
+    const p = ev.payload as RadioPayload;
+    const d = driverMap.get(p.driverNumber);
+    const driverColor = teamColor(d?.team_colour);
+    const hasAudio = Boolean(
+      p.recordingUrl && p.recordingUrl.trim().length > 0,
+    );
+    const isPlaying = playingUrl === p.recordingUrl;
+    return (
+      <div className="px-3 py-2 border-l-2 border-l-[#6b6b7a]">
+        <div className="flex items-center justify-between gap-2">
+          <div className="flex items-center gap-1.5">
+            <span className="text-[8px] font-black px-1 py-0.5 bg-[#6b6b7a] text-white uppercase tracking-widest shrink-0">
+              RADIO
+            </span>
+            <span
+              className="text-[12px] font-black"
+              style={{ color: driverColor }}
+            >
+              {d?.name_acronym ?? p.driverNumber}
+            </span>
+            {d?.full_name && (
+              <span className="text-[10px] text-white/50">{d.full_name}</span>
+            )}
+          </div>
+          <div className="flex items-center gap-1.5 shrink-0">
+            <span className="text-[10px] font-mono tabular-nums text-white/40">
+              {fmtRaceTime(ev.ms)}
+            </span>
+            <button
+              onClick={() => hasAudio && onToggleRadio(p.recordingUrl)}
+              disabled={!hasAudio}
+              aria-label={isPlaying ? "Stop" : "Play"}
+              className={[
+                "flex items-center gap-1 px-2 py-0.5 text-[9px] font-black uppercase tracking-widest transition-colors",
+                isPlaying
+                  ? "bg-f1red text-white"
+                  : "bg-[#2a2a35] text-muted hover:text-white",
+                !hasAudio ? "opacity-30 cursor-not-allowed" : "",
+              ]
+                .filter(Boolean)
+                .join(" ")}
+            >
+              {isPlaying ? (
+                <>
+                  <Square size={9} strokeWidth={2.4} aria-hidden="true" /> Stop
+                </>
+              ) : (
+                <>
+                  <Play size={9} strokeWidth={2.4} aria-hidden="true" /> Play
+                </>
+              )}
+            </button>
+          </div>
+        </div>
+        {isPlaying && hasAudio && (
+          <audio
+            key={p.recordingUrl}
+            src={p.recordingUrl}
+            autoPlay
+            onEnded={() => onToggleRadio(p.recordingUrl)}
+            onError={() => onToggleRadio(p.recordingUrl)}
+            className="hidden"
+          >
+            <track kind="captions" />
+          </audio>
+        )}
+      </div>
+    );
+  }
+
+  return null;
+}
+
 interface FilterChip {
   kind: ToastKind;
   label: string;
@@ -171,6 +483,7 @@ const CHIP_CONFIGS: ChipConfig[] = [
 ];
 
 export function CatchupSummary({ summary, drivers, onDismiss }: Props) {
+  const defaultFilters = useSettings((s) => s.catchupSummaryDefaultFilters);
   const driverMap = new Map(drivers.map((d) => [d.driver_number, d]));
   const duration = summary.toMs - summary.fromMs;
 
@@ -190,10 +503,22 @@ export function CatchupSummary({ summary, drivers, onDismiss }: Props) {
     color: c.color,
   }));
 
-  // Which kinds are currently visible (all active by default)
+  // Which kinds are currently visible — seeded from the user's saved default
   const [activeKinds, setActiveKinds] = useState<Set<ToastKind>>(
-    () => new Set(allChips.map((c) => c.kind)),
+    () =>
+      new Set(
+        (defaultFilters.length > 0
+          ? defaultFilters
+          : allChips.map((c) => c.kind)) as ToastKind[],
+      ),
   );
+
+  // Radio playback state
+  const [playingUrl, setPlayingUrl] = useState<string | null>(null);
+
+  function toggleRadio(url: string) {
+    setPlayingUrl((prev) => (prev === url ? null : url));
+  }
 
   function toggleKind(kind: ToastKind) {
     setActiveKinds((prev) => {
@@ -270,291 +595,15 @@ export function CatchupSummary({ summary, drivers, onDismiss }: Props) {
           {/* Event list */}
           {visibleEvents.length > 0 ? (
             <div className="divide-y divide-[#2a2a35]">
-              {visibleEvents.map((ev) => {
-                if (ev.kind === "fastest_lap") {
-                  const p = ev.payload as FastestLapPayload;
-                  const d = driverMap.get(p.driverNumber);
-                  const driverColor = teamColor(d?.team_colour);
-                  return (
-                    <div
-                      key={ev.id}
-                      className="px-3 py-2 border-l-2"
-                      style={{ borderLeftColor: "#9b59f5" }}
-                    >
-                      <div className="flex items-center justify-between gap-2">
-                        <div className="flex items-center gap-1.5">
-                          <span className="text-[8px] font-black px-1 py-0.5 bg-[#9b59f5] text-white uppercase tracking-widest shrink-0">
-                            FASTEST
-                          </span>
-                          <span
-                            className="text-[12px] font-black"
-                            style={{ color: driverColor }}
-                          >
-                            {d?.name_acronym ?? p.driverNumber}
-                          </span>
-                          {d?.full_name && (
-                            <span className="text-[10px] text-white/50">
-                              {d.full_name}
-                            </span>
-                          )}
-                        </div>
-                        <span className="text-[10px] font-mono tabular-nums text-white/40 shrink-0">
-                          {fmtRaceTime(ev.ms)}
-                        </span>
-                      </div>
-                      <div className="flex items-center gap-2 mt-0.5">
-                        {typeof p.lapNumber === "number" && (
-                          <span className="text-[9px] text-white/40 font-mono">
-                            Lap {p.lapNumber}
-                          </span>
-                        )}
-                        <span
-                          className="text-[10px] font-mono tabular-nums font-bold"
-                          style={{ color: "#9b59f5" }}
-                        >
-                          {fmtLapTime(p.lapTime)}
-                        </span>
-                      </div>
-                    </div>
-                  );
-                }
-                if (ev.kind === "flag") {
-                  const p = ev.payload as FlagPayload;
-                  const FLAG_COLORS: Record<string, string> = {
-                    RED: "#e8002d",
-                    SAFETY_CAR: "#f5a623",
-                    VIRTUAL_SC: "#f5a623",
-                    VIRTUAL_SAFETY_CAR: "#f5a623",
-                    YELLOW: "#f5d400",
-                    DOUBLE_YELLOW: "#f5d400",
-                    CHEQUERED: "#ffffff",
-                    BLUE: "#3d78ff",
-                  };
-                  const color = FLAG_COLORS[p.flag] ?? "#636369";
-                  const flagLabel = p.flag
-                    .replace(/_/g, " ")
-                    .replace(/\b\w/g, (c) => c.toUpperCase());
-                  return (
-                    <div
-                      key={ev.id}
-                      className="px-3 py-2 border-l-2"
-                      style={{ borderLeftColor: color }}
-                    >
-                      <div className="flex items-center justify-between gap-2">
-                        <div className="flex items-center gap-1.5">
-                          <span
-                            className="text-[8px] font-black px-1 py-0.5 uppercase tracking-widest shrink-0"
-                            style={{
-                              backgroundColor: color,
-                              color:
-                                p.flag === "YELLOW" ||
-                                p.flag === "DOUBLE_YELLOW" ||
-                                p.flag === "CHEQUERED"
-                                  ? "#000"
-                                  : "#fff",
-                            }}
-                          >
-                            {flagLabel}
-                          </span>
-                        </div>
-                        <span className="text-[10px] font-mono tabular-nums text-white/40 shrink-0">
-                          {fmtRaceTime(ev.ms)}
-                        </span>
-                      </div>
-                      <div className="mt-0.5">
-                        <EventText
-                          text={p.message}
-                          className="text-[10px] text-white/70 block"
-                          tooltipAccentClassName=""
-                        />
-                        {typeof p.lapNumber === "number" && (
-                          <span className="text-[9px] text-white/40 font-mono">
-                            Lap {p.lapNumber}
-                          </span>
-                        )}
-                      </div>
-                    </div>
-                  );
-                }
-                if (ev.kind === "penalty") {
-                  const p = ev.payload as FlagPayload;
-                  return (
-                    <div
-                      key={ev.id}
-                      className="px-3 py-2 border-l-2 border-l-[#e8002d]"
-                    >
-                      <div className="flex items-center justify-between gap-2">
-                        <span className="text-[8px] font-black px-1 py-0.5 bg-[#e8002d] text-white uppercase tracking-widest shrink-0">
-                          PENALTY
-                        </span>
-                        <span className="text-[10px] font-mono tabular-nums text-white/40 shrink-0">
-                          {fmtRaceTime(ev.ms)}
-                        </span>
-                      </div>
-                      <div className="mt-0.5">
-                        <EventText
-                          text={p.message}
-                          className="text-[10px] text-white/70 block"
-                          tooltipAccentClassName="bg-[#e8002d]"
-                        />
-                        {typeof p.lapNumber === "number" && (
-                          <span className="text-[9px] text-white/40 font-mono">
-                            Lap {p.lapNumber}
-                          </span>
-                        )}
-                      </div>
-                    </div>
-                  );
-                }
-                if (ev.kind === "investigation") {
-                  const p = ev.payload as FlagPayload;
-                  return (
-                    <div
-                      key={ev.id}
-                      className="px-3 py-2 border-l-2 border-l-[#f5a623]"
-                    >
-                      <div className="flex items-center justify-between gap-2">
-                        <span className="text-[8px] font-black px-1 py-0.5 bg-[#f5a623] text-black uppercase tracking-widest shrink-0">
-                          INVESTIGATION
-                        </span>
-                        <span className="text-[10px] font-mono tabular-nums text-white/40 shrink-0">
-                          {fmtRaceTime(ev.ms)}
-                        </span>
-                      </div>
-                      <div className="mt-0.5">
-                        <EventText
-                          text={p.message}
-                          className="text-[10px] text-white/70 block"
-                          tooltipAccentClassName="bg-[#f5a623]"
-                        />
-                        {typeof p.lapNumber === "number" && (
-                          <span className="text-[9px] text-white/40 font-mono">
-                            Lap {p.lapNumber}
-                          </span>
-                        )}
-                      </div>
-                    </div>
-                  );
-                }
-                if (ev.kind === "overtake") {
-                  const p = ev.payload as OvertakePayload;
-                  const overtaking = driverMap.get(p.overtaking);
-                  const overtaken = driverMap.get(p.overtaken);
-                  const colorA = teamColor(overtaking?.team_colour);
-                  const colorB = teamColor(overtaken?.team_colour);
-                  return (
-                    <div
-                      key={ev.id}
-                      className="px-3 py-2 border-l-2 border-l-[#22c55e]"
-                    >
-                      <div className="flex items-center justify-between gap-2">
-                        <div className="flex items-center gap-1.5">
-                          <span
-                            className="text-[12px] font-black"
-                            style={{ color: colorA }}
-                          >
-                            {overtaking?.name_acronym ?? p.overtaking}
-                          </span>
-                          <span className="text-[9px] text-white/30">▸</span>
-                          <span
-                            className="text-[11px] font-bold"
-                            style={{ color: colorB }}
-                          >
-                            {overtaken?.name_acronym ?? p.overtaken}
-                          </span>
-                          {p.position && (
-                            <span className="text-[9px] font-mono text-white/50">
-                              P{p.position}
-                            </span>
-                          )}
-                        </div>
-                        <span className="text-[10px] font-mono tabular-nums text-white/40 shrink-0">
-                          {fmtRaceTime(ev.ms)}
-                        </span>
-                      </div>
-                    </div>
-                  );
-                }
-                if (ev.kind === "pit") {
-                  const p = ev.payload as PitPayload;
-                  const d = driverMap.get(p.driverNumber);
-                  const driverColor = teamColor(d?.team_colour);
-                  return (
-                    <div
-                      key={ev.id}
-                      className="px-3 py-2 border-l-2 border-l-[#3d78ff]"
-                    >
-                      <div className="flex items-center justify-between gap-2">
-                        <div className="flex items-center gap-1.5">
-                          <span className="text-[8px] font-black px-1 py-0.5 bg-[#3d78ff] text-white uppercase tracking-widest shrink-0">
-                            PIT
-                          </span>
-                          <span
-                            className="text-[12px] font-black"
-                            style={{ color: driverColor }}
-                          >
-                            {d?.name_acronym ?? p.driverNumber}
-                          </span>
-                          {d?.full_name && (
-                            <span className="text-[10px] text-white/50">
-                              {d.full_name}
-                            </span>
-                          )}
-                        </div>
-                        <span className="text-[10px] font-mono tabular-nums text-white/40 shrink-0">
-                          {fmtRaceTime(ev.ms)}
-                        </span>
-                      </div>
-                      <div className="flex items-center gap-2 mt-0.5">
-                        {typeof p.lapNumber === "number" && (
-                          <span className="text-[9px] text-white/40 font-mono">
-                            Lap {p.lapNumber}
-                          </span>
-                        )}
-                        {typeof p.pitDuration === "number" && (
-                          <span className="text-[9px] font-mono tabular-nums text-white/60">
-                            {p.pitDuration.toFixed(1)}s stop
-                          </span>
-                        )}
-                      </div>
-                    </div>
-                  );
-                }
-                if (ev.kind === "radio") {
-                  const p = ev.payload as RadioPayload;
-                  const d = driverMap.get(p.driverNumber);
-                  const driverColor = teamColor(d?.team_colour);
-                  return (
-                    <div
-                      key={ev.id}
-                      className="px-3 py-2 border-l-2 border-l-[#6b6b7a]"
-                    >
-                      <div className="flex items-center justify-between gap-2">
-                        <div className="flex items-center gap-1.5">
-                          <span className="text-[8px] font-black px-1 py-0.5 bg-[#6b6b7a] text-white uppercase tracking-widest shrink-0">
-                            RADIO
-                          </span>
-                          <span
-                            className="text-[12px] font-black"
-                            style={{ color: driverColor }}
-                          >
-                            {d?.name_acronym ?? p.driverNumber}
-                          </span>
-                          {d?.full_name && (
-                            <span className="text-[10px] text-white/50">
-                              {d.full_name}
-                            </span>
-                          )}
-                        </div>
-                        <span className="text-[10px] font-mono tabular-nums text-white/40 shrink-0">
-                          {fmtRaceTime(ev.ms)}
-                        </span>
-                      </div>
-                    </div>
-                  );
-                }
-                return null;
-              })}
+              {visibleEvents.map((ev) => (
+                <CatchupEventRow
+                  key={ev.id}
+                  ev={ev}
+                  driverMap={driverMap}
+                  playingUrl={playingUrl}
+                  onToggleRadio={toggleRadio}
+                />
+              ))}
             </div>
           ) : (
             <p className="text-[11px] text-white/30 px-3 py-3 text-center">

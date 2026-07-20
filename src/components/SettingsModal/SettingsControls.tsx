@@ -236,6 +236,63 @@ export function SettingsBody() {
         checked={settings.catchupSummaryEnabled}
         onChange={toggle("catchupSummaryEnabled")}
       />
+      {settings.catchupSummaryEnabled && (
+        <div className="py-2.5 border-b border-[#2a2a35]">
+          <div className="text-[11px] text-muted mb-2 leading-tight">
+            Default visible event types
+          </div>
+          <div className="flex flex-wrap gap-1.5">
+            {(
+              [
+                { kind: "pit", label: "Pit stops", color: "#3d78ff" },
+                { kind: "flag", label: "Flags", color: "#f5a623" },
+                { kind: "penalty", label: "Penalties", color: "#e8002d" },
+                { kind: "overtake", label: "Overtakes", color: "#22c55e" },
+                {
+                  kind: "fastest_lap",
+                  label: "Fastest laps",
+                  color: "#9b59f5",
+                },
+                {
+                  kind: "investigation",
+                  label: "Investigations",
+                  color: "#f5a623",
+                },
+                { kind: "radio", label: "Radio", color: "#6b6b7a" },
+              ] as const
+            ).map(({ kind, label, color }) => {
+              const active =
+                settings.catchupSummaryDefaultFilters.includes(kind);
+              return (
+                <button
+                  key={kind}
+                  onClick={() => {
+                    const current = settings.catchupSummaryDefaultFilters;
+                    const next = active
+                      ? current.filter((k) => k !== kind)
+                      : [...current, kind];
+                    if (next.length > 0)
+                      setSetting("catchupSummaryDefaultFilters", next);
+                  }}
+                  className={[
+                    "text-[10px] font-bold px-2 py-0.5 rounded-sm border transition-all",
+                    "focus:outline-none focus-visible:ring-1 focus-visible:ring-white/40",
+                    active
+                      ? "border-transparent text-black"
+                      : "border-[#38383f] text-white/40 bg-transparent",
+                  ].join(" ")}
+                  style={
+                    active ? { backgroundColor: color, borderColor: color } : {}
+                  }
+                  aria-pressed={active}
+                >
+                  {label}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      )}
 
       <SectionHeader>Notifications</SectionHeader>
       <SettingRow

@@ -39,6 +39,7 @@ export interface AppSettings {
   showPlaybackSpeedControls: boolean;
   showPlaybackEventChips: boolean;
   catchupSummaryEnabled: boolean;
+  catchupSummaryDefaultFilters: string[];
   showCsvExportButtons: boolean;
   showNextRaceWeekendBanner: boolean;
   // Appearance
@@ -92,6 +93,15 @@ export const SETTINGS_DEFAULTS: AppSettings = {
   showPlaybackSpeedControls: true,
   showPlaybackEventChips: true,
   catchupSummaryEnabled: true,
+  catchupSummaryDefaultFilters: [
+    "pit",
+    "flag",
+    "penalty",
+    "overtake",
+    "fastest_lap",
+    "investigation",
+    "radio",
+  ],
   showCsvExportButtons: true,
   showNextRaceWeekendBanner: true,
   lightMode: false,
