@@ -170,59 +170,14 @@ export function CatchupSummary({ summary, drivers, onDismiss }: Props) {
   }
 
   // Build filter chips (only for kinds that actually appear)
-  const allChips: FilterChip[] = [
-    {
-      kind: "pit",
-      label: (n: number) => `${n} pit stop${n > 1 ? "s" : ""}`,
-      color: "#3d78ff",
-      activeTextClass: "text-[#3d78ff]",
-    },
-    {
-      kind: "flag",
-      label: (n: number) => `${n} flag${n > 1 ? "s" : ""}`,
-      color: "#f5a623",
-      activeTextClass: "text-[#f5a623]",
-    },
-    {
-      kind: "penalty",
-      label: (n: number) => `${n} ${n > 1 ? "penalties" : "penalty"}`,
-      color: "#e8002d",
-      activeTextClass: "text-[#e8002d]",
-    },
-    {
-      kind: "overtake",
-      label: (n: number) => `${n} overtake${n > 1 ? "s" : ""}`,
-      color: "#22c55e",
-      activeTextClass: "text-[#22c55e]",
-    },
-    {
-      kind: "fastest_lap",
-      label: (n: number) => `${n} fastest lap${n > 1 ? "s" : ""}`,
-      color: "#9b59f5",
-      activeTextClass: "text-[#9b59f5]",
-    },
-    {
-      kind: "investigation",
-      label: (n: number) =>
-        `${n} ${n > 1 ? "investigations" : "investigation"}`,
-      color: "#f5a623",
-      activeTextClass: "text-[#f5a623]",
-    },
-    {
-      kind: "radio",
-      label: (n: number) => `${n} radio`,
-      color: "#6b6b7a",
-      activeTextClass: "text-white/60",
-    },
-  ]
-    .filter((c) => (counts[c.kind] ?? 0) > 0)
-    .map((c) => ({
-      kind: c.kind,
-      label: (c.label as (n: number) => string)(counts[c.kind]!),
-      count: counts[c.kind]!,
-      color: c.color,
-      activeTextClass: c.activeTextClass,
-    }));
+  const allChips: FilterChip[] = CHIP_CONFIGS.filter(
+    (c) => (counts[c.kind] ?? 0) > 0,
+  ).map((c) => ({
+    kind: c.kind,
+    label: c.mkLabel(counts[c.kind]!),
+    count: counts[c.kind]!,
+    color: c.color,
+  }));
 
   // Which kinds are currently visible (all active by default)
   const [activeKinds, setActiveKinds] = useState<Set<ToastKind>>(
