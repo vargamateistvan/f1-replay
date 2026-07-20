@@ -1,3 +1,5 @@
+import { createPortal } from "react-dom";
+import { useEffect, useRef, useState } from "react";
 import type { CatchupSummary as CatchupSummaryData } from "@/hooks/useCatchupSummary";
 import { FastForward } from "lucide-react";
 import type { Driver } from "@/api/types";
@@ -45,19 +47,66 @@ function EventText({
   className: string;
   tooltipAccentClassName?: string;
 }>) {
+  const anchorRef = useRef<HTMLSpanElement | null>(null);
+  const [open, setOpen] = useState(false);
+  const [position, setPosition] = useState({ top: 0, left: 0 });
+
+  useEffect(() => {
+    if (!open) return;
+
+    const updatePosition = () => {
+      const rect = anchorRef.current?.getBoundingClientRect();
+      if (!rect) return;
+
+      const tooltipWidth = Math.min(280, Math.max(200, rect.width));
+      const viewportPad = 8;
+      const left = Math.min(
+        Math.max(viewportPad, rect.left),
+        window.innerWidth - tooltipWidth - viewportPad,
+      );
+
+      setPosition({
+        top: rect.bottom + 8,
+        left,
+      });
+    };
+
+    updatePosition();
+    window.addEventListener("resize", updatePosition);
+    window.addEventListener("scroll", updatePosition, true);
+
+    return () => {
+      window.removeEventListener("resize", updatePosition);
+      window.removeEventListener("scroll", updatePosition, true);
+    };
+  }, [open]);
+
   if (!needsTooltip(text)) {
     return <span className={className}>{text}</span>;
   }
 
   return (
-    <span className="group/tooltip relative flex min-w-0 flex-1">
-      <span className={className}>{text}</span>
-      <TooltipCard
-        title="Full event"
-        text={text}
-        accentClassName={tooltipAccentClassName}
-        className="pointer-events-none absolute left-0 top-full z-20 mt-2 w-full min-w-[200px] max-w-[280px] opacity-0 transition duration-150 group-hover/tooltip:opacity-100"
-      />
+    <span className="relative flex min-w-0 flex-1">
+      <span
+        ref={anchorRef}
+        className={className}
+        onMouseEnter={() => setOpen(true)}
+        onMouseLeave={() => setOpen(false)}
+      >
+        {text}
+      </span>
+      {open &&
+        typeof document !== "undefined" &&
+        createPortal(
+          <TooltipCard
+            title="Full event"
+            text={text}
+            accentClassName={tooltipAccentClassName}
+            className="pointer-events-none fixed z-[9999] w-full min-w-[200px] max-w-[280px]"
+            style={{ top: position.top, left: position.left }}
+          />,
+          document.body,
+        )}
     </span>
   );
 }

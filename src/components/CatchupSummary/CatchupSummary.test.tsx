@@ -101,6 +101,12 @@ describe("CatchupSummary", () => {
       />,
     );
 
+    fireEvent.mouseEnter(
+      screen.getByText(
+        /Car 16 receives a five second time penalty for leaving the track/i,
+      ),
+    );
+
     expect(screen.getByRole("tooltip")).toBeInTheDocument();
     expect(screen.getByText("Full event")).toBeInTheDocument();
   });
