@@ -1,7 +1,12 @@
 import type { CatchupSummary as CatchupSummaryData } from "@/hooks/useCatchupSummary";
 import { FastForward } from "lucide-react";
 import type { Driver } from "@/api/types";
-import type { OvertakePayload, FastestLapPayload } from "@/timeline/events";
+import type {
+  OvertakePayload,
+  FastestLapPayload,
+  PitPayload,
+  RadioPayload,
+} from "@/timeline/events";
 import { teamColor } from "@/utils/color";
 
 interface Props {
@@ -53,20 +58,12 @@ export function CatchupSummary({ summary, drivers, onDismiss }: Props) {
       `${counts.fastest_lap} fastest lap${counts.fastest_lap > 1 ? "s" : ""}`,
     );
 
-  // Pull out the single most notable events for the detail list
-  const notable = summary.events
-    .filter(
-      (e) =>
-        e.kind === "fastest_lap" ||
-        e.kind === "flag" ||
-        e.kind === "penalty" ||
-        e.kind === "overtake",
-    )
-    .slice(0, 5);
+  // Show all captured events in chronological order.
+  const visibleEvents = summary.events;
 
   return (
     <div className="absolute bottom-14 left-1/2 -translate-x-1/2 z-40 pointer-events-auto w-[min(340px,90vw)]">
-      <div className="bg-[#1f1f27] border border-[#38383f] shadow-2xl overflow-hidden">
+      <div className="bg-[#1f1f27] border border-[#38383f] shadow-2xl overflow-hidden max-h-[70vh] flex flex-col">
         {/* Header */}
         <div className="flex items-center gap-2 px-3 py-2 bg-[#15151e] border-b border-[#38383f]">
           <span className="text-[10px] font-black uppercase tracking-widest text-white/70 flex items-center gap-1">
@@ -85,119 +82,179 @@ export function CatchupSummary({ summary, drivers, onDismiss }: Props) {
           </button>
         </div>
 
-        {/* Headline counts */}
-        {headlineParts.length > 0 && (
-          <div className="px-3 py-2 border-b border-[#2a2a35]">
-            <p className="text-[11px] text-white/80">
-              {headlineParts.join(" · ")}
-            </p>
-          </div>
-        )}
+        <div className="min-h-0 overflow-y-auto">
+          {/* Headline counts */}
+          {headlineParts.length > 0 && (
+            <div className="px-3 py-2 border-b border-[#2a2a35]">
+              <p className="text-[11px] text-white/80">
+                {headlineParts.join(" · ")}
+              </p>
+            </div>
+          )}
 
-        {/* Notable events */}
-        {notable.length > 0 && (
-          <div className="divide-y divide-[#2a2a35]">
-            {notable.map((ev) => {
-              if (ev.kind === "fastest_lap") {
-                const p = ev.payload as FastestLapPayload;
-                const d = driverMap.get(p.driverNumber);
-                return (
-                  <div
-                    key={ev.id}
-                    className="flex items-center gap-2 px-3 py-1.5"
-                  >
-                    <span className="text-[8px] font-black px-1 py-0.5 bg-[#9b59f5] text-white uppercase tracking-widest shrink-0">
-                      FASTEST
-                    </span>
-                    <span
-                      className="text-[11px] font-bold flex-1"
-                      style={{ color: "#9b59f5" }}
+          {/* Event list */}
+          {visibleEvents.length > 0 && (
+            <div className="divide-y divide-[#2a2a35]">
+              {visibleEvents.map((ev) => {
+                if (ev.kind === "fastest_lap") {
+                  const p = ev.payload as FastestLapPayload;
+                  const d = driverMap.get(p.driverNumber);
+                  return (
+                    <div
+                      key={ev.id}
+                      className="flex items-center gap-2 px-3 py-1.5"
                     >
-                      {d?.name_acronym ?? p.driverNumber}
-                    </span>
-                    <span
-                      className="text-[10px] font-mono tabular-nums"
-                      style={{ color: "#9b59f5" }}
-                    >
-                      {fmtLapTime(p.lapTime)}
-                    </span>
-                  </div>
-                );
-              }
-              if (ev.kind === "flag") {
-                const p = ev.payload as {
-                  flag: string;
-                  message: string;
-                  lapNumber: number | null;
-                };
-                const FLAG_COLORS: Record<string, string> = {
-                  RED: "#e8002d",
-                  SAFETY_CAR: "#f5a623",
-                  VIRTUAL_SC: "#f5a623",
-                  YELLOW: "#f5d400",
-                  DOUBLE_YELLOW: "#f5d400",
-                };
-                const color = FLAG_COLORS[p.flag] ?? "#636369";
-                return (
-                  <div
-                    key={ev.id}
-                    className="flex items-center gap-2 px-3 py-1.5"
-                  >
-                    <span
-                      className="w-[3px] self-stretch shrink-0"
-                      style={{ background: color }}
-                    />
-                    <span className="text-[11px] text-white/80 flex-1 truncate">
-                      {p.message}
-                    </span>
-                  </div>
-                );
-              }
-              if (ev.kind === "penalty") {
-                const p = ev.payload as { message: string };
-                return (
-                  <div
-                    key={ev.id}
-                    className="flex items-center gap-2 px-3 py-1.5"
-                  >
-                    <span className="text-[8px] font-black px-1 py-0.5 bg-[#e8002d] text-white uppercase tracking-widest shrink-0">
-                      PENALTY
-                    </span>
-                    <span className="text-[11px] text-white/80 flex-1 truncate">
-                      {p.message}
-                    </span>
-                  </div>
-                );
-              }
-              if (ev.kind === "overtake") {
-                const p = ev.payload as OvertakePayload;
-                const overtaking = driverMap.get(p.overtaking);
-                const overtaken = driverMap.get(p.overtaken);
-                const color = teamColor(overtaking?.team_colour);
-                return (
-                  <div
-                    key={ev.id}
-                    className="flex items-center gap-2 px-3 py-1.5"
-                  >
-                    <span className="text-[11px] font-bold" style={{ color }}>
-                      {overtaking?.name_acronym ?? p.overtaking}
-                    </span>
-                    <span className="text-muted text-[9px]">▸</span>
-                    <span className="text-[11px] text-white/60">
-                      {overtaken?.name_acronym ?? p.overtaken}
-                    </span>
-                    {p.position && (
-                      <span className="text-[9px] text-muted ml-auto">
-                        P{p.position}
+                      <span className="text-[8px] font-black px-1 py-0.5 bg-[#9b59f5] text-white uppercase tracking-widest shrink-0">
+                        FASTEST
                       </span>
-                    )}
-                  </div>
-                );
-              }
-              return null;
-            })}
-          </div>
-        )}
+                      <span
+                        className="text-[11px] font-bold flex-1"
+                        style={{ color: "#9b59f5" }}
+                      >
+                        {d?.name_acronym ?? p.driverNumber}
+                      </span>
+                      <span
+                        className="text-[10px] font-mono tabular-nums"
+                        style={{ color: "#9b59f5" }}
+                      >
+                        {fmtLapTime(p.lapTime)}
+                      </span>
+                    </div>
+                  );
+                }
+                if (ev.kind === "flag") {
+                  const p = ev.payload as {
+                    flag: string;
+                    message: string;
+                    lapNumber: number | null;
+                  };
+                  const FLAG_COLORS: Record<string, string> = {
+                    RED: "#e8002d",
+                    SAFETY_CAR: "#f5a623",
+                    VIRTUAL_SC: "#f5a623",
+                    YELLOW: "#f5d400",
+                    DOUBLE_YELLOW: "#f5d400",
+                  };
+                  const color = FLAG_COLORS[p.flag] ?? "#636369";
+                  return (
+                    <div
+                      key={ev.id}
+                      className="flex items-center gap-2 px-3 py-1.5"
+                    >
+                      <span
+                        className="w-[3px] self-stretch shrink-0"
+                        style={{ background: color }}
+                      />
+                      <span className="text-[11px] text-white/80 flex-1 truncate">
+                        {p.message}
+                      </span>
+                    </div>
+                  );
+                }
+                if (ev.kind === "penalty") {
+                  const p = ev.payload as { message: string };
+                  return (
+                    <div
+                      key={ev.id}
+                      className="flex items-center gap-2 px-3 py-1.5"
+                    >
+                      <span className="text-[8px] font-black px-1 py-0.5 bg-[#e8002d] text-white uppercase tracking-widest shrink-0">
+                        PENALTY
+                      </span>
+                      <span className="text-[11px] text-white/80 flex-1 truncate">
+                        {p.message}
+                      </span>
+                    </div>
+                  );
+                }
+                if (ev.kind === "investigation") {
+                  const p = ev.payload as { message: string };
+                  return (
+                    <div
+                      key={ev.id}
+                      className="flex items-center gap-2 px-3 py-1.5"
+                    >
+                      <span className="text-[8px] font-black px-1 py-0.5 bg-[#f5a623] text-black uppercase tracking-widest shrink-0">
+                        NOTE
+                      </span>
+                      <span className="text-[11px] text-white/80 flex-1 truncate">
+                        {p.message}
+                      </span>
+                    </div>
+                  );
+                }
+                if (ev.kind === "overtake") {
+                  const p = ev.payload as OvertakePayload;
+                  const overtaking = driverMap.get(p.overtaking);
+                  const overtaken = driverMap.get(p.overtaken);
+                  const color = teamColor(overtaking?.team_colour);
+                  return (
+                    <div
+                      key={ev.id}
+                      className="flex items-center gap-2 px-3 py-1.5"
+                    >
+                      <span className="text-[11px] font-bold" style={{ color }}>
+                        {overtaking?.name_acronym ?? p.overtaking}
+                      </span>
+                      <span className="text-muted text-[9px]">▸</span>
+                      <span className="text-[11px] text-white/60">
+                        {overtaken?.name_acronym ?? p.overtaken}
+                      </span>
+                      {p.position && (
+                        <span className="text-[9px] text-muted ml-auto">
+                          P{p.position}
+                        </span>
+                      )}
+                    </div>
+                  );
+                }
+                if (ev.kind === "pit") {
+                  const p = ev.payload as PitPayload;
+                  const d = driverMap.get(p.driverNumber);
+                  return (
+                    <div
+                      key={ev.id}
+                      className="flex items-center gap-2 px-3 py-1.5"
+                    >
+                      <span className="text-[8px] font-black px-1 py-0.5 bg-[#3d78ff] text-white uppercase tracking-widest shrink-0">
+                        PIT
+                      </span>
+                      <span className="text-[11px] text-white/80 flex-1 truncate">
+                        {d?.name_acronym ?? p.driverNumber}
+                        {typeof p.lapNumber === "number"
+                          ? ` · Lap ${p.lapNumber}`
+                          : ""}
+                      </span>
+                      {typeof p.pitDuration === "number" && (
+                        <span className="text-[10px] font-mono tabular-nums text-white/70">
+                          {p.pitDuration.toFixed(1)}s
+                        </span>
+                      )}
+                    </div>
+                  );
+                }
+                if (ev.kind === "radio") {
+                  const p = ev.payload as RadioPayload;
+                  const d = driverMap.get(p.driverNumber);
+                  return (
+                    <div
+                      key={ev.id}
+                      className="flex items-center gap-2 px-3 py-1.5"
+                    >
+                      <span className="text-[8px] font-black px-1 py-0.5 bg-[#6b6b7a] text-white uppercase tracking-widest shrink-0">
+                        RADIO
+                      </span>
+                      <span className="text-[11px] text-white/80 flex-1 truncate">
+                        {d?.name_acronym ?? p.driverNumber} team radio
+                      </span>
+                    </div>
+                  );
+                }
+                return null;
+              })}
+            </div>
+          )}
+        </div>
 
         {/* Dismiss */}
         <button
