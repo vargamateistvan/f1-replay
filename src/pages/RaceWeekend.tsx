@@ -124,6 +124,13 @@ type TimedRaceControlSignal = {
   clearsTrack: boolean;
 };
 
+type TrackVehicleStatePoint = {
+  absMs: number;
+  safetyCar: boolean;
+  vsc: boolean;
+  medicalCar: boolean;
+};
+
 function upperBoundByAbsMs<T extends { absMs: number }>(
   arr: readonly T[],
   cutoff: number,
@@ -307,6 +314,57 @@ export default function RaceWeekend() {
       clearsTrack: isTrackClearSignal(row),
     }));
   }, [timedRaceControl]);
+
+  const trackVehicleStateTimeline = useMemo((): TrackVehicleStatePoint[] => {
+    if (!timedRaceControlSignals.length) return [];
+
+    let safetyCar = false;
+    let vsc = false;
+    let medicalCar = false;
+    const timeline: TrackVehicleStatePoint[] = [];
+
+    for (const signal of timedRaceControlSignals) {
+      const { absMs, phase, messageUpper, clearsTrack } = signal;
+
+      if (clearsTrack) {
+        safetyCar = false;
+        vsc = false;
+        medicalCar = false;
+      }
+
+      if (phase === "safety_car_start") {
+        safetyCar = true;
+        vsc = false;
+      } else if (phase === "safety_car_end") {
+        safetyCar = false;
+      }
+
+      if (phase === "vsc_start") {
+        vsc = true;
+        safetyCar = false;
+      } else if (phase === "vsc_end") {
+        vsc = false;
+      }
+
+      if (messageUpper.includes("MEDICAL CAR")) {
+        if (
+          messageUpper.includes("IN THIS LAP") ||
+          messageUpper.includes("ENDING") ||
+          messageUpper.includes("HAS ENDED") ||
+          messageUpper.includes("RETURN") ||
+          messageUpper.includes("WITHDRAW")
+        ) {
+          medicalCar = false;
+        } else {
+          medicalCar = true;
+        }
+      }
+
+      timeline.push({ absMs, safetyCar, vsc, medicalCar });
+    }
+
+    return timeline;
+  }, [timedRaceControlSignals]);
 
   const timedPositions = useMemo((): TimedRow<Position>[] => {
     if (!sessionStartMs || !positions.data?.length) return [];
@@ -672,10 +730,6 @@ export default function RaceWeekend() {
   const activeTrackVehicles = useMemo<ActiveTrackVehicles | null>(() => {
     if (!isMapVisible) return null;
     if (!sessionStartMs) return null;
-
-    let safetyCar = false;
-    let vsc = false;
-    let medicalCar = false;
     const LIGHTS_SEQUENCE_MS = 5_000;
     const formationLap =
       isRaceSession &&
@@ -684,53 +738,16 @@ export default function RaceWeekend() {
       tSlow < Math.max(0, lightsOutMs - LIGHTS_SEQUENCE_MS);
     const cutoff = sessionStartMs + tSlow;
 
-    for (const {
-      absMs,
-      phase,
-      messageUpper,
-      clearsTrack,
-    } of timedRaceControlSignals) {
-      if (absMs > cutoff) break;
-
-      if (clearsTrack) {
-        safetyCar = false;
-        vsc = false;
-        medicalCar = false;
-      }
-
-      if (phase === "safety_car_start") {
-        safetyCar = true;
-        vsc = false;
-      } else if (phase === "safety_car_end") {
-        safetyCar = false;
-      }
-
-      if (phase === "vsc_start") {
-        vsc = true;
-        safetyCar = false;
-      } else if (phase === "vsc_end") {
-        vsc = false;
-      }
-
-      if (messageUpper.includes("MEDICAL CAR")) {
-        if (
-          messageUpper.includes("IN THIS LAP") ||
-          messageUpper.includes("ENDING") ||
-          messageUpper.includes("HAS ENDED") ||
-          messageUpper.includes("RETURN") ||
-          messageUpper.includes("WITHDRAW")
-        ) {
-          medicalCar = false;
-        } else {
-          medicalCar = true;
-        }
-      }
-    }
+    const idx = upperBoundByAbsMs(trackVehicleStateTimeline, cutoff) - 1;
+    const state = idx >= 0 ? trackVehicleStateTimeline[idx]! : null;
+    const safetyCar = state?.safetyCar ?? false;
+    const vsc = state?.vsc ?? false;
+    const medicalCar = state?.medicalCar ?? false;
 
     if (!safetyCar && !vsc && !medicalCar && !formationLap) return null;
     return { safetyCar, vsc, medicalCar, formationLap };
   }, [
-    timedRaceControlSignals,
+    trackVehicleStateTimeline,
     sessionStartMs,
     tSlow,
     isRaceSession,
