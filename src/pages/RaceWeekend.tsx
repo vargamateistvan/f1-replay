@@ -467,6 +467,7 @@ export default function RaceWeekend() {
   // Last completed lap number for the focused driver — used to load heat overlay data.
   // Use the latest lap with a valid duration whose end time is at/before the playhead.
   const focusDriverLap = useMemo(() => {
+    if (!isMapVisible) return null;
     if (focusDriver === null || !laps.data?.length || !sessionStartMs)
       return null;
     let latestCompleted: number | null = null;
@@ -480,9 +481,10 @@ export default function RaceWeekend() {
         latestCompleted = lap.lap_number;
     }
     return latestCompleted;
-  }, [focusDriver, laps.data, sessionStartMs, tSlow]);
+  }, [focusDriver, laps.data, sessionStartMs, tSlow, isMapVisible]);
 
   const compareDriverLap = useMemo(() => {
+    if (!isMapVisible) return null;
     if (compareDriver === null || !laps.data?.length || !sessionStartMs)
       return null;
     let latestCompleted: number | null = null;
@@ -496,7 +498,7 @@ export default function RaceWeekend() {
         latestCompleted = lap.lap_number;
     }
     return latestCompleted;
-  }, [compareDriver, laps.data, sessionStartMs, tSlow]);
+  }, [compareDriver, laps.data, sessionStartMs, tSlow, isMapVisible]);
 
   // Current tyre compound + age per driver at the playhead.
   // Rebuilds when lap/stint data arrives or when the coarse time crosses a lap boundary.
@@ -505,6 +507,7 @@ export default function RaceWeekend() {
       number,
       { compound: Stint["compound"]; age: number }
     >();
+    if (!isMapVisible) return result;
     if (!laps.data?.length || !stints.data?.length || !sessionStartMs)
       return result;
     const currentLapByDriver = new Map<number, number>();
@@ -530,15 +533,17 @@ export default function RaceWeekend() {
         });
     }
     return result;
-  }, [laps.data, stints.data, sessionStartMs, tSlow]);
+  }, [laps.data, stints.data, sessionStartMs, tSlow, isMapVisible]);
 
   // Cars within 1.0 s of the car ahead → highlight DRS battle on the map.
   const battlingDrivers = useMemo(() => {
+    if (!isMapVisible) return new Set<number>();
     if (!intervals.data?.length || !sessionStartMs) return new Set<number>();
     return computeBattlingDrivers(intervals.data, sessionStartMs + tSlow, 1.0);
-  }, [intervals.data, sessionStartMs, tSlow]);
+  }, [intervals.data, sessionStartMs, tSlow, isMapVisible]);
 
   const retiredDrivers = useMemo((): ReadonlySet<number> => {
+    if (!isMapVisible) return new Set<number>();
     return deriveRetiredDrivers({
       positions: positions.data ?? [],
       laps: laps.data ?? [],
@@ -553,19 +558,22 @@ export default function RaceWeekend() {
     sessionStartMs,
     tSlow,
     isRaceSession,
+    isMapVisible,
   ]);
 
   // Current session global/sector track flag state at playhead.
   const activeTrackFlagState = useMemo<ActiveTrackFlagState | null>(() => {
+    if (!isMapVisible) return null;
     if (!sessionStartMs) return null;
     return deriveTrackFlagState(
       raceControl.data ?? [],
       sessionStartMs,
       sessionStartMs + tSlow,
     );
-  }, [raceControl.data, sessionStartMs, tSlow]);
+  }, [raceControl.data, sessionStartMs, tSlow, isMapVisible]);
 
   const activeTrackVehicles = useMemo<ActiveTrackVehicles | null>(() => {
+    if (!isMapVisible) return null;
     if (!sessionStartMs) return null;
 
     let safetyCar = false;
@@ -623,7 +631,14 @@ export default function RaceWeekend() {
 
     if (!safetyCar && !vsc && !medicalCar && !formationLap) return null;
     return { safetyCar, vsc, medicalCar, formationLap };
-  }, [raceControl.data, sessionStartMs, tSlow, isRaceSession, lightsOutMs]);
+  }, [
+    raceControl.data,
+    sessionStartMs,
+    tSlow,
+    isRaceSession,
+    lightsOutMs,
+    isMapVisible,
+  ]);
 
   const {
     toastsEnabled,
@@ -714,6 +729,7 @@ export default function RaceWeekend() {
 
   // Latest weather sample at or before the playhead.
   const weatherAtT = useMemo(() => {
+    if (!isMapVisible) return null;
     if (!sessionStartMs || !(weather.data?.length ?? 0)) return null;
     const cutoff = sessionStartMs + tSlow;
     let latest = null;
@@ -722,7 +738,7 @@ export default function RaceWeekend() {
       latest = w;
     }
     return latest;
-  }, [weather.data, sessionStartMs, tSlow]);
+  }, [weather.data, sessionStartMs, tSlow, isMapVisible]);
 
   // Apply default speed when a new session loads.
   useEffect(() => {
