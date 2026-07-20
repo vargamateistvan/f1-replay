@@ -112,6 +112,10 @@ type TrackVehicleStatePoint = {
   medicalCar: boolean;
 };
 
+type ClosedIncidentWindow = ReturnType<typeof buildIncidentWindows>[number] & {
+  endMs: number;
+};
+
 function upperBoundByAbsMs<T extends { absMs: number }>(
   arr: readonly T[],
   cutoff: number,
@@ -138,6 +142,26 @@ function upperBoundByStartMs<T extends { startMs: number }>(
     else hi = mid;
   }
   return lo;
+}
+
+function upperBoundByRelMs<T extends { relMs: number }>(
+  arr: readonly T[],
+  cutoff: number,
+) {
+  let lo = 0;
+  let hi = arr.length;
+  while (lo < hi) {
+    const mid = (lo + hi) >>> 1;
+    if (arr[mid]!.relMs <= cutoff) lo = mid + 1;
+    else hi = mid;
+  }
+  return lo;
+}
+
+function isClosedIncidentWindow(
+  window: ReturnType<typeof buildIncidentWindows>[number],
+): window is ClosedIncidentWindow {
+  return window.endMs !== null;
 }
 
 const TrackMap = lazy(() =>
@@ -499,7 +523,7 @@ export default function RaceWeekend() {
   );
 
   const closedIncidentWindows = useMemo(
-    () => incidentWindows.filter((window) => window.endMs !== null),
+    () => incidentWindows.filter(isClosedIncidentWindow),
     [incidentWindows],
   );
 
@@ -556,11 +580,19 @@ export default function RaceWeekend() {
 
   const pulseDrivers = useMemo(() => {
     if (!isMapVisible) return [];
+    const startIdx = upperBoundByRelMs(
+      timedOvertakes,
+      tSlow - OVERTAKE_PULSE_MS,
+    );
+    const endIdx = upperBoundByRelMs(timedOvertakes, tSlow);
     const out: number[] = [];
-    for (const { row: o, relMs: ms } of timedOvertakes) {
-      if (ms <= tSlow && tSlow - ms <= OVERTAKE_PULSE_MS) {
-        out.push(o.overtaking_driver_number, o.overtaken_driver_number);
-      }
+    for (let idx = startIdx; idx < endIdx; idx++) {
+      const overtake = timedOvertakes[idx];
+      if (!overtake) continue;
+      out.push(
+        overtake.row.overtaking_driver_number,
+        overtake.row.overtaken_driver_number,
+      );
     }
     return out;
   }, [timedOvertakes, tSlow, isMapVisible]);
@@ -652,6 +684,7 @@ export default function RaceWeekend() {
     sessionStartMs,
     tSlow,
     isMapVisible,
+    isRaceSession,
   ]);
 
   // Current session global/sector track flag state at playhead.
