@@ -75,6 +75,11 @@ import {
   isQualiSession,
   detectQualiPhase,
 } from "@/utils/session";
+import {
+  lastAtOrBefore,
+  upperBoundByValue,
+  windowBoundsByValue,
+} from "@/utils/sortedTime";
 import type { MainView } from "@/components/Nav";
 import type {
   Stint,
@@ -112,51 +117,14 @@ type TrackVehicleStatePoint = {
   medicalCar: boolean;
 };
 
+type CompletedLapPoint = {
+  endMs: number;
+  lapNumber: number;
+};
+
 type ClosedIncidentWindow = ReturnType<typeof buildIncidentWindows>[number] & {
   endMs: number;
 };
-
-function upperBoundByAbsMs<T extends { absMs: number }>(
-  arr: readonly T[],
-  cutoff: number,
-) {
-  let lo = 0;
-  let hi = arr.length;
-  while (lo < hi) {
-    const mid = (lo + hi) >>> 1;
-    if (arr[mid]!.absMs <= cutoff) lo = mid + 1;
-    else hi = mid;
-  }
-  return lo;
-}
-
-function upperBoundByStartMs<T extends { startMs: number }>(
-  arr: readonly T[],
-  cutoff: number,
-) {
-  let lo = 0;
-  let hi = arr.length;
-  while (lo < hi) {
-    const mid = (lo + hi) >>> 1;
-    if (arr[mid]!.startMs <= cutoff) lo = mid + 1;
-    else hi = mid;
-  }
-  return lo;
-}
-
-function upperBoundByRelMs<T extends { relMs: number }>(
-  arr: readonly T[],
-  cutoff: number,
-) {
-  let lo = 0;
-  let hi = arr.length;
-  while (lo < hi) {
-    const mid = (lo + hi) >>> 1;
-    if (arr[mid]!.relMs <= cutoff) lo = mid + 1;
-    else hi = mid;
-  }
-  return lo;
-}
 
 function isClosedIncidentWindow(
   window: ReturnType<typeof buildIncidentWindows>[number],
@@ -539,16 +507,20 @@ export default function RaceWeekend() {
 
   const nextReplayIncident = useMemo(() => {
     const MIN_AHEAD_MS = 250;
-    const nextIdx = upperBoundByStartMs(
+    const nextIdx = upperBoundByValue(
       closedIncidentWindows,
       tSlow + MIN_AHEAD_MS,
+      (window) => window.startMs,
     );
     return closedIncidentWindows[nextIdx];
   }, [closedIncidentWindows, tSlow]);
 
   const currentReplayIncident = useMemo(() => {
-    const currentIdx = upperBoundByStartMs(closedIncidentWindows, tSlow) - 1;
-    const currentWindow = closedIncidentWindows[currentIdx];
+    const currentWindow = lastAtOrBefore(
+      closedIncidentWindows,
+      tSlow,
+      (window) => window.startMs,
+    );
     if (!currentWindow) return undefined;
     return currentWindow.endMs >= tSlow ? currentWindow : undefined;
   }, [closedIncidentWindows, tSlow]);
@@ -580,13 +552,14 @@ export default function RaceWeekend() {
 
   const pulseDrivers = useMemo(() => {
     if (!isMapVisible) return [];
-    const startIdx = upperBoundByRelMs(
+    const { startIndex, endIndex } = windowBoundsByValue(
       timedOvertakes,
       tSlow - OVERTAKE_PULSE_MS,
+      tSlow,
+      (overtake) => overtake.relMs,
     );
-    const endIdx = upperBoundByRelMs(timedOvertakes, tSlow);
     const out: number[] = [];
-    for (let idx = startIdx; idx < endIdx; idx++) {
+    for (let idx = startIndex; idx < endIndex; idx++) {
       const overtake = timedOvertakes[idx];
       if (!overtake) continue;
       out.push(
@@ -597,37 +570,49 @@ export default function RaceWeekend() {
     return out;
   }, [timedOvertakes, tSlow, isMapVisible]);
 
+  const completedLapsByDriver = useMemo(() => {
+    const byDriver = new Map<number, CompletedLapPoint[]>();
+    for (const { row: lap, relMs: lapStart } of timedLaps) {
+      if (lap.lap_duration === null) continue;
+      const endMs = lapStart + lap.lap_duration * 1000;
+      let lapsForDriver = byDriver.get(lap.driver_number);
+      if (!lapsForDriver) {
+        lapsForDriver = [];
+        byDriver.set(lap.driver_number, lapsForDriver);
+      }
+      lapsForDriver.push({ endMs, lapNumber: lap.lap_number });
+    }
+    for (const lapsForDriver of byDriver.values()) {
+      lapsForDriver.sort((a, b) => a.endMs - b.endMs);
+    }
+    return byDriver;
+  }, [timedLaps]);
+
   // Last completed lap number for the focused driver — used to load heat overlay data.
   // Use the latest lap with a valid duration whose end time is at/before the playhead.
   const focusDriverLap = useMemo(() => {
     if (!isMapVisible) return null;
-    if (focusDriver === null || !timedLaps.length) return null;
-    let latestCompleted: number | null = null;
-    for (const { row: lap, relMs: lapStart } of timedLaps) {
-      if (lap.driver_number !== focusDriver || !lap.date_start) continue;
-      if (lap.lap_duration === null) continue;
-      const lapEnd = lapStart + lap.lap_duration * 1000;
-      if (lapEnd > tSlow) continue;
-      if (latestCompleted === null || lap.lap_number > latestCompleted)
-        latestCompleted = lap.lap_number;
-    }
-    return latestCompleted;
-  }, [focusDriver, timedLaps, tSlow, isMapVisible]);
+    if (focusDriver === null) return null;
+    return (
+      lastAtOrBefore(
+        completedLapsByDriver.get(focusDriver) ?? [],
+        tSlow,
+        (lap) => lap.endMs,
+      )?.lapNumber ?? null
+    );
+  }, [completedLapsByDriver, focusDriver, tSlow, isMapVisible]);
 
   const compareDriverLap = useMemo(() => {
     if (!isMapVisible) return null;
-    if (compareDriver === null || !timedLaps.length) return null;
-    let latestCompleted: number | null = null;
-    for (const { row: lap, relMs: lapStart } of timedLaps) {
-      if (lap.driver_number !== compareDriver || !lap.date_start) continue;
-      if (lap.lap_duration === null) continue;
-      const lapEnd = lapStart + lap.lap_duration * 1000;
-      if (lapEnd > tSlow) continue;
-      if (latestCompleted === null || lap.lap_number > latestCompleted)
-        latestCompleted = lap.lap_number;
-    }
-    return latestCompleted;
-  }, [compareDriver, timedLaps, tSlow, isMapVisible]);
+    if (compareDriver === null) return null;
+    return (
+      lastAtOrBefore(
+        completedLapsByDriver.get(compareDriver) ?? [],
+        tSlow,
+        (lap) => lap.endMs,
+      )?.lapNumber ?? null
+    );
+  }, [completedLapsByDriver, compareDriver, tSlow, isMapVisible]);
 
   // Current tyre compound + age per driver at the playhead.
   // Rebuilds when lap/stint data arrives or when the coarse time crosses a lap boundary.
@@ -709,8 +694,12 @@ export default function RaceWeekend() {
       tSlow < Math.max(0, lightsOutMs - LIGHTS_SEQUENCE_MS);
     const cutoff = sessionStartMs + tSlow;
 
-    const idx = upperBoundByAbsMs(trackVehicleStateTimeline, cutoff) - 1;
-    const state = idx >= 0 ? trackVehicleStateTimeline[idx]! : null;
+    const state =
+      lastAtOrBefore(
+        trackVehicleStateTimeline,
+        cutoff,
+        (point) => point.absMs,
+      ) ?? null;
     const safetyCar = state?.safetyCar ?? false;
     const vsc = state?.vsc ?? false;
     const medicalCar = state?.medicalCar ?? false;
@@ -800,14 +789,7 @@ export default function RaceWeekend() {
   const carDataAtT = useMemo((): ReadonlyMap<number, CarData> => {
     const m = new Map<number, CarData>();
     for (const [num, arr] of carSamplesByDriver) {
-      let lo = 0;
-      let hi = arr.length;
-      while (lo < hi) {
-        const mid = (lo + hi) >>> 1;
-        if (arr[mid]!.ms <= tSlow) lo = mid + 1;
-        else hi = mid;
-      }
-      const s = arr[lo - 1]?.d;
+      const s = lastAtOrBefore(arr, tSlow, (sample) => sample.ms)?.d;
       if (s) m.set(num, s);
     }
     return m;
@@ -818,8 +800,9 @@ export default function RaceWeekend() {
     if (!isMapVisible) return null;
     if (!timedWeather.length || !sessionStartMs) return null;
     const cutoff = sessionStartMs + tSlow;
-    const idx = upperBoundByAbsMs(timedWeather, cutoff) - 1;
-    return idx >= 0 ? timedWeather[idx]!.row : null;
+    return (
+      lastAtOrBefore(timedWeather, cutoff, (entry) => entry.absMs)?.row ?? null
+    );
   }, [timedWeather, sessionStartMs, tSlow, isMapVisible]);
 
   // Apply default speed when a new session loads.

@@ -8,6 +8,7 @@ import type {
   FastestLapPayload,
   PitPayload,
   RadioPayload,
+  ToastKind,
 } from "@/timeline/events";
 import { teamColor } from "@/utils/color";
 import { TooltipCard } from "@/components/TooltipCard/TooltipCard";
@@ -111,37 +112,100 @@ function EventText({
   );
 }
 
+interface FilterChip {
+  kind: ToastKind;
+  label: string;
+  count: number;
+  color: string;
+  activeTextClass: string;
+}
+
 export function CatchupSummary({ summary, drivers, onDismiss }: Props) {
   const driverMap = new Map(drivers.map((d) => [d.driver_number, d]));
   const duration = summary.toMs - summary.fromMs;
 
   // Group events by kind for the headline counts
-  const counts: Record<string, number> = {};
+  const counts: Partial<Record<ToastKind, number>> = {};
   for (const ev of summary.events) {
     counts[ev.kind] = (counts[ev.kind] ?? 0) + 1;
   }
 
-  // Build a readable headline from counts (skip 'radio' — not interesting in bulk)
-  const headlineParts: string[] = [];
-  if (counts.pit)
-    headlineParts.push(`${counts.pit} pit stop${counts.pit > 1 ? "s" : ""}`);
-  if (counts.flag)
-    headlineParts.push(`${counts.flag} flag${counts.flag > 1 ? "s" : ""}`);
-  if (counts.penalty)
-    headlineParts.push(
-      `${counts.penalty} ${counts.penalty > 1 ? "penalties" : "penalty"}`,
-    );
-  if (counts.overtake)
-    headlineParts.push(
-      `${counts.overtake} overtake${counts.overtake > 1 ? "s" : ""}`,
-    );
-  if (counts.fastest_lap)
-    headlineParts.push(
-      `${counts.fastest_lap} fastest lap${counts.fastest_lap > 1 ? "s" : ""}`,
-    );
+  // Build filter chips (only for kinds that actually appear)
+  const allChips: FilterChip[] = [
+    {
+      kind: "pit",
+      label: (n: number) => `${n} pit stop${n > 1 ? "s" : ""}`,
+      color: "#3d78ff",
+      activeTextClass: "text-[#3d78ff]",
+    },
+    {
+      kind: "flag",
+      label: (n: number) => `${n} flag${n > 1 ? "s" : ""}`,
+      color: "#f5a623",
+      activeTextClass: "text-[#f5a623]",
+    },
+    {
+      kind: "penalty",
+      label: (n: number) => `${n} ${n > 1 ? "penalties" : "penalty"}`,
+      color: "#e8002d",
+      activeTextClass: "text-[#e8002d]",
+    },
+    {
+      kind: "overtake",
+      label: (n: number) => `${n} overtake${n > 1 ? "s" : ""}`,
+      color: "#22c55e",
+      activeTextClass: "text-[#22c55e]",
+    },
+    {
+      kind: "fastest_lap",
+      label: (n: number) => `${n} fastest lap${n > 1 ? "s" : ""}`,
+      color: "#9b59f5",
+      activeTextClass: "text-[#9b59f5]",
+    },
+    {
+      kind: "investigation",
+      label: (n: number) =>
+        `${n} ${n > 1 ? "investigations" : "investigation"}`,
+      color: "#f5a623",
+      activeTextClass: "text-[#f5a623]",
+    },
+    {
+      kind: "radio",
+      label: (n: number) => `${n} radio`,
+      color: "#6b6b7a",
+      activeTextClass: "text-white/60",
+    },
+  ]
+    .filter((c) => (counts[c.kind] ?? 0) > 0)
+    .map((c) => ({
+      kind: c.kind,
+      label: (c.label as (n: number) => string)(counts[c.kind]!),
+      count: counts[c.kind]!,
+      color: c.color,
+      activeTextClass: c.activeTextClass,
+    }));
 
-  // Show all captured events in chronological order.
-  const visibleEvents = summary.events;
+  // Which kinds are currently visible (all active by default)
+  const [activeKinds, setActiveKinds] = useState<Set<ToastKind>>(
+    () => new Set(allChips.map((c) => c.kind)),
+  );
+
+  function toggleKind(kind: ToastKind) {
+    setActiveKinds((prev) => {
+      const next = new Set(prev);
+      if (next.has(kind)) {
+        // Don't allow deselecting all — keep at least one
+        if (next.size === 1) return prev;
+        next.delete(kind);
+      } else {
+        next.add(kind);
+      }
+      return next;
+    });
+  }
+
+  // Filter events based on active kinds
+  const visibleEvents = summary.events.filter((ev) => activeKinds.has(ev.kind));
 
   return (
     <div className="absolute bottom-14 left-1/2 -translate-x-1/2 z-40 pointer-events-auto w-[min(340px,90vw)]">
