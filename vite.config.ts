@@ -48,10 +48,55 @@ export default defineConfig({
   build: {
     rollupOptions: {
       output: {
-        manualChunks: {
-          "vendor-react": ["react", "react-dom", "react-router-dom"],
-          "vendor-charts": ["recharts", "uplot"],
-          "vendor-query": ["@tanstack/react-query", "zustand"],
+        manualChunks(id) {
+          const moduleId = id.replaceAll("\\", "/");
+
+          if (moduleId.includes("node_modules")) {
+            if (
+              moduleId.includes("/react/") ||
+              moduleId.includes("/react-dom/") ||
+              moduleId.includes("/react-router-dom/")
+            ) {
+              return "vendor-react";
+            }
+            if (
+              moduleId.includes("/recharts/") ||
+              moduleId.includes("/uplot/")
+            ) {
+              return "vendor-charts";
+            }
+            if (
+              moduleId.includes("/@tanstack/react-query/") ||
+              moduleId.includes("/zustand/")
+            ) {
+              return "vendor-query";
+            }
+            return undefined;
+          }
+
+          if (moduleId.includes("/src/components/LiveTiming/")) {
+            return "feature-raceweekend-panels";
+          }
+          if (
+            moduleId.includes("/src/components/TrackMap/") ||
+            moduleId.includes("/src/hooks/useTrackMap") ||
+            moduleId.includes("/src/hooks/useLocationChunks")
+          ) {
+            return "feature-raceweekend-panels";
+          }
+          if (
+            moduleId.includes("/src/timeline/raceControl") ||
+            moduleId.includes("/src/components/RaceControl/") ||
+            moduleId.includes("/src/components/KeyMoments/") ||
+            moduleId.includes("/src/components/RaceChapters/")
+          ) {
+            return "feature-raceweekend-panels";
+          }
+          if (moduleId.includes("/src/components/PlaybackBar/")) {
+            return "feature-playback";
+          }
+
+          return undefined;
         },
       },
     },

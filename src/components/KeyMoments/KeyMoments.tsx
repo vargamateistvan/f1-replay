@@ -1,4 +1,4 @@
-import type { KeyMoment } from "@/pages/RaceWeekend";
+import type { KeyMoment } from "@/components/KeyMoments/types";
 
 interface Props {
   moments: KeyMoment[];
@@ -10,11 +10,11 @@ const KIND_CONFIG: Record<
   KeyMoment["kind"],
   { badge: string; badgeBg: string; badgeText: string }
 > = {
-  lead_change: { badge: "LEAD",    badgeBg: "#2a2a35",  badgeText: "#fff" },
-  fastest_lap: { badge: "FASTEST", badgeBg: "#9b59f5",  badgeText: "#fff" },
-  safety_car:  { badge: "SC",      badgeBg: "#f5a623",  badgeText: "#000" },
-  vsc:         { badge: "VSC",     badgeBg: "#f5a623",  badgeText: "#000" },
-  red_flag:    { badge: "RED",     badgeBg: "#e8002d",  badgeText: "#fff" },
+  lead_change: { badge: "LEAD", badgeBg: "#2a2a35", badgeText: "#fff" },
+  fastest_lap: { badge: "FASTEST", badgeBg: "#9b59f5", badgeText: "#fff" },
+  safety_car: { badge: "SC", badgeBg: "#f5a623", badgeText: "#000" },
+  vsc: { badge: "VSC", badgeBg: "#f5a623", badgeText: "#000" },
+  red_flag: { badge: "RED", badgeBg: "#e8002d", badgeText: "#fff" },
 };
 
 function fmtMs(ms: number): string {
@@ -67,12 +67,20 @@ export function KeyMoments({ moments, sessionTimeMs, onJump }: Props) {
               <span className="flex-1 min-w-0">
                 <span
                   className="text-[11px] font-bold block truncate"
-                  style={{ color: m.kind === "lead_change" ? m.color : "rgba(255,255,255,0.9)" }}
+                  style={{
+                    color:
+                      m.kind === "lead_change"
+                        ? m.color
+                        : "rgba(255,255,255,0.9)",
+                  }}
                 >
                   {m.label}
                 </span>
                 {m.sublabel && (
-                  <span className="text-[10px] font-mono tabular-nums block" style={{ color: m.color }}>
+                  <span
+                    className="text-[10px] font-mono tabular-nums block"
+                    style={{ color: m.color }}
+                  >
                     {m.sublabel}
                   </span>
                 )}

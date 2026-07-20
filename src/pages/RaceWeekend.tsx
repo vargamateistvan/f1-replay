@@ -52,9 +52,7 @@ import {
 import {
   buildRaceControlMarkers,
   buildIncidentWindows,
-  buildRaceChapters,
   clusterRaceControlMarkers,
-  computeWhatChanged,
   deriveTrackFlagState,
   normalizeRaceControl,
   summarizeMarkers,
@@ -63,9 +61,7 @@ import { useEventToasts } from "@/hooks/useEventToasts";
 import { useCatchupSummary } from "@/hooks/useCatchupSummary";
 import { EventToastStack } from "@/components/EventToast/EventToastStack";
 import { CatchupSummary } from "@/components/CatchupSummary/CatchupSummary";
-import type { FastestLapPayload } from "@/timeline/events";
 import { isSessionLive } from "@/utils/live";
-import { teamColor } from "@/utils/color";
 import { DEFAULT_SESSION_MS } from "@/constants";
 import { useSettings } from "@/stores/settings";
 import { deriveRetiredDrivers } from "@/utils/retirement";
@@ -84,30 +80,15 @@ import type {
   Stint,
   CarData,
   Lap,
-  Position,
   RaceControl,
   Overtake,
   TeamRadio,
   Weather,
 } from "@/api/types";
+import type { CommentaryTab } from "@/components/CommentaryPanels/CommentaryPanels";
 
 // Sub-tab options per view
 type TrackerTab = "timing" | "chart" | "gap" | "map" | "strategy";
-type CommentaryTab =
-  | "rc"
-  | "radio"
-  | "pits"
-  | "passes"
-  | "moments"
-  | "chapters";
-
-export interface KeyMoment {
-  ms: number;
-  kind: "lead_change" | "fastest_lap" | "safety_car" | "vsc" | "red_flag";
-  label: string;
-  sublabel?: string;
-  color: string;
-}
 
 const PANEL = "bg-surface border border-panel";
 const PANEL_TITLE =
@@ -145,6 +126,20 @@ function upperBoundByAbsMs<T extends { absMs: number }>(
   return lo;
 }
 
+function upperBoundByStartMs<T extends { startMs: number }>(
+  arr: readonly T[],
+  cutoff: number,
+) {
+  let lo = 0;
+  let hi = arr.length;
+  while (lo < hi) {
+    const mid = (lo + hi) >>> 1;
+    if (arr[mid]!.startMs <= cutoff) lo = mid + 1;
+    else hi = mid;
+  }
+  return lo;
+}
+
 const TrackMap = lazy(() =>
   import("@/components/TrackMap/TrackMap").then((m) => ({
     default: m.TrackMap,
@@ -171,34 +166,9 @@ const GapChart = lazy(() =>
     default: m.GapChart,
   })),
 );
-const RaceControlFeed = lazy(() =>
-  import("@/components/RaceControl/RaceControl").then((m) => ({
-    default: m.RaceControlFeed,
-  })),
-);
-const TeamRadioFeed = lazy(() =>
-  import("@/components/TeamRadio/TeamRadio").then((m) => ({
-    default: m.TeamRadioFeed,
-  })),
-);
-const PitFeed = lazy(() =>
-  import("@/components/Pits/PitFeed").then((m) => ({
-    default: m.PitFeed,
-  })),
-);
-const OvertakeFeed = lazy(() =>
-  import("@/components/Overtakes/OvertakeFeed").then((m) => ({
-    default: m.OvertakeFeed,
-  })),
-);
-const KeyMoments = lazy(() =>
-  import("@/components/KeyMoments/KeyMoments").then((m) => ({
-    default: m.KeyMoments,
-  })),
-);
-const RaceChapters = lazy(() =>
-  import("@/components/RaceChapters/RaceChapters").then((m) => ({
-    default: m.RaceChapters,
+const CommentaryPanels = lazy(() =>
+  import("@/components/CommentaryPanels/CommentaryPanels").then((m) => ({
+    default: m.CommentaryPanels,
   })),
 );
 
@@ -366,16 +336,6 @@ export default function RaceWeekend() {
     return timeline;
   }, [timedRaceControlSignals]);
 
-  const timedPositions = useMemo((): TimedRow<Position>[] => {
-    if (!sessionStartMs || !positions.data?.length) return [];
-    return positions.data
-      .map((entry) => {
-        const absMs = new Date(entry.date).getTime();
-        return { row: entry, absMs, relMs: absMs - sessionStartMs };
-      })
-      .sort((a, b) => a.absMs - b.absMs);
-  }, [positions.data, sessionStartMs]);
-
   const timedOvertakes = useMemo((): TimedRow<Overtake>[] => {
     if (!sessionStartMs || !overtakes.data?.length) return [];
     return overtakes.data
@@ -445,8 +405,6 @@ export default function RaceWeekend() {
   const shouldTrackToasts = currentView === "tracker";
   const shouldBuildCommentaryMoments =
     currentView === "commentary" && activeCommentaryTab === "moments";
-  const shouldBuildCommentaryChapters =
-    currentView === "commentary" && activeCommentaryTab === "chapters";
   const shouldBuildToastEvents =
     shouldTrackToasts || shouldBuildCommentaryMoments;
   const location = useLocationChunks(
@@ -519,7 +477,7 @@ export default function RaceWeekend() {
       .sort((a, b) => a - b);
   }, [flagMarks, pitMarks, overtakeMarks, radioMarks]);
 
-  // ── Phase 3: chapters + what-changed ────────────────────────────────────────
+  // ── Race control state markers + incident windows ───────────────────────────
   const normalizedRcEvents = useMemo(
     () => normalizeRaceControl(raceControl.data ?? [], sessionStartMs),
     [raceControl.data, sessionStartMs],
@@ -540,6 +498,11 @@ export default function RaceWeekend() {
     [normalizedRcEvents],
   );
 
+  const closedIncidentWindows = useMemo(
+    () => incidentWindows.filter((window) => window.endMs !== null),
+    [incidentWindows],
+  );
+
   const chequeredMs = useMemo(() => {
     if (!timedRaceControl.length) return null;
     let lastChequered: number | null = null;
@@ -550,49 +513,25 @@ export default function RaceWeekend() {
     return lastChequered;
   }, [timedRaceControl]);
 
-  const raceChapters = useMemo(() => {
-    if (!shouldBuildCommentaryChapters) return [];
-    return buildRaceChapters(
-      incidentWindows,
-      durationMs || DEFAULT_SESSION_MS,
-      chequeredMs,
-    );
-  }, [incidentWindows, durationMs, chequeredMs, shouldBuildCommentaryChapters]);
-
-  const whatChangedSnapshots = useMemo(() => {
-    if (!shouldBuildCommentaryChapters) return [];
-    return computeWhatChanged(
-      incidentWindows,
-      positions.data ?? [],
-      pits.data ?? [],
-      sessionStartMs,
-    );
-  }, [
-    incidentWindows,
-    positions.data,
-    pits.data,
-    sessionStartMs,
-    shouldBuildCommentaryChapters,
-  ]);
-
   const nextReplayIncident = useMemo(() => {
     const MIN_AHEAD_MS = 250;
-    return incidentWindows.find(
-      (w) => w.endMs !== null && w.startMs > tSlow + MIN_AHEAD_MS,
+    const nextIdx = upperBoundByStartMs(
+      closedIncidentWindows,
+      tSlow + MIN_AHEAD_MS,
     );
-  }, [incidentWindows, tSlow]);
+    return closedIncidentWindows[nextIdx];
+  }, [closedIncidentWindows, tSlow]);
 
-  const currentReplayIncident = useMemo(
-    () =>
-      incidentWindows.find(
-        (w) => w.endMs !== null && w.startMs <= tSlow && w.endMs >= tSlow,
-      ),
-    [incidentWindows, tSlow],
-  );
+  const currentReplayIncident = useMemo(() => {
+    const currentIdx = upperBoundByStartMs(closedIncidentWindows, tSlow) - 1;
+    const currentWindow = closedIncidentWindows[currentIdx];
+    if (!currentWindow) return undefined;
+    return currentWindow.endMs >= tSlow ? currentWindow : undefined;
+  }, [closedIncidentWindows, tSlow]);
 
   const firstReplayIncident = useMemo(
-    () => incidentWindows.find((w) => w.endMs !== null),
-    [incidentWindows],
+    () => closedIncidentWindows[0],
+    [closedIncidentWindows],
   );
 
   const replayCurrentIncident = () => {
@@ -712,7 +651,6 @@ export default function RaceWeekend() {
     raceControl.data,
     sessionStartMs,
     tSlow,
-    isRaceSession,
     isMapVisible,
   ]);
 
@@ -907,107 +845,6 @@ export default function RaceWeekend() {
   const { toasts, dismiss } = useEventToasts(filteredToastEvents, t);
   const { summary: catchupSummary, dismiss: dismissCatchup } =
     useCatchupSummary(filteredToastEvents, t);
-
-  // Key moments: lead changes + fastest laps (from toastEvents) + SC/Red flag events.
-  const keyMoments = useMemo((): KeyMoment[] => {
-    if (!shouldBuildCommentaryMoments) return [];
-    if (!sessionStartMs) return [];
-    const driverMap = new Map(
-      (drivers.data ?? []).map((d) => [d.driver_number, d]),
-    );
-    const moments: KeyMoment[] = [];
-
-    // Lead changes: find P1 position events and detect driver transitions
-    const p1Events = timedPositions
-      .filter(({ row: p }) => p.position === 1)
-      .map(({ row: p, relMs: ms }) => ({ ms, num: p.driver_number }))
-      .filter((p) => p.ms >= 0)
-      .sort((a, b) => a.ms - b.ms);
-
-    let lastLeader = -1;
-    for (const ev of p1Events) {
-      if (ev.num !== lastLeader) {
-        if (lastLeader !== -1) {
-          const d = driverMap.get(ev.num);
-          moments.push({
-            ms: ev.ms,
-            kind: "lead_change",
-            label: `${d?.name_acronym ?? ev.num} takes lead`,
-            color: teamColor(d?.team_colour),
-          });
-        }
-        lastLeader = ev.num;
-      }
-    }
-
-    // Fastest laps from the toast event pipeline
-    for (const ev of toastEvents) {
-      if (ev.kind !== "fastest_lap") continue;
-      const p = ev.payload as FastestLapPayload;
-      const d = driverMap.get(p.driverNumber);
-      const m = Math.floor(p.lapTime / 60);
-      const s = (p.lapTime % 60).toFixed(3).padStart(6, "0");
-      moments.push({
-        ms: ev.ms,
-        kind: "fastest_lap",
-        label: `Fastest: ${d?.name_acronym ?? p.driverNumber}`,
-        sublabel: m > 0 ? `${m}:${s}` : s,
-        color: "#9b59f5",
-      });
-    }
-
-    // SC / VSC / Red flag milestones from race control
-    for (const { row: e, relMs: ms, phase } of timedRaceControlSignals) {
-      if (ms < 0) continue;
-      if (phase === "safety_car_start") {
-        moments.push({
-          ms,
-          kind: "safety_car",
-          label: "Safety Car deployed",
-          color: "#f5a623",
-        });
-      } else if (phase === "safety_car_end") {
-        moments.push({
-          ms,
-          kind: "safety_car",
-          label: "Safety Car in this lap",
-          color: "#f5a623",
-        });
-      } else if (phase === "vsc_start") {
-        moments.push({
-          ms,
-          kind: "vsc",
-          label: "Virtual Safety Car",
-          color: "#f5a623",
-        });
-      } else if (phase === "vsc_end") {
-        moments.push({
-          ms,
-          kind: "vsc",
-          label: "VSC ending",
-          color: "#f5a623",
-        });
-      } else if (e.flag === "RED") {
-        const message = (e.message ?? "").trim();
-        moments.push({
-          ms,
-          kind: "red_flag",
-          label: "Red Flag",
-          sublabel: message.length > 50 ? message.slice(0, 47) + "…" : message,
-          color: "#e8002d",
-        });
-      }
-    }
-
-    return moments.sort((a, b) => a.ms - b.ms);
-  }, [
-    timedPositions,
-    toastEvents,
-    timedRaceControlSignals,
-    drivers.data,
-    sessionStartMs,
-    shouldBuildCommentaryMoments,
-  ]);
 
   const effectiveDuration = durationMs || DEFAULT_SESSION_MS;
 
@@ -1779,92 +1616,34 @@ export default function RaceWeekend() {
 
           {/* Content */}
           <div className="flex flex-col md:flex-1 md:min-h-0 md:overflow-hidden">
-            {(commentaryTab ?? "rc") === "rc" &&
-              (raceControl.isError ? (
-                <ErrorMessage message="Failed to load race control" />
-              ) : (
-                <Suspense fallback={<PanelFallback />}>
-                  <RaceControlFeed
-                    entries={raceControl.data ?? []}
-                    sessionKey={sessionKey}
-                    sessionTimeMs={t}
-                    sessionStartMs={sessionStartMs}
-                    drivers={drivers.data ?? []}
-                    focusDriver={focusDriver}
-                    onClearFocus={
-                      focusDriver !== null ? clearFocusSelection : undefined
-                    }
-                  />
-                </Suspense>
-              ))}
-            {commentaryTab === "radio" &&
-              (teamRadio.isError ? (
-                <ErrorMessage message="Failed to load team radio" />
-              ) : (
-                <Suspense fallback={<PanelFallback />}>
-                  <TeamRadioFeed
-                    entries={teamRadio.data ?? []}
-                    sessionKey={sessionKey}
-                    sessionYear={session?.year ?? null}
-                    drivers={drivers.data ?? []}
-                    sessionTimeMs={t}
-                    sessionStartMs={sessionStartMs}
-                  />
-                </Suspense>
-              ))}
-            {commentaryTab === "pits" &&
-              (pits.isError ? (
-                <ErrorMessage message="Failed to load pit stops" />
-              ) : (
-                <Suspense fallback={<PanelFallback />}>
-                  <PitFeed
-                    entries={pits.data ?? []}
-                    sessionKey={sessionKey}
-                    drivers={drivers.data ?? []}
-                    sessionTimeMs={t}
-                    sessionStartMs={sessionStartMs}
-                  />
-                </Suspense>
-              ))}
-            {commentaryTab === "passes" &&
-              (overtakes.isError ? (
-                <ErrorMessage message="Failed to load overtakes" />
-              ) : (
-                <Suspense fallback={<PanelFallback />}>
-                  <OvertakeFeed
-                    entries={overtakes.data ?? []}
-                    sessionKey={sessionKey}
-                    drivers={drivers.data ?? []}
-                    sessionTimeMs={t}
-                    sessionStartMs={sessionStartMs}
-                  />
-                </Suspense>
-              ))}
-            {commentaryTab === "moments" && (
-              <Suspense fallback={<PanelFallback />}>
-                <KeyMoments
-                  moments={keyMoments}
-                  sessionTimeMs={t}
-                  onJump={(ms) => useTimeline.getState().setT(ms)}
-                />
-              </Suspense>
-            )}
-            {commentaryTab === "chapters" && (
-              <Suspense fallback={<PanelFallback />}>
-                <RaceChapters
-                  chapters={raceChapters}
-                  snapshots={whatChangedSnapshots}
-                  drivers={drivers.data ?? []}
-                  sessionTimeMs={t}
-                  onJump={(ms) => useTimeline.getState().setT(ms)}
-                  onPlayWindow={(startMs, endMs) => {
-                    setTimelineT(startMs);
-                    setIncidentReplayEndMs(endMs);
-                    setTimelinePlaying(true);
-                  }}
-                />
-              </Suspense>
-            )}
+            <Suspense fallback={<PanelFallback />}>
+              <CommentaryPanels
+                commentaryTab={commentaryTab ?? "rc"}
+                raceControlError={raceControl.isError}
+                teamRadioError={teamRadio.isError}
+                pitsError={pits.isError}
+                overtakesError={overtakes.isError}
+                raceControlEntries={raceControl.data ?? []}
+                teamRadioEntries={teamRadio.data ?? []}
+                pitEntries={pits.data ?? []}
+                overtakeEntries={overtakes.data ?? []}
+                drivers={drivers.data ?? []}
+                positions={positions.data ?? []}
+                incidentWindows={incidentWindows}
+                sessionKey={sessionKey}
+                sessionYear={session?.year ?? null}
+                sessionTimeMs={t}
+                sessionStartMs={sessionStartMs}
+                toastEvents={toastEvents}
+                focusDriver={focusDriver}
+                onClearFocus={clearFocusSelection}
+                onPlayWindow={(startMs, endMs) => {
+                  setTimelineT(startMs);
+                  setIncidentReplayEndMs(endMs);
+                  setTimelinePlaying(true);
+                }}
+              />
+            </Suspense>
           </div>
         </div>
       )}
