@@ -84,6 +84,7 @@ import type {
   Stint,
   CarData,
   Lap,
+  Position,
   RaceControl,
   Overtake,
   TeamRadio,
@@ -114,6 +115,14 @@ const PANEL_TITLE =
 const OVERTAKE_PULSE_MS = 4_000;
 
 type TimedRow<T> = { row: T; absMs: number; relMs: number };
+type TimedRaceControlSignal = {
+  row: RaceControl;
+  absMs: number;
+  relMs: number;
+  phase: ReturnType<typeof getSafetyControlPhase>;
+  messageUpper: string;
+  clearsTrack: boolean;
+};
 
 function upperBoundByAbsMs<T extends { absMs: number }>(
   arr: readonly T[],
@@ -286,6 +295,28 @@ export default function RaceWeekend() {
       })
       .sort((a, b) => a.absMs - b.absMs);
   }, [raceControl.data, sessionStartMs]);
+
+  const timedRaceControlSignals = useMemo((): TimedRaceControlSignal[] => {
+    if (!timedRaceControl.length) return [];
+    return timedRaceControl.map(({ row, absMs, relMs }) => ({
+      row,
+      absMs,
+      relMs,
+      phase: getSafetyControlPhase(row),
+      messageUpper: (row.message ?? "").toUpperCase(),
+      clearsTrack: isTrackClearSignal(row),
+    }));
+  }, [timedRaceControl]);
+
+  const timedPositions = useMemo((): TimedRow<Position>[] => {
+    if (!sessionStartMs || !positions.data?.length) return [];
+    return positions.data
+      .map((entry) => {
+        const absMs = new Date(entry.date).getTime();
+        return { row: entry, absMs, relMs: absMs - sessionStartMs };
+      })
+      .sort((a, b) => a.absMs - b.absMs);
+  }, [positions.data, sessionStartMs]);
 
   const timedOvertakes = useMemo((): TimedRow<Overtake>[] => {
     if (!sessionStartMs || !overtakes.data?.length) return [];
@@ -653,12 +684,13 @@ export default function RaceWeekend() {
       tSlow < Math.max(0, lightsOutMs - LIGHTS_SEQUENCE_MS);
     const cutoff = sessionStartMs + tSlow;
 
-    for (const { row: entry, absMs } of timedRaceControl) {
+    for (const {
+      absMs,
+      phase,
+      messageUpper,
+      clearsTrack,
+    } of timedRaceControlSignals) {
       if (absMs > cutoff) break;
-
-      const phase = getSafetyControlPhase(entry);
-      const message = (entry.message ?? "").toUpperCase();
-      const clearsTrack = isTrackClearSignal(entry);
 
       if (clearsTrack) {
         safetyCar = false;
@@ -680,13 +712,13 @@ export default function RaceWeekend() {
         vsc = false;
       }
 
-      if (message.includes("MEDICAL CAR")) {
+      if (messageUpper.includes("MEDICAL CAR")) {
         if (
-          message.includes("IN THIS LAP") ||
-          message.includes("ENDING") ||
-          message.includes("HAS ENDED") ||
-          message.includes("RETURN") ||
-          message.includes("WITHDRAW")
+          messageUpper.includes("IN THIS LAP") ||
+          messageUpper.includes("ENDING") ||
+          messageUpper.includes("HAS ENDED") ||
+          messageUpper.includes("RETURN") ||
+          messageUpper.includes("WITHDRAW")
         ) {
           medicalCar = false;
         } else {
@@ -698,7 +730,7 @@ export default function RaceWeekend() {
     if (!safetyCar && !vsc && !medicalCar && !formationLap) return null;
     return { safetyCar, vsc, medicalCar, formationLap };
   }, [
-    timedRaceControl,
+    timedRaceControlSignals,
     sessionStartMs,
     tSlow,
     isRaceSession,
@@ -869,12 +901,9 @@ export default function RaceWeekend() {
     const moments: KeyMoment[] = [];
 
     // Lead changes: find P1 position events and detect driver transitions
-    const p1Events = (positions.data ?? [])
-      .filter((p) => p.position === 1)
-      .map((p) => ({
-        ms: new Date(p.date).getTime() - sessionStartMs,
-        num: p.driver_number,
-      }))
+    const p1Events = timedPositions
+      .filter(({ row: p }) => p.position === 1)
+      .map(({ row: p, relMs: ms }) => ({ ms, num: p.driver_number }))
       .filter((p) => p.ms >= 0)
       .sort((a, b) => a.ms - b.ms);
 
@@ -911,9 +940,8 @@ export default function RaceWeekend() {
     }
 
     // SC / VSC / Red flag milestones from race control
-    for (const { row: e, relMs: ms } of timedRaceControl) {
+    for (const { row: e, relMs: ms, phase } of timedRaceControlSignals) {
       if (ms < 0) continue;
-      const phase = getSafetyControlPhase(e);
       if (phase === "safety_car_start") {
         moments.push({
           ms,
@@ -956,9 +984,9 @@ export default function RaceWeekend() {
 
     return moments.sort((a, b) => a.ms - b.ms);
   }, [
-    positions.data,
+    timedPositions,
     toastEvents,
-    timedRaceControl,
+    timedRaceControlSignals,
     drivers.data,
     sessionStartMs,
     shouldBuildCommentaryMoments,
