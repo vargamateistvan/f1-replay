@@ -4,7 +4,7 @@ import {
   useLocation,
   useNavigate,
 } from "react-router-dom";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useMeetings, useSessions } from "@/hooks/useSession";
 import { isAuthError } from "@/api/client";
 import { isSessionLive } from "@/utils/live";
@@ -333,7 +333,7 @@ export function Nav() {
     setSelectLatestSessionOnLoad(true);
   }
 
-  function selectLatestEvent() {
+  const selectLatestEvent = useCallback(() => {
     const latest = startedMeetings
       ?.slice()
       .sort(
@@ -349,7 +349,7 @@ export function Nav() {
       return next;
     });
     setSelectLatestSessionOnLoad(true);
-  }
+  }, [startedMeetings, setSearchParams]);
 
   // First app load behavior: mimic pressing "Latest" automatically when
   // no explicit meeting/session is selected in the URL/state.
@@ -361,7 +361,7 @@ export function Nav() {
     if (meetingKey !== null || sessionKey !== null) return;
 
     selectLatestEvent();
-  }, [meetings.isPending, meetingKey, sessionKey]);
+  }, [meetings.isPending, meetingKey, sessionKey, selectLatestEvent]);
 
   const eventLabel = selectedMeeting
     ? `${selectedMeeting.country_name.toUpperCase()} ${selectedMeeting.year}`

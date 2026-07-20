@@ -2,7 +2,7 @@ import { useMeetings, useSessions } from "@/hooks/useSession";
 import { isAuthError } from "@/api/client";
 import { isSessionLive } from "@/utils/live";
 import { YEARS } from "@/constants";
-import { useEffect, useState, useRef } from "react";
+import { useCallback, useEffect, useState, useRef } from "react";
 
 interface Props {
   year: number;
@@ -72,7 +72,7 @@ export function SessionPicker({
     }
   }, [selectLatestSessionOnLoad, sessions.data, onSession]);
 
-  function selectLatestEvent() {
+  const selectLatestEvent = useCallback(() => {
     const latest = meetings.data
       ?.slice()
       .sort(
@@ -83,7 +83,7 @@ export function SessionPicker({
     onYear(latest.year);
     onMeeting(latest.meeting_key);
     setSelectLatestSessionOnLoad(true);
-  }
+  }, [meetings.data, onYear, onMeeting]);
 
   // First mount behavior: if nothing is selected yet, auto-run Latest Event.
   useEffect(() => {
@@ -94,7 +94,7 @@ export function SessionPicker({
     if (meetingKey !== null || sessionKey !== null) return;
 
     selectLatestEvent();
-  }, [meetings.isPending, meetingKey, sessionKey]);
+  }, [meetings.isPending, meetingKey, sessionKey, selectLatestEvent]);
 
   return (
     <div>

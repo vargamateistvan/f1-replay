@@ -348,6 +348,7 @@ describe("deep component coverage", () => {
     ).toBeInTheDocument();
 
     testState.outlinePending = true;
+    testState.outline = null as unknown;
     rerender(
       <TrackMap
         sessionKey={1}
