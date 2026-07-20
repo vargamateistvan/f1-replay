@@ -1,9 +1,8 @@
 import { lazy, Suspense, useEffect, useMemo, useState } from "react";
 import { PlaybackBar } from "@/components/PlaybackBar";
-import {
-  TrackMap,
-  type ActiveTrackFlagState,
-  type ActiveTrackVehicles,
+import type {
+  ActiveTrackFlagState,
+  ActiveTrackVehicles,
 } from "@/components/TrackMap/TrackMap";
 import LiveTiming from "@/components/LiveTiming/LiveTiming";
 import { WeatherPanel } from "@/components/Weather/WeatherPanel";
@@ -105,6 +104,12 @@ const PANEL = "bg-surface border border-panel";
 const PANEL_TITLE =
   "text-[10px] font-bold text-muted px-3 py-2 border-b border-[#38383f] uppercase tracking-[0.12em] border-l-2 border-l-f1red bg-track";
 const OVERTAKE_PULSE_MS = 4_000;
+
+const TrackMap = lazy(() =>
+  import("@/components/TrackMap/TrackMap").then((m) => ({
+    default: m.TrackMap,
+  })),
+);
 
 const FocusedTelemetry = lazy(() =>
   import("@/components/FocusedTelemetry/FocusedTelemetry").then((m) => ({
@@ -1359,7 +1364,9 @@ export default function RaceWeekend() {
                       {drivers.isError ? (
                         <ErrorMessage message="Failed to load driver data" />
                       ) : (
-                        trackMap
+                        <Suspense fallback={<PanelFallback />}>
+                          {trackMap}
+                        </Suspense>
                       )}
                       {isLoadingSessionData && (
                         <span className="absolute top-2 right-2 text-f1red text-[10px] animate-pulse">
@@ -1544,7 +1551,7 @@ export default function RaceWeekend() {
                   {drivers.isError ? (
                     <ErrorMessage message="Failed to load driver data" />
                   ) : (
-                    trackMap
+                    <Suspense fallback={<PanelFallback />}>{trackMap}</Suspense>
                   )}
                   {isLoadingSessionData && (
                     <span className="absolute top-2 right-2 text-f1red text-[10px] animate-pulse">
