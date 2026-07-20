@@ -80,7 +80,15 @@ import {
   detectQualiPhase,
 } from "@/utils/session";
 import type { MainView } from "@/components/Nav";
-import type { Stint, CarData } from "@/api/types";
+import type {
+  Stint,
+  CarData,
+  Lap,
+  RaceControl,
+  Overtake,
+  TeamRadio,
+  Weather,
+} from "@/api/types";
 
 // Sub-tab options per view
 type TrackerTab = "timing" | "chart" | "gap" | "map" | "strategy";
@@ -104,6 +112,22 @@ const PANEL = "bg-surface border border-panel";
 const PANEL_TITLE =
   "text-[10px] font-bold text-muted px-3 py-2 border-b border-[#38383f] uppercase tracking-[0.12em] border-l-2 border-l-f1red bg-track";
 const OVERTAKE_PULSE_MS = 4_000;
+
+type TimedRow<T> = { row: T; absMs: number; relMs: number };
+
+function upperBoundByAbsMs<T extends { absMs: number }>(
+  arr: readonly T[],
+  cutoff: number,
+) {
+  let lo = 0;
+  let hi = arr.length;
+  while (lo < hi) {
+    const mid = (lo + hi) >>> 1;
+    if (arr[mid]!.absMs <= cutoff) lo = mid + 1;
+    else hi = mid;
+  }
+  return lo;
+}
 
 const TrackMap = lazy(() =>
   import("@/components/TrackMap/TrackMap").then((m) => ({
@@ -242,6 +266,57 @@ export default function RaceWeekend() {
   const sessionEndMs = session ? new Date(session.date_end).getTime() : 0;
   const durationMs = sessionEndMs - sessionStartMs;
 
+  const timedLaps = useMemo((): TimedRow<Lap>[] => {
+    if (!sessionStartMs || !laps.data?.length) return [];
+    return laps.data
+      .filter((lap) => Boolean(lap.date_start))
+      .map((lap) => {
+        const absMs = new Date(lap.date_start as string).getTime();
+        return { row: lap, absMs, relMs: absMs - sessionStartMs };
+      })
+      .sort((a, b) => a.absMs - b.absMs);
+  }, [laps.data, sessionStartMs]);
+
+  const timedRaceControl = useMemo((): TimedRow<RaceControl>[] => {
+    if (!sessionStartMs || !raceControl.data?.length) return [];
+    return raceControl.data
+      .map((entry) => {
+        const absMs = new Date(entry.date).getTime();
+        return { row: entry, absMs, relMs: absMs - sessionStartMs };
+      })
+      .sort((a, b) => a.absMs - b.absMs);
+  }, [raceControl.data, sessionStartMs]);
+
+  const timedOvertakes = useMemo((): TimedRow<Overtake>[] => {
+    if (!sessionStartMs || !overtakes.data?.length) return [];
+    return overtakes.data
+      .map((entry) => {
+        const absMs = new Date(entry.date).getTime();
+        return { row: entry, absMs, relMs: absMs - sessionStartMs };
+      })
+      .sort((a, b) => a.absMs - b.absMs);
+  }, [overtakes.data, sessionStartMs]);
+
+  const timedTeamRadio = useMemo((): TimedRow<TeamRadio>[] => {
+    if (!sessionStartMs || !teamRadio.data?.length) return [];
+    return teamRadio.data
+      .map((entry) => {
+        const absMs = new Date(entry.date).getTime();
+        return { row: entry, absMs, relMs: absMs - sessionStartMs };
+      })
+      .sort((a, b) => a.absMs - b.absMs);
+  }, [teamRadio.data, sessionStartMs]);
+
+  const timedWeather = useMemo((): TimedRow<Weather>[] => {
+    if (!sessionStartMs || !weather.data?.length) return [];
+    return weather.data
+      .map((entry) => {
+        const absMs = new Date(entry.date).getTime();
+        return { row: entry, absMs, relMs: absMs - sessionStartMs };
+      })
+      .sort((a, b) => a.absMs - b.absMs);
+  }, [weather.data, sessionStartMs]);
+
   useEffect(() => {
     if (sessionStartMs) setSessionStart(sessionStartMs);
   }, [sessionStartMs, setSessionStart]);
@@ -317,15 +392,14 @@ export default function RaceWeekend() {
 
   // Session-relative ms of lights out = earliest lap-1 start across all drivers.
   const lightsOutMs = useMemo(() => {
-    if (!sessionStartMs || !laps.data?.length) return null;
+    if (!timedLaps.length) return null;
     let min = Infinity;
-    for (const l of laps.data) {
+    for (const { row: l, relMs: ms } of timedLaps) {
       if (l.lap_number !== 1 || !l.date_start) continue;
-      const ms = new Date(l.date_start).getTime() - sessionStartMs;
       if (ms < min) min = ms;
     }
     return min === Infinity ? null : min;
-  }, [laps.data, sessionStartMs]);
+  }, [timedLaps]);
   const pitMarks = useMemo(
     () => pitTimes(pits.data ?? [], sessionStartMs),
     [pits.data, sessionStartMs],
@@ -378,14 +452,14 @@ export default function RaceWeekend() {
   );
 
   const chequeredMs = useMemo(() => {
-    if (!sessionStartMs) return null;
+    if (!timedRaceControl.length) return null;
     let lastChequered: number | null = null;
-    for (const entry of raceControl.data ?? []) {
+    for (const { row: entry, relMs } of timedRaceControl) {
       if (entry.flag !== "CHEQUERED") continue;
-      lastChequered = new Date(entry.date).getTime() - sessionStartMs;
+      lastChequered = relMs;
     }
     return lastChequered;
-  }, [raceControl.data, sessionStartMs]);
+  }, [timedRaceControl]);
 
   const raceChapters = useMemo(() => {
     if (!shouldBuildCommentaryChapters) return [];
@@ -455,50 +529,45 @@ export default function RaceWeekend() {
   const pulseDrivers = useMemo(() => {
     if (!isMapVisible) return [];
     const out: number[] = [];
-    for (const o of overtakes.data ?? []) {
-      const ms = new Date(o.date).getTime() - sessionStartMs;
+    for (const { row: o, relMs: ms } of timedOvertakes) {
       if (ms <= tSlow && tSlow - ms <= OVERTAKE_PULSE_MS) {
         out.push(o.overtaking_driver_number, o.overtaken_driver_number);
       }
     }
     return out;
-  }, [overtakes.data, sessionStartMs, tSlow, isMapVisible]);
+  }, [timedOvertakes, tSlow, isMapVisible]);
 
   // Last completed lap number for the focused driver — used to load heat overlay data.
   // Use the latest lap with a valid duration whose end time is at/before the playhead.
   const focusDriverLap = useMemo(() => {
     if (!isMapVisible) return null;
-    if (focusDriver === null || !laps.data?.length || !sessionStartMs)
-      return null;
+    if (focusDriver === null || !timedLaps.length) return null;
     let latestCompleted: number | null = null;
-    for (const lap of laps.data) {
+    for (const { row: lap, relMs: lapStart } of timedLaps) {
       if (lap.driver_number !== focusDriver || !lap.date_start) continue;
       if (lap.lap_duration === null) continue;
-      const lapStart = new Date(lap.date_start).getTime() - sessionStartMs;
       const lapEnd = lapStart + lap.lap_duration * 1000;
       if (lapEnd > tSlow) continue;
       if (latestCompleted === null || lap.lap_number > latestCompleted)
         latestCompleted = lap.lap_number;
     }
     return latestCompleted;
-  }, [focusDriver, laps.data, sessionStartMs, tSlow, isMapVisible]);
+  }, [focusDriver, timedLaps, tSlow, isMapVisible]);
 
   const compareDriverLap = useMemo(() => {
     if (!isMapVisible) return null;
-    if (compareDriver === null || !laps.data?.length || !sessionStartMs)
-      return null;
+    if (compareDriver === null || !timedLaps.length) return null;
     let latestCompleted: number | null = null;
-    for (const lap of laps.data) {
+    for (const { row: lap, relMs: lapStart } of timedLaps) {
       if (lap.driver_number !== compareDriver || !lap.date_start) continue;
       if (lap.lap_duration === null) continue;
-      const lapStart = new Date(lap.date_start).getTime() - sessionStartMs;
       const lapEnd = lapStart + lap.lap_duration * 1000;
       if (lapEnd > tSlow) continue;
       if (latestCompleted === null || lap.lap_number > latestCompleted)
         latestCompleted = lap.lap_number;
     }
     return latestCompleted;
-  }, [compareDriver, laps.data, sessionStartMs, tSlow, isMapVisible]);
+  }, [compareDriver, timedLaps, tSlow, isMapVisible]);
 
   // Current tyre compound + age per driver at the playhead.
   // Rebuilds when lap/stint data arrives or when the coarse time crosses a lap boundary.
@@ -508,12 +577,9 @@ export default function RaceWeekend() {
       { compound: Stint["compound"]; age: number }
     >();
     if (!isMapVisible) return result;
-    if (!laps.data?.length || !stints.data?.length || !sessionStartMs)
-      return result;
+    if (!timedLaps.length || !stints.data?.length) return result;
     const currentLapByDriver = new Map<number, number>();
-    for (const lap of laps.data) {
-      if (!lap.date_start) continue;
-      const lapRelMs = new Date(lap.date_start).getTime() - sessionStartMs;
+    for (const { row: lap, relMs: lapRelMs } of timedLaps) {
       if (lapRelMs > tSlow) continue;
       const prev = currentLapByDriver.get(lap.driver_number);
       if (prev === undefined || lap.lap_number > prev)
@@ -533,7 +599,7 @@ export default function RaceWeekend() {
         });
     }
     return result;
-  }, [laps.data, stints.data, sessionStartMs, tSlow, isMapVisible]);
+  }, [timedLaps, stints.data, tSlow, isMapVisible]);
 
   // Cars within 1.0 s of the car ahead → highlight DRS battle on the map.
   const battlingDrivers = useMemo(() => {
@@ -587,8 +653,8 @@ export default function RaceWeekend() {
       tSlow < Math.max(0, lightsOutMs - LIGHTS_SEQUENCE_MS);
     const cutoff = sessionStartMs + tSlow;
 
-    for (const entry of raceControl.data ?? []) {
-      if (new Date(entry.date).getTime() > cutoff) break;
+    for (const { row: entry, absMs } of timedRaceControl) {
+      if (absMs > cutoff) break;
 
       const phase = getSafetyControlPhase(entry);
       const message = (entry.message ?? "").toUpperCase();
@@ -632,7 +698,7 @@ export default function RaceWeekend() {
     if (!safetyCar && !vsc && !medicalCar && !formationLap) return null;
     return { safetyCar, vsc, medicalCar, formationLap };
   }, [
-    raceControl.data,
+    timedRaceControl,
     sessionStartMs,
     tSlow,
     isRaceSession,
@@ -730,15 +796,11 @@ export default function RaceWeekend() {
   // Latest weather sample at or before the playhead.
   const weatherAtT = useMemo(() => {
     if (!isMapVisible) return null;
-    if (!sessionStartMs || !(weather.data?.length ?? 0)) return null;
+    if (!timedWeather.length || !sessionStartMs) return null;
     const cutoff = sessionStartMs + tSlow;
-    let latest = null;
-    for (const w of weather.data ?? []) {
-      if (new Date(w.date).getTime() > cutoff) break;
-      latest = w;
-    }
-    return latest;
-  }, [weather.data, sessionStartMs, tSlow, isMapVisible]);
+    const idx = upperBoundByAbsMs(timedWeather, cutoff) - 1;
+    return idx >= 0 ? timedWeather[idx]!.row : null;
+  }, [timedWeather, sessionStartMs, tSlow, isMapVisible]);
 
   // Apply default speed when a new session loads.
   useEffect(() => {
@@ -849,8 +911,7 @@ export default function RaceWeekend() {
     }
 
     // SC / VSC / Red flag milestones from race control
-    for (const e of raceControl.data ?? []) {
-      const ms = new Date(e.date).getTime() - sessionStartMs;
+    for (const { row: e, relMs: ms } of timedRaceControl) {
       if (ms < 0) continue;
       const phase = getSafetyControlPhase(e);
       if (phase === "safety_car_start") {
@@ -897,7 +958,7 @@ export default function RaceWeekend() {
   }, [
     positions.data,
     toastEvents,
-    raceControl.data,
+    timedRaceControl,
     drivers.data,
     sessionStartMs,
     shouldBuildCommentaryMoments,
@@ -912,11 +973,9 @@ export default function RaceWeekend() {
     let latestMs = chequeredMs;
 
     // Check for post-race laps (outlaps)
-    if (laps.data?.length) {
-      for (const lap of laps.data) {
+    if (timedLaps.length) {
+      for (const { row: lap, relMs: lapStartMs } of timedLaps) {
         if (lap.date_start && lap.lap_duration && lap.lap_duration > 0) {
-          const lapStartMs =
-            new Date(lap.date_start).getTime() - sessionStartMs;
           const lapEndMs = lapStartMs + lap.lap_duration * 1000;
           if (lapEndMs > chequeredMs) {
             latestMs = Math.max(latestMs, lapEndMs);
@@ -926,9 +985,8 @@ export default function RaceWeekend() {
     }
 
     // Check for post-race radio messages
-    if (teamRadio.data?.length) {
-      for (const radio of teamRadio.data) {
-        const radioMs = new Date(radio.date).getTime() - sessionStartMs;
+    if (timedTeamRadio.length) {
+      for (const { relMs: radioMs } of timedTeamRadio) {
         if (radioMs > chequeredMs) {
           latestMs = Math.max(latestMs, radioMs);
         }
@@ -936,7 +994,7 @@ export default function RaceWeekend() {
     }
 
     return latestMs > chequeredMs ? latestMs : null;
-  }, [isRaceSession, chequeredMs, sessionStartMs, laps.data, teamRadio.data]);
+  }, [isRaceSession, chequeredMs, sessionStartMs, timedLaps, timedTeamRadio]);
 
   const playbackDurationMs: number =
     isRaceSession && chequeredMs !== null && postRaceDurationMs !== null
@@ -993,8 +1051,7 @@ export default function RaceWeekend() {
 
     let q2StartMs: number | null = null;
     let q3StartMs: number | null = null;
-    for (const entry of raceControl.data ?? []) {
-      const relMs = new Date(entry.date).getTime() - sessionStartMs;
+    for (const { row: entry, relMs } of timedRaceControl) {
       const msg = (entry.message ?? "").toUpperCase();
       if (q2StartMs === null && /\bQ2\b/.test(msg)) q2StartMs = relMs;
       if (q3StartMs === null && /\bQ3\b/.test(msg)) q3StartMs = relMs;
@@ -1002,7 +1059,7 @@ export default function RaceWeekend() {
     }
 
     return { q2StartMs, q3StartMs };
-  }, [raceControl.data, sessionName, sessionStartMs]);
+  }, [timedRaceControl, sessionName, sessionStartMs]);
 
   useEffect(() => {
     if (!showFinalClassification) {
