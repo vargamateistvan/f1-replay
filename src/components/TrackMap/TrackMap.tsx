@@ -1287,7 +1287,7 @@ export function TrackMap({
     );
   }
 
-  if (isPending) {
+  if (isPending && !outline) {
     return (
       <div className="flex items-center justify-center w-full h-full text-muted text-sm animate-pulse">
         Loading track outline…

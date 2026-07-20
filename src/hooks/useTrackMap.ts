@@ -233,7 +233,9 @@ export function useTrackOutline(
       }
 
       // ── Fallback: GPS single-lap derivation ─────────────────────────────────
-      if (sessionKey === null || driverNumber === null) return null;
+      if (sessionKey === null || driverNumber === null) {
+        return deriveLayoutOutline(circuitShortName);
+      }
 
       const laps = await api.laps(sessionKey, driverNumber);
       const validLaps = laps.filter(
