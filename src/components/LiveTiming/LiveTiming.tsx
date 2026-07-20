@@ -184,6 +184,7 @@ function StatusBadgeTooltip({
         onMouseLeave={() => setOpen(false)}
         onFocus={() => setOpen(true)}
         onBlur={() => setOpen(false)}
+        onClick={() => setOpen(!open)}
       >
         {label}
       </span>
