@@ -15,6 +15,17 @@ interface Props {
   readonly sessionStartMs: number;
 }
 
+type VisibleOvertakeEntry = {
+  entry: Overtake;
+  dateMs: number;
+  lapNumber: number | null;
+};
+
+type LapGroup = {
+  lapNumber: number | null;
+  entries: VisibleOvertakeEntry[];
+};
+
 function fmtSessionTime(ms: number) {
   const s = Math.floor(ms / 1000);
   const m = Math.floor(s / 60);
@@ -75,11 +86,29 @@ export function OvertakeFeed({
       : entriesInView.slice(-40).reverse();
   }, [datedEntries, currentT]);
 
-  const visible = useMemo(
-    () => visibleAll.slice(0, renderLimit),
-    [visibleAll, renderLimit],
+  const visible = useMemo<VisibleOvertakeEntry[]>(
+    () =>
+      visibleAll.slice(0, renderLimit).map(({ entry, dateMs }) => ({
+        entry,
+        dateMs,
+        lapNumber: lapNumberAtMs(lapLookup, dateMs - sessionStartMs),
+      })),
+    [visibleAll, renderLimit, lapLookup, sessionStartMs],
   );
   const hasMore = visible.length < visibleAll.length;
+
+  const lapGroups = useMemo<LapGroup[]>(() => {
+    const groups: LapGroup[] = [];
+    for (const item of visible) {
+      const current = groups.at(-1);
+      if (!current || current.lapNumber !== item.lapNumber) {
+        groups.push({ lapNumber: item.lapNumber, entries: [item] });
+      } else {
+        current.entries.push(item);
+      }
+    }
+    return groups;
+  }, [visible]);
 
   if (visible.length === 0) {
     return (
@@ -92,7 +121,7 @@ export function OvertakeFeed({
   }
 
   return (
-    <div className="panel-scroll p-2 space-y-1">
+    <div className="panel-scroll px-2 pb-2 space-y-1">
       {sessionKey !== null && showCsvExportButtons && (
         <div className="flex justify-end pb-1">
           <button
@@ -111,43 +140,49 @@ export function OvertakeFeed({
           </button>
         </div>
       )}
-      {visible.map(({ entry: e, dateMs }) => {
-        const over = driverByNumber.get(e.overtaking_driver_number);
-        const under = driverByNumber.get(e.overtaken_driver_number);
-        const overColor = teamColor(over?.team_colour);
-        const underColor = teamColor(under?.team_colour);
-        const ms = dateMs - sessionStartMs;
-        const lapNumber = lapNumberAtMs(lapLookup, ms);
-        return (
-          <div
-            key={`${e.overtaking_driver_number}-${e.overtaken_driver_number}-${e.date}-${e.position ?? "na"}`}
-            className="flex items-center gap-3 border-b border-[#2a2a35] px-2 py-2.5 text-xs transition-colors hover:bg-white/[0.04]"
-          >
-            <span className="w-10 shrink-0 text-[10px] font-mono tabular-nums text-muted">
-              {fmtSessionTime(ms)}
-            </span>
-            <span className="shrink-0 bg-[#39d743] px-1.5 py-0.5 text-[8px] font-black uppercase tracking-widest text-black">
-              Pass
-            </span>
-            <div className="min-w-0 flex-1">
-              <div className="truncate text-[11px] font-bold text-white/90">
-                <span style={{ color: overColor }}>
-                  {over?.name_acronym ?? e.overtaking_driver_number}
-                </span>{" "}
-                <span className="text-white/55">passed</span>{" "}
-                <span style={{ color: underColor }}>
-                  {under?.name_acronym ?? e.overtaken_driver_number}
-                </span>
-              </div>
-              <div className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-[10px] text-muted">
-                {e.position !== null && <span>for P{e.position}</span>}
-                {lapNumber !== null && <span>Lap {lapNumber}</span>}
-              </div>
-            </div>
-            <span className="shrink-0 text-muted text-[10px]">›</span>
+      {lapGroups.map((group) => (
+        <div key={group.lapNumber ?? "session"} className="mb-0.5">
+          <div className="sticky top-0 z-10 border-b border-[#2a2a35] bg-[#1a1a24] px-2 py-0.5 text-[9px] font-black uppercase tracking-widest text-muted select-none">
+            {group.lapNumber !== null ? `Lap ${group.lapNumber}` : "Session"}
           </div>
-        );
-      })}
+          {group.entries.map(({ entry: e, dateMs, lapNumber }) => {
+            const over = driverByNumber.get(e.overtaking_driver_number);
+            const under = driverByNumber.get(e.overtaken_driver_number);
+            const overColor = teamColor(over?.team_colour);
+            const underColor = teamColor(under?.team_colour);
+            const ms = dateMs - sessionStartMs;
+            return (
+              <div
+                key={`${e.overtaking_driver_number}-${e.overtaken_driver_number}-${e.date}-${e.position ?? "na"}`}
+                className="flex items-center gap-3 border-b border-[#2a2a35] px-2 py-2.5 text-xs transition-colors hover:bg-white/[0.04]"
+              >
+                <span className="w-10 shrink-0 text-[10px] font-mono tabular-nums text-muted">
+                  {fmtSessionTime(ms)}
+                </span>
+                <span className="shrink-0 bg-[#39d743] px-1.5 py-0.5 text-[8px] font-black uppercase tracking-widest text-black">
+                  Pass
+                </span>
+                <div className="min-w-0 flex-1">
+                  <div className="truncate text-[11px] font-bold text-white/90">
+                    <span style={{ color: overColor }}>
+                      {over?.name_acronym ?? e.overtaking_driver_number}
+                    </span>{" "}
+                    <span className="text-white/55">passed</span>{" "}
+                    <span style={{ color: underColor }}>
+                      {under?.name_acronym ?? e.overtaken_driver_number}
+                    </span>
+                  </div>
+                  <div className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-[10px] text-muted">
+                    {e.position !== null && <span>for P{e.position}</span>}
+                    {lapNumber !== null && <span>Lap {lapNumber}</span>}
+                  </div>
+                </div>
+                <span className="shrink-0 text-muted text-[10px]">›</span>
+              </div>
+            );
+          })}
+        </div>
+      ))}
       {hasMore && (
         <div className="flex justify-center pt-1">
           <button

@@ -1,10 +1,11 @@
 import { useMemo, useState } from "react";
-import type { Driver } from "@/api/types";
+import type { Driver, Lap } from "@/api/types";
 import type {
   RaceChapter,
   WhatChangedSnapshot,
   ChapterKind,
 } from "@/timeline/raceControl";
+import { buildLapLookup, lapNumberAtMs } from "@/utils/lapLookup";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -287,20 +288,33 @@ interface Props {
   chapters: RaceChapter[];
   snapshots: WhatChangedSnapshot[];
   drivers: Driver[];
+  laps: Lap[];
+  sessionStartMs: number;
   sessionTimeMs: number;
   onJump: (ms: number) => void;
   onPlayWindow?: (startMs: number, endMs: number) => void;
 }
 
+type ChapterGroup = {
+  lapNumber: number | null;
+  chapters: RaceChapter[];
+};
+
 export function RaceChapters({
   chapters,
   snapshots,
   drivers,
+  laps,
+  sessionStartMs,
   sessionTimeMs,
   onJump,
   onPlayWindow,
 }: Props) {
   const [incidentOnly, setIncidentOnly] = useState(false);
+  const lapLookup = useMemo(
+    () => buildLapLookup(laps, sessionStartMs),
+    [laps, sessionStartMs],
+  );
 
   const visibleChapters = useMemo(
     () =>
@@ -309,6 +323,20 @@ export function RaceChapters({
         : chapters,
     [chapters, incidentOnly],
   );
+
+  const chapterGroups = useMemo<ChapterGroup[]>(() => {
+    const groups: ChapterGroup[] = [];
+    for (const chapter of visibleChapters) {
+      const lapNumber = lapNumberAtMs(lapLookup, chapter.startMs);
+      const current = groups.at(-1);
+      if (!current || current.lapNumber !== lapNumber) {
+        groups.push({ lapNumber, chapters: [chapter] });
+      } else {
+        current.chapters.push(chapter);
+      }
+    }
+    return groups;
+  }, [visibleChapters, lapLookup]);
 
   if (chapters.length === 0) {
     return (
@@ -347,23 +375,33 @@ export function RaceChapters({
         </span>
       </div>
       <div>
-        {visibleChapters.map((ch) => {
-          const snapshot =
-            ch.incidentWindowId !== null
-              ? (snapshotByWindowId.get(ch.incidentWindowId) ?? null)
-              : null;
-          return (
-            <ChapterRow
-              key={ch.id}
-              chapter={ch}
-              isCurrent={ch.id === currentChapterId}
-              snapshot={snapshot}
-              drivers={drivers}
-              onJump={onJump}
-              onPlayWindow={onPlayWindow}
-            />
-          );
-        })}
+        {chapterGroups.map((group, groupIndex) => (
+          <div
+            key={`${group.lapNumber ?? "session"}-${groupIndex}`}
+            className="mb-0.5"
+          >
+            <div className="sticky top-9 z-10 border-b border-[#2a2a35] bg-[#1a1a24] px-2 py-0.5 text-[9px] font-black uppercase tracking-widest text-muted select-none">
+              {group.lapNumber !== null ? `Lap ${group.lapNumber}` : "Session"}
+            </div>
+            {group.chapters.map((ch) => {
+              const snapshot =
+                ch.incidentWindowId !== null
+                  ? (snapshotByWindowId.get(ch.incidentWindowId) ?? null)
+                  : null;
+              return (
+                <ChapterRow
+                  key={ch.id}
+                  chapter={ch}
+                  isCurrent={ch.id === currentChapterId}
+                  snapshot={snapshot}
+                  drivers={drivers}
+                  onJump={onJump}
+                  onPlayWindow={onPlayWindow}
+                />
+              );
+            })}
+          </div>
+        ))}
       </div>
     </div>
   );

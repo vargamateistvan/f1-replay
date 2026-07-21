@@ -17,6 +17,17 @@ interface Props {
   readonly sessionStartMs: number;
 }
 
+type VisibleRadioEntry = {
+  entry: TeamRadioEntry;
+  dateMs: number;
+  lapNumber: number | null;
+};
+
+type LapGroup = {
+  lapNumber: number | null;
+  entries: VisibleRadioEntry[];
+};
+
 function fmtSessionTime(entryDateMs: number, sessionStartMs: number) {
   const elapsed = Math.max(0, entryDateMs - sessionStartMs);
   const s = Math.floor(elapsed / 1000);
@@ -80,11 +91,29 @@ export function TeamRadioFeed({
       : entriesInView.slice(-30).reverse();
   }, [datedEntries, currentT]);
 
-  const visible = useMemo(
-    () => visibleAll.slice(0, renderLimit),
-    [visibleAll, renderLimit],
+  const visible = useMemo<VisibleRadioEntry[]>(
+    () =>
+      visibleAll.slice(0, renderLimit).map(({ entry, dateMs }) => ({
+        entry,
+        dateMs,
+        lapNumber: lapNumberAtMs(lapLookup, dateMs - sessionStartMs),
+      })),
+    [visibleAll, renderLimit, lapLookup, sessionStartMs],
   );
   const hasMore = visible.length < visibleAll.length;
+
+  const lapGroups = useMemo<LapGroup[]>(() => {
+    const groups: LapGroup[] = [];
+    for (const item of visible) {
+      const current = groups.at(-1);
+      if (!current || current.lapNumber !== item.lapNumber) {
+        groups.push({ lapNumber: item.lapNumber, entries: [item] });
+      } else {
+        current.entries.push(item);
+      }
+    }
+    return groups;
+  }, [visible]);
 
   let emptyMessage = "Select a session";
   if (sessionStartMs !== 0) {
@@ -109,7 +138,7 @@ export function TeamRadioFeed({
   }
 
   return (
-    <div className="panel-scroll p-2 space-y-1">
+    <div className="panel-scroll px-2 pb-2 space-y-1">
       {sessionKey !== null && showCsvExportButtons && (
         <div className="flex justify-end pb-1">
           <button
@@ -128,73 +157,87 @@ export function TeamRadioFeed({
           </button>
         </div>
       )}
-      {visible.map(({ entry: e, dateMs: entryMs }) => {
-        const driver = driverByNumber.get(e.driver_number);
-        const color = teamColor(driver?.team_colour);
-        const isPlaying = playing === e.recording_url;
-        const lapNumber = lapNumberAtMs(lapLookup, entryMs - sessionStartMs);
-        return (
-          <div
-            key={`${e.driver_number}-${e.date}-${e.recording_url}`}
-            className="flex items-center gap-3 border-b border-[#2a2a35] px-2 py-2.5 transition-colors hover:bg-white/[0.04]"
-          >
-            <span className="w-10 shrink-0 text-[10px] font-mono tabular-nums text-muted">
-              {fmtSessionTime(entryMs, sessionStartMs)}
-            </span>
-            <span
-              className="shrink-0 px-1.5 py-0.5 text-[8px] font-black uppercase tracking-widest"
-              style={{ background: color, color: "#fff" }}
-            >
-              Radio
-            </span>
-            <div className="flex-1 min-w-0">
-              <div className="truncate text-[11px] font-bold" style={{ color }}>
-                {driver?.name_acronym ?? e.driver_number}
-              </div>
-              <div className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-[10px] text-muted">
-                {lapNumber !== null && <span>Lap {lapNumber}</span>}
-                <span className="font-mono tabular-nums text-white/80">
-                  Team radio
-                </span>
-              </div>
-            </div>
-            <div className="shrink-0">
-              <button
-                onClick={() => play(e.recording_url)}
-                aria-label={isPlaying ? "Stop" : "Play"}
-                className={`flex items-center gap-1.5 px-2.5 py-1 text-[10px] font-black uppercase tracking-widest transition-colors ${
-                  isPlaying
-                    ? "bg-f1red text-white"
-                    : "bg-panel text-muted hover:text-white hover:bg-[#38383f]"
-                }`}
-              >
-                {isPlaying ? (
-                  <>
-                    <Square size={11} strokeWidth={2.4} aria-hidden="true" />{" "}
-                    Stop
-                  </>
-                ) : (
-                  <>
-                    <Play size={11} strokeWidth={2.4} aria-hidden="true" /> Play
-                  </>
-                )}
-              </button>
-              {isPlaying && (
-                <audio
-                  key={e.recording_url}
-                  src={e.recording_url}
-                  autoPlay
-                  onEnded={() => setPlaying(null)}
-                  onError={() => setPlaying(null)}
-                  className="hidden"
-                >
-                  <track kind="captions" />
-                </audio>
-              )}
-            </div>
+      {lapGroups.map((group) => (
+        <div key={group.lapNumber ?? "session"} className="mb-0.5">
+          <div className="sticky top-0 z-10 border-b border-[#2a2a35] bg-[#1a1a24] px-2 py-0.5 text-[9px] font-black uppercase tracking-widest text-muted select-none">
+            {group.lapNumber !== null ? `Lap ${group.lapNumber}` : "Session"}
           </div>
-        );
-      })}
+          {group.entries.map(({ entry: e, dateMs: entryMs, lapNumber }) => {
+            const driver = driverByNumber.get(e.driver_number);
+            const color = teamColor(driver?.team_colour);
+            const isPlaying = playing === e.recording_url;
+            return (
+              <div
+                key={`${e.driver_number}-${e.date}-${e.recording_url}`}
+                className="flex items-center gap-3 border-b border-[#2a2a35] px-2 py-2.5 transition-colors hover:bg-white/[0.04]"
+              >
+                <span className="w-10 shrink-0 text-[10px] font-mono tabular-nums text-muted">
+                  {fmtSessionTime(entryMs, sessionStartMs)}
+                </span>
+                <span
+                  className="shrink-0 px-1.5 py-0.5 text-[8px] font-black uppercase tracking-widest"
+                  style={{ background: color, color: "#fff" }}
+                >
+                  Radio
+                </span>
+                <div className="flex-1 min-w-0">
+                  <div
+                    className="truncate text-[11px] font-bold"
+                    style={{ color }}
+                  >
+                    {driver?.name_acronym ?? e.driver_number}
+                  </div>
+                  <div className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-[10px] text-muted">
+                    {lapNumber !== null && <span>Lap {lapNumber}</span>}
+                    <span className="font-mono tabular-nums text-white/80">
+                      Team radio
+                    </span>
+                  </div>
+                </div>
+                <div className="shrink-0">
+                  <button
+                    onClick={() => play(e.recording_url)}
+                    aria-label={isPlaying ? "Stop" : "Play"}
+                    className={`flex items-center gap-1.5 px-2.5 py-1 text-[10px] font-black uppercase tracking-widest transition-colors ${
+                      isPlaying
+                        ? "bg-f1red text-white"
+                        : "bg-panel text-muted hover:text-white hover:bg-[#38383f]"
+                    }`}
+                  >
+                    {isPlaying ? (
+                      <>
+                        <Square
+                          size={11}
+                          strokeWidth={2.4}
+                          aria-hidden="true"
+                        />{" "}
+                        Stop
+                      </>
+                    ) : (
+                      <>
+                        <Play size={11} strokeWidth={2.4} aria-hidden="true" />{" "}
+                        Play
+                      </>
+                    )}
+                  </button>
+                  {isPlaying && (
+                    <audio
+                      key={e.recording_url}
+                      src={e.recording_url}
+                      autoPlay
+                      onEnded={() => setPlaying(null)}
+                      onError={() => setPlaying(null)}
+                      className="hidden"
+                    >
+                      <track kind="captions" />
+                    </audio>
+                  )}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      ))}
       {hasMore && (
         <div className="flex justify-center pt-1">
           <button

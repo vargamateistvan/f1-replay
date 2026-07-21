@@ -1,12 +1,30 @@
 import { describe, expect, it, vi } from "vitest";
 import { fireEvent, render, screen } from "@testing-library/react";
 import { KeyMoments } from "@/components/KeyMoments/KeyMoments";
+import type { Lap } from "@/api/types";
 
 describe("KeyMoments", () => {
   it("covers empty state and jump interactions", () => {
     const onJump = vi.fn();
+    const sessionStartMs = Date.parse("2024-01-01T00:00:00.000Z");
+    const laps: Lap[] = [
+      {
+        lap_number: 1,
+        date_start: "2024-01-01T00:00:00.000Z",
+      },
+      {
+        lap_number: 2,
+        date_start: "2024-01-01T00:00:20.000Z",
+      },
+    ] as Lap[];
     const { rerender } = render(
-      <KeyMoments moments={[]} sessionTimeMs={0} onJump={onJump} />,
+      <KeyMoments
+        moments={[]}
+        laps={[]}
+        sessionStartMs={0}
+        sessionTimeMs={0}
+        onJump={onJump}
+      />,
     );
     expect(
       screen.getByText(
@@ -31,11 +49,15 @@ describe("KeyMoments", () => {
             color: "#f5a623",
           },
         ]}
+        laps={laps}
+        sessionStartMs={sessionStartMs}
         sessionTimeMs={20_000}
         onJump={onJump}
       />,
     );
 
+    expect(screen.getAllByText("Lap 1").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("Lap 2").length).toBeGreaterThan(0);
     fireEvent.click(screen.getByText("VER takes the lead"));
     expect(onJump).toHaveBeenCalledWith(10_000);
     expect(screen.getByText("+0.220")).toBeInTheDocument();

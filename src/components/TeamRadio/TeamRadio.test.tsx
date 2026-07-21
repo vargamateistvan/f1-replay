@@ -108,7 +108,7 @@ describe("TeamRadio", () => {
     );
 
     expect(screen.getByText("VER")).toBeInTheDocument();
-    expect(screen.getByText("Lap 1")).toBeInTheDocument();
+    expect(screen.getAllByText("Lap 1").length).toBeGreaterThan(0);
     fireEvent.click(screen.getByRole("button", { name: "Play" }));
     expect(screen.getByRole("button", { name: "Stop" })).toBeInTheDocument();
     expect(container.querySelector("audio")).toBeInTheDocument();

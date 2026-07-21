@@ -318,6 +318,8 @@ function renderCommentaryTabContent(ctx: RenderContext): ReactNode {
         <Suspense fallback={<PanelFallback />}>
           <KeyMoments
             moments={ctx.keyMoments}
+            laps={ctx.laps}
+            sessionStartMs={ctx.sessionStartMs}
             sessionTimeMs={ctx.sessionTimeMs}
             onJump={(ms) => useTimeline.getState().setT(ms)}
           />
@@ -331,6 +333,8 @@ function renderCommentaryTabContent(ctx: RenderContext): ReactNode {
             chapters={ctx.raceChapters}
             snapshots={ctx.whatChangedSnapshots}
             drivers={ctx.drivers}
+            laps={ctx.laps}
+            sessionStartMs={ctx.sessionStartMs}
             sessionTimeMs={ctx.sessionTimeMs}
             onJump={(ms) => useTimeline.getState().setT(ms)}
             onPlayWindow={ctx.onPlayWindow}

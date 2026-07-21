@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 import { fireEvent, render, screen } from "@testing-library/react";
 import { RaceChapters } from "@/components/RaceChapters/RaceChapters";
-import type { Driver } from "@/api/types";
+import type { Driver, Lap } from "@/api/types";
 import type { RaceChapter, WhatChangedSnapshot } from "@/timeline/raceControl";
 
 const drivers: Driver[] = [
@@ -26,6 +26,8 @@ describe("RaceChapters", () => {
         chapters={[]}
         snapshots={[]}
         drivers={drivers}
+        laps={[]}
+        sessionStartMs={0}
         sessionTimeMs={0}
         onJump={vi.fn()}
       />,
@@ -41,6 +43,17 @@ describe("RaceChapters", () => {
   it("covers incident-only filter, jump and replay actions", () => {
     const onJump = vi.fn();
     const onPlayWindow = vi.fn();
+    const sessionStartMs = Date.parse("2024-01-01T00:00:00.000Z");
+    const laps: Lap[] = [
+      {
+        lap_number: 1,
+        date_start: "2024-01-01T00:00:00.000Z",
+      },
+      {
+        lap_number: 2,
+        date_start: "2024-01-01T00:00:20.000Z",
+      },
+    ] as Lap[];
     const chapters: RaceChapter[] = [
       {
         id: "green-0",
@@ -84,12 +97,16 @@ describe("RaceChapters", () => {
         chapters={chapters}
         snapshots={snapshots}
         drivers={drivers}
+        laps={laps}
+        sessionStartMs={sessionStartMs}
         sessionTimeMs={25_000}
         onJump={onJump}
         onPlayWindow={onPlayWindow}
       />,
     );
 
+    expect(screen.getAllByText("Lap 1").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("Lap 2").length).toBeGreaterThan(0);
     expect(screen.getByText("What Changed")).toBeInTheDocument();
     expect(screen.getByText("Pitted:")).toBeInTheDocument();
 
