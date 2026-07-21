@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { fireEvent, render, screen } from "@testing-library/react";
 import { OvertakeFeed } from "@/components/Overtakes/OvertakeFeed";
-import type { Driver, Overtake } from "@/api/types";
+import type { Driver, Lap, Overtake } from "@/api/types";
 
 const state = vi.hoisted(() => ({
   showCsvExportButtons: false,
@@ -92,12 +92,51 @@ describe("OvertakeFeed", () => {
         session_key: 10,
       },
     ] as Overtake[];
+    const laps = [
+      {
+        date_start: "2024-01-01T00:00:00.000Z",
+        driver_number: 1,
+        duration_sector_1: null,
+        duration_sector_2: null,
+        duration_sector_3: null,
+        i1_speed: null,
+        i2_speed: null,
+        is_pit_out_lap: false,
+        lap_duration: 92.5,
+        lap_number: 1,
+        meeting_key: 1,
+        segments_sector_1: null,
+        segments_sector_2: null,
+        segments_sector_3: null,
+        session_key: 10,
+        st_speed: null,
+      },
+      {
+        date_start: "2024-01-01T00:01:32.000Z",
+        driver_number: 1,
+        duration_sector_1: null,
+        duration_sector_2: null,
+        duration_sector_3: null,
+        i1_speed: null,
+        i2_speed: null,
+        is_pit_out_lap: false,
+        lap_duration: 91.9,
+        lap_number: 2,
+        meeting_key: 1,
+        segments_sector_1: null,
+        segments_sector_2: null,
+        segments_sector_3: null,
+        session_key: 10,
+        st_speed: null,
+      },
+    ] as Lap[];
 
     rerender(
       <OvertakeFeed
         entries={entries}
         sessionKey={10}
         drivers={drivers}
+        laps={laps}
         sessionTimeMs={20_000}
         sessionStartMs={Date.parse("2024-01-01T00:00:00.000Z")}
       />,
@@ -106,6 +145,7 @@ describe("OvertakeFeed", () => {
     expect(screen.getAllByText("VER").length).toBeGreaterThan(0);
     expect(screen.getByText("LEC")).toBeInTheDocument();
     expect(screen.getByText("for P2")).toBeInTheDocument();
+    expect(screen.getAllByText("Lap 1").length).toBeGreaterThan(0);
     expect(screen.queryByText("for Pnull")).not.toBeInTheDocument();
 
     fireEvent.click(

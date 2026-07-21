@@ -76,7 +76,7 @@ describe("CatchupSummary", () => {
     expect(onDismiss).toHaveBeenCalled();
   });
 
-  it("renders a styled tooltip for long event messages", () => {
+  it("renders long event messages inline without tooltip", () => {
     render(
       <CatchupSummary
         summary={
@@ -101,13 +101,11 @@ describe("CatchupSummary", () => {
       />,
     );
 
-    fireEvent.mouseEnter(
+    expect(
       screen.getByText(
         /Car 16 receives a five second time penalty for leaving the track/i,
       ),
-    );
-
-    expect(screen.getByRole("tooltip")).toBeInTheDocument();
-    expect(screen.getByText("Full event")).toBeInTheDocument();
+    ).toBeInTheDocument();
+    expect(screen.queryByRole("tooltip")).not.toBeInTheDocument();
   });
 });

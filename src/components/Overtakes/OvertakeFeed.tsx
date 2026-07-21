@@ -1,14 +1,16 @@
 import { useEffect, useMemo, useState } from "react";
-import type { Overtake, Driver } from "@/api/types";
+import type { Overtake, Driver, Lap } from "@/api/types";
 import { downloadEndpointCsv } from "@/api/client";
 import { useSettings } from "@/stores/settings";
 import { teamColor } from "@/utils/color";
+import { buildLapLookup, lapNumberAtMs } from "@/utils/lapLookup";
 import { upperBoundByValue } from "@/utils/sortedTime";
 
 interface Props {
   readonly entries: Overtake[];
   readonly sessionKey?: number | null;
   readonly drivers: Driver[];
+  readonly laps?: Lap[];
   readonly sessionTimeMs: number;
   readonly sessionStartMs: number;
 }
@@ -27,6 +29,7 @@ export function OvertakeFeed({
   entries,
   sessionKey = null,
   drivers,
+  laps = [],
   sessionTimeMs,
   sessionStartMs,
 }: Props) {
@@ -41,6 +44,11 @@ export function OvertakeFeed({
   const driverByNumber = useMemo(
     () => new Map(drivers.map((d) => [d.driver_number, d])),
     [drivers],
+  );
+
+  const lapLookup = useMemo(
+    () => buildLapLookup(laps, sessionStartMs),
+    [laps, sessionStartMs],
   );
 
   const datedEntries = useMemo(
@@ -109,6 +117,7 @@ export function OvertakeFeed({
         const overColor = teamColor(over?.team_colour);
         const underColor = teamColor(under?.team_colour);
         const ms = dateMs - sessionStartMs;
+        const lapNumber = lapNumberAtMs(lapLookup, ms);
         return (
           <div
             key={`${e.overtaking_driver_number}-${e.overtaken_driver_number}-${e.date}-${e.position ?? "na"}`}
@@ -124,6 +133,9 @@ export function OvertakeFeed({
             </span>
             {e.position !== null && (
               <span className="text-muted text-[10px]">for P{e.position}</span>
+            )}
+            {lapNumber !== null && (
+              <span className="text-muted text-[10px]">Lap {lapNumber}</span>
             )}
             <span className="ml-auto text-muted font-mono tabular-nums text-[10px]">
               {fmtSessionTime(ms)}

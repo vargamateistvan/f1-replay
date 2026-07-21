@@ -937,6 +937,26 @@ export default function RaceWeekend() {
     return `${currentLap}/${totalLapCount}`;
   }, [currentLap, totalLapCount]);
 
+  const commentaryTabs = useMemo(
+    () =>
+      [
+        ["rc", "Race Control", "RC", raceControl.data?.length ?? 0, "entries"],
+        ["radio", "Team Radio", "Radio", teamRadio.data?.length ?? 0, "clips"],
+        ["pits", "Pit Stops", "Pits", pits.data?.length ?? 0, "stops"],
+        ["passes", "Overtakes", "Passes", overtakes.data?.length ?? 0, "moves"],
+        ["moments", "Key Moments", "Moments", keyMomentMarks.length, "beats"],
+        ["chapters", "Chapters", "Chptrs", incidentWindows.length, "windows"],
+      ] as const,
+    [
+      incidentWindows.length,
+      keyMomentMarks.length,
+      overtakes.data?.length,
+      pits.data?.length,
+      raceControl.data?.length,
+      teamRadio.data?.length,
+    ],
+  );
+
   // ── Session countdown (practice / qualifying) ────────────────────────────
   const sessionName = session?.session_name ?? "";
   const countdownMs =
@@ -1613,35 +1633,41 @@ export default function RaceWeekend() {
                 sessionKey={sessionKey}
                 sessionTimeMs={t}
                 sessionStartMs={sessionStartMs}
+                compact
               />
             )}
           </div>
 
           {/* Sub-tabs */}
           <div className="grid grid-cols-6 w-full border-b border-panel shrink-0 bg-track sm:flex sm:overflow-x-auto">
-            {(
-              [
-                ["rc", "Race Control", "RC"],
-                ["radio", "Team Radio", "Radio"],
-                ["pits", "Pit Stops", "Pits"],
-                ["passes", "Overtakes", "Passes"],
-                ["moments", "Key Moments", "Moments"],
-                ["chapters", "Chapters", "Chptrs"],
-              ] as [CommentaryTab, string, string][]
-            ).map(([tab, label, shortLabel]) => (
-              <button
-                key={tab}
-                onClick={() => setCommentaryTab(tab)}
-                className={`w-full px-1.5 py-2 text-[10px] font-bold uppercase tracking-wider transition-colors border-b-2 sm:shrink-0 sm:w-auto sm:px-4 sm:text-[11px] ${
-                  (commentaryTab ?? "rc") === tab
-                    ? "text-white border-f1red -mb-px"
-                    : "text-muted border-transparent hover:text-white"
-                }`}
-              >
-                <span className="sm:hidden">{shortLabel}</span>
-                <span className="hidden sm:inline">{label}</span>
-              </button>
-            ))}
+            {commentaryTabs.map(
+              ([tab, label, shortLabel, count, metaLabel]) => (
+                <button
+                  key={tab}
+                  onClick={() => setCommentaryTab(tab)}
+                  className={`w-full px-1.5 py-2 text-[10px] font-bold uppercase tracking-wider transition-colors border-b-2 sm:shrink-0 sm:w-auto sm:px-4 sm:text-[11px] ${
+                    (commentaryTab ?? "rc") === tab
+                      ? "text-white border-f1red -mb-px"
+                      : "text-muted border-transparent hover:text-white"
+                  }`}
+                >
+                  <span className="block sm:hidden">{shortLabel}</span>
+                  <span className="hidden sm:block">{label}</span>
+                  <span
+                    className={`mt-1 block font-mono text-[9px] leading-none tabular-nums ${
+                      (commentaryTab ?? "rc") === tab
+                        ? "text-white/70"
+                        : "text-muted/80"
+                    }`}
+                  >
+                    <span className="sm:hidden">{count}</span>
+                    <span className="hidden sm:inline">
+                      {count} {metaLabel}
+                    </span>
+                  </span>
+                </button>
+              ),
+            )}
           </div>
 
           {/* Live lap status */}
@@ -1668,6 +1694,7 @@ export default function RaceWeekend() {
                 pitEntries={pits.data ?? []}
                 overtakeEntries={overtakes.data ?? []}
                 drivers={drivers.data ?? []}
+                laps={laps.data ?? []}
                 positions={positions.data ?? []}
                 incidentWindows={incidentWindows}
                 sessionKey={sessionKey}

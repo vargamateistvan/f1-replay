@@ -38,6 +38,7 @@ interface Props {
   readonly sessionKey?: number | null;
   readonly sessionTimeMs: number;
   readonly sessionStartMs: number;
+  readonly compact?: boolean;
 }
 
 export function WeatherPanel({
@@ -45,6 +46,7 @@ export function WeatherPanel({
   sessionKey = null,
   sessionTimeMs,
   sessionStartMs,
+  compact = false,
 }: Props) {
   const showCsvExportButtons = useSettings((s) => s.showCsvExportButtons);
   const lightMode = useSettings((s) => s.lightMode);
@@ -99,6 +101,55 @@ export function WeatherPanel({
   const cardClass = lightMode
     ? "rounded-sm border border-[#b7bfd4] bg-[#eef1fa] px-2 py-1.5"
     : "rounded-sm border border-[#3a3a48] bg-[#161622] px-2 py-1.5";
+
+  if (compact) {
+    return (
+      <div
+        className={`px-3 py-2 text-xs transition-colors border-l-2 ${containerClass}`}
+      >
+        <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+          <span className="text-[10px] font-black uppercase tracking-[0.16em] text-white/85">
+            Track Weather
+          </span>
+          <span className="font-mono tabular-nums text-white">
+            Track {trackTemp.toFixed(1)}°{tempUnit}
+            <span className="ml-1 text-[#ffd600]">{trend(trackDelta)}</span>
+          </span>
+          <span className="font-mono tabular-nums text-white">
+            Air {airTemp.toFixed(1)}°{tempUnit}
+          </span>
+          <span className="font-mono tabular-nums text-white">
+            Wind {windSpeed.toFixed(1)} {windUnit} {windArrow}
+          </span>
+          <span className="font-mono tabular-nums text-white">
+            Hum {w.humidity}%
+          </span>
+          {isRaining && (
+            <span className="inline-flex items-center gap-1 bg-sky-600/85 text-white text-[9px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded-sm">
+              <CloudRain size={10} strokeWidth={2.4} aria-hidden="true" />
+              Rain
+            </span>
+          )}
+          {sessionKey !== null && showCsvExportButtons && (
+            <button
+              type="button"
+              onClick={() => {
+                void downloadEndpointCsv(
+                  "weather",
+                  { session_key: sessionKey },
+                  `weather_${sessionKey}.csv`,
+                );
+              }}
+              className={`${exportButtonClass} ml-auto`}
+              aria-label="Export weather CSV"
+            >
+              Export CSV
+            </button>
+          )}
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div

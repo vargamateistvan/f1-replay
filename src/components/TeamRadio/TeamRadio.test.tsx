@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { fireEvent, render, screen } from "@testing-library/react";
 import { TeamRadioFeed } from "@/components/TeamRadio/TeamRadio";
-import type { Driver, TeamRadio } from "@/api/types";
+import type { Driver, Lap, TeamRadio } from "@/api/types";
 
 const state = vi.hoisted(() => ({
   showCsvExportButtons: false,
@@ -64,6 +64,27 @@ describe("TeamRadio", () => {
     ).toBeInTheDocument();
 
     state.showCsvExportButtons = true;
+    const laps = [
+      {
+        date_start: "2024-01-01T00:00:00.000Z",
+        driver_number: 1,
+        duration_sector_1: null,
+        duration_sector_2: null,
+        duration_sector_3: null,
+        i1_speed: null,
+        i2_speed: null,
+        is_pit_out_lap: false,
+        lap_duration: 91.8,
+        lap_number: 1,
+        meeting_key: 1,
+        segments_sector_1: null,
+        segments_sector_2: null,
+        segments_sector_3: null,
+        session_key: 77,
+        st_speed: null,
+      },
+    ] as Lap[];
+
     rerender(
       <TeamRadioFeed
         entries={
@@ -80,12 +101,14 @@ describe("TeamRadio", () => {
         sessionKey={77}
         sessionYear={2024}
         drivers={drivers}
+        laps={laps}
         sessionTimeMs={20_000}
         sessionStartMs={Date.parse("2024-01-01T00:00:00.000Z")}
       />,
     );
 
     expect(screen.getByText("VER")).toBeInTheDocument();
+    expect(screen.getByText("Lap 1")).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "Play" }));
     expect(screen.getByRole("button", { name: "Stop" })).toBeInTheDocument();
     expect(container.querySelector("audio")).toBeInTheDocument();

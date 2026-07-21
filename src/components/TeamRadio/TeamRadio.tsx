@@ -1,9 +1,10 @@
 import { useEffect, useMemo, useState } from "react";
 import { Play, Square } from "lucide-react";
-import type { TeamRadio as TeamRadioEntry, Driver } from "@/api/types";
+import type { TeamRadio as TeamRadioEntry, Driver, Lap } from "@/api/types";
 import { downloadEndpointCsv } from "@/api/client";
 import { useSettings } from "@/stores/settings";
 import { teamColor } from "@/utils/color";
+import { buildLapLookup, lapNumberAtMs } from "@/utils/lapLookup";
 import { upperBoundByValue } from "@/utils/sortedTime";
 
 interface Props {
@@ -11,6 +12,7 @@ interface Props {
   readonly sessionKey?: number | null;
   readonly sessionYear?: number | null;
   readonly drivers: Driver[];
+  readonly laps?: Lap[];
   readonly sessionTimeMs: number;
   readonly sessionStartMs: number;
 }
@@ -31,6 +33,7 @@ export function TeamRadioFeed({
   sessionKey = null,
   sessionYear = null,
   drivers,
+  laps = [],
   sessionTimeMs,
   sessionStartMs,
 }: Props) {
@@ -46,6 +49,11 @@ export function TeamRadioFeed({
   const driverByNumber = useMemo(
     () => new Map(drivers.map((d) => [d.driver_number, d])),
     [drivers],
+  );
+
+  const lapLookup = useMemo(
+    () => buildLapLookup(laps, sessionStartMs),
+    [laps, sessionStartMs],
   );
 
   const datedEntries = useMemo(
@@ -124,6 +132,7 @@ export function TeamRadioFeed({
         const driver = driverByNumber.get(e.driver_number);
         const color = teamColor(driver?.team_colour);
         const isPlaying = playing === e.recording_url;
+        const lapNumber = lapNumberAtMs(lapLookup, entryMs - sessionStartMs);
         return (
           <div
             key={`${e.driver_number}-${e.date}-${e.recording_url}`}
@@ -139,6 +148,11 @@ export function TeamRadioFeed({
                 <span className="font-black text-xs" style={{ color }}>
                   {driver?.name_acronym ?? e.driver_number}
                 </span>
+                {lapNumber !== null && (
+                  <span className="text-muted text-[10px]">
+                    Lap {lapNumber}
+                  </span>
+                )}
                 <span className="text-muted font-mono tabular-nums text-[10px]">
                   {fmtSessionTime(entryMs, sessionStartMs)}
                 </span>

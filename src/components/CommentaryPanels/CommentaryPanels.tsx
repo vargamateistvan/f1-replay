@@ -8,6 +8,7 @@ import { getSafetyControlPhase } from "@/utils/raceControlFlags";
 import { teamColor } from "@/utils/color";
 import type {
   Driver,
+  Lap,
   Overtake,
   Pit,
   Position,
@@ -75,6 +76,7 @@ type Props = {
   pitEntries: Pit[];
   overtakeEntries: Overtake[];
   drivers: Driver[];
+  laps: Lap[];
   positions: Position[];
   incidentWindows: IncidentWindow[];
   sessionKey: number | null;
@@ -104,6 +106,7 @@ type RenderContext = Readonly<{
   pitEntries: Pit[];
   overtakeEntries: Overtake[];
   drivers: Driver[];
+  laps: Lap[];
   sessionKey: number | null;
   sessionYear: number | null;
   sessionTimeMs: number;
@@ -272,6 +275,7 @@ function renderCommentaryTabContent(ctx: RenderContext): ReactNode {
             sessionKey={ctx.sessionKey}
             sessionYear={ctx.sessionYear}
             drivers={ctx.drivers}
+            laps={ctx.laps}
             sessionTimeMs={ctx.sessionTimeMs}
             sessionStartMs={ctx.sessionStartMs}
           />
@@ -302,6 +306,7 @@ function renderCommentaryTabContent(ctx: RenderContext): ReactNode {
             entries={ctx.overtakeEntries}
             sessionKey={ctx.sessionKey}
             drivers={ctx.drivers}
+            laps={ctx.laps}
             sessionTimeMs={ctx.sessionTimeMs}
             sessionStartMs={ctx.sessionStartMs}
           />
@@ -349,6 +354,7 @@ export function CommentaryPanels({
   pitEntries,
   overtakeEntries,
   drivers,
+  laps,
   positions,
   incidentWindows,
   sessionKey,
@@ -451,6 +457,7 @@ export function CommentaryPanels({
     pitEntries,
     overtakeEntries,
     drivers,
+    laps,
     sessionKey,
     sessionYear,
     sessionTimeMs,
