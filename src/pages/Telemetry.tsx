@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { Link2 } from "lucide-react";
 import type { Lap } from "@/api/types";
 import { ErrorMessage } from "@/components/ErrorMessage";
 import { TelemetryChart } from "@/components/TelemetryChart/TelemetryChart";
@@ -19,6 +20,7 @@ import { teamColor } from "@/utils/color";
 import { computeDelta, resampleToAxis, smooth } from "@/utils/telemetry";
 import { speedUnitLabel, toDisplaySpeed } from "@/utils/units";
 import { toSafeExternalUrl } from "@/utils/url";
+import { buildShareUrl, copyTextToClipboard } from "@/utils/share";
 
 interface PlotSlot {
   num: number;
@@ -69,6 +71,7 @@ interface TrackPreviewPoint {
 }
 
 type SlotKey = "a" | "b" | "c";
+type CopyState = "idle" | "copied" | "error";
 
 const PANEL = "bg-surface border border-panel";
 const PANEL_TITLE =
@@ -85,6 +88,37 @@ const EMPTY_SECTOR_WINS: SectorWins = {
 };
 const TRACK_SVG_W = 360;
 const TRACK_SVG_H = 180;
+const TELEMETRY_SHARE_PARAMS = [
+  "meeting",
+  "session",
+  "a",
+  "b",
+  "c",
+  "la",
+  "lb",
+  "lc",
+  "lap",
+  "smooth",
+  "card",
+];
+
+function getShareButtonClass(copyState: CopyState) {
+  if (copyState === "copied") {
+    return "border-emerald-500/60 bg-emerald-500/10 text-emerald-300 hover:bg-emerald-500/15";
+  }
+
+  if (copyState === "error") {
+    return "border-red-500/60 bg-red-500/10 text-red-300 hover:bg-red-500/15";
+  }
+
+  return "border-[#4f4f65] bg-[#191922] text-white hover:border-[#95b7ff]";
+}
+
+function getShareButtonLabel(copyState: CopyState) {
+  if (copyState === "copied") return "Copied";
+  if (copyState === "error") return "Retry";
+  return "Copy link";
+}
 
 function interpolateTrackPoint(
   points: TrackPreviewPoint[],
@@ -166,6 +200,7 @@ export default function Telemetry() {
   const metricSystem = useSettings((s) => s.metricSystem);
   const [activeMode, setActiveMode] = useState<"quali" | "race" | null>(null);
   const [isCardsAccordionOpen, setIsCardsAccordionOpen] = useState(true);
+  const [copyState, setCopyState] = useState<CopyState>("idle");
   const [searchParams] = useSearchParams();
   const [isNarrowViewport, setIsNarrowViewport] = useState(() =>
     typeof window === "undefined"
@@ -720,6 +755,12 @@ export default function Telemetry() {
     (dataA.data == null || dataA.data.length === 0);
 
   useEffect(() => {
+    if (copyState === "idle") return;
+    const timeoutId = window.setTimeout(() => setCopyState("idle"), 1600);
+    return () => window.clearTimeout(timeoutId);
+  }, [copyState]);
+
+  useEffect(() => {
     if (typeof window === "undefined") return;
     const media = window.matchMedia("(max-width: 1023px)");
     const onChange = (event: MediaQueryListEvent) => {
@@ -752,6 +793,17 @@ export default function Telemetry() {
     if (driverB === null) setLapB(null);
     if (driverC === null) setLapC(null);
   }, [driverA, driverB, driverC, setLapA, setLapB, setLapC]);
+
+  const copyTelemetryLink = useCallback(async () => {
+    try {
+      await copyTextToClipboard(
+        buildShareUrl({ allowedSearchParams: TELEMETRY_SHARE_PARAMS }),
+      );
+      setCopyState("copied");
+    } catch {
+      setCopyState("error");
+    }
+  }, []);
 
   return (
     <div className="relative flex flex-col md:h-full md:overflow-hidden">
@@ -834,6 +886,18 @@ export default function Telemetry() {
                 </option>
               ))}
             </select>
+            <button
+              type="button"
+              onClick={() => {
+                void copyTelemetryLink();
+              }}
+              className={`flex h-[34px] items-center gap-1 border px-3 text-[10px] font-black uppercase tracking-widest transition-colors ${getShareButtonClass(copyState)}`}
+              aria-label="Copy telemetry link"
+              title="Copy telemetry link"
+            >
+              <Link2 size={12} strokeWidth={2.2} aria-hidden="true" />
+              <span>{getShareButtonLabel(copyState)}</span>
+            </button>
           </div>
         </div>
 

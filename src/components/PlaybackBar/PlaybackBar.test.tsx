@@ -1,5 +1,5 @@
 import { describe, expect, it, vi, beforeEach } from "vitest";
-import { fireEvent, render, screen } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { PlaybackBar } from "@/components/PlaybackBar";
 
 const { timelineState, mockUseTimeline } = vi.hoisted(() => {
@@ -51,7 +51,22 @@ vi.mock("@/hooks/useMediaQuery", () => ({
 
 describe("PlaybackBar marker interactions", () => {
   beforeEach(() => {
+    timelineState.t = 0;
+    timelineState.speed = 1;
     timelineState.setT.mockClear();
+    timelineState.setSpeed.mockClear();
+    timelineState.setPlaying.mockClear();
+    timelineState.toggle.mockClear();
+    vi.restoreAllMocks();
+
+    Object.defineProperty(navigator, "clipboard", {
+      configurable: true,
+      value: {
+        writeText: vi.fn().mockResolvedValue(undefined),
+      },
+    });
+
+    window.history.replaceState({}, "", "/race");
   });
 
   it("renders incident marker with accessible hover text and jumps on click", () => {
@@ -121,5 +136,29 @@ describe("PlaybackBar marker interactions", () => {
     expect(
       screen.getByRole("button", { name: "Replay current incident window" }),
     ).toBeDisabled();
+  });
+
+  it("copies a replay link built from live timeline state", async () => {
+    timelineState.t = 45_321;
+    timelineState.speed = 4;
+    window.history.replaceState({}, "", "/race?meeting=123&session=456");
+
+    render(<PlaybackBar durationMs={120_000} />);
+
+    fireEvent.click(screen.getByRole("button", { name: "Copy replay link" }));
+
+    await waitFor(() => {
+      expect(navigator.clipboard.writeText).toHaveBeenCalledTimes(1);
+    });
+
+    const copiedUrl = new URL(
+      vi.mocked(navigator.clipboard.writeText).mock.calls[0]![0],
+    );
+
+    expect(copiedUrl.searchParams.get("meeting")).toBe("123");
+    expect(copiedUrl.searchParams.get("session")).toBe("456");
+    expect(copiedUrl.searchParams.get("t")).toBe("45");
+    expect(copiedUrl.searchParams.get("speed")).toBe("4");
+    expect(await screen.findByText("Copied")).toBeInTheDocument();
   });
 });

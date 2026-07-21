@@ -1,6 +1,7 @@
 import { memo, useCallback, useEffect, useRef, useState } from "react";
 import {
   FastForward,
+  Link2,
   Pause,
   Play,
   Rewind,
@@ -14,6 +15,9 @@ import { SPEEDS } from "@/constants";
 import { nextAfter, prevBefore } from "@/timeline/events";
 import type { RaceControlMarker, MarkerSummary } from "@/timeline/raceControl";
 import { useSettings } from "@/stores/settings";
+import { copyTextToClipboard } from "@/utils/share";
+
+type CopyState = "idle" | "copied" | "error";
 
 interface Props {
   durationMs: number;
@@ -61,6 +65,55 @@ const JUMP_BTN =
   "flex h-8 w-6 items-center justify-center text-xs bg-panel text-muted transition-colors shrink-0 hover:text-white hover:bg-[#38383f] sm:w-7 disabled:opacity-30 disabled:hover:bg-panel disabled:hover:text-muted";
 const CHIP_STRETCH =
   "h-7 shrink-0 px-3 flex items-center justify-center text-[10px] font-black uppercase tracking-widest bg-panel text-muted hover:text-white hover:bg-[#38383f] transition-colors sm:flex-none sm:px-3 disabled:opacity-30 disabled:hover:bg-panel disabled:hover:text-muted";
+
+function buildReplayShareUrl(currentMs: number, speed: number) {
+  const url = new URL(window.location.href);
+  const tSec = Math.round(Math.max(0, currentMs) / 1000);
+  if (tSec > 0) url.searchParams.set("t", String(tSec));
+  else url.searchParams.delete("t");
+  if (speed !== 1) url.searchParams.set("speed", String(speed));
+  else url.searchParams.delete("speed");
+  return url.toString();
+}
+
+function getCopyButtonClass(copyState: CopyState) {
+  if (copyState === "copied") {
+    return "border-emerald-500/60 bg-emerald-500/10 text-emerald-300 hover:bg-emerald-500/15";
+  }
+
+  if (copyState === "error") {
+    return "border-red-500/60 bg-red-500/10 text-red-300 hover:bg-red-500/15";
+  }
+
+  return "border-panel bg-panel text-muted hover:bg-[#38383f] hover:text-white";
+}
+
+function getCopyButtonLabel(copyState: CopyState) {
+  if (copyState === "copied") return "Copied";
+  if (copyState === "error") return "Retry";
+  return "Copy link";
+}
+
+function useReplayLinkCopy(currentMs: number, speed: number) {
+  const [copyState, setCopyState] = useState<CopyState>("idle");
+
+  useEffect(() => {
+    if (copyState === "idle") return;
+    const timeoutId = window.setTimeout(() => setCopyState("idle"), 1600);
+    return () => window.clearTimeout(timeoutId);
+  }, [copyState]);
+
+  const copyReplayLink = useCallback(async () => {
+    try {
+      await copyTextToClipboard(buildReplayShareUrl(currentMs, speed));
+      setCopyState("copied");
+    } catch {
+      setCopyState("error");
+    }
+  }, [currentMs, speed]);
+
+  return { copyState, copyReplayLink };
+}
 
 const SpeedButtons = memo(function SpeedButtons({
   className,
@@ -120,10 +173,12 @@ export function PlaybackBar({
   const toggle = useTimeline((s) => s.toggle);
   const setT = useTimeline((s) => s.setT);
   const setPlaying = useTimeline((s) => s.setPlaying);
+  const speed = useTimeline((s) => s.speed);
   const [showMarkers, setShowMarkers] = useState(true);
   const isCompactViewport = useMediaQuery("(max-width: 639px)");
   const hasClampedRef = useRef(false);
   const lightMode = useSettings((s) => s.lightMode);
+  const { copyState, copyReplayLink } = useReplayLinkCopy(t, speed);
 
   // Clamp playhead to duration end and stop playback when reached.
   useEffect(() => {
@@ -339,6 +394,19 @@ export function PlaybackBar({
               )}
             </button>
           )}
+
+        <button
+          type="button"
+          onClick={() => {
+            void copyReplayLink();
+          }}
+          className={`flex h-7 shrink-0 items-center gap-1 px-2 text-[9px] font-black uppercase tracking-widest border transition-colors ${getCopyButtonClass(copyState)}`}
+          aria-label="Copy replay link"
+          title="Copy replay link"
+        >
+          <Link2 size={12} strokeWidth={2.2} aria-hidden="true" />
+          <span>{getCopyButtonLabel(copyState)}</span>
+        </button>
 
         {/* Speed buttons — desktop only (mobile lives in chips row) */}
         {showSpeedControls && (
