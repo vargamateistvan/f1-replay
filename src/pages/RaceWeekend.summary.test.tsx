@@ -221,6 +221,19 @@ vi.mock("@/hooks/useSession", () => ({
   useOvertakes: () => ({ data: [], isPending: false, isError: false }),
 }));
 
+function renderRaceWeekend() {
+  return render(
+    <MemoryRouter
+      future={{
+        v7_startTransition: true,
+        v7_relativeSplatPath: true,
+      }}
+    >
+      <RaceWeekend />
+    </MemoryRouter>,
+  );
+}
+
 describe("RaceWeekend historical summary", () => {
   beforeEach(() => {
     testState.trackEvent.mockClear();
@@ -228,11 +241,7 @@ describe("RaceWeekend historical summary", () => {
   });
 
   it("shows historical summary and tracks CTA clicks", () => {
-    render(
-      <MemoryRouter>
-        <RaceWeekend />
-      </MemoryRouter>,
-    );
+    renderRaceWeekend();
 
     expect(screen.getByText("Historical Session Summary")).toBeInTheDocument();
 
@@ -259,11 +268,7 @@ describe("RaceWeekend historical summary", () => {
   it("hides summary for live sessions", () => {
     testState.isLive = true;
 
-    render(
-      <MemoryRouter>
-        <RaceWeekend />
-      </MemoryRouter>,
-    );
+    renderRaceWeekend();
 
     expect(
       screen.queryByText("Historical Session Summary"),
