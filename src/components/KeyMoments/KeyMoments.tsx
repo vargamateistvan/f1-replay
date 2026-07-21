@@ -44,6 +44,11 @@ export function KeyMoments({
   sessionTimeMs,
   onJump,
 }: Readonly<Props>) {
+  const visibleMoments = useMemo(
+    () => moments.filter((moment) => moment.ms <= sessionTimeMs),
+    [moments, sessionTimeMs],
+  );
+
   const lapLookup = useMemo(
     () => buildLapLookup(laps, sessionStartMs),
     [laps, sessionStartMs],
@@ -51,7 +56,7 @@ export function KeyMoments({
 
   const momentGroups = useMemo<MomentGroup[]>(() => {
     const groups: MomentGroup[] = [];
-    for (const moment of moments) {
+    for (const moment of visibleMoments) {
       const lapNumber = lapNumberAtMs(lapLookup, moment.ms);
       const current = groups.at(-1);
       if (current?.lapNumber !== lapNumber) {
@@ -60,10 +65,15 @@ export function KeyMoments({
         current.moments.push(moment);
       }
     }
-    return groups;
-  }, [moments, lapLookup]);
+    return groups
+      .map((group) => ({
+        lapNumber: group.lapNumber,
+        moments: [...group.moments].reverse(),
+      }))
+      .reverse();
+  }, [visibleMoments, lapLookup]);
 
-  if (moments.length === 0) {
+  if (visibleMoments.length === 0) {
     return (
       <div className="text-muted text-xs p-3">
         No key moments yet — scrub forward or select a session
@@ -83,14 +93,11 @@ export function KeyMoments({
           </div>
           {group.moments.map((m, i) => {
             const cfg = KIND_CONFIG[m.kind];
-            const isPast = m.ms <= sessionTimeMs;
             return (
               <button
                 key={`${m.kind}-${m.ms}-${i}`}
                 onClick={() => onJump(m.ms)}
-                className={`w-full flex items-center gap-3 border-b border-[#2a2a35] px-3 py-2.5 text-left transition-colors hover:bg-white/[0.04] ${
-                  isPast ? "" : "opacity-40"
-                }`}
+                className="w-full flex items-center gap-3 border-b border-[#2a2a35] px-3 py-2.5 text-left transition-colors hover:bg-white/[0.04]"
               >
                 <span className="text-[10px] font-mono tabular-nums text-muted w-10 shrink-0">
                   {fmtMs(m.ms)}

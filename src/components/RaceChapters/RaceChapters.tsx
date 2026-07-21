@@ -329,13 +329,18 @@ export function RaceChapters({
     for (const chapter of visibleChapters) {
       const lapNumber = lapNumberAtMs(lapLookup, chapter.startMs);
       const current = groups.at(-1);
-      if (!current || current.lapNumber !== lapNumber) {
+      if (current?.lapNumber !== lapNumber) {
         groups.push({ lapNumber, chapters: [chapter] });
       } else {
         current.chapters.push(chapter);
       }
     }
-    return groups;
+    return groups
+      .map((group) => ({
+        lapNumber: group.lapNumber,
+        chapters: [...group.chapters].reverse(),
+      }))
+      .reverse();
   }, [visibleChapters, lapLookup]);
 
   if (chapters.length === 0) {

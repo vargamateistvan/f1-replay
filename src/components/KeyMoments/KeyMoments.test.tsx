@@ -57,13 +57,11 @@ describe("KeyMoments", () => {
     );
 
     expect(screen.getAllByText("Lap 1").length).toBeGreaterThan(0);
-    expect(screen.getAllByText("Lap 2").length).toBeGreaterThan(0);
+    expect(screen.queryByText("Lap 2")).not.toBeInTheDocument();
     fireEvent.click(screen.getByText("VER takes the lead"));
     expect(onJump).toHaveBeenCalledWith(10_000);
     expect(screen.getByText("+0.220")).toBeInTheDocument();
-    expect(screen.getByText("VSC")).toBeInTheDocument();
-    expect(screen.getByText("VSC deployed").closest("button")).toHaveClass(
-      "opacity-40",
-    );
+    expect(screen.queryByText("VSC")).not.toBeInTheDocument();
+    expect(screen.queryByText("VSC deployed")).not.toBeInTheDocument();
   });
 });
