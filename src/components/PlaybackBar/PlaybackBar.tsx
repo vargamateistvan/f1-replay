@@ -13,6 +13,7 @@ import { useMediaQuery } from "@/hooks/useMediaQuery";
 import { SPEEDS } from "@/constants";
 import { nextAfter, prevBefore } from "@/timeline/events";
 import type { RaceControlMarker, MarkerSummary } from "@/timeline/raceControl";
+import { useSettings } from "@/stores/settings";
 
 interface Props {
   durationMs: number;
@@ -122,6 +123,7 @@ export function PlaybackBar({
   const [showMarkers, setShowMarkers] = useState(true);
   const isCompactViewport = useMediaQuery("(max-width: 639px)");
   const hasClampedRef = useRef(false);
+  const lightMode = useSettings((s) => s.lightMode);
 
   // Clamp playhead to duration end and stop playback when reached.
   useEffect(() => {
@@ -284,7 +286,13 @@ export function PlaybackBar({
                     <span
                       className={`absolute left-1/2 top-1/2 h-4 w-1.5 -translate-x-1/2 -translate-y-1/2 rounded ${color} opacity-90 ring-1 ring-black/35 transition-opacity group-hover:opacity-100`}
                     />
-                    <span className="pointer-events-none absolute bottom-full left-1/2 z-20 mb-2 w-max max-w-[180px] -translate-x-1/2 whitespace-nowrap rounded border border-panel bg-[#101117] px-2 py-1 text-[10px] font-black uppercase tracking-wider text-white opacity-0 shadow-[0_8px_20px_rgba(0,0,0,0.45)] transition-opacity group-hover:opacity-100 group-focus-visible:opacity-100">
+                    <span
+                      className={
+                        lightMode
+                          ? "pointer-events-none absolute bottom-full left-1/2 z-20 mb-2 w-max max-w-[180px] -translate-x-1/2 whitespace-nowrap rounded border border-slate-300 bg-white px-2 py-1 text-[10px] font-black uppercase tracking-wider text-slate-900 opacity-0 shadow-[0_8px_20px_rgba(15,23,42,0.18)] transition-opacity group-hover:opacity-100 group-focus-visible:opacity-100"
+                          : "pointer-events-none absolute bottom-full left-1/2 z-20 mb-2 w-max max-w-[180px] -translate-x-1/2 whitespace-nowrap rounded border border-panel bg-[#101117] px-2 py-1 text-[10px] font-black uppercase tracking-wider text-white opacity-0 shadow-[0_8px_20px_rgba(0,0,0,0.45)] transition-opacity group-hover:opacity-100 group-focus-visible:opacity-100"
+                      }
+                    >
                       {tooltip}
                     </span>
                   </button>
