@@ -1,4 +1,4 @@
-import { lazy, Suspense, useEffect, useMemo, useState } from "react";
+import { lazy, Suspense, useEffect, useMemo, useRef, useState } from "react";
 import { PlaybackBar } from "@/components/PlaybackBar";
 import type {
   ActiveTrackFlagState,
@@ -67,6 +67,7 @@ import { useSettings } from "@/stores/settings";
 import { deriveRetiredDrivers } from "@/utils/retirement";
 import { computeBattlingDrivers } from "@/utils/battles";
 import { weatherAtSessionTime } from "@/utils/weather";
+import { trackAnalyticsEvent } from "@/utils/analytics";
 import { buildKeyMoments } from "@/components/CommentaryPanels/keyMoments";
 import {
   getSafetyControlPhase,
@@ -216,6 +217,7 @@ export default function RaceWeekend() {
   const [isResultsDialogOpen, setIsResultsDialogOpen] = useState(false);
   const [isQualiEliminationsDialogOpen, setIsQualiEliminationsDialogOpen] =
     useState(false);
+  const historicalSummaryTrackedSessionKey = useRef<number | null>(null);
   const [incidentReplayEndMs, setIncidentReplayEndMs] = useState<number | null>(
     null,
   );
@@ -1049,8 +1051,41 @@ export default function RaceWeekend() {
   const latestWeather = useMemo(() => {
     const entries = weather.data ?? [];
     if (!entries.length) return null;
-    return entries[entries.length - 1] ?? null;
+    return entries.at(-1) ?? null;
   }, [weather.data]);
+
+  useEffect(() => {
+    if (!shouldShowHistoricalSummary || !session) return;
+    if (historicalSummaryTrackedSessionKey.current === session.session_key) {
+      return;
+    }
+
+    historicalSummaryTrackedSessionKey.current = session.session_key;
+    trackAnalyticsEvent("historical_summary_viewed", {
+      session_key: session.session_key,
+      meeting_key: session.meeting_key,
+      circuit_key: session.circuit_key,
+      year: session.year,
+      session_type: session.session_type,
+      overtake_count: overtakes.data?.length ?? 0,
+      pit_count: pits.data?.length ?? 0,
+      safety_car_count: safetyCarCount,
+      vsc_count: vscCount,
+      red_flag_count: redFlagCount,
+      has_top_finisher: topFinisherLabel !== null,
+      has_weather_snapshot: latestWeather !== null,
+    });
+  }, [
+    shouldShowHistoricalSummary,
+    session,
+    overtakes.data?.length,
+    pits.data?.length,
+    safetyCarCount,
+    vscCount,
+    redFlagCount,
+    topFinisherLabel,
+    latestWeather,
+  ]);
   const qualiPhase = isQualiSession(sessionName)
     ? detectQualiPhase(raceControl.data ?? [], sessionStartMs, t)
     : null;
