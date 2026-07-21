@@ -15,6 +15,7 @@ import { SPEEDS } from "@/constants";
 import { nextAfter, prevBefore } from "@/timeline/events";
 import type { RaceControlMarker, MarkerSummary } from "@/timeline/raceControl";
 import { useSettings } from "@/stores/settings";
+import { trackAnalyticsEvent } from "@/utils/analytics";
 import { copyTextToClipboard } from "@/utils/share";
 
 type CopyState = "idle" | "copied" | "error";
@@ -106,6 +107,13 @@ function useReplayLinkCopy(currentMs: number, speed: number) {
   const copyReplayLink = useCallback(async () => {
     try {
       await copyTextToClipboard(buildReplayShareUrl(currentMs, speed));
+      trackAnalyticsEvent("share_link_copied", {
+        share_surface: "playback_bar",
+        share_type: "replay",
+        page_path: window.location.pathname,
+        has_timestamp: currentMs > 0,
+        speed,
+      });
       setCopyState("copied");
     } catch {
       setCopyState("error");

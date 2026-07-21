@@ -16,6 +16,7 @@ import {
 import { useDrivers, useLaps, useSessions } from "@/hooks/useSession";
 import { useNumberParam, useStringParam } from "@/hooks/useSearchParamState";
 import { useSettings } from "@/stores/settings";
+import { trackAnalyticsEvent } from "@/utils/analytics";
 import { teamColor } from "@/utils/color";
 import { computeDelta, resampleToAxis, smooth } from "@/utils/telemetry";
 import { speedUnitLabel, toDisplaySpeed } from "@/utils/units";
@@ -799,11 +800,21 @@ export default function Telemetry() {
       await copyTextToClipboard(
         buildShareUrl({ allowedSearchParams: TELEMETRY_SHARE_PARAMS }),
       );
+      trackAnalyticsEvent("share_link_copied", {
+        share_surface: "telemetry_page",
+        share_type: "telemetry",
+        page_path: window.location.pathname,
+        driver_count: [driverA, driverB, driverC].filter(
+          (driverNumber) => driverNumber !== null,
+        ).length,
+        smoothing,
+        has_shared_lap: sharedLap !== null,
+      });
       setCopyState("copied");
     } catch {
       setCopyState("error");
     }
-  }, []);
+  }, [driverA, driverB, driverC, sharedLap, smoothing]);
 
   return (
     <div className="relative flex flex-col md:h-full md:overflow-hidden">
