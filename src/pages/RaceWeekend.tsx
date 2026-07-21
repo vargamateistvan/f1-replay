@@ -70,6 +70,13 @@ import { weatherAtSessionTime } from "@/utils/weather";
 import { trackAnalyticsEvent } from "@/utils/analytics";
 import { buildKeyMoments } from "@/components/CommentaryPanels/keyMoments";
 import {
+  buildTopFinisherLabel,
+  countRaceControlPhaseStarts,
+  countRedFlags,
+  formatSessionDateLabel,
+  getLatestWeatherSnapshot,
+} from "@/pages/raceWeekendSummary";
+import {
   getSafetyControlPhase,
   isTrackClearSignal,
 } from "@/utils/raceControlFlags";
@@ -173,16 +180,6 @@ function PanelFallback() {
       Loading Panel
     </div>
   );
-}
-
-function formatSessionDateLabel(dateStart: string) {
-  const parsed = new Date(dateStart);
-  if (Number.isNaN(parsed.getTime())) return null;
-  return parsed.toLocaleDateString("en-US", {
-    year: "numeric",
-    month: "long",
-    day: "numeric",
-  });
 }
 
 export default function RaceWeekend() {
@@ -1004,42 +1001,25 @@ export default function RaceWeekend() {
 
   const shouldShowHistoricalSummary = Boolean(session && !live);
 
-  const driverByNumber = useMemo(
-    () =>
-      new Map(
-        (drivers.data ?? []).map((driver) => [driver.driver_number, driver]),
-      ),
-    [drivers.data],
-  );
-
   const topFinisherLabel = useMemo(() => {
-    const winner = (sessionResult.data ?? []).find(
-      (entry) => entry.position === 1,
+    return buildTopFinisherLabel(
+      sessionResult.data ?? [],
+      drivers.data ?? [],
     );
-    if (!winner) return null;
-    const driver = driverByNumber.get(winner.driver_number);
-    if (!driver) return `#${winner.driver_number}`;
-    return `${driver.full_name} (${driver.name_acronym})`;
-  }, [driverByNumber, sessionResult.data]);
+  }, [drivers.data, sessionResult.data]);
 
   const safetyCarCount = useMemo(
-    () =>
-      timedRaceControlSignals.filter(
-        (signal) => signal.phase === "safety_car_start",
-      ).length,
+    () => countRaceControlPhaseStarts(timedRaceControlSignals, "safety_car_start"),
     [timedRaceControlSignals],
   );
 
   const vscCount = useMemo(
-    () =>
-      timedRaceControlSignals.filter((signal) => signal.phase === "vsc_start")
-        .length,
+    () => countRaceControlPhaseStarts(timedRaceControlSignals, "vsc_start"),
     [timedRaceControlSignals],
   );
 
   const redFlagCount = useMemo(
-    () =>
-      (raceControl.data ?? []).filter((entry) => entry.flag === "RED").length,
+    () => countRedFlags(raceControl.data ?? []),
     [raceControl.data],
   );
 
@@ -1049,9 +1029,7 @@ export default function RaceWeekend() {
   );
 
   const latestWeather = useMemo(() => {
-    const entries = weather.data ?? [];
-    if (!entries.length) return null;
-    return entries.at(-1) ?? null;
+    return getLatestWeatherSnapshot(weather.data ?? []);
   }, [weather.data]);
 
   useEffect(() => {
