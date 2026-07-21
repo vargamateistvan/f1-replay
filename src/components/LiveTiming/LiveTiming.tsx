@@ -810,8 +810,8 @@ export function LiveTiming({
   const headerCellClass = leaderboardDense ? TH_COMPACT : TH;
 
   const driverColClass = compactDriverColumn
-    ? `${headerCellClass} text-left w-[3.5rem] min-[390px]:w-[3.75rem] sm:w-[4rem] lg:w-[4.25rem]`
-    : `${headerCellClass} text-left w-[3.4rem] min-[390px]:w-[4.25rem] sm:w-[4.5rem] lg:w-[4.75rem]`;
+    ? `${headerCellClass} text-left w-[4.75rem] min-[390px]:w-[5.25rem] sm:w-[4.5rem] lg:w-[4.75rem]`
+    : `${headerCellClass} text-left w-[5.25rem] min-[390px]:w-[5.75rem] sm:w-[5rem] lg:w-[5.25rem]`;
 
   const driverCellClass = compactDriverColumn
     ? "py-3 px-0 sm:px-0.5"
@@ -849,7 +849,7 @@ export function LiveTiming({
   const statusBadgeClass = dense
     ? "inline-flex h-3 items-center px-0.5 text-[7px] leading-none"
     : "inline-block text-[8px] px-1 py-0.5";
-  let rowHeightClass = "h-11";
+  let rowHeightClass = showTelemetry && !dense ? "h-auto sm:h-11" : "h-11";
   if (fullWidthTable) rowHeightClass = "h-8";
   else if (dense) rowHeightClass = "h-[30px]";
 
@@ -1312,7 +1312,7 @@ export function LiveTiming({
                       {showTelemetry &&
                         (!dense || showDenseMobileTelemetry) && (
                           <div
-                            className={`grid grid-cols-2 gap-x-2 gap-y-0.5 font-mono tabular-nums sm:hidden ${dense ? "mt-0.5 text-[8px] leading-3.5" : "mt-1 text-[9px] leading-4"}`}
+                            className={`grid grid-cols-2 gap-x-1.5 gap-y-0.5 font-mono tabular-nums sm:hidden ${dense ? "mt-0.5 text-[8px] leading-3.5" : "mt-1 text-[9px] leading-4"}`}
                           >
                             <span className="inline-flex min-w-0 items-center gap-1 text-[#7dd3fc]">
                               <span className="text-[#89a6bf]">
@@ -1344,18 +1344,20 @@ export function LiveTiming({
                                 </span>
                               </span>
                             )}
-                            <MobilePedalMeter
-                              label="T"
-                              value={car ? car.throttle : null}
-                              color="#39d743"
-                              labelClassName="text-[#6eb989]"
-                            />
-                            <MobilePedalMeter
-                              label="B"
-                              value={car ? car.brake : null}
-                              color="#ff5252"
-                              labelClassName="text-[#c88787]"
-                            />
+                            <span className="col-span-2 inline-flex min-w-0 items-center justify-start gap-1.5">
+                              <MobilePedalMeter
+                                label="T"
+                                value={car ? car.throttle : null}
+                                color="#39d743"
+                                labelClassName="text-[#6eb989]"
+                              />
+                              <MobilePedalMeter
+                                label="B"
+                                value={car ? car.brake : null}
+                                color="#ff5252"
+                                labelClassName="text-[#c88787]"
+                              />
+                            </span>
                           </div>
                         )}
                     </div>
