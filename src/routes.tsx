@@ -1,10 +1,18 @@
-import { BrowserRouter, Routes, Route, Link } from "react-router-dom";
-import { lazy, Suspense } from "react";
+import {
+  BrowserRouter,
+  Routes,
+  Route,
+  Link,
+  useLocation,
+  useNavigationType,
+} from "react-router-dom";
+import { lazy, Suspense, useEffect } from "react";
 import { Nav } from "@/components/Nav";
 import { MobileNav } from "@/components/MobileNav";
 import { SettingsModal } from "@/components/SettingsModal/SettingsModal";
 import { HowItWorksModal } from "@/components/HowItWorksModal/HowItWorksModal";
 import { RouteSeo } from "@/components/Seo/RouteSeo";
+import { trackPageView } from "@/utils/analytics";
 const RaceWeekend = lazy(() => import("@/pages/RaceWeekend"));
 const Telemetry = lazy(() => import("@/pages/Telemetry"));
 const Standings = lazy(() => import("@/pages/Standings"));
@@ -21,10 +29,22 @@ function RouteFallback() {
   );
 }
 
+function RouteAnalytics() {
+  const location = useLocation();
+  const navigationType = useNavigationType();
+
+  useEffect(() => {
+    trackPageView(location.pathname, location.search, navigationType);
+  }, [location.pathname, location.search, navigationType]);
+
+  return null;
+}
+
 export function AppRouter() {
   return (
     <BrowserRouter>
       <RouteSeo />
+      <RouteAnalytics />
       <div className="flex flex-col md:h-[100dvh] md:min-h-[100dvh] md:overflow-hidden">
         <Nav />
         <main className="flex flex-col flex-1 pb-[calc(3rem+env(safe-area-inset-bottom))] md:min-h-0 md:overflow-hidden md:pb-0">

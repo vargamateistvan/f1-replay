@@ -1,5 +1,9 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { trackAnalyticsEvent } from "@/utils/analytics";
+import {
+  getPageViewAnalyticsParams,
+  trackAnalyticsEvent,
+  trackPageView,
+} from "@/utils/analytics";
 
 describe("trackAnalyticsEvent", () => {
   beforeEach(() => {
@@ -29,6 +33,37 @@ describe("trackAnalyticsEvent", () => {
       share_surface: "playback_bar",
       speed: 4,
       has_timestamp: true,
+    });
+  });
+
+  it("classifies replay timestamp deep links", () => {
+    expect(
+      getPageViewAnalyticsParams("/", "?meeting=1&session=2&t=45", "POP"),
+    ).toEqual({
+      page_path: "/",
+      route_surface: "raceweekend",
+      navigation_type: "pop",
+      has_query_params: true,
+      deep_link_kind: "replay_timestamp",
+      is_deep_link: true,
+    });
+  });
+
+  it("tracks app page views through gtag", () => {
+    const gtag = vi.fn();
+    (window as Window & { gtag?: unknown }).gtag = gtag;
+
+    expect(trackPageView("/telemetry", "?session=2&a=16&lb=22", "PUSH")).toBe(
+      true,
+    );
+
+    expect(gtag).toHaveBeenCalledWith("event", "app_page_view", {
+      page_path: "/telemetry",
+      route_surface: "telemetry",
+      navigation_type: "push",
+      has_query_params: true,
+      deep_link_kind: "telemetry_state",
+      is_deep_link: true,
     });
   });
 });

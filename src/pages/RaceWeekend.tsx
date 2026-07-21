@@ -174,6 +174,16 @@ function PanelFallback() {
   );
 }
 
+function formatSessionDateLabel(dateStart: string) {
+  const parsed = new Date(dateStart);
+  if (Number.isNaN(parsed.getTime())) return null;
+  return parsed.toLocaleDateString("en-US", {
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+  });
+}
+
 export default function RaceWeekend() {
   // Session selection is driven by the URL — Nav writes these, we just read them
   const [meetingKey] = useNumberParam("meeting", null);
@@ -989,6 +999,58 @@ export default function RaceWeekend() {
     isTimedSession(sessionName) && effectiveDuration > 0
       ? Math.max(0, effectiveDuration - t)
       : null;
+
+  const shouldShowHistoricalSummary = Boolean(session && !live);
+
+  const driverByNumber = useMemo(
+    () =>
+      new Map(
+        (drivers.data ?? []).map((driver) => [driver.driver_number, driver]),
+      ),
+    [drivers.data],
+  );
+
+  const topFinisherLabel = useMemo(() => {
+    const winner = (sessionResult.data ?? []).find(
+      (entry) => entry.position === 1,
+    );
+    if (!winner) return null;
+    const driver = driverByNumber.get(winner.driver_number);
+    if (!driver) return `#${winner.driver_number}`;
+    return `${driver.full_name} (${driver.name_acronym})`;
+  }, [driverByNumber, sessionResult.data]);
+
+  const safetyCarCount = useMemo(
+    () =>
+      timedRaceControlSignals.filter(
+        (signal) => signal.phase === "safety_car_start",
+      ).length,
+    [timedRaceControlSignals],
+  );
+
+  const vscCount = useMemo(
+    () =>
+      timedRaceControlSignals.filter((signal) => signal.phase === "vsc_start")
+        .length,
+    [timedRaceControlSignals],
+  );
+
+  const redFlagCount = useMemo(
+    () =>
+      (raceControl.data ?? []).filter((entry) => entry.flag === "RED").length,
+    [raceControl.data],
+  );
+
+  const sessionDateLabel = useMemo(
+    () => (session ? formatSessionDateLabel(session.date_start) : null),
+    [session],
+  );
+
+  const latestWeather = useMemo(() => {
+    const entries = weather.data ?? [];
+    if (!entries.length) return null;
+    return entries[entries.length - 1] ?? null;
+  }, [weather.data]);
   const qualiPhase = isQualiSession(sessionName)
     ? detectQualiPhase(raceControl.data ?? [], sessionStartMs, t)
     : null;
@@ -1195,6 +1257,63 @@ export default function RaceWeekend() {
       {/* Starting lights — absolute overlay, race sessions only */}
       {sessionStartMs > 0 && isRaceSession && lightsOutMs != null && (
         <StartingLights t={t} lightsOutMs={lightsOutMs} />
+      )}
+
+      {shouldShowHistoricalSummary && session && (
+        <section
+          aria-label="Historical session summary"
+          className="border-b border-panel bg-surface/85 px-3 py-2.5 sm:px-4"
+        >
+          <h2 className="text-[10px] font-black uppercase tracking-[0.14em] text-f1red">
+            Historical Session Summary
+          </h2>
+          <p className="mt-1 text-xs text-muted">
+            Replay for {session.year} {session.location} {session.session_name}
+            {sessionDateLabel ? ` on ${sessionDateLabel}` : ""} at{" "}
+            {session.circuit_short_name}.
+          </p>
+          <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-[11px]">
+            <span>
+              <span className="text-muted">Top finisher:</span>{" "}
+              <span className="text-white font-medium">
+                {topFinisherLabel ?? "TBD"}
+              </span>
+            </span>
+            <span>
+              <span className="text-muted">Overtakes:</span>{" "}
+              <span className="text-white font-medium">
+                {overtakes.data?.length ?? 0}
+              </span>
+            </span>
+            <span>
+              <span className="text-muted">Pit stops:</span>{" "}
+              <span className="text-white font-medium">
+                {pits.data?.length ?? 0}
+              </span>
+            </span>
+            <span>
+              <span className="text-muted">Safety cars:</span>{" "}
+              <span className="text-white font-medium">{safetyCarCount}</span>
+            </span>
+            <span>
+              <span className="text-muted">VSC:</span>{" "}
+              <span className="text-white font-medium">{vscCount}</span>
+            </span>
+            <span>
+              <span className="text-muted">Red flags:</span>{" "}
+              <span className="text-white font-medium">{redFlagCount}</span>
+            </span>
+            {latestWeather && (
+              <span>
+                <span className="text-muted">Weather:</span>{" "}
+                <span className="text-white font-medium">
+                  {Math.round(latestWeather.air_temperature)}°C air /{" "}
+                  {Math.round(latestWeather.track_temperature)}°C track
+                </span>
+              </span>
+            )}
+          </div>
+        </section>
       )}
 
       {/* ── LEADERBOARD VIEW ──────────────────────────────────────────── */}
