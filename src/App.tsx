@@ -8,6 +8,7 @@ import { ErrorDisplay } from "@/components/ErrorDisplay";
 import { OpenF1Error } from "@/api/client";
 import { queryPersister } from "@/lib/queryPersister";
 import { useSettings } from "@/stores/settings";
+import { initializeAnalytics } from "@/lib/analytics";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -75,6 +76,7 @@ function LightModeGate() {
 export default function App() {
   useEffect(() => {
     startClock();
+    initializeAnalytics();
     return stopClock;
   }, []);
 
