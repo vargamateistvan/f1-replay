@@ -121,25 +121,30 @@ export function OvertakeFeed({
         return (
           <div
             key={`${e.overtaking_driver_number}-${e.overtaken_driver_number}-${e.date}-${e.position ?? "na"}`}
-            className="flex items-center gap-2 border-b border-[#2a2a35] pb-1.5 pt-0.5 text-xs"
+            className="flex items-center gap-3 border-b border-[#2a2a35] px-2 py-2.5 text-xs transition-colors hover:bg-white/[0.04]"
           >
-            <span className="text-[#39d743] text-[10px]">▲</span>
-            <span className="font-black" style={{ color: overColor }}>
-              {over?.name_acronym ?? e.overtaking_driver_number}
-            </span>
-            <span className="text-muted text-[10px]">passed</span>
-            <span className="font-black" style={{ color: underColor }}>
-              {under?.name_acronym ?? e.overtaken_driver_number}
-            </span>
-            {e.position !== null && (
-              <span className="text-muted text-[10px]">for P{e.position}</span>
-            )}
-            {lapNumber !== null && (
-              <span className="text-muted text-[10px]">Lap {lapNumber}</span>
-            )}
-            <span className="ml-auto text-muted font-mono tabular-nums text-[10px]">
+            <span className="w-10 shrink-0 text-[10px] font-mono tabular-nums text-muted">
               {fmtSessionTime(ms)}
             </span>
+            <span className="shrink-0 bg-[#39d743] px-1.5 py-0.5 text-[8px] font-black uppercase tracking-widest text-black">
+              Pass
+            </span>
+            <div className="min-w-0 flex-1">
+              <div className="truncate text-[11px] font-bold text-white/90">
+                <span style={{ color: overColor }}>
+                  {over?.name_acronym ?? e.overtaking_driver_number}
+                </span>{" "}
+                <span className="text-white/55">passed</span>{" "}
+                <span style={{ color: underColor }}>
+                  {under?.name_acronym ?? e.overtaken_driver_number}
+                </span>
+              </div>
+              <div className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-[10px] text-muted">
+                {e.position !== null && <span>for P{e.position}</span>}
+                {lapNumber !== null && <span>Lap {lapNumber}</span>}
+              </div>
+            </div>
+            <span className="shrink-0 text-muted text-[10px]">›</span>
           </div>
         );
       })}

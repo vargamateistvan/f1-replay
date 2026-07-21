@@ -113,28 +113,33 @@ export function PitFeed({
         return (
           <div
             key={`${entry.driver_number}-${entry.lap_number}-${entry.date}-${idx}`}
-            className="flex items-center gap-2 border-b border-[#2a2a35] pb-1.5 pt-0.5 text-xs"
+            className="flex items-center gap-3 border-b border-[#2a2a35] px-2 py-2.5 text-xs transition-colors hover:bg-white/[0.04]"
           >
-            <span className="text-[#f5a623] text-[10px]">PIT</span>
-            <span className="font-black" style={{ color }}>
-              {driver?.name_acronym ?? entry.driver_number}
-            </span>
-            <span className="text-muted text-[10px]">
-              Lap {entry.lap_number}
-            </span>
-            {stop !== null && (
-              <span className="text-[10px] text-white font-mono tabular-nums">
-                Stop {stop.toFixed(1)}s
-              </span>
-            )}
-            {lane !== null && (
-              <span className="text-muted text-[10px] font-mono tabular-nums">
-                Lane {lane.toFixed(1)}s
-              </span>
-            )}
-            <span className="ml-auto text-muted font-mono tabular-nums text-[10px]">
+            <span className="w-10 shrink-0 text-[10px] font-mono tabular-nums text-muted">
               {fmtSessionTime(ms)}
             </span>
+            <span className="shrink-0 bg-[#f5a623] px-1.5 py-0.5 text-[8px] font-black uppercase tracking-widest text-black">
+              Pit
+            </span>
+            <div className="min-w-0 flex-1">
+              <div className="truncate text-[11px] font-bold" style={{ color }}>
+                {driver?.name_acronym ?? entry.driver_number}
+              </div>
+              <div className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-[10px] text-muted">
+                <span>Lap {entry.lap_number}</span>
+                {stop !== null && (
+                  <span className="font-mono tabular-nums text-white/90">
+                    Stop {stop.toFixed(1)}s
+                  </span>
+                )}
+                {lane !== null && (
+                  <span className="font-mono tabular-nums text-white/70">
+                    Lane {lane.toFixed(1)}s
+                  </span>
+                )}
+              </div>
+            </div>
+            <span className="shrink-0 text-muted text-[10px]">›</span>
           </div>
         );
       })}
