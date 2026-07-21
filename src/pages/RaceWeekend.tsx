@@ -67,6 +67,7 @@ import { useSettings } from "@/stores/settings";
 import { deriveRetiredDrivers } from "@/utils/retirement";
 import { computeBattlingDrivers } from "@/utils/battles";
 import { weatherAtSessionTime } from "@/utils/weather";
+import { buildKeyMoments } from "@/components/CommentaryPanels/keyMoments";
 import {
   getSafetyControlPhase,
   isTrackClearSignal,
@@ -198,7 +199,6 @@ export default function RaceWeekend() {
   const [commentaryTimeMode, setCommentaryTimeMode] =
     useStringParam<CommentaryTimeMode>("cmode", "elapsed");
   const activeTrackerTab = trackerTab ?? "timing";
-  const activeCommentaryTab = commentaryTab ?? "rc";
   const [focusDriver] = useNumberParam("focus", null);
   const [compareDriver] = useNumberParam("compare", null);
   const [, setSearchParams] = useSearchParams();
@@ -388,8 +388,7 @@ export default function RaceWeekend() {
     currentView === "tracker" &&
     (!isCompactViewport || activeTrackerTab === "map");
   const shouldTrackToasts = currentView === "tracker";
-  const shouldBuildCommentaryMoments =
-    currentView === "commentary" && activeCommentaryTab === "moments";
+  const shouldBuildCommentaryMoments = currentView === "commentary";
   const shouldBuildToastEvents =
     shouldTrackToasts || shouldBuildCommentaryMoments;
   const location = useLocationChunks(
@@ -925,6 +924,39 @@ export default function RaceWeekend() {
     return `${currentLap}/${totalLapCount}`;
   }, [currentLap, totalLapCount]);
 
+  const commentaryTimedPositions = useMemo(() => {
+    if (!sessionStartMs || !positions.data?.length) return [];
+    return positions.data
+      .map((entry) => ({
+        ms: new Date(entry.date).getTime() - sessionStartMs,
+        num: entry.driver_number,
+        position: entry.position,
+      }))
+      .sort((a, b) => a.ms - b.ms);
+  }, [positions.data, sessionStartMs]);
+
+  const commentaryKeyMoments = useMemo(() => {
+    if (!sessionStartMs) return [];
+    return buildKeyMoments(
+      commentaryTimedPositions,
+      toastEvents,
+      raceControl.data ?? [],
+      drivers.data ?? [],
+      sessionStartMs,
+    );
+  }, [
+    commentaryTimedPositions,
+    toastEvents,
+    raceControl.data,
+    drivers.data,
+    sessionStartMs,
+  ]);
+
+  const commentaryKeyMomentsCount = useMemo(() => {
+    if (commentaryTimeMode === "all") return commentaryKeyMoments.length;
+    return commentaryKeyMoments.filter((moment) => moment.ms <= t).length;
+  }, [commentaryKeyMoments, commentaryTimeMode, t]);
+
   const commentaryTabs = useMemo(
     () =>
       [
@@ -932,12 +964,18 @@ export default function RaceWeekend() {
         ["radio", "Team Radio", "Radio", teamRadio.data?.length ?? 0, "clips"],
         ["pits", "Pit Stops", "Pits", pits.data?.length ?? 0, "stops"],
         ["passes", "Overtakes", "Passes", overtakes.data?.length ?? 0, "moves"],
-        ["moments", "Key Moments", "Moments", keyMomentMarks.length, "beats"],
+        [
+          "moments",
+          "Key Moments",
+          "Moments",
+          commentaryKeyMomentsCount,
+          "beats",
+        ],
         ["chapters", "Chapters", "Chptrs", incidentWindows.length, "windows"],
       ] as const,
     [
+      commentaryKeyMomentsCount,
       incidentWindows.length,
-      keyMomentMarks.length,
       overtakes.data?.length,
       pits.data?.length,
       raceControl.data?.length,
