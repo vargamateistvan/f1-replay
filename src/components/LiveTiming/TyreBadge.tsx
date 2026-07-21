@@ -1,4 +1,5 @@
 import type { Stint } from "@/api/types";
+import { useSettings } from "@/stores/settings";
 
 interface Props {
   stints: Stint[];
@@ -19,7 +20,10 @@ const COMPOUND_STYLE: Record<Compound, { color: string; letter: string }> = {
 };
 
 function CompoundRing({ compound }: { compound: Compound }) {
-  const { color, letter } = COMPOUND_STYLE[compound] ?? COMPOUND_STYLE.UNKNOWN;
+  const lightMode = useSettings((s) => s.lightMode);
+  const { color: baseColor, letter } =
+    COMPOUND_STYLE[compound] ?? COMPOUND_STYLE.UNKNOWN;
+  const color = lightMode && compound === "HARD" ? "#6b7280" : baseColor;
 
   return (
     <span className="relative inline-flex h-5 w-5 shrink-0 items-center justify-center sm:h-6 sm:w-6">
@@ -51,6 +55,7 @@ export function TyreBadge({
   currentLap,
   startCompound,
 }: Props) {
+  const lightMode = useSettings((s) => s.lightMode);
   const lap = currentLap ?? 0;
   const active = stints
     .filter((s) => s.driver_number === driverNumber)
@@ -69,7 +74,7 @@ export function TyreBadge({
     >
       <span
         className="font-mono text-[10px] font-black tabular-nums sm:text-[11px]"
-        style={{ color: activeStyle.color }}
+        style={{ color: lightMode ? "#12121a" : activeStyle.color }}
       >
         {age}
       </span>

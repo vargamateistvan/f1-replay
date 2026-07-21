@@ -244,12 +244,12 @@ export function TrackMap({
     [rotationStorageKey],
   );
 
-  const mapBackground = lightMode ? "#eef1fa" : "#15151e";
+  const mapBackground = lightMode ? "#f7f9fe" : "#15151e";
   const overlayBackground = lightMode
-    ? "rgba(238,241,250,0.88)"
+    ? "rgba(247,249,254,0.9)"
     : "rgba(21,21,30,0.82)";
   const hudBackground = lightMode
-    ? "rgba(238,241,250,0.9)"
+    ? "rgba(247,249,254,0.94)"
     : "rgba(21,21,30,0.85)";
   const weatherOverlayClass = lightMode
     ? weatherOverlay?.rainfall && weatherOverlay.rainfall > 0
@@ -1567,23 +1567,23 @@ export function TrackMap({
             d={pathData}
             strokeWidth={16}
             fill="none"
-            stroke="#1f2028"
+            stroke={lightMode ? "#d5dbea" : "#1f2028"}
             strokeLinecap="round"
             strokeLinejoin="round"
-            strokeOpacity={0.55}
+            strokeOpacity={lightMode ? 0.95 : 0.55}
           />
           <path
             d={pathData}
             strokeWidth={11}
             fill="none"
-            stroke="#38383f"
+            stroke={lightMode ? "#bcc6d9" : "#38383f"}
             strokeLinecap="round"
             strokeLinejoin="round"
           />
           <path
             d={pathData}
             fill="none"
-            stroke="#4a4a55"
+            stroke={lightMode ? "#aab5cb" : "#4a4a55"}
             strokeWidth={7}
             strokeLinecap="round"
             strokeLinejoin="round"
@@ -1591,21 +1591,21 @@ export function TrackMap({
           <path
             d={pathData}
             fill="none"
-            stroke="#ffffff"
+            stroke={lightMode ? "#ffffff" : "#ffffff"}
             strokeWidth={1.5}
             strokeLinecap="round"
             strokeLinejoin="round"
-            strokeOpacity={0.15}
+            strokeOpacity={lightMode ? 0.32 : 0.15}
           />
           <path
             d={pathData}
             fill="none"
-            stroke="#d7d7e0"
+            stroke={lightMode ? "#eef2fb" : "#d7d7e0"}
             strokeWidth={0.75}
             strokeLinecap="round"
             strokeLinejoin="round"
             strokeDasharray="1.2 5"
-            strokeOpacity={0.2}
+            strokeOpacity={lightMode ? 0.5 : 0.2}
           />
 
           {/* Sector flag colors on track line */}

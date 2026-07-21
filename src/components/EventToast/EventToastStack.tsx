@@ -10,6 +10,7 @@ import type {
   FastestLapPayload,
 } from "@/timeline/events";
 import { teamColor } from "@/utils/color";
+import { useSettings } from "@/stores/settings";
 
 interface Props {
   toasts: ActiveToast[];
@@ -541,27 +542,41 @@ function FastestLapToast({
   driverMap: Map<number, Driver>;
   onDismiss: (id: string) => void;
 }) {
+  const lightMode = useSettings((s) => s.lightMode);
   const p = at.event.payload as FastestLapPayload;
   const driver = driverMap.get(p.driverNumber);
 
   return (
     <div
       className="pointer-events-auto rounded-lg shadow-xl overflow-hidden w-full"
-      style={{ background: "#1a0e2e", border: "1px solid #9b59f5" }}
+      style={{
+        background: lightMode ? "#f3e9ff" : "#1a0e2e",
+        border: `1px solid ${lightMode ? "#a965f0" : "#9b59f5"}`,
+      }}
     >
       <div
         className="flex items-center gap-2 px-2.5 py-1 md:px-3 md:py-1"
-        style={{ background: "#9b59f5" }}
+        style={{ background: lightMode ? "#c88dff" : "#9b59f5" }}
       >
-        <span className="text-[10px] font-black uppercase tracking-widest text-white">
+        <span
+          className="text-[10px] font-black uppercase tracking-widest"
+          style={{ color: lightMode ? "#12121a" : "#ffffff" }}
+        >
           Fastest Lap
         </span>
-        <span className="text-[9px] font-mono text-white/75">
+        <span
+          className="text-[9px] font-mono"
+          style={{ color: lightMode ? "rgba(18,18,26,0.7)" : "#ffffff" }}
+        >
           L{p.lapNumber}
         </span>
         <button
           onClick={() => onDismiss(at.event.id)}
-          className="ml-auto flex items-center justify-center w-5 h-5 text-xs text-white/70 hover:text-white transition-colors"
+          className={
+            lightMode
+              ? "ml-auto flex items-center justify-center w-5 h-5 text-xs text-[#12121a]/65 hover:text-[#12121a] transition-colors"
+              : "ml-auto flex items-center justify-center w-5 h-5 text-xs text-white/70 hover:text-white transition-colors"
+          }
           style={{ touchAction: "manipulation" }}
           aria-label="Dismiss"
         >
@@ -571,13 +586,13 @@ function FastestLapToast({
       <div className="flex items-center px-2.5 py-1.5 md:px-3 md:py-2">
         <span
           className="font-black text-[12px] md:text-[13px] flex-1"
-          style={{ color: "#9b59f5" }}
+          style={{ color: lightMode ? "#7d22de" : "#9b59f5" }}
         >
           {driver?.name_acronym ?? p.driverNumber}
         </span>
         <span
           className="font-mono text-[10px] md:text-[12px] tabular-nums"
-          style={{ color: "#9b59f5" }}
+          style={{ color: lightMode ? "#7d22de" : "#9b59f5" }}
         >
           {fmtLapTime(p.lapTime)}
         </span>

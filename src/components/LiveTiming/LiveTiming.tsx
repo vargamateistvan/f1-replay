@@ -355,6 +355,7 @@ export function LiveTiming({
   chequeredMs = null,
 }: Props) {
   const metricSystem = useSettings((s) => s.metricSystem);
+  const lightMode = useSettings((s) => s.lightMode);
   const speedUnitShort = speedUnitLabel(metricSystem);
   const speedUnitCompact = speedUnitCompactLabel(metricSystem);
   const showTelemetry = carData !== undefined;
@@ -852,6 +853,16 @@ export function LiveTiming({
   if (fullWidthTable) rowHeightClass = "h-8";
   else if (dense) rowHeightClass = "h-[30px]";
 
+  const timingStripClass = lightMode
+    ? "border-b border-slate-200 bg-white/95"
+    : "border-b border-[#2a2a35] bg-surface/80";
+  const timingHeaderRowClass = lightMode
+    ? "sticky top-0 z-10 border-b border-slate-200 bg-white"
+    : "sticky top-0 z-10 border-b border-[#38383f] bg-track";
+  const timingRowBaseClass = lightMode
+    ? "border-b border-slate-200 transition-colors"
+    : "border-b border-[#1e1e28] transition-colors";
+
   if (isLoading) {
     return (
       <div className="p-3 sm:p-4">
@@ -886,7 +897,7 @@ export function LiveTiming({
   return (
     <div className="panel-scroll">
       {!dense && (
-        <div className="border-b border-[#2a2a35] bg-surface/80 px-2 py-2 sm:px-3">
+        <div className={timingStripClass + " px-2 py-2 sm:px-3"}>
           {hasSectorReference ? (
             <>
               <div className="grid grid-cols-1 gap-1.5 min-[360px]:grid-cols-3 sm:gap-2">
@@ -959,7 +970,7 @@ export function LiveTiming({
           className={`${fullWidthTable ? "w-full" : "w-max min-w-full"} ${tableMinWidthClass} border-collapse table-auto`}
         >
           <thead>
-            <tr className="sticky top-0 bg-track z-10 border-b border-[#38383f]">
+            <tr className={timingHeaderRowClass}>
               <th className={`${headerCellClass} text-left w-8`}>P</th>
               <th className={driverColClass}>Driver</th>
               <th
@@ -1249,7 +1260,7 @@ export function LiveTiming({
                 <tr
                   key={num}
                   onClick={() => onSelectDriver?.(num)}
-                  className={`border-b border-[#1e1e28] transition-colors ${rowHeightClass} ${onSelectDriver ? "cursor-pointer" : ""} ${rowBg} ${lapFlashClass}`}
+                  className={`${timingRowBaseClass} ${rowHeightClass} ${onSelectDriver ? "cursor-pointer" : ""} ${rowBg} ${lapFlashClass}`}
                 >
                   {/* Position */}
                   <td

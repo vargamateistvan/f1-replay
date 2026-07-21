@@ -26,6 +26,10 @@ html.light body {
 
 /* text-white → dark in light mode */
 html.light .text-white          { color: #12121a !important; }
+html.light .text-white\/45      { color: rgba(18,18,26,0.5) !important; }
+html.light .text-white\/40      { color: rgba(18,18,26,0.45) !important; }
+html.light .text-white\/30      { color: rgba(18,18,26,0.35) !important; }
+html.light .text-white\/20      { color: rgba(18,18,26,0.25) !important; }
 html.light .text-white\/85      { color: rgba(18,18,26,0.85) !important; }
 html.light .text-white\/90      { color: rgba(18,18,26,0.9) !important; }
 html.light .text-white\/80      { color: rgba(18,18,26,0.8) !important; }
@@ -35,6 +39,7 @@ html.light .text-white\/50      { color: rgba(18,18,26,0.5) !important; }
 
 /* Hardcoded hex backgrounds */
 html.light .bg-\[\#15151e\]     { background-color: rgb(240 240 245) !important; }
+html.light .bg-\[\#15151e\]\/85  { background-color: rgba(240,240,245,0.85) !important; }
 html.light .bg-\[\#1a1a24\]     { background-color: rgb(234 234 242) !important; }
 html.light .bg-\[\#1e1e28\]     { background-color: rgb(232 232 242) !important; }
 html.light .bg-\[\#2a2a35\]     { background-color: rgb(220 220 232) !important; }
