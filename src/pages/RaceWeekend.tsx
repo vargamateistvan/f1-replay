@@ -1002,14 +1002,12 @@ export default function RaceWeekend() {
   const shouldShowHistoricalSummary = Boolean(session && !live);
 
   const topFinisherLabel = useMemo(() => {
-    return buildTopFinisherLabel(
-      sessionResult.data ?? [],
-      drivers.data ?? [],
-    );
+    return buildTopFinisherLabel(sessionResult.data ?? [], drivers.data ?? []);
   }, [drivers.data, sessionResult.data]);
 
   const safetyCarCount = useMemo(
-    () => countRaceControlPhaseStarts(timedRaceControlSignals, "safety_car_start"),
+    () =>
+      countRaceControlPhaseStarts(timedRaceControlSignals, "safety_car_start"),
     [timedRaceControlSignals],
   );
 
@@ -1031,6 +1029,23 @@ export default function RaceWeekend() {
   const latestWeather = useMemo(() => {
     return getLatestWeatherSnapshot(weather.data ?? []);
   }, [weather.data]);
+
+  const canOpenFinalClassificationFromSummary =
+    (sessionResult.data?.length ?? 0) > 0 && !sessionResult.isError;
+
+  const openFinalClassificationFromSummary = () => {
+    if (!session) return;
+    if (!canOpenFinalClassificationFromSummary) return;
+
+    trackAnalyticsEvent("historical_summary_cta_clicked", {
+      cta_target: "final_classification",
+      session_key: session.session_key,
+      meeting_key: session.meeting_key,
+      session_type: session.session_type,
+      year: session.year,
+    });
+    setIsResultsDialogOpen(true);
+  };
 
   useEffect(() => {
     if (!shouldShowHistoricalSummary || !session) return;
@@ -1326,6 +1341,17 @@ export default function RaceWeekend() {
               </span>
             )}
           </div>
+          {canOpenFinalClassificationFromSummary && (
+            <div className="mt-2">
+              <button
+                type="button"
+                onClick={openFinalClassificationFromSummary}
+                className="inline-flex items-center rounded-sm border border-f1red/70 bg-f1red/10 px-2 py-1 text-[10px] font-black uppercase tracking-[0.12em] text-f1red transition-colors hover:bg-f1red/20"
+              >
+                View Final Classification
+              </button>
+            </div>
+          )}
         </section>
       )}
 

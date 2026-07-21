@@ -10,7 +10,9 @@ import {
 
 describe("raceWeekendSummary helpers", () => {
   it("formats valid session dates and rejects invalid values", () => {
-    expect(formatSessionDateLabel("2025-03-16T14:00:00Z")).toBe("March 16, 2025");
+    expect(formatSessionDateLabel("2025-03-16T14:00:00Z")).toBe(
+      "March 16, 2025",
+    );
     expect(formatSessionDateLabel("not-a-date")).toBeNull();
   });
 
@@ -47,7 +49,9 @@ describe("raceWeekendSummary helpers", () => {
       },
     ];
 
-    expect(buildTopFinisherLabel(results, drivers)).toBe("Max Verstappen (VER)");
+    expect(buildTopFinisherLabel(results, drivers)).toBe(
+      "Max Verstappen (VER)",
+    );
   });
 
   it("falls back to driver number when winner profile is missing", () => {

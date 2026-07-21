@@ -1,9 +1,4 @@
-import type {
-  Driver,
-  RaceControl,
-  SessionResult,
-  Weather,
-} from "@/api/types";
+import type { Driver, RaceControl, SessionResult, Weather } from "@/api/types";
 
 type SafetyPhaseSignal = {
   phase: string | null;
