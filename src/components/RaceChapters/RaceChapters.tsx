@@ -291,6 +291,7 @@ interface Props {
   laps: Lap[];
   sessionStartMs: number;
   sessionTimeMs: number;
+  showAllItems?: boolean;
   onJump: (ms: number) => void;
   onPlayWindow?: (startMs: number, endMs: number) => void;
 }
@@ -307,6 +308,7 @@ export function RaceChapters({
   laps,
   sessionStartMs,
   sessionTimeMs,
+  showAllItems = false,
   onJump,
   onPlayWindow,
 }: Props) {
@@ -319,9 +321,13 @@ export function RaceChapters({
   const visibleChapters = useMemo(
     () =>
       incidentOnly
-        ? chapters.filter((c) => c.incidentWindowId !== null)
-        : chapters,
-    [chapters, incidentOnly],
+        ? chapters.filter(
+            (c) =>
+              c.incidentWindowId !== null &&
+              (showAllItems || c.startMs <= sessionTimeMs),
+          )
+        : chapters.filter((c) => showAllItems || c.startMs <= sessionTimeMs),
+    [chapters, incidentOnly, showAllItems, sessionTimeMs],
   );
 
   const chapterGroups = useMemo<ChapterGroup[]>(() => {

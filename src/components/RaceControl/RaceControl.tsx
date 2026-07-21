@@ -111,6 +111,7 @@ interface Props {
   readonly sessionKey?: number | null;
   readonly sessionTimeMs: number;
   readonly sessionStartMs: number;
+  readonly showAllItems?: boolean;
   readonly drivers?: Driver[];
   readonly focusDriver?: number | null;
   readonly onClearFocus?: () => void;
@@ -123,6 +124,7 @@ export function RaceControlFeed({
   sessionKey = null,
   sessionTimeMs,
   sessionStartMs,
+  showAllItems = false,
   drivers = [],
   focusDriver = null,
   onClearFocus,
@@ -141,8 +143,11 @@ export function RaceControlFeed({
   );
 
   const visibleEntries = useMemo(
-    () => normalized.filter((e) => e.ms <= sessionTimeMs),
-    [normalized, sessionTimeMs],
+    () =>
+      showAllItems
+        ? normalized
+        : normalized.filter((e) => e.ms <= sessionTimeMs),
+    [normalized, sessionTimeMs, showAllItems],
   );
 
   // Active flag banner

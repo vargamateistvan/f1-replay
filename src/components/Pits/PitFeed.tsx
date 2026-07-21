@@ -12,6 +12,7 @@ interface Props {
   readonly drivers: Driver[];
   readonly sessionTimeMs: number;
   readonly sessionStartMs: number;
+  readonly showAllItems?: boolean;
 }
 
 type VisiblePitEntry = {
@@ -40,6 +41,7 @@ export function PitFeed({
   drivers,
   sessionTimeMs,
   sessionStartMs,
+  showAllItems = false,
 }: Props) {
   const showCsvExportButtons = useSettings((s) => s.showCsvExportButtons);
   const [renderLimit, setRenderLimit] = useState(120);
@@ -63,18 +65,10 @@ export function PitFeed({
   );
 
   const visibleAll = useMemo(() => {
+    if (showAllItems) return [...datedEntries].reverse();
     const endIndex = upperBoundByValue(datedEntries, currentT, (e) => e.dateMs);
-    const entriesInView = endIndex > 0 ? datedEntries.slice(0, endIndex) : [];
-    if (entriesInView.length === 0) return [];
-
-    const latestEntry = entriesInView.at(-1);
-    if (!latestEntry) return [];
-    const showAll = currentT >= latestEntry.dateMs;
-
-    return showAll
-      ? [...entriesInView].reverse()
-      : entriesInView.slice(-40).reverse();
-  }, [datedEntries, currentT]);
+    return endIndex > 0 ? datedEntries.slice(0, endIndex).reverse() : [];
+  }, [datedEntries, currentT, showAllItems]);
 
   const visible = useMemo<VisiblePitEntry[]>(
     () => visibleAll.slice(0, renderLimit),
@@ -87,7 +81,7 @@ export function PitFeed({
     for (const item of visible) {
       const lapNumber = item.entry.lap_number ?? null;
       const current = groups.at(-1);
-      if (!current || current.lapNumber !== lapNumber) {
+      if (current?.lapNumber !== lapNumber) {
         groups.push({ lapNumber, entries: [item] });
       } else {
         current.entries.push(item);

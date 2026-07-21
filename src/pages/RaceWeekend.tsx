@@ -94,6 +94,7 @@ import type { CommentaryTab } from "@/components/CommentaryPanels/CommentaryPane
 
 // Sub-tab options per view
 type TrackerTab = "timing" | "chart" | "gap" | "map" | "strategy";
+type CommentaryTimeMode = "elapsed" | "all";
 
 const PANEL = "bg-surface border border-panel";
 const PANEL_TITLE =
@@ -194,6 +195,8 @@ export default function RaceWeekend() {
     "ctab",
     "rc",
   );
+  const [commentaryTimeMode, setCommentaryTimeMode] =
+    useStringParam<CommentaryTimeMode>("cmode", "elapsed");
   const activeTrackerTab = trackerTab ?? "timing";
   const activeCommentaryTab = commentaryTab ?? "rc";
   const [focusDriver] = useNumberParam("focus", null);
@@ -1642,12 +1645,34 @@ export default function RaceWeekend() {
 
           {/* Live lap status */}
           <div className="shrink-0 border-b border-panel bg-surface/70 px-3 py-1.5">
-            <span className="text-[10px] font-black uppercase tracking-[0.12em] text-muted">
-              Lap{" "}
-              <span className="text-white tabular-nums">
-                {commentaryLapLabel}
+            <div className="flex items-center gap-3">
+              <span className="text-[10px] font-black uppercase tracking-[0.12em] text-muted">
+                Lap{" "}
+                <span className="text-white tabular-nums">
+                  {commentaryLapLabel}
+                </span>
               </span>
-            </span>
+              <button
+                type="button"
+                onClick={() =>
+                  setCommentaryTimeMode(
+                    commentaryTimeMode === "all" ? "elapsed" : "all",
+                  )
+                }
+                className={`h-5 px-2 text-[9px] font-black uppercase tracking-widest border transition-colors ${
+                  commentaryTimeMode === "all"
+                    ? "border-f1red bg-f1red text-white"
+                    : "border-panel bg-track text-muted hover:text-white"
+                }`}
+                title={
+                  commentaryTimeMode === "all"
+                    ? "Showing all commentary items"
+                    : "Showing elapsed commentary items"
+                }
+              >
+                {commentaryTimeMode === "all" ? "All" : "Elapsed"}
+              </button>
+            </div>
           </div>
 
           {/* Content */}
@@ -1672,6 +1697,7 @@ export default function RaceWeekend() {
                 sessionTimeMs={t}
                 sessionStartMs={sessionStartMs}
                 toastEvents={toastEvents}
+                showAllItems={commentaryTimeMode === "all"}
                 focusDriver={focusDriver}
                 onClearFocus={clearFocusSelection}
                 onPlayWindow={(startMs, endMs) => {

@@ -8,6 +8,7 @@ interface Props {
   laps: Lap[];
   sessionStartMs: number;
   sessionTimeMs: number;
+  showAllItems?: boolean;
   onJump: (ms: number) => void;
 }
 
@@ -42,11 +43,15 @@ export function KeyMoments({
   laps,
   sessionStartMs,
   sessionTimeMs,
+  showAllItems = false,
   onJump,
 }: Readonly<Props>) {
   const visibleMoments = useMemo(
-    () => moments.filter((moment) => moment.ms <= sessionTimeMs),
-    [moments, sessionTimeMs],
+    () =>
+      showAllItems
+        ? moments
+        : moments.filter((moment) => moment.ms <= sessionTimeMs),
+    [moments, sessionTimeMs, showAllItems],
   );
 
   const lapLookup = useMemo(

@@ -84,6 +84,7 @@ type Props = {
   sessionTimeMs: number;
   sessionStartMs: number;
   toastEvents: ToastEvent[];
+  showAllItems: boolean;
   focusDriver: number | null;
   onClearFocus?: () => void;
   onPlayWindow: (startMs: number, endMs: number) => void;
@@ -111,6 +112,7 @@ type RenderContext = Readonly<{
   sessionYear: number | null;
   sessionTimeMs: number;
   sessionStartMs: number;
+  showAllItems: boolean;
   focusDriver: number | null;
   onClearFocus?: () => void;
   keyMoments: KeyMoment[];
@@ -256,6 +258,7 @@ function renderCommentaryTabContent(ctx: RenderContext): ReactNode {
             sessionKey={ctx.sessionKey}
             sessionTimeMs={ctx.sessionTimeMs}
             sessionStartMs={ctx.sessionStartMs}
+            showAllItems={ctx.showAllItems}
             drivers={ctx.drivers}
             focusDriver={ctx.focusDriver}
             onClearFocus={
@@ -278,6 +281,7 @@ function renderCommentaryTabContent(ctx: RenderContext): ReactNode {
             laps={ctx.laps}
             sessionTimeMs={ctx.sessionTimeMs}
             sessionStartMs={ctx.sessionStartMs}
+            showAllItems={ctx.showAllItems}
           />
         </Suspense>
       );
@@ -293,6 +297,7 @@ function renderCommentaryTabContent(ctx: RenderContext): ReactNode {
             drivers={ctx.drivers}
             sessionTimeMs={ctx.sessionTimeMs}
             sessionStartMs={ctx.sessionStartMs}
+            showAllItems={ctx.showAllItems}
           />
         </Suspense>
       );
@@ -309,6 +314,7 @@ function renderCommentaryTabContent(ctx: RenderContext): ReactNode {
             laps={ctx.laps}
             sessionTimeMs={ctx.sessionTimeMs}
             sessionStartMs={ctx.sessionStartMs}
+            showAllItems={ctx.showAllItems}
           />
         </Suspense>
       );
@@ -321,6 +327,7 @@ function renderCommentaryTabContent(ctx: RenderContext): ReactNode {
             laps={ctx.laps}
             sessionStartMs={ctx.sessionStartMs}
             sessionTimeMs={ctx.sessionTimeMs}
+            showAllItems={ctx.showAllItems}
             onJump={(ms) => useTimeline.getState().setT(ms)}
           />
         </Suspense>
@@ -336,6 +343,7 @@ function renderCommentaryTabContent(ctx: RenderContext): ReactNode {
             laps={ctx.laps}
             sessionStartMs={ctx.sessionStartMs}
             sessionTimeMs={ctx.sessionTimeMs}
+            showAllItems={ctx.showAllItems}
             onJump={(ms) => useTimeline.getState().setT(ms)}
             onPlayWindow={ctx.onPlayWindow}
           />
@@ -366,6 +374,7 @@ export function CommentaryPanels({
   sessionTimeMs,
   sessionStartMs,
   toastEvents,
+  showAllItems,
   focusDriver,
   onClearFocus,
   onPlayWindow,
@@ -466,6 +475,7 @@ export function CommentaryPanels({
     sessionYear,
     sessionTimeMs,
     sessionStartMs,
+    showAllItems,
     focusDriver,
     onClearFocus,
     keyMoments,
