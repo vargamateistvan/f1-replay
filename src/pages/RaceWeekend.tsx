@@ -388,6 +388,8 @@ export default function RaceWeekend() {
   const isMapVisible =
     currentView === "tracker" &&
     (!isCompactViewport || activeTrackerTab === "map");
+  const shouldPrefetchMapChunks =
+    !isCompactViewport && isMapVisible && playbackSpeed >= 4;
   const shouldTrackToasts = currentView === "tracker";
   const shouldBuildCommentaryMoments = currentView === "commentary";
   const shouldBuildToastEvents =
@@ -399,7 +401,7 @@ export default function RaceWeekend() {
     isMapVisible ? t : undefined,
     {
       includeNextChunk: !isCompactViewport,
-      prefetchChunks: !isCompactViewport,
+      prefetchChunks: shouldPrefetchMapChunks,
       playbackSpeed,
     },
   );
@@ -766,6 +768,10 @@ export default function RaceWeekend() {
     sessionStartMs,
     telemetryChunkIdx,
     telemetryEnabled,
+    {
+      includePreviousChunk: false,
+      includeNextChunk: false,
+    },
   );
 
   // Group samples per driver, sorted by session-relative ms. Rebuilds only when

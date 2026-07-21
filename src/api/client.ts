@@ -151,9 +151,9 @@ function parseRetryAfter(res: Response): number | null {
 async function isNoResults404(path: string, res: Response): Promise<boolean> {
   if (res.status !== 404) return false;
 
-  // OpenF1 location windows frequently return 404 when no samples exist in a
-  // requested range. For replay chunking this is an expected "empty chunk".
-  if (path === "location") return true;
+  // Some OpenF1 endpoints legitimately return 404 for "no data" in a given
+  // session/filter. Treat these as empty datasets instead of hard failures.
+  if (path === "location" || path === "starting_grid") return true;
 
   try {
     const body = (await res.clone().json()) as OpenF1ErrorPayload;

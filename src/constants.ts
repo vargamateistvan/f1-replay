@@ -31,8 +31,8 @@ export const LIVE_BUFFER_MS = 30 * 60 * 1000;
 // Refetch intervals for live data. Fast cadence is for timing-critical panels
 // (positions/intervals/laps), while slower cadence reduces pressure for feeds
 // that change less often (weather/race control/team radio/overtakes).
-export const LIVE_POLL_FAST_MS = 15_000;
-export const LIVE_POLL_SLOW_MS = 30_000;
+export const LIVE_POLL_FAST_MS = 20_000;
+export const LIVE_POLL_SLOW_MS = 60_000;
 // OpenF1 MQTT-over-WebSocket endpoint for browser clients.
 export const OPENF1_MQTT_WSS_URL = "wss://mqtt.openf1.org:8084/mqtt";
 // Grace period for reconnect attempts before giving up the current connection attempt.

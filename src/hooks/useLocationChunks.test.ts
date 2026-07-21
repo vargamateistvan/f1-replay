@@ -86,17 +86,17 @@ describe("mergeLocationChunkData", () => {
 });
 
 describe("getLocationPrefetchOffsets", () => {
-  it("uses the default two-chunk headroom at normal playback speeds", () => {
-    expect(getLocationPrefetchOffsets(1)).toEqual([2, 3]);
-    expect(getLocationPrefetchOffsets(4)).toEqual([2, 3]);
+  it("disables prefetch at normal speeds and enables shallow lookahead at 4x", () => {
+    expect(getLocationPrefetchOffsets(1)).toEqual([]);
+    expect(getLocationPrefetchOffsets(4)).toEqual([2]);
   });
 
-  it("widens lookahead substantially at 8x playback", () => {
-    expect(getLocationPrefetchOffsets(8)).toEqual([2, 3, 4, 5, 6]);
+  it("keeps lookahead modest at 8x playback", () => {
+    expect(getLocationPrefetchOffsets(8)).toEqual([2, 3]);
   });
 
-  it("widens lookahead even further at 16x playback", () => {
-    expect(getLocationPrefetchOffsets(16)).toEqual([2, 3, 4, 5, 6, 7, 8]);
+  it("expands lookahead at 16x while staying bounded", () => {
+    expect(getLocationPrefetchOffsets(16)).toEqual([2, 3, 4]);
   });
 });
 

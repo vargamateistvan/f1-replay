@@ -25,9 +25,15 @@ export function useAllCarDataWindow(
   sessionStartMs: number,
   chunkIdx: number,
   enabled: boolean,
+  options?: {
+    includePreviousChunk?: boolean;
+    includeNextChunk?: boolean;
+  },
 ): { data: CarData[]; isPending: boolean } {
   const on = enabled && sessionKey !== null && sessionStartMs > 0;
   const qc = useQueryClient();
+  const includePreviousChunk = options?.includePreviousChunk ?? true;
+  const includeNextChunk = options?.includeNextChunk ?? true;
 
   const makeOptions = (idx: number) => ({
     queryKey: ["allCarDataWindow", sessionKey, idx] as const,
@@ -40,9 +46,15 @@ export function useAllCarDataWindow(
     gcTime: Infinity,
   });
 
-  const previous = useQuery(makeOptions(chunkIdx - 1));
+  const previous = useQuery({
+    ...makeOptions(chunkIdx - 1),
+    enabled: on && includePreviousChunk && chunkIdx > 0,
+  });
   const current = useQuery(makeOptions(chunkIdx));
-  const next = useQuery(makeOptions(chunkIdx + 1));
+  const next = useQuery({
+    ...makeOptions(chunkIdx + 1),
+    enabled: on && includeNextChunk,
+  });
 
   // Evict chunks outside the keep window and anything left over from a
   // previously viewed session — with staleTime/gcTime: Infinity these never
@@ -70,11 +82,17 @@ export function useAllCarDataWindow(
 
   const data = useMemo(
     () => [
-      ...(previous.data ?? []),
+      ...(includePreviousChunk ? (previous.data ?? []) : []),
       ...(current.data ?? []),
-      ...(next.data ?? []),
+      ...(includeNextChunk ? (next.data ?? []) : []),
     ],
-    [previous.data, current.data, next.data],
+    [
+      includePreviousChunk,
+      includeNextChunk,
+      previous.data,
+      current.data,
+      next.data,
+    ],
   );
 
   return {

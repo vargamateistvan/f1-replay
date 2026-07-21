@@ -221,6 +221,29 @@ describe("fetchEndpoint - rate limiter", () => {
     expect(result).toEqual([]);
   });
 
+  it("treats a starting_grid 404 as an empty array", async () => {
+    const { fetchEndpoint } = await importFreshClient();
+
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(() =>
+        Promise.resolve({
+          ok: false,
+          status: 404,
+          headers: { get: () => null },
+          clone: () => ({
+            json: async () => ({ detail: "Not Found" }),
+          }),
+        }),
+      ),
+    );
+
+    const result = await fetchEndpoint("starting_grid", {
+      session_key: 1,
+    });
+    expect(result).toEqual([]);
+  });
+
   it("throws OpenF1Error on non-retryable 4xx", async () => {
     const { fetchEndpoint, OpenF1Error } = await importFreshClient();
 

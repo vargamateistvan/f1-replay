@@ -2,10 +2,16 @@ import { useQuery } from "@tanstack/react-query";
 import { api } from "@/api/endpoints";
 import { LIVE_POLL_FAST_MS, LIVE_POLL_SLOW_MS } from "@/utils/live";
 
-export function useMeetings(year: number) {
+export function useMeetings(
+  year: number,
+  options?: {
+    enabled?: boolean;
+  },
+) {
   return useQuery({
     queryKey: ["meetings", year],
     queryFn: () => api.meetings(year),
+    enabled: (options?.enabled ?? true) && Number.isFinite(year),
     staleTime: Infinity,
   });
 }
@@ -58,7 +64,8 @@ export function useLaps(
     queryFn: () => api.laps(sessionKey!, driverNumber),
     enabled: sessionKey !== null,
     staleTime: isLive ? 0 : Infinity,
-    refetchInterval: isLive ? LIVE_POLL_FAST_MS : false,
+    // Laps update less frequently than position/interval timing rows.
+    refetchInterval: isLive ? LIVE_POLL_SLOW_MS : false,
   });
 }
 

@@ -67,15 +67,17 @@ async function fetchCarDataForLap(
   lapNumber: number,
 ): Promise<TelemetrySample[] | null> {
   // Step 1 — get the lap's date range.
-  // Prefer the already-cached laps query (same key as useLaps in useSession.ts)
-  // to avoid a second round-trip on cold cache.
-  const cached = queryClient.getQueryData<Lap[]>([
-    "laps",
-    sessionKey,
-    driverNumber,
-  ]);
-  const laps = cached ?? (await api.laps(sessionKey, driverNumber));
-  const lap: Lap | undefined = laps.find((l) => l.lap_number === lapNumber);
+  // Reuse the all-driver laps query key from useLaps(sessionKey) so telemetry
+  // does not trigger separate `driver_number` laps requests on startup.
+  const laps = await queryClient.ensureQueryData<Lap[]>({
+    queryKey: ["laps", sessionKey, undefined],
+    queryFn: () => api.laps(sessionKey),
+    staleTime: Infinity,
+  });
+  const driverLaps = laps.filter((l) => l.driver_number === driverNumber);
+  const lap: Lap | undefined = driverLaps.find(
+    (l) => l.lap_number === lapNumber,
+  );
   if (!lap?.date_start || !lap.lap_duration) return null;
 
   const lapStartMs = new Date(lap.date_start).getTime();

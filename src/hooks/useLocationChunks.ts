@@ -45,9 +45,11 @@ export function locationChunkIndexFor(tMs: number): number {
 }
 
 export function getLocationPrefetchOffsets(playbackSpeed: number): number[] {
-  if (playbackSpeed >= 16) return [2, 3, 4, 5, 6, 7, 8];
-  if (playbackSpeed >= 8) return [2, 3, 4, 5, 6];
-  return [2, 3];
+  // Keep prefetch shallow to avoid API bursts during playback.
+  if (playbackSpeed >= 16) return [2, 3, 4];
+  if (playbackSpeed >= 8) return [2, 3];
+  if (playbackSpeed >= 4) return [2];
+  return [];
 }
 
 export function getEarlyLocationPrefetchMs(playbackSpeed: number): number {
@@ -113,15 +115,16 @@ export function useLocationChunks(
   // Prefetch farther ahead at high playback speeds so fast-forward does not outrun
   // the network. Base headroom is +2/+3, then +4 at 8x and +5 at 16x.
   useEffect(() => {
-    if (!enabled || !prefetchChunks) return;
-    for (const offset of prefetchOffsets) {
-      qc.prefetchQuery({
-        queryKey: chunkKey(sessionKey!, chunkIdx + offset),
-        queryFn: () =>
-          fetchChunk(sessionKey!, sessionStartMs!, chunkIdx + offset),
-        staleTime: Infinity,
-      });
-    }
+    if (!enabled || !prefetchChunks || prefetchOffsets.length === 0) return;
+    // Prefetch only one furthest-ahead chunk per index step to avoid
+    // parallel request fan-out on play.
+    const targetOffset = prefetchOffsets[prefetchOffsets.length - 1]!;
+    qc.prefetchQuery({
+      queryKey: chunkKey(sessionKey!, chunkIdx + targetOffset),
+      queryFn: () =>
+        fetchChunk(sessionKey!, sessionStartMs!, chunkIdx + targetOffset),
+      staleTime: Infinity,
+    });
   }, [
     qc,
     enabled,
