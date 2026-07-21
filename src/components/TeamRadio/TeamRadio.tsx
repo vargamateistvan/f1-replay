@@ -6,6 +6,7 @@ import { useSettings } from "@/stores/settings";
 import { teamColor } from "@/utils/color";
 import { buildLapLookup, lapNumberAtMs } from "@/utils/lapLookup";
 import { upperBoundByValue } from "@/utils/sortedTime";
+import { toSafeExternalUrl } from "@/utils/url";
 
 interface Props {
   readonly entries: TeamRadioEntry[];
@@ -157,7 +158,9 @@ export function TeamRadioFeed({
           {group.entries.map(({ entry: e, dateMs: entryMs, lapNumber }) => {
             const driver = driverByNumber.get(e.driver_number);
             const color = teamColor(driver?.team_colour);
-            const isPlaying = playing === e.recording_url;
+            const recordingUrl = toSafeExternalUrl(e.recording_url);
+            const hasAudio = Boolean(recordingUrl);
+            const isPlaying = recordingUrl !== null && playing === recordingUrl;
             return (
               <div
                 key={`${e.driver_number}-${e.date}-${e.recording_url}`}
@@ -188,7 +191,8 @@ export function TeamRadioFeed({
                 </div>
                 <div className="shrink-0">
                   <button
-                    onClick={() => play(e.recording_url)}
+                    onClick={() => recordingUrl && play(recordingUrl)}
+                    disabled={!hasAudio}
                     aria-label={isPlaying ? "Stop" : "Play"}
                     className={`flex items-center gap-1.5 px-2.5 py-1 text-[10px] font-black uppercase tracking-widest transition-colors ${
                       isPlaying
@@ -212,10 +216,10 @@ export function TeamRadioFeed({
                       </>
                     )}
                   </button>
-                  {isPlaying && (
+                  {isPlaying && recordingUrl && (
                     <audio
-                      key={e.recording_url}
-                      src={e.recording_url}
+                      key={recordingUrl}
+                      src={recordingUrl}
                       autoPlay
                       onEnded={() => setPlaying(null)}
                       onError={() => setPlaying(null)}

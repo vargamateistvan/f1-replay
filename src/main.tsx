@@ -166,8 +166,9 @@ if (typeof globalThis.window !== "undefined") {
 // Initialize app
 const root = document.getElementById("root");
 if (root) {
+  const appRoot = createRoot(root);
   try {
-    createRoot(root).render(<App />);
+    appRoot.render(<App />);
   } catch (e) {
     // Catch any errors during root render
     const msg = e instanceof Error ? e.message : String(e);
@@ -176,17 +177,26 @@ if (root) {
       tags: { log_source: "root_render_error" },
       level: "fatal",
     });
-    // Display fallback UI
-    root.innerHTML = `
-      <div style="display:flex; align-items:center; justify-content:center; min-height:100vh; background:#1a1a1a; color:#fff; font-family:monospace; text-align:center; padding:20px;">
+    appRoot.render(
+      <div className="flex min-h-screen items-center justify-center bg-[#1a1a1a] px-5 text-center font-mono text-white">
         <div>
-          <h1 style="color:#e80000; margin-bottom:10px;">Critical Error</h1>
-          <p style="margin-bottom:10px;">${msg}</p>
-          <p style="color:#999; font-size:12px;">Refreshing page or clearing cache may help.</p>
-          <button onclick="location.href='/'" style="margin-top:20px; padding:10px 20px; background:#e80000; color:white; border:none; border-radius:4px; cursor:pointer;">Go Home</button>
+          <h1 className="mb-2 text-2xl font-bold text-[#e80000]">
+            Critical Error
+          </h1>
+          <p className="mb-2">{msg}</p>
+          <p className="text-xs text-[#999]">
+            Refreshing page or clearing cache may help.
+          </p>
+          <button
+            type="button"
+            onClick={() => globalThis.window.location.assign("/")}
+            className="mt-5 rounded bg-[#e80000] px-5 py-2.5 text-white"
+          >
+            Go Home
+          </button>
         </div>
-      </div>
-    `;
+      </div>,
+    );
   }
 } else {
   Sentry.logger.error("Root element not found during app bootstrap", {

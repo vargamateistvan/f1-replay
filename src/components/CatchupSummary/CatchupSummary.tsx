@@ -12,6 +12,7 @@ import type {
 } from "@/timeline/events";
 import { teamColor } from "@/utils/color";
 import { useSettings } from "@/stores/settings";
+import { toSafeExternalUrl } from "@/utils/url";
 
 interface Props {
   summary: CatchupSummaryData;
@@ -63,12 +64,12 @@ function CatchupEventRow({
   driverMap,
   playingUrl,
   onToggleRadio,
-}: {
+}: Readonly<{
   ev: import("@/timeline/events").ToastEvent;
   driverMap: Map<number, import("@/api/types").Driver>;
   playingUrl: string | null;
   onToggleRadio: (url: string) => void;
-}) {
+}>) {
   if (ev.kind === "fastest_lap") {
     const p = ev.payload as FastestLapPayload;
     const d = driverMap.get(p.driverNumber);
@@ -272,10 +273,9 @@ function CatchupEventRow({
     const p = ev.payload as RadioPayload;
     const d = driverMap.get(p.driverNumber);
     const driverColor = teamColor(d?.team_colour);
-    const hasAudio = Boolean(
-      p.recordingUrl && p.recordingUrl.trim().length > 0,
-    );
-    const isPlaying = playingUrl === p.recordingUrl;
+    const recordingUrl = toSafeExternalUrl(p.recordingUrl);
+    const hasAudio = Boolean(recordingUrl);
+    const isPlaying = recordingUrl !== null && playingUrl === recordingUrl;
     return (
       <div className="px-3 py-2 border-l-2 border-l-[#6b6b7a]">
         <div className="flex items-center justify-between gap-2">
@@ -298,7 +298,7 @@ function CatchupEventRow({
               {fmtRaceTime(ev.ms)}
             </span>
             <button
-              onClick={() => hasAudio && onToggleRadio(p.recordingUrl)}
+              onClick={() => recordingUrl && onToggleRadio(recordingUrl)}
               disabled={!hasAudio}
               aria-label={isPlaying ? "Stop" : "Play"}
               className={[
@@ -323,13 +323,13 @@ function CatchupEventRow({
             </button>
           </div>
         </div>
-        {isPlaying && hasAudio && (
+        {isPlaying && recordingUrl && (
           <audio
-            key={p.recordingUrl}
-            src={p.recordingUrl}
+            key={recordingUrl}
+            src={recordingUrl}
             autoPlay
-            onEnded={() => onToggleRadio(p.recordingUrl)}
-            onError={() => onToggleRadio(p.recordingUrl)}
+            onEnded={() => onToggleRadio(recordingUrl)}
+            onError={() => onToggleRadio(recordingUrl)}
             className="hidden"
           >
             <track kind="captions" />

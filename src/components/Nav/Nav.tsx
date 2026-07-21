@@ -22,6 +22,7 @@ import {
   fetchCircuitFactsFromApi,
   type CircuitFacts,
 } from "@/api/circuitFactsLookup";
+import { toSafeExternalUrl } from "@/utils/url";
 
 export type MainView = "leaderboard" | "tracker" | "commentary";
 
@@ -143,9 +144,17 @@ export function Nav() {
   const selectedSession = sessions.data?.find(
     (s) => s.session_key === sessionKey,
   );
+  const selectedCircuitImageUrl = toSafeExternalUrl(
+    selectedMeeting?.circuit_image,
+  );
+  const selectedCountryFlagUrl = toSafeExternalUrl(
+    selectedMeeting?.country_flag,
+  );
+  const selectedCircuitInfoUrl = toSafeExternalUrl(
+    selectedMeeting?.circuit_info_url,
+  );
   const isCircuitImageBroken = Boolean(
-    selectedMeeting?.circuit_image &&
-    brokenCircuitImages[selectedMeeting.circuit_image],
+    selectedCircuitImageUrl && brokenCircuitImages[selectedCircuitImageUrl],
   );
   const visibleFacts = apiFacts;
   const live = isSessionLive(selectedSession);
@@ -251,6 +260,9 @@ export function Nav() {
             new Date(a.date_start).getTime() - new Date(b.date_start).getTime(),
         )[0] ?? null,
     [currentYearMeetings.data, nowMs],
+  );
+  const nextMeetingCountryFlagUrl = toSafeExternalUrl(
+    nextMeeting?.country_flag,
   );
 
   const nextMeetingSessions = useSessions(nextMeeting?.meeting_key ?? null);
@@ -556,9 +568,9 @@ export function Nav() {
               }}
             >
               <div className="flex items-center gap-2 min-w-0">
-                {nextMeeting.country_flag && (
+                {nextMeetingCountryFlagUrl && (
                   <img
-                    src={nextMeeting.country_flag}
+                    src={nextMeetingCountryFlagUrl}
                     alt={`${nextMeeting.country_name} flag`}
                     className="h-4 w-6 object-cover rounded-[2px] border border-white/20 shrink-0 light:border-slate-300"
                     loading="lazy"
@@ -746,21 +758,21 @@ export function Nav() {
 
             {selectedMeeting && (
               <div className="min-w-0 flex items-center gap-1.5 rounded border border-panel/80 bg-track px-2 py-1 light:bg-white light:border-slate-300/90">
-                {selectedMeeting.circuit_image && !isCircuitImageBroken && (
+                {selectedCircuitImageUrl && !isCircuitImageBroken && (
                   <img
-                    src={selectedMeeting.circuit_image}
+                    src={selectedCircuitImageUrl}
                     alt={`${selectedMeeting.circuit_short_name} circuit`}
                     className="hidden lg:block h-5 w-7 object-cover rounded-sm border border-panel/80"
                     loading="lazy"
                     referrerPolicy="no-referrer"
                     onError={() =>
-                      markCircuitImageBroken(selectedMeeting.circuit_image)
+                      markCircuitImageBroken(selectedCircuitImageUrl)
                     }
                   />
                 )}
-                {selectedMeeting.country_flag && (
+                {selectedCountryFlagUrl && (
                   <img
-                    src={selectedMeeting.country_flag}
+                    src={selectedCountryFlagUrl}
                     alt={`${selectedMeeting.country_name} flag`}
                     className="h-3.5 w-5 object-cover rounded-[2px] border border-panel/80"
                     loading="lazy"
@@ -856,24 +868,24 @@ export function Nav() {
             </div>
 
             <div className="p-4 overflow-y-auto max-h-[calc(88dvh-60px)]">
-              {selectedMeeting.circuit_image && !isCircuitImageBroken && (
+              {selectedCircuitImageUrl && !isCircuitImageBroken && (
                 <div className="mb-3 rounded border border-panel/80 bg-track/70 p-2">
                   <div className="rounded border border-black/10 bg-gradient-to-b from-[#f6f8fb] to-[#e8edf4] p-2">
                     <img
-                      src={selectedMeeting.circuit_image}
+                      src={selectedCircuitImageUrl}
                       alt={`${selectedMeeting.circuit_short_name} track layout`}
                       className="w-full max-h-44 object-contain rounded [filter:contrast(1.08)_drop-shadow(0_1px_0_rgba(255,255,255,0.45))]"
                       loading="lazy"
                       referrerPolicy="no-referrer"
                       onError={() =>
-                        markCircuitImageBroken(selectedMeeting.circuit_image)
+                        markCircuitImageBroken(selectedCircuitImageUrl)
                       }
                     />
                   </div>
                 </div>
               )}
 
-              {selectedMeeting.circuit_image && isCircuitImageBroken && (
+              {selectedCircuitImageUrl && isCircuitImageBroken && (
                 <div className="mb-3 rounded border border-panel/80 bg-track/70 px-3 py-2 text-[10px] text-muted">
                   Track layout image unavailable for this event.
                 </div>
@@ -968,9 +980,9 @@ export function Nav() {
                 <div className="text-[10px] text-muted leading-relaxed">
                   Data source: live circuit facts fetched from API at runtime.
                 </div>
-                {selectedMeeting.circuit_info_url && (
+                {selectedCircuitInfoUrl && (
                   <a
-                    href={selectedMeeting.circuit_info_url}
+                    href={selectedCircuitInfoUrl}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="mt-1 inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-widest text-f1red hover:text-white transition-colors"

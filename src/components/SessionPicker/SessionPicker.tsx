@@ -3,6 +3,7 @@ import { isAuthError } from "@/api/client";
 import { isSessionLive } from "@/utils/live";
 import { YEARS } from "@/constants";
 import { useCallback, useEffect, useState, useRef } from "react";
+import { toSafeExternalUrl } from "@/utils/url";
 
 interface Props {
   year: number;
@@ -43,6 +44,12 @@ export function SessionPicker({
 
   const selectedSession = sessions.data?.find(
     (s) => s.session_key === sessionKey,
+  );
+  const selectedCircuitImageUrl = toSafeExternalUrl(
+    selectedMeeting?.circuit_image,
+  );
+  const selectedCountryFlagUrl = toSafeExternalUrl(
+    selectedMeeting?.country_flag,
   );
   const live = isSessionLive(selectedSession);
   const authFailed = isAuthError(meetings.error) || isAuthError(sessions.error);
@@ -262,18 +269,18 @@ export function SessionPicker({
 
         {selectedMeeting && (
           <div className="flex items-center gap-2 px-4 py-1.5 border-t border-panel/80 light:bg-white light:border-slate-200">
-            {selectedMeeting.circuit_image && (
+            {selectedCircuitImageUrl && (
               <img
-                src={selectedMeeting.circuit_image}
+                src={selectedCircuitImageUrl}
                 alt={`${selectedMeeting.circuit_short_name} circuit`}
                 className="hidden sm:block h-6 w-8 object-cover rounded-sm border border-panel/80"
                 loading="lazy"
                 referrerPolicy="no-referrer"
               />
             )}
-            {selectedMeeting.country_flag && (
+            {selectedCountryFlagUrl && (
               <img
-                src={selectedMeeting.country_flag}
+                src={selectedCountryFlagUrl}
                 alt={`${selectedMeeting.country_name} flag`}
                 className="h-4 w-6 object-cover rounded-[2px] border border-panel/80"
                 loading="lazy"

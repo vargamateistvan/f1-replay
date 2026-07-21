@@ -1,6 +1,7 @@
 import type { Lap, Pit, RaceControl, Overtake, TeamRadio } from "@/api/types";
 import { pitStopTime } from "@/utils/pit";
 import { isSafetyRelatedRaceControl } from "@/utils/raceControlFlags";
+import { toSafeExternalUrl } from "@/utils/url";
 
 // ─── Normalized toast events ────────────────────────────────────────────────
 
@@ -19,11 +20,7 @@ export interface RadioPayload {
 }
 
 function normalizeRecordingUrl(url: string): string {
-  const trimmed = url.trim();
-  if (!trimmed) return "";
-  // Avoid mixed-content playback issues when app runs on HTTPS.
-  if (trimmed.startsWith("http://")) return `https://${trimmed.slice(7)}`;
-  return trimmed;
+  return toSafeExternalUrl(url) ?? "";
 }
 export interface FlagPayload {
   flag: string;

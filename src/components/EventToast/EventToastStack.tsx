@@ -11,6 +11,7 @@ import type {
 } from "@/timeline/events";
 import { teamColor } from "@/utils/color";
 import { useSettings } from "@/stores/settings";
+import { toSafeExternalUrl } from "@/utils/url";
 
 interface Props {
   toasts: ActiveToast[];
@@ -319,7 +320,8 @@ function RadioToast({
   const p = at.event.payload as RadioPayload;
   const driver = driverMap.get(p.driverNumber);
   const color = teamColor(driver?.team_colour);
-  const hasAudio = Boolean(p.recordingUrl && p.recordingUrl.trim().length > 0);
+  const recordingUrl = toSafeExternalUrl(p.recordingUrl);
+  const hasAudio = Boolean(recordingUrl);
 
   useEffect(() => {
     if (!hasAudio && playing) setPlaying(false);
@@ -357,10 +359,10 @@ function RadioToast({
               </>
             )}
           </button>
-          {playing && hasAudio && (
+          {playing && recordingUrl && (
             <audio
-              key={p.recordingUrl}
-              src={p.recordingUrl}
+              key={recordingUrl}
+              src={recordingUrl}
               autoPlay
               onEnded={() => setPlaying(false)}
               className="hidden"

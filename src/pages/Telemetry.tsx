@@ -18,6 +18,7 @@ import { useSettings } from "@/stores/settings";
 import { teamColor } from "@/utils/color";
 import { computeDelta, resampleToAxis, smooth } from "@/utils/telemetry";
 import { speedUnitLabel, toDisplaySpeed } from "@/utils/units";
+import { toSafeExternalUrl } from "@/utils/url";
 
 interface PlotSlot {
   num: number;
@@ -1281,12 +1282,13 @@ function DriverLapCard({
 }) {
   const speedStats = useMemo(() => sparklineStats(speedTrace), [speedTrace]);
   const [headshotFailed, setHeadshotFailed] = useState(false);
+  const safeHeadshotUrl = toSafeExternalUrl(driverHeadshotUrl);
 
   useEffect(() => {
     setHeadshotFailed(false);
-  }, [driverHeadshotUrl, driver]);
+  }, [safeHeadshotUrl, driver]);
 
-  const hasHeadshot = !!driverHeadshotUrl && !headshotFailed;
+  const hasHeadshot = !!safeHeadshotUrl && !headshotFailed;
   const avatarLabel = driverTag.toUpperCase().slice(0, 3);
 
   return (
@@ -1296,7 +1298,7 @@ function DriverLapCard({
           <div className="relative h-7 w-7 shrink-0 overflow-hidden rounded border border-[#444458] bg-[#171925]">
             {hasHeadshot ? (
               <img
-                src={driverHeadshotUrl}
+                src={safeHeadshotUrl}
                 alt={`${driverName} profile`}
                 className="h-full w-full object-cover"
                 onError={() => setHeadshotFailed(true)}

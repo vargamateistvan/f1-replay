@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import type { Driver } from "@/api/types";
+import { toSafeExternalUrl } from "@/utils/url";
 
 interface Props {
   readonly driver: Driver | undefined;
@@ -22,14 +23,15 @@ function fallbackLabel(driver: Driver | undefined): string {
 
 export function DriverHeadshot({ driver, accent, size = "md" }: Props) {
   const [failed, setFailed] = useState(false);
+  const safeHeadshotUrl = toSafeExternalUrl(driver?.headshot_url);
 
   useEffect(() => {
     setFailed(false);
-  }, [driver?.headshot_url]);
+  }, [safeHeadshotUrl]);
 
   const className = `${SIZE_CLASSES[size]} shrink-0 overflow-hidden rounded-full border bg-[#161922]`;
 
-  if (!driver?.headshot_url || failed) {
+  if (!safeHeadshotUrl || failed) {
     return (
       <span
         className={`${className} flex items-center justify-center font-black uppercase tracking-[0.08em] text-white`}
@@ -43,8 +45,8 @@ export function DriverHeadshot({ driver, accent, size = "md" }: Props) {
 
   return (
     <img
-      src={driver.headshot_url}
-      alt={driver.full_name}
+      src={safeHeadshotUrl}
+      alt={driver?.full_name ?? "Driver headshot"}
       loading="lazy"
       onError={() => setFailed(true)}
       className={`${className} object-cover`}
