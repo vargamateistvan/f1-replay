@@ -3,6 +3,7 @@ import { useSearchParams, useLocation, useNavigate } from "react-router-dom";
 import { useStringParam } from "@/hooks/useSearchParamState";
 import { useSettings } from "@/stores/settings";
 import type { MainView } from "@/components/Nav";
+import { trackEvent } from "@/lib/analytics";
 
 export function MobileNav() {
   const [searchParams] = useSearchParams();
@@ -34,6 +35,7 @@ export function MobileNav() {
 
   function goTo(url: string) {
     setShowMore(false);
+    trackEvent("mobile_nav_navigate", { destination: url });
     navigate(url);
   }
 
@@ -65,6 +67,7 @@ export function MobileNav() {
           <button
             onClick={() => {
               setShowMore(false);
+              trackEvent("nav_help_opened", { source: "mobile_menu" });
               openHelp();
             }}
             className="h-10 rounded-sm bg-panel px-2 text-[10px] font-black uppercase tracking-[0.12em] text-white"
@@ -88,21 +91,39 @@ export function MobileNav() {
 
       <div className="flex h-12">
         <button
-          onClick={() => goTo(viewHref("tracker"))}
+          onClick={() => {
+            trackEvent("nav_view_changed", {
+              view: "tracker",
+              source: "mobile",
+            });
+            goTo(viewHref("tracker"));
+          }}
           className={btn(isMain && currentView === "tracker")}
         >
           <span className="text-base leading-none">◉</span>
           <span>Tracker</span>
         </button>
         <button
-          onClick={() => goTo(viewHref("commentary"))}
+          onClick={() => {
+            trackEvent("nav_view_changed", {
+              view: "commentary",
+              source: "mobile",
+            });
+            goTo(viewHref("commentary"));
+          }}
           className={btn(isMain && currentView === "commentary")}
         >
           <span className="text-base leading-none">≋</span>
           <span>Feeds</span>
         </button>
         <button
-          onClick={() => setShowMore((value) => !value)}
+          onClick={() => {
+            setShowMore((value) => {
+              const nextValue = !value;
+              trackEvent("mobile_nav_more_toggled", { expanded: nextValue });
+              return nextValue;
+            });
+          }}
           className={btn(
             showMore ||
               location.pathname === "/telemetry" ||

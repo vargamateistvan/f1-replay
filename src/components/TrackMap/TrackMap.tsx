@@ -36,6 +36,7 @@ import {
   toDisplayWindSpeed,
   windSpeedUnitLabel,
 } from "@/utils/units";
+import { trackEvent } from "@/lib/analytics";
 import type { CarData, Driver, Location, Stint, Weather } from "@/api/types";
 import {
   TRACK_SVG_W as SVG_W,
@@ -1853,7 +1854,12 @@ export function TrackMap({
                   key={num}
                   transform={`translate(${(sx + PAD).toFixed(1)},${(sy + PAD).toFixed(1)})`}
                   opacity={dimmed ? 0.3 : 1}
-                  onClick={() => onSelectDriver?.(num)}
+                  onClick={() => {
+                    trackEvent("trackmap_driver_selected", {
+                      driver_number: num,
+                    });
+                    onSelectDriver?.(num);
+                  }}
                   style={onSelectDriver ? { cursor: "pointer" } : undefined}
                 >
                   {/* Battle ring: dashed amber ring for cars within 1 s of the car ahead */}
@@ -1985,7 +1991,13 @@ export function TrackMap({
           <div className="flex items-center gap-1">
             <button
               type="button"
-              onClick={() => setZoomLevel((z) => Math.max(0.6, z - 0.2))}
+              onClick={() => {
+                setZoomLevel((z) => {
+                  const next = Math.max(0.6, z - 0.2);
+                  trackEvent("trackmap_zoom_changed", { zoom: next });
+                  return next;
+                });
+              }}
               className="w-7 h-7 flex items-center justify-center border border-[#4b4b57] text-white/85 hover:text-white hover:border-white/50 transition-colors"
               title="Zoom out"
             >
@@ -1993,7 +2005,13 @@ export function TrackMap({
             </button>
             <button
               type="button"
-              onClick={() => setZoomLevel((z) => Math.min(3, z + 0.2))}
+              onClick={() => {
+                setZoomLevel((z) => {
+                  const next = Math.min(3, z + 0.2);
+                  trackEvent("trackmap_zoom_changed", { zoom: next });
+                  return next;
+                });
+              }}
               className="w-7 h-7 flex items-center justify-center border border-[#4b4b57] text-white/85 hover:text-white hover:border-white/50 transition-colors"
               title="Zoom in"
             >
@@ -2001,7 +2019,10 @@ export function TrackMap({
             </button>
             <button
               type="button"
-              onClick={() => setZoomLevel(1)}
+              onClick={() => {
+                trackEvent("trackmap_zoom_reset");
+                setZoomLevel(1);
+              }}
               className="w-7 h-7 flex items-center justify-center border border-[#4b4b57] text-white/85 hover:text-white hover:border-white/50 transition-colors"
               title="Reset zoom"
             >
@@ -2011,7 +2032,12 @@ export function TrackMap({
           <div className="flex items-center gap-1">
             <button
               type="button"
-              onClick={rotateLeft}
+              onClick={() => {
+                trackEvent("trackmap_rotation_changed", {
+                  direction: "left",
+                });
+                rotateLeft();
+              }}
               className="w-7 h-7 flex items-center justify-center border border-[#4b4b57] text-white/85 hover:text-white hover:border-white/50 transition-colors"
               title="Rotate left"
             >
@@ -2019,7 +2045,12 @@ export function TrackMap({
             </button>
             <button
               type="button"
-              onClick={rotateRight}
+              onClick={() => {
+                trackEvent("trackmap_rotation_changed", {
+                  direction: "right",
+                });
+                rotateRight();
+              }}
               className="w-7 h-7 flex items-center justify-center border border-[#4b4b57] text-white/85 hover:text-white hover:border-white/50 transition-colors"
               title="Rotate right"
             >
@@ -2027,7 +2058,12 @@ export function TrackMap({
             </button>
             <button
               type="button"
-              onClick={() => setAndPersistRotation(defaultRotationDeg)}
+              onClick={() => {
+                trackEvent("trackmap_rotation_reset", {
+                  rotation: defaultRotationDeg,
+                });
+                setAndPersistRotation(defaultRotationDeg);
+              }}
               className="w-7 h-7 flex items-center justify-center border border-[#4b4b57] text-white/85 hover:text-white hover:border-white/50 transition-colors"
               title="Reset rotation"
             >
@@ -2375,9 +2411,11 @@ export function TrackMap({
             )}
             {showTrackScreenshot && (
               <button
-                onClick={() =>
-                  svgRef.current && exportTrackSnapshot(svgRef.current)
-                }
+                onClick={() => {
+                  if (!svgRef.current) return;
+                  trackEvent("trackmap_snapshot_export", { format: "png" });
+                  exportTrackSnapshot(svgRef.current);
+                }}
                 className="px-2 py-0.5 text-[9px] font-bold uppercase tracking-widest bg-[#1e1e2a]/80 border border-[#38383f] text-muted hover:text-white hover:border-white/30 transition-colors backdrop-blur-sm"
                 title="Download track snapshot as PNG"
               >

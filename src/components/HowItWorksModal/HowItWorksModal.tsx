@@ -1,23 +1,38 @@
-import { useEffect, useRef, type MouseEvent } from "react";
+import { useCallback, useEffect, useRef, type MouseEvent } from "react";
 import { useSettings } from "@/stores/settings";
+import { trackEvent } from "@/lib/analytics";
 
 export function HowItWorksModal() {
   const { isHelpOpen, closeHelp } = useSettings();
   const backdropRef = useRef<HTMLDivElement>(null);
 
+  const closeWithReason = useCallback(
+    (reason: "escape" | "backdrop" | "button") => {
+      trackEvent("help_modal_closed", { reason });
+      closeHelp();
+    },
+    [closeHelp],
+  );
+
+  useEffect(() => {
+    if (isHelpOpen) {
+      trackEvent("help_modal_opened");
+    }
+  }, [isHelpOpen]);
+
   useEffect(() => {
     if (!isHelpOpen) return;
     function onKey(e: KeyboardEvent) {
-      if (e.key === "Escape") closeHelp();
+      if (e.key === "Escape") closeWithReason("escape");
     }
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [isHelpOpen, closeHelp]);
+  }, [isHelpOpen, closeWithReason]);
 
   if (!isHelpOpen) return null;
 
   function handleBackdropClick(e: MouseEvent<HTMLDivElement>) {
-    if (e.target === backdropRef.current) closeHelp();
+    if (e.target === backdropRef.current) closeWithReason("backdrop");
   }
 
   return (
@@ -49,7 +64,7 @@ export function HowItWorksModal() {
             </span>
           </div>
           <button
-            onClick={closeHelp}
+            onClick={() => closeWithReason("button")}
             aria-label="Close help"
             className="w-7 h-7 flex items-center justify-center rounded text-muted hover:text-white hover:bg-[#2a2a35] transition-colors text-base"
           >

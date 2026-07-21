@@ -23,6 +23,7 @@ import {
   type CircuitFacts,
 } from "@/api/circuitFactsLookup";
 import { toSafeExternalUrl } from "@/utils/url";
+import { trackEvent } from "@/lib/analytics";
 
 export type MainView = "leaderboard" | "tracker" | "commentary";
 
@@ -319,6 +320,7 @@ export function Nav() {
 
   function onYear(y: number) {
     if (Number.isNaN(y) || !Number.isFinite(y)) return;
+    trackEvent("nav_year_changed", { year: y });
     setSearchParams(
       (prev) => {
         const next = new URLSearchParams(prev);
@@ -333,6 +335,7 @@ export function Nav() {
 
   function onMeeting(k: number) {
     if (Number.isNaN(k) || !Number.isFinite(k)) return;
+    trackEvent("nav_meeting_changed", { meeting_key: k });
     setSearchParams(
       (prev) => {
         const next = new URLSearchParams(prev);
@@ -345,23 +348,33 @@ export function Nav() {
     setSelectLatestSessionOnLoad(true);
   }
 
-  const selectLatestEvent = useCallback(() => {
-    const latest = startedMeetings
-      ?.slice()
-      .sort(
-        (a, b) =>
-          new Date(b.date_start).getTime() - new Date(a.date_start).getTime(),
-      )[0];
-    if (!latest) return;
+  const selectLatestEvent = useCallback(
+    (source: "auto" | "manual" = "auto") => {
+      const latest = startedMeetings
+        ?.slice()
+        .sort(
+          (a, b) =>
+            new Date(b.date_start).getTime() - new Date(a.date_start).getTime(),
+        )[0];
+      if (!latest) return;
 
-    setSearchParams((prev) => {
-      const next = new URLSearchParams(prev);
-      next.set("year", String(latest.year));
-      next.set("meeting", String(latest.meeting_key));
-      return next;
-    });
-    setSelectLatestSessionOnLoad(true);
-  }, [startedMeetings, setSearchParams]);
+      if (source === "manual") {
+        trackEvent("nav_latest_event", {
+          year: latest.year,
+          meeting_key: latest.meeting_key,
+        });
+      }
+
+      setSearchParams((prev) => {
+        const next = new URLSearchParams(prev);
+        next.set("year", String(latest.year));
+        next.set("meeting", String(latest.meeting_key));
+        return next;
+      });
+      setSelectLatestSessionOnLoad(true);
+    },
+    [startedMeetings, setSearchParams],
+  );
 
   // First app load behavior: mimic pressing "Latest" automatically when
   // no explicit meeting/session is selected in the URL/state.
@@ -372,7 +385,7 @@ export function Nav() {
     autoLatestBootstrappedRef.current = true;
     if (meetingKey !== null || sessionKey !== null) return;
 
-    selectLatestEvent();
+    selectLatestEvent("auto");
   }, [meetings.isPending, meetingKey, sessionKey, selectLatestEvent]);
 
   const eventLabel = selectedMeeting
@@ -412,7 +425,10 @@ export function Nav() {
         }}
       >
         <button
-          onClick={() => navigate(viewHref(currentView))}
+          onClick={() => {
+            trackEvent("nav_logo_clicked", { destination: "home" });
+            navigate(viewHref(currentView));
+          }}
           className="flex items-center gap-1.5 mr-3 sm:mr-6 select-none shrink-0 hover:opacity-80 transition-opacity"
           aria-label="F1 Replay home"
         >
@@ -436,7 +452,10 @@ export function Nav() {
           {VIEW_TABS.map(({ id, label }) => (
             <button
               key={id}
-              onClick={() => navigate(viewHref(id))}
+              onClick={() => {
+                trackEvent("nav_view_changed", { view: id, source: "desktop" });
+                navigate(viewHref(id));
+              }}
               className={`h-10 px-4 text-[11px] font-bold uppercase tracking-[0.1em] border-b-2 transition-colors ${
                 isMainRoute && currentView === id
                   ? "text-white border-white"
@@ -477,7 +496,10 @@ export function Nav() {
 
         {/* Settings button — desktop only; mobile has it in the bottom nav */}
         <button
-          onClick={openSettings}
+          onClick={() => {
+            trackEvent("nav_settings_opened", { source: "desktop" });
+            openSettings();
+          }}
           className="hidden md:flex w-8 h-10 items-center justify-center text-white/70 hover:text-white hover:opacity-80 transition-opacity ml-1"
           aria-label="Settings"
           title="Settings"
@@ -524,7 +546,10 @@ export function Nav() {
 
         {/* Help button — desktop only */}
         <button
-          onClick={openHelp}
+          onClick={() => {
+            trackEvent("nav_help_opened", { source: "desktop" });
+            openHelp();
+          }}
           className="hidden md:flex w-8 h-10 items-center justify-center text-white/70 hover:text-white hover:opacity-80 transition-opacity ml-1"
           aria-label="How it works"
           title="How it works"
@@ -555,10 +580,16 @@ export function Nav() {
               className="flex items-center gap-3 min-w-0 bg-track py-1.5 border-t border-panel"
               role="button"
               tabIndex={0}
-              onClick={() => setShowNextAgenda(true)}
+              onClick={() => {
+                trackEvent("nav_next_agenda_opened", { source: "banner" });
+                setShowNextAgenda(true);
+              }}
               onKeyDown={(e) => {
                 if (e.key === "Enter" || e.key === " ") {
                   e.preventDefault();
+                  trackEvent("nav_next_agenda_opened", {
+                    source: "banner_key",
+                  });
                   setShowNextAgenda(true);
                 }
               }}
@@ -612,6 +643,7 @@ export function Nav() {
                 type="button"
                 onClick={(e) => {
                   e.stopPropagation();
+                  trackEvent("nav_next_banner_hidden");
                   setSetting("showNextRaceWeekendBanner", false);
                 }}
                 aria-label="Hide next race banner"
@@ -628,7 +660,10 @@ export function Nav() {
         <div
           className="fixed inset-0 z-[220] flex items-center justify-center bg-black/70 backdrop-blur-sm px-4"
           onClick={(e) => {
-            if (e.target === e.currentTarget) setShowNextAgenda(false);
+            if (e.target === e.currentTarget) {
+              trackEvent("nav_next_agenda_closed", { reason: "backdrop" });
+              setShowNextAgenda(false);
+            }
           }}
         >
           <div className="w-full max-w-2xl max-h-[88dvh] overflow-hidden rounded-lg border border-[#2a2a35] bg-[#1a1a24] shadow-2xl">
@@ -643,7 +678,10 @@ export function Nav() {
               </div>
               <button
                 type="button"
-                onClick={() => setShowNextAgenda(false)}
+                onClick={() => {
+                  trackEvent("nav_next_agenda_closed", { reason: "button" });
+                  setShowNextAgenda(false);
+                }}
                 className="w-7 h-7 flex items-center justify-center rounded text-muted hover:text-white hover:bg-[#2a2a35] transition-colors text-base"
                 aria-label="Close agenda"
                 title="Close"
@@ -807,7 +845,10 @@ export function Nav() {
                 value={sessionKey ?? ""}
                 onChange={(e) => {
                   const val = Number(e.target.value);
-                  if (!Number.isNaN(val)) setSessionKey(val);
+                  if (!Number.isNaN(val)) {
+                    setSessionKey(val);
+                    trackEvent("nav_session_changed", { session_key: val });
+                  }
                 }}
                 disabled={sessions.isPending || !meetingKey}
                 className={`${SELECT} min-w-0 flex-[1_1_108px] sm:flex-none`}
@@ -829,7 +870,7 @@ export function Nav() {
 
             <button
               type="button"
-              onClick={selectLatestEvent}
+              onClick={() => selectLatestEvent("manual")}
               disabled={meetings.isPending || !meetings.data?.length}
               className="h-6 px-2 text-[9px] font-black uppercase tracking-widest rounded transition-colors bg-[#1e1e28] text-muted hover:text-white hover:bg-[#38383f] disabled:opacity-40 disabled:cursor-not-allowed light:bg-white light:text-slate-600 light:border light:border-slate-300 light:hover:text-slate-900 light:hover:bg-slate-100"
             >

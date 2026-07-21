@@ -82,6 +82,7 @@ import {
   upperBoundByValue,
   windowBoundsByValue,
 } from "@/utils/sortedTime";
+import { trackEvent } from "@/lib/analytics";
 import type { MainView } from "@/components/Nav";
 import type {
   Stint,
@@ -1039,7 +1040,16 @@ export default function RaceWeekend() {
     enabled: sessionKey !== null,
   });
 
-  function setFocusSelection(focus: number | null, compare: number | null) {
+  function setFocusSelection(
+    focus: number | null,
+    compare: number | null,
+    source: string = "unknown",
+  ) {
+    trackEvent("raceweekend_focus_changed", {
+      focus_driver: focus ?? -1,
+      compare_driver: compare ?? -1,
+      source,
+    });
     setSearchParams(
       (prev) => {
         const next = new URLSearchParams(prev);
@@ -1055,20 +1065,20 @@ export default function RaceWeekend() {
 
   const toggleFocus = (num: number) => {
     if (focusDriver === null) {
-      setFocusSelection(num, null);
+      setFocusSelection(num, null, "select_initial");
       return;
     }
     if (focusDriver === num) {
-      setFocusSelection(null, null);
+      setFocusSelection(null, null, "deselect_same");
       return;
     }
     // Clicking a different driver should move focus to that driver immediately.
     // This keeps row/map interactions predictable (focus follows click).
-    setFocusSelection(num, null);
+    setFocusSelection(num, null, "switch_focus");
   };
 
   const clearFocusSelection = () => {
-    setFocusSelection(null, null);
+    setFocusSelection(null, null, "clear_focus");
   };
 
   const showTrackerInlinePlayback = false;
@@ -1305,7 +1315,13 @@ export default function RaceWeekend() {
                 ).map(([tab, label]) => (
                   <button
                     key={tab}
-                    onClick={() => setTrackerTab(tab)}
+                    onClick={() => {
+                      trackEvent("raceweekend_tracker_tab_changed", {
+                        tab,
+                        source: "mobile",
+                      });
+                      setTrackerTab(tab);
+                    }}
                     className={`w-full px-1.5 py-2 text-[10px] font-bold uppercase tracking-wider border-b-2 -mb-px transition-colors ${
                       (trackerTab ?? "timing") === tab
                         ? "text-white border-f1red bg-surface"
@@ -1504,7 +1520,13 @@ export default function RaceWeekend() {
                   ).map(([tab, label]) => (
                     <button
                       key={tab}
-                      onClick={() => setTrackerTab(tab)}
+                      onClick={() => {
+                        trackEvent("raceweekend_tracker_tab_changed", {
+                          tab,
+                          source: "desktop",
+                        });
+                        setTrackerTab(tab);
+                      }}
                       className={`flex-1 px-2 py-1 text-[10px] font-bold uppercase tracking-wider transition-colors ${
                         (trackerTab ?? "timing") === tab
                           ? "text-white border-b-2 border-f1red -mb-px bg-surface"
@@ -1655,7 +1677,10 @@ export default function RaceWeekend() {
               ([tab, label, shortLabel, count, metaLabel]) => (
                 <button
                   key={tab}
-                  onClick={() => setCommentaryTab(tab)}
+                  onClick={() => {
+                    trackEvent("raceweekend_commentary_tab_changed", { tab });
+                    setCommentaryTab(tab);
+                  }}
                   className={`w-full px-1.5 py-2 text-[10px] font-bold uppercase tracking-wider transition-colors border-b-2 sm:shrink-0 sm:w-auto sm:px-4 sm:text-[11px] ${
                     (commentaryTab ?? "rc") === tab
                       ? "text-white border-f1red -mb-px"
@@ -1694,7 +1719,14 @@ export default function RaceWeekend() {
                 type="button"
                 onClick={() =>
                   setCommentaryTimeMode(
-                    commentaryTimeMode === "all" ? "elapsed" : "all",
+                    (() => {
+                      const nextValue =
+                        commentaryTimeMode === "all" ? "elapsed" : "all";
+                      trackEvent("raceweekend_commentary_time_mode_changed", {
+                        mode: nextValue,
+                      });
+                      return nextValue;
+                    })(),
                   )
                 }
                 className={`h-5 px-2 text-[9px] font-black uppercase tracking-widest border transition-colors ${
@@ -1739,6 +1771,10 @@ export default function RaceWeekend() {
                 focusDriver={focusDriver}
                 onClearFocus={clearFocusSelection}
                 onPlayWindow={(startMs, endMs) => {
+                  trackEvent("raceweekend_commentary_play_window", {
+                    start_ms: Math.round(startMs),
+                    end_ms: Math.round(endMs),
+                  });
                   setTimelineT(startMs);
                   setIncidentReplayEndMs(endMs);
                   setTimelinePlaying(true);
