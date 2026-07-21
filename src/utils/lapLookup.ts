@@ -7,9 +7,11 @@ export type LapLookupPoint = {
 };
 
 export function buildLapLookup(
-  laps: readonly Lap[],
+  laps: readonly Lap[] | null | undefined,
   sessionStartMs: number,
 ): LapLookupPoint[] {
+  if (!laps?.length) return [];
+
   const earliestByLap = new Map<number, number>();
 
   for (const lap of laps) {

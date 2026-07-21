@@ -967,7 +967,13 @@ describe("component coverage boost", () => {
   it("covers KeyMoments empty, past/future styling, and jump action", () => {
     const onJump = vi.fn();
     const { rerender } = render(
-      <KeyMoments moments={[]} sessionTimeMs={0} onJump={onJump} />,
+      <KeyMoments
+        moments={[]}
+        laps={[]}
+        sessionStartMs={0}
+        sessionTimeMs={0}
+        onJump={onJump}
+      />,
     );
     expect(
       screen.getByText(
@@ -992,6 +998,19 @@ describe("component coverage boost", () => {
             color: "#f5a623",
           },
         ]}
+        laps={
+          [
+            {
+              lap_number: 1,
+              date_start: "2024-01-01T00:00:00.000Z",
+            },
+            {
+              lap_number: 2,
+              date_start: "2024-01-01T00:00:20.000Z",
+            },
+          ] as never[]
+        }
+        sessionStartMs={Date.parse("2024-01-01T00:00:00.000Z")}
         sessionTimeMs={20_000}
         onJump={onJump}
       />,
@@ -1000,10 +1019,8 @@ describe("component coverage boost", () => {
     fireEvent.click(screen.getByText("VER takes the lead"));
     expect(onJump).toHaveBeenCalledWith(10_000);
     expect(screen.getByText("+0.220")).toBeInTheDocument();
-    expect(screen.getByText("VSC")).toBeInTheDocument();
-    expect(screen.getByText("VSC deployed").closest("button")).toHaveClass(
-      "opacity-40",
-    );
+    expect(screen.queryByText("VSC")).not.toBeInTheDocument();
+    expect(screen.queryByText("VSC deployed")).not.toBeInTheDocument();
   });
 
   it("covers LapChart empty, elapsed/all toggle, and derived current lap", () => {

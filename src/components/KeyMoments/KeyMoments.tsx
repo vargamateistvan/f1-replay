@@ -5,8 +5,8 @@ import { buildLapLookup, lapNumberAtMs } from "@/utils/lapLookup";
 
 interface Props {
   moments: KeyMoment[];
-  laps: Lap[];
-  sessionStartMs: number;
+  laps?: Lap[];
+  sessionStartMs?: number;
   sessionTimeMs: number;
   showAllItems?: boolean;
   onJump: (ms: number) => void;
@@ -40,8 +40,8 @@ function fmtMs(ms: number): string {
 
 export function KeyMoments({
   moments,
-  laps,
-  sessionStartMs,
+  laps = [],
+  sessionStartMs = 0,
   sessionTimeMs,
   showAllItems = false,
   onJump,

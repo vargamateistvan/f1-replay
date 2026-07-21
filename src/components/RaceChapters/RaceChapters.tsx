@@ -288,8 +288,8 @@ interface Props {
   chapters: RaceChapter[];
   snapshots: WhatChangedSnapshot[];
   drivers: Driver[];
-  laps: Lap[];
-  sessionStartMs: number;
+  laps?: Lap[];
+  sessionStartMs?: number;
   sessionTimeMs: number;
   showAllItems?: boolean;
   onJump: (ms: number) => void;
@@ -305,8 +305,8 @@ export function RaceChapters({
   chapters,
   snapshots,
   drivers,
-  laps,
-  sessionStartMs,
+  laps = [],
+  sessionStartMs = 0,
   sessionTimeMs,
   showAllItems = false,
   onJump,
