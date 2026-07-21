@@ -123,6 +123,17 @@ VITE_OPENF1_MQTT_USERNAME=your_email_or_any_non_empty_string
 VITE_OPENF1_MQTT_WSS_URL=wss://mqtt.openf1.org:8084/mqtt
 ```
 
+### Optional: Enable Google Analytics 4
+
+Create or update `.env.local` with:
+
+```bash
+VITE_GA_MEASUREMENT_ID=G-XXXXXXXXXX
+```
+
+Analytics event names and parameter definitions are documented in
+[docs/ANALYTICS_EVENTS.md](docs/ANALYTICS_EVENTS.md).
+
 ### Building for Production
 
 ```bash
