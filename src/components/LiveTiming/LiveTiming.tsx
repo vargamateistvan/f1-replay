@@ -810,12 +810,12 @@ export function LiveTiming({
   const headerCellClass = leaderboardDense ? TH_COMPACT : TH;
 
   const driverColClass = compactDriverColumn
-    ? `${headerCellClass} text-left w-[5.75rem] min-[390px]:w-[6.5rem] sm:w-[6.5rem] lg:w-[7rem]`
-    : `${headerCellClass} text-left w-[6.75rem] min-[390px]:w-[7.5rem] sm:w-[8rem] lg:w-[8.5rem]`;
+    ? `${headerCellClass} text-left w-[3.5rem] min-[390px]:w-[3.75rem] sm:w-[4rem] lg:w-[4.25rem]`
+    : `${headerCellClass} text-left w-[3.4rem] min-[390px]:w-[4.25rem] sm:w-[4.5rem] lg:w-[4.75rem]`;
 
   const driverCellClass = compactDriverColumn
-    ? "py-3 px-1 sm:px-1.5"
-    : "py-3 px-1 sm:px-2";
+    ? "py-3 px-0 sm:px-0.5"
+    : "py-3 px-0 sm:px-0.5";
 
   const sectorBarWidthClass = wideSectors ? "w-14" : "w-7";
   let rowCellPad = "py-3";
@@ -847,8 +847,8 @@ export function LiveTiming({
     ? "py-0.5 px-1 sm:px-1.5"
     : "py-1 px-1 sm:px-1.5";
   const statusBadgeClass = dense
-    ? "inline-flex h-3.5 items-center px-1 text-[8px] leading-none"
-    : "inline-block text-[9px] px-1.5 py-0.5";
+    ? "inline-flex h-3 items-center px-0.5 text-[7px] leading-none"
+    : "inline-block text-[8px] px-1 py-0.5";
   let rowHeightClass = "h-11";
   if (fullWidthTable) rowHeightClass = "h-8";
   else if (dense) rowHeightClass = "h-[30px]";
@@ -974,7 +974,12 @@ export function LiveTiming({
               <th className={`${headerCellClass} text-left w-8`}>P</th>
               <th className={driverColClass}>Driver</th>
               <th
-                className={`${headerCellClass} text-right w-[4.75rem] min-[390px]:w-[5.25rem] sm:w-[5.5rem]`}
+                className={`${headerCellClass} text-center w-[2rem] lg:w-[2.25rem]`}
+              >
+                Alerts
+              </th>
+              <th
+                className={`${headerCellClass} text-right w-[4.25rem] min-[390px]:w-[4.75rem] sm:w-[5rem]`}
               >
                 Best Lap
               </th>
@@ -1041,7 +1046,7 @@ export function LiveTiming({
                     Gear
                   </th>
                   <th
-                    className={`${headerCellClass} ${rpmColumnClass} text-right w-[4.75rem]`}
+                    className={`${headerCellClass} ${rpmColumnClass} text-right w-[4rem]`}
                   >
                     RPM
                   </th>
@@ -1274,7 +1279,7 @@ export function LiveTiming({
                     className={`${dense ? driverCellCompactClass : driverCellClass} align-middle`}
                   >
                     <div>
-                      <span className="flex items-center gap-1 sm:gap-2">
+                      <span className="flex items-center gap-1 sm:gap-1">
                         <DriverHeadshot
                           driver={driver}
                           accent={color}
@@ -1302,34 +1307,6 @@ export function LiveTiming({
                             driverLabel
                           )}
                         </span>
-                        {(hasInvestigationMarker ||
-                          hasPenaltyMarker ||
-                          eliminated ||
-                          retired ||
-                          isOutlap ||
-                          inPit) && (
-                          <span className="ml-auto inline-flex shrink-0 items-center gap-1">
-                            {hasInvestigationMarker && (
-                              <StatusBadgeTooltip
-                                label="!"
-                                tooltip={investigationTitle}
-                                ariaLabel="Under investigation"
-                                badgeClassName={`bg-[#f5a623] text-black font-black uppercase tracking-widest cursor-help ${statusBadgeClass}`}
-                                tooltipAccentClassName="bg-[#f5a623]"
-                              />
-                            )}
-                            {hasPenaltyMarker && (
-                              <StatusBadgeTooltip
-                                label="!"
-                                tooltip={penaltyTitle}
-                                ariaLabel="Penalty issued"
-                                badgeClassName={`bg-[#ff5252] text-white font-black uppercase tracking-widest cursor-help ${statusBadgeClass}`}
-                                tooltipAccentClassName="bg-[#ff5252]"
-                              />
-                            )}
-                            {statusContent}
-                          </span>
-                        )}
                       </span>
 
                       {showTelemetry &&
@@ -1384,9 +1361,43 @@ export function LiveTiming({
                     </div>
                   </td>
 
+                  {/* Alerts: investigation/penalty markers + driver status */}
+                  <td
+                    className={`${rowCellPad} align-middle px-0 text-center font-black ${dense ? "text-[8px]" : "text-[8px] min-[390px]:text-[9px]"} tabular-nums sm:px-0.5`}
+                  >
+                    {(hasInvestigationMarker ||
+                      hasPenaltyMarker ||
+                      statusContent) && (
+                      <span className="inline-flex items-center justify-center gap-1">
+                        {hasInvestigationMarker && (
+                          <StatusBadgeTooltip
+                            label="!"
+                            tooltip={investigationTitle}
+                            ariaLabel="Under investigation"
+                            badgeClassName={`bg-[#f5a623] text-black font-black uppercase tracking-widest cursor-help ${statusBadgeClass}`}
+                            tooltipAccentClassName="bg-[#f5a623]"
+                          />
+                        )}
+                        {hasPenaltyMarker && (
+                          <StatusBadgeTooltip
+                            label="!"
+                            tooltip={penaltyTitle}
+                            ariaLabel="Penalty issued"
+                            badgeClassName={`bg-[#ff5252] text-white font-black uppercase tracking-widest cursor-help ${statusBadgeClass}`}
+                            tooltipAccentClassName="bg-[#ff5252]"
+                          />
+                        )}
+                        {statusContent}
+                      </span>
+                    )}
+                    {!hasInvestigationMarker &&
+                      !hasPenaltyMarker &&
+                      !statusContent && <span className="text-muted">—</span>}
+                  </td>
+
                   {/* Best lap time */}
                   <td
-                    className={`${rowCellPad} align-middle px-1 text-right font-mono ${dense ? "text-[10px] min-[390px]:text-[11px]" : "text-[11px] min-[390px]:text-[12px]"} tabular-nums sm:px-2 ${LAP_TIME_COLOUR[lapTier]}`}
+                    className={`${rowCellPad} align-middle px-1 text-right font-mono ${dense ? "text-[9px] min-[390px]:text-[10px]" : "text-[10px] min-[390px]:text-[11px]"} tabular-nums sm:px-1.5 ${LAP_TIME_COLOUR[lapTier]}`}
                   >
                     {fmtTime(bestLap?.lap_duration ?? null)}
                   </td>
@@ -1520,7 +1531,7 @@ export function LiveTiming({
                       </td>
                       {/* RPM */}
                       <td
-                        className={`${rpmColumnClass} ${rowCellPad} align-middle ${telemetryPadClass} text-right font-mono text-[11px] tabular-nums text-muted`}
+                        className={`${rpmColumnClass} ${rowCellPad} align-middle ${telemetryPadClass} text-right font-mono text-[10px] tabular-nums text-muted`}
                       >
                         {car ? Math.round(car.rpm) : "—"}
                       </td>
