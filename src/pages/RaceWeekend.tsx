@@ -738,6 +738,14 @@ export default function RaceWeekend() {
     timingShowMinisectors,
     trackerTimingTelemetry,
     trackerTimingMobileCarData,
+    timingMobileShowAlerts,
+    timingMobileShowBestLap,
+    timingMobileShowGap,
+    timingMobileShowPosDelta,
+    timingMobileShowTyre,
+    timingMobileShowPitCount,
+    timingMobileShowInterval,
+    timingMobileShowSectors,
     trackScreenshotPngEnabled,
     defaultSpeed,
     showPlaybackSpeedControls,
@@ -1042,6 +1050,14 @@ export default function RaceWeekend() {
       carData={trackerTimingTelemetryEnabled ? carDataAtT : undefined}
       showMinisectors={timingShowMinisectors}
       showDenseMobileTelemetry={trackerTimingMobileCarData}
+      showMobileAlertsColumn={timingMobileShowAlerts}
+      showMobileBestLapColumn={timingMobileShowBestLap}
+      showMobileGapColumn={timingMobileShowGap}
+      showMobilePosDeltaColumn={timingMobileShowPosDelta}
+      showMobileTyreColumn={timingMobileShowTyre}
+      showMobilePitCountColumn={timingMobileShowPitCount}
+      showMobileIntervalColumn={timingMobileShowInterval}
+      showMobileSectorsColumns={timingMobileShowSectors}
       compactDriverColumn
       dense
       chequeredMs={chequeredMs}
@@ -1071,6 +1087,14 @@ export default function RaceWeekend() {
       showMinisectors={timingShowMinisectors}
       showIntervalColumn
       showFullLastName
+      showMobileAlertsColumn={timingMobileShowAlerts}
+      showMobileBestLapColumn={timingMobileShowBestLap}
+      showMobileGapColumn={timingMobileShowGap}
+      showMobilePosDeltaColumn={timingMobileShowPosDelta}
+      showMobileTyreColumn={timingMobileShowTyre}
+      showMobilePitCountColumn={timingMobileShowPitCount}
+      showMobileIntervalColumn={timingMobileShowInterval}
+      showMobileSectorsColumns={timingMobileShowSectors}
       wideSectors
       dense
       fullWidthTable

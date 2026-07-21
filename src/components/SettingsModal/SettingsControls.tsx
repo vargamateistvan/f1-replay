@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import { useSettings, type AppSettings } from "@/stores/settings";
+import { useMediaQuery } from "@/hooks/useMediaQuery";
 
 // ── Toggle switch ─────────────────────────────────────────────────────────────
 
@@ -194,6 +195,7 @@ export function UnitSelector({
 
 export function SettingsBody() {
   const { setSetting, reset, ...settings } = useSettings();
+  const isMobileViewport = useMediaQuery("(max-width: 767px)");
 
   function toggle(key: keyof AppSettings) {
     return (v: boolean) => setSetting(key, v as AppSettings[typeof key]);
@@ -370,14 +372,85 @@ export function SettingsBody() {
         checked={settings.trackerTimingTelemetry}
         onChange={toggle("trackerTimingTelemetry")}
       />
-      <div className="md:hidden">
-        <SettingRow
-          label="Mobile timing car data"
-          description="Show speed, RPM, gear, DRS, throttle and brake in tracker timing rows on mobile"
-          checked={settings.trackerTimingMobileCarData}
-          onChange={toggle("trackerTimingMobileCarData")}
-        />
-      </div>
+      {isMobileViewport && (
+        <div>
+          <SettingRow
+            label="Mobile timing car data"
+            description="Show speed, RPM, gear, DRS, throttle and brake in tracker timing rows on mobile"
+            checked={settings.trackerTimingMobileCarData}
+            onChange={toggle("trackerTimingMobileCarData")}
+          />
+          <div className="py-2.5 border-b border-[#2a2a35]">
+            <div className="text-[13px] text-white/90 leading-tight">
+              Mobile timing columns
+            </div>
+            <div className="text-[11px] text-muted mt-0.5 leading-tight">
+              Pick which columns appear in mobile timing rows
+            </div>
+            <div className="mt-2 flex flex-wrap gap-1.5">
+              {(
+                [
+                  {
+                    key: "timingMobileShowAlerts",
+                    label: "Alerts",
+                    active: settings.timingMobileShowAlerts,
+                  },
+                  {
+                    key: "timingMobileShowBestLap",
+                    label: "Best lap",
+                    active: settings.timingMobileShowBestLap,
+                  },
+                  {
+                    key: "timingMobileShowGap",
+                    label: "Gap",
+                    active: settings.timingMobileShowGap,
+                  },
+                  {
+                    key: "timingMobileShowPosDelta",
+                    label: "Pos",
+                    active: settings.timingMobileShowPosDelta,
+                  },
+                  {
+                    key: "timingMobileShowTyre",
+                    label: "Tyre",
+                    active: settings.timingMobileShowTyre,
+                  },
+                  {
+                    key: "timingMobileShowPitCount",
+                    label: "Pit",
+                    active: settings.timingMobileShowPitCount,
+                  },
+                  {
+                    key: "timingMobileShowInterval",
+                    label: "Interval",
+                    active: settings.timingMobileShowInterval,
+                  },
+                  {
+                    key: "timingMobileShowSectors",
+                    label: "Sectors",
+                    active: settings.timingMobileShowSectors,
+                  },
+                ] as const
+              ).map(({ key, label, active }) => (
+                <button
+                  key={key}
+                  onClick={() => setSetting(key, !active)}
+                  className={[
+                    "text-[10px] font-bold px-2 py-0.5 rounded-sm border transition-all",
+                    "focus:outline-none focus-visible:ring-1 focus-visible:ring-white/40",
+                    active
+                      ? "border-transparent bg-f1red text-white"
+                      : "border-[#38383f] text-white/40 bg-transparent",
+                  ].join(" ")}
+                  aria-pressed={active}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
 
       <SectionHeader>Track Map</SectionHeader>
       <SettingRow

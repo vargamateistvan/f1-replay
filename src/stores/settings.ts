@@ -31,6 +31,14 @@ export interface AppSettings {
   // Driver Tracker
   trackerTimingTelemetry: boolean;
   trackerTimingMobileCarData: boolean;
+  timingMobileShowAlerts: boolean;
+  timingMobileShowBestLap: boolean;
+  timingMobileShowGap: boolean;
+  timingMobileShowPosDelta: boolean;
+  timingMobileShowTyre: boolean;
+  timingMobileShowPitCount: boolean;
+  timingMobileShowInterval: boolean;
+  timingMobileShowSectors: boolean;
   trackScreenshotPngEnabled: boolean;
   // Support
   showCoffeeWidget: boolean;
@@ -87,6 +95,14 @@ export const SETTINGS_DEFAULTS: AppSettings = {
   timingShowMinisectors: true,
   trackerTimingTelemetry: false,
   trackerTimingMobileCarData: false,
+  timingMobileShowAlerts: true,
+  timingMobileShowBestLap: true,
+  timingMobileShowGap: true,
+  timingMobileShowPosDelta: true,
+  timingMobileShowTyre: true,
+  timingMobileShowPitCount: true,
+  timingMobileShowInterval: false,
+  timingMobileShowSectors: false,
   trackScreenshotPngEnabled: true,
   showCoffeeWidget: true,
   defaultSpeed: 1,

@@ -57,6 +57,14 @@ interface Props {
   readonly showDenseMobileTelemetry?: boolean;
   readonly showIntervalColumn?: boolean;
   readonly showFullLastName?: boolean;
+  readonly showMobileAlertsColumn?: boolean;
+  readonly showMobileBestLapColumn?: boolean;
+  readonly showMobileGapColumn?: boolean;
+  readonly showMobilePosDeltaColumn?: boolean;
+  readonly showMobileTyreColumn?: boolean;
+  readonly showMobilePitCountColumn?: boolean;
+  readonly showMobileIntervalColumn?: boolean;
+  readonly showMobileSectorsColumns?: boolean;
   readonly isLoading?: boolean;
   readonly selectedDriver?: number | null;
   readonly compareDriver?: number | null;
@@ -345,6 +353,14 @@ export function LiveTiming({
   showDenseMobileTelemetry = false,
   showIntervalColumn = false,
   showFullLastName = false,
+  showMobileAlertsColumn = true,
+  showMobileBestLapColumn = true,
+  showMobileGapColumn = true,
+  showMobilePosDeltaColumn = true,
+  showMobileTyreColumn = true,
+  showMobilePitCountColumn = true,
+  showMobileIntervalColumn = false,
+  showMobileSectorsColumns = false,
   sessionTimeMs,
   sessionStartMs,
   isLoading,
@@ -862,6 +878,30 @@ export function LiveTiming({
   const timingRowBaseClass = lightMode
     ? "border-b border-slate-200 transition-colors"
     : "border-b border-[#1e1e28] transition-colors";
+  const mobileAlertsColumnClass = showMobileAlertsColumn
+    ? ""
+    : "hidden sm:table-cell";
+  const mobileBestLapColumnClass = showMobileBestLapColumn
+    ? ""
+    : "hidden sm:table-cell";
+  const mobileGapColumnClass = showMobileGapColumn
+    ? ""
+    : "hidden sm:table-cell";
+  const mobilePosDeltaColumnClass = showMobilePosDeltaColumn
+    ? ""
+    : "hidden sm:table-cell";
+  const mobileTyreColumnClass = showMobileTyreColumn
+    ? ""
+    : "hidden sm:table-cell";
+  const mobilePitCountColumnClass = showMobilePitCountColumn
+    ? ""
+    : "hidden sm:table-cell";
+  const mobileIntervalColumnClass = showMobileIntervalColumn
+    ? ""
+    : "hidden sm:table-cell";
+  const mobileSectorsColumnsClass = showMobileSectorsColumns
+    ? ""
+    : "hidden sm:table-cell";
 
   if (isLoading) {
     return (
@@ -974,54 +1014,54 @@ export function LiveTiming({
               <th className={`${headerCellClass} text-left w-8`}>P</th>
               <th className={driverColClass}>Driver</th>
               <th
-                className={`${headerCellClass} text-center w-[2rem] lg:w-[2.25rem]`}
+                className={`${mobileAlertsColumnClass} ${headerCellClass} text-center w-[2rem] lg:w-[2.25rem]`}
               >
                 Alerts
               </th>
               <th
-                className={`${headerCellClass} text-right w-[4.25rem] min-[390px]:w-[4.75rem] sm:w-[5rem]`}
+                className={`${mobileBestLapColumnClass} ${headerCellClass} text-right w-[4.25rem] min-[390px]:w-[4.75rem] sm:w-[5rem]`}
               >
                 Best Lap
               </th>
               <th
-                className={`${headerCellClass} text-right w-[4.25rem] min-[390px]:w-[4.75rem] sm:w-[5rem]`}
+                className={`${mobileGapColumnClass} ${headerCellClass} text-right w-[4.25rem] min-[390px]:w-[4.75rem] sm:w-[5rem]`}
               >
                 Gap
               </th>
               {showIntervalColumn && (
                 <th
-                  className={`${headerCellClass} hidden sm:table-cell text-right w-[4.25rem] min-[390px]:w-[4.75rem] sm:w-[5rem]`}
+                  className={`${mobileIntervalColumnClass} ${headerCellClass} text-right w-[4.25rem] min-[390px]:w-[4.75rem] sm:w-[5rem]`}
                 >
                   Interval
                 </th>
               )}
               <th
-                className={`${headerCellClass} hidden sm:table-cell text-center ${sectorHeaderWidthClass}`}
+                className={`${mobileSectorsColumnsClass} ${headerCellClass} text-center ${sectorHeaderWidthClass}`}
               >
                 S1
               </th>
               <th
-                className={`${headerCellClass} hidden sm:table-cell text-center ${sectorHeaderWidthClass}`}
+                className={`${mobileSectorsColumnsClass} ${headerCellClass} text-center ${sectorHeaderWidthClass}`}
               >
                 S2
               </th>
               <th
-                className={`${headerCellClass} hidden sm:table-cell text-center ${sectorHeaderWidthClass}`}
+                className={`${mobileSectorsColumnsClass} ${headerCellClass} text-center ${sectorHeaderWidthClass}`}
               >
                 S3
               </th>
               <th
-                className={`${headerCellClass} text-left w-[2.75rem] min-[390px]:w-[2.25rem] sm:w-[2.5rem]`}
+                className={`${mobilePosDeltaColumnClass} ${headerCellClass} text-left w-[2.75rem] min-[390px]:w-[2.25rem] sm:w-[2.5rem]`}
               >
                 Pos
               </th>
               <th
-                className={`${headerCellClass} text-left w-[2.25rem] lg:w-[2.5rem]`}
+                className={`${mobileTyreColumnClass} ${headerCellClass} text-left w-[2.25rem] lg:w-[2.5rem]`}
               >
                 Tyre
               </th>
               <th
-                className={`${headerCellClass} text-center w-[2.25rem] lg:w-[2.5rem]`}
+                className={`${mobilePitCountColumnClass} ${headerCellClass} text-center w-[2.25rem] lg:w-[2.5rem]`}
               >
                 Pit
               </th>
@@ -1365,7 +1405,7 @@ export function LiveTiming({
 
                   {/* Alerts: investigation/penalty markers + driver status */}
                   <td
-                    className={`${rowCellPad} align-middle px-0 text-center font-black ${dense ? "text-[8px]" : "text-[8px] min-[390px]:text-[9px]"} tabular-nums sm:px-0.5`}
+                    className={`${mobileAlertsColumnClass} ${rowCellPad} align-middle px-0 text-center font-black ${dense ? "text-[8px]" : "text-[8px] min-[390px]:text-[9px]"} tabular-nums sm:px-0.5`}
                   >
                     {(hasInvestigationMarker ||
                       hasPenaltyMarker ||
@@ -1399,14 +1439,14 @@ export function LiveTiming({
 
                   {/* Best lap time */}
                   <td
-                    className={`${rowCellPad} align-middle px-1 text-right font-mono ${dense ? "text-[9px] min-[390px]:text-[10px]" : "text-[10px] min-[390px]:text-[11px]"} tabular-nums sm:px-1.5 ${LAP_TIME_COLOUR[lapTier]}`}
+                    className={`${mobileBestLapColumnClass} ${rowCellPad} align-middle px-1 text-right font-mono ${dense ? "text-[9px] min-[390px]:text-[10px]" : "text-[10px] min-[390px]:text-[11px]"} tabular-nums sm:px-1.5 ${LAP_TIME_COLOUR[lapTier]}`}
                   >
                     {fmtTime(bestLap?.lap_duration ?? null)}
                   </td>
 
                   {/* Gap to leader */}
                   <td
-                    className={`${rowCellPad} align-middle px-1 text-right font-mono ${dense ? "text-[9px] min-[390px]:text-[10px]" : "text-[10px] min-[390px]:text-[11px]"} tabular-nums text-muted sm:px-2`}
+                    className={`${mobileGapColumnClass} ${rowCellPad} align-middle px-1 text-right font-mono ${dense ? "text-[9px] min-[390px]:text-[10px]" : "text-[10px] min-[390px]:text-[11px]"} tabular-nums text-muted sm:px-2`}
                   >
                     {fmtGap(gapValue)}
                   </td>
@@ -1414,7 +1454,7 @@ export function LiveTiming({
                   {/* Interval to car ahead */}
                   {showIntervalColumn && (
                     <td
-                      className={`hidden sm:table-cell ${rowCellPad} align-middle px-1 text-right font-mono ${dense ? "text-[9px] min-[390px]:text-[10px]" : "text-[10px] min-[390px]:text-[11px]"} tabular-nums text-muted sm:px-2`}
+                      className={`${mobileIntervalColumnClass} ${rowCellPad} align-middle px-1 text-right font-mono ${dense ? "text-[9px] min-[390px]:text-[10px]" : "text-[10px] min-[390px]:text-[11px]"} tabular-nums text-muted sm:px-2`}
                     >
                       {fmtInterval(intervalValue)}
                     </td>
@@ -1422,7 +1462,7 @@ export function LiveTiming({
 
                   {/* Sector bars */}
                   <td
-                    className={`hidden sm:table-cell align-middle ${sectorCellClass}`}
+                    className={`${mobileSectorsColumnsClass} align-middle ${sectorCellClass}`}
                   >
                     <div className="flex flex-col items-center gap-1">
                       <SectorBar
@@ -1440,7 +1480,7 @@ export function LiveTiming({
                     </div>
                   </td>
                   <td
-                    className={`hidden sm:table-cell align-middle ${sectorCellClass}`}
+                    className={`${mobileSectorsColumnsClass} align-middle ${sectorCellClass}`}
                   >
                     <div className="flex flex-col items-center gap-1">
                       <SectorBar
@@ -1458,7 +1498,7 @@ export function LiveTiming({
                     </div>
                   </td>
                   <td
-                    className={`hidden sm:table-cell align-middle ${sectorCellClass}`}
+                    className={`${mobileSectorsColumnsClass} align-middle ${sectorCellClass}`}
                   >
                     <div className="flex flex-col items-center gap-1">
                       <SectorBar
@@ -1478,7 +1518,7 @@ export function LiveTiming({
 
                   {/* Position gain/loss from start */}
                   <td
-                    className={`${rowCellPad} align-middle px-1 text-left font-black ${dense ? "text-[11px]" : "text-xs min-[390px]:text-sm"} tabular-nums sm:px-2`}
+                    className={`${mobilePosDeltaColumnClass} ${rowCellPad} align-middle px-1 text-left font-black ${dense ? "text-[11px]" : "text-xs min-[390px]:text-sm"} tabular-nums sm:px-2`}
                     title={
                       startPos !== null
                         ? `Started P${startPos}`
@@ -1489,7 +1529,9 @@ export function LiveTiming({
                   </td>
 
                   {/* Tyre: starting compound → current compound + age */}
-                  <td className={`${rowCellPad} align-middle px-1 sm:px-1.5`}>
+                  <td
+                    className={`${mobileTyreColumnClass} ${rowCellPad} align-middle px-1 sm:px-1.5`}
+                  >
                     <TyreBadge
                       stints={stints ?? []}
                       driverNumber={num}
@@ -1502,7 +1544,7 @@ export function LiveTiming({
 
                   {/* Pit stops completed up to current playhead */}
                   <td
-                    className={`${rowCellPad} align-middle px-1 text-center font-mono ${dense ? "text-[10px]" : "text-[11px] min-[390px]:text-[12px]"} tabular-nums text-muted sm:px-1.5`}
+                    className={`${mobilePitCountColumnClass} ${rowCellPad} align-middle px-1 text-center font-mono ${dense ? "text-[10px]" : "text-[11px] min-[390px]:text-[12px]"} tabular-nums text-muted sm:px-1.5`}
                   >
                     {pitCountMap.get(num) ?? 0}
                   </td>

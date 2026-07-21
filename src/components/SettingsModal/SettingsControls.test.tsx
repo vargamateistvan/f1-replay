@@ -37,6 +37,15 @@ vi.mock("@/stores/settings", () => ({
     leaderboardTelemetry: true,
     timingShowMinisectors: true,
     trackerTimingTelemetry: true,
+    trackerTimingMobileCarData: true,
+    timingMobileShowAlerts: true,
+    timingMobileShowBestLap: true,
+    timingMobileShowGap: true,
+    timingMobileShowPosDelta: true,
+    timingMobileShowTyre: true,
+    timingMobileShowPitCount: true,
+    timingMobileShowInterval: false,
+    timingMobileShowSectors: false,
     mapShowLeaderboard: true,
     mapShowCompoundBadges: true,
     mapShowBattleRings: true,
@@ -56,6 +65,10 @@ vi.mock("@/stores/settings", () => ({
   }),
 }));
 
+vi.mock("@/hooks/useMediaQuery", () => ({
+  useMediaQuery: () => true,
+}));
+
 describe("SettingsControls", () => {
   beforeEach(() => {
     state.setSetting.mockReset();
@@ -73,5 +86,33 @@ describe("SettingsControls", () => {
 
     fireEvent.click(screen.getByText("Reset to defaults"));
     expect(state.reset).toHaveBeenCalled();
+  });
+
+  it("updates mobile timing column visibility settings", () => {
+    render(<SettingsBody />);
+
+    fireEvent.click(screen.getByRole("button", { name: "Alerts" }));
+    expect(state.setSetting).toHaveBeenCalledWith(
+      "timingMobileShowAlerts",
+      false,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "Best lap" }));
+    expect(state.setSetting).toHaveBeenCalledWith(
+      "timingMobileShowBestLap",
+      false,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "Interval" }));
+    expect(state.setSetting).toHaveBeenCalledWith(
+      "timingMobileShowInterval",
+      true,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "Sectors" }));
+    expect(state.setSetting).toHaveBeenCalledWith(
+      "timingMobileShowSectors",
+      true,
+    );
   });
 });
