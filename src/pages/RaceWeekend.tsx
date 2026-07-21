@@ -805,13 +805,12 @@ export default function RaceWeekend() {
 
   // Latest weather sample at or before the playhead.
   const weatherAtT = useMemo(() => {
-    if (!isMapVisible) return null;
     if (!timedWeather.length || !sessionStartMs) return null;
-    const cutoff = sessionStartMs + tSlow;
+    const cutoff = sessionStartMs + t;
     return (
       lastAtOrBefore(timedWeather, cutoff, (entry) => entry.absMs)?.row ?? null
     );
-  }, [timedWeather, sessionStartMs, tSlow, isMapVisible]);
+  }, [timedWeather, sessionStartMs, t]);
 
   // Apply default speed when a new session loads.
   useEffect(() => {
@@ -1622,21 +1621,6 @@ export default function RaceWeekend() {
             }
             onJumpToSessionTime={(sessionTimeMs) => setTimelineT(sessionTimeMs)}
           />
-
-          {/* Compact weather strip */}
-          <div className="shrink-0 border-b border-panel">
-            {weather.isError ? (
-              <ErrorMessage message="Failed to load weather" compact />
-            ) : (
-              <WeatherPanel
-                entries={weather.data ?? []}
-                sessionKey={sessionKey}
-                sessionTimeMs={t}
-                sessionStartMs={sessionStartMs}
-                compact
-              />
-            )}
-          </div>
 
           {/* Sub-tabs */}
           <div className="grid grid-cols-6 w-full border-b border-panel shrink-0 bg-track sm:flex sm:overflow-x-auto">
