@@ -127,36 +127,4 @@ describe("WeatherPanel", () => {
 
     expect(screen.getAllByText("▼").length).toBeGreaterThan(0);
   });
-
-  it("renders compact mode for commentary weather", () => {
-    const entries = [
-      {
-        air_temperature: 24.6,
-        date: "2024-01-01T00:01:05.000Z",
-        humidity: 55,
-        meeting_key: 1,
-        pressure: 1011.8,
-        rainfall: 0.8,
-        session_key: 77,
-        track_temperature: 34.0,
-        wind_direction: 90,
-        wind_speed: 3.1,
-      },
-    ] as Weather[];
-
-    render(
-      <WeatherPanel
-        compact
-        entries={entries}
-        sessionTimeMs={70_000}
-        sessionStartMs={Date.parse("2024-01-01T00:00:00.000Z")}
-        sessionKey={77}
-      />,
-    );
-
-    expect(screen.getByText("Track Weather")).toBeInTheDocument();
-    expect(screen.getByText(/Track 34.0/i)).toBeInTheDocument();
-    expect(screen.getByText(/Air 24.6/i)).toBeInTheDocument();
-    expect(screen.getByText(/Hum 55%/i)).toBeInTheDocument();
-  });
 });

@@ -66,6 +66,7 @@ import { DEFAULT_SESSION_MS } from "@/constants";
 import { useSettings } from "@/stores/settings";
 import { deriveRetiredDrivers } from "@/utils/retirement";
 import { computeBattlingDrivers } from "@/utils/battles";
+import { weatherAtSessionTime } from "@/utils/weather";
 import {
   getSafetyControlPhase,
   isTrackClearSignal,
@@ -88,7 +89,6 @@ import type {
   RaceControl,
   Overtake,
   TeamRadio,
-  Weather,
 } from "@/api/types";
 import type { CommentaryTab } from "@/components/CommentaryPanels/CommentaryPanels";
 
@@ -347,16 +347,6 @@ export default function RaceWeekend() {
       })
       .sort((a, b) => a.absMs - b.absMs);
   }, [teamRadio.data, sessionStartMs]);
-
-  const timedWeather = useMemo((): TimedRow<Weather>[] => {
-    if (!sessionStartMs || !weather.data?.length) return [];
-    return weather.data
-      .map((entry) => {
-        const absMs = new Date(entry.date).getTime();
-        return { row: entry, absMs, relMs: absMs - sessionStartMs };
-      })
-      .sort((a, b) => a.absMs - b.absMs);
-  }, [weather.data, sessionStartMs]);
 
   useEffect(() => {
     if (sessionStartMs) setSessionStart(sessionStartMs);
@@ -805,12 +795,8 @@ export default function RaceWeekend() {
 
   // Latest weather sample at or before the playhead.
   const weatherAtT = useMemo(() => {
-    if (!timedWeather.length || !sessionStartMs) return null;
-    const cutoff = sessionStartMs + t;
-    return (
-      lastAtOrBefore(timedWeather, cutoff, (entry) => entry.absMs)?.row ?? null
-    );
-  }, [timedWeather, sessionStartMs, t]);
+    return weatherAtSessionTime(weather.data ?? [], sessionStartMs, t);
+  }, [weather.data, sessionStartMs, t]);
 
   // Apply default speed when a new session loads.
   useEffect(() => {
