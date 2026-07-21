@@ -4,6 +4,7 @@ import { isSessionLive } from "@/utils/live";
 import { YEARS } from "@/constants";
 import { useCallback, useEffect, useState, useRef } from "react";
 import { toSafeExternalUrl } from "@/utils/url";
+import { trackEvent } from "@/lib/analytics";
 
 interface Props {
   year: number;
@@ -79,18 +80,27 @@ export function SessionPicker({
     }
   }, [selectLatestSessionOnLoad, sessions.data, onSession]);
 
-  const selectLatestEvent = useCallback(() => {
-    const latest = meetings.data
-      ?.slice()
-      .sort(
-        (a, b) =>
-          new Date(b.date_start).getTime() - new Date(a.date_start).getTime(),
-      )[0];
-    if (!latest) return;
-    onYear(latest.year);
-    onMeeting(latest.meeting_key);
-    setSelectLatestSessionOnLoad(true);
-  }, [meetings.data, onYear, onMeeting]);
+  const selectLatestEvent = useCallback(
+    (source: "auto" | "manual" = "auto") => {
+      const latest = meetings.data
+        ?.slice()
+        .sort(
+          (a, b) =>
+            new Date(b.date_start).getTime() - new Date(a.date_start).getTime(),
+        )[0];
+      if (!latest) return;
+      onYear(latest.year);
+      onMeeting(latest.meeting_key);
+      if (source === "manual") {
+        trackEvent("sessionpicker_latest_event", {
+          year: latest.year,
+          meeting_key: latest.meeting_key,
+        });
+      }
+      setSelectLatestSessionOnLoad(true);
+    },
+    [meetings.data, onYear, onMeeting],
+  );
 
   // First mount behavior: if nothing is selected yet, auto-run Latest Event.
   useEffect(() => {
@@ -100,7 +110,7 @@ export function SessionPicker({
     autoLatestBootstrappedRef.current = true;
     if (meetingKey !== null || sessionKey !== null) return;
 
-    selectLatestEvent();
+    selectLatestEvent("auto");
   }, [meetings.isPending, meetingKey, sessionKey, selectLatestEvent]);
 
   return (
@@ -133,6 +143,7 @@ export function SessionPicker({
                 const val = Number(e.target.value);
                 console.log("[SessionPicker] Year value parsed:", val);
                 onYear(val);
+                trackEvent("sessionpicker_year_changed", { year: val });
                 console.log("[SessionPicker] onYear completed");
               } catch (err) {
                 console.error(
@@ -175,6 +186,9 @@ export function SessionPicker({
                   if (!Number.isNaN(val) && val !== 0) {
                     console.log("[SessionPicker] Calling onMeeting:", val);
                     onMeeting(val);
+                    trackEvent("sessionpicker_meeting_changed", {
+                      meeting_key: val,
+                    });
                     setSelectLatestSessionOnLoad(true);
                     console.log("[SessionPicker] onMeeting completed");
                   }
@@ -222,6 +236,9 @@ export function SessionPicker({
                   if (!Number.isNaN(val) && val !== 0) {
                     console.log("[SessionPicker] Calling onSession:", val);
                     onSession(val);
+                    trackEvent("sessionpicker_session_changed", {
+                      session_key: val,
+                    });
                     console.log("[SessionPicker] onSession completed");
                   }
                 } catch (err) {
@@ -259,7 +276,7 @@ export function SessionPicker({
 
           <button
             type="button"
-            onClick={selectLatestEvent}
+            onClick={() => selectLatestEvent("manual")}
             disabled={meetings.isPending || !meetings.data?.length}
             className="h-7 px-2 text-[10px] font-black uppercase tracking-widest rounded bg-[#1e1e28] text-muted hover:text-white hover:bg-[#38383f] disabled:opacity-40 disabled:cursor-not-allowed light:bg-white light:text-slate-600 light:border light:border-slate-300 light:hover:text-slate-900 light:hover:bg-slate-100"
           >

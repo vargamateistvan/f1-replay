@@ -19,6 +19,7 @@ import { teamColor } from "@/utils/color";
 import { computeDelta, resampleToAxis, smooth } from "@/utils/telemetry";
 import { speedUnitLabel, toDisplaySpeed } from "@/utils/units";
 import { toSafeExternalUrl } from "@/utils/url";
+import { trackEvent } from "@/lib/analytics";
 
 interface PlotSlot {
   num: number;
@@ -309,6 +310,7 @@ export default function Telemetry() {
   };
 
   const applyBestToAll = () => {
+    trackEvent("telemetry_mode_best_all");
     setActiveMode(null);
     if (driverA !== null) {
       const best = bestLapByDriver.get(driverA);
@@ -325,6 +327,9 @@ export default function Telemetry() {
   };
 
   const syncOtherLapsToA = () => {
+    trackEvent("telemetry_mode_sync_to_a", {
+      source_lap: selectedLapA ?? -1,
+    });
     setActiveMode(null);
     if (selectedLapA === null) return;
     if (driverB !== null) setLapB(selectedLapA);
@@ -332,6 +337,7 @@ export default function Telemetry() {
   };
 
   const applyQualiMode = () => {
+    trackEvent("telemetry_mode_quali");
     setActiveMode("quali");
     setSharedLap(null);
     setSmooth("1");
@@ -339,6 +345,7 @@ export default function Telemetry() {
   };
 
   const applyRaceMode = () => {
+    trackEvent("telemetry_mode_race");
     setActiveMode("race");
     setSharedLap(null);
     setSmooth("0");
@@ -821,8 +828,12 @@ export default function Telemetry() {
             <select
               value={sharedLap ?? ""}
               onChange={(e) => {
+                const nextSharedLap = Number(e.target.value) || null;
                 setActiveMode(null);
-                setSharedLap(Number(e.target.value) || null);
+                setSharedLap(nextSharedLap);
+                trackEvent("telemetry_shared_lap_changed", {
+                  lap_number: nextSharedLap ?? -1,
+                });
               }}
               disabled={!driverA}
               className={`${SELECT} min-w-[120px]`}
@@ -843,7 +854,15 @@ export default function Telemetry() {
           </span>
           <button
             type="button"
-            onClick={() => setIsCardsAccordionOpen((open) => !open)}
+            onClick={() => {
+              setIsCardsAccordionOpen((open) => {
+                const nextValue = !open;
+                trackEvent("telemetry_cards_toggled", {
+                  expanded: nextValue,
+                });
+                return nextValue;
+              });
+            }}
             className="h-7 border border-[#4f4f65] bg-[#191922] px-2 text-[10px] font-black uppercase tracking-widest text-white transition-colors hover:border-[#95b7ff]"
             aria-expanded={isCardsAccordionOpen}
             title={
@@ -874,16 +893,40 @@ export default function Telemetry() {
                   : null
               }
               driver={driverA}
-              onDriverChange={setDriverA}
+              onDriverChange={(value) => {
+                setDriverA(value);
+                trackEvent("telemetry_driver_changed", {
+                  slot: "a",
+                  driver_number: value ?? -1,
+                });
+              }}
               driverOptions={drivers.data ?? []}
               driverPlaceholder="Select anchor"
               lap={selectedLapA}
               lapOptions={
                 driverA !== null ? (lapsByDriver.get(driverA) ?? []) : []
               }
-              onLapChange={setLapA}
-              onBest={() => applyPresetLap("a", "best")}
-              onLatest={() => applyPresetLap("a", "latest")}
+              onLapChange={(value) => {
+                setLapA(value);
+                trackEvent("telemetry_lap_changed", {
+                  slot: "a",
+                  lap_number: value ?? -1,
+                });
+              }}
+              onBest={() => {
+                trackEvent("telemetry_lap_preset", {
+                  slot: "a",
+                  preset: "best",
+                });
+                applyPresetLap("a", "best");
+              }}
+              onLatest={() => {
+                trackEvent("telemetry_lap_preset", {
+                  slot: "a",
+                  preset: "latest",
+                });
+                applyPresetLap("a", "latest");
+              }}
               bestLap={
                 driverA !== null ? (bestLapByDriver.get(driverA) ?? null) : null
               }
@@ -921,7 +964,13 @@ export default function Telemetry() {
                   : null
               }
               driver={driverB}
-              onDriverChange={setDriverB}
+              onDriverChange={(value) => {
+                setDriverB(value);
+                trackEvent("telemetry_driver_changed", {
+                  slot: "b",
+                  driver_number: value ?? -1,
+                });
+              }}
               driverOptions={(drivers.data ?? []).filter(
                 (d) =>
                   d.driver_number !== driverA && d.driver_number !== driverC,
@@ -931,9 +980,27 @@ export default function Telemetry() {
               lapOptions={
                 driverB !== null ? (lapsByDriver.get(driverB) ?? []) : []
               }
-              onLapChange={setLapB}
-              onBest={() => applyPresetLap("b", "best")}
-              onLatest={() => applyPresetLap("b", "latest")}
+              onLapChange={(value) => {
+                setLapB(value);
+                trackEvent("telemetry_lap_changed", {
+                  slot: "b",
+                  lap_number: value ?? -1,
+                });
+              }}
+              onBest={() => {
+                trackEvent("telemetry_lap_preset", {
+                  slot: "b",
+                  preset: "best",
+                });
+                applyPresetLap("b", "best");
+              }}
+              onLatest={() => {
+                trackEvent("telemetry_lap_preset", {
+                  slot: "b",
+                  preset: "latest",
+                });
+                applyPresetLap("b", "latest");
+              }}
               bestLap={
                 driverB !== null ? (bestLapByDriver.get(driverB) ?? null) : null
               }

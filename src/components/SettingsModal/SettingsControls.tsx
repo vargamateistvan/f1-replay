@@ -1,6 +1,20 @@
 import type { ReactNode } from "react";
 import { useSettings, type AppSettings } from "@/stores/settings";
 import { useMediaQuery } from "@/hooks/useMediaQuery";
+import { trackEvent } from "@/lib/analytics";
+
+function toAnalyticsValue(
+  value: AppSettings[keyof AppSettings],
+): string | number | boolean {
+  if (
+    typeof value === "string" ||
+    typeof value === "number" ||
+    typeof value === "boolean"
+  ) {
+    return value;
+  }
+  return value.join(",");
+}
 
 // ── Toggle switch ─────────────────────────────────────────────────────────────
 
@@ -197,8 +211,19 @@ export function SettingsBody() {
   const { setSetting, reset, ...settings } = useSettings();
   const isMobileViewport = useMediaQuery("(max-width: 767px)");
 
+  function updateSetting<K extends keyof AppSettings>(
+    key: K,
+    value: AppSettings[K],
+  ) {
+    setSetting(key, value);
+    trackEvent("settings_changed", {
+      setting_key: key,
+      setting_value: toAnalyticsValue(value),
+    });
+  }
+
   function toggle(key: keyof AppSettings) {
-    return (v: boolean) => setSetting(key, v as AppSettings[typeof key]);
+    return (v: boolean) => updateSetting(key, v as AppSettings[typeof key]);
   }
 
   return (
@@ -212,13 +237,13 @@ export function SettingsBody() {
       />
       <UnitSelector
         value={settings.metricSystem}
-        onChange={(v) => setSetting("metricSystem", v)}
+        onChange={(v) => updateSetting("metricSystem", v)}
       />
 
       <SectionHeader>Playback</SectionHeader>
       <SpeedSelector
         value={settings.defaultSpeed}
-        onChange={(v) => setSetting("defaultSpeed", v)}
+        onChange={(v) => updateSetting("defaultSpeed", v)}
       />
       <SettingRow
         label="Playback speed controls"
@@ -274,7 +299,7 @@ export function SettingsBody() {
                       ? current.filter((k) => k !== kind)
                       : [...current, kind];
                     if (next.length > 0)
-                      setSetting("catchupSummaryDefaultFilters", next);
+                      updateSetting("catchupSummaryDefaultFilters", next);
                   }}
                   className={[
                     "text-[10px] font-bold px-2 py-0.5 rounded-sm border transition-all",
@@ -305,7 +330,7 @@ export function SettingsBody() {
       />
       <NotificationLimitSelector
         value={settings.notificationMaxVisible}
-        onChange={(v) => setSetting("notificationMaxVisible", v)}
+        onChange={(v) => updateSetting("notificationMaxVisible", v)}
         disabled={!settings.toastsEnabled}
       />
       <SettingRow
@@ -434,7 +459,7 @@ export function SettingsBody() {
               ).map(({ key, label, active }) => (
                 <button
                   key={key}
-                  onClick={() => setSetting(key, !active)}
+                  onClick={() => updateSetting(key, !active)}
                   className={[
                     "text-[10px] font-bold px-2 py-0.5 rounded-sm border transition-all",
                     "focus:outline-none focus-visible:ring-1 focus-visible:ring-white/40",
@@ -550,7 +575,10 @@ export function SettingsBody() {
 
       <div className="pt-6 pb-2 flex justify-end">
         <button
-          onClick={reset}
+          onClick={() => {
+            reset();
+            trackEvent("settings_reset_defaults");
+          }}
           className="text-[11px] font-medium text-muted hover:text-white transition-colors px-3 py-1.5 rounded hover:bg-[#2a2a35]"
         >
           Reset to defaults

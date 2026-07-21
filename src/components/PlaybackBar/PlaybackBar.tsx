@@ -14,6 +14,7 @@ import { SPEEDS } from "@/constants";
 import { nextAfter, prevBefore } from "@/timeline/events";
 import type { RaceControlMarker, MarkerSummary } from "@/timeline/raceControl";
 import { useSettings } from "@/stores/settings";
+import { trackEvent } from "@/lib/analytics";
 
 interface Props {
   durationMs: number;
@@ -74,7 +75,10 @@ const SpeedButtons = memo(function SpeedButtons({
       {SPEEDS.map((s) => (
         <button
           key={s}
-          onClick={() => setSpeed(s)}
+          onClick={() => {
+            setSpeed(s);
+            trackEvent("playback_speed_changed", { speed: s });
+          }}
           aria-pressed={speed === s}
           aria-label={`${s}x speed`}
           className={`text-[10px] font-black uppercase tracking-widest transition-colors ${
@@ -152,6 +156,19 @@ export function PlaybackBar({
     [clamp, setT],
   );
 
+  const trackJump = useCallback(
+    (action: string, target: number | null) => {
+      if (target === null) return;
+      trackEvent("playback_jump", {
+        action,
+        current_ms: Math.round(t),
+        target_ms: Math.round(target),
+      });
+      jump(target);
+    },
+    [jump, t],
+  );
+
   const prevLap = prevBefore(lapStarts, t);
   const nextLap = nextAfter(lapStarts, t);
   const nextPit = nextAfter(pitTimes, t);
@@ -184,7 +201,7 @@ export function PlaybackBar({
       <div className="flex items-center gap-1.5 w-full sm:gap-2">
         {/* Start */}
         <button
-          onClick={() => jump(0)}
+          onClick={() => trackJump("to_start", 0)}
           disabled={t <= 0}
           className={JUMP_BTN}
           aria-label="Jump to start"
@@ -195,7 +212,7 @@ export function PlaybackBar({
 
         {/* Prev lap */}
         <button
-          onClick={() => jump(prevLap)}
+          onClick={() => trackJump("previous_lap", prevLap)}
           disabled={prevLap === null}
           className={JUMP_BTN}
           aria-label="Lap start"
@@ -206,7 +223,13 @@ export function PlaybackBar({
 
         {/* Play / pause */}
         <button
-          onClick={toggle}
+          onClick={() => {
+            trackEvent("playback_toggle", {
+              action: playing ? "pause" : "play",
+              current_ms: Math.round(t),
+            });
+            toggle();
+          }}
           className="w-8 h-8 bg-f1red text-white font-bold flex items-center justify-center hover:bg-red-600 transition-colors shrink-0"
           aria-label={playing ? "Pause" : "Play"}
           title="Play / pause (Space)"
@@ -220,7 +243,7 @@ export function PlaybackBar({
 
         {/* Next lap */}
         <button
-          onClick={() => jump(nextLap)}
+          onClick={() => trackJump("next_lap", nextLap)}
           disabled={nextLap === null}
           className={JUMP_BTN}
           aria-label="Next lap"
@@ -231,7 +254,7 @@ export function PlaybackBar({
 
         {/* End */}
         <button
-          onClick={() => jump(durationMs)}
+          onClick={() => trackJump("to_end", durationMs)}
           disabled={durationMs <= 0 || t >= durationMs}
           className={JUMP_BTN}
           aria-label="Jump to end"
@@ -276,7 +299,13 @@ export function PlaybackBar({
                     type="button"
                     title={tooltip}
                     aria-label={`Jump to incident: ${tooltip}`}
-                    onClick={() => jump(marker.ms)}
+                    onClick={() => {
+                      trackEvent("playback_marker_jump", {
+                        marker_type: marker.label,
+                        target_ms: Math.round(marker.ms),
+                      });
+                      jump(marker.ms);
+                    }}
                     className="group absolute top-1/2 h-5 w-5 rounded-full pointer-events-auto"
                     style={{
                       left: `${left}%`,
@@ -312,7 +341,15 @@ export function PlaybackBar({
           (markerSummary.critical ?? 0) + (markerSummary.warning ?? 0) > 0 && (
             <button
               type="button"
-              onClick={() => setShowMarkers((v) => !v)}
+              onClick={() => {
+                setShowMarkers((v) => {
+                  const nextValue = !v;
+                  trackEvent("playback_markers_toggled", {
+                    enabled: nextValue,
+                  });
+                  return nextValue;
+                });
+              }}
               title={
                 showMarkers
                   ? "Hide race-control markers"
@@ -377,7 +414,7 @@ export function PlaybackBar({
           {(q2StartMs !== null || q3StartMs !== null) && (
             <>
               <button
-                onClick={() => jump(q2StartMs)}
+                onClick={() => trackJump("jump_q2", q2StartMs)}
                 disabled={q2StartMs === null || q2StartMs <= t}
                 className={CHIP_STRETCH}
                 aria-label="Forward to Q2"
@@ -385,7 +422,7 @@ export function PlaybackBar({
                 Q2 ›
               </button>
               <button
-                onClick={() => jump(q3StartMs)}
+                onClick={() => trackJump("jump_q3", q3StartMs)}
                 disabled={q3StartMs === null || q3StartMs <= t}
                 className={CHIP_STRETCH}
                 aria-label="Forward to Q3"
@@ -396,7 +433,12 @@ export function PlaybackBar({
           )}
           <button
             onClick={() => {
-              if (onReplayCurrentIncident) onReplayCurrentIncident();
+              if (onReplayCurrentIncident) {
+                trackEvent("playback_incident_replay_current", {
+                  current_ms: Math.round(t),
+                });
+                onReplayCurrentIncident();
+              }
             }}
             disabled={!canReplayCurrentIncident}
             className={CHIP_STRETCH}
@@ -406,7 +448,12 @@ export function PlaybackBar({
           </button>
           <button
             onClick={() => {
-              if (onReplayNextIncident) onReplayNextIncident();
+              if (onReplayNextIncident) {
+                trackEvent("playback_incident_replay_next", {
+                  current_ms: Math.round(t),
+                });
+                onReplayNextIncident();
+              }
             }}
             disabled={!canReplayNextIncident}
             className={CHIP_STRETCH}
@@ -420,7 +467,7 @@ export function PlaybackBar({
             </span>
           )}
           <button
-            onClick={() => jump(nextPit)}
+            onClick={() => trackJump("next_pit", nextPit)}
             disabled={nextPit === null}
             className={CHIP_STRETCH}
             aria-label="Jump to next pit stop"
@@ -428,7 +475,7 @@ export function PlaybackBar({
             Pit ›
           </button>
           <button
-            onClick={() => jump(nextFlag)}
+            onClick={() => trackJump("next_flag", nextFlag)}
             disabled={nextFlag === null}
             className={CHIP_STRETCH}
             aria-label="Jump to next flag or safety car"
@@ -436,7 +483,7 @@ export function PlaybackBar({
             Flag ›
           </button>
           <button
-            onClick={() => jump(nextSafetyCar)}
+            onClick={() => trackJump("next_safety_car", nextSafetyCar)}
             disabled={nextSafetyCar === null}
             className={CHIP_STRETCH}
             aria-label="Jump to next safety car"
@@ -444,7 +491,7 @@ export function PlaybackBar({
             SC ›
           </button>
           <button
-            onClick={() => jump(nextPass)}
+            onClick={() => trackJump("next_overtake", nextPass)}
             disabled={nextPass === null}
             className={CHIP_STRETCH}
             aria-label="Jump to next overtake"
@@ -452,7 +499,7 @@ export function PlaybackBar({
             Pass ›
           </button>
           <button
-            onClick={() => jump(nextRadio)}
+            onClick={() => trackJump("next_radio", nextRadio)}
             disabled={nextRadio === null}
             className={CHIP_STRETCH}
             aria-label="Jump to next radio message"
