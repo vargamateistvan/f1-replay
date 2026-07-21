@@ -1,5 +1,4 @@
-import { createPortal } from "react-dom";
-import { useEffect, useRef, useState } from "react";
+import { useState } from "react";
 import type { CatchupSummary as CatchupSummaryData } from "@/hooks/useCatchupSummary";
 import { FastForward, Play, Square } from "lucide-react";
 import type { Driver } from "@/api/types";
@@ -12,7 +11,6 @@ import type {
   ToastKind,
 } from "@/timeline/events";
 import { teamColor } from "@/utils/color";
-import { TooltipCard } from "@/components/TooltipCard/TooltipCard";
 import { useSettings } from "@/stores/settings";
 
 interface Props {
@@ -20,8 +18,6 @@ interface Props {
   drivers: Driver[];
   onDismiss: () => void;
 }
-
-const TOOLTIP_TEXT_THRESHOLD = 34;
 
 function fmtDuration(ms: number): string {
   const s = Math.floor(ms / 1000);
@@ -45,83 +41,6 @@ function fmtLapTime(sec: number): string {
   const m = Math.floor(sec / 60);
   const s = (sec % 60).toFixed(3).padStart(6, "0");
   return m > 0 ? `${m}:${s}` : s;
-}
-
-function needsTooltip(text: string): boolean {
-  return text.trim().length > TOOLTIP_TEXT_THRESHOLD;
-}
-
-function EventText({
-  text,
-  className,
-  tooltipAccentClassName,
-}: Readonly<{
-  text: string;
-  className: string;
-  tooltipAccentClassName?: string;
-}>) {
-  const anchorRef = useRef<HTMLSpanElement | null>(null);
-  const [open, setOpen] = useState(false);
-  const [position, setPosition] = useState({ top: 0, left: 0 });
-
-  useEffect(() => {
-    if (!open) return;
-
-    const updatePosition = () => {
-      const rect = anchorRef.current?.getBoundingClientRect();
-      if (!rect) return;
-
-      const tooltipWidth = Math.min(280, Math.max(200, rect.width));
-      const viewportPad = 8;
-      const left = Math.min(
-        Math.max(viewportPad, rect.left),
-        window.innerWidth - tooltipWidth - viewportPad,
-      );
-
-      setPosition({
-        top: rect.bottom + 8,
-        left,
-      });
-    };
-
-    updatePosition();
-    window.addEventListener("resize", updatePosition);
-    window.addEventListener("scroll", updatePosition, true);
-
-    return () => {
-      window.removeEventListener("resize", updatePosition);
-      window.removeEventListener("scroll", updatePosition, true);
-    };
-  }, [open]);
-
-  if (!needsTooltip(text)) {
-    return <span className={className}>{text}</span>;
-  }
-
-  return (
-    <span className="relative flex min-w-0 flex-1">
-      <span
-        ref={anchorRef}
-        className={className}
-        onMouseEnter={() => setOpen(true)}
-        onMouseLeave={() => setOpen(false)}
-      >
-        {text}
-      </span>
-      {open &&
-        typeof document !== "undefined" &&
-        createPortal(
-          <TooltipCard
-            title="Full event"
-            text={text}
-            accentClassName={tooltipAccentClassName}
-            className="pointer-events-none fixed z-[9999] w-full min-w-[200px] max-w-[280px]"
-            style={{ top: position.top, left: position.left }}
-          />,
-          document.body,
-        )}
-    </span>
-  );
 }
 
 // ─── Per-event row renderer ───────────────────────────────────────────────────
@@ -218,11 +137,7 @@ function CatchupEventRow({
           </span>
         </div>
         <div className="mt-0.5">
-          <EventText
-            text={p.message}
-            className="text-[10px] text-white/70 block"
-            tooltipAccentClassName=""
-          />
+          <span className="text-[10px] text-white/70 block">{p.message}</span>
           {typeof p.lapNumber === "number" && (
             <span className="text-[9px] text-white/40 font-mono">
               Lap {p.lapNumber}
@@ -246,11 +161,7 @@ function CatchupEventRow({
           </span>
         </div>
         <div className="mt-0.5">
-          <EventText
-            text={p.message}
-            className="text-[10px] text-white/70 block"
-            tooltipAccentClassName="bg-[#e8002d]"
-          />
+          <span className="text-[10px] text-white/70 block">{p.message}</span>
           {typeof p.lapNumber === "number" && (
             <span className="text-[9px] text-white/40 font-mono">
               Lap {p.lapNumber}
@@ -274,11 +185,7 @@ function CatchupEventRow({
           </span>
         </div>
         <div className="mt-0.5">
-          <EventText
-            text={p.message}
-            className="text-[10px] text-white/70 block"
-            tooltipAccentClassName="bg-[#f5a623]"
-          />
+          <span className="text-[10px] text-white/70 block">{p.message}</span>
           {typeof p.lapNumber === "number" && (
             <span className="text-[9px] text-white/40 font-mono">
               Lap {p.lapNumber}
