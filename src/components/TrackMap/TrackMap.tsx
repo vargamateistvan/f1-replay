@@ -165,6 +165,7 @@ interface Props {
   readonly pulseDrivers?: readonly number[];
   readonly circuitShortName?: string | null;
   readonly circuitKey?: number | null;
+  readonly year?: number | null;
   readonly activeCompounds?: ReadonlyMap<
     number,
     { compound: Stint["compound"]; age: number }
@@ -194,6 +195,7 @@ export function TrackMap({
   pulseDrivers,
   circuitShortName,
   circuitKey = null,
+  year = null,
   activeCompounds,
   battlingDrivers,
   retiredDrivers,
@@ -302,7 +304,7 @@ export function TrackMap({
 
   // Baked official geometry — available immediately when the bake script has run.
   const circuitGeom =
-    circuitKey != null ? getCircuitGeometry(circuitKey) : null;
+    circuitKey != null ? getCircuitGeometry(circuitKey, year) : null;
   const hasBaked = circuitGeom != null;
 
   // Driver fallback loop: only needed for the GPS path (no baked data).
@@ -319,6 +321,8 @@ export function TrackMap({
     candidateDriver?.driver_number ?? null,
     circuitKey,
     circuitShortName ?? null,
+    undefined,
+    year,
   );
 
   useEffect(() => {

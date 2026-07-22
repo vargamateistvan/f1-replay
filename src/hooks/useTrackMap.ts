@@ -211,6 +211,7 @@ export function useTrackOutline(
   circuitKey: number | null = null,
   circuitShortName: string | null = null,
   preferredLap = TRACK_OUTLINE_LAP,
+  year: number | null = null,
 ) {
   return useQuery({
     queryKey: [
@@ -220,11 +221,12 @@ export function useTrackOutline(
       circuitKey,
       circuitShortName,
       preferredLap,
+      year,
     ],
     queryFn: async () => {
       // ── Fast path: official baked geometry ─────────────────────────────────
       if (circuitKey !== null) {
-        const geom = getCircuitGeometry(circuitKey);
+        const geom = getCircuitGeometry(circuitKey, year);
         if (geom && geom.x.length > 0) {
           const points = geom.x.map((x, i) => ({ x, y: geom.y[i]! }));
           const bounds = computeTrackBounds(points);
@@ -271,7 +273,7 @@ export function useTrackOutline(
     // loading spinner on first render.
     initialData: (() => {
       if (circuitKey === null) return undefined;
-      const geom = getCircuitGeometry(circuitKey);
+      const geom = getCircuitGeometry(circuitKey, year);
       if (!geom || geom.x.length === 0) return undefined;
       const points = geom.x.map((x, i) => ({ x, y: geom.y[i]! }));
       const bounds = computeTrackBounds(points);

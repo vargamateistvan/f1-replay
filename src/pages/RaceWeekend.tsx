@@ -1174,6 +1174,7 @@ export default function RaceWeekend() {
       pulseDrivers={pulseDrivers}
       circuitShortName={session?.circuit_short_name}
       circuitKey={session?.circuit_key ?? null}
+      year={session?.year ?? null}
       activeCompounds={mapShowCompoundBadges ? activeCompounds : undefined}
       battlingDrivers={mapShowBattleRings ? battlingDrivers : undefined}
       focusDriverLap={focusDriverLap}

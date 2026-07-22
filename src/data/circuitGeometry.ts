@@ -7,24 +7,72 @@
  * The x[], y[] coordinates are in the same F1 Cartesian space as the OpenF1
  * /location endpoint — no transform needed to overlay car positions.
  */
-import type { CircuitGeometry } from './circuitGeometryTypes'
+import type { CircuitGeometry } from "./circuitGeometryTypes";
 
 // Vite eager glob — loads all JSON files in the directory at build time.
 // Returns {} when the directory is empty (before running the bake script),
 // which causes useTrackOutline to fall back to the GPS-derived path.
-const modules = import.meta.glob<CircuitGeometry>(
-  './circuit-geometry/*.json',
-  { eager: true, import: 'default' },
-)
+const modules = import.meta.glob<CircuitGeometry>("./circuit-geometry/*.json", {
+  eager: true,
+  import: "default",
+});
 
-const CIRCUIT_GEOMETRY = new Map<number, CircuitGeometry>()
+// Map: circuit_key → (year → geometry)
+const CIRCUIT_GEOMETRY = new Map<number, Map<number, CircuitGeometry>>();
 for (const [path, data] of Object.entries(modules)) {
-  const m = path.match(/\/(\d+)\.json$/)
-  if (m) CIRCUIT_GEOMETRY.set(Number(m[1]), data)
+  // Filenames are "{circuitKey}-{year}.json"
+  const m = path.match(/\/(\d+)-(\d+)\.json$/);
+  if (!m) continue;
+  const circuitKey = Number(m[1]);
+  const year = Number(m[2]);
+  let yearMap = CIRCUIT_GEOMETRY.get(circuitKey);
+  if (!yearMap) {
+    yearMap = new Map();
+    CIRCUIT_GEOMETRY.set(circuitKey, yearMap);
+  }
+  yearMap.set(year, data);
 }
 
-export function getCircuitGeometry(circuitKey: number): CircuitGeometry | null {
-  return CIRCUIT_GEOMETRY.get(circuitKey) ?? null
+/**
+ * Returns the baked geometry for a given circuit key and year.
+ *
+ * Lookup order:
+ * 1. Exact year match.
+ * 2. Nearest year ≤ requested (most-recent earlier layout).
+ * 3. Nearest year overall (future-only data, e.g. brand-new circuit).
+ */
+export function getCircuitGeometry(
+  circuitKey: number,
+  year?: number | null,
+): CircuitGeometry | null {
+  const yearMap = CIRCUIT_GEOMETRY.get(circuitKey);
+  if (!yearMap) return null;
+
+  const availableYears = [...yearMap.keys()].sort((a, b) => a - b);
+  if (availableYears.length === 0) return null;
+
+  if (year == null) {
+    // No year specified — return latest available
+    return yearMap.get(availableYears[availableYears.length - 1]!) ?? null;
+  }
+
+  // Exact match
+  if (yearMap.has(year)) return yearMap.get(year)!;
+
+  // Most recent year that is ≤ requested (correct historical layout)
+  let best: number | null = null;
+  for (const y of availableYears) {
+    if (y <= year) best = y;
+  }
+  if (best !== null) return yearMap.get(best)!;
+
+  // Fallback: oldest available year (circuit only has future data)
+  return yearMap.get(availableYears[0]!) ?? null;
 }
 
-export type { CircuitGeometry, CornerInfo, MarshalSector, MarshalLight } from './circuitGeometryTypes'
+export type {
+  CircuitGeometry,
+  CornerInfo,
+  MarshalSector,
+  MarshalLight,
+} from "./circuitGeometryTypes";
