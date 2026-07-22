@@ -67,7 +67,6 @@ export interface AppSettings {
   timingMobileShowPitCount: boolean;
   timingMobileShowInterval: boolean;
   timingMobileShowLap: boolean;
-  timingMobileShowSectors: boolean;
   trackScreenshotPngEnabled: boolean;
   // Support
   showCoffeeWidget: boolean;
@@ -160,7 +159,6 @@ export const SETTINGS_DEFAULTS: AppSettings = {
   timingMobileShowPitCount: true,
   timingMobileShowInterval: false,
   timingMobileShowLap: false,
-  timingMobileShowSectors: false,
   trackScreenshotPngEnabled: true,
   showCoffeeWidget: true,
   defaultSpeed: 1,

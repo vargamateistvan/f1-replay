@@ -560,12 +560,14 @@ export function SettingsBody() {
         checked={settings.timingShowMinisectors}
         onChange={toggle("timingShowMinisectors")}
       />
-      <SettingRow
-        label="Timing box live telemetry"
-        description="Show speed, gear, RPM, throttle, brake & DRS in tracker timing"
-        checked={settings.trackerTimingTelemetry}
-        onChange={toggle("trackerTimingTelemetry")}
-      />
+      {!isMobileViewport && (
+        <SettingRow
+          label="Timing box live telemetry"
+          description="Show speed, gear, RPM, throttle, brake & DRS in tracker timing"
+          checked={settings.trackerTimingTelemetry}
+          onChange={toggle("trackerTimingTelemetry")}
+        />
+      )}
       {!isMobileViewport && (
         <div className="py-2.5 border-b border-[#2a2a35]">
           <div className="text-[13px] text-white/90 leading-tight">

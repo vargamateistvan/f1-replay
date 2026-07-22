@@ -71,7 +71,6 @@ vi.mock("@/stores/settings", () => ({
     timingMobileShowPitCount: true,
     timingMobileShowInterval: false,
     timingMobileShowLap: false,
-    timingMobileShowSectors: false,
     mapShowLeaderboard: true,
     mapShowCompoundBadges: true,
     mapShowBattleRings: true,
@@ -119,6 +118,9 @@ describe("SettingsControls", () => {
 
     expect(
       screen.queryByText("Driver tracker columns"),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByText("Timing box live telemetry"),
     ).not.toBeInTheDocument();
 
     const mobileColumnsSection = screen.getByText(
