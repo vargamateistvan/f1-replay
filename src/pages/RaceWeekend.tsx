@@ -1,4 +1,4 @@
-import { lazy, Suspense, useEffect, useMemo, useState } from "react";
+import { lazy, Suspense, useEffect, useMemo, useRef, useState } from "react";
 import { PlaybackBar } from "@/components/PlaybackBar";
 import type {
   ActiveTrackFlagState,
@@ -61,6 +61,7 @@ import { useEventToasts } from "@/hooks/useEventToasts";
 import { useCatchupSummary } from "@/hooks/useCatchupSummary";
 import { EventToastStack } from "@/components/EventToast/EventToastStack";
 import { CatchupSummary } from "@/components/CatchupSummary/CatchupSummary";
+import { ResizeHandle } from "@/components/ResizeHandle";
 import { isSessionLive } from "@/utils/live";
 import { DEFAULT_SESSION_MS } from "@/constants";
 import { useSettings } from "@/stores/settings";
@@ -102,6 +103,19 @@ const PANEL = "bg-surface border border-panel";
 const PANEL_TITLE =
   "text-[10px] font-bold text-muted px-3 py-2 border-b border-[#38383f] uppercase tracking-[0.12em] border-l-2 border-l-f1red bg-track";
 const OVERTAKE_PULSE_MS = 4_000;
+const TRACKER_DESKTOP_PANEL_WIDTH_STORAGE_KEY =
+  "f1-replay.tracker.desktopPanelWidth";
+const TRACKER_DESKTOP_PANEL_MIN_WIDTH = 420;
+const TRACKER_DESKTOP_MAP_MIN_WIDTH = 320;
+
+function clamp(value: number, min: number, max: number) {
+  return Math.max(min, Math.min(max, value));
+}
+
+function defaultTrackerDesktopPanelWidth() {
+  if (typeof window === "undefined") return 905;
+  return window.innerWidth >= 1024 ? 905 : 745;
+}
 
 type TimedRow<T> = { row: T; absMs: number; relMs: number };
 type TimedRaceControlSignal = {
@@ -176,6 +190,11 @@ function PanelFallback() {
 }
 
 export default function RaceWeekend() {
+  const trackerDesktopSplitRef = useRef<HTMLDivElement | null>(null);
+  const trackerDesktopDragRef = useRef<{
+    startX: number;
+    startWidth: number;
+  } | null>(null);
   // Session selection is driven by the URL — Nav writes these, we just read them
   const [meetingKey] = useNumberParam("meeting", null);
   const [sessionKey] = useNumberParam("session", null);
@@ -207,6 +226,20 @@ export default function RaceWeekend() {
   const [isResultsDialogOpen, setIsResultsDialogOpen] = useState(false);
   const [isQualiEliminationsDialogOpen, setIsQualiEliminationsDialogOpen] =
     useState(false);
+  const [trackerDesktopPanelWidth, setTrackerDesktopPanelWidth] = useState(
+    () => {
+      if (typeof window === "undefined") {
+        return defaultTrackerDesktopPanelWidth();
+      }
+      const stored = window.localStorage.getItem(
+        TRACKER_DESKTOP_PANEL_WIDTH_STORAGE_KEY,
+      );
+      const parsed = stored ? Number.parseFloat(stored) : Number.NaN;
+      return Number.isFinite(parsed)
+        ? parsed
+        : defaultTrackerDesktopPanelWidth();
+    },
+  );
   const [incidentReplayEndMs, setIncidentReplayEndMs] = useState<number | null>(
     null,
   );
@@ -215,6 +248,103 @@ export default function RaceWeekend() {
   );
 
   const sessions = useSessions(meetingKey);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    window.localStorage.setItem(
+      TRACKER_DESKTOP_PANEL_WIDTH_STORAGE_KEY,
+      String(Math.round(trackerDesktopPanelWidth)),
+    );
+  }, [trackerDesktopPanelWidth]);
+
+  useEffect(() => {
+    function clampTrackerDesktopPanelWidth() {
+      const splitWidth = trackerDesktopSplitRef.current?.clientWidth ?? 0;
+      if (splitWidth <= 0) return;
+      const maxWidth = Math.max(
+        TRACKER_DESKTOP_PANEL_MIN_WIDTH,
+        splitWidth - TRACKER_DESKTOP_MAP_MIN_WIDTH,
+      );
+      const minWidth = Math.min(TRACKER_DESKTOP_PANEL_MIN_WIDTH, maxWidth);
+      setTrackerDesktopPanelWidth((currentWidth) =>
+        clamp(currentWidth, minWidth, maxWidth),
+      );
+    }
+
+    clampTrackerDesktopPanelWidth();
+    window.addEventListener("resize", clampTrackerDesktopPanelWidth);
+    return () =>
+      window.removeEventListener("resize", clampTrackerDesktopPanelWidth);
+  }, []);
+
+  useEffect(() => {
+    function updateTrackerDesktopPanelWidth(clientX: number) {
+      const drag = trackerDesktopDragRef.current;
+      const splitWidth = trackerDesktopSplitRef.current?.clientWidth ?? 0;
+      if (!drag || splitWidth <= 0) return;
+      const maxWidth = Math.max(
+        TRACKER_DESKTOP_PANEL_MIN_WIDTH,
+        splitWidth - TRACKER_DESKTOP_MAP_MIN_WIDTH,
+      );
+      const minWidth = Math.min(TRACKER_DESKTOP_PANEL_MIN_WIDTH, maxWidth);
+      setTrackerDesktopPanelWidth(
+        clamp(drag.startWidth + (clientX - drag.startX), minWidth, maxWidth),
+      );
+    }
+
+    function stopTrackerDesktopPanelDrag() {
+      trackerDesktopDragRef.current = null;
+      document.body.style.cursor = "";
+      document.body.style.userSelect = "";
+    }
+
+    function onMouseMove(event: MouseEvent) {
+      updateTrackerDesktopPanelWidth(event.clientX);
+    }
+
+    function onTouchMove(event: TouchEvent) {
+      const touch = event.touches[0];
+      if (!touch) return;
+      event.preventDefault();
+      updateTrackerDesktopPanelWidth(touch.clientX);
+    }
+
+    window.addEventListener("mousemove", onMouseMove);
+    window.addEventListener("mouseup", stopTrackerDesktopPanelDrag);
+    window.addEventListener("touchmove", onTouchMove, { passive: false });
+    window.addEventListener("touchend", stopTrackerDesktopPanelDrag);
+
+    return () => {
+      window.removeEventListener("mousemove", onMouseMove);
+      window.removeEventListener("mouseup", stopTrackerDesktopPanelDrag);
+      window.removeEventListener("touchmove", onTouchMove);
+      window.removeEventListener("touchend", stopTrackerDesktopPanelDrag);
+    };
+  }, []);
+
+  function startTrackerDesktopPanelDrag(clientX: number) {
+    trackerDesktopDragRef.current = {
+      startX: clientX,
+      startWidth: trackerDesktopPanelWidth,
+    };
+    document.body.style.cursor = "ew-resize";
+    document.body.style.userSelect = "none";
+  }
+
+  const trackerDesktopResizeHandleProps = {
+    onMouseDown(event: { preventDefault: () => void; clientX: number }) {
+      event.preventDefault();
+      startTrackerDesktopPanelDrag(event.clientX);
+    },
+    onTouchStart(event: { touches: ArrayLike<{ clientX: number }> }) {
+      const touch = event.touches[0];
+      if (!touch) return;
+      startTrackerDesktopPanelDrag(touch.clientX);
+    },
+    onDoubleClick() {
+      setTrackerDesktopPanelWidth(defaultTrackerDesktopPanelWidth());
+    },
+  };
   const session = sessions.data?.find((s) => s.session_key === sessionKey);
   const live = isSessionLive(session);
   useOpenF1LiveMqtt(sessionKey, live);
@@ -1558,9 +1688,15 @@ export default function RaceWeekend() {
             </div>
 
             {/* Desktop layout: split panel (hidden md:flex) */}
-            <div className="hidden md:flex flex-1 min-h-0 overflow-hidden">
+            <div
+              ref={trackerDesktopSplitRef}
+              className="hidden md:flex flex-1 min-h-0 overflow-hidden"
+            >
               {/* Left data panel */}
-              <div className="md:w-[745px] lg:w-[905px] xl:w-[905px] shrink-0 flex flex-col border-r border-panel overflow-hidden">
+              <div
+                className="shrink-0 flex flex-col border-r border-panel overflow-hidden"
+                style={{ width: `${trackerDesktopPanelWidth}px` }}
+              >
                 {/* Sub-tabs */}
                 <div className="flex border-b border-panel shrink-0">
                   {(
@@ -1675,6 +1811,14 @@ export default function RaceWeekend() {
                   </div>
                 )}
               </div>
+
+              <ResizeHandle
+                onMouseDown={trackerDesktopResizeHandleProps.onMouseDown}
+                onTouchStart={trackerDesktopResizeHandleProps.onTouchStart}
+                onDoubleClick={trackerDesktopResizeHandleProps.onDoubleClick}
+                orientation="vertical"
+                className="border-r border-panel/60 bg-track/80 hover:bg-[#38383f] active:bg-f1red"
+              />
 
               {/* Track map — fills remaining width */}
               <div className="flex-1 min-w-0 bg-[#10101a] flex flex-col">
