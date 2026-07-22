@@ -28,7 +28,24 @@ jobs:
       - name: Check for changes
         id: diff
         run: |
-          git diff --quiet src/data/circuit-geometry/ || echo "changed=true" >> "$GITHUB_OUTPUT"
+          if git diff --quiet src/data/circuit-geometry/; then
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+            
+            # Get added and modified files
+            ADDED=$(git diff --name-only --diff-filter=A src/data/circuit-geometry/ | wc -l)
+            MODIFIED=$(git diff --name-only --diff-filter=M src/data/circuit-geometry/ | wc -l)
+            TOTAL=$((ADDED + MODIFIED))
+            
+            echo "added=$ADDED" >> "$GITHUB_OUTPUT"
+            echo "modified=$MODIFIED" >> "$GITHUB_OUTPUT"
+            echo "total=$TOTAL" >> "$GITHUB_OUTPUT"
+            
+            # Save file lists for later use
+            git diff --name-only --diff-filter=A src/data/circuit-geometry/ > /tmp/added.txt 2>/dev/null || true
+            git diff --name-only --diff-filter=M src/data/circuit-geometry/ > /tmp/modified.txt 2>/dev/null || true
+          fi
 
       - name: Commit and push updated geometry
         if: steps.diff.outputs.changed == 'true'
@@ -38,3 +55,45 @@ jobs:
           git add src/data/circuit-geometry/
           git commit -m "chore(circuits): update baked geometry [skip ci]"
           git push
+
+          # Build summary
+          echo "## 🏁 Circuit Geometry Updated" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "✅ Successfully updated circuit geometry" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Summary" >> $GITHUB_STEP_SUMMARY
+          echo "- **Total files**: ${{ steps.diff.outputs.total }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Added**: ${{ steps.diff.outputs.added }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Modified**: ${{ steps.diff.outputs.modified }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+          if [ -s /tmp/added.txt ]; then
+            echo "### New Circuits 🆕" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            cat /tmp/added.txt | sed 's|src/data/circuit-geometry/||;s|\.json||' | while read file; do
+              CIRCUIT_KEY=$(echo "$file" | cut -d'-' -f1)
+              YEAR=$(echo "$file" | cut -d'-' -f2)
+              echo "- Circuit \`$CIRCUIT_KEY\` (Year: $YEAR)" >> $GITHUB_STEP_SUMMARY
+            done
+            echo "" >> $GITHUB_STEP_SUMMARY
+          fi
+
+          if [ -s /tmp/modified.txt ]; then
+            echo "### Updated Circuits 📝" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            cat /tmp/modified.txt | sed 's|src/data/circuit-geometry/||;s|\.json||' | while read file; do
+              CIRCUIT_KEY=$(echo "$file" | cut -d'-' -f1)
+              YEAR=$(echo "$file" | cut -d'-' -f2)
+              echo "- Circuit \`$CIRCUIT_KEY\` (Year: $YEAR)" >> $GITHUB_STEP_SUMMARY
+            done
+            echo "" >> $GITHUB_STEP_SUMMARY
+          fi
+
+      - name: No changes summary
+        if: steps.diff.outputs.changed == 'false'
+        run: |
+          echo "## 🏁 Circuit Geometry Check" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "ℹ️ No changes detected in circuit geometry" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "The circuit data is up-to-date." >> $GITHUB_STEP_SUMMARY
