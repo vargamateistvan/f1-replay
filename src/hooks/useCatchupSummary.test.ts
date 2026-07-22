@@ -22,7 +22,11 @@ const events: ToastEvent[] = [
     id: "c",
     ms: 80_000,
     kind: "radio",
-    payload: { driverNumber: 1, recordingUrl: "https://example.com/radio.mp3" },
+    payload: {
+      driverNumber: 1,
+      recordingUrl: "https://example.com/radio.mp3",
+      lapNumber: null,
+    },
     priority: "high",
   },
 ];
