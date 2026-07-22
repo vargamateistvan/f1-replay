@@ -825,10 +825,25 @@ export function TrackMap({
     if (!trackGeometry || !circuitGeom || !circuitGeom.corners.length)
       return null;
     const { bounds, innerW, innerH, svgPts } = trackGeometry;
-    const OFFSET = 13; // px outside the track ribbon
+    const OFFSET = 16; // px outside the track ribbon
+
+    // Define defs for shadows
+    const defs = (
+      <defs>
+        <filter id="cornerShadow" x="-50%" y="-50%" width="200%" height="200%">
+          <feDropShadow
+            dx="0"
+            dy="0.8"
+            stdDeviation="1"
+            floodOpacity={lightMode ? "0.2" : "0.5"}
+          />
+        </filter>
+      </defs>
+    );
 
     return (
       <>
+        {defs}
         {circuitGeom.corners.map((corner) => {
           // Project corner apex into SVG space
           const { sx: apexSx, sy: apexSy } = locationToSvg(
@@ -862,45 +877,31 @@ export function TrackMap({
           const nx = -tdy / tlen;
           const ny = tdx / tlen;
 
-          // Determine which normal direction is further from the track
-          // (i.e. the outside) by sampling a point along each direction
           const cx = apexSx + PAD + nx * OFFSET;
           const cy = apexSy + PAD + ny * OFFSET;
 
           const label = `${corner.number}${corner.letter}`;
 
           return (
-            <g key={`corner-${corner.number}${corner.letter}`}>
-              {/* Pill background */}
-              <rect
-                x={cx - 6}
-                y={cy - 4.5}
-                width={12}
-                height={9}
-                rx={4.5}
-                ry={4.5}
-                fill={
-                  lightMode ? "rgba(255,255,255,0.82)" : "rgba(18,20,32,0.82)"
-                }
-                stroke={lightMode ? "#aab4cc" : "#3a3f58"}
-                strokeWidth={0.7}
-                transform={`rotate(${-rotationDeg.toFixed(1)} ${cx.toFixed(1)} ${cy.toFixed(1)})`}
-              />
-              <text
-                x={cx}
-                y={cy + 0.5}
-                transform={`rotate(${-rotationDeg.toFixed(1)} ${cx.toFixed(1)} ${cy.toFixed(1)})`}
-                textAnchor="middle"
-                dominantBaseline="middle"
-                fontSize={4.6}
-                fill={lightMode ? "#1e2540" : "#c8d0e8"}
-                fontFamily="Inter, sans-serif"
-                fontWeight="800"
-                letterSpacing="0.03em"
-              >
-                {label}
-              </text>
-            </g>
+            <text
+              key={`corner-${corner.number}${corner.letter}`}
+              x={cx}
+              y={cy}
+              transform={`rotate(${-rotationDeg.toFixed(1)} ${cx.toFixed(1)} ${cy.toFixed(1)})`}
+              textAnchor="middle"
+              dominantBaseline="middle"
+              fontSize={5}
+              fill={lightMode ? "#1e40af" : "#fbbf24"}
+              stroke={lightMode ? "rgba(255,255,255,0.8)" : "rgba(0,0,0,0.3)"}
+              strokeWidth={0.4}
+              fontFamily="Inter, sans-serif"
+              fontWeight="700"
+              letterSpacing="0.02em"
+              filter="url(#cornerShadow)"
+              style={{ paintOrder: "stroke" }}
+            >
+              {label}
+            </text>
           );
         })}
       </>
