@@ -34,6 +34,25 @@ export interface AppSettings {
   // Driver Tracker
   trackerTimingTelemetry: boolean;
   trackerTimingMobileCarData: boolean;
+  trackerTimingShowPosition: boolean;
+  trackerTimingShowDriver: boolean;
+  trackerTimingShowAlerts: boolean;
+  trackerTimingShowBestLap: boolean;
+  trackerTimingShowLastLap: boolean;
+  trackerTimingShowGap: boolean;
+  trackerTimingShowInterval: boolean;
+  trackerTimingShowS1: boolean;
+  trackerTimingShowS2: boolean;
+  trackerTimingShowS3: boolean;
+  trackerTimingShowPosDelta: boolean;
+  trackerTimingShowTyre: boolean;
+  trackerTimingShowPit: boolean;
+  trackerTimingShowLap: boolean;
+  trackerTimingShowSpeed: boolean;
+  trackerTimingShowGear: boolean;
+  trackerTimingShowRpm: boolean;
+  trackerTimingShowThrBrk: boolean;
+  trackerTimingShowDrs: boolean;
   timingMobileShowAlerts: boolean;
   timingMobileShowBestLap: boolean;
   timingMobileShowGap: boolean;
@@ -101,6 +120,25 @@ export const SETTINGS_DEFAULTS: AppSettings = {
   timingShowMinisectors: true,
   trackerTimingTelemetry: false,
   trackerTimingMobileCarData: false,
+  trackerTimingShowPosition: true,
+  trackerTimingShowDriver: true,
+  trackerTimingShowAlerts: true,
+  trackerTimingShowBestLap: true,
+  trackerTimingShowLastLap: false,
+  trackerTimingShowGap: true,
+  trackerTimingShowInterval: false,
+  trackerTimingShowS1: true,
+  trackerTimingShowS2: true,
+  trackerTimingShowS3: true,
+  trackerTimingShowPosDelta: true,
+  trackerTimingShowTyre: true,
+  trackerTimingShowPit: true,
+  trackerTimingShowLap: false,
+  trackerTimingShowSpeed: true,
+  trackerTimingShowGear: false,
+  trackerTimingShowRpm: false,
+  trackerTimingShowThrBrk: true,
+  trackerTimingShowDrs: true,
   timingMobileShowAlerts: true,
   timingMobileShowBestLap: true,
   timingMobileShowGap: true,

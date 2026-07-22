@@ -65,6 +65,7 @@ interface Props {
   readonly showMobilePitCountColumn?: boolean;
   readonly showMobileIntervalColumn?: boolean;
   readonly showMobileSectorsColumns?: boolean;
+  readonly columnVisibility?: Partial<TimingColumnVisibility>;
   readonly isLoading?: boolean;
   readonly selectedDriver?: number | null;
   readonly compareDriver?: number | null;
@@ -78,6 +79,28 @@ interface SessionBestOwner {
   driverNumber: number;
   lapNumber: number;
   time: number;
+}
+
+interface TimingColumnVisibility {
+  position: boolean;
+  driver: boolean;
+  alerts: boolean;
+  bestLap: boolean;
+  lastLap: boolean;
+  gap: boolean;
+  interval: boolean;
+  s1: boolean;
+  s2: boolean;
+  s3: boolean;
+  posDelta: boolean;
+  tyre: boolean;
+  pit: boolean;
+  currentLap: boolean;
+  speed: boolean;
+  gear: boolean;
+  rpm: boolean;
+  thrBrk: boolean;
+  drs: boolean;
 }
 
 interface SortedRow {
@@ -361,6 +384,7 @@ export function LiveTiming({
   showMobilePitCountColumn = true,
   showMobileIntervalColumn = false,
   showMobileSectorsColumns = false,
+  columnVisibility,
   sessionTimeMs,
   sessionStartMs,
   isLoading,
@@ -374,6 +398,28 @@ export function LiveTiming({
   const lightMode = useSettings((s) => s.lightMode);
   const speedUnitShort = speedUnitLabel(metricSystem);
   const speedUnitCompact = speedUnitCompactLabel(metricSystem);
+  const columns: TimingColumnVisibility = {
+    position: true,
+    driver: true,
+    alerts: true,
+    bestLap: true,
+    lastLap: true,
+    gap: true,
+    interval: true,
+    s1: true,
+    s2: true,
+    s3: true,
+    posDelta: true,
+    tyre: true,
+    pit: true,
+    currentLap: true,
+    speed: true,
+    gear: true,
+    rpm: true,
+    thrBrk: true,
+    drs: true,
+    ...columnVisibility,
+  };
   const showTelemetry = carData !== undefined;
   const showDrs =
     showTelemetry &&
@@ -841,9 +887,22 @@ export function LiveTiming({
     ? "w-[4rem] lg:w-[4.5rem]"
     : "w-[2.8rem] lg:w-[3rem]";
   const sectorCellClass = `${rowCellPad} ${wideSectors ? "px-1" : "px-0"}`;
-  const rpmColumnClass = "hidden 2xl:table-cell";
-  const pedalColumnClass = "hidden lg:table-cell";
-  const drsColumnClass = "hidden lg:table-cell";
+  const trackerTelemetryColumnsClass = compactDriverColumn && !fullWidthTable;
+  const speedColumnClass = trackerTelemetryColumnsClass
+    ? "hidden md:table-cell"
+    : "hidden lg:table-cell";
+  const gearColumnClass = trackerTelemetryColumnsClass
+    ? "hidden md:table-cell"
+    : "hidden lg:table-cell";
+  const rpmColumnClass = trackerTelemetryColumnsClass
+    ? "hidden md:table-cell"
+    : "hidden 2xl:table-cell";
+  const pedalColumnClass = trackerTelemetryColumnsClass
+    ? "hidden md:table-cell"
+    : "hidden lg:table-cell";
+  const drsColumnClass = trackerTelemetryColumnsClass
+    ? "hidden md:table-cell"
+    : "hidden lg:table-cell";
   const telemetryPadClass = compactDriverColumn ? "px-1" : "px-2";
   const telemetryCenterPadClass = compactDriverColumn ? "px-0.5" : "px-1";
   const pedalHeaderWidthClass = compactDriverColumn ? "w-[3.5rem]" : "w-[4rem]";
@@ -876,30 +935,27 @@ export function LiveTiming({
   const timingRowBaseClass = lightMode
     ? "border-b border-slate-200 transition-colors"
     : "border-b border-[#1e1e28] transition-colors";
-  const mobileAlertsColumnClass = showMobileAlertsColumn
-    ? ""
-    : "hidden sm:table-cell";
-  const mobileBestLapColumnClass = showMobileBestLapColumn
-    ? ""
-    : "hidden sm:table-cell";
-  const mobileGapColumnClass = showMobileGapColumn
-    ? ""
-    : "hidden sm:table-cell";
-  const mobilePosDeltaColumnClass = showMobilePosDeltaColumn
-    ? ""
-    : "hidden sm:table-cell";
-  const mobileTyreColumnClass = showMobileTyreColumn
-    ? ""
-    : "hidden sm:table-cell";
-  const mobilePitCountColumnClass = showMobilePitCountColumn
-    ? ""
-    : "hidden sm:table-cell";
-  const mobileIntervalColumnClass = showMobileIntervalColumn
-    ? ""
-    : "hidden sm:table-cell";
-  const mobileSectorsColumnsClass = showMobileSectorsColumns
-    ? ""
-    : "hidden sm:table-cell";
+  const mobileAlertsColumnClass =
+    showMobileAlertsColumn && columns.alerts ? "" : "hidden sm:table-cell";
+  const mobileBestLapColumnClass =
+    showMobileBestLapColumn && columns.bestLap ? "" : "hidden sm:table-cell";
+  const mobileLastLapColumnClass = columns.lastLap ? "" : "hidden";
+  const mobileGapColumnClass =
+    showMobileGapColumn && columns.gap ? "" : "hidden sm:table-cell";
+  const mobilePosDeltaColumnClass =
+    showMobilePosDeltaColumn && columns.posDelta ? "" : "hidden sm:table-cell";
+  const mobileTyreColumnClass =
+    showMobileTyreColumn && columns.tyre ? "" : "hidden sm:table-cell";
+  const mobilePitCountColumnClass =
+    showMobilePitCountColumn && columns.pit ? "" : "hidden sm:table-cell";
+  const mobileIntervalColumnClass =
+    showMobileIntervalColumn && columns.interval ? "" : "hidden sm:table-cell";
+  const mobileS1ColumnClass =
+    showMobileSectorsColumns && columns.s1 ? "" : "hidden sm:table-cell";
+  const mobileS2ColumnClass =
+    showMobileSectorsColumns && columns.s2 ? "" : "hidden sm:table-cell";
+  const mobileS3ColumnClass =
+    showMobileSectorsColumns && columns.s3 ? "" : "hidden sm:table-cell";
 
   if (isLoading) {
     return (
@@ -1009,91 +1065,128 @@ export function LiveTiming({
         >
           <thead>
             <tr className={timingHeaderRowClass}>
-              <th className={`${headerCellClass} text-left w-8`}>P</th>
-              <th className={driverColClass}>Driver</th>
-              <th
-                className={`${mobileAlertsColumnClass} ${headerCellClass} text-center w-[2rem] lg:w-[2.25rem]`}
-              >
-                Alerts
-              </th>
-              <th
-                className={`${mobileBestLapColumnClass} ${headerCellClass} text-right w-[4.25rem] min-[390px]:w-[4.75rem] sm:w-[5rem]`}
-              >
-                Best Lap
-              </th>
-              <th
-                className={`${mobileGapColumnClass} ${headerCellClass} text-right w-[4.25rem] min-[390px]:w-[4.75rem] sm:w-[5rem]`}
-              >
-                Gap
-              </th>
-              {showIntervalColumn && (
+              {columns.position && (
+                <th className={`${headerCellClass} text-left w-8`}>P</th>
+              )}
+              {columns.driver && <th className={driverColClass}>Driver</th>}
+              {columns.alerts && (
+                <th
+                  className={`${mobileAlertsColumnClass} ${headerCellClass} text-center w-[2rem] lg:w-[2.25rem]`}
+                >
+                  Alerts
+                </th>
+              )}
+              {columns.bestLap && (
+                <th
+                  className={`${mobileBestLapColumnClass} ${headerCellClass} text-right w-[4.25rem] min-[390px]:w-[4.75rem] sm:w-[5rem]`}
+                >
+                  Best Lap
+                </th>
+              )}
+              {columns.lastLap && (
+                <th
+                  className={`${mobileLastLapColumnClass} ${headerCellClass} text-right w-[4.25rem] min-[390px]:w-[4.75rem] sm:w-[5rem]`}
+                >
+                  Last Lap
+                </th>
+              )}
+              {columns.gap && (
+                <th
+                  className={`${mobileGapColumnClass} ${headerCellClass} text-right w-[4.25rem] min-[390px]:w-[4.75rem] sm:w-[5rem]`}
+                >
+                  Gap
+                </th>
+              )}
+              {showIntervalColumn && columns.interval && (
                 <th
                   className={`${mobileIntervalColumnClass} ${headerCellClass} text-right w-[4.25rem] min-[390px]:w-[4.75rem] sm:w-[5rem]`}
                 >
                   Interval
                 </th>
               )}
-              <th
-                className={`${mobileSectorsColumnsClass} ${headerCellClass} text-center ${sectorHeaderWidthClass}`}
-              >
-                S1
-              </th>
-              <th
-                className={`${mobileSectorsColumnsClass} ${headerCellClass} text-center ${sectorHeaderWidthClass}`}
-              >
-                S2
-              </th>
-              <th
-                className={`${mobileSectorsColumnsClass} ${headerCellClass} text-center ${sectorHeaderWidthClass}`}
-              >
-                S3
-              </th>
-              <th
-                className={`${mobilePosDeltaColumnClass} ${headerCellClass} text-left w-[2.75rem] min-[390px]:w-[2.25rem] sm:w-[2.5rem]`}
-              >
-                Pos
-              </th>
-              <th
-                className={`${mobileTyreColumnClass} ${headerCellClass} text-left w-[2.25rem] lg:w-[2.5rem]`}
-              >
-                Tyre
-              </th>
-              <th
-                className={`${mobilePitCountColumnClass} ${headerCellClass} text-center w-[2.25rem] lg:w-[2.5rem]`}
-              >
-                Pit
-              </th>
-              <th
-                className={`${headerCellClass} hidden sm:table-cell text-center w-16`}
-              >
-                Lap
-              </th>
+              {columns.s1 && (
+                <th
+                  className={`${mobileS1ColumnClass} ${headerCellClass} text-center ${sectorHeaderWidthClass}`}
+                >
+                  S1
+                </th>
+              )}
+              {columns.s2 && (
+                <th
+                  className={`${mobileS2ColumnClass} ${headerCellClass} text-center ${sectorHeaderWidthClass}`}
+                >
+                  S2
+                </th>
+              )}
+              {columns.s3 && (
+                <th
+                  className={`${mobileS3ColumnClass} ${headerCellClass} text-center ${sectorHeaderWidthClass}`}
+                >
+                  S3
+                </th>
+              )}
+              {columns.posDelta && (
+                <th
+                  className={`${mobilePosDeltaColumnClass} ${headerCellClass} text-left w-[2.75rem] min-[390px]:w-[2.25rem] sm:w-[2.5rem]`}
+                >
+                  Pos
+                </th>
+              )}
+              {columns.tyre && (
+                <th
+                  className={`${mobileTyreColumnClass} ${headerCellClass} text-left w-[2.25rem] lg:w-[2.5rem]`}
+                >
+                  Tyre
+                </th>
+              )}
+              {columns.pit && (
+                <th
+                  className={`${mobilePitCountColumnClass} ${headerCellClass} text-center w-[2.25rem] lg:w-[2.5rem]`}
+                >
+                  Pit
+                </th>
+              )}
+              {columns.currentLap && (
+                <th
+                  className={`${headerCellClass} hidden sm:table-cell text-center w-16`}
+                >
+                  Lap
+                </th>
+              )}
               {showTelemetry && (
                 <>
-                  <th
-                    className={`${headerCellClass} hidden lg:table-cell text-right w-[3rem]`}
-                  >
-                    <span className="block leading-none">Speed</span>
-                    <span className="block text-[8px] normal-case tracking-normal text-[#7b7b82] leading-none mt-0.5">
-                      {speedUnitShort}
-                    </span>
-                  </th>
-                  <th
-                    className={`${headerCellClass} hidden lg:table-cell text-center w-6`}
-                  >
-                    Gear
-                  </th>
-                  <th
-                    className={`${headerCellClass} ${rpmColumnClass} text-right w-[3.5rem]`}
-                  >
-                    RPM
-                  </th>
-                  <th
-                    className={`${headerCellClass} ${pedalColumnClass} text-center ${pedalHeaderWidthClass}`}
-                  >
-                    Thr/Brk
-                  </th>
-                  {showDrs && (
+                  {columns.speed && (
+                    <th
+                      className={`${headerCellClass} ${speedColumnClass} text-right w-[3rem]`}
+                    >
+                      <span className="block leading-none">Speed</span>
+                      <span className="block text-[8px] normal-case tracking-normal text-[#7b7b82] leading-none mt-0.5">
+                        {speedUnitShort}
+                      </span>
+                    </th>
+                  )}
+                  {columns.gear && (
+                    <th
+                      className={`${headerCellClass} ${gearColumnClass} text-center w-6`}
+                    >
+                      Gear
+                    </th>
+                  )}
+                  {columns.rpm && (
+                    <th
+                      className={`${headerCellClass} ${rpmColumnClass} text-right w-[3.5rem]`}
+                    >
+                      RPM
+                    </th>
+                  )}
+                  {columns.thrBrk && (
+                    <th
+                      className={`${headerCellClass} ${pedalColumnClass} text-center ${pedalHeaderWidthClass}`}
+                    >
+                      Thr/Brk
+                    </th>
+                  )}
+                  {showDrs && columns.drs && (
                     <th
                       className={`${headerCellClass} ${drsColumnClass} text-center ${drsHeaderWidthClass}`}
                     >
@@ -1306,151 +1399,177 @@ export function LiveTiming({
                   className={`${timingRowBaseClass} ${rowHeightClass} ${onSelectDriver ? "cursor-pointer" : ""} ${rowBg} ${lapFlashClass}`}
                 >
                   {/* Position */}
-                  <td
-                    className={`${rowCellPad} align-middle px-1.5 font-black ${dense ? "text-xs" : "text-sm"} tabular-nums text-white/90 sm:px-2`}
-                  >
-                    {pos}
-                  </td>
+                  {columns.position && (
+                    <td
+                      className={`${rowCellPad} align-middle px-1.5 font-black ${dense ? "text-xs" : "text-sm"} tabular-nums text-white/90 sm:px-2`}
+                    >
+                      {pos}
+                    </td>
+                  )}
 
                   {/* Driver */}
-                  <td
-                    className={`${dense ? driverCellCompactClass : driverCellClass} align-middle`}
-                  >
-                    <div>
-                      <span className="flex items-center gap-1 sm:gap-1">
-                        <DriverHeadshot
-                          driver={driver}
-                          accent={color}
-                          size={dense ? "xxs" : "xs"}
-                        />
-                        {/* Team colour bar */}
-                        <span
-                          className={`w-[2px] ${dense ? "h-3" : "h-4"} shrink-0 rounded-sm`}
-                          style={{ background: color }}
-                        />
-                        {/* Surname in CAPS */}
-                        <span
-                          className={`min-w-0 truncate font-bold ${dense ? "text-[9px] min-[390px]:text-[10px]" : "text-[10px] min-[390px]:text-[11px]"} tracking-[0.03em] min-[390px]:tracking-[0.05em] uppercase text-white`}
-                        >
-                          {showFullLastName ? (
-                            <>
-                              <span className="sm:hidden">
-                                {mobileDriverLabel}
-                              </span>
-                              <span className="hidden sm:inline">
-                                {driverLabel}
-                              </span>
-                            </>
-                          ) : (
-                            driverLabel
-                          )}
-                        </span>
-                      </span>
-
-                      {showTelemetry &&
-                        (!dense || showDenseMobileTelemetry) && (
-                          <div
-                            className={`grid grid-cols-2 gap-x-1.5 gap-y-0.5 font-mono tabular-nums sm:hidden ${dense ? "mt-0.5 text-[8px] leading-3.5" : "mt-1 text-[9px] leading-4"}`}
+                  {columns.driver && (
+                    <td
+                      className={`${dense ? driverCellCompactClass : driverCellClass} align-middle`}
+                    >
+                      <div>
+                        <span className="flex items-center gap-1 sm:gap-1">
+                          <DriverHeadshot
+                            driver={driver}
+                            accent={color}
+                            size={dense ? "xxs" : "xs"}
+                          />
+                          {/* Team colour bar */}
+                          <span
+                            className={`w-[2px] ${dense ? "h-3" : "h-4"} shrink-0 rounded-sm`}
+                            style={{ background: color }}
+                          />
+                          {/* Surname in CAPS */}
+                          <span
+                            className={`min-w-0 truncate font-bold ${dense ? "text-[9px] min-[390px]:text-[10px]" : "text-[10px] min-[390px]:text-[11px]"} tracking-[0.03em] min-[390px]:tracking-[0.05em] uppercase text-white`}
                           >
-                            <span className="inline-flex min-w-0 items-center gap-1 text-[#7dd3fc]">
-                              <span className="text-[#89a6bf]">
-                                {speedUnitCompact}
-                              </span>
-                              <span className="w-[3ch] text-right">
-                                {speedDisplay}
-                              </span>
-                            </span>
-                            <span className="inline-flex min-w-0 items-center gap-1 text-[#c4b5fd]">
-                              <span className="text-[#a79ac9]">RPM</span>
-                              <span className="w-[5ch] text-right">
-                                {rpmDisplay}
-                              </span>
-                            </span>
-                            <span className="inline-flex min-w-0 items-center gap-1 text-[#fde68a]">
-                              <span className="text-[#d2bf72]">G</span>
-                              <span className="w-[3ch] text-right">
-                                {gearDisplay}
-                              </span>
-                            </span>
-                            {showDrs && (
-                              <span
-                                className={`inline-flex min-w-0 items-center gap-1 ${car && car.drs >= 10 ? "text-[#39d743]" : "text-[#9ca3af]"}`}
-                              >
-                                <span className="text-[#9ba1a8]">DRS</span>
-                                <span className="w-[3ch] text-right">
-                                  {drsDisplay}
+                            {showFullLastName ? (
+                              <>
+                                <span className="sm:hidden">
+                                  {mobileDriverLabel}
                                 </span>
-                              </span>
+                                <span className="hidden sm:inline">
+                                  {driverLabel}
+                                </span>
+                              </>
+                            ) : (
+                              driverLabel
                             )}
-                            <span className="col-span-2 inline-flex min-w-0 items-center justify-start gap-1.5">
-                              <MobilePedalMeter
-                                label="T"
-                                value={car ? car.throttle : null}
-                                color="#39d743"
-                                labelClassName="text-[#6eb989]"
-                              />
-                              <MobilePedalMeter
-                                label="B"
-                                value={car ? car.brake : null}
-                                color="#ff5252"
-                                labelClassName="text-[#c88787]"
-                              />
-                            </span>
-                          </div>
-                        )}
-                    </div>
-                  </td>
+                          </span>
+                        </span>
+
+                        {showTelemetry &&
+                          (!dense || showDenseMobileTelemetry) && (
+                            <div
+                              className={`grid grid-cols-2 gap-x-1.5 gap-y-0.5 font-mono tabular-nums sm:hidden ${dense ? "mt-0.5 text-[8px] leading-3.5" : "mt-1 text-[9px] leading-4"}`}
+                            >
+                              {columns.speed && (
+                                <span className="inline-flex min-w-0 items-center gap-1 text-[#7dd3fc]">
+                                  <span className="text-[#89a6bf]">
+                                    {speedUnitCompact}
+                                  </span>
+                                  <span className="w-[3ch] text-right">
+                                    {speedDisplay}
+                                  </span>
+                                </span>
+                              )}
+                              {columns.rpm && (
+                                <span className="inline-flex min-w-0 items-center gap-1 text-[#c4b5fd]">
+                                  <span className="text-[#a79ac9]">RPM</span>
+                                  <span className="w-[5ch] text-right">
+                                    {rpmDisplay}
+                                  </span>
+                                </span>
+                              )}
+                              {columns.gear && (
+                                <span className="inline-flex min-w-0 items-center gap-1 text-[#fde68a]">
+                                  <span className="text-[#d2bf72]">G</span>
+                                  <span className="w-[3ch] text-right">
+                                    {gearDisplay}
+                                  </span>
+                                </span>
+                              )}
+                              {showDrs && columns.drs && (
+                                <span
+                                  className={`inline-flex min-w-0 items-center gap-1 ${car && car.drs >= 10 ? "text-[#39d743]" : "text-[#9ca3af]"}`}
+                                >
+                                  <span className="text-[#9ba1a8]">DRS</span>
+                                  <span className="w-[3ch] text-right">
+                                    {drsDisplay}
+                                  </span>
+                                </span>
+                              )}
+                              {columns.thrBrk && (
+                                <span className="col-span-2 inline-flex min-w-0 items-center justify-start gap-1.5">
+                                  <MobilePedalMeter
+                                    label="T"
+                                    value={car ? car.throttle : null}
+                                    color="#39d743"
+                                    labelClassName="text-[#6eb989]"
+                                  />
+                                  <MobilePedalMeter
+                                    label="B"
+                                    value={car ? car.brake : null}
+                                    color="#ff5252"
+                                    labelClassName="text-[#c88787]"
+                                  />
+                                </span>
+                              )}
+                            </div>
+                          )}
+                      </div>
+                    </td>
+                  )}
 
                   {/* Alerts: investigation/penalty markers + driver status */}
-                  <td
-                    className={`${mobileAlertsColumnClass} ${rowCellPad} align-middle px-0 text-center font-black ${dense ? "text-[8px]" : "text-[8px] min-[390px]:text-[9px]"} tabular-nums sm:px-0.5`}
-                  >
-                    {(hasInvestigationMarker ||
-                      hasPenaltyMarker ||
-                      statusContent) && (
-                      <span className="inline-flex items-center justify-center gap-1">
-                        {hasInvestigationMarker && (
-                          <StatusBadgeTooltip
-                            label="!"
-                            tooltip={investigationTitle}
-                            ariaLabel="Under investigation"
-                            badgeClassName={`bg-[#f5a623] text-black font-black uppercase tracking-widest cursor-help ${statusBadgeClass}`}
-                            tooltipAccentClassName="bg-[#f5a623]"
-                          />
-                        )}
-                        {hasPenaltyMarker && (
-                          <StatusBadgeTooltip
-                            label="!"
-                            tooltip={penaltyTitle}
-                            ariaLabel="Penalty issued"
-                            badgeClassName={`bg-[#ff5252] text-white font-black uppercase tracking-widest cursor-help ${statusBadgeClass}`}
-                            tooltipAccentClassName="bg-[#ff5252]"
-                          />
-                        )}
-                        {statusContent}
-                      </span>
-                    )}
-                    {!hasInvestigationMarker &&
-                      !hasPenaltyMarker &&
-                      !statusContent && <span className="text-muted">—</span>}
-                  </td>
+                  {columns.alerts && (
+                    <td
+                      className={`${mobileAlertsColumnClass} ${rowCellPad} align-middle px-0 text-center font-black ${dense ? "text-[8px]" : "text-[8px] min-[390px]:text-[9px]"} tabular-nums sm:px-0.5`}
+                    >
+                      {(hasInvestigationMarker ||
+                        hasPenaltyMarker ||
+                        statusContent) && (
+                        <span className="inline-flex items-center justify-center gap-1">
+                          {hasInvestigationMarker && (
+                            <StatusBadgeTooltip
+                              label="!"
+                              tooltip={investigationTitle}
+                              ariaLabel="Under investigation"
+                              badgeClassName={`bg-[#f5a623] text-black font-black uppercase tracking-widest cursor-help ${statusBadgeClass}`}
+                              tooltipAccentClassName="bg-[#f5a623]"
+                            />
+                          )}
+                          {hasPenaltyMarker && (
+                            <StatusBadgeTooltip
+                              label="!"
+                              tooltip={penaltyTitle}
+                              ariaLabel="Penalty issued"
+                              badgeClassName={`bg-[#ff5252] text-white font-black uppercase tracking-widest cursor-help ${statusBadgeClass}`}
+                              tooltipAccentClassName="bg-[#ff5252]"
+                            />
+                          )}
+                          {statusContent}
+                        </span>
+                      )}
+                      {!hasInvestigationMarker &&
+                        !hasPenaltyMarker &&
+                        !statusContent && <span className="text-muted">—</span>}
+                    </td>
+                  )}
 
                   {/* Best lap time */}
-                  <td
-                    className={`${mobileBestLapColumnClass} ${rowCellPad} align-middle px-1 text-right font-mono ${dense ? "text-[9px] min-[390px]:text-[10px]" : "text-[10px] min-[390px]:text-[11px]"} tabular-nums sm:px-1.5 ${LAP_TIME_COLOUR[lapTier]}`}
-                  >
-                    {fmtTime(bestLap?.lap_duration ?? null)}
-                  </td>
+                  {columns.bestLap && (
+                    <td
+                      className={`${mobileBestLapColumnClass} ${rowCellPad} align-middle px-1 text-right font-mono ${dense ? "text-[9px] min-[390px]:text-[10px]" : "text-[10px] min-[390px]:text-[11px]"} tabular-nums sm:px-1.5 ${LAP_TIME_COLOUR[lapTier]}`}
+                    >
+                      {fmtTime(bestLap?.lap_duration ?? null)}
+                    </td>
+                  )}
+
+                  {columns.lastLap && (
+                    <td
+                      className={`${mobileLastLapColumnClass} ${rowCellPad} align-middle px-1 text-right font-mono ${dense ? "text-[9px] min-[390px]:text-[10px]" : "text-[10px] min-[390px]:text-[11px]"} tabular-nums sm:px-1.5 ${LAP_TIME_COLOUR[lapTimeTier(lastLap?.lap_duration ?? null, sessionBest.lap)]}`}
+                    >
+                      {fmtTime(lastLap?.lap_duration ?? null)}
+                    </td>
+                  )}
 
                   {/* Gap to leader */}
-                  <td
-                    className={`${mobileGapColumnClass} ${rowCellPad} align-middle px-1 text-right font-mono ${dense ? "text-[9px] min-[390px]:text-[10px]" : "text-[10px] min-[390px]:text-[11px]"} tabular-nums text-muted sm:px-2`}
-                  >
-                    {fmtGap(gapValue)}
-                  </td>
+                  {columns.gap && (
+                    <td
+                      className={`${mobileGapColumnClass} ${rowCellPad} align-middle px-1 text-right font-mono ${dense ? "text-[9px] min-[390px]:text-[10px]" : "text-[10px] min-[390px]:text-[11px]"} tabular-nums text-muted sm:px-2`}
+                    >
+                      {fmtGap(gapValue)}
+                    </td>
+                  )}
 
                   {/* Interval to car ahead */}
-                  {showIntervalColumn && (
+                  {showIntervalColumn && columns.interval && (
                     <td
                       className={`${mobileIntervalColumnClass} ${rowCellPad} align-middle px-1 text-right font-mono ${dense ? "text-[9px] min-[390px]:text-[10px]" : "text-[10px] min-[390px]:text-[11px]"} tabular-nums text-muted sm:px-2`}
                     >
@@ -1459,143 +1578,167 @@ export function LiveTiming({
                   )}
 
                   {/* Sector bars */}
-                  <td
-                    className={`${mobileSectorsColumnsClass} align-middle ${sectorCellClass}`}
-                  >
-                    <div className="flex flex-col items-center gap-1">
-                      <SectorBar
-                        tier={t1}
-                        segments={lastLap?.segments_sector_1}
-                        showMinisectors={showMinisectors}
-                        widthClass={sectorBarWidthClass}
-                        title={`S1: ${lastLap?.duration_sector_1?.toFixed(3) ?? "—"}`}
-                      />
-                      {wideSectors && (
-                        <span className="text-[9px] font-mono tabular-nums text-muted leading-none">
-                          {lastLap?.duration_sector_1?.toFixed(3) ?? "—"}
-                        </span>
-                      )}
-                    </div>
-                  </td>
-                  <td
-                    className={`${mobileSectorsColumnsClass} align-middle ${sectorCellClass}`}
-                  >
-                    <div className="flex flex-col items-center gap-1">
-                      <SectorBar
-                        tier={t2}
-                        segments={lastLap?.segments_sector_2}
-                        showMinisectors={showMinisectors}
-                        widthClass={sectorBarWidthClass}
-                        title={`S2: ${lastLap?.duration_sector_2?.toFixed(3) ?? "—"}`}
-                      />
-                      {wideSectors && (
-                        <span className="text-[9px] font-mono tabular-nums text-muted leading-none">
-                          {lastLap?.duration_sector_2?.toFixed(3) ?? "—"}
-                        </span>
-                      )}
-                    </div>
-                  </td>
-                  <td
-                    className={`${mobileSectorsColumnsClass} align-middle ${sectorCellClass}`}
-                  >
-                    <div className="flex flex-col items-center gap-1">
-                      <SectorBar
-                        tier={t3}
-                        segments={lastLap?.segments_sector_3}
-                        showMinisectors={showMinisectors}
-                        widthClass={sectorBarWidthClass}
-                        title={`S3: ${lastLap?.duration_sector_3?.toFixed(3) ?? "—"}`}
-                      />
-                      {wideSectors && (
-                        <span className="text-[9px] font-mono tabular-nums text-muted leading-none">
-                          {lastLap?.duration_sector_3?.toFixed(3) ?? "—"}
-                        </span>
-                      )}
-                    </div>
-                  </td>
+                  {columns.s1 && (
+                    <td
+                      className={`${mobileS1ColumnClass} align-middle ${sectorCellClass}`}
+                    >
+                      <div className="flex flex-col items-center gap-1">
+                        <SectorBar
+                          tier={t1}
+                          segments={lastLap?.segments_sector_1}
+                          showMinisectors={showMinisectors}
+                          widthClass={sectorBarWidthClass}
+                          title={`S1: ${lastLap?.duration_sector_1?.toFixed(3) ?? "—"}`}
+                        />
+                        {wideSectors && (
+                          <span className="text-[9px] font-mono tabular-nums text-muted leading-none">
+                            {lastLap?.duration_sector_1?.toFixed(3) ?? "—"}
+                          </span>
+                        )}
+                      </div>
+                    </td>
+                  )}
+                  {columns.s2 && (
+                    <td
+                      className={`${mobileS2ColumnClass} align-middle ${sectorCellClass}`}
+                    >
+                      <div className="flex flex-col items-center gap-1">
+                        <SectorBar
+                          tier={t2}
+                          segments={lastLap?.segments_sector_2}
+                          showMinisectors={showMinisectors}
+                          widthClass={sectorBarWidthClass}
+                          title={`S2: ${lastLap?.duration_sector_2?.toFixed(3) ?? "—"}`}
+                        />
+                        {wideSectors && (
+                          <span className="text-[9px] font-mono tabular-nums text-muted leading-none">
+                            {lastLap?.duration_sector_2?.toFixed(3) ?? "—"}
+                          </span>
+                        )}
+                      </div>
+                    </td>
+                  )}
+                  {columns.s3 && (
+                    <td
+                      className={`${mobileS3ColumnClass} align-middle ${sectorCellClass}`}
+                    >
+                      <div className="flex flex-col items-center gap-1">
+                        <SectorBar
+                          tier={t3}
+                          segments={lastLap?.segments_sector_3}
+                          showMinisectors={showMinisectors}
+                          widthClass={sectorBarWidthClass}
+                          title={`S3: ${lastLap?.duration_sector_3?.toFixed(3) ?? "—"}`}
+                        />
+                        {wideSectors && (
+                          <span className="text-[9px] font-mono tabular-nums text-muted leading-none">
+                            {lastLap?.duration_sector_3?.toFixed(3) ?? "—"}
+                          </span>
+                        )}
+                      </div>
+                    </td>
+                  )}
 
                   {/* Position gain/loss from start */}
-                  <td
-                    className={`${mobilePosDeltaColumnClass} ${rowCellPad} align-middle px-1 text-left font-black ${dense ? "text-[11px]" : "text-xs min-[390px]:text-sm"} tabular-nums sm:px-2`}
-                    title={
-                      startPos !== null
-                        ? `Started P${startPos}`
-                        : "Starting position unavailable"
-                    }
-                  >
-                    {gainedContent}
-                  </td>
+                  {columns.posDelta && (
+                    <td
+                      className={`${mobilePosDeltaColumnClass} ${rowCellPad} align-middle px-1 text-left font-black ${dense ? "text-[11px]" : "text-xs min-[390px]:text-sm"} tabular-nums sm:px-2`}
+                      title={
+                        startPos !== null
+                          ? `Started P${startPos}`
+                          : "Starting position unavailable"
+                      }
+                    >
+                      {gainedContent}
+                    </td>
+                  )}
 
                   {/* Tyre: starting compound → current compound + age */}
-                  <td
-                    className={`${mobileTyreColumnClass} ${rowCellPad} align-middle px-1 sm:px-1.5`}
-                  >
-                    <TyreBadge
-                      stints={stints ?? []}
-                      driverNumber={num}
-                      currentLap={currentLap}
-                      startCompound={
-                        wideSectors ? (startCompoundMap.get(num) ?? null) : null
-                      }
-                    />
-                  </td>
+                  {columns.tyre && (
+                    <td
+                      className={`${mobileTyreColumnClass} ${rowCellPad} align-middle px-1 sm:px-1.5`}
+                    >
+                      <TyreBadge
+                        stints={stints ?? []}
+                        driverNumber={num}
+                        currentLap={currentLap}
+                        startCompound={
+                          wideSectors
+                            ? (startCompoundMap.get(num) ?? null)
+                            : null
+                        }
+                      />
+                    </td>
+                  )}
 
                   {/* Pit stops completed up to current playhead */}
-                  <td
-                    className={`${mobilePitCountColumnClass} ${rowCellPad} align-middle px-1 text-center font-mono ${dense ? "text-[10px]" : "text-[11px] min-[390px]:text-[12px]"} tabular-nums text-muted sm:px-1.5`}
-                  >
-                    {pitCountMap.get(num) ?? 0}
-                  </td>
+                  {columns.pit && (
+                    <td
+                      className={`${mobilePitCountColumnClass} ${rowCellPad} align-middle px-1 text-center font-mono ${dense ? "text-[10px]" : "text-[11px] min-[390px]:text-[12px]"} tabular-nums text-muted sm:px-1.5`}
+                    >
+                      {pitCountMap.get(num) ?? 0}
+                    </td>
+                  )}
 
                   {/* Current lap */}
-                  <td
-                    className={`hidden sm:table-cell ${rowCellPad} align-middle px-2 text-center font-mono ${dense ? "text-[10px]" : "text-[11px]"} tabular-nums text-muted`}
-                  >
-                    {currentLap !== null && totalLapCount !== null
-                      ? `${currentLap}/${totalLapCount}`
-                      : (currentLap ?? "—")}
-                  </td>
+                  {columns.currentLap && (
+                    <td
+                      className={`hidden sm:table-cell ${rowCellPad} align-middle px-2 text-center font-mono ${dense ? "text-[10px]" : "text-[11px]"} tabular-nums text-muted`}
+                    >
+                      {currentLap !== null && totalLapCount !== null
+                        ? `${currentLap}/${totalLapCount}`
+                        : (currentLap ?? "—")}
+                    </td>
+                  )}
 
                   {/* Live car telemetry */}
                   {showTelemetry && (
                     <>
                       {/* Speed */}
-                      <td
-                        className={`hidden lg:table-cell ${rowCellPad} align-middle ${telemetryPadClass} text-right font-mono text-[12px] tabular-nums text-white`}
-                      >
-                        {speedValue ?? "—"}
-                      </td>
+                      {columns.speed && (
+                        <td
+                          className={`${speedColumnClass} ${rowCellPad} align-middle ${telemetryPadClass} text-right font-mono text-[12px] tabular-nums text-white`}
+                        >
+                          {speedValue ?? "—"}
+                        </td>
+                      )}
                       {/* Gear */}
-                      <td
-                        className={`hidden lg:table-cell ${rowCellPad} align-middle ${telemetryCenterPadClass} text-center font-mono text-[12px] tabular-nums text-white/90`}
-                      >
-                        {car ? (car.n_gear === 0 ? "N" : car.n_gear) : "—"}
-                      </td>
+                      {columns.gear && (
+                        <td
+                          className={`${gearColumnClass} ${rowCellPad} align-middle ${telemetryCenterPadClass} text-center font-mono text-[12px] tabular-nums text-white/90`}
+                        >
+                          {car ? (car.n_gear === 0 ? "N" : car.n_gear) : "—"}
+                        </td>
+                      )}
                       {/* RPM */}
-                      <td
-                        className={`${rpmColumnClass} ${rowCellPad} align-middle ${telemetryPadClass} text-right font-mono text-[10px] tabular-nums text-muted`}
-                      >
-                        {car ? Math.round(car.rpm) : "—"}
-                      </td>
+                      {columns.rpm && (
+                        <td
+                          className={`${rpmColumnClass} ${rowCellPad} align-middle ${telemetryPadClass} text-right font-mono text-[10px] tabular-nums text-muted`}
+                        >
+                          {car ? Math.round(car.rpm) : "—"}
+                        </td>
+                      )}
                       {/* Throttle / brake mini bars */}
-                      <td
-                        className={`${pedalColumnClass} ${rowCellPad} align-middle ${telemetryCenterPadClass}`}
-                      >
-                        {car ? (
-                          <span
-                            className={`flex flex-col gap-0.5 ${pedalBarsWidthClass} mx-auto`}
-                          >
-                            <MiniBar value={car.throttle} color="#39d743" />
-                            <MiniBar value={car.brake} color="#ff5252" />
-                          </span>
-                        ) : (
-                          <span className="block text-center text-muted">
-                            —
-                          </span>
-                        )}
-                      </td>
+                      {columns.thrBrk && (
+                        <td
+                          className={`${pedalColumnClass} ${rowCellPad} align-middle ${telemetryCenterPadClass}`}
+                        >
+                          {car ? (
+                            <span
+                              className={`flex flex-col gap-0.5 ${pedalBarsWidthClass} mx-auto`}
+                            >
+                              <MiniBar value={car.throttle} color="#39d743" />
+                              <MiniBar value={car.brake} color="#ff5252" />
+                            </span>
+                          ) : (
+                            <span className="block text-center text-muted">
+                              —
+                            </span>
+                          )}
+                        </td>
+                      )}
                       {/* DRS */}
-                      {showDrs && (
+                      {showDrs && columns.drs && (
                         <td
                           className={`${drsColumnClass} ${rowCellPad} align-middle ${telemetryCenterPadClass} text-center`}
                         >

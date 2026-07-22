@@ -952,4 +952,103 @@ describe("LiveTiming", () => {
       "w-[2.5rem]",
     );
   });
+
+  it("renders last lap after best lap and respects column visibility", () => {
+    const sessionStartMs = Date.parse("2024-01-01T00:00:00.000Z");
+
+    render(
+      <LiveTiming
+        drivers={drivers}
+        positions={
+          [
+            {
+              driver_number: 1,
+              position: 1,
+              date: "2024-01-01T00:02:00.000Z",
+            },
+          ] as Position[]
+        }
+        intervals={[]}
+        pits={[]}
+        laps={
+          [
+            {
+              date_start: "2024-01-01T00:00:00.000Z",
+              driver_number: 1,
+              duration_sector_1: 30,
+              duration_sector_2: 30,
+              duration_sector_3: 30,
+              i1_speed: null,
+              i2_speed: null,
+              is_pit_out_lap: false,
+              lap_duration: 95,
+              lap_number: 1,
+              meeting_key: 1,
+              segments_sector_1: [2049],
+              segments_sector_2: [2049],
+              segments_sector_3: [2049],
+              session_key: 1,
+              st_speed: null,
+            },
+            {
+              date_start: "2024-01-01T00:01:40.000Z",
+              driver_number: 1,
+              duration_sector_1: 29,
+              duration_sector_2: 29,
+              duration_sector_3: 29,
+              i1_speed: null,
+              i2_speed: null,
+              is_pit_out_lap: false,
+              lap_duration: 87,
+              lap_number: 2,
+              meeting_key: 1,
+              segments_sector_1: [2049],
+              segments_sector_2: [2049],
+              segments_sector_3: [2049],
+              session_key: 1,
+              st_speed: null,
+            },
+          ] as Lap[]
+        }
+        sessionTimeMs={130_000}
+        sessionStartMs={sessionStartMs}
+        carData={
+          new Map<number, CarData>([
+            [
+              1,
+              {
+                brake: 0,
+                date: "2024-01-01T00:02:05.000Z",
+                driver_number: 1,
+                drs: 12,
+                meeting_key: 1,
+                n_gear: 8,
+                rpm: 12000,
+                session_key: 1,
+                speed: 300,
+                throttle: 98,
+              },
+            ],
+          ])
+        }
+        columnVisibility={{
+          currentLap: false,
+          gear: false,
+          rpm: false,
+        }}
+      />,
+    );
+
+    const headers = screen
+      .getAllByRole("columnheader")
+      .map((header) => header.textContent?.replace(/\s+/g, " ").trim());
+    expect(headers).toContain("Best Lap");
+    expect(headers).toContain("Last Lap");
+    expect(headers.indexOf("Best Lap")).toBeLessThan(
+      headers.indexOf("Last Lap"),
+    );
+    expect(screen.getAllByText("1:35.000").length).toBeGreaterThan(0);
+    expect(screen.queryByText("Lap")).not.toBeInTheDocument();
+    expect(screen.queryByText("Gear")).not.toBeInTheDocument();
+  });
 });

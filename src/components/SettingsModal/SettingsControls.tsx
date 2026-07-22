@@ -210,6 +210,103 @@ export function UnitSelector({
 export function SettingsBody() {
   const { setSetting, reset, ...settings } = useSettings();
   const isMobileViewport = useMediaQuery("(max-width: 767px)");
+  const trackerTimingColumns = [
+    {
+      key: "trackerTimingShowPosition",
+      label: "P",
+      active: settings.trackerTimingShowPosition,
+    },
+    {
+      key: "trackerTimingShowDriver",
+      label: "Driver",
+      active: settings.trackerTimingShowDriver,
+    },
+    {
+      key: "trackerTimingShowAlerts",
+      label: "Alerts",
+      active: settings.trackerTimingShowAlerts,
+    },
+    {
+      key: "trackerTimingShowBestLap",
+      label: "Best lap",
+      active: settings.trackerTimingShowBestLap,
+    },
+    {
+      key: "trackerTimingShowLastLap",
+      label: "Last lap",
+      active: settings.trackerTimingShowLastLap,
+    },
+    {
+      key: "trackerTimingShowGap",
+      label: "Gap",
+      active: settings.trackerTimingShowGap,
+    },
+    {
+      key: "trackerTimingShowInterval",
+      label: "Interval",
+      active: settings.trackerTimingShowInterval,
+    },
+    {
+      key: "trackerTimingShowS1",
+      label: "S1",
+      active: settings.trackerTimingShowS1,
+    },
+    {
+      key: "trackerTimingShowS2",
+      label: "S2",
+      active: settings.trackerTimingShowS2,
+    },
+    {
+      key: "trackerTimingShowS3",
+      label: "S3",
+      active: settings.trackerTimingShowS3,
+    },
+    {
+      key: "trackerTimingShowPosDelta",
+      label: "Pos",
+      active: settings.trackerTimingShowPosDelta,
+    },
+    {
+      key: "trackerTimingShowTyre",
+      label: "Tyre",
+      active: settings.trackerTimingShowTyre,
+    },
+    {
+      key: "trackerTimingShowPit",
+      label: "Pit",
+      active: settings.trackerTimingShowPit,
+    },
+    {
+      key: "trackerTimingShowLap",
+      label: "Lap",
+      active: settings.trackerTimingShowLap,
+    },
+    {
+      key: "trackerTimingShowSpeed",
+      label: "Speed",
+      active: settings.trackerTimingShowSpeed,
+    },
+    {
+      key: "trackerTimingShowGear",
+      label: "Gear",
+      active: settings.trackerTimingShowGear,
+    },
+    {
+      key: "trackerTimingShowRpm",
+      label: "RPM",
+      active: settings.trackerTimingShowRpm,
+    },
+    {
+      key: "trackerTimingShowThrBrk",
+      label: "Thr/Brk",
+      active: settings.trackerTimingShowThrBrk,
+    },
+    {
+      key: "trackerTimingShowDrs",
+      label: "DRS",
+      active: settings.trackerTimingShowDrs,
+    },
+  ] as const;
 
   function updateSetting<K extends keyof AppSettings>(
     key: K,
@@ -397,6 +494,35 @@ export function SettingsBody() {
         checked={settings.trackerTimingTelemetry}
         onChange={toggle("trackerTimingTelemetry")}
       />
+      <div className="py-2.5 border-b border-[#2a2a35]">
+        <div className="text-[13px] text-white/90 leading-tight">
+          Driver tracker columns
+        </div>
+        <div className="text-[11px] text-muted mt-0.5 leading-tight">
+          Pick which leaderboard-style timing columns appear in the tracker
+          table
+        </div>
+        <div className="mt-2 flex flex-wrap gap-1.5">
+          {trackerTimingColumns.map(({ key, label, active }) => (
+            <button
+              key={key}
+              onClick={() =>
+                updateSetting(key, !active as AppSettings[typeof key])
+              }
+              className={[
+                "text-[10px] font-bold px-2 py-0.5 rounded-sm border transition-all",
+                "focus:outline-none focus-visible:ring-1 focus-visible:ring-white/40",
+                active
+                  ? "border-f1red bg-f1red text-white"
+                  : "border-[#38383f] bg-transparent text-white/70 hover:border-[#555565] hover:text-white",
+              ].join(" ")}
+              aria-pressed={active}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+      </div>
       {isMobileViewport && (
         <div>
           <SettingRow

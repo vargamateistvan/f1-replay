@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { fireEvent, render, screen } from "@testing-library/react";
+import { fireEvent, render, screen, within } from "@testing-library/react";
 import { SettingsBody } from "@/components/SettingsModal/SettingsControls";
 
 const state = vi.hoisted(() => ({
@@ -38,6 +38,25 @@ vi.mock("@/stores/settings", () => ({
     timingShowMinisectors: true,
     trackerTimingTelemetry: true,
     trackerTimingMobileCarData: true,
+    trackerTimingShowPosition: true,
+    trackerTimingShowDriver: true,
+    trackerTimingShowAlerts: true,
+    trackerTimingShowBestLap: true,
+    trackerTimingShowLastLap: false,
+    trackerTimingShowGap: true,
+    trackerTimingShowInterval: false,
+    trackerTimingShowS1: true,
+    trackerTimingShowS2: true,
+    trackerTimingShowS3: true,
+    trackerTimingShowPosDelta: true,
+    trackerTimingShowTyre: true,
+    trackerTimingShowPit: true,
+    trackerTimingShowLap: false,
+    trackerTimingShowSpeed: true,
+    trackerTimingShowGear: false,
+    trackerTimingShowRpm: false,
+    trackerTimingShowThrBrk: true,
+    trackerTimingShowDrs: true,
     timingMobileShowAlerts: true,
     timingMobileShowBestLap: true,
     timingMobileShowGap: true,
@@ -91,25 +110,79 @@ describe("SettingsControls", () => {
   it("updates mobile timing column visibility settings", () => {
     render(<SettingsBody />);
 
-    fireEvent.click(screen.getByRole("button", { name: "Alerts" }));
+    const trackerColumnsSection = screen.getByText(
+      "Driver tracker columns",
+    ).parentElement!;
+    const mobileColumnsSection = screen.getByText(
+      "Mobile timing columns",
+    ).parentElement!;
+
+    fireEvent.click(
+      within(trackerColumnsSection).getByRole("button", {
+        name: "Interval",
+      }),
+    );
+    expect(state.setSetting).toHaveBeenCalledWith(
+      "trackerTimingShowInterval",
+      true,
+    );
+
+    fireEvent.click(
+      within(trackerColumnsSection).getByRole("button", { name: "Lap" }),
+    );
+    expect(state.setSetting).toHaveBeenCalledWith("trackerTimingShowLap", true);
+
+    fireEvent.click(
+      within(trackerColumnsSection).getByRole("button", { name: "Last lap" }),
+    );
+    expect(state.setSetting).toHaveBeenCalledWith(
+      "trackerTimingShowLastLap",
+      true,
+    );
+
+    fireEvent.click(
+      within(trackerColumnsSection).getByRole("button", { name: "DRS" }),
+    );
+    expect(state.setSetting).toHaveBeenCalledWith(
+      "trackerTimingShowDrs",
+      false,
+    );
+
+    fireEvent.click(
+      within(trackerColumnsSection).getByRole("button", { name: "Gear" }),
+    );
+    expect(state.setSetting).toHaveBeenCalledWith(
+      "trackerTimingShowGear",
+      true,
+    );
+
+    fireEvent.click(
+      within(mobileColumnsSection).getByRole("button", { name: "Alerts" }),
+    );
     expect(state.setSetting).toHaveBeenCalledWith(
       "timingMobileShowAlerts",
       false,
     );
 
-    fireEvent.click(screen.getByRole("button", { name: "Best lap" }));
+    fireEvent.click(
+      within(mobileColumnsSection).getByRole("button", { name: "Best lap" }),
+    );
     expect(state.setSetting).toHaveBeenCalledWith(
       "timingMobileShowBestLap",
       false,
     );
 
-    fireEvent.click(screen.getByRole("button", { name: "Interval" }));
+    fireEvent.click(
+      within(mobileColumnsSection).getByRole("button", { name: "Interval" }),
+    );
     expect(state.setSetting).toHaveBeenCalledWith(
       "timingMobileShowInterval",
       true,
     );
 
-    fireEvent.click(screen.getByRole("button", { name: "Sectors" }));
+    fireEvent.click(
+      within(mobileColumnsSection).getByRole("button", { name: "Sectors" }),
+    );
     expect(state.setSetting).toHaveBeenCalledWith(
       "timingMobileShowSectors",
       true,

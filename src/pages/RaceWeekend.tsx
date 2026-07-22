@@ -733,6 +733,25 @@ export default function RaceWeekend() {
     timingShowMinisectors,
     trackerTimingTelemetry,
     trackerTimingMobileCarData,
+    trackerTimingShowPosition,
+    trackerTimingShowDriver,
+    trackerTimingShowAlerts,
+    trackerTimingShowBestLap,
+    trackerTimingShowLastLap,
+    trackerTimingShowGap,
+    trackerTimingShowInterval,
+    trackerTimingShowS1,
+    trackerTimingShowS2,
+    trackerTimingShowS3,
+    trackerTimingShowPosDelta,
+    trackerTimingShowTyre,
+    trackerTimingShowPit,
+    trackerTimingShowLap,
+    trackerTimingShowSpeed,
+    trackerTimingShowGear,
+    trackerTimingShowRpm,
+    trackerTimingShowThrBrk,
+    trackerTimingShowDrs,
     timingMobileShowAlerts,
     timingMobileShowBestLap,
     timingMobileShowGap,
@@ -754,10 +773,15 @@ export default function RaceWeekend() {
   // ── Live car telemetry for the leaderboard (all drivers) ────────────────────
   // Fetched only when the leaderboard view is active AND the setting is on — it's
   // a ~22k-row window per chunk, so we don't pay for it on other views.
+  const trackerTimingDesktopTelemetryEnabled =
+    trackerTimingTelemetry &&
+    (trackerTimingShowSpeed ||
+      trackerTimingShowGear ||
+      trackerTimingShowRpm ||
+      trackerTimingShowThrBrk ||
+      trackerTimingShowDrs);
   const trackerTimingTelemetryEnabled =
-    (leaderboardTelemetry ||
-      trackerTimingTelemetry ||
-      trackerTimingMobileCarData) &&
+    (trackerTimingDesktopTelemetryEnabled || trackerTimingMobileCarData) &&
     currentView === "tracker" &&
     (trackerTab ?? "timing") === "timing";
   const telemetryEnabled =
@@ -1118,8 +1142,30 @@ export default function RaceWeekend() {
       showMobilePosDeltaColumn={timingMobileShowPosDelta}
       showMobileTyreColumn={timingMobileShowTyre}
       showMobilePitCountColumn={timingMobileShowPitCount}
+      showIntervalColumn={trackerTimingShowInterval}
       showMobileIntervalColumn={timingMobileShowInterval}
       showMobileSectorsColumns={timingMobileShowSectors}
+      columnVisibility={{
+        position: trackerTimingShowPosition,
+        driver: trackerTimingShowDriver,
+        alerts: trackerTimingShowAlerts,
+        bestLap: trackerTimingShowBestLap,
+        lastLap: trackerTimingShowLastLap,
+        gap: trackerTimingShowGap,
+        interval: trackerTimingShowInterval,
+        s1: trackerTimingShowS1,
+        s2: trackerTimingShowS2,
+        s3: trackerTimingShowS3,
+        posDelta: trackerTimingShowPosDelta,
+        tyre: trackerTimingShowTyre,
+        pit: trackerTimingShowPit,
+        currentLap: trackerTimingShowLap,
+        speed: trackerTimingShowSpeed,
+        gear: trackerTimingShowGear,
+        rpm: trackerTimingShowRpm,
+        thrBrk: trackerTimingShowThrBrk,
+        drs: trackerTimingShowDrs,
+      }}
       compactDriverColumn
       dense
       chequeredMs={chequeredMs}
