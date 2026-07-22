@@ -219,6 +219,9 @@ export function TrackMap({
   const mapShowDriverNumberInside = useSettings(
     (s) => s.mapShowDriverNumberInside,
   );
+  const mapShowMarshalHeatmap = useSettings((s) => s.mapShowMarshalHeatmap);
+  const mapShowCornerNumbers = useSettings((s) => s.mapShowCornerNumbers);
+  const mapShowElevation = useSettings((s) => s.mapShowElevation);
   const [zoomLevel, setZoomLevel] = useState(1);
   const [rotationDeg, setRotationDeg] = useState(0);
   const cameraViewRef = useRef<CameraView>({ x: 0, y: 0, w: SVG_W, h: SVG_H });
@@ -815,52 +818,94 @@ export function TrackMap({
     );
   }, [trackGeometry, lightMode]);
 
-  // Corner number labels from baked geometry — placed at each corner's trackPosition.
+  // Corner number labels from baked geometry — offset outside the ribbon via
+  // perpendicular normal at the nearest track point; counter-rotated so they
+  // stay horizontal regardless of track rotation.
   const cornerOverlays = useMemo(() => {
     if (!trackGeometry || !circuitGeom || !circuitGeom.corners.length)
       return null;
-    const { bounds, innerW, innerH } = trackGeometry;
+    const { bounds, innerW, innerH, svgPts } = trackGeometry;
+    const OFFSET = 13; // px outside the track ribbon
+
     return (
       <>
         {circuitGeom.corners.map((corner) => {
-          const { sx, sy } = locationToSvg(
+          // Project corner apex into SVG space
+          const { sx: apexSx, sy: apexSy } = locationToSvg(
             corner.trackPosition.x,
             corner.trackPosition.y,
             bounds,
             innerW,
             innerH,
           );
-          const cx = sx + PAD,
-            cy = sy + PAD;
+
+          // Find nearest svgPts index
+          let bestIdx = 0;
+          let bestDist = Infinity;
+          for (let j = 0; j < svgPts.length; j++) {
+            const dx = svgPts[j]!.sx - apexSx;
+            const dy = svgPts[j]!.sy - apexSy;
+            const d = dx * dx + dy * dy;
+            if (d < bestDist) {
+              bestDist = d;
+              bestIdx = j;
+            }
+          }
+
+          // Perpendicular normal at that point
+          const prev = svgPts[Math.max(0, bestIdx - 1)]!;
+          const next = svgPts[Math.min(svgPts.length - 1, bestIdx + 1)]!;
+          const tdx = next.sx - prev.sx;
+          const tdy = next.sy - prev.sy;
+          const tlen = Math.hypot(tdx, tdy) || 1;
+          // Left-hand normal (points to the outside for CW circuits)
+          const nx = -tdy / tlen;
+          const ny = tdx / tlen;
+
+          // Determine which normal direction is further from the track
+          // (i.e. the outside) by sampling a point along each direction
+          const cx = apexSx + PAD + nx * OFFSET;
+          const cy = apexSy + PAD + ny * OFFSET;
+
+          const label = `${corner.number}${corner.letter}`;
+
           return (
-            <g key={`corner-${corner.number}`} opacity={0.55}>
-              <circle
-                cx={cx}
-                cy={cy}
-                r={5}
-                fill="none"
-                stroke="#6b6b7a"
-                strokeWidth={0.8}
+            <g key={`corner-${corner.number}${corner.letter}`}>
+              {/* Pill background */}
+              <rect
+                x={cx - 6}
+                y={cy - 4.5}
+                width={12}
+                height={9}
+                rx={4.5}
+                ry={4.5}
+                fill={
+                  lightMode ? "rgba(255,255,255,0.82)" : "rgba(18,20,32,0.82)"
+                }
+                stroke={lightMode ? "#aab4cc" : "#3a3f58"}
+                strokeWidth={0.7}
+                transform={`rotate(${-rotationDeg.toFixed(1)} ${cx.toFixed(1)} ${cy.toFixed(1)})`}
               />
               <text
                 x={cx}
                 y={cy + 0.5}
+                transform={`rotate(${-rotationDeg.toFixed(1)} ${cx.toFixed(1)} ${cy.toFixed(1)})`}
                 textAnchor="middle"
                 dominantBaseline="middle"
-                fontSize={4.5}
-                fill="#9b9baa"
+                fontSize={4.6}
+                fill={lightMode ? "#1e2540" : "#c8d0e8"}
                 fontFamily="Inter, sans-serif"
-                fontWeight="700"
+                fontWeight="800"
+                letterSpacing="0.03em"
               >
-                {corner.number}
-                {corner.letter}
+                {label}
               </text>
             </g>
           );
         })}
       </>
     );
-  }, [trackGeometry, circuitGeom]);
+  }, [trackGeometry, circuitGeom, rotationDeg, lightMode]);
 
   // Marshal sector tick marks from baked geometry.
   // Coloured by timing-sector (S1/S2/S3) based on which third of the circuit each belongs to.
@@ -902,6 +947,53 @@ export function TrackMap({
         })}
       </>
     );
+  }, [trackGeometry, circuitGeom]);
+
+  // Marshal-sector heatmap: paints each of the ~15-22 individual marshal posts
+  // as a distinct arc segment on the track ribbon, colored by timing sector
+  // (S1=red, S2=yellow, S3=blue) with alternating opacity so adjacent posts are
+  // visually separable. Hidden by default — enabled via Settings → Track Map.
+  const marshalHeatmapSegments = useMemo(() => {
+    if (!trackGeometry || !circuitGeom?.marshalSectors.length) return [];
+    const { bounds, innerW, innerH, svgPts, normArc } = trackGeometry;
+    const total = circuitGeom.marshalSectors.length;
+
+    // Map each marshal sector to the nearest svgPts index → normArc position.
+    const postArcs = circuitGeom.marshalSectors.map((ms, i) => {
+      const { sx, sy } = locationToSvg(
+        ms.trackPosition.x,
+        ms.trackPosition.y,
+        bounds,
+        innerW,
+        innerH,
+      );
+      let bestIdx = 0;
+      let bestDist = Infinity;
+      for (let j = 0; j < svgPts.length; j++) {
+        const dx = svgPts[j]!.sx - sx;
+        const dy = svgPts[j]!.sy - sy;
+        const d = dx * dx + dy * dy;
+        if (d < bestDist) {
+          bestDist = d;
+          bestIdx = j;
+        }
+      }
+      const sector = (i < total / 3 ? 1 : i < (2 * total) / 3 ? 2 : 3) as
+        | 1
+        | 2
+        | 3;
+      return { arc: normArc[bestIdx]!, sector, index: i };
+    });
+
+    postArcs.sort((a, b) => a.arc - b.arc);
+
+    return postArcs.map((post, i) => {
+      const next = postArcs[i + 1];
+      const arcStart = post.arc;
+      const arcEnd = next ? next.arc : 1;
+      const len = Math.max(arcEnd - arcStart, 0.001);
+      return { arcStart, len, sector: post.sector, index: post.index, i };
+    });
   }, [trackGeometry, circuitGeom]);
 
   // Memoize DRS + legacy sector rectangles (shown only when no baked geometry).
@@ -1553,6 +1645,7 @@ export function TrackMap({
           {trackConditionRibbonOverlay}
 
           {showEnhancedVisuals &&
+            mapShowElevation &&
             elevationSegments.map((segment, i) => (
               <line
                 key={`elev-shadow-${i}`}
@@ -1772,6 +1865,7 @@ export function TrackMap({
             ))}
 
           {showEnhancedVisuals &&
+            mapShowElevation &&
             elevationSegments.length > 0 &&
             elevationSegments.map((segment, i) => (
               <line
@@ -1787,11 +1881,28 @@ export function TrackMap({
               />
             ))}
 
+          {/* Marshal sector heatmap — all ~15-22 individual posts as coloured arc segments */}
+          {mapShowMarshalHeatmap &&
+            marshalHeatmapSegments.map((seg) => (
+              <path
+                key={`mh-${seg.index}`}
+                d={trackGeometry!.pathData}
+                fill="none"
+                stroke={SECTOR_COLORS[seg.sector]}
+                strokeWidth={7}
+                strokeLinecap="butt"
+                pathLength={1}
+                strokeDasharray={`${seg.len.toFixed(4)} ${(1 - seg.len).toFixed(4)}`}
+                strokeDashoffset={`-${seg.arcStart.toFixed(4)}`}
+                opacity={seg.i % 2 === 0 ? 0.72 : 0.38}
+              />
+            ))}
+
           {/* Sectors + DRS overlays (session-static, memoized) */}
           {staticOverlays}
 
-          {/* Marshal sector dots (baked geometry only) */}
-          {marshalSectorOverlays}
+          {/* Marshal sector dots (baked geometry only) — shown with heatmap */}
+          {mapShowMarshalHeatmap ? marshalSectorOverlays : null}
 
           {marshalLightNodes}
 
@@ -1799,7 +1910,7 @@ export function TrackMap({
           {sectorFlagTints}
 
           {/* Corner numbers (baked geometry only) */}
-          {cornerOverlays}
+          {mapShowCornerNumbers ? cornerOverlays : null}
 
           {showEnhancedVisuals &&
             brakingHotspots.map((hotspot) => (

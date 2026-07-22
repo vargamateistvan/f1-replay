@@ -545,6 +545,24 @@ export function SettingsBody() {
         onChange={toggle("mapShowEnhancedVisuals")}
       />
       <SettingRow
+        label="Marshal sector heatmap"
+        description="Paint all ~15-22 individual marshal posts as coloured arc segments on the track (S1 red / S2 yellow / S3 blue)"
+        checked={settings.mapShowMarshalHeatmap}
+        onChange={toggle("mapShowMarshalHeatmap")}
+      />
+      <SettingRow
+        label="Corner numbers"
+        description="Show corner numbers next to the track from baked circuit geometry"
+        checked={settings.mapShowCornerNumbers}
+        onChange={toggle("mapShowCornerNumbers")}
+      />
+      <SettingRow
+        label="Elevation heatmap"
+        description="Colour the track ribbon by altitude (blue = low, yellow = high)"
+        checked={settings.mapShowElevation}
+        onChange={toggle("mapShowElevation")}
+      />
+      <SettingRow
         label="PNG track snapshot"
         description="Show download button for track screenshots"
         checked={settings.trackScreenshotPngEnabled}
