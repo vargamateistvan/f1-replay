@@ -1,6 +1,7 @@
 import type { Lap, Pit, RaceControl, Overtake, TeamRadio } from "@/api/types";
 import { pitStopTime } from "@/utils/pit";
 import { isSafetyRelatedRaceControl } from "@/utils/raceControlFlags";
+import { buildLapLookup, lapNumberAtMs } from "@/utils/lapLookup";
 import { toSafeExternalUrl } from "@/utils/url";
 
 // ─── Normalized toast events ────────────────────────────────────────────────
@@ -17,6 +18,7 @@ export type ToastKind =
 export interface RadioPayload {
   driverNumber: number;
   recordingUrl: string;
+  lapNumber: number | null;
 }
 
 function normalizeRecordingUrl(url: string): string {
@@ -109,6 +111,7 @@ export function buildToastEvents(
   laps: Lap[] = [],
 ): ToastEvent[] {
   const events: ToastEvent[] = [];
+  const lapLookup = buildLapLookup(laps, sessionStartMs);
 
   for (const r of radios) {
     const ms = new Date(r.date).getTime() - sessionStartMs;
@@ -121,6 +124,7 @@ export function buildToastEvents(
       payload: {
         driverNumber: r.driver_number,
         recordingUrl,
+        lapNumber: lapNumberAtMs(lapLookup, ms),
       } satisfies RadioPayload,
       priority: "high",
     });

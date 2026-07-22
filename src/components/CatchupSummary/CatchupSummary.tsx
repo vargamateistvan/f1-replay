@@ -323,6 +323,13 @@ function CatchupEventRow({
             </button>
           </div>
         </div>
+        {typeof p.lapNumber === "number" && (
+          <div className="mt-0.5">
+            <span className="text-[9px] text-white/40 font-mono">
+              Lap {p.lapNumber}
+            </span>
+          </div>
+        )}
         {isPlaying && recordingUrl && (
           <audio
             key={recordingUrl}

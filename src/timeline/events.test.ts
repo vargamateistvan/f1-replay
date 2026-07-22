@@ -1,5 +1,6 @@
 import { describe, it, expect } from "vitest";
 import {
+  buildToastEvents,
   lapStartTimes,
   pitTimes,
   flagTimes,
@@ -9,7 +10,7 @@ import {
   prevBefore,
   atOrBefore,
 } from "./events";
-import type { Lap, Pit, RaceControl, Overtake } from "@/api/types";
+import type { Lap, Pit, RaceControl, Overtake, TeamRadio } from "@/api/types";
 
 const START = new Date("2024-01-01T00:00:00Z").getTime();
 const iso = (sec: number) => new Date(START + sec * 1000).toISOString();
@@ -65,6 +66,33 @@ describe("pitTimes / flagTimes / overtakeTimes", () => {
       { date: iso(25), flag: "YELLOW", message: "YELLOW" },
     ] as unknown as RaceControl[];
     expect(safetyCarTimes(rc, START)).toEqual([5_000, 10_000, 12_000, 18_000]);
+  });
+});
+
+describe("buildToastEvents", () => {
+  it("assigns lap number to radio toasts from lap boundaries", () => {
+    const radios = [
+      {
+        date: iso(95),
+        driver_number: 1,
+        meeting_key: 1,
+        recording_url: "https://example.com/radio.mp3",
+        session_key: 1,
+      },
+    ] as TeamRadio[];
+
+    const laps = [
+      { lap_number: 1, date_start: iso(5), driver_number: 1 },
+      { lap_number: 2, date_start: iso(88), driver_number: 1 },
+    ] as unknown as Lap[];
+
+    const events = buildToastEvents(radios, [], [], [], START, laps);
+    expect(events).toHaveLength(1);
+    expect(events[0]?.kind).toBe("radio");
+    expect(events[0]?.payload).toMatchObject({
+      driverNumber: 1,
+      lapNumber: 2,
+    });
   });
 });
 

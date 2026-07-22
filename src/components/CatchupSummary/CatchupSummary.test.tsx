@@ -108,4 +108,34 @@ describe("CatchupSummary", () => {
     ).toBeInTheDocument();
     expect(screen.queryByRole("tooltip")).not.toBeInTheDocument();
   });
+
+  it("shows lap number for radio events when available", () => {
+    render(
+      <CatchupSummary
+        summary={
+          {
+            fromMs: 0,
+            toMs: 45_000,
+            events: [
+              {
+                id: "radio-1",
+                ms: 25_000,
+                kind: "radio",
+                payload: {
+                  driverNumber: 1,
+                  recordingUrl: "https://example.com/radio.mp3",
+                  lapNumber: 7,
+                },
+              },
+            ],
+          } as CatchupSummaryData
+        }
+        drivers={drivers}
+        onDismiss={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByText("RADIO")).toBeInTheDocument();
+    expect(screen.getByText("Lap 7")).toBeInTheDocument();
+  });
 });
