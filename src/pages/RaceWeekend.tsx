@@ -896,7 +896,6 @@ export default function RaceWeekend() {
     timingMobileShowPitCount,
     timingMobileShowInterval,
     timingMobileShowLap,
-    timingMobileShowSectors,
     trackScreenshotPngEnabled,
     defaultSpeed,
     showPlaybackSpeedControls,
