@@ -303,6 +303,7 @@ export default function RaceWeekend() {
     }
 
     function onTouchMove(event: TouchEvent) {
+      if (!trackerDesktopDragRef.current) return;
       const touch = event.touches[0];
       if (!touch) return;
       event.preventDefault();
