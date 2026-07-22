@@ -57,13 +57,20 @@ interface Props {
   readonly showDenseMobileTelemetry?: boolean;
   readonly showIntervalColumn?: boolean;
   readonly showFullLastName?: boolean;
+  readonly showMobilePositionColumn?: boolean;
+  readonly showMobileDriverColumn?: boolean;
   readonly showMobileAlertsColumn?: boolean;
   readonly showMobileBestLapColumn?: boolean;
+  readonly showMobileLastLapColumn?: boolean;
   readonly showMobileGapColumn?: boolean;
+  readonly showMobileS1Column?: boolean;
+  readonly showMobileS2Column?: boolean;
+  readonly showMobileS3Column?: boolean;
   readonly showMobilePosDeltaColumn?: boolean;
   readonly showMobileTyreColumn?: boolean;
   readonly showMobilePitCountColumn?: boolean;
   readonly showMobileIntervalColumn?: boolean;
+  readonly showMobileCurrentLapColumn?: boolean;
   readonly showMobileSectorsColumns?: boolean;
   readonly columnVisibility?: Partial<TimingColumnVisibility>;
   readonly isLoading?: boolean;
@@ -376,13 +383,20 @@ export function LiveTiming({
   showDenseMobileTelemetry = false,
   showIntervalColumn = false,
   showFullLastName = false,
+  showMobilePositionColumn = true,
+  showMobileDriverColumn = true,
   showMobileAlertsColumn = true,
   showMobileBestLapColumn = true,
+  showMobileLastLapColumn = false,
   showMobileGapColumn = true,
+  showMobileS1Column = false,
+  showMobileS2Column = false,
+  showMobileS3Column = false,
   showMobilePosDeltaColumn = true,
   showMobileTyreColumn = true,
   showMobilePitCountColumn = true,
   showMobileIntervalColumn = false,
+  showMobileCurrentLapColumn = false,
   showMobileSectorsColumns = false,
   columnVisibility,
   sessionTimeMs,
@@ -935,11 +949,16 @@ export function LiveTiming({
   const timingRowBaseClass = lightMode
     ? "border-b border-slate-200 transition-colors"
     : "border-b border-[#1e1e28] transition-colors";
+  const mobilePositionColumnClass =
+    showMobilePositionColumn && columns.position ? "" : "hidden sm:table-cell";
+  const mobileDriverColumnClass =
+    showMobileDriverColumn && columns.driver ? "" : "hidden sm:table-cell";
   const mobileAlertsColumnClass =
     showMobileAlertsColumn && columns.alerts ? "" : "hidden sm:table-cell";
   const mobileBestLapColumnClass =
     showMobileBestLapColumn && columns.bestLap ? "" : "hidden sm:table-cell";
-  const mobileLastLapColumnClass = columns.lastLap ? "" : "hidden";
+  const mobileLastLapColumnClass =
+    showMobileLastLapColumn && columns.lastLap ? "" : "hidden sm:table-cell";
   const mobileGapColumnClass =
     showMobileGapColumn && columns.gap ? "" : "hidden sm:table-cell";
   const mobilePosDeltaColumnClass =
@@ -950,12 +969,22 @@ export function LiveTiming({
     showMobilePitCountColumn && columns.pit ? "" : "hidden sm:table-cell";
   const mobileIntervalColumnClass =
     showMobileIntervalColumn && columns.interval ? "" : "hidden sm:table-cell";
+  const mobileCurrentLapColumnClass =
+    showMobileCurrentLapColumn && columns.currentLap
+      ? "hidden sm:table-cell"
+      : "hidden";
   const mobileS1ColumnClass =
-    showMobileSectorsColumns && columns.s1 ? "" : "hidden sm:table-cell";
+    showMobileSectorsColumns && showMobileS1Column && columns.s1
+      ? ""
+      : "hidden sm:table-cell";
   const mobileS2ColumnClass =
-    showMobileSectorsColumns && columns.s2 ? "" : "hidden sm:table-cell";
+    showMobileSectorsColumns && showMobileS2Column && columns.s2
+      ? ""
+      : "hidden sm:table-cell";
   const mobileS3ColumnClass =
-    showMobileSectorsColumns && columns.s3 ? "" : "hidden sm:table-cell";
+    showMobileSectorsColumns && showMobileS3Column && columns.s3
+      ? ""
+      : "hidden sm:table-cell";
 
   if (isLoading) {
     return (
@@ -1066,9 +1095,17 @@ export function LiveTiming({
           <thead>
             <tr className={timingHeaderRowClass}>
               {columns.position && (
-                <th className={`${headerCellClass} text-left w-8`}>P</th>
+                <th
+                  className={`${mobilePositionColumnClass} ${headerCellClass} text-left w-8`}
+                >
+                  P
+                </th>
               )}
-              {columns.driver && <th className={driverColClass}>Driver</th>}
+              {columns.driver && (
+                <th className={`${mobileDriverColumnClass} ${driverColClass}`}>
+                  Driver
+                </th>
+              )}
               {columns.alerts && (
                 <th
                   className={`${mobileAlertsColumnClass} ${headerCellClass} text-center w-[2rem] lg:w-[2.25rem]`}
@@ -1148,7 +1185,7 @@ export function LiveTiming({
               )}
               {columns.currentLap && (
                 <th
-                  className={`${headerCellClass} hidden sm:table-cell text-center w-16`}
+                  className={`${mobileCurrentLapColumnClass} ${headerCellClass} text-center w-16`}
                 >
                   Lap
                 </th>
@@ -1401,7 +1438,7 @@ export function LiveTiming({
                   {/* Position */}
                   {columns.position && (
                     <td
-                      className={`${rowCellPad} align-middle px-1.5 font-black ${dense ? "text-xs" : "text-sm"} tabular-nums text-white/90 sm:px-2`}
+                      className={`${mobilePositionColumnClass} ${rowCellPad} align-middle px-1.5 font-black ${dense ? "text-xs" : "text-sm"} tabular-nums text-white/90 sm:px-2`}
                     >
                       {pos}
                     </td>
@@ -1410,7 +1447,7 @@ export function LiveTiming({
                   {/* Driver */}
                   {columns.driver && (
                     <td
-                      className={`${dense ? driverCellCompactClass : driverCellClass} align-middle`}
+                      className={`${mobileDriverColumnClass} ${dense ? driverCellCompactClass : driverCellClass} align-middle`}
                     >
                       <div>
                         <span className="flex items-center gap-1 sm:gap-1">
@@ -1683,7 +1720,7 @@ export function LiveTiming({
                   {/* Current lap */}
                   {columns.currentLap && (
                     <td
-                      className={`hidden sm:table-cell ${rowCellPad} align-middle px-2 text-center font-mono ${dense ? "text-[10px]" : "text-[11px]"} tabular-nums text-muted`}
+                      className={`${mobileCurrentLapColumnClass} ${rowCellPad} align-middle px-2 text-center font-mono ${dense ? "text-[10px]" : "text-[11px]"} tabular-nums text-muted`}
                     >
                       {currentLap !== null && totalLapCount !== null
                         ? `${currentLap}/${totalLapCount}`

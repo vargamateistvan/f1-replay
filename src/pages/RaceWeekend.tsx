@@ -882,13 +882,20 @@ export default function RaceWeekend() {
     trackerTimingShowRpm,
     trackerTimingShowThrBrk,
     trackerTimingShowDrs,
+    timingMobileShowPosition,
+    timingMobileShowDriver,
     timingMobileShowAlerts,
     timingMobileShowBestLap,
+    timingMobileShowLastLap,
     timingMobileShowGap,
+    timingMobileShowS1,
+    timingMobileShowS2,
+    timingMobileShowS3,
     timingMobileShowPosDelta,
     timingMobileShowTyre,
     timingMobileShowPitCount,
     timingMobileShowInterval,
+    timingMobileShowLap,
     timingMobileShowSectors,
     trackScreenshotPngEnabled,
     defaultSpeed,
@@ -1266,15 +1273,24 @@ export default function RaceWeekend() {
       carData={trackerTimingTelemetryEnabled ? carDataAtT : undefined}
       showMinisectors={timingShowMinisectors}
       showDenseMobileTelemetry={trackerTimingMobileCarData}
+      showMobilePositionColumn={timingMobileShowPosition}
+      showMobileDriverColumn={timingMobileShowDriver}
       showMobileAlertsColumn={timingMobileShowAlerts}
       showMobileBestLapColumn={timingMobileShowBestLap}
+      showMobileLastLapColumn={timingMobileShowLastLap}
       showMobileGapColumn={timingMobileShowGap}
+      showMobileS1Column={timingMobileShowS1}
+      showMobileS2Column={timingMobileShowS2}
+      showMobileS3Column={timingMobileShowS3}
       showMobilePosDeltaColumn={timingMobileShowPosDelta}
       showMobileTyreColumn={timingMobileShowTyre}
       showMobilePitCountColumn={timingMobileShowPitCount}
       showIntervalColumn={trackerTimingShowInterval}
       showMobileIntervalColumn={timingMobileShowInterval}
-      showMobileSectorsColumns={timingMobileShowSectors}
+      showMobileCurrentLapColumn={timingMobileShowLap}
+      showMobileSectorsColumns={
+        timingMobileShowS1 || timingMobileShowS2 || timingMobileShowS3
+      }
       columnVisibility={{
         position: trackerTimingShowPosition,
         driver: trackerTimingShowDriver,
@@ -1325,14 +1341,23 @@ export default function RaceWeekend() {
       showMinisectors={timingShowMinisectors}
       showIntervalColumn
       showFullLastName
+      showMobilePositionColumn={timingMobileShowPosition}
+      showMobileDriverColumn={timingMobileShowDriver}
       showMobileAlertsColumn={timingMobileShowAlerts}
       showMobileBestLapColumn={timingMobileShowBestLap}
+      showMobileLastLapColumn={timingMobileShowLastLap}
       showMobileGapColumn={timingMobileShowGap}
+      showMobileS1Column={timingMobileShowS1}
+      showMobileS2Column={timingMobileShowS2}
+      showMobileS3Column={timingMobileShowS3}
       showMobilePosDeltaColumn={timingMobileShowPosDelta}
       showMobileTyreColumn={timingMobileShowTyre}
       showMobilePitCountColumn={timingMobileShowPitCount}
       showMobileIntervalColumn={timingMobileShowInterval}
-      showMobileSectorsColumns={timingMobileShowSectors}
+      showMobileCurrentLapColumn={timingMobileShowLap}
+      showMobileSectorsColumns={
+        timingMobileShowS1 || timingMobileShowS2 || timingMobileShowS3
+      }
       wideSectors
       dense
       fullWidthTable

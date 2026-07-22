@@ -53,13 +53,20 @@ export interface AppSettings {
   trackerTimingShowRpm: boolean;
   trackerTimingShowThrBrk: boolean;
   trackerTimingShowDrs: boolean;
+  timingMobileShowPosition: boolean;
+  timingMobileShowDriver: boolean;
   timingMobileShowAlerts: boolean;
   timingMobileShowBestLap: boolean;
+  timingMobileShowLastLap: boolean;
   timingMobileShowGap: boolean;
+  timingMobileShowS1: boolean;
+  timingMobileShowS2: boolean;
+  timingMobileShowS3: boolean;
   timingMobileShowPosDelta: boolean;
   timingMobileShowTyre: boolean;
   timingMobileShowPitCount: boolean;
   timingMobileShowInterval: boolean;
+  timingMobileShowLap: boolean;
   timingMobileShowSectors: boolean;
   trackScreenshotPngEnabled: boolean;
   // Support
@@ -139,13 +146,20 @@ export const SETTINGS_DEFAULTS: AppSettings = {
   trackerTimingShowRpm: false,
   trackerTimingShowThrBrk: true,
   trackerTimingShowDrs: true,
-  timingMobileShowAlerts: true,
+  timingMobileShowPosition: true,
+  timingMobileShowDriver: true,
+  timingMobileShowAlerts: false,
   timingMobileShowBestLap: true,
+  timingMobileShowLastLap: false,
   timingMobileShowGap: true,
+  timingMobileShowS1: false,
+  timingMobileShowS2: false,
+  timingMobileShowS3: false,
   timingMobileShowPosDelta: true,
   timingMobileShowTyre: true,
   timingMobileShowPitCount: true,
   timingMobileShowInterval: false,
+  timingMobileShowLap: false,
   timingMobileShowSectors: false,
   trackScreenshotPngEnabled: true,
   showCoffeeWidget: true,

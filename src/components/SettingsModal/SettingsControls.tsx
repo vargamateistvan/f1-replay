@@ -307,6 +307,78 @@ export function SettingsBody() {
       active: settings.trackerTimingShowDrs,
     },
   ] as const;
+  const mobileTimingColumns = [
+    {
+      key: "timingMobileShowPosition",
+      label: "P",
+      active: settings.timingMobileShowPosition,
+    },
+    {
+      key: "timingMobileShowDriver",
+      label: "Driver",
+      active: settings.timingMobileShowDriver,
+    },
+    {
+      key: "timingMobileShowAlerts",
+      label: "Alerts",
+      active: settings.timingMobileShowAlerts,
+    },
+    {
+      key: "timingMobileShowBestLap",
+      label: "Best lap",
+      active: settings.timingMobileShowBestLap,
+    },
+    {
+      key: "timingMobileShowLastLap",
+      label: "Last lap",
+      active: settings.timingMobileShowLastLap,
+    },
+    {
+      key: "timingMobileShowGap",
+      label: "Gap",
+      active: settings.timingMobileShowGap,
+    },
+    {
+      key: "timingMobileShowInterval",
+      label: "Interval",
+      active: settings.timingMobileShowInterval,
+    },
+    {
+      key: "timingMobileShowS1",
+      label: "S1",
+      active: settings.timingMobileShowS1,
+    },
+    {
+      key: "timingMobileShowS2",
+      label: "S2",
+      active: settings.timingMobileShowS2,
+    },
+    {
+      key: "timingMobileShowS3",
+      label: "S3",
+      active: settings.timingMobileShowS3,
+    },
+    {
+      key: "timingMobileShowPosDelta",
+      label: "Pos",
+      active: settings.timingMobileShowPosDelta,
+    },
+    {
+      key: "timingMobileShowTyre",
+      label: "Tyre",
+      active: settings.timingMobileShowTyre,
+    },
+    {
+      key: "timingMobileShowPitCount",
+      label: "Pit",
+      active: settings.timingMobileShowPitCount,
+    },
+    {
+      key: "timingMobileShowLap",
+      label: "Lap",
+      active: settings.timingMobileShowLap,
+    },
+  ] as const;
 
   function updateSetting<K extends keyof AppSettings>(
     key: K,
@@ -494,35 +566,37 @@ export function SettingsBody() {
         checked={settings.trackerTimingTelemetry}
         onChange={toggle("trackerTimingTelemetry")}
       />
-      <div className="py-2.5 border-b border-[#2a2a35]">
-        <div className="text-[13px] text-white/90 leading-tight">
-          Driver tracker columns
+      {!isMobileViewport && (
+        <div className="py-2.5 border-b border-[#2a2a35]">
+          <div className="text-[13px] text-white/90 leading-tight">
+            Driver tracker columns
+          </div>
+          <div className="text-[11px] text-muted mt-0.5 leading-tight">
+            Pick which leaderboard-style timing columns appear in the tracker
+            table
+          </div>
+          <div className="mt-2 flex flex-wrap gap-1.5">
+            {trackerTimingColumns.map(({ key, label, active }) => (
+              <button
+                key={key}
+                onClick={() =>
+                  updateSetting(key, !active as AppSettings[typeof key])
+                }
+                className={[
+                  "text-[10px] font-bold px-2 py-0.5 rounded-sm border transition-all",
+                  "focus:outline-none focus-visible:ring-1 focus-visible:ring-white/40",
+                  active
+                    ? "border-f1red bg-f1red text-white"
+                    : "border-[#38383f] bg-transparent text-white/70 hover:border-[#555565] hover:text-white",
+                ].join(" ")}
+                aria-pressed={active}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
         </div>
-        <div className="text-[11px] text-muted mt-0.5 leading-tight">
-          Pick which leaderboard-style timing columns appear in the tracker
-          table
-        </div>
-        <div className="mt-2 flex flex-wrap gap-1.5">
-          {trackerTimingColumns.map(({ key, label, active }) => (
-            <button
-              key={key}
-              onClick={() =>
-                updateSetting(key, !active as AppSettings[typeof key])
-              }
-              className={[
-                "text-[10px] font-bold px-2 py-0.5 rounded-sm border transition-all",
-                "focus:outline-none focus-visible:ring-1 focus-visible:ring-white/40",
-                active
-                  ? "border-f1red bg-f1red text-white"
-                  : "border-[#38383f] bg-transparent text-white/70 hover:border-[#555565] hover:text-white",
-              ].join(" ")}
-              aria-pressed={active}
-            >
-              {label}
-            </button>
-          ))}
-        </div>
-      </div>
+      )}
       {isMobileViewport && (
         <div>
           <SettingRow
@@ -536,62 +610,21 @@ export function SettingsBody() {
               Mobile timing columns
             </div>
             <div className="text-[11px] text-muted mt-0.5 leading-tight">
-              Pick which columns appear in mobile timing rows
+              Pick which timing columns appear in mobile timing rows
             </div>
             <div className="mt-2 flex flex-wrap gap-1.5">
-              {(
-                [
-                  {
-                    key: "timingMobileShowAlerts",
-                    label: "Alerts",
-                    active: settings.timingMobileShowAlerts,
-                  },
-                  {
-                    key: "timingMobileShowBestLap",
-                    label: "Best lap",
-                    active: settings.timingMobileShowBestLap,
-                  },
-                  {
-                    key: "timingMobileShowGap",
-                    label: "Gap",
-                    active: settings.timingMobileShowGap,
-                  },
-                  {
-                    key: "timingMobileShowPosDelta",
-                    label: "Pos",
-                    active: settings.timingMobileShowPosDelta,
-                  },
-                  {
-                    key: "timingMobileShowTyre",
-                    label: "Tyre",
-                    active: settings.timingMobileShowTyre,
-                  },
-                  {
-                    key: "timingMobileShowPitCount",
-                    label: "Pit",
-                    active: settings.timingMobileShowPitCount,
-                  },
-                  {
-                    key: "timingMobileShowInterval",
-                    label: "Interval",
-                    active: settings.timingMobileShowInterval,
-                  },
-                  {
-                    key: "timingMobileShowSectors",
-                    label: "Sectors",
-                    active: settings.timingMobileShowSectors,
-                  },
-                ] as const
-              ).map(({ key, label, active }) => (
+              {mobileTimingColumns.map(({ key, label, active }) => (
                 <button
                   key={key}
-                  onClick={() => updateSetting(key, !active)}
+                  onClick={() =>
+                    updateSetting(key, !active as AppSettings[typeof key])
+                  }
                   className={[
                     "text-[10px] font-bold px-2 py-0.5 rounded-sm border transition-all",
                     "focus:outline-none focus-visible:ring-1 focus-visible:ring-white/40",
                     active
-                      ? "border-transparent bg-f1red text-white"
-                      : "border-[#38383f] text-white/40 bg-transparent",
+                      ? "border-f1red bg-f1red text-white"
+                      : "border-[#38383f] bg-transparent text-white/70 hover:border-[#555565] hover:text-white",
                   ].join(" ")}
                   aria-pressed={active}
                 >
