@@ -836,4 +836,120 @@ describe("LiveTiming", () => {
     ).not.toBeInTheDocument();
     expect(screen.queryByLabelText("Penalty issued")).not.toBeInTheDocument();
   });
+
+  it("applies default telemetry column width classes", () => {
+    const sessionStartMs = Date.parse("2024-01-01T00:00:00.000Z");
+
+    render(
+      <LiveTiming
+        drivers={drivers}
+        positions={
+          [
+            {
+              driver_number: 1,
+              position: 1,
+              date: "2024-01-01T00:00:10.000Z",
+            },
+          ] as Position[]
+        }
+        intervals={[]}
+        pits={[]}
+        laps={[]}
+        sessionTimeMs={20_000}
+        sessionStartMs={sessionStartMs}
+        carData={
+          new Map<number, CarData>([
+            [
+              1,
+              {
+                brake: 0,
+                date: "2024-01-01T00:00:12.000Z",
+                driver_number: 1,
+                drs: 12,
+                meeting_key: 1,
+                n_gear: 7,
+                rpm: 12001,
+                session_key: 1,
+                speed: 301,
+                throttle: 95,
+              },
+            ],
+          ])
+        }
+      />,
+    );
+
+    const table = screen.getByRole("table");
+    expect(table.className).toContain("min-w-[70rem]");
+
+    expect(screen.getByText("Speed").closest("th")?.className).toContain(
+      "w-[3rem]",
+    );
+    expect(screen.getByText("Gear").closest("th")?.className).toContain("w-6");
+
+    const rpmHeader = screen.getAllByText("RPM")[0]?.closest("th");
+    expect(rpmHeader?.className).toContain("hidden");
+    expect(rpmHeader?.className).toContain("2xl:table-cell");
+    expect(rpmHeader?.className).toContain("w-[3.5rem]");
+
+    expect(screen.getByText("Thr/Brk").closest("th")?.className).toContain(
+      "w-[4rem]",
+    );
+    expect(screen.getAllByText("DRS")[0]?.closest("th")?.className).toContain(
+      "w-[3rem]",
+    );
+  });
+
+  it("applies compact telemetry column width classes", () => {
+    const sessionStartMs = Date.parse("2024-01-01T00:00:00.000Z");
+
+    render(
+      <LiveTiming
+        drivers={drivers}
+        positions={
+          [
+            {
+              driver_number: 1,
+              position: 1,
+              date: "2024-01-01T00:00:10.000Z",
+            },
+          ] as Position[]
+        }
+        intervals={[]}
+        pits={[]}
+        laps={[]}
+        sessionTimeMs={20_000}
+        sessionStartMs={sessionStartMs}
+        compactDriverColumn
+        carData={
+          new Map<number, CarData>([
+            [
+              1,
+              {
+                brake: 0,
+                date: "2024-01-01T00:00:12.000Z",
+                driver_number: 1,
+                drs: 12,
+                meeting_key: 1,
+                n_gear: 7,
+                rpm: 12001,
+                session_key: 1,
+                speed: 301,
+                throttle: 95,
+              },
+            ],
+          ])
+        }
+      />,
+    );
+
+    const table = screen.getByRole("table");
+    expect(table.className).toContain("min-w-[62rem]");
+    expect(screen.getByText("Thr/Brk").closest("th")?.className).toContain(
+      "w-[3.5rem]",
+    );
+    expect(screen.getAllByText("DRS")[0]?.closest("th")?.className).toContain(
+      "w-[2.5rem]",
+    );
+  });
 });

@@ -841,20 +841,18 @@ export function LiveTiming({
     ? "w-[4rem] lg:w-[4.5rem]"
     : "w-[2.8rem] lg:w-[3rem]";
   const sectorCellClass = `${rowCellPad} ${wideSectors ? "px-1" : "px-0"}`;
-  const rpmColumnClass = "hidden xl:table-cell";
+  const rpmColumnClass = "hidden 2xl:table-cell";
   const pedalColumnClass = "hidden lg:table-cell";
   const drsColumnClass = "hidden lg:table-cell";
   const telemetryPadClass = compactDriverColumn ? "px-1" : "px-2";
-  const telemetryCenterPadClass = compactDriverColumn ? "px-0.5" : "px-2";
-  const pedalHeaderWidthClass = compactDriverColumn
-    ? "w-[4rem]"
-    : "w-[4.75rem]";
-  const drsHeaderWidthClass = compactDriverColumn ? "w-[3rem]" : "w-[3.5rem]";
-  const pedalBarsWidthClass = compactDriverColumn ? "w-12" : "w-16";
+  const telemetryCenterPadClass = compactDriverColumn ? "px-0.5" : "px-1";
+  const pedalHeaderWidthClass = compactDriverColumn ? "w-[3.5rem]" : "w-[4rem]";
+  const drsHeaderWidthClass = compactDriverColumn ? "w-[2.5rem]" : "w-[3rem]";
+  const pedalBarsWidthClass = compactDriverColumn ? "w-10" : "w-12";
   const tableMinWidthClass = showTelemetry
     ? compactDriverColumn
-      ? "min-w-[66rem]"
-      : "min-w-[74rem]"
+      ? "min-w-[62rem]"
+      : "min-w-[70rem]"
     : compactDriverColumn
       ? "min-w-[52rem]"
       : "min-w-[58rem]";
@@ -1073,7 +1071,7 @@ export function LiveTiming({
               {showTelemetry && (
                 <>
                   <th
-                    className={`${headerCellClass} hidden lg:table-cell text-right w-[3.5rem]`}
+                    className={`${headerCellClass} hidden lg:table-cell text-right w-[3rem]`}
                   >
                     <span className="block leading-none">Speed</span>
                     <span className="block text-[8px] normal-case tracking-normal text-[#7b7b82] leading-none mt-0.5">
@@ -1081,12 +1079,12 @@ export function LiveTiming({
                     </span>
                   </th>
                   <th
-                    className={`${headerCellClass} hidden lg:table-cell text-center w-8`}
+                    className={`${headerCellClass} hidden lg:table-cell text-center w-6`}
                   >
                     Gear
                   </th>
                   <th
-                    className={`${headerCellClass} ${rpmColumnClass} text-right w-[4rem]`}
+                    className={`${headerCellClass} ${rpmColumnClass} text-right w-[3.5rem]`}
                   >
                     RPM
                   </th>
@@ -1603,14 +1601,14 @@ export function LiveTiming({
                         >
                           {car ? (
                             <span
-                              className={`mx-auto flex min-w-[2.25rem] items-center justify-center px-1.5 py-0.5 text-center leading-none text-[9px] font-black uppercase tracking-widest ${
+                              className={`mx-auto flex min-w-[2rem] items-center justify-center px-1 py-0.5 text-center leading-none text-[9px] font-black uppercase tracking-[0.08em] ${
                                 car.drs >= 10
                                   ? "bg-[#39d743] text-black"
                                   : "bg-panel text-[#636369]"
                               }`}
                               title={`DRS raw value ${car.drs}`}
                             >
-                              DRS
+                              {car.drs >= 10 ? "ON" : "OFF"}
                             </span>
                           ) : (
                             <span className="text-muted">—</span>
