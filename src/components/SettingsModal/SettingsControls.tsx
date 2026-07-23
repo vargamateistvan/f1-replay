@@ -475,7 +475,7 @@ export function SettingsBody() {
                     "focus:outline-none focus-visible:ring-1 focus-visible:ring-white/40",
                     active
                       ? "border-transparent text-black"
-                      : "border-[#38383f] text-white/40 bg-transparent",
+                      : "border-panel text-muted bg-transparent",
                   ].join(" ")}
                   style={
                     active ? { backgroundColor: color, borderColor: color } : {}

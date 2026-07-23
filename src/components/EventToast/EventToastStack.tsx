@@ -294,7 +294,7 @@ function DismissBtn({
     <button
       onClick={() => onDismiss(id)}
       className="absolute top-1 right-1 z-10 flex items-center justify-center pointer-events-auto
-                 w-6 h-6 text-white/55 hover:text-white transition-colors text-xs"
+                 w-6 h-6 text-muted hover:text-white transition-colors text-xs"
       style={{ touchAction: "manipulation" }}
       aria-label="Dismiss"
     >
@@ -328,7 +328,7 @@ function RadioToast({
   }, [hasAudio, playing]);
 
   return (
-    <div className="relative pointer-events-auto rounded-lg bg-[#1f1f27] border border-[#3f3f4b] shadow-xl flex overflow-hidden w-full">
+    <div className="relative pointer-events-auto rounded-lg bg-surface border border-panel shadow-xl flex overflow-hidden w-full">
       <span className="w-[3px] shrink-0" style={{ background: color }} />
       <div className="flex-1 min-w-0 px-2.5 py-1.5 pr-8 md:px-3 md:py-2 md:pr-8">
         <div className="text-[9px] text-muted uppercase tracking-widest mb-0.5">
@@ -400,7 +400,7 @@ function FlagToast({
         : cfg;
 
   return (
-    <div className="pointer-events-auto rounded-lg bg-[#1f1f27] border border-[#3f3f4b] shadow-xl overflow-hidden w-full">
+    <div className="pointer-events-auto rounded-lg bg-surface border border-panel shadow-xl overflow-hidden w-full">
       <div
         className="flex items-center gap-2 px-2.5 py-1 md:px-3 md:py-1"
         style={{ background: header.bg }}
@@ -454,7 +454,7 @@ function OvertakeToast({
   const color = teamColor(overtaking?.team_colour);
 
   return (
-    <div className="relative pointer-events-auto rounded-lg bg-[#1f1f27] border border-[#3f3f4b] shadow-xl flex items-center overflow-hidden w-full">
+    <div className="relative pointer-events-auto rounded-lg bg-surface border border-panel shadow-xl flex items-center overflow-hidden w-full">
       <span
         className="w-[3px] self-stretch shrink-0"
         style={{ background: color }}
@@ -499,7 +499,7 @@ function PitToast({
   const color = teamColor(driver?.team_colour);
 
   return (
-    <div className="relative pointer-events-auto rounded-lg bg-[#1f1f27] border border-[#3f3f4b] shadow-xl flex items-center overflow-hidden w-full">
+    <div className="relative pointer-events-auto rounded-lg bg-surface border border-panel shadow-xl flex items-center overflow-hidden w-full">
       <span
         className="w-[3px] self-stretch shrink-0"
         style={{ background: color }}

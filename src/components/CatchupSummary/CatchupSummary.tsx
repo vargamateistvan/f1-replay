@@ -91,16 +91,16 @@ function CatchupEventRow({
               {d?.name_acronym ?? p.driverNumber}
             </span>
             {d?.full_name && (
-              <span className="text-[10px] text-white/50">{d.full_name}</span>
+              <span className="text-[10px] text-muted">{d.full_name}</span>
             )}
           </div>
-          <span className="text-[10px] font-mono tabular-nums text-white/40 shrink-0">
+          <span className="text-[10px] font-mono tabular-nums text-muted shrink-0">
             {fmtRaceTime(ev.ms)}
           </span>
         </div>
         <div className="flex items-center gap-2 mt-0.5">
           {typeof p.lapNumber === "number" && (
-            <span className="text-[9px] text-white/40 font-mono">
+            <span className="text-[9px] text-muted font-mono">
               Lap {p.lapNumber}
             </span>
           )}
@@ -133,14 +133,14 @@ function CatchupEventRow({
           >
             {flagLabel}
           </span>
-          <span className="text-[10px] font-mono tabular-nums text-white/40 shrink-0">
+          <span className="text-[10px] font-mono tabular-nums text-muted shrink-0">
             {fmtRaceTime(ev.ms)}
           </span>
         </div>
         <div className="mt-0.5">
           <span className="text-[10px] text-white/70 block">{p.message}</span>
           {typeof p.lapNumber === "number" && (
-            <span className="text-[9px] text-white/40 font-mono">
+            <span className="text-[9px] text-muted font-mono">
               Lap {p.lapNumber}
             </span>
           )}
@@ -157,14 +157,14 @@ function CatchupEventRow({
           <span className="text-[8px] font-black px-1 py-0.5 bg-[#e8002d] text-white uppercase tracking-widest shrink-0">
             PENALTY
           </span>
-          <span className="text-[10px] font-mono tabular-nums text-white/40 shrink-0">
+          <span className="text-[10px] font-mono tabular-nums text-muted shrink-0">
             {fmtRaceTime(ev.ms)}
           </span>
         </div>
         <div className="mt-0.5">
           <span className="text-[10px] text-white/70 block">{p.message}</span>
           {typeof p.lapNumber === "number" && (
-            <span className="text-[9px] text-white/40 font-mono">
+            <span className="text-[9px] text-muted font-mono">
               Lap {p.lapNumber}
             </span>
           )}
@@ -181,14 +181,14 @@ function CatchupEventRow({
           <span className="text-[8px] font-black px-1 py-0.5 bg-[#f5a623] text-black uppercase tracking-widest shrink-0">
             INVESTIGATION
           </span>
-          <span className="text-[10px] font-mono tabular-nums text-white/40 shrink-0">
+          <span className="text-[10px] font-mono tabular-nums text-muted shrink-0">
             {fmtRaceTime(ev.ms)}
           </span>
         </div>
         <div className="mt-0.5">
           <span className="text-[10px] text-white/70 block">{p.message}</span>
           {typeof p.lapNumber === "number" && (
-            <span className="text-[9px] text-white/40 font-mono">
+            <span className="text-[9px] text-muted font-mono">
               Lap {p.lapNumber}
             </span>
           )}
@@ -210,17 +210,17 @@ function CatchupEventRow({
             <span className="text-[12px] font-black" style={{ color: colorA }}>
               {overtaking?.name_acronym ?? p.overtaking}
             </span>
-            <span className="text-[9px] text-white/30">▸</span>
+            <span className="text-[9px] text-muted">▸</span>
             <span className="text-[11px] font-bold" style={{ color: colorB }}>
               {overtaken?.name_acronym ?? p.overtaken}
             </span>
             {p.position && (
-              <span className="text-[9px] font-mono text-white/50">
+              <span className="text-[9px] font-mono text-muted">
                 P{p.position}
               </span>
             )}
           </div>
-          <span className="text-[10px] font-mono tabular-nums text-white/40 shrink-0">
+          <span className="text-[10px] font-mono tabular-nums text-muted shrink-0">
             {fmtRaceTime(ev.ms)}
           </span>
         </div>
@@ -246,21 +246,21 @@ function CatchupEventRow({
               {d?.name_acronym ?? p.driverNumber}
             </span>
             {d?.full_name && (
-              <span className="text-[10px] text-white/50">{d.full_name}</span>
+              <span className="text-[10px] text-muted">{d.full_name}</span>
             )}
           </div>
-          <span className="text-[10px] font-mono tabular-nums text-white/40 shrink-0">
+          <span className="text-[10px] font-mono tabular-nums text-muted shrink-0">
             {fmtRaceTime(ev.ms)}
           </span>
         </div>
         <div className="flex items-center gap-2 mt-0.5">
           {typeof p.lapNumber === "number" && (
-            <span className="text-[9px] text-white/40 font-mono">
+            <span className="text-[9px] text-muted font-mono">
               Lap {p.lapNumber}
             </span>
           )}
           {typeof p.pitDuration === "number" && (
-            <span className="text-[9px] font-mono tabular-nums text-white/60">
+            <span className="text-[9px] font-mono tabular-nums text-white/70">
               {p.pitDuration.toFixed(1)}s stop
             </span>
           )}
@@ -290,11 +290,11 @@ function CatchupEventRow({
               {d?.name_acronym ?? p.driverNumber}
             </span>
             {d?.full_name && (
-              <span className="text-[10px] text-white/50">{d.full_name}</span>
+              <span className="text-[10px] text-muted">{d.full_name}</span>
             )}
           </div>
           <div className="flex items-center gap-1.5 shrink-0">
-            <span className="text-[10px] font-mono tabular-nums text-white/40">
+            <span className="text-[10px] font-mono tabular-nums text-muted">
               {fmtRaceTime(ev.ms)}
             </span>
             <button
@@ -325,7 +325,7 @@ function CatchupEventRow({
         </div>
         {typeof p.lapNumber === "number" && (
           <div className="mt-0.5">
-            <span className="text-[9px] text-white/40 font-mono">
+            <span className="text-[9px] text-muted font-mono">
               Lap {p.lapNumber}
             </span>
           </div>
@@ -453,10 +453,10 @@ export function CatchupSummary({ summary, drivers, onDismiss }: Props) {
 
   return (
     <div className="absolute bottom-14 left-1/2 -translate-x-1/2 z-40 pointer-events-auto w-[min(380px,92vw)]">
-      <div className="bg-[#1f1f27] border border-[#38383f] shadow-2xl overflow-hidden max-h-[70vh] flex flex-col">
+      <div className="bg-surface border border-panel shadow-2xl overflow-hidden max-h-[70vh] flex flex-col">
         {/* Header */}
-        <div className="flex items-center gap-2 px-3 py-2 bg-[#15151e] border-b border-[#38383f]">
-          <span className="text-[10px] font-black uppercase tracking-widest text-white/70 flex items-center gap-1">
+        <div className="flex items-center gap-2 px-3 py-2 bg-track border-b border-panel">
+          <span className="text-[10px] font-black uppercase tracking-widest text-white/80 flex items-center gap-1">
             <FastForward size={11} strokeWidth={2.4} aria-hidden="true" />
             While you were away
           </span>
@@ -475,7 +475,7 @@ export function CatchupSummary({ summary, drivers, onDismiss }: Props) {
         <div className="min-h-0 overflow-y-auto">
           {/* Filter chips */}
           {allChips.length > 0 && (
-            <div className="px-3 py-2 border-b border-[#2a2a35] flex flex-wrap gap-1.5">
+            <div className="px-3 py-2 border-b border-panel flex flex-wrap gap-1.5">
               {allChips.map((chip) => {
                 const isActive = activeKinds.has(chip.kind);
                 return (
@@ -487,7 +487,7 @@ export function CatchupSummary({ summary, drivers, onDismiss }: Props) {
                       "focus:outline-none focus-visible:ring-1 focus-visible:ring-white/40",
                       isActive
                         ? "border-transparent text-black"
-                        : "border-[#38383f] text-white/40 bg-transparent",
+                        : "border-panel text-muted bg-transparent",
                     ].join(" ")}
                     style={
                       isActive
@@ -520,7 +520,7 @@ export function CatchupSummary({ summary, drivers, onDismiss }: Props) {
               ))}
             </div>
           ) : (
-            <p className="text-[11px] text-white/30 px-3 py-3 text-center">
+            <p className="text-[11px] text-muted px-3 py-3 text-center">
               No events match the selected filters
             </p>
           )}
@@ -529,7 +529,7 @@ export function CatchupSummary({ summary, drivers, onDismiss }: Props) {
         {/* Dismiss */}
         <button
           onClick={onDismiss}
-          className="w-full py-1.5 text-[9px] font-black uppercase tracking-widest text-muted hover:text-white border-t border-[#2a2a35] transition-colors"
+          className="w-full py-1.5 text-[9px] font-black uppercase tracking-widest text-muted hover:text-white border-t border-panel transition-colors"
         >
           Dismiss
         </button>
