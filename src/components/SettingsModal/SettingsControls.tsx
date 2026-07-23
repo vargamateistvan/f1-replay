@@ -569,7 +569,7 @@ export function SettingsBody() {
         />
       )}
       {!isMobileViewport && (
-        <div className="py-2.5 border-b border-[#2a2a35]">
+        <div className="py-2.5 border-b border-panel">
           <div className="text-[13px] text-white/90 leading-tight">
             Driver tracker columns
           </div>
@@ -589,7 +589,7 @@ export function SettingsBody() {
                   "focus:outline-none focus-visible:ring-1 focus-visible:ring-white/40",
                   active
                     ? "border-f1red bg-f1red text-white"
-                    : "border-[#38383f] bg-transparent text-white/70 hover:border-[#555565] hover:text-white",
+                    : "border-panel bg-transparent text-muted hover:border-muted hover:text-white",
                 ].join(" ")}
                 aria-pressed={active}
               >
@@ -607,7 +607,7 @@ export function SettingsBody() {
             checked={settings.trackerTimingMobileCarData}
             onChange={toggle("trackerTimingMobileCarData")}
           />
-          <div className="py-2.5 border-b border-[#2a2a35]">
+          <div className="py-2.5 border-b border-panel">
             <div className="text-[13px] text-white/90 leading-tight">
               Mobile timing columns
             </div>
@@ -626,7 +626,7 @@ export function SettingsBody() {
                     "focus:outline-none focus-visible:ring-1 focus-visible:ring-white/40",
                     active
                       ? "border-f1red bg-f1red text-white"
-                      : "border-[#38383f] bg-transparent text-white/70 hover:border-[#555565] hover:text-white",
+                      : "border-panel bg-transparent text-muted hover:border-muted hover:text-white",
                   ].join(" ")}
                   aria-pressed={active}
                 >

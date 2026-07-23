@@ -2415,10 +2415,12 @@ export function TrackMap({
                   return (
                     <div
                       key={`sector-chip-${sectorNum}`}
-                      className="flex flex-col items-center justify-center px-2 py-1 border border-[#38383f]"
+                      className="flex flex-col items-center justify-center px-2 py-1 border border-panel"
                       style={{
                         background: flag ? `${color}22` : overlayBackground,
-                        borderColor: flag ? `${color}66` : "#38383f",
+                        borderColor: flag
+                          ? `${color}66`
+                          : "rgb(var(--color-panel))",
                         minWidth: 34,
                       }}
                     >
@@ -2438,7 +2440,7 @@ export function TrackMap({
           <div className="flex flex-col items-end gap-1">
             {showCompass && (
               <div
-                className="w-[46px] h-12 bg-[#15151e]/85 flex items-center justify-center"
+                className="w-[46px] h-12 bg-track/85 flex items-center justify-center"
                 title="Compass"
               >
                 <svg
@@ -2532,7 +2534,7 @@ export function TrackMap({
                   trackEvent("trackmap_snapshot_export", { format: "png" });
                   exportTrackSnapshot(svgRef.current);
                 }}
-                className="px-2 py-0.5 text-[9px] font-bold uppercase tracking-widest bg-[#1e1e2a]/80 border border-[#38383f] text-muted hover:text-white hover:border-white/30 transition-colors backdrop-blur-sm"
+                className="px-2 py-0.5 text-[9px] font-bold uppercase tracking-widest bg-track/80 border border-panel text-muted hover:text-white hover:border-white/30 transition-colors backdrop-blur-sm"
                 title="Download track snapshot as PNG"
               >
                 ↓ PNG

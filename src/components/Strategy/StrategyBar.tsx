@@ -212,7 +212,7 @@ export function StrategyBar({
             </span>
 
             {/* Timeline bar */}
-            <div className="relative flex h-3.5 flex-1 overflow-hidden bg-[#15151e] sm:h-4">
+            <div className="relative flex h-3.5 flex-1 overflow-hidden bg-track sm:h-4">
               {/* Stint segments */}
               {dStints.map((s) => {
                 const visibleStart = Math.max(1, s.lap_start);
@@ -232,7 +232,7 @@ export function StrategyBar({
                       left: `${left}%`,
                       width: `${width}%`,
                       background: bg,
-                      borderRight: "1px solid #15151e",
+                      borderRight: "1px solid rgb(var(--color-track))",
                       outline: isHard ? "1px solid #555" : undefined,
                     }}
                   >
@@ -273,7 +273,7 @@ export function StrategyBar({
       })}
 
       {/* Legend */}
-      <div className="mt-1.5 flex flex-wrap gap-x-2 gap-y-0.5 border-t border-[#2a2a35] pt-1.5 sm:gap-x-3">
+      <div className="mt-1.5 flex flex-wrap gap-x-2 gap-y-0.5 border-t border-panel pt-1.5 sm:gap-x-3">
         {Object.entries(COMPOUND_COLOR)
           .filter(([c]) => c !== "UNKNOWN")
           .map(([c, color]) => (
