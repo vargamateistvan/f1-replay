@@ -115,4 +115,34 @@ describe("EventToastStack", () => {
     fireEvent.click(screen.getByRole("button", { name: "Stop" }));
     expect(screen.getByRole("button", { name: "Play" })).toBeInTheDocument();
   });
+
+  it("shows penalty subtype badge for warning notices", () => {
+    render(
+      <EventToastStack
+        toasts={
+          [
+            {
+              addedAt: Date.now(),
+              event: {
+                id: "penalty-1",
+                ms: 2000,
+                kind: "penalty",
+                priority: "high",
+                payload: {
+                  flag: "",
+                  message: "Black and white flag for car 4",
+                  lapNumber: 12,
+                },
+              },
+            },
+          ] as ActiveToast[]
+        }
+        drivers={drivers}
+        onDismiss={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByText("PENALTY")).toBeInTheDocument();
+    expect(screen.getByText("NOTICE")).toBeInTheDocument();
+  });
 });
