@@ -4,8 +4,6 @@ import type {
   ActiveTrackFlagState,
   ActiveTrackVehicles,
 } from "@/components/TrackMap/TrackMap";
-import LiveTiming from "@/components/LiveTiming/LiveTiming";
-import { WeatherPanel } from "@/components/Weather/WeatherPanel";
 import { QualifyingBanner } from "@/components/QualifyingBanner";
 import { StartingLights } from "@/components/StartingLights";
 import { ErrorMessage } from "@/components/ErrorMessage";
@@ -58,9 +56,7 @@ import {
 } from "@/timeline/raceControl";
 import { useEventToasts } from "@/hooks/useEventToasts";
 import { useCatchupSummary } from "@/hooks/useCatchupSummary";
-import { EventToastStack } from "@/components/EventToast/EventToastStack";
 import { CatchupSummary } from "@/components/CatchupSummary/CatchupSummary";
-import { ResizeHandle } from "@/components/ResizeHandle";
 import { isSessionLive } from "@/utils/live";
 import { DEFAULT_SESSION_MS } from "@/constants";
 import { useSettings } from "@/stores/settings";
@@ -83,15 +79,25 @@ import {
   windowBoundsByValue,
 } from "@/utils/sortedTime";
 import { trackEvent } from "@/lib/analytics";
-import { RaceWeekendSessionHeader } from "./raceWeekend/RaceWeekendSessionHeader";
-import { TrackerTabBar, type TrackerTab } from "./raceWeekend/TrackerTabBar";
-import { TrackerStrategyContent } from "./raceWeekend/TrackerStrategyContent";
-import { CommentaryTabBar } from "./raceWeekend/CommentaryTabBar";
+import {
+  RaceWeekendSessionHeader,
+  type RaceWeekendSessionHeaderProps,
+} from "./raceWeekend/RaceWeekendSessionHeader";
+import { type TrackerTab } from "./raceWeekend/TrackerTabBar";
+import { TrackerStrategyPanel } from "./raceWeekend/TrackerStrategyPanel";
+import { CommentaryPanelsSection } from "./raceWeekend/CommentaryPanelsSection";
+import { CommentarySection } from "./raceWeekend/CommentarySection";
+import { LeaderboardView } from "./raceWeekend/LeaderboardView";
+import { LeaderboardLoadingIndicator } from "./raceWeekend/LeaderboardLoadingIndicator";
+import { PanelFallback } from "./raceWeekend/PanelFallback";
+import { RaceTimingTower } from "./raceWeekend/RaceTimingTower";
+import { TrackerPanelFrame } from "./raceWeekend/TrackerPanelFrame";
+import { TrackerSection } from "./raceWeekend/TrackerSection";
+import { TrackerMobileMapContent } from "./raceWeekend/TrackerMobileMapContent";
 import {
   TrackerFocusedTelemetryPanel,
   TrackerTimingPanel,
 } from "./raceWeekend/TrackerTimingPanels";
-import { TrackerMapPane } from "./raceWeekend/TrackerMapPane";
 import type { MainView } from "@/components/Nav";
 import type {
   Stint,
@@ -164,11 +170,6 @@ const FocusedTelemetry = lazy(() =>
     default: m.FocusedTelemetry,
   })),
 );
-const StrategyBar = lazy(() =>
-  import("@/components/Strategy/StrategyBar").then((m) => ({
-    default: m.StrategyBar,
-  })),
-);
 const LapChart = lazy(() =>
   import("@/components/LapChart/LapChart").then((m) => ({
     default: m.LapChart,
@@ -179,20 +180,6 @@ const GapChart = lazy(() =>
     default: m.GapChart,
   })),
 );
-const CommentaryPanels = lazy(() =>
-  import("@/components/CommentaryPanels/CommentaryPanels").then((m) => ({
-    default: m.CommentaryPanels,
-  })),
-);
-
-function PanelFallback() {
-  return (
-    <div className="flex h-full min-h-[120px] items-center justify-center text-[10px] font-bold uppercase tracking-[0.12em] text-muted animate-pulse">
-      Loading Panel
-    </div>
-  );
-}
-
 export default function RaceWeekend() {
   const trackerDesktopSplitRef = useRef<HTMLDivElement | null>(null);
   const trackerDesktopDragRef = useRef<{
@@ -1267,10 +1254,50 @@ export default function RaceWeekend() {
 
   const showTrackerInlinePlayback = false;
 
+  const timingMobileColumns = {
+    showPosition: timingMobileShowPosition,
+    showDriver: timingMobileShowDriver,
+    showAlerts: timingMobileShowAlerts,
+    showBestLap: timingMobileShowBestLap,
+    showLastLap: timingMobileShowLastLap,
+    showGap: timingMobileShowGap,
+    showS1: timingMobileShowS1,
+    showS2: timingMobileShowS2,
+    showS3: timingMobileShowS3,
+    showPosDelta: timingMobileShowPosDelta,
+    showTyre: timingMobileShowTyre,
+    showPitCount: timingMobileShowPitCount,
+    showInterval: timingMobileShowInterval,
+    showLap: timingMobileShowLap,
+  };
+
+  const trackerTimingColumns = {
+    position: trackerTimingShowPosition,
+    driver: trackerTimingShowDriver,
+    alerts: trackerTimingShowAlerts,
+    bestLap: trackerTimingShowBestLap,
+    lastLap: trackerTimingShowLastLap,
+    gap: trackerTimingShowGap,
+    interval: trackerTimingShowInterval,
+    s1: trackerTimingShowS1,
+    s2: trackerTimingShowS2,
+    s3: trackerTimingShowS3,
+    posDelta: trackerTimingShowPosDelta,
+    tyre: trackerTimingShowTyre,
+    pit: trackerTimingShowPit,
+    currentLap: trackerTimingShowLap,
+    speed: trackerTimingShowSpeed,
+    gear: trackerTimingShowGear,
+    rpm: trackerTimingShowRpm,
+    thrBrk: trackerTimingShowThrBrk,
+    drs: trackerTimingShowDrs,
+  };
+
   // ── Shared sub-components ────────────────────────────────────────────────────
 
   const timingTower = (
-    <LiveTiming
+    <RaceTimingTower
+      mode="tracker"
       drivers={drivers.data ?? []}
       positions={positions.data ?? []}
       intervals={intervals.data ?? []}
@@ -1289,55 +1316,17 @@ export default function RaceWeekend() {
       onSelectDriver={toggleFocus}
       carData={trackerTimingTelemetryEnabled ? carDataAtT : undefined}
       showMinisectors={timingShowMinisectors}
-      showDenseMobileTelemetry={trackerTimingMobileCarData}
-      showMobilePositionColumn={timingMobileShowPosition}
-      showMobileDriverColumn={timingMobileShowDriver}
-      showMobileAlertsColumn={timingMobileShowAlerts}
-      showMobileBestLapColumn={timingMobileShowBestLap}
-      showMobileLastLapColumn={timingMobileShowLastLap}
-      showMobileGapColumn={timingMobileShowGap}
-      showMobileS1Column={timingMobileShowS1}
-      showMobileS2Column={timingMobileShowS2}
-      showMobileS3Column={timingMobileShowS3}
-      showMobilePosDeltaColumn={timingMobileShowPosDelta}
-      showMobileTyreColumn={timingMobileShowTyre}
-      showMobilePitCountColumn={timingMobileShowPitCount}
-      showIntervalColumn={trackerTimingShowInterval}
-      showMobileIntervalColumn={timingMobileShowInterval}
-      showMobileCurrentLapColumn={timingMobileShowLap}
-      showMobileSectorsColumns={
-        timingMobileShowS1 || timingMobileShowS2 || timingMobileShowS3
-      }
-      columnVisibility={{
-        position: trackerTimingShowPosition,
-        driver: trackerTimingShowDriver,
-        alerts: trackerTimingShowAlerts,
-        bestLap: trackerTimingShowBestLap,
-        lastLap: trackerTimingShowLastLap,
-        gap: trackerTimingShowGap,
-        interval: trackerTimingShowInterval,
-        s1: trackerTimingShowS1,
-        s2: trackerTimingShowS2,
-        s3: trackerTimingShowS3,
-        posDelta: trackerTimingShowPosDelta,
-        tyre: trackerTimingShowTyre,
-        pit: trackerTimingShowPit,
-        currentLap: trackerTimingShowLap,
-        speed: trackerTimingShowSpeed,
-        gear: trackerTimingShowGear,
-        rpm: trackerTimingShowRpm,
-        thrBrk: trackerTimingShowThrBrk,
-        drs: trackerTimingShowDrs,
-      }}
-      compactDriverColumn
-      dense
+      trackerDenseMobileTelemetry={trackerTimingMobileCarData}
+      trackerShowInterval={trackerTimingShowInterval}
+      trackerColumns={trackerTimingColumns}
+      mobileColumns={timingMobileColumns}
       chequeredMs={chequeredMs}
     />
   );
 
-  // Leaderboard view gets the same tower plus live car-data columns.
   const leaderboardTower = (
-    <LiveTiming
+    <RaceTimingTower
+      mode="leaderboard"
       drivers={drivers.data ?? []}
       positions={positions.data ?? []}
       intervals={intervals.data ?? []}
@@ -1356,28 +1345,7 @@ export default function RaceWeekend() {
       onSelectDriver={toggleFocus}
       carData={telemetryEnabled ? carDataAtT : undefined}
       showMinisectors={timingShowMinisectors}
-      showIntervalColumn
-      showFullLastName
-      showMobilePositionColumn={timingMobileShowPosition}
-      showMobileDriverColumn={timingMobileShowDriver}
-      showMobileAlertsColumn={timingMobileShowAlerts}
-      showMobileBestLapColumn={timingMobileShowBestLap}
-      showMobileLastLapColumn={timingMobileShowLastLap}
-      showMobileGapColumn={timingMobileShowGap}
-      showMobileS1Column={timingMobileShowS1}
-      showMobileS2Column={timingMobileShowS2}
-      showMobileS3Column={timingMobileShowS3}
-      showMobilePosDeltaColumn={timingMobileShowPosDelta}
-      showMobileTyreColumn={timingMobileShowTyre}
-      showMobilePitCountColumn={timingMobileShowPitCount}
-      showMobileIntervalColumn={timingMobileShowInterval}
-      showMobileCurrentLapColumn={timingMobileShowLap}
-      showMobileSectorsColumns={
-        timingMobileShowS1 || timingMobileShowS2 || timingMobileShowS3
-      }
-      wideSectors
-      dense
-      fullWidthTable
+      mobileColumns={timingMobileColumns}
       chequeredMs={chequeredMs}
     />
   );
@@ -1436,32 +1404,221 @@ export default function RaceWeekend() {
     <Suspense fallback={<PanelFallback />}>{trackMap}</Suspense>
   );
 
-  const trackerMapToastOverlay = (
-    <EventToastStack
+  const mobileTimingContent = (
+    <>
+      <TrackerTimingPanel
+        hasTimingError={positions.isError}
+        timingTower={timingTower}
+      />
+      <TrackerFocusedTelemetryPanel telemetry={focusedTelemetryPanel} />
+    </>
+  );
+
+  const mobileMapContent = (
+    <TrackerMobileMapContent
+      mapShowWeather={mapShowWeather}
+      weatherError={weather.isError}
+      weatherEntries={weather.data ?? []}
+      sessionKey={sessionKey}
+      sessionTimeMs={t}
+      sessionStartMs={sessionStartMs}
       toasts={toasts}
       drivers={drivers.data ?? []}
-      onDismiss={dismiss}
+      onDismissToast={dismiss}
       radioAutoplay={settingToastRadioAutoplay}
       soundsEnabled={toastSoundsEnabled}
-      maxVisible={notificationMaxVisible}
-      layout="overlay"
+      maxVisibleToasts={notificationMaxVisible}
+      mapContent={trackMapContent}
+      isLoadingSessionData={isLoadingSessionData}
     />
   );
 
-  const trackerMapWeatherSection = mapShowWeather ? (
-    <div className="shrink-0 border-b border-panel">
-      {weather.isError ? (
-        <ErrorMessage message="Failed to load weather" compact />
-      ) : (
-        <WeatherPanel
-          entries={weather.data ?? []}
-          sessionKey={sessionKey}
-          sessionTimeMs={t}
-          sessionStartMs={sessionStartMs}
-        />
-      )}
-    </div>
+  const strategyPanelContent = (
+    <TrackerStrategyPanel
+      stints={stints.data ?? []}
+      drivers={drivers.data ?? []}
+      laps={laps.data ?? []}
+      pits={pits.data ?? []}
+      sessionTimeMs={t}
+      sessionStartMs={sessionStartMs}
+      currentLap={currentLap}
+    />
+  );
+
+  const mobileChartContent = (
+    <TrackerPanelFrame mobile>
+      <LapChart
+        drivers={drivers.data ?? []}
+        positions={positions.data ?? []}
+        lapStarts={lapMarks}
+        sessionStartMs={sessionStartMs}
+        sessionTimeMs={t}
+        currentLap={currentLap}
+      />
+    </TrackerPanelFrame>
+  );
+
+  const mobileGapContent = (
+    <TrackerPanelFrame mobile>
+      <GapChart
+        drivers={drivers.data ?? []}
+        intervals={intervals.data ?? []}
+        lapStarts={lapMarks}
+        currentLap={currentLap}
+        sessionStartMs={sessionStartMs}
+        sessionTimeMs={t}
+      />
+    </TrackerPanelFrame>
+  );
+
+  const desktopTimingContent = (
+    <TrackerTimingPanel
+      hasTimingError={positions.isError}
+      timingTower={timingTower}
+    />
+  );
+
+  const desktopChartContent = (
+    <TrackerPanelFrame>
+      <LapChart
+        drivers={drivers.data ?? []}
+        positions={positions.data ?? []}
+        lapStarts={lapMarks}
+        sessionStartMs={sessionStartMs}
+        sessionTimeMs={t}
+        currentLap={currentLap}
+      />
+    </TrackerPanelFrame>
+  );
+
+  const desktopGapContent = (
+    <TrackerPanelFrame>
+      <GapChart
+        drivers={drivers.data ?? []}
+        intervals={intervals.data ?? []}
+        lapStarts={lapMarks}
+        currentLap={currentLap}
+        sessionStartMs={sessionStartMs}
+        sessionTimeMs={t}
+      />
+    </TrackerPanelFrame>
+  );
+
+  const sharedSessionHeaderProps: RaceWeekendSessionHeaderProps = {
+    laps: laps.data ?? [],
+    raceControl: raceControl.data ?? [],
+    sessionTimeMs: t,
+    sessionStartMs,
+    qualiPhase,
+    countdownMs,
+    airTemp: weatherAtT?.air_temperature ?? null,
+    trackTemp: weatherAtT?.track_temperature ?? null,
+    isRaceSession,
+    lightsOutMs,
+    totalLapCount,
+    sessionName,
+    showFinalClassification,
+    hasSessionResultError: sessionResult.isError,
+    onShowEliminations: () => setIsQualiEliminationsDialogOpen(true),
+    onShowResults: () => setIsResultsDialogOpen(true),
+    onJumpToSessionTime: (sessionTimeMs: number) => setTimelineT(sessionTimeMs),
+  };
+
+  const sharedSessionHeader = (
+    <RaceWeekendSessionHeader {...sharedSessionHeaderProps} />
+  );
+
+  const trackerMobilePlayback = showTrackerInlinePlayback ? (
+    <PlaybackBar
+      durationMs={playbackDurationMs}
+      lapStarts={lapMarks}
+      pitTimes={pitMarks}
+      flagTimes={flagMarks}
+      safetyCarTimes={safetyCarMarks}
+      overtakeTimes={overtakeMarks}
+      radioTimes={radioMarks}
+      raceControlMarkers={raceControlMarkers}
+      markerSummary={markerSummary}
+      canReplayCurrentIncident={currentReplayIncident !== undefined}
+      onReplayCurrentIncident={replayCurrentIncident}
+      canReplayNextIncident={
+        nextReplayIncident !== undefined || firstReplayIncident !== undefined
+      }
+      onReplayNextIncident={replayNextIncident}
+      incidentReplayHint={incidentReplayHint}
+      countdownMs={countdownMs}
+      qualiPhase={qualiPhase}
+      q2StartMs={qualiPhaseStartTimes.q2StartMs}
+      q3StartMs={qualiPhaseStartTimes.q3StartMs}
+      mobileInline
+      showSpeedControls={showPlaybackSpeedControls}
+      showEventChips={showPlaybackEventChips}
+    />
   ) : undefined;
+
+  const trackerDesktopFocusedTelemetry = (
+    <TrackerFocusedTelemetryPanel telemetry={focusedTelemetryPanel} />
+  );
+
+  const handleCommentaryTimeModeToggle = () => {
+    setCommentaryTimeMode(
+      (() => {
+        const nextValue = commentaryTimeMode === "all" ? "elapsed" : "all";
+        trackEvent("raceweekend_commentary_time_mode_changed", {
+          mode: nextValue,
+        });
+        return nextValue;
+      })(),
+    );
+  };
+
+  const handleCommentaryPlayWindow = (startMs: number, endMs: number) => {
+    trackEvent("raceweekend_commentary_play_window", {
+      start_ms: Math.round(startMs),
+      end_ms: Math.round(endMs),
+    });
+    setTimelineT(startMs);
+    setIncidentReplayEndMs(endMs);
+    setTimelinePlaying(true);
+  };
+
+  const commentaryContent = (
+    <CommentaryPanelsSection
+      commentaryTab={commentaryTab ?? "rc"}
+      showAllItems={commentaryTimeMode === "all"}
+      raceControlError={raceControl.isError}
+      teamRadioError={teamRadio.isError}
+      pitsError={pits.isError}
+      overtakesError={overtakes.isError}
+      raceControlEntries={raceControl.data ?? []}
+      teamRadioEntries={teamRadio.data ?? []}
+      pitEntries={pits.data ?? []}
+      overtakeEntries={overtakes.data ?? []}
+      drivers={drivers.data ?? []}
+      laps={laps.data ?? []}
+      positions={positions.data ?? []}
+      incidentWindows={incidentWindows}
+      sessionKey={sessionKey}
+      sessionYear={session?.year ?? null}
+      sessionType={session?.session_type}
+      sessionTimeMs={t}
+      sessionStartMs={sessionStartMs}
+      toastEvents={toastEvents}
+      focusDriver={focusDriver}
+      onClearFocus={clearFocusSelection}
+      onPlayWindow={handleCommentaryPlayWindow}
+    />
+  );
+
+  const leaderboardLoadingIndicator = isLoadingSessionData ? (
+    <LeaderboardLoadingIndicator />
+  ) : undefined;
+
+  const leaderboardContent = positions.isError ? (
+    <ErrorMessage message="Failed to load timing data" />
+  ) : (
+    leaderboardTower
+  );
 
   // ── View layouts ─────────────────────────────────────────────────────────────
 
@@ -1487,399 +1644,65 @@ export default function RaceWeekend() {
 
       {/* ── LEADERBOARD VIEW ──────────────────────────────────────────── */}
       {currentView === "leaderboard" && (
-        <div className="flex flex-col md:flex-1 md:min-h-0 md:overflow-hidden">
-          <RaceWeekendSessionHeader
-            laps={laps.data ?? []}
-            raceControl={raceControl.data ?? []}
-            sessionTimeMs={t}
-            sessionStartMs={sessionStartMs}
-            qualiPhase={qualiPhase}
-            countdownMs={countdownMs}
-            airTemp={weatherAtT?.air_temperature ?? null}
-            trackTemp={weatherAtT?.track_temperature ?? null}
-            isRaceSession={isRaceSession}
-            lightsOutMs={lightsOutMs}
-            totalLapCount={totalLapCount}
-            sessionName={sessionName}
-            showFinalClassification={showFinalClassification}
-            hasSessionResultError={sessionResult.isError}
-            onShowEliminations={() => setIsQualiEliminationsDialogOpen(true)}
-            onShowResults={() => setIsResultsDialogOpen(true)}
-            onJumpToSessionTime={(sessionTimeMs) => setTimelineT(sessionTimeMs)}
-          />
-
-          {/* Loading indicator */}
-          {isLoadingSessionData && (
-            <div className="border-b border-panel bg-track px-3 py-2 sm:px-4">
-              <div className="rounded-sm border border-panel bg-surface px-3 py-2">
-                <div className="text-f1red text-[10px] font-black uppercase tracking-[0.14em] animate-pulse">
-                  Loading session data
-                </div>
-                <div className="mt-1 text-xs text-muted">
-                  Preparing timing and event feeds for this session.
-                </div>
-              </div>
-            </div>
-          )}
-
-          <div className="flex flex-col md:flex-1 md:min-h-0 md:overflow-hidden">
-            {positions.isError ? (
-              <ErrorMessage message="Failed to load timing data" />
-            ) : (
-              leaderboardTower
-            )}
-          </div>
-        </div>
+        <LeaderboardView
+          header={sharedSessionHeader}
+          loadingIndicator={leaderboardLoadingIndicator}
+          content={leaderboardContent}
+        />
       )}
 
       {/* ── DRIVER TRACKER VIEW ───────────────────────────────────────── */}
       {currentView === "tracker" && (
-        <div className="flex flex-col md:flex-1 md:min-h-0 md:overflow-hidden">
-          <RaceWeekendSessionHeader
-            laps={laps.data ?? []}
-            raceControl={raceControl.data ?? []}
-            sessionTimeMs={t}
-            sessionStartMs={sessionStartMs}
-            qualiPhase={qualiPhase}
-            countdownMs={countdownMs}
-            airTemp={weatherAtT?.air_temperature ?? null}
-            trackTemp={weatherAtT?.track_temperature ?? null}
-            isRaceSession={isRaceSession}
-            lightsOutMs={lightsOutMs}
-            totalLapCount={totalLapCount}
-            sessionName={sessionName}
-            showFinalClassification={showFinalClassification}
-            hasSessionResultError={sessionResult.isError}
-            onShowEliminations={() => setIsQualiEliminationsDialogOpen(true)}
-            onShowResults={() => setIsResultsDialogOpen(true)}
-            onJumpToSessionTime={(sessionTimeMs) => setTimelineT(sessionTimeMs)}
-          />
-          <div className="flex flex-col md:flex-1 md:min-h-0 md:overflow-hidden relative">
-            {/* Toast overlay — covers both mobile and desktop tracker content */}
-            {(trackerTab ?? "timing") !== "map" && (
-              <EventToastStack
-                toasts={toasts}
-                drivers={drivers.data ?? []}
-                onDismiss={dismiss}
-                radioAutoplay={settingToastRadioAutoplay}
-                soundsEnabled={toastSoundsEnabled}
-                maxVisible={notificationMaxVisible}
-                layout="overlay"
-              />
-            )}
-
-            {/* Phone layout: tab-switched (md:hidden) */}
-            <div className="md:hidden flex flex-col w-full">
-              {/* Tab chips */}
-              <TrackerTabBar
-                source="mobile"
-                activeTab={trackerTab ?? "timing"}
-                onTabChange={handleTrackerTabChange}
-              />
-
-              {showTrackerInlinePlayback && (
-                <PlaybackBar
-                  durationMs={playbackDurationMs}
-                  lapStarts={lapMarks}
-                  pitTimes={pitMarks}
-                  flagTimes={flagMarks}
-                  safetyCarTimes={safetyCarMarks}
-                  overtakeTimes={overtakeMarks}
-                  radioTimes={radioMarks}
-                  raceControlMarkers={raceControlMarkers}
-                  markerSummary={markerSummary}
-                  canReplayCurrentIncident={currentReplayIncident !== undefined}
-                  onReplayCurrentIncident={replayCurrentIncident}
-                  canReplayNextIncident={
-                    nextReplayIncident !== undefined ||
-                    firstReplayIncident !== undefined
-                  }
-                  onReplayNextIncident={replayNextIncident}
-                  incidentReplayHint={incidentReplayHint}
-                  countdownMs={countdownMs}
-                  qualiPhase={qualiPhase}
-                  q2StartMs={qualiPhaseStartTimes.q2StartMs}
-                  q3StartMs={qualiPhaseStartTimes.q3StartMs}
-                  mobileInline
-                  showSpeedControls={showPlaybackSpeedControls}
-                  showEventChips={showPlaybackEventChips}
-                />
-              )}
-
-              {/* Tab content */}
-              <div className="flex flex-col md:flex-1 md:min-h-0 md:overflow-hidden">
-                {(trackerTab ?? "timing") === "timing" && (
-                  <>
-                    <TrackerTimingPanel
-                      hasTimingError={positions.isError}
-                      timingTower={timingTower}
-                    />
-                    <TrackerFocusedTelemetryPanel
-                      telemetry={focusedTelemetryPanel}
-                    />
-                  </>
-                )}
-
-                {(trackerTab ?? "timing") === "map" && (
-                  <TrackerMapPane
-                    variant="mobile"
-                    weatherSection={trackerMapWeatherSection}
-                    toastOverlay={trackerMapToastOverlay}
-                    mapContent={trackMapContent}
-                    isLoadingSessionData={isLoadingSessionData}
-                  />
-                )}
-
-                {(trackerTab ?? "timing") === "strategy" && (
-                  <TrackerStrategyContent>
-                    <Suspense fallback={<PanelFallback />}>
-                      <StrategyBar
-                        stints={stints.data ?? []}
-                        drivers={drivers.data ?? []}
-                        laps={laps.data ?? []}
-                        pits={pits.data ?? []}
-                        sessionTimeMs={t}
-                        sessionStartMs={sessionStartMs}
-                        currentLap={currentLap}
-                      />
-                    </Suspense>
-                  </TrackerStrategyContent>
-                )}
-
-                {(trackerTab ?? "timing") === "chart" && (
-                  <div className="h-[52vh] min-h-[280px] bg-[#10101a]">
-                    <Suspense fallback={<PanelFallback />}>
-                      <LapChart
-                        drivers={drivers.data ?? []}
-                        positions={positions.data ?? []}
-                        lapStarts={lapMarks}
-                        sessionStartMs={sessionStartMs}
-                        sessionTimeMs={t}
-                        currentLap={currentLap}
-                      />
-                    </Suspense>
-                  </div>
-                )}
-
-                {(trackerTab ?? "timing") === "gap" && (
-                  <div className="h-[52vh] min-h-[280px] bg-[#10101a]">
-                    <Suspense fallback={<PanelFallback />}>
-                      <GapChart
-                        drivers={drivers.data ?? []}
-                        intervals={intervals.data ?? []}
-                        lapStarts={lapMarks}
-                        currentLap={currentLap}
-                        sessionStartMs={sessionStartMs}
-                        sessionTimeMs={t}
-                      />
-                    </Suspense>
-                  </div>
-                )}
-              </div>
-            </div>
-
-            {/* Desktop layout: split panel (hidden md:flex) */}
-            <div
-              ref={trackerDesktopSplitRef}
-              className="hidden md:flex flex-1 min-h-0 overflow-hidden"
-            >
-              {/* Left data panel */}
-              <div
-                className="shrink-0 flex flex-col border-r border-panel overflow-hidden"
-                style={{ width: `${trackerDesktopPanelWidth}px` }}
-              >
-                {/* Sub-tabs */}
-                <TrackerTabBar
-                  source="desktop"
-                  activeTab={trackerTab ?? "timing"}
-                  onTabChange={handleTrackerTabChange}
-                />
-
-                {/* Panel content */}
-                <div className="flex-1 min-h-0 flex flex-col overflow-hidden">
-                  {(trackerTab ?? "timing") === "timing" && (
-                    <TrackerTimingPanel
-                      hasTimingError={positions.isError}
-                      timingTower={timingTower}
-                    />
-                  )}
-                  {(trackerTab ?? "timing") === "strategy" && (
-                    <TrackerStrategyContent>
-                      <Suspense fallback={<PanelFallback />}>
-                        <StrategyBar
-                          stints={stints.data ?? []}
-                          drivers={drivers.data ?? []}
-                          laps={laps.data ?? []}
-                          pits={pits.data ?? []}
-                          sessionTimeMs={t}
-                          sessionStartMs={sessionStartMs}
-                          currentLap={currentLap}
-                        />
-                      </Suspense>
-                    </TrackerStrategyContent>
-                  )}
-                  {(trackerTab ?? "timing") === "chart" && (
-                    <Suspense fallback={<PanelFallback />}>
-                      <LapChart
-                        drivers={drivers.data ?? []}
-                        positions={positions.data ?? []}
-                        lapStarts={lapMarks}
-                        sessionStartMs={sessionStartMs}
-                        sessionTimeMs={t}
-                        currentLap={currentLap}
-                      />
-                    </Suspense>
-                  )}
-                  {(trackerTab ?? "timing") === "gap" && (
-                    <Suspense fallback={<PanelFallback />}>
-                      <GapChart
-                        drivers={drivers.data ?? []}
-                        intervals={intervals.data ?? []}
-                        lapStarts={lapMarks}
-                        currentLap={currentLap}
-                        sessionStartMs={sessionStartMs}
-                        sessionTimeMs={t}
-                      />
-                    </Suspense>
-                  )}
-                </div>
-
-                {/* Focused driver telemetry */}
-                <TrackerFocusedTelemetryPanel
-                  telemetry={focusedTelemetryPanel}
-                />
-              </div>
-
-              <ResizeHandle
-                onMouseDown={trackerDesktopResizeHandleProps.onMouseDown}
-                onTouchStart={trackerDesktopResizeHandleProps.onTouchStart}
-                onDoubleClick={trackerDesktopResizeHandleProps.onDoubleClick}
-                orientation="vertical"
-                className="border-r border-panel/60 bg-track/80 hover:bg-panel active:bg-f1red"
-              />
-
-              {/* Track map — fills remaining width */}
-              <TrackerMapPane
-                variant="desktop"
-                mapContent={trackMapContent}
-                isLoadingSessionData={isLoadingSessionData}
-              />
-            </div>
-          </div>
-        </div>
+        <TrackerSection
+          header={sharedSessionHeader}
+          showOverlayToasts={activeTrackerTab !== "map"}
+          activeTab={activeTrackerTab}
+          onTrackerTabChange={handleTrackerTabChange}
+          toasts={toasts}
+          drivers={drivers.data ?? []}
+          onDismissToast={dismiss}
+          radioAutoplay={settingToastRadioAutoplay}
+          soundsEnabled={toastSoundsEnabled}
+          maxVisibleToasts={notificationMaxVisible}
+          mobilePlayback={trackerMobilePlayback}
+          mobileTimingContent={mobileTimingContent}
+          mobileMapContent={mobileMapContent}
+          strategyContent={strategyPanelContent}
+          mobileChartContent={mobileChartContent}
+          mobileGapContent={mobileGapContent}
+          desktopTimingContent={desktopTimingContent}
+          desktopChartContent={desktopChartContent}
+          desktopGapContent={desktopGapContent}
+          desktopFocusedTelemetry={trackerDesktopFocusedTelemetry}
+          desktopSplitRef={trackerDesktopSplitRef}
+          desktopPanelWidth={trackerDesktopPanelWidth}
+          onDesktopResizeMouseDown={trackerDesktopResizeHandleProps.onMouseDown}
+          onDesktopResizeTouchStart={
+            trackerDesktopResizeHandleProps.onTouchStart
+          }
+          onDesktopResizeDoubleClick={
+            trackerDesktopResizeHandleProps.onDoubleClick
+          }
+          desktopMapContent={trackMapContent}
+          isLoadingSessionData={isLoadingSessionData}
+        />
       )}
 
       {/* ── COMMENTARY VIEW ───────────────────────────────────────────── */}
       {currentView === "commentary" && (
-        <div className="flex flex-col md:flex-1 md:min-h-0 md:overflow-hidden">
-          <RaceWeekendSessionHeader
-            laps={laps.data ?? []}
-            raceControl={raceControl.data ?? []}
-            sessionTimeMs={t}
-            sessionStartMs={sessionStartMs}
-            qualiPhase={qualiPhase}
-            countdownMs={countdownMs}
-            airTemp={weatherAtT?.air_temperature ?? null}
-            trackTemp={weatherAtT?.track_temperature ?? null}
-            isRaceSession={isRaceSession}
-            lightsOutMs={lightsOutMs}
-            totalLapCount={totalLapCount}
-            sessionName={sessionName}
-            showFinalClassification={showFinalClassification}
-            hasSessionResultError={sessionResult.isError}
-            onShowEliminations={() => setIsQualiEliminationsDialogOpen(true)}
-            onShowResults={() => setIsResultsDialogOpen(true)}
-            onJumpToSessionTime={(sessionTimeMs) => setTimelineT(sessionTimeMs)}
-          />
-
-          {/* Sub-tabs */}
-          <CommentaryTabBar
-            tabs={commentaryTabs}
-            activeTab={commentaryTab ?? "rc"}
-            onTabChange={(tab) => {
-              trackEvent("raceweekend_commentary_tab_changed", { tab });
-              setCommentaryTab(tab);
-            }}
-          />
-
-          {/* Live lap status */}
-          <div className="shrink-0 border-b border-panel bg-surface/70 px-3 py-1.5">
-            <div className="flex items-center gap-3">
-              <span className="text-[10px] font-black uppercase tracking-[0.12em] text-muted">
-                Lap{" "}
-                <span className="text-white tabular-nums">
-                  {commentaryLapLabel}
-                </span>
-              </span>
-              <button
-                type="button"
-                onClick={() =>
-                  setCommentaryTimeMode(
-                    (() => {
-                      const nextValue =
-                        commentaryTimeMode === "all" ? "elapsed" : "all";
-                      trackEvent("raceweekend_commentary_time_mode_changed", {
-                        mode: nextValue,
-                      });
-                      return nextValue;
-                    })(),
-                  )
-                }
-                className={`h-5 px-2 text-[9px] font-black uppercase tracking-widest border transition-colors ${
-                  commentaryTimeMode === "all"
-                    ? "border-f1red bg-f1red text-white"
-                    : "border-panel bg-track text-muted hover:text-white"
-                }`}
-                title={
-                  commentaryTimeMode === "all"
-                    ? "Showing all commentary items"
-                    : "Showing elapsed commentary items"
-                }
-              >
-                {commentaryTimeMode === "all" ? "All" : "Elapsed"}
-              </button>
-            </div>
-          </div>
-
-          {/* Content */}
-          <div className="flex flex-col md:flex-1 md:min-h-0 md:overflow-hidden">
-            <Suspense fallback={<PanelFallback />}>
-              <CommentaryPanels
-                commentaryTab={commentaryTab ?? "rc"}
-                raceControlError={raceControl.isError}
-                teamRadioError={teamRadio.isError}
-                pitsError={pits.isError}
-                overtakesError={overtakes.isError}
-                raceControlEntries={raceControl.data ?? []}
-                teamRadioEntries={teamRadio.data ?? []}
-                pitEntries={pits.data ?? []}
-                overtakeEntries={overtakes.data ?? []}
-                drivers={drivers.data ?? []}
-                laps={laps.data ?? []}
-                positions={positions.data ?? []}
-                incidentWindows={incidentWindows}
-                sessionKey={sessionKey}
-                sessionYear={session?.year ?? null}
-                sessionType={session?.session_type}
-                sessionTimeMs={t}
-                sessionStartMs={sessionStartMs}
-                toastEvents={toastEvents}
-                showAllItems={commentaryTimeMode === "all"}
-                focusDriver={focusDriver}
-                onClearFocus={clearFocusSelection}
-                onPlayWindow={(startMs, endMs) => {
-                  trackEvent("raceweekend_commentary_play_window", {
-                    start_ms: Math.round(startMs),
-                    end_ms: Math.round(endMs),
-                  });
-                  setTimelineT(startMs);
-                  setIncidentReplayEndMs(endMs);
-                  setTimelinePlaying(true);
-                }}
-              />
-            </Suspense>
-          </div>
-        </div>
+        <CommentarySection
+          header={sharedSessionHeader}
+          tabs={commentaryTabs}
+          activeTab={commentaryTab ?? "rc"}
+          onTabChange={(tab) => {
+            trackEvent("raceweekend_commentary_tab_changed", { tab });
+            setCommentaryTab(tab);
+          }}
+          lapLabel={commentaryLapLabel}
+          timeMode={commentaryTimeMode}
+          onToggleTimeMode={handleCommentaryTimeModeToggle}
+          content={commentaryContent}
+        />
       )}
 
       {/* Catch-up summary — appears over the whole layout after a big scrub-forward */}

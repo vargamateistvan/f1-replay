@@ -2,7 +2,7 @@ import { SessionInfoBar } from "@/components/SessionInfoBar";
 import type { Lap, RaceControl } from "@/api/types";
 import { isQualiSession } from "@/utils/session";
 
-interface RaceWeekendSessionHeaderProps {
+export interface RaceWeekendSessionHeaderProps {
   laps: Lap[];
   raceControl: RaceControl[];
   sessionTimeMs: number;

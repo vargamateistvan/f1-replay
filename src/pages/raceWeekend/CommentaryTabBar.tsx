@@ -1,6 +1,6 @@
 import type { CommentaryTab } from "@/components/CommentaryPanels/CommentaryPanels";
 
-type CommentaryTabMeta = readonly [
+export type CommentaryTabMeta = readonly [
   CommentaryTab,
   string,
   string,
