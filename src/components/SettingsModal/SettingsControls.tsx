@@ -543,6 +543,20 @@ export function SettingsBody() {
         disabled={!settings.toastsEnabled}
       />
       <SettingRow
+        label="Penalty warnings"
+        description="Show warning-style notices like black-and-white flags"
+        checked={settings.toastPenaltyWarnings}
+        onChange={toggle("toastPenaltyWarnings")}
+        disabled={!settings.toastsEnabled || !settings.toastPenalty}
+      />
+      <SettingRow
+        label="Major penalties"
+        description="Show time penalties, drive-throughs, stop-go and disqualifications"
+        checked={settings.toastPenaltyMajor}
+        onChange={toggle("toastPenaltyMajor")}
+        disabled={!settings.toastsEnabled || !settings.toastPenalty}
+      />
+      <SettingRow
         label="Overtakes"
         checked={settings.toastOvertake}
         onChange={toggle("toastOvertake")}

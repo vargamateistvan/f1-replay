@@ -11,6 +11,8 @@ export interface AppSettings {
   toastFlag: boolean;
   toastInvestigation: boolean;
   toastPenalty: boolean;
+  toastPenaltyWarnings: boolean;
+  toastPenaltyMajor: boolean;
   toastOvertake: boolean;
   toastPit: boolean;
   toastFastestLap: boolean;
@@ -108,6 +110,8 @@ export const SETTINGS_DEFAULTS: AppSettings = {
   toastFlag: true,
   toastInvestigation: true,
   toastPenalty: true,
+  toastPenaltyWarnings: true,
+  toastPenaltyMajor: true,
   toastOvertake: true,
   toastPit: true,
   toastFastestLap: true,

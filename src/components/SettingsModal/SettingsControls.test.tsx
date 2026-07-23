@@ -33,6 +33,8 @@ vi.mock("@/stores/settings", () => ({
     toastFlag: true,
     toastInvestigation: true,
     toastPenalty: true,
+    toastPenaltyWarnings: true,
+    toastPenaltyMajor: true,
     toastOvertake: true,
     toastPit: true,
     toastFastestLap: true,
