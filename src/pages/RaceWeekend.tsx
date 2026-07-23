@@ -48,9 +48,7 @@ import {
   overtakeTimes,
   radioTimes,
   buildToastEvents,
-  classifyPenaltyToastMessage,
 } from "@/timeline/events";
-import type { FlagPayload } from "@/timeline/events";
 import {
   buildRaceControlMarkers,
   buildIncidentWindows,
@@ -851,8 +849,6 @@ export default function RaceWeekend() {
     toastFlag: settingToastFlag,
     toastInvestigation: settingToastInvestigation,
     toastPenalty: settingToastPenalty,
-    toastPenaltyWarnings: settingToastPenaltyWarnings,
-    toastPenaltyMajor: settingToastPenaltyMajor,
     toastOvertake: settingToastOvertake,
     toastPit: settingToastPit,
     toastFastestLap: settingToastFastestLap,
@@ -1007,15 +1003,7 @@ export default function RaceWeekend() {
       if (ev.kind === "radio") return settingToastRadio;
       if (ev.kind === "flag") return settingToastFlag;
       if (ev.kind === "investigation") return settingToastInvestigation;
-      if (ev.kind === "penalty") {
-        if (!settingToastPenalty) return false;
-        const penaltyMessage = (
-          ev.payload as FlagPayload
-        ).message.toLowerCase();
-        const subtype = classifyPenaltyToastMessage(penaltyMessage);
-        if (subtype === "warning_notice") return settingToastPenaltyWarnings;
-        return settingToastPenaltyMajor;
-      }
+      if (ev.kind === "penalty") return settingToastPenalty;
       if (ev.kind === "overtake") return settingToastOvertake;
       if (ev.kind === "pit") return settingToastPit;
       if (ev.kind === "fastest_lap") return settingToastFastestLap;
@@ -1029,8 +1017,6 @@ export default function RaceWeekend() {
     settingToastFlag,
     settingToastInvestigation,
     settingToastPenalty,
-    settingToastPenaltyWarnings,
-    settingToastPenaltyMajor,
     settingToastOvertake,
     settingToastPit,
     settingToastFastestLap,

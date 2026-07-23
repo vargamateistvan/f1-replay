@@ -9,7 +9,6 @@ import type {
   PitPayload,
   FastestLapPayload,
 } from "@/timeline/events";
-import { classifyPenaltyToastMessage } from "@/timeline/events";
 import { teamColor } from "@/utils/color";
 import { useSettings } from "@/stores/settings";
 import { toSafeExternalUrl } from "@/utils/url";
@@ -399,8 +398,6 @@ function FlagToast({
       : kind === "penalty"
         ? { bg: "#4a1820", text: "#ff9ca9", label: "PENALTY" }
         : cfg;
-  const penaltySubtype =
-    kind === "penalty" ? classifyPenaltyToastMessage(p.message) : null;
 
   return (
     <div className="pointer-events-auto rounded-lg bg-surface border border-panel shadow-xl overflow-hidden w-full">
@@ -414,18 +411,6 @@ function FlagToast({
         >
           {header.label}
         </span>
-        {penaltySubtype && (
-          <span
-            className="rounded-full border px-1.5 py-0.5 text-[8px] font-black uppercase tracking-wide"
-            style={{
-              color: header.text,
-              borderColor: header.text,
-              opacity: 0.92,
-            }}
-          >
-            {penaltySubtype === "warning_notice" ? "NOTICE" : "MAJOR"}
-          </span>
-        )}
         {p.lapNumber && (
           <span
             className="text-[9px] font-mono"

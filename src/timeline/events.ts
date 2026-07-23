@@ -53,7 +53,6 @@ export type ToastPayload =
   | FastestLapPayload;
 
 export type ToastPriority = "high" | "low";
-export type PenaltyToastSubtype = "warning_notice" | "major_penalty";
 
 export interface ToastEvent {
   id: string;
@@ -61,16 +60,6 @@ export interface ToastEvent {
   kind: ToastKind;
   payload: ToastPayload;
   priority: ToastPriority;
-}
-
-const PENALTY_WARNING_NOTICE_RE =
-  /warning|black\s*and\s*white|black-and-white|reprimand|noted/i;
-
-export function classifyPenaltyToastMessage(
-  message: string,
-): PenaltyToastSubtype {
-  if (PENALTY_WARNING_NOTICE_RE.test(message)) return "warning_notice";
-  return "major_penalty";
 }
 
 // Flags worth interrupting the viewer with (not CLEAR / GREEN noise)

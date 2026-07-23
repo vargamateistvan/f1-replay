@@ -522,40 +522,60 @@ export function SettingsBody() {
         onChange={toggle("toastSoundsEnabled")}
         disabled={!settings.toastsEnabled}
       />
-      <SettingRow
-        label="Flags"
-        checked={settings.toastFlag}
-        onChange={toggle("toastFlag")}
-        disabled={!settings.toastsEnabled}
-      />
-      <SettingRow
-        label="Investigations"
-        description="Show race control investigation toasts"
-        checked={settings.toastInvestigation}
-        onChange={toggle("toastInvestigation")}
-        disabled={!settings.toastsEnabled}
-      />
-      <SettingRow
-        label="Penalties"
-        description="Show penalty and warning race control toasts"
-        checked={settings.toastPenalty}
-        onChange={toggle("toastPenalty")}
-        disabled={!settings.toastsEnabled}
-      />
-      <SettingRow
-        label="Penalty warnings"
-        description="Show warning-style notices like black-and-white flags"
-        checked={settings.toastPenaltyWarnings}
-        onChange={toggle("toastPenaltyWarnings")}
-        disabled={!settings.toastsEnabled || !settings.toastPenalty}
-      />
-      <SettingRow
-        label="Major penalties"
-        description="Show time penalties, drive-throughs, stop-go and disqualifications"
-        checked={settings.toastPenaltyMajor}
-        onChange={toggle("toastPenaltyMajor")}
-        disabled={!settings.toastsEnabled || !settings.toastPenalty}
-      />
+      <div className="py-2.5 border-b border-panel">
+        <div className="text-[11px] text-muted mb-2 leading-tight">
+          Default visible event types
+        </div>
+        <div className="flex flex-wrap gap-1.5">
+          {(
+            [
+              {
+                key: "toastFlag",
+                label: "Flags",
+                color: "#f5a623",
+                active: settings.toastFlag,
+                disabled: !settings.toastsEnabled,
+              },
+              {
+                key: "toastInvestigation",
+                label: "Investigations",
+                color: "#ffd36a",
+                active: settings.toastInvestigation,
+                disabled: !settings.toastsEnabled,
+              },
+              {
+                key: "toastPenalty",
+                label: "Penalties",
+                color: "#e8002d",
+                active: settings.toastPenalty,
+                disabled: !settings.toastsEnabled,
+              },
+            ] as const
+          ).map(({ key, label, color, active, disabled }) => (
+            <button
+              key={key}
+              onClick={() =>
+                updateSetting(key, !active as AppSettings[typeof key])
+              }
+              disabled={disabled}
+              className={[
+                "text-[10px] font-bold px-2 py-0.5 rounded-sm border transition-all",
+                "focus:outline-none focus-visible:ring-1 focus-visible:ring-white/40",
+                active
+                  ? "border-transparent text-black"
+                  : "border-panel text-muted bg-transparent",
+                disabled ? "opacity-50 cursor-not-allowed" : "",
+              ].join(" ")}
+              style={
+                active ? { backgroundColor: color, borderColor: color } : {}
+              }
+              aria-pressed={active}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+      </div>
       <SettingRow
         label="Overtakes"
         checked={settings.toastOvertake}
