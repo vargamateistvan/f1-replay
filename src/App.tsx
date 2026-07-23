@@ -1,4 +1,7 @@
-import { QueryClient } from "@tanstack/react-query";
+import {
+  QueryClient,
+  defaultShouldDehydrateQuery,
+} from "@tanstack/react-query";
 import { PersistQueryClientProvider } from "@tanstack/react-query-persist-client";
 import { AppRouter } from "./routes";
 import { useEffect } from "react";
@@ -7,6 +10,7 @@ import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { ErrorDisplay } from "@/components/ErrorDisplay";
 import { OpenF1Error } from "@/api/client";
 import { queryPersister } from "@/lib/queryPersister";
+import { shouldPersistQueryKey } from "@/lib/queryPersistencePolicy";
 import { useSettings } from "@/stores/settings";
 import { initializeAnalytics } from "@/lib/analytics";
 
@@ -33,6 +37,14 @@ const queryClient = new QueryClient({
 // Historical F1 data never changes, so 30 days is a safe persistence window.
 // Live-session queries (staleTime: 0) are restored as stale and immediately refetched.
 const PERSIST_MAX_AGE = 30 * 24 * 60 * 60 * 1000;
+
+const shouldDehydrateAppQuery = (
+  query: Parameters<typeof defaultShouldDehydrateQuery>[0],
+) => {
+  return (
+    defaultShouldDehydrateQuery(query) && shouldPersistQueryKey(query.queryKey)
+  );
+};
 
 function CoffeeWidgetGate() {
   const showCoffeeWidget = useSettings((s) => s.showCoffeeWidget);
@@ -84,7 +96,13 @@ export default function App() {
     <ErrorBoundary>
       <PersistQueryClientProvider
         client={queryClient}
-        persistOptions={{ persister: queryPersister, maxAge: PERSIST_MAX_AGE }}
+        persistOptions={{
+          persister: queryPersister,
+          maxAge: PERSIST_MAX_AGE,
+          dehydrateOptions: {
+            shouldDehydrateQuery: shouldDehydrateAppQuery,
+          },
+        }}
       >
         <CoffeeWidgetGate />
         <LightModeGate />
