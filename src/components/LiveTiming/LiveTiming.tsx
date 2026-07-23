@@ -250,10 +250,10 @@ const LAP_TIME_COLOUR: Record<string, string> = {
 };
 
 const TH =
-  "py-1.5 px-1.5 text-[9px] font-bold uppercase tracking-[0.12em] text-[#636369] select-none sm:px-2";
+  "py-1.5 px-1.5 text-[9px] font-bold uppercase tracking-[0.12em] text-muted select-none sm:px-2";
 
 const TH_COMPACT =
-  "py-1 px-1.5 text-[9px] font-bold uppercase tracking-[0.1em] text-[#636369] select-none sm:px-2";
+  "py-1 px-1.5 text-[9px] font-bold uppercase tracking-[0.1em] text-muted select-none sm:px-2";
 
 function MiniBar({ value, color }: { value: number; color: string }) {
   return (
@@ -298,7 +298,7 @@ function MobilePedalMeter({
                   ? color
                   : value === null
                     ? "rgb(var(--color-panel) / 1)"
-                    : "#30303a",
+                    : "rgb(var(--color-track) / 1)",
                 opacity: active ? 1 : 0.65,
               }}
             />
@@ -1197,7 +1197,7 @@ export function LiveTiming({
                       className={`${headerCellClass} ${speedColumnClass} text-right w-[3rem]`}
                     >
                       <span className="block leading-none">Speed</span>
-                      <span className="block text-[8px] normal-case tracking-normal text-[#7b7b82] leading-none mt-0.5">
+                      <span className="block text-[8px] normal-case tracking-normal text-muted leading-none mt-0.5">
                         {speedUnitShort}
                       </span>
                     </th>
@@ -1784,7 +1784,7 @@ export function LiveTiming({
                               className={`mx-auto flex min-w-[2rem] items-center justify-center px-1 py-0.5 text-center leading-none text-[9px] font-black uppercase tracking-[0.08em] ${
                                 car.drs >= 10
                                   ? "bg-[#39d743] text-black"
-                                  : "bg-panel text-[#636369]"
+                                  : "bg-panel text-muted"
                               }`}
                               title={`DRS raw value ${car.drs}`}
                             >

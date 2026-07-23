@@ -2114,7 +2114,7 @@ export function TrackMap({
                   return next;
                 });
               }}
-              className="w-7 h-7 flex items-center justify-center border border-[#4b4b57] text-white/85 hover:text-white hover:border-white/50 transition-colors"
+              className="w-7 h-7 flex items-center justify-center border border-panel text-white/85 hover:text-white hover:border-white/50 transition-colors"
               title="Zoom out"
             >
               <ZoomOut size={14} strokeWidth={2.2} aria-hidden="true" />
@@ -2128,7 +2128,7 @@ export function TrackMap({
                   return next;
                 });
               }}
-              className="w-7 h-7 flex items-center justify-center border border-[#4b4b57] text-white/85 hover:text-white hover:border-white/50 transition-colors"
+              className="w-7 h-7 flex items-center justify-center border border-panel text-white/85 hover:text-white hover:border-white/50 transition-colors"
               title="Zoom in"
             >
               <ZoomIn size={14} strokeWidth={2.2} aria-hidden="true" />
@@ -2139,7 +2139,7 @@ export function TrackMap({
                 trackEvent("trackmap_zoom_reset");
                 setZoomLevel(1);
               }}
-              className="w-7 h-7 flex items-center justify-center border border-[#4b4b57] text-white/85 hover:text-white hover:border-white/50 transition-colors"
+              className="w-7 h-7 flex items-center justify-center border border-panel text-white/85 hover:text-white hover:border-white/50 transition-colors"
               title="Reset zoom"
             >
               <Search size={14} strokeWidth={2.2} aria-hidden="true" />
@@ -2154,7 +2154,7 @@ export function TrackMap({
                 });
                 rotateLeft();
               }}
-              className="w-7 h-7 flex items-center justify-center border border-[#4b4b57] text-white/85 hover:text-white hover:border-white/50 transition-colors"
+              className="w-7 h-7 flex items-center justify-center border border-panel text-white/85 hover:text-white hover:border-white/50 transition-colors"
               title="Rotate left"
             >
               <RotateCcw size={14} strokeWidth={2.2} aria-hidden="true" />
@@ -2167,7 +2167,7 @@ export function TrackMap({
                 });
                 rotateRight();
               }}
-              className="w-7 h-7 flex items-center justify-center border border-[#4b4b57] text-white/85 hover:text-white hover:border-white/50 transition-colors"
+              className="w-7 h-7 flex items-center justify-center border border-panel text-white/85 hover:text-white hover:border-white/50 transition-colors"
               title="Rotate right"
             >
               <RotateCw size={14} strokeWidth={2.2} aria-hidden="true" />
@@ -2180,7 +2180,7 @@ export function TrackMap({
                 });
                 setAndPersistRotation(defaultRotationDeg);
               }}
-              className="w-7 h-7 flex items-center justify-center border border-[#4b4b57] text-white/85 hover:text-white hover:border-white/50 transition-colors"
+              className="w-7 h-7 flex items-center justify-center border border-panel text-white/85 hover:text-white hover:border-white/50 transition-colors"
               title="Reset rotation"
             >
               <LocateFixed size={14} strokeWidth={2.2} aria-hidden="true" />
@@ -2191,7 +2191,7 @@ export function TrackMap({
 
       {focusDriver !== null && heatSegments.length > 0 && heatStats && (
         <div
-          className="absolute top-2 left-1/2 z-20 -translate-x-1/2 pointer-events-none border border-[#3f4252] px-2 py-1"
+          className="absolute top-2 left-1/2 z-20 -translate-x-1/2 pointer-events-none border border-panel px-2 py-1"
           style={{
             background: overlayBackground,
             backdropFilter: "blur(4px)",
