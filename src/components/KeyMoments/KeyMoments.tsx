@@ -23,7 +23,11 @@ const KIND_CONFIG: Record<
   KeyMoment["kind"],
   { badge: string; badgeBg: string; badgeText: string }
 > = {
-  lead_change: { badge: "LEAD", badgeBg: "#2a2a35", badgeText: "#fff" },
+  lead_change: {
+    badge: "LEAD",
+    badgeBg: "rgb(var(--color-panel) / 1)",
+    badgeText: "#fff",
+  },
   fastest_lap: { badge: "FASTEST", badgeBg: "#9b59f5", badgeText: "#fff" },
   safety_car: { badge: "SC", badgeBg: "#f5a623", badgeText: "#000" },
   vsc: { badge: "VSC", badgeBg: "#f5a623", badgeText: "#000" },

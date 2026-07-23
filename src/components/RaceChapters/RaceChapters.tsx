@@ -207,7 +207,7 @@ function ChapterRow({
 
   return (
     <div
-      className={`border-b border-[#2a2a35] ${isCurrent ? "bg-white/[0.04]" : ""}`}
+      className={`border-b border-panel ${isCurrent ? "bg-white/[0.04]" : ""}`}
     >
       <div
         className={`w-full flex items-center gap-3 px-3 py-2.5 text-left transition-colors hover:bg-white/[0.04] border-l-2 ${cfg.trackCls}`}
@@ -254,7 +254,7 @@ function ChapterRow({
           <button
             type="button"
             onClick={() => onJump(chapter.startMs)}
-            className="h-6 px-2 text-[9px] font-black uppercase tracking-widest bg-panel text-muted hover:text-white hover:bg-[#38383f]"
+            className="h-6 px-2 text-[9px] font-black uppercase tracking-widest bg-panel text-muted hover:text-white hover:bg-track"
             aria-label={`Jump to ${chapter.label}`}
             title={`Jump to ${chapter.label}`}
           >
@@ -380,7 +380,7 @@ export function RaceChapters({
 
   return (
     <div className="panel-scroll">
-      <div className="sticky top-0 z-10 flex items-center gap-2 px-2 py-1.5 border-b border-[#2a2a35] bg-track">
+      <div className="sticky top-0 z-10 flex items-center gap-2 px-2 py-1.5 border-b border-panel bg-track">
         <button
           type="button"
           onClick={() => setIncidentOnly((v) => !v)}
@@ -403,7 +403,7 @@ export function RaceChapters({
             key={`${group.lapNumber ?? "session"}-${groupIndex}`}
             className="mb-0.5"
           >
-            <div className="sticky top-9 z-10 border-b border-[#2a2a35] bg-[#1a1a24] px-2 py-0.5 text-[9px] font-black uppercase tracking-widest text-muted select-none">
+            <div className="sticky top-9 z-10 border-b border-panel bg-track px-2 py-0.5 text-[9px] font-black uppercase tracking-widest text-muted select-none">
               {(() => {
                 const isQualifying = sessionType
                   ?.toLowerCase()

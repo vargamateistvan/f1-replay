@@ -387,7 +387,7 @@ function FlagToast({
   const p = at.event.payload as FlagPayload;
   const kind = at.event.kind;
   const cfg = FLAG_COLORS[p.flag] ?? {
-    bg: "#2a2a35",
+    bg: "rgb(var(--color-panel) / 1)",
     text: "#fff",
     label: p.flag,
   };

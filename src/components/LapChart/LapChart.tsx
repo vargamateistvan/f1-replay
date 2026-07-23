@@ -113,11 +113,11 @@ export function LapChart({
           data={rows}
           margin={{ top: 8, right: 12, left: 0, bottom: 4 }}
         >
-          <CartesianGrid stroke="#2a2a35" />
+          <CartesianGrid stroke="rgb(var(--color-panel))" />
           <XAxis
             dataKey="lap"
             tick={{ fill: "#636369", fontSize: 10 }}
-            axisLine={{ stroke: "#38383f" }}
+            axisLine={{ stroke: "rgb(var(--color-panel))" }}
             tickLine={false}
           />
           <YAxis

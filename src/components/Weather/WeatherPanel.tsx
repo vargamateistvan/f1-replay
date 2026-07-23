@@ -95,7 +95,7 @@ export function WeatherPanel({
 
   const exportButtonClass = lightMode
     ? "h-6 px-2 text-[9px] font-black uppercase tracking-widest rounded transition-colors bg-[#e5e8f2] text-[#3a4256] hover:text-[#12121a] hover:bg-[#d8dde9] border border-[#b4bbcf]"
-    : "h-6 px-2 text-[9px] font-black uppercase tracking-widest rounded transition-colors bg-[#1e1e28] text-muted hover:text-white hover:bg-[#38383f]";
+    : "h-6 px-2 text-[9px] font-black uppercase tracking-widest rounded transition-colors bg-track text-muted hover:text-white hover:bg-panel";
 
   const cardClass = lightMode
     ? "rounded-sm border border-[#b7bfd4] bg-[#eef1fa] px-2 py-1.5"

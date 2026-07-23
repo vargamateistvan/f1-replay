@@ -152,7 +152,7 @@ export function FocusedTelemetry({
   const speedChartMax = metricSystem === "imperial" ? 240 : 380;
 
   return (
-    <div className="shrink-0 border-t border-[#38383f] bg-track px-3 py-2 text-xs">
+    <div className="shrink-0 border-t border-panel bg-track px-3 py-2 text-xs">
       <div className="flex flex-wrap items-center gap-4">
         <DriverStrip
           acronym={driver?.name_acronym ?? "—"}

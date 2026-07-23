@@ -22,7 +22,7 @@ const CIRCUIT_TYPE_LABEL: Record<string, string> = {
 };
 
 const SELECT =
-  "bg-panel text-white border border-[#38383f] text-xs font-medium px-3 py-1.5 focus:outline-none focus:border-muted transition-colors disabled:opacity-60 disabled:cursor-not-allowed light:bg-white light:text-black light:border-slate-300 light:focus:border-slate-500 light:[color-scheme:light] light:[&>option]:bg-white light:[&>option]:text-black";
+  "bg-panel text-white border border-panel text-xs font-medium px-3 py-1.5 focus:outline-none focus:border-muted transition-colors disabled:opacity-60 disabled:cursor-not-allowed light:bg-white light:text-black light:border-slate-300 light:focus:border-slate-500 light:[color-scheme:light] light:[&>option]:bg-white light:[&>option]:text-black";
 
 export function SessionPicker({
   year,
@@ -278,7 +278,7 @@ export function SessionPicker({
             type="button"
             onClick={() => selectLatestEvent("manual")}
             disabled={meetings.isPending || !meetings.data?.length}
-            className="h-7 px-2 text-[10px] font-black uppercase tracking-widest rounded bg-[#1e1e28] text-muted hover:text-white hover:bg-[#38383f] disabled:opacity-40 disabled:cursor-not-allowed light:bg-white light:text-slate-600 light:border light:border-slate-300 light:hover:text-slate-900 light:hover:bg-slate-100"
+            className="h-7 px-2 text-[10px] font-black uppercase tracking-widest rounded bg-track text-muted hover:text-white hover:bg-panel disabled:opacity-40 disabled:cursor-not-allowed light:bg-white light:text-slate-600 light:border light:border-slate-300 light:hover:text-slate-900 light:hover:bg-slate-100"
           >
             Latest Event
           </button>

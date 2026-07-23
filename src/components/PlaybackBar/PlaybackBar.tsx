@@ -59,9 +59,9 @@ function markerTooltip(label: string, ms: number) {
 }
 
 const JUMP_BTN =
-  "flex h-8 w-6 items-center justify-center text-xs bg-panel text-muted transition-colors shrink-0 hover:text-white hover:bg-[#38383f] sm:w-7 disabled:opacity-30 disabled:hover:bg-panel disabled:hover:text-muted";
+  "flex h-8 w-6 items-center justify-center text-xs bg-panel text-muted transition-colors shrink-0 hover:text-white hover:bg-track sm:w-7 disabled:opacity-30 disabled:hover:bg-panel disabled:hover:text-muted";
 const CHIP_STRETCH =
-  "h-7 shrink-0 px-3 flex items-center justify-center text-[10px] font-black uppercase tracking-widest bg-panel text-muted hover:text-white hover:bg-[#38383f] transition-colors sm:flex-none sm:px-3 disabled:opacity-30 disabled:hover:bg-panel disabled:hover:text-muted";
+  "h-7 shrink-0 px-3 flex items-center justify-center text-[10px] font-black uppercase tracking-widest bg-panel text-muted hover:text-white hover:bg-track transition-colors sm:flex-none sm:px-3 disabled:opacity-30 disabled:hover:bg-panel disabled:hover:text-muted";
 
 const SpeedButtons = memo(function SpeedButtons({
   className,
@@ -84,7 +84,7 @@ const SpeedButtons = memo(function SpeedButtons({
           className={`text-[10px] font-black uppercase tracking-widest transition-colors ${
             speed === s
               ? "bg-f1red text-white"
-              : "bg-panel text-muted hover:text-white hover:bg-[#38383f]"
+              : "bg-panel text-muted hover:text-white hover:bg-track"
           }`}
         >
           {s}×

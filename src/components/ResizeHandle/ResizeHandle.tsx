@@ -30,7 +30,7 @@ export function ResizeHandle({
       title="Drag to resize · Double-click to reset"
       role="separator"
       aria-orientation={orientation}
-      className={`shrink-0 bg-[#2a2a35] hover:bg-[#38383f] active:bg-f1red transition-colors flex items-center justify-center group select-none ${
+      className={`shrink-0 bg-panel hover:bg-track active:bg-f1red transition-colors flex items-center justify-center group select-none ${
         isVertical
           ? "h-full w-[5px] cursor-ew-resize"
           : "h-[5px] cursor-ns-resize"

@@ -101,7 +101,7 @@ type CommentaryTimeMode = "elapsed" | "all";
 
 const PANEL = "bg-surface border border-panel";
 const PANEL_TITLE =
-  "text-[10px] font-bold text-muted px-3 py-2 border-b border-[#38383f] uppercase tracking-[0.12em] border-l-2 border-l-f1red bg-track";
+  "text-[10px] font-bold text-muted px-3 py-2 border-b border-panel uppercase tracking-[0.12em] border-l-2 border-l-f1red bg-track";
 const OVERTAKE_PULSE_MS = 4_000;
 const TRACKER_DESKTOP_PANEL_WIDTH_STORAGE_KEY =
   "f1-replay.tracker.desktopPanelWidth";
@@ -1842,7 +1842,7 @@ export default function RaceWeekend() {
                 onTouchStart={trackerDesktopResizeHandleProps.onTouchStart}
                 onDoubleClick={trackerDesktopResizeHandleProps.onDoubleClick}
                 orientation="vertical"
-                className="border-r border-panel/60 bg-track/80 hover:bg-[#38383f] active:bg-f1red"
+                className="border-r border-panel/60 bg-track/80 hover:bg-panel active:bg-f1red"
               />
 
               {/* Track map — fills remaining width */}

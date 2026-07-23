@@ -1675,7 +1675,7 @@ export function TrackMap({
             d={pathData}
             strokeWidth={11}
             fill="none"
-            stroke={lightMode ? "#bcc6d9" : "#38383f"}
+            stroke={lightMode ? "#bcc6d9" : "rgb(var(--color-panel) / 1)"}
             strokeLinecap="round"
             strokeLinejoin="round"
           />
@@ -2219,7 +2219,7 @@ export function TrackMap({
 
       {outline.source === "layout" && (
         <div
-          className="absolute top-14 right-2 px-2 py-1 text-[9px] font-black uppercase tracking-[0.16em] text-white/80 border border-[#38383f]"
+          className="absolute top-14 right-2 px-2 py-1 text-[9px] font-black uppercase tracking-[0.16em] text-white/80 border border-panel"
           style={{
             background: overlayBackground,
             backdropFilter: "blur(4px)",

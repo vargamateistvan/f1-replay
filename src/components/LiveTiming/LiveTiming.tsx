@@ -297,7 +297,7 @@ function MobilePedalMeter({
                 background: active
                   ? color
                   : value === null
-                    ? "#2a2a35"
+                    ? "rgb(var(--color-panel) / 1)"
                     : "#30303a",
                 opacity: active ? 1 : 0.65,
               }}
@@ -942,13 +942,13 @@ export function LiveTiming({
 
   const timingStripClass = lightMode
     ? "border-b border-slate-200 bg-white/95"
-    : "border-b border-[#2a2a35] bg-surface/80";
+    : "border-b border-panel bg-surface/80";
   const timingHeaderRowClass = lightMode
     ? "sticky top-0 z-10 border-b border-slate-200 bg-white"
-    : "sticky top-0 z-10 border-b border-[#38383f] bg-track";
+    : "sticky top-0 z-10 border-b border-panel bg-track";
   const timingRowBaseClass = lightMode
     ? "border-b border-slate-200 transition-colors"
-    : "border-b border-[#1e1e28] transition-colors";
+    : "border-b border-panel transition-colors";
   const mobilePositionColumnClass =
     showMobilePositionColumn && columns.position ? "" : "hidden sm:table-cell";
   const mobileDriverColumnClass =
@@ -1357,7 +1357,7 @@ export function LiveTiming({
                 bestLap.lap_number === lastLap.lap_number;
 
               let rowBg = "hover:bg-white/[0.06]";
-              if (selected) rowBg = "bg-[#2a2a35]";
+              if (selected) rowBg = "bg-panel";
               else if (eliminated) rowBg = "bg-[#22162e]/70";
               else if (retired) rowBg = "opacity-50";
               else if (idx % 2 === 1)

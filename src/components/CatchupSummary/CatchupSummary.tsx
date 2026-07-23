@@ -305,7 +305,7 @@ function CatchupEventRow({
                 "flex items-center gap-1 px-2 py-0.5 text-[9px] font-black uppercase tracking-widest transition-colors",
                 isPlaying
                   ? "bg-f1red text-white"
-                  : "bg-[#2a2a35] text-muted hover:text-white",
+                  : "bg-panel text-muted hover:text-white",
                 !hasAudio ? "opacity-30 cursor-not-allowed" : "",
               ]
                 .filter(Boolean)
@@ -508,7 +508,7 @@ export function CatchupSummary({ summary, drivers, onDismiss }: Props) {
 
           {/* Event list */}
           {visibleEvents.length > 0 ? (
-            <div className="divide-y divide-[#2a2a35]">
+            <div className="divide-y divide-panel">
               {visibleEvents.map((ev) => (
                 <CatchupEventRow
                   key={ev.id}
