@@ -3,14 +3,23 @@ import { renderHook } from "@testing-library/react";
 import { useCarDataWindow } from "./useCarDataWindow";
 
 const mockUseQuery = vi.fn();
+const mockFindAll = vi.fn();
+const mockRemoveQueries = vi.fn();
 
 vi.mock("@tanstack/react-query", () => ({
   useQuery: (options: unknown) => mockUseQuery(options),
+  useQueryClient: () => ({
+    getQueryCache: () => ({ findAll: mockFindAll }),
+    removeQueries: mockRemoveQueries,
+  }),
 }));
 
 describe("useCarDataWindow", () => {
   beforeEach(() => {
     mockUseQuery.mockReset();
+    mockFindAll.mockReset();
+    mockRemoveQueries.mockReset();
+    mockFindAll.mockReturnValue([]);
   });
 
   it("keeps merged data reference stable when source arrays do not change", () => {
@@ -65,5 +74,37 @@ describe("useCarDataWindow", () => {
 
     expect(result.current.data).not.toBe(firstRef);
     expect(result.current.data).toHaveLength(3);
+  });
+
+  it("evicts stale chunks and cross-session data", () => {
+    mockUseQuery.mockReturnValue({ data: [], isPending: false });
+    mockFindAll.mockReturnValue([
+      { queryKey: ["carDataWindow", 1, 44, 4] },
+      { queryKey: ["carDataWindow", 1, 44, 6] },
+      { queryKey: ["carDataWindow", 1, 44, 3] },
+      { queryKey: ["carDataWindow", 1, 44, 7] },
+      { queryKey: ["carDataWindow", 2, 44, 5] },
+      { queryKey: ["carDataWindow", 1, 55, 5] },
+    ]);
+
+    renderHook(() => useCarDataWindow(1, 44, 1_000, 5));
+
+    expect(mockRemoveQueries).toHaveBeenCalledWith({
+      queryKey: ["carDataWindow", 1, 44, 3],
+      exact: true,
+    });
+    expect(mockRemoveQueries).toHaveBeenCalledWith({
+      queryKey: ["carDataWindow", 1, 44, 7],
+      exact: true,
+    });
+    expect(mockRemoveQueries).toHaveBeenCalledWith({
+      queryKey: ["carDataWindow", 2, 44, 5],
+      exact: true,
+    });
+    expect(mockRemoveQueries).toHaveBeenCalledWith({
+      queryKey: ["carDataWindow", 1, 55, 5],
+      exact: true,
+    });
+    expect(mockRemoveQueries).toHaveBeenCalledTimes(4);
   });
 });

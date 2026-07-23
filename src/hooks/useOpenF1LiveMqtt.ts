@@ -7,6 +7,7 @@ import {
   OPENF1_MQTT_CONNECT_TIMEOUT_MS,
   OPENF1_MQTT_WSS_URL,
 } from "@/constants";
+import { lapsQueryKey } from "./queryKeys";
 
 export type MqttPayload = {
   _id?: number;
@@ -177,10 +178,11 @@ export function useOpenF1LiveMqtt(
         mergeRow(prev as MqttPayload[] | undefined, parsed, config),
       );
 
-      // Keep the all-driver lap query in sync too (`["laps", sessionKey, undefined]`).
+      // Keep the all-driver lap query in sync too.
       if (topic === "v1/laps") {
-        queryClient.setQueryData(["laps", sessionKey, undefined], (prev) =>
-          mergeRow(prev as MqttPayload[] | undefined, parsed, config),
+        queryClient.setQueryData(
+          lapsQueryKey(sessionKey, undefined, undefined),
+          (prev) => mergeRow(prev as MqttPayload[] | undefined, parsed, config),
         );
       }
     });

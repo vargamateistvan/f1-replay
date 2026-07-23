@@ -1,6 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { api, type QueryFilters } from "@/api/endpoints";
 import { LIVE_POLL_FAST_MS, LIVE_POLL_SLOW_MS } from "@/utils/live";
+import { lapsQueryKey } from "./queryKeys";
 
 export function useMeetings(
   year: number,
@@ -61,7 +62,7 @@ export function useLaps(
   filters?: QueryFilters,
 ) {
   return useQuery({
-    queryKey: ["laps", sessionKey, driverNumber, filters],
+    queryKey: lapsQueryKey(sessionKey, driverNumber, filters),
     queryFn: () => api.laps(sessionKey!, driverNumber, filters),
     enabled: sessionKey !== null,
     staleTime: isLive ? 0 : Infinity,

@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { mergeRow, type MqttPayload } from "./useOpenF1LiveMqtt";
+import { lapsQueryKey } from "./queryKeys";
 
 function byDateKey(row: MqttPayload): string {
   return row._key ?? `${row.date}_${row.driver_number ?? -1}`;
@@ -75,5 +76,16 @@ describe("mergeRow", () => {
     });
 
     expect(out.map((r) => r.driver_number)).toEqual([1, 2, 3]);
+  });
+});
+
+describe("lapsQueryKey", () => {
+  it("keeps all-driver key shape aligned with useLaps", () => {
+    expect(lapsQueryKey(123, undefined, undefined)).toEqual([
+      "laps",
+      123,
+      undefined,
+      undefined,
+    ]);
   });
 });
