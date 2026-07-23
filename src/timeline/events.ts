@@ -88,7 +88,7 @@ function classifyRaceControlToast(entry: RaceControl): {
   }
 
   if (/investigation|under investigation|noted/i.test(message)) {
-    return { kind: "investigation", priority: "low" };
+    return { kind: "investigation", priority: "high" };
   }
 
   if (
