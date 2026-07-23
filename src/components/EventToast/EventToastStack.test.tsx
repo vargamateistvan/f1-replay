@@ -145,4 +145,34 @@ describe("EventToastStack", () => {
     expect(screen.getByText("PENALTY")).toBeInTheDocument();
     expect(screen.getByText("NOTICE")).toBeInTheDocument();
   });
+
+  it("shows penalty subtype badge for major penalties", () => {
+    render(
+      <EventToastStack
+        toasts={
+          [
+            {
+              addedAt: Date.now(),
+              event: {
+                id: "penalty-2",
+                ms: 3000,
+                kind: "penalty",
+                priority: "high",
+                payload: {
+                  flag: "",
+                  message: "Car 16 receives a five second time penalty",
+                  lapNumber: 18,
+                },
+              },
+            },
+          ] as ActiveToast[]
+        }
+        drivers={drivers}
+        onDismiss={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByText("PENALTY")).toBeInTheDocument();
+    expect(screen.getByText("MAJOR")).toBeInTheDocument();
+  });
 });
