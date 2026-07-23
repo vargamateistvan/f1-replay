@@ -178,19 +178,17 @@ if (root) {
       level: "fatal",
     });
     appRoot.render(
-      <div className="flex min-h-screen items-center justify-center bg-[#1a1a1a] px-5 text-center font-mono text-white">
+      <div className="flex min-h-screen items-center justify-center bg-track px-5 text-center font-mono text-white">
         <div>
-          <h1 className="mb-2 text-2xl font-bold text-[#e80000]">
-            Critical Error
-          </h1>
+          <h1 className="mb-2 text-2xl font-bold text-f1red">Critical Error</h1>
           <p className="mb-2">{msg}</p>
-          <p className="text-xs text-[#999]">
+          <p className="text-xs text-muted">
             Refreshing page or clearing cache may help.
           </p>
           <button
             type="button"
             onClick={() => globalThis.window.location.assign("/")}
-            className="mt-5 rounded bg-[#e80000] px-5 py-2.5 text-white"
+            className="mt-5 rounded bg-f1red px-5 py-2.5 text-white"
           >
             Go Home
           </button>

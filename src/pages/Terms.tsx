@@ -7,7 +7,7 @@ export default function Terms() {
     <section className="relative flex h-full min-h-[55vh] flex-col overflow-hidden bg-track px-4 py-6 sm:px-6 sm:py-8">
       <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top,_rgba(232,0,45,0.16),_transparent_58%)]" />
 
-      <div className="relative z-10 mx-auto w-full max-w-4xl rounded-2xl border border-[#373748] bg-surface/80 p-5 shadow-[0_20px_55px_rgba(0,0,0,0.35)] sm:p-8">
+      <div className="relative z-10 mx-auto w-full max-w-4xl rounded-2xl border border-panel bg-surface/80 p-5 shadow-[0_20px_55px_rgba(0,0,0,0.35)] sm:p-8">
         <p className="text-f1red text-[11px] font-mono uppercase tracking-[0.24em]">
           Legal
         </p>

@@ -192,7 +192,7 @@ export function QualifyingBanner({
     <>
       {!dialogOnly && (
         <div className="pointer-events-none absolute right-3 top-3 z-[120] sm:right-4 sm:top-4">
-          <div className="pointer-events-auto flex items-center gap-2 rounded border border-panel bg-[#11131b]/90 px-2 py-1.5 backdrop-blur">
+          <div className="pointer-events-auto flex items-center gap-2 rounded border border-panel bg-track/90 px-2 py-1.5 backdrop-blur">
             <span className="rounded bg-f1red px-1.5 py-0.5 text-[9px] font-black uppercase tracking-[0.16em] text-white">
               {phase}
             </span>
@@ -213,7 +213,7 @@ export function QualifyingBanner({
 
       {open && (
         <div className="fixed inset-0 z-[230] flex items-start justify-center overflow-y-auto bg-black/75 px-3 py-4 backdrop-blur-sm sm:items-center sm:px-6">
-          <div className="my-auto w-full max-w-2xl border border-panel bg-[#0f1118] shadow-2xl">
+          <div className="my-auto w-full max-w-2xl border border-panel bg-track shadow-2xl">
             <div className="flex items-center justify-between border-b border-panel px-4 py-3 sm:px-5">
               <div>
                 <div className="text-[10px] font-black uppercase tracking-[0.2em] text-f1red">

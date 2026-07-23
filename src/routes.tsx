@@ -67,7 +67,7 @@ export function AppRouter() {
             >
               Privacy
             </Link>
-            <span aria-hidden="true" className="text-[#5a5a68]">
+            <span aria-hidden="true" className="text-muted">
               |
             </span>
             <Link
@@ -76,7 +76,7 @@ export function AppRouter() {
             >
               Terms
             </Link>
-            <span aria-hidden="true" className="text-[#5a5a68]">
+            <span aria-hidden="true" className="text-muted">
               |
             </span>
             <a

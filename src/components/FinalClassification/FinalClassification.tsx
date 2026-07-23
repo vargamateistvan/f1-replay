@@ -99,7 +99,7 @@ function sortResults(results: SessionResult[]): SessionResult[] {
 
 export function FinalClassification({ results, drivers, sessionName }: Props) {
   return (
-    <section className="shrink-0 border-t border-panel bg-[#0f1118]/95 backdrop-blur">
+    <section className="shrink-0 border-t border-panel bg-track/95 backdrop-blur">
       <FinalClassificationContent
         results={results}
         drivers={drivers}
@@ -136,7 +136,7 @@ export function FinalClassificationDialog({
       onClick={handleBackdropClick}
       className="fixed inset-0 z-[220] flex touch-pan-y items-start justify-center overflow-y-auto bg-black/75 px-3 py-4 backdrop-blur-sm sm:items-center sm:px-6 sm:py-6"
     >
-      <div className="my-auto flex max-h-[calc(100dvh-2rem)] w-full max-w-5xl flex-col overflow-hidden border border-panel bg-[#0f1118] shadow-2xl sm:max-h-[90dvh]">
+      <div className="my-auto flex max-h-[calc(100dvh-2rem)] w-full max-w-5xl flex-col overflow-hidden border border-panel bg-track shadow-2xl sm:max-h-[90dvh]">
         <div className="flex items-center justify-between border-b border-panel px-4 py-3 sm:px-5">
           <div>
             <div className="text-[10px] font-black uppercase tracking-[0.2em] text-f1red">
@@ -206,7 +206,7 @@ function FinalClassificationContent({
 
   return (
     <div
-      className={`flex min-h-0 flex-col bg-[#0f1118]/95 backdrop-blur ${contentClassName ?? ""}`.trim()}
+      className={`flex min-h-0 flex-col bg-track/95 backdrop-blur ${contentClassName ?? ""}`.trim()}
     >
       {!hideHeader && (
         <div className="border-b border-panel px-4 py-3 sm:px-5">
@@ -293,7 +293,7 @@ function FinalClassificationContent({
             {decorated.map((entry) => (
               <tr
                 key={entry.result.driver_number}
-                className="border-b border-[#232632] text-xs text-white/90"
+                className="border-b border-panel text-xs text-white/90"
               >
                 <td className="px-4 py-2.5 font-black tabular-nums sm:px-5">
                   {entry.result.position ?? "—"}

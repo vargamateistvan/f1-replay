@@ -6,7 +6,7 @@ export default function NotFound() {
     <section className="relative flex h-full min-h-[55vh] flex-col items-center justify-center overflow-hidden bg-track px-6 text-center">
       <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top,_rgba(232,0,45,0.2),_transparent_56%)]" />
       <div className="relative z-10 flex max-w-xl flex-col items-center gap-5">
-        <div className="rounded-2xl border border-[#373748] bg-surface/70 p-3 shadow-[0_20px_55px_rgba(0,0,0,0.35)]">
+        <div className="rounded-2xl border border-panel bg-surface/70 p-3 shadow-[0_20px_55px_rgba(0,0,0,0.35)]">
           <AppLogo size={34} />
         </div>
         <p className="text-f1red text-xs font-mono uppercase tracking-[0.28em]">

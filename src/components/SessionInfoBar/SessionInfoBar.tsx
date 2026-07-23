@@ -317,7 +317,7 @@ export function SessionInfoBar({
 
       {isLapDialogOpen && (
         <div className="fixed inset-0 z-[230] flex items-center justify-center bg-black/70 px-3 py-6 backdrop-blur-sm">
-          <div className="w-full max-w-sm border border-panel bg-[#0f1118] shadow-2xl">
+          <div className="w-full max-w-sm border border-panel bg-track shadow-2xl">
             <div className="border-b border-panel px-4 py-3">
               <div className="text-[10px] font-black uppercase tracking-[0.2em] text-f1red">
                 Jump To Lap

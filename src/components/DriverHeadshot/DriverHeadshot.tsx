@@ -29,7 +29,7 @@ export function DriverHeadshot({ driver, accent, size = "md" }: Props) {
     setFailed(false);
   }, [safeHeadshotUrl]);
 
-  const className = `${SIZE_CLASSES[size]} shrink-0 overflow-hidden rounded-full border bg-[#161922]`;
+  const className = `${SIZE_CLASSES[size]} shrink-0 overflow-hidden rounded-full border bg-track`;
 
   if (!safeHeadshotUrl || failed) {
     return (

@@ -16,8 +16,8 @@ export default function AppCrash({
       <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top,_rgba(232,0,45,0.23),_transparent_58%)]" />
       <div className="pointer-events-none absolute inset-0 opacity-20 [background-image:linear-gradient(rgba(255,255,255,0.045)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.045)_1px,transparent_1px)] [background-size:28px_28px]" />
 
-      <div className="relative z-10 flex max-w-xl flex-col items-center gap-5 rounded-2xl border border-[#363646] bg-surface/80 px-6 py-8 shadow-[0_30px_70px_rgba(0,0,0,0.45)] backdrop-blur-sm">
-        <div className="rounded-2xl border border-[#404055] bg-track/60 p-3">
+      <div className="relative z-10 flex max-w-xl flex-col items-center gap-5 rounded-2xl border border-panel bg-surface/80 px-6 py-8 shadow-[0_30px_70px_rgba(0,0,0,0.45)] backdrop-blur-sm">
+        <div className="rounded-2xl border border-panel bg-track/60 p-3">
           <AppLogo size={36} />
         </div>
 
@@ -31,7 +31,7 @@ export default function AppCrash({
           Something went wrong and the app had to stop this run.
         </p>
 
-        <div className="w-full rounded-lg border border-[#4a2832] bg-[#2b1a20] px-3 py-2 text-left text-xs font-mono text-red-300 sm:text-sm">
+        <div className="w-full rounded-lg border border-f1red/35 bg-f1red/10 px-3 py-2 text-left text-xs font-mono text-red-300 sm:text-sm">
           {message}
         </div>
 

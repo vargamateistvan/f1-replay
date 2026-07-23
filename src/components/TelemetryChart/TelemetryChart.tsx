@@ -336,7 +336,7 @@ export function TelemetryChart({
   return (
     <div className="bg-surface rounded border border-panel overflow-hidden [&_.u-legend]:text-[11px] [&_.u-legend]:font-medium [&_.u-legend_.u-label]:pr-2 [&_.u-legend_.u-value]:inline-block [&_.u-legend_.u-value]:min-w-[84px] [&_.u-legend_.u-value]:text-right [&_.u-legend_.u-value]:font-mono [&_.u-legend_.u-value]:[font-variant-numeric:tabular-nums]">
       {interactiveControls && (
-        <div className="flex items-center gap-1 border-b border-panel bg-[#11131c] px-2 py-1">
+        <div className="flex items-center gap-1 border-b border-panel bg-track px-2 py-1">
           <span className="text-[9px] uppercase tracking-widest text-muted">
             Zoom
           </span>

@@ -63,7 +63,7 @@ function DriverTooltip({ active, payload }: TooltipProps<DriverStanding>) {
                 ? "text-emerald-400"
                 : d.pointsDelta < 0
                   ? "text-red-400"
-                  : "text-[#636369]"
+                  : "text-muted"
             }`}
           >
             {d.pointsDelta > 0 ? "+" : ""}
@@ -115,22 +115,22 @@ function DriverTable({ standings }: { standings: DriverStanding[] }) {
       <table className="w-full border-collapse">
         <thead>
           <tr className="sticky top-0 bg-track z-10 border-b border-panel">
-            <th className="text-left py-2 px-3 text-[10px] font-bold uppercase tracking-widest text-[#636369] w-8">
+            <th className="text-left py-2 px-3 text-[10px] font-bold uppercase tracking-widest text-muted w-8">
               P
             </th>
-            <th className="text-left py-2 px-3 text-[10px] font-bold uppercase tracking-widest text-[#636369]">
+            <th className="text-left py-2 px-3 text-[10px] font-bold uppercase tracking-widest text-muted">
               Driver
             </th>
-            <th className="text-left py-2 px-3 text-[10px] font-bold uppercase tracking-widest text-[#636369] hidden sm:table-cell">
+            <th className="text-left py-2 px-3 text-[10px] font-bold uppercase tracking-widest text-muted hidden sm:table-cell">
               Team
             </th>
-            <th className="text-right py-2 px-3 text-[10px] font-bold uppercase tracking-widest text-[#636369] w-16">
+            <th className="text-right py-2 px-3 text-[10px] font-bold uppercase tracking-widest text-muted w-16">
               Pts
             </th>
-            <th className="text-right py-2 px-3 text-[10px] font-bold uppercase tracking-widest text-[#636369] w-12 hidden sm:table-cell">
+            <th className="text-right py-2 px-3 text-[10px] font-bold uppercase tracking-widest text-muted w-12 hidden sm:table-cell">
               Wins
             </th>
-            <th className="text-right py-2 px-3 text-[10px] font-bold uppercase tracking-widest text-[#636369] w-16 hidden sm:table-cell">
+            <th className="text-right py-2 px-3 text-[10px] font-bold uppercase tracking-widest text-muted w-16 hidden sm:table-cell">
               Podiums
             </th>
           </tr>
@@ -180,7 +180,7 @@ function DriverTable({ standings }: { standings: DriverStanding[] }) {
                         ? "text-emerald-400"
                         : s.pointsDelta < 0
                           ? "text-red-400"
-                          : "text-[#636369]"
+                          : "text-muted"
                     }`}
                   >
                     {s.pointsDelta > 0 ? "+" : ""}
@@ -219,19 +219,22 @@ function DriverChart({ standings }: { standings: DriverStanding[] }) {
         <XAxis
           type="number"
           domain={[0, maxPts]}
-          tick={{ fill: "#636369", fontSize: 10 }}
-          axisLine={{ stroke: "#1e2d4a" }}
+          tick={{ fill: "rgb(var(--color-muted))", fontSize: 10 }}
+          axisLine={{ stroke: "rgb(var(--color-panel))" }}
           tickLine={false}
         />
         <YAxis
           type="category"
           dataKey="acronym"
-          tick={{ fill: "#a3a3a3", fontSize: 10 }}
+          tick={{ fill: "rgb(var(--color-muted))", fontSize: 10 }}
           axisLine={false}
           tickLine={false}
           width={44}
         />
-        <Tooltip cursor={{ fill: "#1e2d4a33" }} content={<DriverTooltip />} />
+        <Tooltip
+          cursor={{ fill: "rgb(var(--color-panel) / 0.2)" }}
+          content={<DriverTooltip />}
+        />
         <Bar dataKey="points" radius={[0, 3, 3, 0]}>
           {standings.map((s) => (
             <Cell key={s.driverNumber} fill={s.color} />
@@ -258,16 +261,16 @@ function ConstructorTable({ standings }: { standings: ConstructorStanding[] }) {
       <table className="w-full border-collapse">
         <thead>
           <tr className="sticky top-0 bg-track z-10 border-b border-panel">
-            <th className="text-left py-2 px-3 text-[10px] font-bold uppercase tracking-widest text-[#636369] w-8">
+            <th className="text-left py-2 px-3 text-[10px] font-bold uppercase tracking-widest text-muted w-8">
               P
             </th>
-            <th className="text-left py-2 px-3 text-[10px] font-bold uppercase tracking-widest text-[#636369]">
+            <th className="text-left py-2 px-3 text-[10px] font-bold uppercase tracking-widest text-muted">
               Constructor
             </th>
-            <th className="text-right py-2 px-3 text-[10px] font-bold uppercase tracking-widest text-[#636369] w-16">
+            <th className="text-right py-2 px-3 text-[10px] font-bold uppercase tracking-widest text-muted w-16">
               Pts
             </th>
-            <th className="text-right py-2 px-3 text-[10px] font-bold uppercase tracking-widest text-[#636369] w-12 hidden sm:table-cell">
+            <th className="text-right py-2 px-3 text-[10px] font-bold uppercase tracking-widest text-muted w-12 hidden sm:table-cell">
               Wins
             </th>
           </tr>
@@ -311,7 +314,7 @@ function ConstructorTable({ standings }: { standings: ConstructorStanding[] }) {
                         ? "text-emerald-400"
                         : s.pointsDelta < 0
                           ? "text-red-400"
-                          : "text-[#636369]"
+                          : "text-muted"
                     }`}
                   >
                     {s.pointsDelta > 0 ? "+" : ""}
@@ -347,14 +350,14 @@ function ConstructorChart({ standings }: { standings: ConstructorStanding[] }) {
         <XAxis
           type="number"
           domain={[0, maxPts]}
-          tick={{ fill: "#636369", fontSize: 10 }}
-          axisLine={{ stroke: "#1e2d4a" }}
+          tick={{ fill: "rgb(var(--color-muted))", fontSize: 10 }}
+          axisLine={{ stroke: "rgb(var(--color-panel))" }}
           tickLine={false}
         />
         <YAxis
           type="category"
           dataKey="name"
-          tick={{ fill: "#a3a3a3", fontSize: 10 }}
+          tick={{ fill: "rgb(var(--color-muted))", fontSize: 10 }}
           axisLine={false}
           tickLine={false}
           width={0}
