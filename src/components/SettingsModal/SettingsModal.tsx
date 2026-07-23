@@ -42,9 +42,9 @@ export function SettingsModal() {
       onClick={handleBackdropClick}
       className="fixed inset-0 z-[200] flex items-center justify-center bg-black/70 backdrop-blur-sm"
     >
-      <div className="relative w-full max-w-sm mx-4 max-h-[90dvh] flex flex-col bg-[#1a1a24] border border-[#2a2a35] rounded-lg shadow-2xl overflow-hidden">
+      <div className="relative w-full max-w-sm mx-4 max-h-[90dvh] flex flex-col bg-surface border border-panel rounded-lg shadow-2xl overflow-hidden">
         {/* Header */}
-        <div className="flex items-center justify-between px-5 py-3.5 border-b border-[#2a2a35] shrink-0">
+        <div className="flex items-center justify-between px-5 py-3.5 border-b border-panel shrink-0">
           <div className="flex items-center gap-2">
             <svg
               width="14"
@@ -89,7 +89,7 @@ export function SettingsModal() {
           <button
             onClick={() => closeWithReason("button")}
             aria-label="Close settings"
-            className="w-7 h-7 flex items-center justify-center rounded text-muted hover:text-white hover:bg-[#2a2a35] transition-colors text-base"
+            className="w-7 h-7 flex items-center justify-center rounded text-muted hover:text-white hover:bg-panel transition-colors text-base"
           >
             ×
           </button>

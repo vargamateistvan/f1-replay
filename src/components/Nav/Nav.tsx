@@ -676,8 +676,8 @@ export function Nav() {
             }
           }}
         >
-          <div className="w-full max-w-2xl max-h-[88dvh] overflow-hidden rounded-lg border border-[#2a2a35] bg-[#1a1a24] shadow-2xl">
-            <div className="flex items-center justify-between border-b border-[#2a2a35] px-5 py-3.5">
+          <div className="w-full max-w-2xl max-h-[88dvh] overflow-hidden rounded-lg border border-panel bg-surface shadow-2xl">
+            <div className="flex items-center justify-between border-b border-panel px-5 py-3.5">
               <div className="min-w-0">
                 <div className="text-[13px] font-bold text-white tracking-wide truncate">
                   {nextMeeting.meeting_name} Agenda
@@ -692,7 +692,7 @@ export function Nav() {
                   trackEvent("nav_next_agenda_closed", { reason: "button" });
                   setShowNextAgenda(false);
                 }}
-                className="w-7 h-7 flex items-center justify-center rounded text-muted hover:text-white hover:bg-[#2a2a35] transition-colors text-base"
+                className="w-7 h-7 flex items-center justify-center rounded text-muted hover:text-white hover:bg-panel transition-colors text-base"
                 aria-label="Close agenda"
                 title="Close"
               >
@@ -882,7 +882,7 @@ export function Nav() {
               type="button"
               onClick={() => selectLatestEvent("manual")}
               disabled={meetings.isPending || !meetings.data?.length}
-              className="h-6 px-2 text-[9px] font-black uppercase tracking-widest rounded transition-colors bg-[#1e1e28] text-muted hover:text-white hover:bg-[#38383f] disabled:opacity-40 disabled:cursor-not-allowed light:bg-white light:text-slate-600 light:border light:border-slate-300 light:hover:text-slate-900 light:hover:bg-slate-100"
+              className="h-6 px-2 text-[9px] font-black uppercase tracking-widest rounded transition-colors bg-panel text-muted hover:text-white hover:bg-track disabled:opacity-40 disabled:cursor-not-allowed light:bg-white light:text-slate-600 light:border light:border-slate-300 light:hover:text-slate-900 light:hover:bg-slate-100"
             >
               Latest
             </button>
@@ -897,8 +897,8 @@ export function Nav() {
             if (e.target === e.currentTarget) setShowCircuitFacts(false);
           }}
         >
-          <div className="w-full max-w-2xl max-h-[88dvh] overflow-hidden rounded-lg border border-[#2a2a35] bg-[#1a1a24] shadow-2xl">
-            <div className="flex items-center justify-between border-b border-[#2a2a35] px-5 py-3.5">
+          <div className="w-full max-w-2xl max-h-[88dvh] overflow-hidden rounded-lg border border-panel bg-surface shadow-2xl">
+            <div className="flex items-center justify-between border-b border-panel px-5 py-3.5">
               <div className="min-w-0">
                 <div className="text-[13px] font-bold text-white tracking-wide truncate">
                   {selectedMeeting.circuit_short_name} Track Facts
@@ -910,7 +910,7 @@ export function Nav() {
               <button
                 type="button"
                 onClick={() => setShowCircuitFacts(false)}
-                className="w-7 h-7 flex items-center justify-center rounded text-muted hover:text-white hover:bg-[#2a2a35] transition-colors text-base"
+                className="w-7 h-7 flex items-center justify-center rounded text-muted hover:text-white hover:bg-panel transition-colors text-base"
                 aria-label="Close track facts"
                 title="Close"
               >

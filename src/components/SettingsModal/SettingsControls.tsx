@@ -34,7 +34,7 @@ export function Toggle({
       onClick={() => !disabled && onChange(!checked)}
       className={`relative w-9 h-5 rounded-full shrink-0 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-f1red ${
         disabled ? "opacity-30 cursor-not-allowed" : "cursor-pointer"
-      } ${checked ? "bg-f1red" : "bg-[#38383f]"}`}
+      } ${checked ? "bg-f1red" : "bg-panel"}`}
     >
       <span
         className={`absolute top-0.5 left-0.5 w-4 h-4 rounded-full bg-white shadow transition-transform ${
@@ -62,7 +62,7 @@ export function SettingRow({
 }) {
   return (
     <div
-      className={`flex items-center justify-between gap-4 py-3 border-b border-[#2a2a35] last:border-0 ${
+      className={`flex items-center justify-between gap-4 py-3 border-b border-panel last:border-0 ${
         disabled ? "opacity-40" : ""
       }`}
     >
@@ -102,7 +102,7 @@ export function SpeedSelector({
   onChange: (v: number) => void;
 }) {
   return (
-    <div className="flex items-center justify-between gap-4 py-3 border-b border-[#2a2a35]">
+    <div className="flex items-center justify-between gap-4 py-3 border-b border-panel">
       <div>
         <div className="text-[13px] text-white/90 leading-tight">
           Default playback speed
@@ -119,7 +119,7 @@ export function SpeedSelector({
             className={`w-9 h-8 text-[11px] font-bold rounded transition-colors ${
               value === s
                 ? "bg-f1red text-white"
-                : "bg-[#2a2a35] text-muted hover:text-white hover:bg-[#38383f]"
+                : "bg-track text-muted hover:text-white hover:bg-panel"
             }`}
           >
             {s}×
@@ -141,7 +141,7 @@ export function NotificationLimitSelector({
 }) {
   return (
     <div
-      className={`flex items-center justify-between gap-4 py-3 border-b border-[#2a2a35] ${disabled ? "opacity-40" : ""}`}
+      className={`flex items-center justify-between gap-4 py-3 border-b border-panel ${disabled ? "opacity-40" : ""}`}
     >
       <div>
         <div className="text-[13px] text-white/90 leading-tight">
@@ -160,7 +160,7 @@ export function NotificationLimitSelector({
             className={`w-9 h-8 text-[11px] font-bold rounded transition-colors ${
               value === n
                 ? "bg-f1red text-white"
-                : "bg-[#2a2a35] text-muted hover:text-white hover:bg-[#38383f]"
+                : "bg-track text-muted hover:text-white hover:bg-panel"
             } ${disabled ? "cursor-not-allowed" : ""}`}
           >
             {n}
@@ -180,7 +180,7 @@ export function UnitSelector({
   onChange: (v: "metric" | "imperial") => void;
 }) {
   return (
-    <div className="flex items-center justify-between gap-4 py-3 border-b border-[#2a2a35]">
+    <div className="flex items-center justify-between gap-4 py-3 border-b border-panel">
       <div>
         <div className="text-[13px] text-white/90 leading-tight">Units</div>
         <div className="text-[11px] text-muted mt-0.5 leading-tight">
@@ -195,7 +195,7 @@ export function UnitSelector({
             className={`px-3 h-8 text-[11px] font-bold rounded transition-colors ${
               value === unit
                 ? "bg-f1red text-white"
-                : "bg-[#2a2a35] text-muted hover:text-white hover:bg-[#38383f]"
+                : "bg-track text-muted hover:text-white hover:bg-panel"
             }`}
           >
             {unit === "metric" ? "Metric" : "Imperial"}
@@ -433,7 +433,7 @@ export function SettingsBody() {
         onChange={toggle("catchupSummaryEnabled")}
       />
       {settings.catchupSummaryEnabled && (
-        <div className="py-2.5 border-b border-[#2a2a35]">
+        <div className="py-2.5 border-b border-panel">
           <div className="text-[11px] text-muted mb-2 leading-tight">
             Default visible event types
           </div>
@@ -758,7 +758,7 @@ export function SettingsBody() {
             reset();
             trackEvent("settings_reset_defaults");
           }}
-          className="text-[11px] font-medium text-muted hover:text-white transition-colors px-3 py-1.5 rounded hover:bg-[#2a2a35]"
+          className="text-[11px] font-medium text-muted hover:text-white transition-colors px-3 py-1.5 rounded hover:bg-panel"
         >
           Reset to defaults
         </button>

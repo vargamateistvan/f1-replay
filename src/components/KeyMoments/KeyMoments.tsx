@@ -105,7 +105,7 @@ export function KeyMoments({
           key={`${group.lapNumber ?? "session"}-${groupIndex}`}
           className="mb-0.5"
         >
-          <div className="sticky top-0 z-10 border-b border-[#2a2a35] bg-[#1a1a24] px-2 py-0.5 text-[9px] font-black uppercase tracking-widest text-muted select-none">
+          <div className="sticky top-0 z-10 border-b border-panel bg-surface px-2 py-0.5 text-[9px] font-black uppercase tracking-widest text-muted select-none">
             {(() => {
               const isQualifying = sessionType
                 ?.toLowerCase()
@@ -123,7 +123,7 @@ export function KeyMoments({
               <button
                 key={`${m.kind}-${m.ms}-${i}`}
                 onClick={() => onJump(m.ms)}
-                className="w-full flex items-center gap-3 border-b border-[#2a2a35] px-3 py-2.5 text-left transition-colors hover:bg-white/[0.04]"
+                className="w-full flex items-center gap-3 border-b border-panel px-3 py-2.5 text-left transition-colors hover:bg-white/[0.04]"
               >
                 <span className="text-[10px] font-mono tabular-nums text-muted w-10 shrink-0">
                   {fmtMs(m.ms)}

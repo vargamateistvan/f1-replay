@@ -138,7 +138,7 @@ export function OvertakeFeed({
                 `overtakes_${sessionKey}.csv`,
               );
             }}
-            className="h-6 px-2 text-[9px] font-black uppercase tracking-widest rounded transition-colors bg-[#1e1e28] text-muted hover:text-white hover:bg-[#38383f]"
+            className="h-6 px-2 text-[9px] font-black uppercase tracking-widest rounded transition-colors bg-panel text-muted hover:text-white hover:bg-track"
             aria-label="Export overtakes CSV"
           >
             Export CSV
@@ -155,7 +155,7 @@ export function OvertakeFeed({
               : "Session";
         return (
           <div key={group.lapNumber ?? "session"} className="mb-0.5">
-            <div className="sticky top-0 z-10 border-b border-[#2a2a35] bg-[#1a1a24] px-2 py-0.5 text-[9px] font-black uppercase tracking-widest text-muted select-none">
+            <div className="sticky top-0 z-10 border-b border-panel bg-surface px-2 py-0.5 text-[9px] font-black uppercase tracking-widest text-muted select-none">
               {headerText}
             </div>
             {group.entries.map(({ entry: e, dateMs, lapNumber }) => {
@@ -167,7 +167,7 @@ export function OvertakeFeed({
               return (
                 <div
                   key={`${e.overtaking_driver_number}-${e.overtaken_driver_number}-${e.date}-${e.position ?? "na"}`}
-                  className="flex items-center gap-3 border-b border-[#2a2a35] px-2 py-2.5 text-xs transition-colors hover:bg-white/[0.04]"
+                  className="flex items-center gap-3 border-b border-panel px-2 py-2.5 text-xs transition-colors hover:bg-white/[0.04]"
                 >
                   <span className="w-10 shrink-0 text-[10px] font-mono tabular-nums text-muted">
                     {fmtSessionTime(ms)}
@@ -202,7 +202,7 @@ export function OvertakeFeed({
           <button
             type="button"
             onClick={() => setRenderLimit((v) => v + 120)}
-            className="h-6 px-2 text-[9px] font-black uppercase tracking-widest rounded transition-colors bg-[#1e1e28] text-muted hover:text-white hover:bg-[#38383f]"
+            className="h-6 px-2 text-[9px] font-black uppercase tracking-widest rounded transition-colors bg-panel text-muted hover:text-white hover:bg-track"
           >
             Load older ({visibleAll.length - visible.length} left)
           </button>

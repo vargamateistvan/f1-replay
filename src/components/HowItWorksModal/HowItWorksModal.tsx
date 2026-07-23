@@ -41,9 +41,9 @@ export function HowItWorksModal() {
       onClick={handleBackdropClick}
       className="fixed inset-0 z-[200] flex items-center justify-center bg-black/70 backdrop-blur-sm"
     >
-      <div className="relative w-full max-w-2xl mx-4 max-h-[90dvh] flex flex-col bg-[#1a1a24] border border-[#2a2a35] rounded-lg shadow-2xl overflow-hidden">
+      <div className="relative w-full max-w-2xl mx-4 max-h-[90dvh] flex flex-col bg-surface border border-panel rounded-lg shadow-2xl overflow-hidden">
         {/* Header */}
-        <div className="flex items-center justify-between px-5 py-3.5 border-b border-[#2a2a35] shrink-0">
+        <div className="flex items-center justify-between px-5 py-3.5 border-b border-panel shrink-0">
           <div className="flex items-center gap-2">
             <svg
               width="14"
@@ -66,7 +66,7 @@ export function HowItWorksModal() {
           <button
             onClick={() => closeWithReason("button")}
             aria-label="Close help"
-            className="w-7 h-7 flex items-center justify-center rounded text-muted hover:text-white hover:bg-[#2a2a35] transition-colors text-base"
+            className="w-7 h-7 flex items-center justify-center rounded text-muted hover:text-white hover:bg-panel transition-colors text-base"
           >
             ×
           </button>
@@ -363,7 +363,7 @@ export function HowItWorksModal() {
               </div>
             </section>
 
-            <hr className="border-[#2a2a35] my-2" />
+            <hr className="border-panel my-2" />
 
             <p className="text-[11px] text-muted leading-relaxed pb-2">
               <strong>Tip:</strong> All data is from the public{" "}
@@ -411,7 +411,7 @@ export function HowItWorksModal() {
                 href="https://buymeacoffee.com/matt_varga"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-flex items-center gap-2 rounded-md border border-[#2a2a35] bg-f1red px-3 py-2 text-[12px] font-semibold text-white transition hover:brightness-110"
+                className="inline-flex items-center gap-2 rounded-md border border-panel bg-f1red px-3 py-2 text-[12px] font-semibold text-white transition hover:brightness-110"
               >
                 <span aria-hidden="true">🍕</span>
                 Buy me a pizza
