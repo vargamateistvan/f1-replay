@@ -8,7 +8,6 @@ import LiveTiming from "@/components/LiveTiming/LiveTiming";
 import { WeatherPanel } from "@/components/Weather/WeatherPanel";
 import { QualifyingBanner } from "@/components/QualifyingBanner";
 import { StartingLights } from "@/components/StartingLights";
-import { SessionInfoBar } from "@/components/SessionInfoBar";
 import { ErrorMessage } from "@/components/ErrorMessage";
 import { FinalClassificationDialog } from "@/components/FinalClassification";
 import {
@@ -84,6 +83,7 @@ import {
   windowBoundsByValue,
 } from "@/utils/sortedTime";
 import { trackEvent } from "@/lib/analytics";
+import { RaceWeekendSessionHeader } from "./raceWeekend/RaceWeekendSessionHeader";
 import type { MainView } from "@/components/Nav";
 import type {
   Stint,
@@ -1419,7 +1419,7 @@ export default function RaceWeekend() {
       {/* ── LEADERBOARD VIEW ──────────────────────────────────────────── */}
       {currentView === "leaderboard" && (
         <div className="flex flex-col md:flex-1 md:min-h-0 md:overflow-hidden">
-          <SessionInfoBar
+          <RaceWeekendSessionHeader
             laps={laps.data ?? []}
             raceControl={raceControl.data ?? []}
             sessionTimeMs={t}
@@ -1431,16 +1431,11 @@ export default function RaceWeekend() {
             isRaceSession={isRaceSession}
             lightsOutMs={lightsOutMs}
             totalLapCount={totalLapCount}
-            onShowEliminations={
-              isQualiSession(sessionName) && qualiPhase
-                ? () => setIsQualiEliminationsDialogOpen(true)
-                : undefined
-            }
-            onShowResults={
-              showFinalClassification && !sessionResult.isError
-                ? () => setIsResultsDialogOpen(true)
-                : undefined
-            }
+            sessionName={sessionName}
+            showFinalClassification={showFinalClassification}
+            hasSessionResultError={sessionResult.isError}
+            onShowEliminations={() => setIsQualiEliminationsDialogOpen(true)}
+            onShowResults={() => setIsResultsDialogOpen(true)}
             onJumpToSessionTime={(sessionTimeMs) => setTimelineT(sessionTimeMs)}
           />
 
@@ -1471,7 +1466,7 @@ export default function RaceWeekend() {
       {/* ── DRIVER TRACKER VIEW ───────────────────────────────────────── */}
       {currentView === "tracker" && (
         <div className="flex flex-col md:flex-1 md:min-h-0 md:overflow-hidden">
-          <SessionInfoBar
+          <RaceWeekendSessionHeader
             laps={laps.data ?? []}
             raceControl={raceControl.data ?? []}
             sessionTimeMs={t}
@@ -1483,16 +1478,11 @@ export default function RaceWeekend() {
             isRaceSession={isRaceSession}
             lightsOutMs={lightsOutMs}
             totalLapCount={totalLapCount}
-            onShowEliminations={
-              isQualiSession(sessionName) && qualiPhase
-                ? () => setIsQualiEliminationsDialogOpen(true)
-                : undefined
-            }
-            onShowResults={
-              showFinalClassification && !sessionResult.isError
-                ? () => setIsResultsDialogOpen(true)
-                : undefined
-            }
+            sessionName={sessionName}
+            showFinalClassification={showFinalClassification}
+            hasSessionResultError={sessionResult.isError}
+            onShowEliminations={() => setIsQualiEliminationsDialogOpen(true)}
+            onShowResults={() => setIsResultsDialogOpen(true)}
             onJumpToSessionTime={(sessionTimeMs) => setTimelineT(sessionTimeMs)}
           />
           <div className="flex flex-col md:flex-1 md:min-h-0 md:overflow-hidden relative">
@@ -1869,7 +1859,7 @@ export default function RaceWeekend() {
       {/* ── COMMENTARY VIEW ───────────────────────────────────────────── */}
       {currentView === "commentary" && (
         <div className="flex flex-col md:flex-1 md:min-h-0 md:overflow-hidden">
-          <SessionInfoBar
+          <RaceWeekendSessionHeader
             laps={laps.data ?? []}
             raceControl={raceControl.data ?? []}
             sessionTimeMs={t}
@@ -1881,16 +1871,11 @@ export default function RaceWeekend() {
             isRaceSession={isRaceSession}
             lightsOutMs={lightsOutMs}
             totalLapCount={totalLapCount}
-            onShowEliminations={
-              isQualiSession(sessionName) && qualiPhase
-                ? () => setIsQualiEliminationsDialogOpen(true)
-                : undefined
-            }
-            onShowResults={
-              showFinalClassification && !sessionResult.isError
-                ? () => setIsResultsDialogOpen(true)
-                : undefined
-            }
+            sessionName={sessionName}
+            showFinalClassification={showFinalClassification}
+            hasSessionResultError={sessionResult.isError}
+            onShowEliminations={() => setIsQualiEliminationsDialogOpen(true)}
+            onShowResults={() => setIsResultsDialogOpen(true)}
             onJumpToSessionTime={(sessionTimeMs) => setTimelineT(sessionTimeMs)}
           />
 
