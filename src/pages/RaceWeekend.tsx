@@ -84,6 +84,7 @@ import {
 } from "@/utils/sortedTime";
 import { trackEvent } from "@/lib/analytics";
 import { RaceWeekendSessionHeader } from "./raceWeekend/RaceWeekendSessionHeader";
+import { TrackerTabBar, type TrackerTab } from "./raceWeekend/TrackerTabBar";
 import type { MainView } from "@/components/Nav";
 import type {
   Stint,
@@ -96,7 +97,6 @@ import type {
 import type { CommentaryTab } from "@/components/CommentaryPanels/CommentaryPanels";
 
 // Sub-tab options per view
-type TrackerTab = "timing" | "chart" | "gap" | "map" | "strategy";
 type CommentaryTimeMode = "elapsed" | "all";
 
 const PANEL = "bg-surface border border-panel";
@@ -346,6 +346,18 @@ export default function RaceWeekend() {
       setTrackerDesktopPanelWidth(defaultTrackerDesktopPanelWidth());
     },
   };
+
+  function handleTrackerTabChange(
+    tab: TrackerTab,
+    source: "mobile" | "desktop",
+  ) {
+    trackEvent("raceweekend_tracker_tab_changed", {
+      tab,
+      source,
+    });
+    setTrackerTab(tab);
+  }
+
   const session = sessions.data?.find((s) => s.session_key === sessionKey);
   const live = isSessionLive(session);
   useOpenF1LiveMqtt(sessionKey, live);
@@ -1502,35 +1514,11 @@ export default function RaceWeekend() {
             {/* Phone layout: tab-switched (md:hidden) */}
             <div className="md:hidden flex flex-col w-full">
               {/* Tab chips */}
-              <div className="sticky top-0 z-20 grid grid-cols-5 w-full border-b border-panel shrink-0 bg-track/95 backdrop-blur">
-                {(
-                  [
-                    ["timing", "Timing"],
-                    ["map", "Track"],
-                    ["strategy", "Tyre Strategy"],
-                    ["chart", "Chart"],
-                    ["gap", "Gap"],
-                  ] as [TrackerTab, string][]
-                ).map(([tab, label]) => (
-                  <button
-                    key={tab}
-                    onClick={() => {
-                      trackEvent("raceweekend_tracker_tab_changed", {
-                        tab,
-                        source: "mobile",
-                      });
-                      setTrackerTab(tab);
-                    }}
-                    className={`w-full px-1.5 py-2 text-[10px] font-bold uppercase tracking-wider border-b-2 -mb-px transition-colors ${
-                      (trackerTab ?? "timing") === tab
-                        ? "text-white border-f1red bg-surface"
-                        : "text-muted border-transparent hover:text-white"
-                    }`}
-                  >
-                    {label}
-                  </button>
-                ))}
-              </div>
+              <TrackerTabBar
+                source="mobile"
+                activeTab={trackerTab ?? "timing"}
+                onTabChange={handleTrackerTabChange}
+              />
 
               {showTrackerInlinePlayback && (
                 <PlaybackBar
@@ -1714,34 +1702,11 @@ export default function RaceWeekend() {
                 style={{ width: `${trackerDesktopPanelWidth}px` }}
               >
                 {/* Sub-tabs */}
-                <div className="flex border-b border-panel shrink-0">
-                  {(
-                    [
-                      ["timing", "Timing"],
-                      ["strategy", "Tyre Strategy"],
-                      ["chart", "Laps"],
-                      ["gap", "Gap"],
-                    ] as [TrackerTab, string][]
-                  ).map(([tab, label]) => (
-                    <button
-                      key={tab}
-                      onClick={() => {
-                        trackEvent("raceweekend_tracker_tab_changed", {
-                          tab,
-                          source: "desktop",
-                        });
-                        setTrackerTab(tab);
-                      }}
-                      className={`flex-1 px-2 py-1 text-[10px] font-bold uppercase tracking-wider transition-colors ${
-                        (trackerTab ?? "timing") === tab
-                          ? "text-white border-b-2 border-f1red -mb-px bg-surface"
-                          : "text-muted hover:text-white bg-track"
-                      }`}
-                    >
-                      {label}
-                    </button>
-                  ))}
-                </div>
+                <TrackerTabBar
+                  source="desktop"
+                  activeTab={trackerTab ?? "timing"}
+                  onTabChange={handleTrackerTabChange}
+                />
 
                 {/* Panel content */}
                 <div className="flex-1 min-h-0 flex flex-col overflow-hidden">
