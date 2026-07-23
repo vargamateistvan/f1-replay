@@ -529,6 +529,13 @@ export function SettingsBody() {
         disabled={!settings.toastsEnabled}
       />
       <SettingRow
+        label="Investigations"
+        description="Show race control investigation toasts"
+        checked={settings.toastInvestigation}
+        onChange={toggle("toastInvestigation")}
+        disabled={!settings.toastsEnabled}
+      />
+      <SettingRow
         label="Overtakes"
         checked={settings.toastOvertake}
         onChange={toggle("toastOvertake")}

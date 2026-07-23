@@ -847,6 +847,7 @@ export default function RaceWeekend() {
     toastRadioAutoplay: settingToastRadioAutoplay,
     toastSoundsEnabled,
     toastFlag: settingToastFlag,
+    toastInvestigation: settingToastInvestigation,
     toastOvertake: settingToastOvertake,
     toastPit: settingToastPit,
     toastFastestLap: settingToastFastestLap,
@@ -999,12 +1000,8 @@ export default function RaceWeekend() {
     if (!shouldTrackToasts || !toastsEnabled) return [];
     return toastEvents.filter((ev) => {
       if (ev.kind === "radio") return settingToastRadio;
-      if (
-        ev.kind === "flag" ||
-        ev.kind === "investigation" ||
-        ev.kind === "penalty"
-      )
-        return settingToastFlag;
+      if (ev.kind === "flag" || ev.kind === "penalty") return settingToastFlag;
+      if (ev.kind === "investigation") return settingToastInvestigation;
       if (ev.kind === "overtake") return settingToastOvertake;
       if (ev.kind === "pit") return settingToastPit;
       if (ev.kind === "fastest_lap") return settingToastFastestLap;
@@ -1016,6 +1013,7 @@ export default function RaceWeekend() {
     toastsEnabled,
     settingToastRadio,
     settingToastFlag,
+    settingToastInvestigation,
     settingToastOvertake,
     settingToastPit,
     settingToastFastestLap,

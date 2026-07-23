@@ -9,6 +9,7 @@ export interface AppSettings {
   toastRadioAutoplay: boolean;
   toastSoundsEnabled: boolean;
   toastFlag: boolean;
+  toastInvestigation: boolean;
   toastOvertake: boolean;
   toastPit: boolean;
   toastFastestLap: boolean;
@@ -104,6 +105,7 @@ export const SETTINGS_DEFAULTS: AppSettings = {
   toastRadioAutoplay: false,
   toastSoundsEnabled: false,
   toastFlag: true,
+  toastInvestigation: true,
   toastOvertake: true,
   toastPit: true,
   toastFastestLap: true,
