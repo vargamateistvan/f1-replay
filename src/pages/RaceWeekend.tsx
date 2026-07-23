@@ -85,6 +85,8 @@ import {
 import { trackEvent } from "@/lib/analytics";
 import { RaceWeekendSessionHeader } from "./raceWeekend/RaceWeekendSessionHeader";
 import { TrackerTabBar, type TrackerTab } from "./raceWeekend/TrackerTabBar";
+import { TrackerStrategyContent } from "./raceWeekend/TrackerStrategyContent";
+import { CommentaryTabBar } from "./raceWeekend/CommentaryTabBar";
 import type { MainView } from "@/components/Nav";
 import type {
   Stint,
@@ -99,9 +101,6 @@ import type { CommentaryTab } from "@/components/CommentaryPanels/CommentaryPane
 // Sub-tab options per view
 type CommentaryTimeMode = "elapsed" | "all";
 
-const PANEL = "bg-surface border border-panel";
-const PANEL_TITLE =
-  "text-[10px] font-bold text-muted px-3 py-2 border-b border-panel uppercase tracking-[0.12em] border-l-2 border-l-f1red bg-track";
 const OVERTAKE_PULSE_MS = 4_000;
 const TRACKER_DESKTOP_PANEL_WIDTH_STORAGE_KEY =
   "f1-replay.tracker.desktopPanelWidth";
@@ -1637,26 +1636,19 @@ export default function RaceWeekend() {
                 )}
 
                 {(trackerTab ?? "timing") === "strategy" && (
-                  <div
-                    className={`${PANEL} flex-1 flex flex-col overflow-hidden border-0`}
-                  >
-                    <div className={`${PANEL_TITLE} shrink-0`}>
-                      Tyre Strategy
-                    </div>
-                    <div className="min-h-0 overflow-y-auto md:panel-scroll [-webkit-overflow-scrolling:touch]">
-                      <Suspense fallback={<PanelFallback />}>
-                        <StrategyBar
-                          stints={stints.data ?? []}
-                          drivers={drivers.data ?? []}
-                          laps={laps.data ?? []}
-                          pits={pits.data ?? []}
-                          sessionTimeMs={t}
-                          sessionStartMs={sessionStartMs}
-                          currentLap={currentLap}
-                        />
-                      </Suspense>
-                    </div>
-                  </div>
+                  <TrackerStrategyContent>
+                    <Suspense fallback={<PanelFallback />}>
+                      <StrategyBar
+                        stints={stints.data ?? []}
+                        drivers={drivers.data ?? []}
+                        laps={laps.data ?? []}
+                        pits={pits.data ?? []}
+                        sessionTimeMs={t}
+                        sessionStartMs={sessionStartMs}
+                        currentLap={currentLap}
+                      />
+                    </Suspense>
+                  </TrackerStrategyContent>
                 )}
 
                 {(trackerTab ?? "timing") === "chart" && (
@@ -1717,26 +1709,19 @@ export default function RaceWeekend() {
                       timingTower
                     ))}
                   {(trackerTab ?? "timing") === "strategy" && (
-                    <div
-                      className={`${PANEL} flex-1 flex flex-col overflow-hidden border-0`}
-                    >
-                      <div className={`${PANEL_TITLE} shrink-0`}>
-                        Tyre Strategy
-                      </div>
-                      <div className="min-h-0 overflow-y-auto md:panel-scroll [-webkit-overflow-scrolling:touch]">
-                        <Suspense fallback={<PanelFallback />}>
-                          <StrategyBar
-                            stints={stints.data ?? []}
-                            drivers={drivers.data ?? []}
-                            laps={laps.data ?? []}
-                            pits={pits.data ?? []}
-                            sessionTimeMs={t}
-                            sessionStartMs={sessionStartMs}
-                            currentLap={currentLap}
-                          />
-                        </Suspense>
-                      </div>
-                    </div>
+                    <TrackerStrategyContent>
+                      <Suspense fallback={<PanelFallback />}>
+                        <StrategyBar
+                          stints={stints.data ?? []}
+                          drivers={drivers.data ?? []}
+                          laps={laps.data ?? []}
+                          pits={pits.data ?? []}
+                          sessionTimeMs={t}
+                          sessionStartMs={sessionStartMs}
+                          currentLap={currentLap}
+                        />
+                      </Suspense>
+                    </TrackerStrategyContent>
                   )}
                   {(trackerTab ?? "timing") === "chart" && (
                     <Suspense fallback={<PanelFallback />}>
@@ -1845,39 +1830,14 @@ export default function RaceWeekend() {
           />
 
           {/* Sub-tabs */}
-          <div className="grid grid-cols-6 w-full border-b border-panel shrink-0 bg-track sm:flex sm:overflow-x-auto">
-            {commentaryTabs.map(
-              ([tab, label, shortLabel, count, metaLabel]) => (
-                <button
-                  key={tab}
-                  onClick={() => {
-                    trackEvent("raceweekend_commentary_tab_changed", { tab });
-                    setCommentaryTab(tab);
-                  }}
-                  className={`w-full px-1.5 py-2 text-[10px] font-bold uppercase tracking-wider transition-colors border-b-2 sm:shrink-0 sm:w-auto sm:px-4 sm:text-[11px] ${
-                    (commentaryTab ?? "rc") === tab
-                      ? "text-white border-f1red -mb-px"
-                      : "text-muted border-transparent hover:text-white"
-                  }`}
-                >
-                  <span className="block sm:hidden">{shortLabel}</span>
-                  <span className="hidden sm:block">{label}</span>
-                  <span
-                    className={`mt-1 block font-mono text-[9px] leading-none tabular-nums ${
-                      (commentaryTab ?? "rc") === tab
-                        ? "text-white/70"
-                        : "text-muted/80"
-                    }`}
-                  >
-                    <span className="sm:hidden">{count}</span>
-                    <span className="hidden sm:inline">
-                      {count} {metaLabel}
-                    </span>
-                  </span>
-                </button>
-              ),
-            )}
-          </div>
+          <CommentaryTabBar
+            tabs={commentaryTabs}
+            activeTab={commentaryTab ?? "rc"}
+            onTabChange={(tab) => {
+              trackEvent("raceweekend_commentary_tab_changed", { tab });
+              setCommentaryTab(tab);
+            }}
+          />
 
           {/* Live lap status */}
           <div className="shrink-0 border-b border-panel bg-surface/70 px-3 py-1.5">
