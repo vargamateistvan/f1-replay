@@ -48,6 +48,7 @@ import {
   overtakeTimes,
   radioTimes,
   buildToastEvents,
+  classifyPenaltyToastMessage,
 } from "@/timeline/events";
 import type { FlagPayload } from "@/timeline/events";
 import {
@@ -1011,11 +1012,8 @@ export default function RaceWeekend() {
         const penaltyMessage = (
           ev.payload as FlagPayload
         ).message.toLowerCase();
-        const isWarningNotice =
-          /warning|black\s*and\s*white|black-and-white|reprimand|noted/.test(
-            penaltyMessage,
-          );
-        if (isWarningNotice) return settingToastPenaltyWarnings;
+        const subtype = classifyPenaltyToastMessage(penaltyMessage);
+        if (subtype === "warning_notice") return settingToastPenaltyWarnings;
         return settingToastPenaltyMajor;
       }
       if (ev.kind === "overtake") return settingToastOvertake;

@@ -1,6 +1,7 @@
 import { describe, it, expect } from "vitest";
 import {
   buildToastEvents,
+  classifyPenaltyToastMessage,
   lapStartTimes,
   pitTimes,
   flagTimes,
@@ -93,6 +94,26 @@ describe("buildToastEvents", () => {
       driverNumber: 1,
       lapNumber: 2,
     });
+  });
+});
+
+describe("classifyPenaltyToastMessage", () => {
+  it("classifies warning-style notices", () => {
+    expect(classifyPenaltyToastMessage("BLACK AND WHITE FLAG FOR CAR 4")).toBe(
+      "warning_notice",
+    );
+    expect(
+      classifyPenaltyToastMessage("Driver receives a reprimand for weaving"),
+    ).toBe("warning_notice");
+  });
+
+  it("classifies major penalties", () => {
+    expect(
+      classifyPenaltyToastMessage("Car 16 receives a five second time penalty"),
+    ).toBe("major_penalty");
+    expect(
+      classifyPenaltyToastMessage("Drive through penalty for car 63"),
+    ).toBe("major_penalty");
   });
 });
 
