@@ -91,6 +91,7 @@ import {
   TrackerFocusedTelemetryPanel,
   TrackerTimingPanel,
 } from "./raceWeekend/TrackerTimingPanels";
+import { TrackerMapPane } from "./raceWeekend/TrackerMapPane";
 import type { MainView } from "@/components/Nav";
 import type {
   Stint,
@@ -1429,6 +1430,39 @@ export default function RaceWeekend() {
     />
   );
 
+  const trackMapContent = drivers.isError ? (
+    <ErrorMessage message="Failed to load driver data" />
+  ) : (
+    <Suspense fallback={<PanelFallback />}>{trackMap}</Suspense>
+  );
+
+  const trackerMapToastOverlay = (
+    <EventToastStack
+      toasts={toasts}
+      drivers={drivers.data ?? []}
+      onDismiss={dismiss}
+      radioAutoplay={settingToastRadioAutoplay}
+      soundsEnabled={toastSoundsEnabled}
+      maxVisible={notificationMaxVisible}
+      layout="overlay"
+    />
+  );
+
+  const trackerMapWeatherSection = mapShowWeather ? (
+    <div className="shrink-0 border-b border-panel">
+      {weather.isError ? (
+        <ErrorMessage message="Failed to load weather" compact />
+      ) : (
+        <WeatherPanel
+          entries={weather.data ?? []}
+          sessionKey={sessionKey}
+          sessionTimeMs={t}
+          sessionStartMs={sessionStartMs}
+        />
+      )}
+    </div>
+  ) : undefined;
+
   // ── View layouts ─────────────────────────────────────────────────────────────
 
   return (
@@ -1587,48 +1621,13 @@ export default function RaceWeekend() {
                 )}
 
                 {(trackerTab ?? "timing") === "map" && (
-                  <div className="min-h-[80vw] bg-[#10101a] flex flex-col md:flex-1 md:min-w-0">
-                    {mapShowWeather && (
-                      <div className="shrink-0 border-b border-panel">
-                        {weather.isError ? (
-                          <ErrorMessage
-                            message="Failed to load weather"
-                            compact
-                          />
-                        ) : (
-                          <WeatherPanel
-                            entries={weather.data ?? []}
-                            sessionKey={sessionKey}
-                            sessionTimeMs={t}
-                            sessionStartMs={sessionStartMs}
-                          />
-                        )}
-                      </div>
-                    )}
-                    <div className="relative flex-1 min-h-[64vw]">
-                      <EventToastStack
-                        toasts={toasts}
-                        drivers={drivers.data ?? []}
-                        onDismiss={dismiss}
-                        radioAutoplay={settingToastRadioAutoplay}
-                        soundsEnabled={toastSoundsEnabled}
-                        maxVisible={notificationMaxVisible}
-                        layout="overlay"
-                      />
-                      {drivers.isError ? (
-                        <ErrorMessage message="Failed to load driver data" />
-                      ) : (
-                        <Suspense fallback={<PanelFallback />}>
-                          {trackMap}
-                        </Suspense>
-                      )}
-                      {isLoadingSessionData && (
-                        <span className="absolute top-2 right-2 text-f1red text-[10px] animate-pulse">
-                          Loading…
-                        </span>
-                      )}
-                    </div>
-                  </div>
+                  <TrackerMapPane
+                    variant="mobile"
+                    weatherSection={trackerMapWeatherSection}
+                    toastOverlay={trackerMapToastOverlay}
+                    mapContent={trackMapContent}
+                    isLoadingSessionData={isLoadingSessionData}
+                  />
                 )}
 
                 {(trackerTab ?? "timing") === "strategy" && (
@@ -1760,20 +1759,11 @@ export default function RaceWeekend() {
               />
 
               {/* Track map — fills remaining width */}
-              <div className="flex-1 min-w-0 bg-[#10101a] flex flex-col">
-                <div className="relative flex-1 min-h-0">
-                  {drivers.isError ? (
-                    <ErrorMessage message="Failed to load driver data" />
-                  ) : (
-                    <Suspense fallback={<PanelFallback />}>{trackMap}</Suspense>
-                  )}
-                  {isLoadingSessionData && (
-                    <span className="absolute top-2 right-2 text-f1red text-[10px] animate-pulse">
-                      Loading…
-                    </span>
-                  )}
-                </div>
-              </div>
+              <TrackerMapPane
+                variant="desktop"
+                mapContent={trackMapContent}
+                isLoadingSessionData={isLoadingSessionData}
+              />
             </div>
           </div>
         </div>
