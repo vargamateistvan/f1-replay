@@ -46,13 +46,13 @@ const FLAG_CONFIG: Record<
   CLEAR: { label: "CLEAR", bar: "bg-green-600", text: "text-green-300" },
 };
 
-const DEFAULT_CONFIG = { label: "", bar: "bg-[#2a2a35]", text: "text-muted" };
+const DEFAULT_CONFIG = { label: "", bar: "bg-track", text: "text-muted" };
 
 const SEVERITY_BADGE: Record<
   RaceControlSeverity,
   { label: string; cls: string }
 > = {
-  info: { label: "Info", cls: "bg-[#2a2a35] text-gray-300" },
+  info: { label: "Info", cls: "bg-track text-white/80" },
   warning: { label: "Warn", cls: "bg-amber-500/20 text-amber-300" },
   critical: { label: "Critical", cls: "bg-red-500/20 text-red-300" },
 };
@@ -288,7 +288,7 @@ export function RaceControlFeed({
       )}
 
       {/* ── Filter toolbar ─────────────────────────────────────── */}
-      <div className="shrink-0 flex flex-wrap items-center gap-1 px-2 py-1.5 border-b border-[#2a2a35] bg-track">
+      <div className="shrink-0 flex flex-wrap items-center gap-1 px-2 py-1.5 border-b border-panel bg-track">
         {KIND_GROUPS.map((g) => (
           <button
             key={g.key}
@@ -297,8 +297,8 @@ export function RaceControlFeed({
             aria-pressed={activeGroups.has(g.key)}
             className={`h-6 px-2 text-[9px] font-black uppercase tracking-widest rounded transition-colors ${
               activeGroups.has(g.key)
-                ? "bg-[#38383f] text-white"
-                : "bg-[#1e1e28] text-muted"
+                ? "bg-panel text-white"
+                : "bg-track text-muted"
             }`}
           >
             {g.label}
@@ -311,7 +311,7 @@ export function RaceControlFeed({
           className={`h-6 px-2 text-[9px] font-black uppercase tracking-widest rounded transition-colors ml-1 ${
             showPenalties
               ? "bg-amber-500/20 text-amber-300 border border-amber-500/40"
-              : "bg-[#1e1e28] text-muted"
+              : "bg-track text-muted"
           }`}
         >
           Tracker
@@ -326,7 +326,7 @@ export function RaceControlFeed({
                 `race_control_${sessionKey}.csv`,
               );
             }}
-            className="h-6 px-2 text-[9px] font-black uppercase tracking-widest rounded transition-colors bg-[#1e1e28] text-muted hover:text-white hover:bg-[#38383f]"
+            className="h-6 px-2 text-[9px] font-black uppercase tracking-widest rounded transition-colors bg-track text-muted hover:text-white hover:bg-panel"
             aria-label="Export race control CSV"
           >
             Export CSV
@@ -337,14 +337,14 @@ export function RaceControlFeed({
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           placeholder="Search…"
-          className="ml-auto h-6 px-2 text-[10px] bg-[#1e1e28] text-white placeholder:text-muted border border-[#2a2a35] rounded outline-none focus:border-[#5a5a6a] w-24"
+          className="ml-auto h-6 px-2 text-[10px] bg-track text-white placeholder:text-muted border border-panel rounded outline-none focus:border-muted w-24"
         />
       </div>
 
       {/* ── Driver focus banner ────────────────────────────────── */}
       {focusDriver !== null && (
         <div
-          className="shrink-0 flex items-center gap-2 px-2 py-1 border-b border-[#2a2a35] bg-[#18181f]"
+          className="shrink-0 flex items-center gap-2 px-2 py-1 border-b border-panel bg-track"
           style={{
             borderLeft: `3px solid #${focusedDriver?.team_colour ?? "e8002d"}`,
           }}
@@ -368,8 +368,8 @@ export function RaceControlFeed({
 
       {/* ── Penalty / investigation tracker ───────────────────── */}
       {showPenalties && (
-        <div className="shrink-0 border-b border-[#2a2a35]">
-          <div className="px-2 py-1 text-[9px] font-black uppercase tracking-widest text-muted bg-[#1a1a24]">
+        <div className="shrink-0 border-b border-panel">
+          <div className="px-2 py-1 text-[9px] font-black uppercase tracking-widest text-muted bg-surface">
             Penalty Tracker
           </div>
           {penaltyStates.length === 0 ? (
@@ -377,7 +377,7 @@ export function RaceControlFeed({
               No incidents in view
             </div>
           ) : (
-            <div className="divide-y divide-[#2a2a35]">
+            <div className="divide-y divide-panel">
               {penaltyStates.map((ps) => {
                 const d = driverMap.get(ps.driverNumber);
                 const cfg = PENALTY_STATUS_CONFIG[ps.status];
@@ -424,11 +424,11 @@ export function RaceControlFeed({
           </div>
         )}
         {hasMoreEvents && (
-          <div className="px-2 py-1.5 border-b border-[#2a2a35] bg-[#171721] sticky top-0 z-20">
+          <div className="px-2 py-1.5 border-b border-panel bg-surface sticky top-0 z-20">
             <button
               type="button"
               onClick={() => setRenderLimit((prev) => prev + RENDER_STEP)}
-              className="h-6 px-2 text-[9px] font-black uppercase tracking-widest rounded transition-colors bg-[#1e1e28] text-muted hover:text-white hover:bg-[#38383f]"
+              className="h-6 px-2 text-[9px] font-black uppercase tracking-widest rounded transition-colors bg-track text-muted hover:text-white hover:bg-panel"
             >
               Load older ({totalFilteredEvents - renderLimit} hidden)
             </button>
@@ -449,7 +449,7 @@ export function RaceControlFeed({
           return (
             <div key={group.lapNumber ?? "session"} className="mb-0.5">
               {/* Lap/phase header */}
-              <div className="sticky top-0 z-10 px-2 py-0.5 bg-[#1a1a24] border-b border-[#2a2a35] text-[9px] font-black uppercase tracking-widest text-muted select-none">
+              <div className="sticky top-0 z-10 px-2 py-0.5 bg-surface border-b border-panel text-[9px] font-black uppercase tracking-widest text-muted select-none">
                 {headerText}
               </div>
               {/* Events in this lap/phase — reverse so newest is first within the group */}
@@ -465,8 +465,8 @@ export function RaceControlFeed({
                 return (
                   <div
                     key={e.id}
-                    className={`flex gap-2 px-2 py-1.5 text-xs border-b border-[#2a2a35] ${
-                      eventDriver ? "bg-[#18181f]" : ""
+                    className={`flex gap-2 px-2 py-1.5 text-xs border-b border-panel ${
+                      eventDriver ? "bg-track" : ""
                     }`}
                     style={
                       eventDriver
