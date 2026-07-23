@@ -37,6 +37,9 @@ interface SplitRow {
   s2: number | null;
   s3: number | null;
   lap: number | null;
+  i1: number | null;
+  i2: number | null;
+  st: number | null;
 }
 
 interface LapMeta {
@@ -647,6 +650,9 @@ export default function Telemetry() {
           s2: lap.duration_sector_2,
           s3: lap.duration_sector_3,
           lap: lap.lap_duration,
+          i1: lap.i1_speed,
+          i2: lap.i2_speed,
+          st: lap.st_speed,
         },
       ];
     });
@@ -670,11 +676,19 @@ export default function Telemetry() {
       return nums.length ? Math.min(...nums) : null;
     };
 
+    const max = (vals: (number | null)[]) => {
+      const nums = vals.filter((v): v is number => v !== null);
+      return nums.length ? Math.max(...nums) : null;
+    };
+
     return {
       s1: min(splitRows.map((r) => r.s1)),
       s2: min(splitRows.map((r) => r.s2)),
       s3: min(splitRows.map((r) => r.s3)),
       lap: min(splitRows.map((r) => r.lap)),
+      i1: max(splitRows.map((r) => r.i1)),
+      i2: max(splitRows.map((r) => r.i2)),
+      st: max(splitRows.map((r) => r.st)),
     };
   }, [splitRows]);
 
@@ -1662,14 +1676,29 @@ function SplitsTable({
     s2: number | null;
     s3: number | null;
     lap: number | null;
+    i1: number | null;
+    i2: number | null;
+    st: number | null;
   };
 }) {
   if (rows.length === 0) return null;
 
+  const { metricSystem } = useSettings();
+  const speedUnit = speedUnitLabel(metricSystem);
+
   const fmt = (v: number | null) => (v === null ? "-" : v.toFixed(3));
   const fmtLap = (v: number | null) => formatLapTime(v);
-  const cls = (v: number | null, best: number | null) =>
+  const fmtSpeed = (v: number | null) =>
+    v === null ? "-" : `${Math.round(toDisplaySpeed(v, metricSystem))}`;
+  // Lower sector time = better (min wins); higher speed = better (max wins)
+  const clsMin = (v: number | null, best: number | null) =>
     v !== null && best !== null && v === best ? "text-[#b48ead]" : "text-white";
+  const clsMax = (v: number | null, best: number | null) =>
+    v !== null && best !== null && v === best ? "text-[#88c0d0]" : "text-white";
+
+  const hasSpeedData = rows.some(
+    (r) => r.i1 !== null || r.i2 !== null || r.st !== null,
+  );
 
   return (
     <div className={PANEL}>
@@ -1683,6 +1712,18 @@ function SplitsTable({
             <th className="px-3 py-1 text-right">S2</th>
             <th className="px-3 py-1 text-right">S3</th>
             <th className="px-3 py-1 text-right">Lap</th>
+            {hasSpeedData && (
+              <>
+                <th className="px-3 py-1 text-right text-[#88c0d0]">I1</th>
+                <th className="px-3 py-1 text-right text-[#88c0d0]">I2</th>
+                <th
+                  className="px-3 py-1 text-right text-[#88c0d0]"
+                  title={`Speed trap (${speedUnit})`}
+                >
+                  ST
+                </th>
+              </>
+            )}
           </tr>
         </thead>
 
@@ -1701,32 +1742,60 @@ function SplitsTable({
                 {r.lapNo}
               </td>
               <td
-                className={`px-3 py-1 text-right tabular-nums ${cls(r.s1, fastest.s1)}`}
+                className={`px-3 py-1 text-right tabular-nums ${clsMin(r.s1, fastest.s1)}`}
               >
                 {fmt(r.s1)}
               </td>
               <td
-                className={`px-3 py-1 text-right tabular-nums ${cls(r.s2, fastest.s2)}`}
+                className={`px-3 py-1 text-right tabular-nums ${clsMin(r.s2, fastest.s2)}`}
               >
                 {fmt(r.s2)}
               </td>
               <td
-                className={`px-3 py-1 text-right tabular-nums ${cls(r.s3, fastest.s3)}`}
+                className={`px-3 py-1 text-right tabular-nums ${clsMin(r.s3, fastest.s3)}`}
               >
                 {fmt(r.s3)}
               </td>
               <td
-                className={`px-3 py-1 text-right tabular-nums font-bold ${cls(
+                className={`px-3 py-1 text-right tabular-nums font-bold ${clsMin(
                   r.lap,
                   fastest.lap,
                 )}`}
               >
                 {fmtLap(r.lap)}
               </td>
+              {hasSpeedData && (
+                <>
+                  <td
+                    className={`px-3 py-1 text-right tabular-nums ${clsMax(r.i1, fastest.i1)}`}
+                    title="Intermediate 1 speed"
+                  >
+                    {fmtSpeed(r.i1)}
+                  </td>
+                  <td
+                    className={`px-3 py-1 text-right tabular-nums ${clsMax(r.i2, fastest.i2)}`}
+                    title="Intermediate 2 speed"
+                  >
+                    {fmtSpeed(r.i2)}
+                  </td>
+                  <td
+                    className={`px-3 py-1 text-right tabular-nums ${clsMax(r.st, fastest.st)}`}
+                    title={`Speed trap (${speedUnit})`}
+                  >
+                    {fmtSpeed(r.st)}
+                  </td>
+                </>
+              )}
             </tr>
           ))}
         </tbody>
       </table>
+      {hasSpeedData && (
+        <p className="px-3 py-1 text-[10px] text-[#636369]">
+          I1 / I2 = intermediate speeds · ST = speed trap · unit: {speedUnit} ·
+          cyan = fastest
+        </p>
+      )}
     </div>
   );
 }

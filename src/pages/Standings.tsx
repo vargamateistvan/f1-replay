@@ -56,6 +56,20 @@ function DriverTooltip({ active, payload }: TooltipProps<DriverStanding>) {
       <div className="text-muted">{d.team}</div>
       <div className="mt-1">
         <span className="text-white font-bold">{d.points}</span> pts
+        {d.pointsDelta != null && (
+          <span
+            className={`ml-2 text-[10px] ${
+              d.pointsDelta > 0
+                ? "text-emerald-400"
+                : d.pointsDelta < 0
+                  ? "text-red-400"
+                  : "text-[#636369]"
+            }`}
+          >
+            {d.pointsDelta > 0 ? "+" : ""}
+            {d.pointsDelta} this race
+          </span>
+        )}
       </div>
       <div className="text-muted">
         {d.wins} wins · {d.podiums} podiums
@@ -125,7 +139,17 @@ function DriverTable({ standings }: { standings: DriverStanding[] }) {
           {standings.map((s) => (
             <tr key={s.driverNumber} className="border-b border-[#2a2a35]">
               <td className="py-3 px-3 font-black text-sm tabular-nums">
-                {s.position}
+                <span>{s.position}</span>
+                {s.positionChange != null && s.positionChange !== 0 && (
+                  <span
+                    className={`ml-1 text-[10px] font-normal ${
+                      s.positionChange > 0 ? "text-emerald-400" : "text-red-400"
+                    }`}
+                  >
+                    {s.positionChange > 0 ? "▲" : "▼"}
+                    {Math.abs(s.positionChange)}
+                  </span>
+                )}
               </td>
               <td className="py-3 px-3">
                 <span className="flex items-center gap-2">
@@ -149,6 +173,20 @@ function DriverTable({ standings }: { standings: DriverStanding[] }) {
               </td>
               <td className="py-3 px-3 text-right font-mono tabular-nums font-bold text-sm">
                 {s.points}
+                {s.pointsDelta != null && (
+                  <span
+                    className={`ml-1 text-[10px] font-normal ${
+                      s.pointsDelta > 0
+                        ? "text-emerald-400"
+                        : s.pointsDelta < 0
+                          ? "text-red-400"
+                          : "text-[#636369]"
+                    }`}
+                  >
+                    {s.pointsDelta > 0 ? "+" : ""}
+                    {s.pointsDelta}
+                  </span>
+                )}
               </td>
               <td className="py-3 px-3 text-right font-mono tabular-nums text-muted text-xs hidden sm:table-cell">
                 {s.wins}
@@ -238,7 +276,17 @@ function ConstructorTable({ standings }: { standings: ConstructorStanding[] }) {
           {standings.map((s) => (
             <tr key={s.name} className="border-b border-[#2a2a35]">
               <td className="py-3 px-3 font-black text-sm tabular-nums">
-                {s.position}
+                <span>{s.position}</span>
+                {s.positionChange != null && s.positionChange !== 0 && (
+                  <span
+                    className={`ml-1 text-[10px] font-normal ${
+                      s.positionChange > 0 ? "text-emerald-400" : "text-red-400"
+                    }`}
+                  >
+                    {s.positionChange > 0 ? "▲" : "▼"}
+                    {Math.abs(s.positionChange)}
+                  </span>
+                )}
               </td>
               <td className="py-3 px-3">
                 <span className="flex items-center gap-2">
@@ -256,6 +304,20 @@ function ConstructorTable({ standings }: { standings: ConstructorStanding[] }) {
               </td>
               <td className="py-3 px-3 text-right font-mono tabular-nums font-bold text-sm">
                 {s.points}
+                {s.pointsDelta != null && (
+                  <span
+                    className={`ml-1 text-[10px] font-normal ${
+                      s.pointsDelta > 0
+                        ? "text-emerald-400"
+                        : s.pointsDelta < 0
+                          ? "text-red-400"
+                          : "text-[#636369]"
+                    }`}
+                  >
+                    {s.pointsDelta > 0 ? "+" : ""}
+                    {s.pointsDelta}
+                  </span>
+                )}
               </td>
               <td className="py-3 px-3 text-right font-mono tabular-nums text-muted text-xs hidden sm:table-cell">
                 {s.wins}

@@ -152,6 +152,8 @@ export function useStandings(year: number) {
           points: d.points_current,
           wins: fallback?.wins ?? 0,
           podiums: fallback?.podiums ?? 0,
+          pointsDelta: d.points_current - d.points_start,
+          positionChange: d.position_start - d.position_current,
         };
       });
   }, [
@@ -184,6 +186,8 @@ export function useStandings(year: number) {
           color: mappedColor ?? fallback?.color ?? "#888",
           points: c.points_current,
           wins: fallback?.wins ?? 0,
+          pointsDelta: c.points_current - c.points_start,
+          positionChange: c.position_start - c.position_current,
         };
       });
   }, [
