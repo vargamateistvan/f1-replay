@@ -76,10 +76,10 @@ type SlotKey = "a" | "b" | "c";
 
 const PANEL = "bg-surface border border-panel";
 const PANEL_TITLE =
-  "text-[10px] font-bold text-muted px-3 py-2 border-b border-[#38383f] uppercase tracking-[0.12em] border-l-2 border-l-f1red bg-track";
+  "text-[10px] font-bold text-muted px-3 py-2 border-b border-panel uppercase tracking-[0.12em] border-l-2 border-l-f1red bg-track";
 const LABEL = "text-[10px] font-bold uppercase tracking-widest text-muted";
 const SELECT =
-  "bg-[#191922] text-white border border-[#3b3b49] text-xs font-medium px-3 py-2 focus:outline-none focus:border-[#66667a] transition-colors";
+  "bg-track text-white border border-panel text-xs font-medium px-3 py-2 focus:outline-none focus:border-muted transition-colors";
 const SLOT_COLORS = ["#e8002d", "#0067ff", "#23c552"];
 const EMPTY_SECTOR_WINS: SectorWins = {
   s1: false,
@@ -778,7 +778,7 @@ export default function Telemetry() {
   return (
     <div className="relative flex flex-col md:h-full md:overflow-hidden">
       {isLoadingEventSession && (
-        <div className="absolute inset-0 z-40 flex items-center justify-center bg-[#0b0c12]/86 backdrop-blur-sm">
+        <div className="absolute inset-0 z-40 flex items-center justify-center bg-black/80 backdrop-blur-sm">
           <div className="mx-4 w-full max-w-sm rounded border border-panel bg-surface px-4 py-4 text-center shadow-2xl">
             <div className="text-f1red text-[11px] font-black uppercase tracking-[0.16em] animate-pulse">
               Loading Event
@@ -800,7 +800,7 @@ export default function Telemetry() {
         <div className="mb-3 flex flex-wrap items-center gap-2">
           <button
             onClick={applyBestToAll}
-            className="h-[34px] border border-[#4f4f65] bg-[#191922] px-3 text-[10px] font-black uppercase tracking-widest text-white transition-colors hover:border-f1red"
+            className="h-[34px] border border-panel bg-track px-3 text-[10px] font-black uppercase tracking-widest text-white transition-colors hover:border-f1red"
             title="Pick each selected driver's best recorded lap"
           >
             Best all
@@ -808,7 +808,7 @@ export default function Telemetry() {
 
           <button
             onClick={syncOtherLapsToA}
-            className="h-[34px] border border-[#4f4f65] bg-[#191922] px-3 text-[10px] font-black uppercase tracking-widest text-white transition-colors hover:border-f1red"
+            className="h-[34px] border border-panel bg-track px-3 text-[10px] font-black uppercase tracking-widest text-white transition-colors hover:border-f1red"
             title="Use Driver A lap number for Driver B and Driver C"
           >
             Sync to A
@@ -831,7 +831,7 @@ export default function Telemetry() {
             className={`h-[34px] border px-3 text-[10px] font-black uppercase tracking-widest transition-colors ${
               activeMode === "race"
                 ? "border-[#9bc9ff] bg-[#1a2639] text-white shadow-[0_0_0_1px_rgba(155,201,255,0.35),0_0_24px_rgba(0,103,255,0.3)]"
-                : "border-[#4f4f65] bg-[#191922] text-white hover:border-[#95b7ff]"
+                : "border-panel bg-track text-white hover:border-[#95b7ff]"
             }`}
             title="Race mode: latest laps + raw traces"
           >
@@ -878,7 +878,7 @@ export default function Telemetry() {
                 return nextValue;
               });
             }}
-            className="h-7 border border-[#4f4f65] bg-[#191922] px-2 text-[10px] font-black uppercase tracking-widest text-white transition-colors hover:border-[#95b7ff]"
+            className="h-7 border border-panel bg-track px-2 text-[10px] font-black uppercase tracking-widest text-white transition-colors hover:border-[#95b7ff]"
             aria-expanded={isCardsAccordionOpen}
             title={
               isCardsAccordionOpen
@@ -1730,10 +1730,7 @@ function SplitsTable({
 
         <tbody>
           {rows.map((r) => (
-            <tr
-              key={`${r.num}-${r.lapNo}`}
-              className="border-t border-[#2a2a35]"
-            >
+            <tr key={`${r.num}-${r.lapNo}`} className="border-t border-panel">
               <td className="px-3 py-1">
                 <span className="font-black" style={{ color: r.color }}>
                   {r.acr}

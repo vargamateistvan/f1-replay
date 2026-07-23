@@ -114,7 +114,7 @@ function DriverTable({ standings }: { standings: DriverStanding[] }) {
     <div className="overflow-auto">
       <table className="w-full border-collapse">
         <thead>
-          <tr className="sticky top-0 bg-track z-10 border-b border-[#38383f]">
+          <tr className="sticky top-0 bg-track z-10 border-b border-panel">
             <th className="text-left py-2 px-3 text-[10px] font-bold uppercase tracking-widest text-[#636369] w-8">
               P
             </th>
@@ -137,7 +137,7 @@ function DriverTable({ standings }: { standings: DriverStanding[] }) {
         </thead>
         <tbody>
           {standings.map((s) => (
-            <tr key={s.driverNumber} className="border-b border-[#2a2a35]">
+            <tr key={s.driverNumber} className="border-b border-panel">
               <td className="py-3 px-3 font-black text-sm tabular-nums">
                 <span>{s.position}</span>
                 {s.positionChange != null && s.positionChange !== 0 && (
@@ -215,7 +215,7 @@ function DriverChart({ standings }: { standings: DriverStanding[] }) {
         margin={{ top: 4, right: 48, left: 56, bottom: 4 }}
         barSize={14}
       >
-        <CartesianGrid horizontal={false} stroke="#2a2a35" />
+        <CartesianGrid horizontal={false} stroke="rgb(var(--color-panel))" />
         <XAxis
           type="number"
           domain={[0, maxPts]}
@@ -257,7 +257,7 @@ function ConstructorTable({ standings }: { standings: ConstructorStanding[] }) {
     <div className="overflow-auto">
       <table className="w-full border-collapse">
         <thead>
-          <tr className="sticky top-0 bg-track z-10 border-b border-[#38383f]">
+          <tr className="sticky top-0 bg-track z-10 border-b border-panel">
             <th className="text-left py-2 px-3 text-[10px] font-bold uppercase tracking-widest text-[#636369] w-8">
               P
             </th>
@@ -274,7 +274,7 @@ function ConstructorTable({ standings }: { standings: ConstructorStanding[] }) {
         </thead>
         <tbody>
           {standings.map((s) => (
-            <tr key={s.name} className="border-b border-[#2a2a35]">
+            <tr key={s.name} className="border-b border-panel">
               <td className="py-3 px-3 font-black text-sm tabular-nums">
                 <span>{s.position}</span>
                 {s.positionChange != null && s.positionChange !== 0 && (
@@ -343,7 +343,7 @@ function ConstructorChart({ standings }: { standings: ConstructorStanding[] }) {
         margin={{ top: 4, right: 48, left: 8, bottom: 4 }}
         barSize={18}
       >
-        <CartesianGrid horizontal={false} stroke="#2a2a35" />
+        <CartesianGrid horizontal={false} stroke="rgb(var(--color-panel))" />
         <XAxis
           type="number"
           domain={[0, maxPts]}
@@ -404,7 +404,7 @@ export default function Standings() {
         <select
           value={year}
           onChange={(e) => setYear(Number(e.target.value))}
-          className="bg-panel text-white border border-[#38383f] text-xs font-medium px-3 py-1.5 focus:outline-none"
+          className="bg-panel text-white border border-panel text-xs font-medium px-3 py-1.5 focus:outline-none"
         >
           {YEARS.map((y) => (
             <option key={y} value={y}>
