@@ -3,7 +3,12 @@ import type { ReactNode } from "react";
 import { ErrorMessage } from "@/components/ErrorMessage";
 import { useTimeline } from "@/timeline/clock";
 import type { ToastEvent } from "@/timeline/events";
-import { buildRaceChapters, computeWhatChanged } from "@/timeline/raceControl";
+import {
+  buildRaceChapters,
+  computeWhatChanged,
+  normalizeRaceControl,
+  buildPhaseAtMsLookup,
+} from "@/timeline/raceControl";
 import type {
   Driver,
   Lap,
@@ -83,6 +88,7 @@ type Props = {
   incidentWindows: IncidentWindow[];
   sessionKey: number | null;
   sessionYear: number | null;
+  sessionType: string | undefined;
   sessionTimeMs: number;
   sessionStartMs: number;
   toastEvents: ToastEvent[];
@@ -106,6 +112,7 @@ type RenderContext = Readonly<{
   laps: Lap[];
   sessionKey: number | null;
   sessionYear: number | null;
+  sessionType: string | undefined;
   sessionTimeMs: number;
   sessionStartMs: number;
   showAllItems: boolean;
@@ -115,6 +122,7 @@ type RenderContext = Readonly<{
   raceChapters: ReturnType<typeof buildRaceChapters>;
   whatChangedSnapshots: ReturnType<typeof computeWhatChanged>;
   onPlayWindow: (startMs: number, endMs: number) => void;
+  phaseLookup: (ms: number) => number | null;
 }>;
 
 function renderCommentaryTabContent(ctx: RenderContext): ReactNode {
@@ -127,6 +135,7 @@ function renderCommentaryTabContent(ctx: RenderContext): ReactNode {
           <RaceControlFeed
             entries={ctx.raceControlEntries}
             sessionKey={ctx.sessionKey}
+            sessionType={ctx.sessionType}
             sessionTimeMs={ctx.sessionTimeMs}
             sessionStartMs={ctx.sessionStartMs}
             showAllItems={ctx.showAllItems}
@@ -148,11 +157,13 @@ function renderCommentaryTabContent(ctx: RenderContext): ReactNode {
             entries={ctx.teamRadioEntries}
             sessionKey={ctx.sessionKey}
             sessionYear={ctx.sessionYear}
+            sessionType={ctx.sessionType}
             drivers={ctx.drivers}
             laps={ctx.laps}
             sessionTimeMs={ctx.sessionTimeMs}
             sessionStartMs={ctx.sessionStartMs}
             showAllItems={ctx.showAllItems}
+            phaseLookup={ctx.phaseLookup}
           />
         </Suspense>
       );
@@ -165,10 +176,12 @@ function renderCommentaryTabContent(ctx: RenderContext): ReactNode {
           <PitFeed
             entries={ctx.pitEntries}
             sessionKey={ctx.sessionKey}
+            sessionType={ctx.sessionType}
             drivers={ctx.drivers}
             sessionTimeMs={ctx.sessionTimeMs}
             sessionStartMs={ctx.sessionStartMs}
             showAllItems={ctx.showAllItems}
+            phaseLookup={ctx.phaseLookup}
           />
         </Suspense>
       );
@@ -181,11 +194,13 @@ function renderCommentaryTabContent(ctx: RenderContext): ReactNode {
           <OvertakeFeed
             entries={ctx.overtakeEntries}
             sessionKey={ctx.sessionKey}
+            sessionType={ctx.sessionType}
             drivers={ctx.drivers}
             laps={ctx.laps}
             sessionTimeMs={ctx.sessionTimeMs}
             sessionStartMs={ctx.sessionStartMs}
             showAllItems={ctx.showAllItems}
+            phaseLookup={ctx.phaseLookup}
           />
         </Suspense>
       );
@@ -195,10 +210,12 @@ function renderCommentaryTabContent(ctx: RenderContext): ReactNode {
         <Suspense fallback={<PanelFallback />}>
           <KeyMoments
             moments={ctx.keyMoments}
+            sessionType={ctx.sessionType}
             laps={ctx.laps}
             sessionStartMs={ctx.sessionStartMs}
             sessionTimeMs={ctx.sessionTimeMs}
             showAllItems={ctx.showAllItems}
+            phaseLookup={ctx.phaseLookup}
             onJump={(ms) => useTimeline.getState().setT(ms)}
           />
         </Suspense>
@@ -210,11 +227,13 @@ function renderCommentaryTabContent(ctx: RenderContext): ReactNode {
           <RaceChapters
             chapters={ctx.raceChapters}
             snapshots={ctx.whatChangedSnapshots}
+            sessionType={ctx.sessionType}
             drivers={ctx.drivers}
             laps={ctx.laps}
             sessionStartMs={ctx.sessionStartMs}
             sessionTimeMs={ctx.sessionTimeMs}
             showAllItems={ctx.showAllItems}
+            phaseLookup={ctx.phaseLookup}
             onJump={(ms) => useTimeline.getState().setT(ms)}
             onPlayWindow={ctx.onPlayWindow}
           />
@@ -242,6 +261,7 @@ export function CommentaryPanels({
   incidentWindows,
   sessionKey,
   sessionYear,
+  sessionType,
   sessionTimeMs,
   sessionStartMs,
   toastEvents,
@@ -330,6 +350,14 @@ export function CommentaryPanels({
     shouldBuildChapters,
   ]);
 
+  const phaseLookup = useMemo(() => {
+    if (!sessionStartMs || !raceControlEntries.length) {
+      return () => null;
+    }
+    const normalized = normalizeRaceControl(raceControlEntries, sessionStartMs);
+    return buildPhaseAtMsLookup(normalized);
+  }, [raceControlEntries, sessionStartMs]);
+
   return renderCommentaryTabContent({
     commentaryTab,
     raceControlError,
@@ -344,6 +372,7 @@ export function CommentaryPanels({
     laps,
     sessionKey,
     sessionYear,
+    sessionType,
     sessionTimeMs,
     sessionStartMs,
     showAllItems,
@@ -353,5 +382,6 @@ export function CommentaryPanels({
     raceChapters,
     whatChangedSnapshots,
     onPlayWindow,
+    phaseLookup,
   });
 }

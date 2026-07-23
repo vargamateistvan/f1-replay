@@ -9,10 +9,12 @@ import { upperBoundByValue } from "@/utils/sortedTime";
 interface Props {
   readonly entries: Pit[];
   readonly sessionKey?: number | null;
+  readonly sessionType?: string;
   readonly drivers: Driver[];
   readonly sessionTimeMs: number;
   readonly sessionStartMs: number;
   readonly showAllItems?: boolean;
+  readonly phaseLookup?: (ms: number) => number | null;
 }
 
 type VisiblePitEntry = {
@@ -38,10 +40,12 @@ function fmtSessionTime(ms: number) {
 export function PitFeed({
   entries,
   sessionKey = null,
+  sessionType,
   drivers,
   sessionTimeMs,
   sessionStartMs,
   showAllItems = false,
+  phaseLookup = () => null,
 }: Props) {
   const showCsvExportButtons = useSettings((s) => s.showCsvExportButtons);
   const [renderLimit, setRenderLimit] = useState(120);
@@ -77,9 +81,17 @@ export function PitFeed({
   const hasMore = visible.length < visibleAll.length;
 
   const lapGroups = useMemo<LapGroup[]>(() => {
+    const isQualifying = sessionType?.toLowerCase().includes("qualifying");
     const groups: LapGroup[] = [];
+
     for (const item of visible) {
-      const lapNumber = item.entry.lap_number ?? null;
+      let lapNumber: number | null;
+      if (isQualifying) {
+        lapNumber = phaseLookup(item.dateMs - sessionStartMs);
+      } else {
+        lapNumber = item.entry.lap_number ?? null;
+      }
+
       const current = groups.at(-1);
       if (current?.lapNumber !== lapNumber) {
         groups.push({ lapNumber, entries: [item] });
@@ -88,7 +100,7 @@ export function PitFeed({
       }
     }
     return groups;
-  }, [visible]);
+  }, [visible, sessionType, phaseLookup, sessionStartMs]);
 
   if (visible.length === 0) {
     return (
@@ -121,56 +133,65 @@ export function PitFeed({
         </div>
       )}
 
-      {lapGroups.map((group) => (
-        <div key={group.lapNumber ?? "session"} className="mb-0.5">
-          <div className="sticky top-0 z-10 border-b border-[#2a2a35] bg-[#1a1a24] px-2 py-0.5 text-[9px] font-black uppercase tracking-widest text-muted select-none">
-            {group.lapNumber !== null ? `Lap ${group.lapNumber}` : "Session"}
-          </div>
-          {group.entries.map(({ entry, dateMs }, idx) => {
-            const driver = driverByNumber.get(entry.driver_number);
-            const color = teamColor(driver?.team_colour);
-            const ms = dateMs - sessionStartMs;
-            const stop = pitStopTime(entry);
-            const lane = laneDuration(entry);
+      {lapGroups.map((group) => {
+        const isQualifying = sessionType?.toLowerCase().includes("qualifying");
+        const headerText =
+          isQualifying && group.lapNumber !== null
+            ? `Q${group.lapNumber}`
+            : group.lapNumber !== null
+              ? `Lap ${group.lapNumber}`
+              : "Session";
+        return (
+          <div key={group.lapNumber ?? "session"} className="mb-0.5">
+            <div className="sticky top-0 z-10 border-b border-[#2a2a35] bg-[#1a1a24] px-2 py-0.5 text-[9px] font-black uppercase tracking-widest text-muted select-none">
+              {headerText}
+            </div>
+            {group.entries.map(({ entry, dateMs }, idx) => {
+              const driver = driverByNumber.get(entry.driver_number);
+              const color = teamColor(driver?.team_colour);
+              const ms = dateMs - sessionStartMs;
+              const stop = pitStopTime(entry);
+              const lane = laneDuration(entry);
 
-            return (
-              <div
-                key={`${entry.driver_number}-${entry.lap_number}-${entry.date}-${idx}`}
-                className="flex items-center gap-3 border-b border-[#2a2a35] px-2 py-2.5 text-xs transition-colors hover:bg-white/[0.04]"
-              >
-                <span className="w-10 shrink-0 text-[10px] font-mono tabular-nums text-muted">
-                  {fmtSessionTime(ms)}
-                </span>
-                <span className="shrink-0 bg-[#f5a623] px-1.5 py-0.5 text-[8px] font-black uppercase tracking-widest text-black">
-                  Pit
-                </span>
-                <div className="min-w-0 flex-1">
-                  <div
-                    className="truncate text-[11px] font-bold"
-                    style={{ color }}
-                  >
-                    {driver?.name_acronym ?? entry.driver_number}
+              return (
+                <div
+                  key={`${entry.driver_number}-${entry.lap_number}-${entry.date}-${idx}`}
+                  className="flex items-center gap-3 border-b border-[#2a2a35] px-2 py-2.5 text-xs transition-colors hover:bg-white/[0.04]"
+                >
+                  <span className="w-10 shrink-0 text-[10px] font-mono tabular-nums text-muted">
+                    {fmtSessionTime(ms)}
+                  </span>
+                  <span className="shrink-0 bg-[#f5a623] px-1.5 py-0.5 text-[8px] font-black uppercase tracking-widest text-black">
+                    Pit
+                  </span>
+                  <div className="min-w-0 flex-1">
+                    <div
+                      className="truncate text-[11px] font-bold"
+                      style={{ color }}
+                    >
+                      {driver?.name_acronym ?? entry.driver_number}
+                    </div>
+                    <div className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-[10px] text-muted">
+                      <span>Lap {entry.lap_number}</span>
+                      {stop !== null && (
+                        <span className="font-mono tabular-nums text-white/90">
+                          Stop {stop.toFixed(1)}s
+                        </span>
+                      )}
+                      {lane !== null && (
+                        <span className="font-mono tabular-nums text-white/70">
+                          Lane {lane.toFixed(1)}s
+                        </span>
+                      )}
+                    </div>
                   </div>
-                  <div className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-[10px] text-muted">
-                    <span>Lap {entry.lap_number}</span>
-                    {stop !== null && (
-                      <span className="font-mono tabular-nums text-white/90">
-                        Stop {stop.toFixed(1)}s
-                      </span>
-                    )}
-                    {lane !== null && (
-                      <span className="font-mono tabular-nums text-white/70">
-                        Lane {lane.toFixed(1)}s
-                      </span>
-                    )}
-                  </div>
+                  <span className="shrink-0 text-muted text-[10px]">›</span>
                 </div>
-                <span className="shrink-0 text-muted text-[10px]">›</span>
-              </div>
-            );
-          })}
-        </div>
-      ))}
+              );
+            })}
+          </div>
+        );
+      })}
       {hasMore && (
         <div className="flex justify-center pt-1">
           <button

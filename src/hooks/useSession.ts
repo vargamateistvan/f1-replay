@@ -58,10 +58,11 @@ export function useLaps(
   sessionKey: number | null,
   driverNumber?: number,
   isLive = false,
+  filters?: Record<string, unknown>,
 ) {
   return useQuery({
-    queryKey: ["laps", sessionKey, driverNumber],
-    queryFn: () => api.laps(sessionKey!, driverNumber),
+    queryKey: ["laps", sessionKey, driverNumber, filters],
+    queryFn: () => api.laps(sessionKey!, driverNumber, filters),
     enabled: sessionKey !== null,
     staleTime: isLive ? 0 : Infinity,
     // Laps update less frequently than position/interval timing rows.

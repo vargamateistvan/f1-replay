@@ -1986,6 +1986,7 @@ export default function RaceWeekend() {
                 incidentWindows={incidentWindows}
                 sessionKey={sessionKey}
                 sessionYear={session?.year ?? null}
+                sessionType={session?.session_type}
                 sessionTimeMs={t}
                 sessionStartMs={sessionStartMs}
                 toastEvents={toastEvents}

@@ -203,7 +203,8 @@ export default function Telemetry() {
 
   const sessions = useSessions(meetingKey);
   const drivers = useDrivers(sessionKey);
-  const laps = useLaps(sessionKey);
+  // Filter pit-out laps server-side to reduce bandwidth
+  const laps = useLaps(sessionKey, undefined, false, { is_pit_out_lap: false });
 
   const selectedLapA = lapA ?? sharedLap;
   const selectedLapB = lapB ?? sharedLap;

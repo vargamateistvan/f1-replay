@@ -289,11 +289,13 @@ interface Props {
   snapshots: WhatChangedSnapshot[];
   drivers: Driver[];
   laps?: Lap[];
+  sessionType?: string;
   sessionStartMs?: number;
   sessionTimeMs: number;
   showAllItems?: boolean;
   onJump: (ms: number) => void;
   onPlayWindow?: (startMs: number, endMs: number) => void;
+  phaseLookup?: (ms: number) => number | null;
 }
 
 type ChapterGroup = {
@@ -306,11 +308,13 @@ export function RaceChapters({
   snapshots,
   drivers,
   laps = [],
+  sessionType,
   sessionStartMs = 0,
   sessionTimeMs,
   showAllItems = false,
   onJump,
   onPlayWindow,
+  phaseLookup = () => null,
 }: Props) {
   const [incidentOnly, setIncidentOnly] = useState(false);
   const lapLookup = useMemo(
@@ -331,9 +335,17 @@ export function RaceChapters({
   );
 
   const chapterGroups = useMemo<ChapterGroup[]>(() => {
+    const isQualifying = sessionType?.toLowerCase().includes("qualifying");
     const groups: ChapterGroup[] = [];
+
     for (const chapter of visibleChapters) {
-      const lapNumber = lapNumberAtMs(lapLookup, chapter.startMs);
+      let lapNumber: number | null;
+      if (isQualifying) {
+        lapNumber = phaseLookup(chapter.startMs);
+      } else {
+        lapNumber = lapNumberAtMs(lapLookup, chapter.startMs);
+      }
+
       const current = groups.at(-1);
       if (current?.lapNumber !== lapNumber) {
         groups.push({ lapNumber, chapters: [chapter] });
@@ -347,7 +359,7 @@ export function RaceChapters({
         chapters: [...group.chapters].reverse(),
       }))
       .reverse();
-  }, [visibleChapters, lapLookup]);
+  }, [visibleChapters, lapLookup, sessionType, phaseLookup]);
 
   if (chapters.length === 0) {
     return (
@@ -392,7 +404,16 @@ export function RaceChapters({
             className="mb-0.5"
           >
             <div className="sticky top-9 z-10 border-b border-[#2a2a35] bg-[#1a1a24] px-2 py-0.5 text-[9px] font-black uppercase tracking-widest text-muted select-none">
-              {group.lapNumber !== null ? `Lap ${group.lapNumber}` : "Session"}
+              {(() => {
+                const isQualifying = sessionType
+                  ?.toLowerCase()
+                  .includes("qualifying");
+                return isQualifying && group.lapNumber !== null
+                  ? `Q${group.lapNumber}`
+                  : group.lapNumber !== null
+                    ? `Lap ${group.lapNumber}`
+                    : "Session";
+              })()}
             </div>
             {group.chapters.map((ch) => {
               const snapshot =

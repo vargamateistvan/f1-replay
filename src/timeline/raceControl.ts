@@ -30,6 +30,7 @@ export interface NormalizedRaceControlEvent {
   category: string;
   title: string;
   description: string;
+  qualifyingPhase: number | null;
   raw: RaceControl;
 }
 
@@ -284,6 +285,7 @@ export function normalizeRaceControl(
       category: entry.category,
       title: titleFor(entry, kind, flagKey),
       description,
+      qualifyingPhase: entry.qualifying_phase,
       raw: entry,
     });
   }
@@ -457,6 +459,37 @@ export function groupEventsByLap(
     if (a.lapNumber === null) return -1;
     if (b.lapNumber === null) return 1;
     return a.lapNumber - b.lapNumber;
+  });
+}
+
+export interface PhaseGroup {
+  phase: number | null;
+  events: NormalizedRaceControlEvent[];
+}
+
+/**
+ * Group normalized events by qualifying phase (Q1/Q2/Q3).
+ * For non-qualifying sessions, all events are in phase null.
+ * Returns groups sorted descending (phase 3 → 1 → null).
+ */
+export function groupEventsByPhase(
+  events: NormalizedRaceControlEvent[],
+): PhaseGroup[] {
+  const grouped = new Map<string, PhaseGroup>();
+  for (const e of events) {
+    const key =
+      e.qualifyingPhase !== null ? String(e.qualifyingPhase) : "session";
+    let group = grouped.get(key);
+    if (!group) {
+      group = { phase: e.qualifyingPhase, events: [] };
+      grouped.set(key, group);
+    }
+    group.events.push(e);
+  }
+  return [...grouped.values()].sort((a, b) => {
+    if (a.phase === null) return 1;
+    if (b.phase === null) return -1;
+    return b.phase - a.phase; // Descending: Q3, Q2, Q1
   });
 }
 
@@ -733,4 +766,38 @@ export function computeWhatChanged(
   }
 
   return snapshots;
+}
+
+// ─── Phase lookup for non-race-control events ─────────────────────────────────
+// For team radio, overtakes, and other commentary tabs in qualifying, determine
+// which qualifying phase (Q1, Q2, Q3) a timestamp falls into.
+
+export function buildPhaseAtMsLookup(
+  events: NormalizedRaceControlEvent[],
+): (ms: number) => number | null {
+  // Build a timeline of phase transitions, sorted by timestamp
+  const transitions: Array<{ ms: number; phase: number | null }> = [];
+  const seen = new Set<number | null>();
+
+  for (const e of events) {
+    if (e.qualifyingPhase !== null && !seen.has(e.qualifyingPhase)) {
+      transitions.push({ ms: e.ms, phase: e.qualifyingPhase });
+      seen.add(e.qualifyingPhase);
+    }
+  }
+
+  transitions.sort((a, b) => a.ms - b.ms);
+
+  // Return a function that finds the phase at a given timestamp
+  return (ms: number): number | null => {
+    let phase: number | null = null;
+    for (const t of transitions) {
+      if (t.ms <= ms) {
+        phase = t.phase;
+      } else {
+        break;
+      }
+    }
+    return phase;
+  };
 }

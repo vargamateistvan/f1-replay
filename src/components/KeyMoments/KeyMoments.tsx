@@ -6,10 +6,12 @@ import { buildLapLookup, lapNumberAtMs } from "@/utils/lapLookup";
 interface Props {
   moments: KeyMoment[];
   laps?: Lap[];
+  sessionType?: string;
   sessionStartMs?: number;
   sessionTimeMs: number;
   showAllItems?: boolean;
   onJump: (ms: number) => void;
+  phaseLookup?: (ms: number) => number | null;
 }
 
 type MomentGroup = {
@@ -41,10 +43,12 @@ function fmtMs(ms: number): string {
 export function KeyMoments({
   moments,
   laps = [],
+  sessionType,
   sessionStartMs = 0,
   sessionTimeMs,
   showAllItems = false,
   onJump,
+  phaseLookup = () => null,
 }: Readonly<Props>) {
   const visibleMoments = useMemo(
     () =>
@@ -60,9 +64,17 @@ export function KeyMoments({
   );
 
   const momentGroups = useMemo<MomentGroup[]>(() => {
+    const isQualifying = sessionType?.toLowerCase().includes("qualifying");
     const groups: MomentGroup[] = [];
+
     for (const moment of visibleMoments) {
-      const lapNumber = lapNumberAtMs(lapLookup, moment.ms);
+      let lapNumber: number | null;
+      if (isQualifying) {
+        lapNumber = phaseLookup(moment.ms);
+      } else {
+        lapNumber = lapNumberAtMs(lapLookup, moment.ms);
+      }
+
       const current = groups.at(-1);
       if (current?.lapNumber !== lapNumber) {
         groups.push({ lapNumber, moments: [moment] });
@@ -76,7 +88,7 @@ export function KeyMoments({
         moments: [...group.moments].reverse(),
       }))
       .reverse();
-  }, [visibleMoments, lapLookup]);
+  }, [visibleMoments, lapLookup, sessionType, phaseLookup]);
 
   if (visibleMoments.length === 0) {
     return (
@@ -94,7 +106,16 @@ export function KeyMoments({
           className="mb-0.5"
         >
           <div className="sticky top-0 z-10 border-b border-[#2a2a35] bg-[#1a1a24] px-2 py-0.5 text-[9px] font-black uppercase tracking-widest text-muted select-none">
-            {group.lapNumber !== null ? `Lap ${group.lapNumber}` : "Session"}
+            {(() => {
+              const isQualifying = sessionType
+                ?.toLowerCase()
+                .includes("qualifying");
+              return isQualifying && group.lapNumber !== null
+                ? `Q${group.lapNumber}`
+                : group.lapNumber !== null
+                  ? `Lap ${group.lapNumber}`
+                  : "Session";
+            })()}
           </div>
           {group.moments.map((m, i) => {
             const cfg = KIND_CONFIG[m.kind];

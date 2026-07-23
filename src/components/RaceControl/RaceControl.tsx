@@ -7,8 +7,10 @@ import {
   toFlagKey,
   buildPenaltyStates,
   groupEventsByLap,
+  groupEventsByPhase,
   type RaceControlSeverity,
   type RaceControlKind,
+  type PhaseGroup,
 } from "@/timeline/raceControl";
 
 // ─── Visual config ───────────────────────────────────────────────────────────
@@ -109,6 +111,7 @@ function sectorBadge(entry: {
 interface Props {
   readonly entries: RaceControlEntry[];
   readonly sessionKey?: number | null;
+  readonly sessionType?: string;
   readonly sessionTimeMs: number;
   readonly sessionStartMs: number;
   readonly showAllItems?: boolean;
@@ -122,6 +125,7 @@ interface Props {
 export function RaceControlFeed({
   entries,
   sessionKey = null,
+  sessionType,
   sessionTimeMs,
   sessionStartMs,
   showAllItems = false,
@@ -197,11 +201,24 @@ export function RaceControlFeed({
     [visibleEntries, enabledKinds, focusDriver, search],
   );
 
-  // Lap groups — descending so newest is on top
-  const lapGroups = useMemo(
-    () => groupEventsByLap(filteredEntries).reverse(),
-    [filteredEntries],
-  );
+  // Lap/phase groups — descending so newest is on top
+  const lapGroups = useMemo(() => {
+    const isQualifying = sessionType?.toLowerCase().includes("qualifying");
+
+    if (isQualifying) {
+      // For qualifying, group by phase (Q1, Q2, Q3)
+      const phaseGroups = groupEventsByPhase(filteredEntries);
+      return phaseGroups
+        .map((pg) => ({
+          lapNumber: pg.phase,
+          events: pg.events,
+        }))
+        .reverse(); // Reverse so Q3 is on top
+    }
+
+    // For race/sprint, group by lap
+    return groupEventsByLap(filteredEntries).reverse();
+  }, [filteredEntries, sessionType]);
 
   useEffect(() => {
     setRenderLimit(INITIAL_RENDER_LIMIT);
@@ -418,74 +435,89 @@ export function RaceControlFeed({
             </button>
           </div>
         )}
-        {visibleLapGroups.map((group) => (
-          <div key={group.lapNumber ?? "session"} className="mb-0.5">
-            {/* Lap header */}
-            <div className="sticky top-0 z-10 px-2 py-0.5 bg-[#1a1a24] border-b border-[#2a2a35] text-[9px] font-black uppercase tracking-widest text-muted select-none">
-              {group.lapNumber !== null ? `Lap ${group.lapNumber}` : "Session"}
-            </div>
-            {/* Events in this lap — reverse so newest is first within the lap */}
-            {[...group.events].reverse().map((e) => {
-              const cfg = FLAG_CONFIG[toFlagKey(e.flag)] ?? DEFAULT_CONFIG;
-              const sector = sectorBadge(e);
-              const severity = SEVERITY_BADGE[e.severity];
-              const typeLabel = e.kind.replace(/_/g, " ");
-              const eventDriver =
-                e.driverNumber !== null ? driverMap.get(e.driverNumber) : null;
-              return (
-                <div
-                  key={e.id}
-                  className={`flex gap-2 px-2 py-1.5 text-xs border-b border-[#2a2a35] ${
-                    eventDriver ? "bg-[#18181f]" : ""
-                  }`}
-                  style={
-                    eventDriver
-                      ? {
-                          borderLeft: `2px solid #${eventDriver.team_colour}`,
-                        }
-                      : undefined
-                  }
-                >
-                  {/* Left column: flag label + driver acronym + severity + kind */}
-                  <div className="flex shrink-0 flex-col items-start gap-0.5 w-[4.5rem]">
-                    {e.flag && (
+        {visibleLapGroups.map((group) => {
+          const isQualifying = sessionType
+            ?.toLowerCase()
+            .includes("qualifying");
+          const headerText = isQualifying
+            ? group.lapNumber !== null
+              ? `Q${group.lapNumber}`
+              : "Session"
+            : group.lapNumber !== null
+              ? `Lap ${group.lapNumber}`
+              : "Session";
+
+          return (
+            <div key={group.lapNumber ?? "session"} className="mb-0.5">
+              {/* Lap/phase header */}
+              <div className="sticky top-0 z-10 px-2 py-0.5 bg-[#1a1a24] border-b border-[#2a2a35] text-[9px] font-black uppercase tracking-widest text-muted select-none">
+                {headerText}
+              </div>
+              {/* Events in this lap/phase — reverse so newest is first within the group */}
+              {[...group.events].reverse().map((e) => {
+                const cfg = FLAG_CONFIG[toFlagKey(e.flag)] ?? DEFAULT_CONFIG;
+                const sector = sectorBadge(e);
+                const severity = SEVERITY_BADGE[e.severity];
+                const typeLabel = e.kind.replace(/_/g, " ");
+                const eventDriver =
+                  e.driverNumber !== null
+                    ? driverMap.get(e.driverNumber)
+                    : null;
+                return (
+                  <div
+                    key={e.id}
+                    className={`flex gap-2 px-2 py-1.5 text-xs border-b border-[#2a2a35] ${
+                      eventDriver ? "bg-[#18181f]" : ""
+                    }`}
+                    style={
+                      eventDriver
+                        ? {
+                            borderLeft: `2px solid #${eventDriver.team_colour}`,
+                          }
+                        : undefined
+                    }
+                  >
+                    {/* Left column: flag label + driver acronym + severity + kind */}
+                    <div className="flex shrink-0 flex-col items-start gap-0.5 w-[4.5rem]">
+                      {e.flag && (
+                        <span
+                          className={`font-black text-[10px] uppercase tracking-widest ${cfg.text}`}
+                        >
+                          {cfg.label || e.flag}
+                        </span>
+                      )}
+                      {eventDriver && (
+                        <span
+                          className="font-black text-[10px] uppercase tracking-widest"
+                          style={{ color: `#${eventDriver.team_colour}` }}
+                        >
+                          {eventDriver.name_acronym}
+                        </span>
+                      )}
                       <span
-                        className={`font-black text-[10px] uppercase tracking-widest ${cfg.text}`}
+                        className={`rounded px-1 py-0.5 text-[8px] font-black uppercase tracking-widest ${severity.cls}`}
                       >
-                        {cfg.label || e.flag}
+                        {severity.label}
                       </span>
-                    )}
-                    {eventDriver && (
-                      <span
-                        className="font-black text-[10px] uppercase tracking-widest"
-                        style={{ color: `#${eventDriver.team_colour}` }}
-                      >
-                        {eventDriver.name_acronym}
-                      </span>
-                    )}
-                    <span
-                      className={`rounded px-1 py-0.5 text-[8px] font-black uppercase tracking-widest ${severity.cls}`}
-                    >
-                      {severity.label}
-                    </span>
-                    <span className="rounded bg-panel px-1 py-0.5 text-[8px] font-black uppercase tracking-widest text-muted">
-                      {typeLabel}
-                    </span>
-                    {sector && (
                       <span className="rounded bg-panel px-1 py-0.5 text-[8px] font-black uppercase tracking-widest text-muted">
-                        {sector}
+                        {typeLabel}
                       </span>
-                    )}
+                      {sector && (
+                        <span className="rounded bg-panel px-1 py-0.5 text-[8px] font-black uppercase tracking-widest text-muted">
+                          {sector}
+                        </span>
+                      )}
+                    </div>
+                    {/* Message */}
+                    <span className="flex-1 text-white/90 leading-snug text-[11px]">
+                      {e.description}
+                    </span>
                   </div>
-                  {/* Message */}
-                  <span className="flex-1 text-white/90 leading-snug text-[11px]">
-                    {e.description}
-                  </span>
-                </div>
-              );
-            })}
-          </div>
-        ))}
+                );
+              })}
+            </div>
+          );
+        })}
       </div>
     </div>
   );
