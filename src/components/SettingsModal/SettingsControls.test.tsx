@@ -31,6 +31,8 @@ vi.mock("@/stores/settings", () => ({
     toastRadioAutoplay: false,
     toastSoundsEnabled: false,
     toastFlag: true,
+    toastInvestigation: true,
+    toastPenalty: true,
     toastOvertake: true,
     toastPit: true,
     toastFastestLap: true,

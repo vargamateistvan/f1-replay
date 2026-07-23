@@ -523,7 +523,7 @@ export function SettingsBody() {
         disabled={!settings.toastsEnabled}
       />
       <SettingRow
-        label="Flags & race control"
+        label="Flags"
         checked={settings.toastFlag}
         onChange={toggle("toastFlag")}
         disabled={!settings.toastsEnabled}
@@ -533,6 +533,13 @@ export function SettingsBody() {
         description="Show race control investigation toasts"
         checked={settings.toastInvestigation}
         onChange={toggle("toastInvestigation")}
+        disabled={!settings.toastsEnabled}
+      />
+      <SettingRow
+        label="Penalties"
+        description="Show penalty and warning race control toasts"
+        checked={settings.toastPenalty}
+        onChange={toggle("toastPenalty")}
         disabled={!settings.toastsEnabled}
       />
       <SettingRow

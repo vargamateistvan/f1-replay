@@ -10,6 +10,7 @@ export interface AppSettings {
   toastSoundsEnabled: boolean;
   toastFlag: boolean;
   toastInvestigation: boolean;
+  toastPenalty: boolean;
   toastOvertake: boolean;
   toastPit: boolean;
   toastFastestLap: boolean;
@@ -106,6 +107,7 @@ export const SETTINGS_DEFAULTS: AppSettings = {
   toastSoundsEnabled: false,
   toastFlag: true,
   toastInvestigation: true,
+  toastPenalty: true,
   toastOvertake: true,
   toastPit: true,
   toastFastestLap: true,
