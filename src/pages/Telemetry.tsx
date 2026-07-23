@@ -1682,9 +1682,9 @@ function SplitsTable({
     st: number | null;
   };
 }) {
-  if (rows.length === 0) return null;
-
   const { metricSystem } = useSettings();
+
+  if (rows.length === 0) return null;
   const speedUnit = speedUnitLabel(metricSystem);
 
   const fmt = (v: number | null) => (v === null ? "-" : v.toFixed(3));

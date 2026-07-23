@@ -21,7 +21,7 @@ import type {
 } from "./types";
 
 type QueryValue = string | number | boolean;
-type QueryFilters = Record<string, QueryValue>;
+export type QueryFilters = Record<string, QueryValue>;
 
 export const api = {
   meetings: (year: number) => fetchEndpoint<Meeting>("meetings", { year }),

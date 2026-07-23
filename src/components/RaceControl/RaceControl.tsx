@@ -10,7 +10,6 @@ import {
   groupEventsByPhase,
   type RaceControlSeverity,
   type RaceControlKind,
-  type PhaseGroup,
 } from "@/timeline/raceControl";
 
 // ─── Visual config ───────────────────────────────────────────────────────────

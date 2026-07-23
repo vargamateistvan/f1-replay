@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { api } from "@/api/endpoints";
+import { api, type QueryFilters } from "@/api/endpoints";
 import { LIVE_POLL_FAST_MS, LIVE_POLL_SLOW_MS } from "@/utils/live";
 
 export function useMeetings(
@@ -58,7 +58,7 @@ export function useLaps(
   sessionKey: number | null,
   driverNumber?: number,
   isLive = false,
-  filters?: Record<string, unknown>,
+  filters?: QueryFilters,
 ) {
   return useQuery({
     queryKey: ["laps", sessionKey, driverNumber, filters],
