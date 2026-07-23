@@ -87,6 +87,10 @@ import { RaceWeekendSessionHeader } from "./raceWeekend/RaceWeekendSessionHeader
 import { TrackerTabBar, type TrackerTab } from "./raceWeekend/TrackerTabBar";
 import { TrackerStrategyContent } from "./raceWeekend/TrackerStrategyContent";
 import { CommentaryTabBar } from "./raceWeekend/CommentaryTabBar";
+import {
+  TrackerFocusedTelemetryPanel,
+  TrackerTimingPanel,
+} from "./raceWeekend/TrackerTimingPanels";
 import type { MainView } from "@/components/Nav";
 import type {
   Stint,
@@ -1377,6 +1381,26 @@ export default function RaceWeekend() {
     />
   );
 
+  const focusedTelemetryPanel =
+    focusDriver !== null ? (
+      <Suspense fallback={<PanelFallback />}>
+        <FocusedTelemetry
+          sessionKey={sessionKey}
+          driver={
+            drivers.data?.find((d) => d.driver_number === focusDriver) ?? null
+          }
+          compareDriver={
+            drivers.data?.find((d) => d.driver_number === compareDriver) ?? null
+          }
+          sessionStartMs={sessionStartMs}
+          driverLap={focusDriverLap}
+          compareDriverLap={compareDriverLap}
+          onClear={clearFocusSelection}
+          onClearCompare={() => setFocusSelection(focusDriver, null)}
+        />
+      </Suspense>
+    ) : null;
+
   const trackMap = (
     <TrackMap
       sessionKey={sessionKey}
@@ -1552,41 +1576,13 @@ export default function RaceWeekend() {
               <div className="flex flex-col md:flex-1 md:min-h-0 md:overflow-hidden">
                 {(trackerTab ?? "timing") === "timing" && (
                   <>
-                    {/* Timing tower */}
-                    <div className="flex flex-col md:flex-1 md:min-h-0 md:overflow-hidden">
-                      {positions.isError ? (
-                        <ErrorMessage message="Failed to load timing data" />
-                      ) : (
-                        timingTower
-                      )}
-                    </div>
-                    {/* Focused telemetry */}
-                    {focusDriver !== null && (
-                      <div className="shrink-0 border-t border-panel">
-                        <Suspense fallback={<PanelFallback />}>
-                          <FocusedTelemetry
-                            sessionKey={sessionKey}
-                            driver={
-                              drivers.data?.find(
-                                (d) => d.driver_number === focusDriver,
-                              ) ?? null
-                            }
-                            compareDriver={
-                              drivers.data?.find(
-                                (d) => d.driver_number === compareDriver,
-                              ) ?? null
-                            }
-                            sessionStartMs={sessionStartMs}
-                            driverLap={focusDriverLap}
-                            compareDriverLap={compareDriverLap}
-                            onClear={clearFocusSelection}
-                            onClearCompare={() =>
-                              setFocusSelection(focusDriver, null)
-                            }
-                          />
-                        </Suspense>
-                      </div>
-                    )}
+                    <TrackerTimingPanel
+                      hasTimingError={positions.isError}
+                      timingTower={timingTower}
+                    />
+                    <TrackerFocusedTelemetryPanel
+                      telemetry={focusedTelemetryPanel}
+                    />
                   </>
                 )}
 
@@ -1702,12 +1698,12 @@ export default function RaceWeekend() {
 
                 {/* Panel content */}
                 <div className="flex-1 min-h-0 flex flex-col overflow-hidden">
-                  {(trackerTab ?? "timing") === "timing" &&
-                    (positions.isError ? (
-                      <ErrorMessage message="Failed to load timing data" />
-                    ) : (
-                      timingTower
-                    ))}
+                  {(trackerTab ?? "timing") === "timing" && (
+                    <TrackerTimingPanel
+                      hasTimingError={positions.isError}
+                      timingTower={timingTower}
+                    />
+                  )}
                   {(trackerTab ?? "timing") === "strategy" && (
                     <TrackerStrategyContent>
                       <Suspense fallback={<PanelFallback />}>
@@ -1750,32 +1746,9 @@ export default function RaceWeekend() {
                 </div>
 
                 {/* Focused driver telemetry */}
-                {focusDriver !== null && (
-                  <div className="shrink-0 border-t border-panel">
-                    <Suspense fallback={<PanelFallback />}>
-                      <FocusedTelemetry
-                        sessionKey={sessionKey}
-                        driver={
-                          drivers.data?.find(
-                            (d) => d.driver_number === focusDriver,
-                          ) ?? null
-                        }
-                        compareDriver={
-                          drivers.data?.find(
-                            (d) => d.driver_number === compareDriver,
-                          ) ?? null
-                        }
-                        sessionStartMs={sessionStartMs}
-                        driverLap={focusDriverLap}
-                        compareDriverLap={compareDriverLap}
-                        onClear={clearFocusSelection}
-                        onClearCompare={() =>
-                          setFocusSelection(focusDriver, null)
-                        }
-                      />
-                    </Suspense>
-                  </div>
-                )}
+                <TrackerFocusedTelemetryPanel
+                  telemetry={focusedTelemetryPanel}
+                />
               </div>
 
               <ResizeHandle
