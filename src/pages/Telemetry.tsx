@@ -1037,7 +1037,7 @@ export default function Telemetry() {
               disabled={!sessionKey}
             />
 
-            <div className="h-full lg:h-[248px] rounded border border-[#353548] bg-[#10111a] p-1.5 flex flex-col">
+            <div className="h-full lg:h-[248px] rounded border border-panel bg-track p-1.5 flex flex-col">
               <div className="mb-1 flex items-center gap-1.5">
                 <span className="text-[10px] font-black uppercase tracking-[0.15em] text-muted">
                   Track position preview
@@ -1046,7 +1046,7 @@ export default function Telemetry() {
               </div>
 
               {trackPreview ? (
-                <div className="relative min-h-[112px] flex-1 overflow-hidden rounded border border-panel bg-[#0b1020]">
+                <div className="relative min-h-[112px] flex-1 overflow-hidden rounded border border-panel bg-track">
                   <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_25%_20%,rgba(39,68,158,0.2),transparent_45%),radial-gradient(circle_at_85%_80%,rgba(232,0,45,0.1),transparent_40%)]" />
                   <svg
                     viewBox={`0 0 ${TRACK_SVG_W} ${TRACK_SVG_H}`}
@@ -1098,7 +1098,7 @@ export default function Telemetry() {
                   </svg>
                 </div>
               ) : (
-                <div className="flex min-h-[112px] flex-1 items-center justify-center rounded border border-panel bg-[#10111a] px-3 text-center text-xs text-muted">
+                <div className="flex min-h-[112px] flex-1 items-center justify-center rounded border border-panel bg-track px-3 text-center text-xs text-muted">
                   Select Driver A and a valid lap to draw the track.
                 </div>
               )}
@@ -1122,7 +1122,7 @@ export default function Telemetry() {
 
       <div
         className={`panel-scroll space-y-2 border-t border-panel px-3 pb-3 pt-1 ${
-          lightMode ? "bg-[#edf1f9]" : "bg-[#11131c]"
+          lightMode ? "bg-[#edf1f9]" : "bg-track"
         }`}
       >
         {(() => {
@@ -1374,10 +1374,10 @@ function DriverLapCard({
   const avatarLabel = driverTag.toUpperCase().slice(0, 3);
 
   return (
-    <div className="h-full lg:h-[248px] rounded border border-[#353548] bg-[#10111a] p-1.5">
+    <div className="h-full lg:h-[248px] rounded border border-panel bg-track p-1.5">
       <div className="mb-1.5 flex items-center justify-between gap-1.5">
         <div className="flex min-w-0 items-center gap-2">
-          <div className="relative h-7 w-7 shrink-0 overflow-hidden rounded border border-[#444458] bg-[#171925]">
+          <div className="relative h-7 w-7 shrink-0 overflow-hidden rounded border border-panel bg-surface">
             {hasHeadshot ? (
               <img
                 src={safeHeadshotUrl}
@@ -1433,7 +1433,7 @@ function DriverLapCard({
             className={`rounded border px-1.5 py-0.5 text-[9px] font-black uppercase tracking-[0.1em] ${
               sectorWins.total > 0
                 ? "border-[#5f4c7c] bg-[#251a35] text-[#d4b7ff] animate-[pulse_0.45s_ease-out_1]"
-                : "border-[#444458] bg-[#151723] text-muted"
+                : "border-panel bg-surface text-muted"
             }`}
             title="Total sector wins for selected lap"
           >
@@ -1475,7 +1475,7 @@ function DriverLapCard({
           <button
             onClick={onBest}
             disabled={driver === null || bestLap === null}
-            className="h-6 border border-[#46465a] bg-[#181a24] px-2 text-[10px] font-bold uppercase tracking-[0.12em] text-white disabled:opacity-50"
+            className="h-6 border border-panel bg-surface px-2 text-[10px] font-bold uppercase tracking-[0.12em] text-white disabled:opacity-50"
             title="Select best valid lap"
           >
             Best {bestLap !== null ? `L${bestLap}` : ""}
@@ -1484,7 +1484,7 @@ function DriverLapCard({
           <button
             onClick={onLatest}
             disabled={driver === null || latestLap === null}
-            className="h-6 border border-[#46465a] bg-[#181a24] px-2 text-[10px] font-bold uppercase tracking-[0.12em] text-white disabled:opacity-50"
+            className="h-6 border border-panel bg-surface px-2 text-[10px] font-bold uppercase tracking-[0.12em] text-white disabled:opacity-50"
             title="Select latest valid lap"
           >
             Latest {latestLap !== null ? `L${latestLap}` : ""}
@@ -1493,7 +1493,7 @@ function DriverLapCard({
       )}
 
       <div className="mt-1.5 flex flex-wrap items-center gap-1">
-        <span className="rounded border border-[#444458] bg-[#151723] px-2 py-1 text-[10px] font-bold uppercase tracking-[0.1em] text-muted">
+        <span className="rounded border border-panel bg-surface px-2 py-1 text-[10px] font-bold uppercase tracking-[0.1em] text-muted">
           {lapMeta.timeText}
         </span>
         <span
@@ -1510,7 +1510,7 @@ function DriverLapCard({
       </div>
 
       {!compact && (
-        <div className="mt-1.5 overflow-hidden rounded border border-[#363648] bg-[#141521]">
+        <div className="mt-1.5 overflow-hidden rounded border border-panel bg-surface">
           <div className="flex items-center justify-between border-b border-[#2d2d3b] px-2 py-1">
             <span className="text-[10px] font-bold uppercase tracking-[0.12em] text-muted">
               Speed trace
@@ -1550,7 +1550,7 @@ function SectorChip({
       className={`rounded border px-1.5 py-0.5 text-[9px] font-black uppercase tracking-[0.1em] ${
         active
           ? "border-[#6f54a2] bg-[#2a1b3f] text-[#dfcbff] animate-[pulse_0.45s_ease-out_1]"
-          : "border-[#444458] bg-[#151723] text-muted"
+          : "border-panel bg-surface text-muted"
       }`}
       title={active ? `${label} winner` : `${label} not quickest`}
     >
