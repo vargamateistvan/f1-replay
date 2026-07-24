@@ -229,175 +229,6 @@ export function UnitSelector({
 export function SettingsBody() {
   const { setSetting, reset, ...settings } = useSettings();
   const isMobileViewport = useMediaQuery("(max-width: 767px)");
-  const trackerTimingColumns = [
-    {
-      key: "trackerTimingShowPosition",
-      label: "P",
-      active: settings.trackerTimingShowPosition,
-    },
-    {
-      key: "trackerTimingShowDriver",
-      label: "Driver",
-      active: settings.trackerTimingShowDriver,
-    },
-    {
-      key: "trackerTimingShowAlerts",
-      label: "Alerts",
-      active: settings.trackerTimingShowAlerts,
-    },
-    {
-      key: "trackerTimingShowBestLap",
-      label: "Best lap",
-      active: settings.trackerTimingShowBestLap,
-    },
-    {
-      key: "trackerTimingShowLastLap",
-      label: "Last lap",
-      active: settings.trackerTimingShowLastLap,
-    },
-    {
-      key: "trackerTimingShowGap",
-      label: "Gap",
-      active: settings.trackerTimingShowGap,
-    },
-    {
-      key: "trackerTimingShowInterval",
-      label: "Interval",
-      active: settings.trackerTimingShowInterval,
-    },
-    {
-      key: "trackerTimingShowS1",
-      label: "S1",
-      active: settings.trackerTimingShowS1,
-    },
-    {
-      key: "trackerTimingShowS2",
-      label: "S2",
-      active: settings.trackerTimingShowS2,
-    },
-    {
-      key: "trackerTimingShowS3",
-      label: "S3",
-      active: settings.trackerTimingShowS3,
-    },
-    {
-      key: "trackerTimingShowPosDelta",
-      label: "Pos",
-      active: settings.trackerTimingShowPosDelta,
-    },
-    {
-      key: "trackerTimingShowTyre",
-      label: "Tyre",
-      active: settings.trackerTimingShowTyre,
-    },
-    {
-      key: "trackerTimingShowPit",
-      label: "Pit",
-      active: settings.trackerTimingShowPit,
-    },
-    {
-      key: "trackerTimingShowLap",
-      label: "Lap",
-      active: settings.trackerTimingShowLap,
-    },
-    {
-      key: "trackerTimingShowSpeed",
-      label: "Speed",
-      active: settings.trackerTimingShowSpeed,
-    },
-    {
-      key: "trackerTimingShowGear",
-      label: "Gear",
-      active: settings.trackerTimingShowGear,
-    },
-    {
-      key: "trackerTimingShowRpm",
-      label: "RPM",
-      active: settings.trackerTimingShowRpm,
-    },
-    {
-      key: "trackerTimingShowThrBrk",
-      label: "Thr/Brk",
-      active: settings.trackerTimingShowThrBrk,
-    },
-    {
-      key: "trackerTimingShowDrs",
-      label: "DRS",
-      active: settings.trackerTimingShowDrs,
-    },
-  ] as const;
-  const mobileTimingColumns = [
-    {
-      key: "timingMobileShowPosition",
-      label: "P",
-      active: settings.timingMobileShowPosition,
-    },
-    {
-      key: "timingMobileShowDriver",
-      label: "Driver",
-      active: settings.timingMobileShowDriver,
-    },
-    {
-      key: "timingMobileShowAlerts",
-      label: "Alerts",
-      active: settings.timingMobileShowAlerts,
-    },
-    {
-      key: "timingMobileShowBestLap",
-      label: "Best lap",
-      active: settings.timingMobileShowBestLap,
-    },
-    {
-      key: "timingMobileShowLastLap",
-      label: "Last lap",
-      active: settings.timingMobileShowLastLap,
-    },
-    {
-      key: "timingMobileShowGap",
-      label: "Gap",
-      active: settings.timingMobileShowGap,
-    },
-    {
-      key: "timingMobileShowInterval",
-      label: "Interval",
-      active: settings.timingMobileShowInterval,
-    },
-    {
-      key: "timingMobileShowS1",
-      label: "S1",
-      active: settings.timingMobileShowS1,
-    },
-    {
-      key: "timingMobileShowS2",
-      label: "S2",
-      active: settings.timingMobileShowS2,
-    },
-    {
-      key: "timingMobileShowS3",
-      label: "S3",
-      active: settings.timingMobileShowS3,
-    },
-    {
-      key: "timingMobileShowPosDelta",
-      label: "Pos",
-      active: settings.timingMobileShowPosDelta,
-    },
-    {
-      key: "timingMobileShowTyre",
-      label: "Tyre",
-      active: settings.timingMobileShowTyre,
-    },
-    {
-      key: "timingMobileShowPitCount",
-      label: "Pit",
-      active: settings.timingMobileShowPitCount,
-    },
-    {
-      key: "timingMobileShowLap",
-      label: "Lap",
-      active: settings.timingMobileShowLap,
-    },
-  ] as const;
 
   function updateSetting<K extends keyof AppSettings>(
     key: K,
@@ -413,6 +244,254 @@ export function SettingsBody() {
   function toggle(key: keyof AppSettings) {
     return (v: boolean) => updateSetting(key, v as AppSettings[typeof key]);
   }
+
+  const trackerSectorsActive =
+    settings.trackerTimingShowS1 &&
+    settings.trackerTimingShowS2 &&
+    settings.trackerTimingShowS3;
+  const mobileSectorsActive =
+    settings.timingMobileShowS1 &&
+    settings.timingMobileShowS2 &&
+    settings.timingMobileShowS3;
+
+  const trackerTimingColumns = [
+    {
+      label: "P",
+      active: settings.trackerTimingShowPosition,
+      onToggle: () =>
+        updateSetting(
+          "trackerTimingShowPosition",
+          !settings.trackerTimingShowPosition,
+        ),
+    },
+    {
+      label: "Driver",
+      active: settings.trackerTimingShowDriver,
+      onToggle: () =>
+        updateSetting(
+          "trackerTimingShowDriver",
+          !settings.trackerTimingShowDriver,
+        ),
+    },
+    {
+      label: "Alerts",
+      active: settings.trackerTimingShowAlerts,
+      onToggle: () =>
+        updateSetting(
+          "trackerTimingShowAlerts",
+          !settings.trackerTimingShowAlerts,
+        ),
+    },
+    {
+      label: "Best lap",
+      active: settings.trackerTimingShowBestLap,
+      onToggle: () =>
+        updateSetting(
+          "trackerTimingShowBestLap",
+          !settings.trackerTimingShowBestLap,
+        ),
+    },
+    {
+      label: "Last lap",
+      active: settings.trackerTimingShowLastLap,
+      onToggle: () =>
+        updateSetting(
+          "trackerTimingShowLastLap",
+          !settings.trackerTimingShowLastLap,
+        ),
+    },
+    {
+      label: "Gap",
+      active: settings.trackerTimingShowGap,
+      onToggle: () =>
+        updateSetting("trackerTimingShowGap", !settings.trackerTimingShowGap),
+    },
+    {
+      label: "Interval",
+      active: settings.trackerTimingShowInterval,
+      onToggle: () =>
+        updateSetting(
+          "trackerTimingShowInterval",
+          !settings.trackerTimingShowInterval,
+        ),
+    },
+    {
+      label: "Sectors",
+      active: trackerSectorsActive,
+      onToggle: () => {
+        const next = !trackerSectorsActive;
+        updateSetting("trackerTimingShowS1", next);
+        updateSetting("trackerTimingShowS2", next);
+        updateSetting("trackerTimingShowS3", next);
+      },
+    },
+    {
+      label: "Pos",
+      active: settings.trackerTimingShowPosDelta,
+      onToggle: () =>
+        updateSetting(
+          "trackerTimingShowPosDelta",
+          !settings.trackerTimingShowPosDelta,
+        ),
+    },
+    {
+      label: "Tyre",
+      active: settings.trackerTimingShowTyre,
+      onToggle: () =>
+        updateSetting("trackerTimingShowTyre", !settings.trackerTimingShowTyre),
+    },
+    {
+      label: "Pit",
+      active: settings.trackerTimingShowPit,
+      onToggle: () =>
+        updateSetting("trackerTimingShowPit", !settings.trackerTimingShowPit),
+    },
+    {
+      label: "Lap",
+      active: settings.trackerTimingShowLap,
+      onToggle: () =>
+        updateSetting("trackerTimingShowLap", !settings.trackerTimingShowLap),
+    },
+    {
+      label: "Speed",
+      active: settings.trackerTimingShowSpeed,
+      onToggle: () =>
+        updateSetting(
+          "trackerTimingShowSpeed",
+          !settings.trackerTimingShowSpeed,
+        ),
+    },
+    {
+      label: "Gear",
+      active: settings.trackerTimingShowGear,
+      onToggle: () =>
+        updateSetting("trackerTimingShowGear", !settings.trackerTimingShowGear),
+    },
+    {
+      label: "RPM",
+      active: settings.trackerTimingShowRpm,
+      onToggle: () =>
+        updateSetting("trackerTimingShowRpm", !settings.trackerTimingShowRpm),
+    },
+    {
+      label: "Thr/Brk",
+      active: settings.trackerTimingShowThrBrk,
+      onToggle: () =>
+        updateSetting(
+          "trackerTimingShowThrBrk",
+          !settings.trackerTimingShowThrBrk,
+        ),
+    },
+    {
+      label: "DRS",
+      active: settings.trackerTimingShowDrs,
+      onToggle: () =>
+        updateSetting("trackerTimingShowDrs", !settings.trackerTimingShowDrs),
+    },
+  ] as const;
+
+  const mobileTimingColumns = [
+    {
+      label: "P",
+      active: settings.timingMobileShowPosition,
+      onToggle: () =>
+        updateSetting(
+          "timingMobileShowPosition",
+          !settings.timingMobileShowPosition,
+        ),
+    },
+    {
+      label: "Driver",
+      active: settings.timingMobileShowDriver,
+      onToggle: () =>
+        updateSetting(
+          "timingMobileShowDriver",
+          !settings.timingMobileShowDriver,
+        ),
+    },
+    {
+      label: "Alerts",
+      active: settings.timingMobileShowAlerts,
+      onToggle: () =>
+        updateSetting(
+          "timingMobileShowAlerts",
+          !settings.timingMobileShowAlerts,
+        ),
+    },
+    {
+      label: "Best lap",
+      active: settings.timingMobileShowBestLap,
+      onToggle: () =>
+        updateSetting(
+          "timingMobileShowBestLap",
+          !settings.timingMobileShowBestLap,
+        ),
+    },
+    {
+      label: "Last lap",
+      active: settings.timingMobileShowLastLap,
+      onToggle: () =>
+        updateSetting(
+          "timingMobileShowLastLap",
+          !settings.timingMobileShowLastLap,
+        ),
+    },
+    {
+      label: "Gap",
+      active: settings.timingMobileShowGap,
+      onToggle: () =>
+        updateSetting("timingMobileShowGap", !settings.timingMobileShowGap),
+    },
+    {
+      label: "Interval",
+      active: settings.timingMobileShowInterval,
+      onToggle: () =>
+        updateSetting(
+          "timingMobileShowInterval",
+          !settings.timingMobileShowInterval,
+        ),
+    },
+    {
+      label: "Sectors",
+      active: mobileSectorsActive,
+      onToggle: () => {
+        const next = !mobileSectorsActive;
+        updateSetting("timingMobileShowS1", next);
+        updateSetting("timingMobileShowS2", next);
+        updateSetting("timingMobileShowS3", next);
+      },
+    },
+    {
+      label: "Pos",
+      active: settings.timingMobileShowPosDelta,
+      onToggle: () =>
+        updateSetting(
+          "timingMobileShowPosDelta",
+          !settings.timingMobileShowPosDelta,
+        ),
+    },
+    {
+      label: "Tyre",
+      active: settings.timingMobileShowTyre,
+      onToggle: () =>
+        updateSetting("timingMobileShowTyre", !settings.timingMobileShowTyre),
+    },
+    {
+      label: "Pit",
+      active: settings.timingMobileShowPitCount,
+      onToggle: () =>
+        updateSetting(
+          "timingMobileShowPitCount",
+          !settings.timingMobileShowPitCount,
+        ),
+    },
+    {
+      label: "Lap",
+      active: settings.timingMobileShowLap,
+      onToggle: () =>
+        updateSetting("timingMobileShowLap", !settings.timingMobileShowLap),
+    },
+  ] as const;
 
   return (
     <>
@@ -586,12 +665,10 @@ export function SettingsBody() {
             table
           </div>
           <div className="mt-2 flex flex-wrap gap-1.5">
-            {trackerTimingColumns.map(({ key, label, active }) => (
+            {trackerTimingColumns.map(({ label, active, onToggle }) => (
               <button
-                key={key}
-                onClick={() =>
-                  updateSetting(key, !active as AppSettings[typeof key])
-                }
+                key={label}
+                onClick={onToggle}
                 className={[
                   "text-[10px] font-bold px-2 py-0.5 rounded-sm border transition-all",
                   "focus:outline-none focus-visible:ring-1 focus-visible:ring-white/40",
@@ -623,12 +700,10 @@ export function SettingsBody() {
               Pick which timing columns appear in mobile timing rows
             </div>
             <div className="mt-2 flex flex-wrap gap-1.5">
-              {mobileTimingColumns.map(({ key, label, active }) => (
+              {mobileTimingColumns.map(({ label, active, onToggle }) => (
                 <button
-                  key={key}
-                  onClick={() =>
-                    updateSetting(key, !active as AppSettings[typeof key])
-                  }
+                  key={label}
+                  onClick={onToggle}
                   className={[
                     "text-[10px] font-bold px-2 py-0.5 rounded-sm border transition-all",
                     "focus:outline-none focus-visible:ring-1 focus-visible:ring-white/40",
