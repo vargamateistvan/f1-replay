@@ -74,6 +74,7 @@ import {
   isTrackClearSignal,
 } from "@/utils/raceControlFlags";
 import {
+  isPracticeSession,
   isTimedSession,
   isQualiSession,
   detectQualiPhase,
@@ -1145,6 +1146,10 @@ export default function RaceWeekend() {
     if (totalLapCount === null) return String(currentLap);
     return `${currentLap}/${totalLapCount}`;
   }, [currentLap, totalLapCount]);
+  const isPracticeCommentarySession = useMemo(
+    () => isPracticeSession(session?.session_name ?? ""),
+    [session?.session_name],
+  );
 
   const commentaryTimedPositions = useMemo(() => {
     if (!sessionStartMs || !positions.data?.length) return [];
@@ -1987,10 +1992,12 @@ export default function RaceWeekend() {
           <div className="shrink-0 border-b border-panel bg-surface/70 px-3 py-1.5">
             <div className="flex items-center gap-3">
               <span className="text-[10px] font-black uppercase tracking-[0.12em] text-muted">
-                Lap{" "}
-                <span className="text-white tabular-nums">
-                  {commentaryLapLabel}
-                </span>
+                {isPracticeCommentarySession ? "Session" : "Lap "}
+                {!isPracticeCommentarySession && (
+                  <span className="text-white tabular-nums">
+                    {commentaryLapLabel}
+                  </span>
+                )}
               </span>
               <button
                 type="button"
