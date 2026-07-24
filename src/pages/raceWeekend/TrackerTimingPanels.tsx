@@ -6,8 +6,19 @@ interface TrackerTimingPanelProps {
   timingTower: ReactNode;
 }
 
-interface TrackerFocusedTelemetryPanelProps {
+export interface TrackerFocusedTelemetryPanelProps {
   telemetry: ReactNode;
+}
+
+interface TrackerMobileTimingContentProps {
+  hasTimingError: boolean;
+  timingTower: ReactNode;
+  telemetry: ReactNode;
+}
+
+interface TrackerDesktopTimingContentProps {
+  hasTimingError: boolean;
+  timingTower: ReactNode;
 }
 
 export function TrackerTimingPanel({
@@ -30,4 +41,32 @@ export function TrackerFocusedTelemetryPanel({
 }: Readonly<TrackerFocusedTelemetryPanelProps>) {
   if (!telemetry) return null;
   return <div className="shrink-0 border-t border-panel">{telemetry}</div>;
+}
+
+export function TrackerMobileTimingContent({
+  hasTimingError,
+  timingTower,
+  telemetry,
+}: Readonly<TrackerMobileTimingContentProps>) {
+  return (
+    <>
+      <TrackerTimingPanel
+        hasTimingError={hasTimingError}
+        timingTower={timingTower}
+      />
+      <TrackerFocusedTelemetryPanel telemetry={telemetry} />
+    </>
+  );
+}
+
+export function TrackerDesktopTimingContent({
+  hasTimingError,
+  timingTower,
+}: Readonly<TrackerDesktopTimingContentProps>) {
+  return (
+    <TrackerTimingPanel
+      hasTimingError={hasTimingError}
+      timingTower={timingTower}
+    />
+  );
 }

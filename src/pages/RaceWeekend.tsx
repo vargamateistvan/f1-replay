@@ -1,13 +1,9 @@
-import { lazy, Suspense, useEffect, useMemo, useRef, useState } from "react";
-import { PlaybackBar } from "@/components/PlaybackBar";
-import type {
-  ActiveTrackFlagState,
-  ActiveTrackVehicles,
-} from "@/components/TrackMap/TrackMap";
-import { QualifyingBanner } from "@/components/QualifyingBanner";
-import { StartingLights } from "@/components/StartingLights";
-import { ErrorMessage } from "@/components/ErrorMessage";
-import { FinalClassificationDialog } from "@/components/FinalClassification";
+import { useEffect } from "react";
+import {
+  RaceWeekendFooterPlayback,
+  RaceWeekendMobilePlayback,
+  type SharedPlaybackBarProps,
+} from "@/components/PlaybackBar/RaceWeekendPlayback";
 import {
   useDrivers,
   usePositions,
@@ -28,164 +24,68 @@ import { useTimeline } from "@/timeline/clock";
 import { useCoarseTime } from "@/hooks/useCoarseTime";
 import { useMediaQuery } from "@/hooks/useMediaQuery";
 import { useOpenF1LiveMqtt } from "@/hooks/useOpenF1LiveMqtt";
-import {
-  chunkIndexFor,
-  useLocationChunks,
-  locationChunkIndexFor,
-} from "@/hooks/useLocationChunks";
-import { useAllCarDataWindow } from "@/hooks/useAllCarDataWindow";
+import { useLocationChunks } from "@/hooks/useLocationChunks";
 import { useNumberParam, useStringParam } from "@/hooks/useSearchParamState";
 import { useTimelineUrlSync } from "@/hooks/useTimelineUrlSync";
 import { useKeyboardShortcuts } from "@/hooks/useKeyboardShortcuts";
-import {
-  lapStartTimes,
-  pitTimes,
-  flagTimes,
-  safetyCarTimes,
-  overtakeTimes,
-  radioTimes,
-  buildToastEvents,
-} from "@/timeline/events";
-import {
-  buildRaceControlMarkers,
-  buildIncidentWindows,
-  clusterRaceControlMarkers,
-  deriveTrackFlagState,
-  normalizeRaceControl,
-  summarizeMarkers,
-} from "@/timeline/raceControl";
-import { useEventToasts } from "@/hooks/useEventToasts";
-import { useCatchupSummary } from "@/hooks/useCatchupSummary";
-import { CatchupSummary } from "@/components/CatchupSummary/CatchupSummary";
-import { isSessionLive } from "@/utils/live";
-import { DEFAULT_SESSION_MS } from "@/constants";
 import { useSettings } from "@/stores/settings";
-import { deriveRetiredDrivers } from "@/utils/retirement";
-import { computeBattlingDrivers } from "@/utils/battles";
-import { weatherAtSessionTime } from "@/utils/weather";
-import { buildKeyMoments } from "@/components/CommentaryPanels/keyMoments";
-import {
-  getSafetyControlPhase,
-  isTrackClearSignal,
-} from "@/utils/raceControlFlags";
-import {
-  isTimedSession,
-  isQualiSession,
-  detectQualiPhase,
-} from "@/utils/session";
-import {
-  lastAtOrBefore,
-  upperBoundByValue,
-  windowBoundsByValue,
-} from "@/utils/sortedTime";
+import { isQualiSession } from "@/utils/session";
 import { trackEvent } from "@/lib/analytics";
-import {
-  RaceWeekendSessionHeader,
-  type RaceWeekendSessionHeaderProps,
-} from "./raceWeekend/RaceWeekendSessionHeader";
+import { RaceWeekendSessionHeaderAdapter } from "./raceWeekend/RaceWeekendSessionHeaderAdapter";
 import { type TrackerTab } from "./raceWeekend/TrackerTabBar";
 import { TrackerStrategyPanel } from "./raceWeekend/TrackerStrategyPanel";
-import { CommentaryPanelsSection } from "./raceWeekend/CommentaryPanelsSection";
-import { CommentarySection } from "./raceWeekend/CommentarySection";
-import { LeaderboardView } from "./raceWeekend/LeaderboardView";
-import { LeaderboardLoadingIndicator } from "./raceWeekend/LeaderboardLoadingIndicator";
-import { PanelFallback } from "./raceWeekend/PanelFallback";
-import { RaceTimingTower } from "./raceWeekend/RaceTimingTower";
-import { TrackerPanelFrame } from "./raceWeekend/TrackerPanelFrame";
-import { TrackerSection } from "./raceWeekend/TrackerSection";
+import { TrackerTimingTower } from "./raceWeekend/TrackerTimingTower";
+import { LeaderboardTimingTower } from "./raceWeekend/LeaderboardTimingTower";
+import { RaceWeekendLeaderboardSectionAdapter } from "./raceWeekend/RaceWeekendLeaderboardSectionAdapter";
+import { TrackerFocusedTelemetryContent } from "./raceWeekend/TrackerFocusedTelemetryContent";
+import { TrackerSectionAdapter } from "./raceWeekend/TrackerSectionAdapter";
+import { TrackerMapContent } from "./raceWeekend/TrackerMapContent";
 import { TrackerMobileMapContent } from "./raceWeekend/TrackerMobileMapContent";
 import {
-  TrackerFocusedTelemetryPanel,
-  TrackerTimingPanel,
+  TrackerGapChartPanel,
+  TrackerLapChartPanel,
+} from "./raceWeekend/TrackerTrendPanels";
+import {
+  useCommentaryInteractions,
+  type CommentaryTimeMode,
+} from "./raceWeekend/useCommentaryInteractions";
+import { useIncidentReplayControls } from "./raceWeekend/useIncidentReplayControls";
+import { useTrackerDesktopResize } from "./raceWeekend/useTrackerDesktopResize";
+import {
+  TrackerDesktopTimingContent,
+  TrackerMobileTimingContent,
 } from "./raceWeekend/TrackerTimingPanels";
+import { RaceWeekendOverlaysAdapter } from "./raceWeekend/RaceWeekendOverlaysAdapter";
+import { RaceWeekendMainViewsAdapter } from "./raceWeekend/RaceWeekendMainViewsAdapter";
+import { RaceWeekendTopOverlaysAdapter } from "./raceWeekend/RaceWeekendTopOverlaysAdapter";
+import { useRaceWeekendPlaybackState } from "./raceWeekend/useRaceWeekendPlaybackState";
+import { useCommentaryDerivedState } from "./raceWeekend/useCommentaryDerivedState";
+import { useRaceWeekendFocusSelection } from "./raceWeekend/useRaceWeekendFocusSelection";
+import { useTrackerTimingConfig } from "./raceWeekend/useTrackerTimingConfig";
+import { useRaceWeekendCarDataAtT } from "./raceWeekend/useRaceWeekendCarDataAtT";
+import { useRaceWeekendTrackState } from "./raceWeekend/useRaceWeekendTrackState";
+import { useRaceWeekendToasts } from "./raceWeekend/useRaceWeekendToasts";
+import { useRaceWeekendRaceControlState } from "./raceWeekend/useRaceWeekendRaceControlState";
+import { useRaceWeekendMapDerivedState } from "./raceWeekend/useRaceWeekendMapDerivedState";
+import { useRaceWeekendTimelineMarks } from "./raceWeekend/useRaceWeekendTimelineMarks";
+import { useRaceWeekendSessionTimeline } from "./raceWeekend/useRaceWeekendSessionTimeline";
+import { useRaceWeekendViewState } from "./raceWeekend/useRaceWeekendViewState";
+import { useRaceWeekendOverlayDialogs } from "./raceWeekend/useRaceWeekendOverlayDialogs";
+import { useRaceWeekendPlaybackBarProps } from "./raceWeekend/useRaceWeekendPlaybackBarProps";
+import { RaceWeekendCommentaryViewAdapter } from "./raceWeekend/RaceWeekendCommentaryViewAdapter";
+import { useRaceWeekendSessionMeta } from "./raceWeekend/useRaceWeekendSessionMeta";
 import type { MainView } from "@/components/Nav";
-import type {
-  Stint,
-  CarData,
-  Lap,
-  RaceControl,
-  Overtake,
-  TeamRadio,
-} from "@/api/types";
 import type { CommentaryTab } from "@/components/CommentaryPanels/CommentaryPanels";
 
 // Sub-tab options per view
-type CommentaryTimeMode = "elapsed" | "all";
-
 const OVERTAKE_PULSE_MS = 4_000;
-const TRACKER_DESKTOP_PANEL_WIDTH_STORAGE_KEY =
-  "f1-replay.tracker.desktopPanelWidth";
-const TRACKER_DESKTOP_PANEL_MIN_WIDTH = 420;
-const TRACKER_DESKTOP_MAP_MIN_WIDTH = 320;
 
-function clamp(value: number, min: number, max: number) {
-  return Math.max(min, Math.min(max, value));
-}
-
-function defaultTrackerDesktopPanelWidth() {
-  if (typeof window === "undefined") return 905;
-  return window.innerWidth >= 1024 ? 905 : 745;
-}
-
-type TimedRow<T> = { row: T; absMs: number; relMs: number };
-type TimedRaceControlSignal = {
-  row: RaceControl;
-  absMs: number;
-  relMs: number;
-  phase: ReturnType<typeof getSafetyControlPhase>;
-  messageUpper: string;
-  clearsTrack: boolean;
-};
-
-type TrackVehicleStatePoint = {
-  absMs: number;
-  safetyCar: boolean;
-  vsc: boolean;
-  medicalCar: boolean;
-};
-
-type CompletedLapPoint = {
-  endMs: number;
-  lapNumber: number;
-};
-
-type ClosedIncidentWindow = ReturnType<typeof buildIncidentWindows>[number] & {
-  endMs: number;
-};
-
-function isClosedIncidentWindow(
-  window: ReturnType<typeof buildIncidentWindows>[number],
-): window is ClosedIncidentWindow {
-  return window.endMs !== null;
-}
-
-const TrackMap = lazy(() =>
-  import("@/components/TrackMap/TrackMap").then((m) => ({
-    default: m.TrackMap,
-  })),
-);
-
-const FocusedTelemetry = lazy(() =>
-  import("@/components/FocusedTelemetry/FocusedTelemetry").then((m) => ({
-    default: m.FocusedTelemetry,
-  })),
-);
-const LapChart = lazy(() =>
-  import("@/components/LapChart/LapChart").then((m) => ({
-    default: m.LapChart,
-  })),
-);
-const GapChart = lazy(() =>
-  import("@/components/GapChart/GapChart").then((m) => ({
-    default: m.GapChart,
-  })),
-);
 export default function RaceWeekend() {
-  const trackerDesktopSplitRef = useRef<HTMLDivElement | null>(null);
-  const trackerDesktopDragRef = useRef<{
-    startX: number;
-    startWidth: number;
-  } | null>(null);
+  const {
+    trackerDesktopSplitRef,
+    trackerDesktopPanelWidth,
+    trackerDesktopResizeHandleProps,
+  } = useTrackerDesktopResize();
   // Session selection is driven by the URL — Nav writes these, we just read them
   const [meetingKey] = useNumberParam("meeting", null);
   const [sessionKey] = useNumberParam("session", null);
@@ -214,129 +114,19 @@ export default function RaceWeekend() {
   const [compareDriver] = useNumberParam("compare", null);
   const [, setSearchParams] = useSearchParams();
   const isCompactViewport = useMediaQuery("(max-width: 767px)");
-  const [isResultsDialogOpen, setIsResultsDialogOpen] = useState(false);
-  const [isQualiEliminationsDialogOpen, setIsQualiEliminationsDialogOpen] =
-    useState(false);
-  const [trackerDesktopPanelWidth, setTrackerDesktopPanelWidth] = useState(
-    () => {
-      if (typeof window === "undefined") {
-        return defaultTrackerDesktopPanelWidth();
-      }
-      const stored = window.localStorage.getItem(
-        TRACKER_DESKTOP_PANEL_WIDTH_STORAGE_KEY,
-      );
-      const parsed = stored ? Number.parseFloat(stored) : Number.NaN;
-      return Number.isFinite(parsed)
-        ? parsed
-        : defaultTrackerDesktopPanelWidth();
-    },
-  );
-  const [incidentReplayEndMs, setIncidentReplayEndMs] = useState<number | null>(
-    null,
-  );
-  const [incidentReplayHint, setIncidentReplayHint] = useState<string | null>(
-    null,
-  );
-
   const sessions = useSessions(meetingKey);
 
-  useEffect(() => {
-    if (typeof window === "undefined") return;
-    window.localStorage.setItem(
-      TRACKER_DESKTOP_PANEL_WIDTH_STORAGE_KEY,
-      String(Math.round(trackerDesktopPanelWidth)),
-    );
-  }, [trackerDesktopPanelWidth]);
-
-  useEffect(() => {
-    function clampTrackerDesktopPanelWidth() {
-      const splitWidth = trackerDesktopSplitRef.current?.clientWidth ?? 0;
-      if (splitWidth <= 0) return;
-      const maxWidth = Math.max(
-        TRACKER_DESKTOP_PANEL_MIN_WIDTH,
-        splitWidth - TRACKER_DESKTOP_MAP_MIN_WIDTH,
-      );
-      const minWidth = Math.min(TRACKER_DESKTOP_PANEL_MIN_WIDTH, maxWidth);
-      setTrackerDesktopPanelWidth((currentWidth) =>
-        clamp(currentWidth, minWidth, maxWidth),
-      );
-    }
-
-    clampTrackerDesktopPanelWidth();
-    window.addEventListener("resize", clampTrackerDesktopPanelWidth);
-    return () =>
-      window.removeEventListener("resize", clampTrackerDesktopPanelWidth);
-  }, []);
-
-  useEffect(() => {
-    function updateTrackerDesktopPanelWidth(clientX: number) {
-      const drag = trackerDesktopDragRef.current;
-      const splitWidth = trackerDesktopSplitRef.current?.clientWidth ?? 0;
-      if (!drag || splitWidth <= 0) return;
-      const maxWidth = Math.max(
-        TRACKER_DESKTOP_PANEL_MIN_WIDTH,
-        splitWidth - TRACKER_DESKTOP_MAP_MIN_WIDTH,
-      );
-      const minWidth = Math.min(TRACKER_DESKTOP_PANEL_MIN_WIDTH, maxWidth);
-      setTrackerDesktopPanelWidth(
-        clamp(drag.startWidth + (clientX - drag.startX), minWidth, maxWidth),
-      );
-    }
-
-    function stopTrackerDesktopPanelDrag() {
-      trackerDesktopDragRef.current = null;
-      document.body.style.cursor = "";
-      document.body.style.userSelect = "";
-    }
-
-    function onMouseMove(event: MouseEvent) {
-      updateTrackerDesktopPanelWidth(event.clientX);
-    }
-
-    function onTouchMove(event: TouchEvent) {
-      if (!trackerDesktopDragRef.current) return;
-      const touch = event.touches[0];
-      if (!touch) return;
-      event.preventDefault();
-      updateTrackerDesktopPanelWidth(touch.clientX);
-    }
-
-    window.addEventListener("mousemove", onMouseMove);
-    window.addEventListener("mouseup", stopTrackerDesktopPanelDrag);
-    window.addEventListener("touchmove", onTouchMove, { passive: false });
-    window.addEventListener("touchend", stopTrackerDesktopPanelDrag);
-
-    return () => {
-      window.removeEventListener("mousemove", onMouseMove);
-      window.removeEventListener("mouseup", stopTrackerDesktopPanelDrag);
-      window.removeEventListener("touchmove", onTouchMove);
-      window.removeEventListener("touchend", stopTrackerDesktopPanelDrag);
-    };
-  }, []);
-
-  function startTrackerDesktopPanelDrag(clientX: number) {
-    trackerDesktopDragRef.current = {
-      startX: clientX,
-      startWidth: trackerDesktopPanelWidth,
-    };
-    document.body.style.cursor = "ew-resize";
-    document.body.style.userSelect = "none";
-  }
-
-  const trackerDesktopResizeHandleProps = {
-    onMouseDown(event: { preventDefault: () => void; clientX: number }) {
-      event.preventDefault();
-      startTrackerDesktopPanelDrag(event.clientX);
-    },
-    onTouchStart(event: { touches: ArrayLike<{ clientX: number }> }) {
-      const touch = event.touches[0];
-      if (!touch) return;
-      startTrackerDesktopPanelDrag(touch.clientX);
-    },
-    onDoubleClick() {
-      setTrackerDesktopPanelWidth(defaultTrackerDesktopPanelWidth());
-    },
-  };
+  const {
+    session,
+    live,
+    sessionStartMs,
+    durationMs,
+    isRaceSession,
+    sessionName,
+  } = useRaceWeekendSessionMeta({
+    sessions: sessions.data ?? [],
+    sessionKey,
+  });
 
   function handleTrackerTabChange(
     tab: TrackerTab,
@@ -349,8 +139,6 @@ export default function RaceWeekend() {
     setTrackerTab(tab);
   }
 
-  const session = sessions.data?.find((s) => s.session_key === sessionKey);
-  const live = isSessionLive(session);
   useOpenF1LiveMqtt(sessionKey, live);
 
   const drivers = useDrivers(sessionKey);
@@ -378,156 +166,58 @@ export default function RaceWeekend() {
   // frame-rate updates (lap state, battle detection, etc.)
   const tSlow = useCoarseTime(500);
 
-  const sessionStartMs = session ? new Date(session.date_start).getTime() : 0;
-  const sessionEndMs = session ? new Date(session.date_end).getTime() : 0;
-  const durationMs = sessionEndMs - sessionStartMs;
+  const { timedLaps, timedOvertakes, timedTeamRadio, lightsOutMs } =
+    useRaceWeekendSessionTimeline({
+      laps: laps.data ?? [],
+      overtakes: overtakes.data ?? [],
+      teamRadio: teamRadio.data ?? [],
+      sessionStartMs,
+    });
 
-  const timedLaps = useMemo((): TimedRow<Lap>[] => {
-    if (!sessionStartMs || !laps.data?.length) return [];
-    return laps.data
-      .filter((lap) => Boolean(lap.date_start))
-      .map((lap) => {
-        const absMs = new Date(lap.date_start as string).getTime();
-        return { row: lap, absMs, relMs: absMs - sessionStartMs };
-      })
-      .sort((a, b) => a.absMs - b.absMs);
-  }, [laps.data, sessionStartMs]);
-
-  const timedRaceControl = useMemo((): TimedRow<RaceControl>[] => {
-    if (!sessionStartMs || !raceControl.data?.length) return [];
-    return raceControl.data
-      .map((entry) => {
-        const absMs = new Date(entry.date).getTime();
-        return { row: entry, absMs, relMs: absMs - sessionStartMs };
-      })
-      .sort((a, b) => a.absMs - b.absMs);
-  }, [raceControl.data, sessionStartMs]);
-
-  const timedRaceControlSignals = useMemo((): TimedRaceControlSignal[] => {
-    if (!timedRaceControl.length) return [];
-    return timedRaceControl.map(({ row, absMs, relMs }) => ({
-      row,
-      absMs,
-      relMs,
-      phase: getSafetyControlPhase(row),
-      messageUpper: (row.message ?? "").toUpperCase(),
-      clearsTrack: isTrackClearSignal(row),
-    }));
-  }, [timedRaceControl]);
-
-  const trackVehicleStateTimeline = useMemo((): TrackVehicleStatePoint[] => {
-    if (!timedRaceControlSignals.length) return [];
-
-    let safetyCar = false;
-    let vsc = false;
-    let medicalCar = false;
-    const timeline: TrackVehicleStatePoint[] = [];
-
-    for (const signal of timedRaceControlSignals) {
-      const { absMs, phase, messageUpper, clearsTrack } = signal;
-
-      if (clearsTrack) {
-        safetyCar = false;
-        vsc = false;
-        medicalCar = false;
-      }
-
-      if (phase === "safety_car_start") {
-        safetyCar = true;
-        vsc = false;
-      } else if (phase === "safety_car_end") {
-        safetyCar = false;
-      }
-
-      if (phase === "vsc_start") {
-        vsc = true;
-        safetyCar = false;
-      } else if (phase === "vsc_end") {
-        vsc = false;
-      }
-
-      if (messageUpper.includes("MEDICAL CAR")) {
-        if (
-          messageUpper.includes("IN THIS LAP") ||
-          messageUpper.includes("ENDING") ||
-          messageUpper.includes("HAS ENDED") ||
-          messageUpper.includes("RETURN") ||
-          messageUpper.includes("WITHDRAW")
-        ) {
-          medicalCar = false;
-        } else {
-          medicalCar = true;
-        }
-      }
-
-      timeline.push({ absMs, safetyCar, vsc, medicalCar });
-    }
-
-    return timeline;
-  }, [timedRaceControlSignals]);
-
-  const timedOvertakes = useMemo((): TimedRow<Overtake>[] => {
-    if (!sessionStartMs || !overtakes.data?.length) return [];
-    return overtakes.data
-      .map((entry) => {
-        const absMs = new Date(entry.date).getTime();
-        return { row: entry, absMs, relMs: absMs - sessionStartMs };
-      })
-      .sort((a, b) => a.absMs - b.absMs);
-  }, [overtakes.data, sessionStartMs]);
-
-  const timedTeamRadio = useMemo((): TimedRow<TeamRadio>[] => {
-    if (!sessionStartMs || !teamRadio.data?.length) return [];
-    return teamRadio.data
-      .map((entry) => {
-        const absMs = new Date(entry.date).getTime();
-        return { row: entry, absMs, relMs: absMs - sessionStartMs };
-      })
-      .sort((a, b) => a.absMs - b.absMs);
-  }, [teamRadio.data, sessionStartMs]);
+  const {
+    timedRaceControl,
+    trackVehicleStateTimeline,
+    raceControlMarkers,
+    markerSummary,
+    incidentWindows,
+    chequeredMs,
+    nextReplayIncident,
+    currentReplayIncident,
+    firstReplayIncident,
+  } = useRaceWeekendRaceControlState({
+    raceControlEntries: raceControl.data ?? [],
+    sessionStartMs,
+    sessionTimeMsSlow: tSlow,
+  });
 
   useEffect(() => {
     if (sessionStartMs) setSessionStart(sessionStartMs);
   }, [sessionStartMs, setSessionStart]);
 
-  useEffect(() => {
-    if (incidentReplayEndMs === null) return;
-    if (t < incidentReplayEndMs) return;
-    setTimelinePlaying(false);
-    setIncidentReplayEndMs(null);
-  }, [incidentReplayEndMs, setTimelinePlaying, t]);
-
-  useEffect(() => {
-    setIncidentReplayEndMs(null);
-    setIncidentReplayHint(null);
-  }, [sessionKey]);
-
-  useEffect(() => {
-    if (!incidentReplayHint) return;
-    const id = window.setTimeout(() => setIncidentReplayHint(null), 2200);
-    return () => window.clearTimeout(id);
-  }, [incidentReplayHint]);
-
   useTimelineUrlSync(sessionKey, sessionStartMs > 0);
 
-  const isLoadingSessionData =
-    sessionKey !== null &&
-    (drivers.isPending || positions.isPending || intervals.isPending);
-  const isLoadingEventSession =
-    meetingKey !== null &&
-    (sessionKey === null || sessions.isPending || isLoadingSessionData);
-
-  const locationChunkIdx = locationChunkIndexFor(t);
-  const telemetryChunkIdx = chunkIndexFor(t);
-  const isMapVisible =
-    currentView === "tracker" &&
-    (!isCompactViewport || activeTrackerTab === "map");
-  const shouldPrefetchMapChunks =
-    !isCompactViewport && isMapVisible && playbackSpeed >= 4;
-  const shouldTrackToasts = currentView === "tracker";
-  const shouldBuildCommentaryMoments = currentView === "commentary";
-  const shouldBuildToastEvents =
-    shouldTrackToasts || shouldBuildCommentaryMoments;
+  const {
+    isLoadingSessionData,
+    isLoadingEventSession,
+    locationChunkIdx,
+    telemetryChunkIdx,
+    isMapVisible,
+    shouldPrefetchMapChunks,
+    shouldTrackToasts,
+    shouldBuildToastEvents,
+  } = useRaceWeekendViewState({
+    sessionKey,
+    meetingKey,
+    sessionsPending: sessions.isPending,
+    driversPending: drivers.isPending,
+    positionsPending: positions.isPending,
+    intervalsPending: intervals.isPending,
+    currentView,
+    activeTrackerTab,
+    isCompactViewport,
+    playbackSpeed,
+    sessionTimeMs: t,
+  });
   const location = useLocationChunks(
     isMapVisible ? sessionKey : null,
     isMapVisible ? sessionStartMs || null : null,
@@ -540,309 +230,76 @@ export default function RaceWeekend() {
     },
   );
 
-  const lapMarks = useMemo(
-    () => lapStartTimes(laps.data ?? [], sessionStartMs),
-    [laps.data, sessionStartMs],
-  );
-
-  const currentLap = useMemo(() => {
-    let lap = 0;
-    for (let i = 0; i < lapMarks.length; i++) {
-      if (lapMarks[i]! <= t) lap = i + 1;
-    }
-    return lap;
-  }, [lapMarks, t]);
-
-  const isRaceSession = useMemo(() => {
-    const type = session?.session_type ?? "";
-    return type === "Race" || type === "Sprint";
-  }, [session?.session_type]);
-
-  // Session-relative ms of lights out = earliest lap-1 start across all drivers.
-  const lightsOutMs = useMemo(() => {
-    if (!timedLaps.length) return null;
-    let min = Infinity;
-    for (const { row: l, relMs: ms } of timedLaps) {
-      if (l.lap_number !== 1 || !l.date_start) continue;
-      if (ms < min) min = ms;
-    }
-    return min === Infinity ? null : min;
-  }, [timedLaps]);
-  const pitMarks = useMemo(
-    () => pitTimes(pits.data ?? [], sessionStartMs),
-    [pits.data, sessionStartMs],
-  );
-  const flagMarks = useMemo(
-    () => flagTimes(raceControl.data ?? [], sessionStartMs),
-    [raceControl.data, sessionStartMs],
-  );
-  const safetyCarMarks = useMemo(
-    () => safetyCarTimes(raceControl.data ?? [], sessionStartMs),
-    [raceControl.data, sessionStartMs],
-  );
-  const overtakeMarks = useMemo(
-    () => overtakeTimes(overtakes.data ?? [], sessionStartMs),
-    [overtakes.data, sessionStartMs],
-  );
-
-  const radioMarks = useMemo(
-    () => radioTimes(teamRadio.data ?? [], sessionStartMs),
-    [teamRadio.data, sessionStartMs],
-  );
-
-  const keyMomentMarks = useMemo(() => {
-    return [
-      ...new Set([...flagMarks, ...pitMarks, ...overtakeMarks, ...radioMarks]),
-    ]
-      .filter((ms) => ms >= 0)
-      .sort((a, b) => a - b);
-  }, [flagMarks, pitMarks, overtakeMarks, radioMarks]);
-
-  // ── Race control state markers + incident windows ───────────────────────────
-  const normalizedRcEvents = useMemo(
-    () => normalizeRaceControl(raceControl.data ?? [], sessionStartMs),
-    [raceControl.data, sessionStartMs],
-  );
-
-  const raceControlMarkers = useMemo(() => {
-    const raw = buildRaceControlMarkers(normalizedRcEvents);
-    return clusterRaceControlMarkers(raw);
-  }, [normalizedRcEvents]);
-
-  const markerSummary = useMemo(
-    () => summarizeMarkers(raceControlMarkers),
-    [raceControlMarkers],
-  );
-
-  const incidentWindows = useMemo(
-    () => buildIncidentWindows(normalizedRcEvents),
-    [normalizedRcEvents],
-  );
-
-  const closedIncidentWindows = useMemo(
-    () => incidentWindows.filter(isClosedIncidentWindow),
-    [incidentWindows],
-  );
-
-  const chequeredMs = useMemo(() => {
-    if (!timedRaceControl.length) return null;
-    let lastChequered: number | null = null;
-    for (const { row: entry, relMs } of timedRaceControl) {
-      if (entry.flag !== "CHEQUERED") continue;
-      lastChequered = relMs;
-    }
-    return lastChequered;
-  }, [timedRaceControl]);
-
-  const nextReplayIncident = useMemo(() => {
-    const MIN_AHEAD_MS = 250;
-    const nextIdx = upperBoundByValue(
-      closedIncidentWindows,
-      tSlow + MIN_AHEAD_MS,
-      (window) => window.startMs,
-    );
-    return closedIncidentWindows[nextIdx];
-  }, [closedIncidentWindows, tSlow]);
-
-  const currentReplayIncident = useMemo(() => {
-    const currentWindow = lastAtOrBefore(
-      closedIncidentWindows,
-      tSlow,
-      (window) => window.startMs,
-    );
-    if (!currentWindow) return undefined;
-    return currentWindow.endMs >= tSlow ? currentWindow : undefined;
-  }, [closedIncidentWindows, tSlow]);
-
-  const firstReplayIncident = useMemo(
-    () => closedIncidentWindows[0],
-    [closedIncidentWindows],
-  );
-
-  const replayCurrentIncident = () => {
-    const chosen = currentReplayIncident;
-    if (!chosen || chosen.endMs === null) return;
-    setIncidentReplayHint("Replaying current incident");
-    setTimelineT(chosen.startMs);
-    setIncidentReplayEndMs(chosen.endMs);
-    setTimelinePlaying(true);
-  };
-
-  const replayNextIncident = () => {
-    const chosen = nextReplayIncident ?? firstReplayIncident;
-    if (!chosen || chosen.endMs === null) return;
-    if (!nextReplayIncident && firstReplayIncident) {
-      setIncidentReplayHint("Wrapped to first incident");
-    }
-    setTimelineT(chosen.startMs);
-    setIncidentReplayEndMs(chosen.endMs);
-    setTimelinePlaying(true);
-  };
-
-  const pulseDrivers = useMemo(() => {
-    if (!isMapVisible) return [];
-    const { startIndex, endIndex } = windowBoundsByValue(
-      timedOvertakes,
-      tSlow - OVERTAKE_PULSE_MS,
-      tSlow,
-      (overtake) => overtake.relMs,
-    );
-    const out: number[] = [];
-    for (let idx = startIndex; idx < endIndex; idx++) {
-      const overtake = timedOvertakes[idx];
-      if (!overtake) continue;
-      out.push(
-        overtake.row.overtaking_driver_number,
-        overtake.row.overtaken_driver_number,
-      );
-    }
-    return out;
-  }, [timedOvertakes, tSlow, isMapVisible]);
-
-  const completedLapsByDriver = useMemo(() => {
-    const byDriver = new Map<number, CompletedLapPoint[]>();
-    for (const { row: lap, relMs: lapStart } of timedLaps) {
-      if (lap.lap_duration === null) continue;
-      const endMs = lapStart + lap.lap_duration * 1000;
-      let lapsForDriver = byDriver.get(lap.driver_number);
-      if (!lapsForDriver) {
-        lapsForDriver = [];
-        byDriver.set(lap.driver_number, lapsForDriver);
-      }
-      lapsForDriver.push({ endMs, lapNumber: lap.lap_number });
-    }
-    for (const lapsForDriver of byDriver.values()) {
-      lapsForDriver.sort((a, b) => a.endMs - b.endMs);
-    }
-    return byDriver;
-  }, [timedLaps]);
-
-  // Last completed lap number for the focused driver — used to load heat overlay data.
-  // Use the latest lap with a valid duration whose end time is at/before the playhead.
-  const focusDriverLap = useMemo(() => {
-    if (!isMapVisible) return null;
-    if (focusDriver === null) return null;
-    return (
-      lastAtOrBefore(
-        completedLapsByDriver.get(focusDriver) ?? [],
-        tSlow,
-        (lap) => lap.endMs,
-      )?.lapNumber ?? null
-    );
-  }, [completedLapsByDriver, focusDriver, tSlow, isMapVisible]);
-
-  const compareDriverLap = useMemo(() => {
-    if (!isMapVisible) return null;
-    if (compareDriver === null) return null;
-    return (
-      lastAtOrBefore(
-        completedLapsByDriver.get(compareDriver) ?? [],
-        tSlow,
-        (lap) => lap.endMs,
-      )?.lapNumber ?? null
-    );
-  }, [completedLapsByDriver, compareDriver, tSlow, isMapVisible]);
-
-  // Current tyre compound + age per driver at the playhead.
-  // Rebuilds when lap/stint data arrives or when the coarse time crosses a lap boundary.
-  const activeCompounds = useMemo(() => {
-    const result = new Map<
-      number,
-      { compound: Stint["compound"]; age: number }
-    >();
-    if (!isMapVisible) return result;
-    if (!timedLaps.length || !stints.data?.length) return result;
-    const currentLapByDriver = new Map<number, number>();
-    for (const { row: lap, relMs: lapRelMs } of timedLaps) {
-      if (lapRelMs > tSlow) continue;
-      const prev = currentLapByDriver.get(lap.driver_number);
-      if (prev === undefined || lap.lap_number > prev)
-        currentLapByDriver.set(lap.driver_number, lap.lap_number);
-    }
-    for (const [driverNum, currentLap] of currentLapByDriver) {
-      const stint = stints.data.find(
-        (s) =>
-          s.driver_number === driverNum &&
-          s.lap_start <= currentLap &&
-          s.lap_end >= currentLap,
-      );
-      if (stint)
-        result.set(driverNum, {
-          compound: stint.compound,
-          age: currentLap - stint.lap_start + stint.tyre_age_at_start,
-        });
-    }
-    return result;
-  }, [timedLaps, stints.data, tSlow, isMapVisible]);
-
-  // Cars within 1.0 s of the car ahead → highlight DRS battle on the map.
-  const battlingDrivers = useMemo(() => {
-    if (!isMapVisible) return new Set<number>();
-    if (!intervals.data?.length || !sessionStartMs) return new Set<number>();
-    return computeBattlingDrivers(intervals.data, sessionStartMs + tSlow, 1.0);
-  }, [intervals.data, sessionStartMs, tSlow, isMapVisible]);
-
-  const retiredDrivers = useMemo((): ReadonlySet<number> => {
-    if (!isMapVisible) return new Set<number>();
-    return deriveRetiredDrivers({
-      positions: positions.data ?? [],
-      laps: laps.data ?? [],
-      raceControl: raceControl.data ?? [],
-      currentT: sessionStartMs + tSlow,
-      isRaceSession,
-    });
-  }, [
-    positions.data,
-    laps.data,
-    raceControl.data,
+  const {
+    lapMarks,
+    currentLap,
+    pitMarks,
+    flagMarks,
+    safetyCarMarks,
+    overtakeMarks,
+    radioMarks,
+    keyMomentMarks,
+  } = useRaceWeekendTimelineMarks({
+    laps: laps.data ?? [],
+    pits: pits.data ?? [],
+    raceControl: raceControl.data ?? [],
+    overtakes: overtakes.data ?? [],
+    teamRadio: teamRadio.data ?? [],
     sessionStartMs,
-    tSlow,
-    isMapVisible,
-    isRaceSession,
-  ]);
+    sessionTimeMs: t,
+  });
 
-  // Current session global/sector track flag state at playhead.
-  const activeTrackFlagState = useMemo<ActiveTrackFlagState | null>(() => {
-    if (!isMapVisible) return null;
-    if (!sessionStartMs) return null;
-    return deriveTrackFlagState(
-      raceControl.data ?? [],
+  const {
+    setIncidentReplayEndMs,
+    incidentReplayHint,
+    replayCurrentIncident,
+    replayNextIncident,
+  } = useIncidentReplayControls({
+    sessionKey,
+    sessionTimeMs: t,
+    currentReplayIncident,
+    nextReplayIncident,
+    firstReplayIncident,
+    setTimelineT,
+    setTimelinePlaying,
+  });
+
+  const {
+    pulseDrivers,
+    focusDriverLap,
+    compareDriverLap,
+    activeCompounds,
+    battlingDrivers,
+    retiredDrivers,
+  } = useRaceWeekendMapDerivedState({
+    isMapVisible,
+    sessionStartMs,
+    sessionTimeMsSlow: tSlow,
+    focusDriver,
+    compareDriver,
+    timedLaps,
+    timedOvertakes,
+    stints: stints.data ?? [],
+    intervals: intervals.data ?? [],
+    positions: positions.data ?? [],
+    laps: laps.data ?? [],
+    raceControl: raceControl.data ?? [],
+    isRaceSession,
+    overtakePulseMs: OVERTAKE_PULSE_MS,
+  });
+
+  const { weatherAtT, activeTrackFlagState, activeTrackVehicles } =
+    useRaceWeekendTrackState({
+      isMapVisible,
       sessionStartMs,
-      sessionStartMs + tSlow,
-    );
-  }, [raceControl.data, sessionStartMs, tSlow, isMapVisible]);
-
-  const activeTrackVehicles = useMemo<ActiveTrackVehicles | null>(() => {
-    if (!isMapVisible) return null;
-    if (!sessionStartMs) return null;
-    const LIGHTS_SEQUENCE_MS = 5_000;
-    const formationLap =
-      isRaceSession &&
-      lightsOutMs != null &&
-      tSlow >= 0 &&
-      tSlow < Math.max(0, lightsOutMs - LIGHTS_SEQUENCE_MS);
-    const cutoff = sessionStartMs + tSlow;
-
-    const state =
-      lastAtOrBefore(
-        trackVehicleStateTimeline,
-        cutoff,
-        (point) => point.absMs,
-      ) ?? null;
-    const safetyCar = state?.safetyCar ?? false;
-    const vsc = state?.vsc ?? false;
-    const medicalCar = state?.medicalCar ?? false;
-
-    if (!safetyCar && !vsc && !medicalCar && !formationLap) return null;
-    return { safetyCar, vsc, medicalCar, formationLap };
-  }, [
-    trackVehicleStateTimeline,
-    sessionStartMs,
-    tSlow,
-    isRaceSession,
-    lightsOutMs,
-    isMapVisible,
-  ]);
+      sessionTimeMs: t,
+      sessionTimeMsSlow: tSlow,
+      weatherEntries: weather.data ?? [],
+      raceControlEntries: raceControl.data ?? [],
+      trackVehicleStateTimeline,
+      isRaceSession,
+      lightsOutMs,
+    });
 
   const {
     toastsEnabled,
@@ -912,66 +369,59 @@ export default function RaceWeekend() {
     openHelp,
   } = useSettings();
 
-  // ── Live car telemetry for the leaderboard (all drivers) ────────────────────
-  // Fetched only when the leaderboard view is active AND the setting is on — it's
-  // a ~22k-row window per chunk, so we don't pay for it on other views.
-  const trackerTimingDesktopTelemetryEnabled =
-    trackerTimingTelemetry &&
-    (trackerTimingShowSpeed ||
-      trackerTimingShowGear ||
-      trackerTimingShowRpm ||
-      trackerTimingShowThrBrk ||
-      trackerTimingShowDrs);
-  const trackerTimingTelemetryEnabled =
-    (trackerTimingDesktopTelemetryEnabled || trackerTimingMobileCarData) &&
-    currentView === "tracker" &&
-    (trackerTab ?? "timing") === "timing";
-  const telemetryEnabled =
-    (leaderboardTelemetry && currentView === "leaderboard") ||
-    trackerTimingTelemetryEnabled;
-  const allCarData = useAllCarDataWindow(
+  const {
+    trackerTimingTelemetryEnabled,
+    telemetryEnabled,
+    timingMobileColumns,
+    trackerTimingColumns,
+  } = useTrackerTimingConfig({
+    currentView,
+    activeTrackerTab,
+    leaderboardTelemetry,
+    trackerTimingTelemetry,
+    trackerTimingMobileCarData,
+    trackerTimingShowPosition,
+    trackerTimingShowDriver,
+    trackerTimingShowAlerts,
+    trackerTimingShowBestLap,
+    trackerTimingShowLastLap,
+    trackerTimingShowGap,
+    trackerTimingShowInterval,
+    trackerTimingShowS1,
+    trackerTimingShowS2,
+    trackerTimingShowS3,
+    trackerTimingShowPosDelta,
+    trackerTimingShowTyre,
+    trackerTimingShowPit,
+    trackerTimingShowLap,
+    trackerTimingShowSpeed,
+    trackerTimingShowGear,
+    trackerTimingShowRpm,
+    trackerTimingShowThrBrk,
+    trackerTimingShowDrs,
+    timingMobileShowPosition,
+    timingMobileShowDriver,
+    timingMobileShowAlerts,
+    timingMobileShowBestLap,
+    timingMobileShowLastLap,
+    timingMobileShowGap,
+    timingMobileShowS1,
+    timingMobileShowS2,
+    timingMobileShowS3,
+    timingMobileShowPosDelta,
+    timingMobileShowTyre,
+    timingMobileShowPitCount,
+    timingMobileShowInterval,
+    timingMobileShowLap,
+  });
+
+  const { carDataAtT } = useRaceWeekendCarDataAtT({
     sessionKey,
     sessionStartMs,
     telemetryChunkIdx,
     telemetryEnabled,
-    {
-      includePreviousChunk: false,
-      includeNextChunk: false,
-    },
-  );
-
-  // Group samples per driver, sorted by session-relative ms. Rebuilds only when
-  // the fetched window changes (every ~5 min of session time), not every tick.
-  const carSamplesByDriver = useMemo(() => {
-    const m = new Map<number, { ms: number; d: CarData }[]>();
-    if (!sessionStartMs) return m;
-    for (const d of allCarData.data) {
-      const ms = new Date(d.date).getTime() - sessionStartMs;
-      let arr = m.get(d.driver_number);
-      if (!arr) {
-        arr = [];
-        m.set(d.driver_number, arr);
-      }
-      arr.push({ ms, d });
-    }
-    for (const arr of m.values()) arr.sort((a, b) => a.ms - b.ms);
-    return m;
-  }, [allCarData.data, sessionStartMs]);
-
-  // Latest car-data sample per driver at the playhead (binary search per driver).
-  const carDataAtT = useMemo((): ReadonlyMap<number, CarData> => {
-    const m = new Map<number, CarData>();
-    for (const [num, arr] of carSamplesByDriver) {
-      const s = lastAtOrBefore(arr, tSlow, (sample) => sample.ms)?.d;
-      if (s) m.set(num, s);
-    }
-    return m;
-  }, [carSamplesByDriver, tSlow]);
-
-  // Latest weather sample at or before the playhead.
-  const weatherAtT = useMemo(() => {
-    return weatherAtSessionTime(weather.data ?? [], sessionStartMs, t);
-  }, [weather.data, sessionStartMs, t]);
+    sessionTimeMs: tSlow,
+  });
 
   // Apply default speed when a new session loads.
   useEffect(() => {
@@ -980,226 +430,77 @@ export default function RaceWeekend() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [sessionKey]);
 
-  const toastEvents = useMemo(() => {
-    if (!shouldBuildToastEvents || !sessionStartMs) return [];
-    return buildToastEvents(
-      teamRadio.data ?? [],
-      raceControl.data ?? [],
-      overtakes.data ?? [],
-      pits.data ?? [],
+  const { toasts, dismiss, catchupSummary, dismissCatchup, toastEvents } =
+    useRaceWeekendToasts({
+      teamRadioEntries: teamRadio.data ?? [],
+      raceControlEntries: raceControl.data ?? [],
+      overtakeEntries: overtakes.data ?? [],
+      pitEntries: pits.data ?? [],
+      laps: laps.data ?? [],
       sessionStartMs,
-      laps.data ?? [],
-    );
-  }, [
-    teamRadio.data,
-    raceControl.data,
-    overtakes.data,
-    pits.data,
-    sessionStartMs,
-    laps.data,
-    shouldBuildToastEvents,
-  ]);
-
-  const filteredToastEvents = useMemo(() => {
-    if (!shouldTrackToasts || !toastsEnabled) return [];
-    return toastEvents.filter((ev) => {
-      if (ev.kind === "radio") return settingToastRadio;
-      if (ev.kind === "flag") return settingToastFlag;
-      if (ev.kind === "investigation") return settingToastInvestigation;
-      if (ev.kind === "penalty") return settingToastPenalty;
-      if (ev.kind === "overtake") return settingToastOvertake;
-      if (ev.kind === "pit") return settingToastPit;
-      if (ev.kind === "fastest_lap") return settingToastFastestLap;
-      return true;
+      sessionTimeMs: t,
+      shouldBuildToastEvents,
+      shouldTrackToasts,
+      toastsEnabled,
+      toastRadioEnabled: settingToastRadio,
+      toastFlagEnabled: settingToastFlag,
+      toastInvestigationEnabled: settingToastInvestigation,
+      toastPenaltyEnabled: settingToastPenalty,
+      toastOvertakeEnabled: settingToastOvertake,
+      toastPitEnabled: settingToastPit,
+      toastFastestLapEnabled: settingToastFastestLap,
     });
-  }, [
-    toastEvents,
-    shouldTrackToasts,
-    toastsEnabled,
-    settingToastRadio,
-    settingToastFlag,
-    settingToastInvestigation,
-    settingToastPenalty,
-    settingToastOvertake,
-    settingToastPit,
-    settingToastFastestLap,
-  ]);
-
-  const { toasts, dismiss } = useEventToasts(filteredToastEvents, t);
-  const { summary: catchupSummary, dismiss: dismissCatchup } =
-    useCatchupSummary(filteredToastEvents, t);
-
-  const effectiveDuration = durationMs || DEFAULT_SESSION_MS;
-
-  // Calculate extended duration to include post-race laps and radios (outlap + post-race comms)
-  const postRaceDurationMs = useMemo(() => {
-    if (!isRaceSession || chequeredMs === null || !sessionStartMs) return null;
-
-    let latestMs = chequeredMs;
-
-    // Check for post-race laps (outlaps)
-    if (timedLaps.length) {
-      for (const { row: lap, relMs: lapStartMs } of timedLaps) {
-        if (lap.date_start && lap.lap_duration && lap.lap_duration > 0) {
-          const lapEndMs = lapStartMs + lap.lap_duration * 1000;
-          if (lapEndMs > chequeredMs) {
-            latestMs = Math.max(latestMs, lapEndMs);
-          }
-        }
-      }
-    }
-
-    // Check for post-race radio messages
-    if (timedTeamRadio.length) {
-      for (const { relMs: radioMs } of timedTeamRadio) {
-        if (radioMs > chequeredMs) {
-          latestMs = Math.max(latestMs, radioMs);
-        }
-      }
-    }
-
-    return latestMs > chequeredMs ? latestMs : null;
-  }, [isRaceSession, chequeredMs, sessionStartMs, timedLaps, timedTeamRadio]);
-
-  const playbackDurationMs: number =
-    isRaceSession && chequeredMs !== null && postRaceDurationMs !== null
-      ? postRaceDurationMs
-      : isRaceSession && chequeredMs !== null
-        ? chequeredMs
-        : effectiveDuration;
-  const finalClassificationTriggerMs: number | null =
-    chequeredMs ?? (durationMs > 0 ? durationMs : null);
-  const showFinalClassification =
-    finalClassificationTriggerMs === null
-      ? false
-      : t >= finalClassificationTriggerMs &&
-        (sessionResult.data?.length ?? 0) > 0;
-  const totalLapCount = useMemo(() => {
-    if (!isRaceSession) return null;
-
-    const observedLapCount = Math.max(
-      0,
-      ...(laps.data ?? []).map((lap) => lap.lap_number),
-    );
-    const classifiedLapCount = Math.max(
-      0,
-      ...(sessionResult.data ?? []).map((result) => result.number_of_laps ?? 0),
-    );
-    const total = Math.max(observedLapCount, classifiedLapCount);
-
-    return total > 0 ? total : null;
-  }, [isRaceSession, laps.data, sessionResult.data]);
-
-  const commentaryLapLabel = useMemo(() => {
-    if (currentLap <= 0) return "—";
-    if (totalLapCount === null) return String(currentLap);
-    return `${currentLap}/${totalLapCount}`;
-  }, [currentLap, totalLapCount]);
-
-  const commentaryTimedPositions = useMemo(() => {
-    if (!sessionStartMs || !positions.data?.length) return [];
-    return positions.data
-      .map((entry) => ({
-        ms: new Date(entry.date).getTime() - sessionStartMs,
-        num: entry.driver_number,
-        position: entry.position,
-      }))
-      .sort((a, b) => a.ms - b.ms);
-  }, [positions.data, sessionStartMs]);
-
-  const commentaryKeyMoments = useMemo(() => {
-    if (!sessionStartMs) return [];
-    return buildKeyMoments(
-      commentaryTimedPositions,
-      toastEvents,
-      raceControl.data ?? [],
-      drivers.data ?? [],
-      sessionStartMs,
-    );
-  }, [
-    commentaryTimedPositions,
-    toastEvents,
-    raceControl.data,
-    drivers.data,
+  const {
+    playbackDurationMs,
+    showFinalClassification,
+    totalLapCount,
+    commentaryLapLabel,
+    countdownMs,
+    qualiPhase,
+    qualiPhaseStartTimes,
+  } = useRaceWeekendPlaybackState({
+    isRaceSession,
+    chequeredMs,
     sessionStartMs,
-  ]);
+    durationMs,
+    sessionTimeMs: t,
+    currentLap,
+    sessionName,
+    timedLaps,
+    timedTeamRadio,
+    timedRaceControl,
+    laps: laps.data ?? [],
+    raceControl: raceControl.data ?? [],
+    sessionResults: sessionResult.data ?? [],
+  });
 
-  const commentaryKeyMomentsCount = useMemo(() => {
-    if (commentaryTimeMode === "all") return commentaryKeyMoments.length;
-    return commentaryKeyMoments.filter((moment) => moment.ms <= t).length;
-  }, [commentaryKeyMoments, commentaryTimeMode, t]);
+  const { commentaryTabs } = useCommentaryDerivedState({
+    positions: positions.data ?? [],
+    toastEvents,
+    raceControl: raceControl.data ?? [],
+    teamRadio: teamRadio.data ?? [],
+    pits: pits.data ?? [],
+    overtakes: overtakes.data ?? [],
+    drivers: drivers.data ?? [],
+    incidentWindowsCount: incidentWindows.length,
+    sessionStartMs,
+    sessionTimeMs: t,
+    commentaryTimeMode,
+  });
 
-  const commentaryTabs = useMemo(
-    () =>
-      [
-        ["rc", "Race Control", "RC", raceControl.data?.length ?? 0, "entries"],
-        ["radio", "Team Radio", "Radio", teamRadio.data?.length ?? 0, "clips"],
-        ["pits", "Pit Stops", "Pits", pits.data?.length ?? 0, "stops"],
-        ["passes", "Overtakes", "Passes", overtakes.data?.length ?? 0, "moves"],
-        [
-          "moments",
-          "Key Moments",
-          "Moments",
-          commentaryKeyMomentsCount,
-          "beats",
-        ],
-        ["chapters", "Chapters", "Chptrs", incidentWindows.length, "windows"],
-      ] as const,
-    [
-      commentaryKeyMomentsCount,
-      incidentWindows.length,
-      overtakes.data?.length,
-      pits.data?.length,
-      raceControl.data?.length,
-      teamRadio.data?.length,
-    ],
-  );
-
-  // ── Session countdown (practice / qualifying) ────────────────────────────
-  const sessionName = session?.session_name ?? "";
-  const countdownMs =
-    isTimedSession(sessionName) && effectiveDuration > 0
-      ? Math.max(0, effectiveDuration - t)
-      : null;
-  const qualiPhase = isQualiSession(sessionName)
-    ? detectQualiPhase(raceControl.data ?? [], sessionStartMs, t)
-    : null;
-
-  const qualiPhaseStartTimes = useMemo(() => {
-    if (!sessionStartMs || !isQualiSession(sessionName)) {
-      return {
-        q2StartMs: null as number | null,
-        q3StartMs: null as number | null,
-      };
-    }
-
-    let q2StartMs: number | null = null;
-    let q3StartMs: number | null = null;
-    for (const { row: entry, relMs } of timedRaceControl) {
-      const msg = (entry.message ?? "").toUpperCase();
-      if (q2StartMs === null && /\bQ2\b/.test(msg)) q2StartMs = relMs;
-      if (q3StartMs === null && /\bQ3\b/.test(msg)) q3StartMs = relMs;
-      if (q2StartMs !== null && q3StartMs !== null) break;
-    }
-
-    return { q2StartMs, q3StartMs };
-  }, [timedRaceControl, sessionName, sessionStartMs]);
-
-  useEffect(() => {
-    if (!showFinalClassification) {
-      setIsResultsDialogOpen(false);
-      return;
-    }
-    if (!sessionResult.isError) {
-      setIsResultsDialogOpen(true);
-    }
-  }, [showFinalClassification, sessionResult.isError]);
-
-  useEffect(() => {
-    if (!isQualiSession(sessionName) || !qualiPhase) {
-      setIsQualiEliminationsDialogOpen(false);
-    }
-  }, [qualiPhase, sessionName]);
+  const {
+    isResultsDialogOpen,
+    isQualiEliminationsDialogOpen,
+    openResultsDialog,
+    closeResultsDialog,
+    openQualiEliminationsDialog,
+    closeQualiEliminationsDialog,
+  } = useRaceWeekendOverlayDialogs({
+    showFinalClassification,
+    hasSessionResultError: sessionResult.isError,
+    sessionName,
+    qualiPhase,
+  });
 
   useKeyboardShortcuts({
     lapStarts: lapMarks,
@@ -1211,93 +512,18 @@ export default function RaceWeekend() {
     enabled: sessionKey !== null,
   });
 
-  function setFocusSelection(
-    focus: number | null,
-    compare: number | null,
-    source: string = "unknown",
-  ) {
-    trackEvent("raceweekend_focus_changed", {
-      focus_driver: focus ?? -1,
-      compare_driver: compare ?? -1,
-      source,
+  const { setFocusSelection, toggleFocus, clearFocusSelection } =
+    useRaceWeekendFocusSelection({
+      focusDriver,
+      setSearchParams,
     });
-    setSearchParams(
-      (prev) => {
-        const next = new URLSearchParams(prev);
-        if (focus === null || Number.isNaN(focus)) next.delete("focus");
-        else next.set("focus", String(focus));
-        if (compare === null || Number.isNaN(compare)) next.delete("compare");
-        else next.set("compare", String(compare));
-        return next;
-      },
-      { replace: true },
-    );
-  }
-
-  const toggleFocus = (num: number) => {
-    if (focusDriver === null) {
-      setFocusSelection(num, null, "select_initial");
-      return;
-    }
-    if (focusDriver === num) {
-      setFocusSelection(null, null, "deselect_same");
-      return;
-    }
-    // Clicking a different driver should move focus to that driver immediately.
-    // This keeps row/map interactions predictable (focus follows click).
-    setFocusSelection(num, null, "switch_focus");
-  };
-
-  const clearFocusSelection = () => {
-    setFocusSelection(null, null, "clear_focus");
-  };
 
   const showTrackerInlinePlayback = false;
-
-  const timingMobileColumns = {
-    showPosition: timingMobileShowPosition,
-    showDriver: timingMobileShowDriver,
-    showAlerts: timingMobileShowAlerts,
-    showBestLap: timingMobileShowBestLap,
-    showLastLap: timingMobileShowLastLap,
-    showGap: timingMobileShowGap,
-    showS1: timingMobileShowS1,
-    showS2: timingMobileShowS2,
-    showS3: timingMobileShowS3,
-    showPosDelta: timingMobileShowPosDelta,
-    showTyre: timingMobileShowTyre,
-    showPitCount: timingMobileShowPitCount,
-    showInterval: timingMobileShowInterval,
-    showLap: timingMobileShowLap,
-  };
-
-  const trackerTimingColumns = {
-    position: trackerTimingShowPosition,
-    driver: trackerTimingShowDriver,
-    alerts: trackerTimingShowAlerts,
-    bestLap: trackerTimingShowBestLap,
-    lastLap: trackerTimingShowLastLap,
-    gap: trackerTimingShowGap,
-    interval: trackerTimingShowInterval,
-    s1: trackerTimingShowS1,
-    s2: trackerTimingShowS2,
-    s3: trackerTimingShowS3,
-    posDelta: trackerTimingShowPosDelta,
-    tyre: trackerTimingShowTyre,
-    pit: trackerTimingShowPit,
-    currentLap: trackerTimingShowLap,
-    speed: trackerTimingShowSpeed,
-    gear: trackerTimingShowGear,
-    rpm: trackerTimingShowRpm,
-    thrBrk: trackerTimingShowThrBrk,
-    drs: trackerTimingShowDrs,
-  };
 
   // ── Shared sub-components ────────────────────────────────────────────────────
 
   const timingTower = (
-    <RaceTimingTower
-      mode="tracker"
+    <TrackerTimingTower
       drivers={drivers.data ?? []}
       positions={positions.data ?? []}
       intervals={intervals.data ?? []}
@@ -1325,8 +551,7 @@ export default function RaceWeekend() {
   );
 
   const leaderboardTower = (
-    <RaceTimingTower
-      mode="leaderboard"
+    <LeaderboardTimingTower
       drivers={drivers.data ?? []}
       positions={positions.data ?? []}
       intervals={intervals.data ?? []}
@@ -1350,68 +575,58 @@ export default function RaceWeekend() {
     />
   );
 
-  const focusedTelemetryPanel =
-    focusDriver !== null ? (
-      <Suspense fallback={<PanelFallback />}>
-        <FocusedTelemetry
-          sessionKey={sessionKey}
-          driver={
-            drivers.data?.find((d) => d.driver_number === focusDriver) ?? null
-          }
-          compareDriver={
-            drivers.data?.find((d) => d.driver_number === compareDriver) ?? null
-          }
-          sessionStartMs={sessionStartMs}
-          driverLap={focusDriverLap}
-          compareDriverLap={compareDriverLap}
-          onClear={clearFocusSelection}
-          onClearCompare={() => setFocusSelection(focusDriver, null)}
-        />
-      </Suspense>
-    ) : null;
-
-  const trackMap = (
-    <TrackMap
+  const focusedTelemetryPanel = (
+    <TrackerFocusedTelemetryContent
       sessionKey={sessionKey}
       drivers={drivers.data ?? []}
+      focusDriver={focusDriver}
+      compareDriver={compareDriver}
+      sessionStartMs={sessionStartMs}
+      focusDriverLap={focusDriverLap}
+      compareDriverLap={compareDriverLap}
+      onClearFocus={clearFocusSelection}
+      onClearCompare={() => {
+        if (focusDriver === null) return;
+        setFocusSelection(focusDriver, null);
+      }}
+    />
+  );
+
+  const trackMapContent = (
+    <TrackerMapContent
+      sessionKey={sessionKey}
+      drivers={drivers.data ?? []}
+      hasDriversError={drivers.isError}
       locationData={location.data}
       sessionStartMs={sessionStartMs}
       focusDriver={focusDriver}
       pulseDrivers={pulseDrivers}
-      circuitShortName={session?.circuit_short_name}
+      circuitShortName={session?.circuit_short_name ?? null}
       circuitKey={session?.circuit_key ?? null}
       year={session?.year ?? null}
       activeCompounds={mapShowCompoundBadges ? activeCompounds : undefined}
       battlingDrivers={mapShowBattleRings ? battlingDrivers : undefined}
+      retiredDrivers={retiredDrivers}
       focusDriverLap={focusDriverLap}
-      showFocusedHud={mapShowDriverHud}
+      weatherOverlay={mapShowWeather ? weatherAtT : null}
       activeTrackFlagState={mapShowSectorFlags ? activeTrackFlagState : null}
+      activeTrackVehicles={activeTrackVehicles}
       showSectorBox={mapShowSectorBox}
       showTrackControls={mapShowTrackControls}
       showCompass={mapShowCompass}
+      showFocusedHud={mapShowDriverHud}
       showTrackScreenshot={trackScreenshotPngEnabled}
       showEnhancedVisuals={mapShowEnhancedVisuals}
-      weatherOverlay={mapShowWeather ? weatherAtT : null}
-      activeTrackVehicles={activeTrackVehicles}
-      retiredDrivers={retiredDrivers}
       onSelectDriver={toggleFocus}
     />
   );
 
-  const trackMapContent = drivers.isError ? (
-    <ErrorMessage message="Failed to load driver data" />
-  ) : (
-    <Suspense fallback={<PanelFallback />}>{trackMap}</Suspense>
-  );
-
   const mobileTimingContent = (
-    <>
-      <TrackerTimingPanel
-        hasTimingError={positions.isError}
-        timingTower={timingTower}
-      />
-      <TrackerFocusedTelemetryPanel telemetry={focusedTelemetryPanel} />
-    </>
+    <TrackerMobileTimingContent
+      hasTimingError={positions.isError}
+      timingTower={timingTower}
+      telemetry={focusedTelemetryPanel}
+    />
   );
 
   const mobileMapContent = (
@@ -1446,146 +661,172 @@ export default function RaceWeekend() {
   );
 
   const mobileChartContent = (
-    <TrackerPanelFrame mobile>
-      <LapChart
-        drivers={drivers.data ?? []}
-        positions={positions.data ?? []}
-        lapStarts={lapMarks}
-        sessionStartMs={sessionStartMs}
-        sessionTimeMs={t}
-        currentLap={currentLap}
-      />
-    </TrackerPanelFrame>
+    <TrackerLapChartPanel
+      mobile
+      drivers={drivers.data ?? []}
+      positions={positions.data ?? []}
+      lapStarts={lapMarks}
+      sessionStartMs={sessionStartMs}
+      sessionTimeMs={t}
+      currentLap={currentLap}
+    />
   );
 
   const mobileGapContent = (
-    <TrackerPanelFrame mobile>
-      <GapChart
-        drivers={drivers.data ?? []}
-        intervals={intervals.data ?? []}
-        lapStarts={lapMarks}
-        currentLap={currentLap}
-        sessionStartMs={sessionStartMs}
-        sessionTimeMs={t}
-      />
-    </TrackerPanelFrame>
+    <TrackerGapChartPanel
+      mobile
+      drivers={drivers.data ?? []}
+      intervals={intervals.data ?? []}
+      lapStarts={lapMarks}
+      currentLap={currentLap}
+      sessionStartMs={sessionStartMs}
+      sessionTimeMs={t}
+    />
   );
 
   const desktopTimingContent = (
-    <TrackerTimingPanel
+    <TrackerDesktopTimingContent
       hasTimingError={positions.isError}
       timingTower={timingTower}
     />
   );
 
   const desktopChartContent = (
-    <TrackerPanelFrame>
-      <LapChart
-        drivers={drivers.data ?? []}
-        positions={positions.data ?? []}
-        lapStarts={lapMarks}
-        sessionStartMs={sessionStartMs}
-        sessionTimeMs={t}
-        currentLap={currentLap}
-      />
-    </TrackerPanelFrame>
+    <TrackerLapChartPanel
+      drivers={drivers.data ?? []}
+      positions={positions.data ?? []}
+      lapStarts={lapMarks}
+      sessionStartMs={sessionStartMs}
+      sessionTimeMs={t}
+      currentLap={currentLap}
+    />
   );
 
   const desktopGapContent = (
-    <TrackerPanelFrame>
-      <GapChart
-        drivers={drivers.data ?? []}
-        intervals={intervals.data ?? []}
-        lapStarts={lapMarks}
-        currentLap={currentLap}
-        sessionStartMs={sessionStartMs}
-        sessionTimeMs={t}
-      />
-    </TrackerPanelFrame>
+    <TrackerGapChartPanel
+      drivers={drivers.data ?? []}
+      intervals={intervals.data ?? []}
+      lapStarts={lapMarks}
+      currentLap={currentLap}
+      sessionStartMs={sessionStartMs}
+      sessionTimeMs={t}
+    />
   );
-
-  const sharedSessionHeaderProps: RaceWeekendSessionHeaderProps = {
-    laps: laps.data ?? [],
-    raceControl: raceControl.data ?? [],
-    sessionTimeMs: t,
-    sessionStartMs,
-    qualiPhase,
-    countdownMs,
-    airTemp: weatherAtT?.air_temperature ?? null,
-    trackTemp: weatherAtT?.track_temperature ?? null,
-    isRaceSession,
-    lightsOutMs,
-    totalLapCount,
-    sessionName,
-    showFinalClassification,
-    hasSessionResultError: sessionResult.isError,
-    onShowEliminations: () => setIsQualiEliminationsDialogOpen(true),
-    onShowResults: () => setIsResultsDialogOpen(true),
-    onJumpToSessionTime: (sessionTimeMs: number) => setTimelineT(sessionTimeMs),
-  };
 
   const sharedSessionHeader = (
-    <RaceWeekendSessionHeader {...sharedSessionHeaderProps} />
+    <RaceWeekendSessionHeaderAdapter
+      laps={laps.data ?? []}
+      raceControl={raceControl.data ?? []}
+      sessionTimeMs={t}
+      sessionStartMs={sessionStartMs}
+      qualiPhase={qualiPhase}
+      countdownMs={countdownMs}
+      airTemp={weatherAtT?.air_temperature ?? null}
+      trackTemp={weatherAtT?.track_temperature ?? null}
+      isRaceSession={isRaceSession}
+      lightsOutMs={lightsOutMs}
+      totalLapCount={totalLapCount}
+      sessionName={sessionName}
+      showFinalClassification={showFinalClassification}
+      hasSessionResultError={sessionResult.isError}
+      onOpenEliminations={openQualiEliminationsDialog}
+      onOpenResults={openResultsDialog}
+      onJumpToSessionTime={(sessionTimeMs: number) =>
+        setTimelineT(sessionTimeMs)
+      }
+    />
   );
 
-  const trackerMobilePlayback = showTrackerInlinePlayback ? (
-    <PlaybackBar
-      durationMs={playbackDurationMs}
-      lapStarts={lapMarks}
-      pitTimes={pitMarks}
-      flagTimes={flagMarks}
-      safetyCarTimes={safetyCarMarks}
-      overtakeTimes={overtakeMarks}
-      radioTimes={radioMarks}
-      raceControlMarkers={raceControlMarkers}
-      markerSummary={markerSummary}
-      canReplayCurrentIncident={currentReplayIncident !== undefined}
-      onReplayCurrentIncident={replayCurrentIncident}
-      canReplayNextIncident={
-        nextReplayIncident !== undefined || firstReplayIncident !== undefined
-      }
-      onReplayNextIncident={replayNextIncident}
-      incidentReplayHint={incidentReplayHint}
-      countdownMs={countdownMs}
-      qualiPhase={qualiPhase}
-      q2StartMs={qualiPhaseStartTimes.q2StartMs}
-      q3StartMs={qualiPhaseStartTimes.q3StartMs}
-      mobileInline
+  const sharedPlaybackBarProps: SharedPlaybackBarProps =
+    useRaceWeekendPlaybackBarProps({
+      durationMs: playbackDurationMs,
+      lapStarts: lapMarks,
+      pitTimes: pitMarks,
+      flagTimes: flagMarks,
+      safetyCarTimes: safetyCarMarks,
+      overtakeTimes: overtakeMarks,
+      radioTimes: radioMarks,
+      raceControlMarkers,
+      markerSummary,
+      canReplayCurrentIncident: currentReplayIncident !== undefined,
+      onReplayCurrentIncident: replayCurrentIncident,
+      canReplayNextIncident:
+        nextReplayIncident !== undefined || firstReplayIncident !== undefined,
+      onReplayNextIncident: replayNextIncident,
+      incidentReplayHint,
+      countdownMs,
+      qualiPhase,
+      q2StartMs: qualiPhaseStartTimes.q2StartMs,
+      q3StartMs: qualiPhaseStartTimes.q3StartMs,
+    });
+
+  const trackerMobilePlayback = (
+    <RaceWeekendMobilePlayback
+      enabled={showTrackerInlinePlayback}
       showSpeedControls={showPlaybackSpeedControls}
       showEventChips={showPlaybackEventChips}
+      playbackBarProps={sharedPlaybackBarProps}
     />
-  ) : undefined;
-
-  const trackerDesktopFocusedTelemetry = (
-    <TrackerFocusedTelemetryPanel telemetry={focusedTelemetryPanel} />
   );
 
-  const handleCommentaryTimeModeToggle = () => {
-    setCommentaryTimeMode(
-      (() => {
-        const nextValue = commentaryTimeMode === "all" ? "elapsed" : "all";
-        trackEvent("raceweekend_commentary_time_mode_changed", {
-          mode: nextValue,
-        });
-        return nextValue;
-      })(),
-    );
-  };
-
-  const handleCommentaryPlayWindow = (startMs: number, endMs: number) => {
-    trackEvent("raceweekend_commentary_play_window", {
-      start_ms: Math.round(startMs),
-      end_ms: Math.round(endMs),
+  const { handleCommentaryTimeModeToggle, handleCommentaryPlayWindow } =
+    useCommentaryInteractions({
+      commentaryTimeMode,
+      setCommentaryTimeMode,
+      setTimelineT,
+      setIncidentReplayEndMs,
+      setTimelinePlaying,
     });
-    setTimelineT(startMs);
-    setIncidentReplayEndMs(endMs);
-    setTimelinePlaying(true);
-  };
 
-  const commentaryContent = (
-    <CommentaryPanelsSection
+  const leaderboardView = (
+    <RaceWeekendLeaderboardSectionAdapter
+      header={sharedSessionHeader}
+      isLoadingSessionData={isLoadingSessionData}
+      hasPositionsError={positions.isError}
+      leaderboardTower={leaderboardTower}
+    />
+  );
+
+  const trackerView = (
+    <TrackerSectionAdapter
+      header={sharedSessionHeader}
+      activeTab={activeTrackerTab}
+      onTrackerTabChange={handleTrackerTabChange}
+      toasts={toasts}
+      drivers={drivers.data ?? []}
+      onDismissToast={dismiss}
+      radioAutoplay={settingToastRadioAutoplay}
+      soundsEnabled={toastSoundsEnabled}
+      maxVisibleToasts={notificationMaxVisible}
+      mobilePlayback={trackerMobilePlayback}
+      mobileTimingContent={mobileTimingContent}
+      mobileMapContent={mobileMapContent}
+      strategyContent={strategyPanelContent}
+      mobileChartContent={mobileChartContent}
+      mobileGapContent={mobileGapContent}
+      desktopTimingContent={desktopTimingContent}
+      desktopChartContent={desktopChartContent}
+      desktopGapContent={desktopGapContent}
+      focusedTelemetry={focusedTelemetryPanel}
+      desktopSplitRef={trackerDesktopSplitRef}
+      desktopPanelWidth={trackerDesktopPanelWidth}
+      onDesktopResizeMouseDown={trackerDesktopResizeHandleProps.onMouseDown}
+      onDesktopResizeTouchStart={trackerDesktopResizeHandleProps.onTouchStart}
+      onDesktopResizeDoubleClick={trackerDesktopResizeHandleProps.onDoubleClick}
+      desktopMapContent={trackMapContent}
+      isLoadingSessionData={isLoadingSessionData}
+    />
+  );
+
+  const commentaryView = (
+    <RaceWeekendCommentaryViewAdapter
+      header={sharedSessionHeader}
+      tabs={commentaryTabs}
       commentaryTab={commentaryTab ?? "rc"}
-      showAllItems={commentaryTimeMode === "all"}
+      setCommentaryTab={setCommentaryTab}
+      lapLabel={commentaryLapLabel}
+      timeMode={commentaryTimeMode}
+      onToggleTimeMode={handleCommentaryTimeModeToggle}
       raceControlError={raceControl.isError}
       teamRadioError={teamRadio.isError}
       pitsError={pits.isError}
@@ -1610,171 +851,55 @@ export default function RaceWeekend() {
     />
   );
 
-  const leaderboardLoadingIndicator = isLoadingSessionData ? (
-    <LeaderboardLoadingIndicator />
-  ) : undefined;
-
-  const leaderboardContent = positions.isError ? (
-    <ErrorMessage message="Failed to load timing data" />
-  ) : (
-    leaderboardTower
-  );
-
   // ── View layouts ─────────────────────────────────────────────────────────────
 
   return (
     <div className="relative flex flex-col overflow-x-hidden pb-[calc(7.5rem+env(safe-area-inset-bottom))] md:h-full md:min-h-0 md:flex-1 md:overflow-hidden md:pb-0">
-      {isLoadingEventSession && (
-        <div className="absolute inset-0 z-40 flex items-center justify-center bg-[#0b0c12]/86 backdrop-blur-sm">
-          <div className="mx-4 w-full max-w-sm rounded border border-panel bg-surface px-4 py-4 text-center shadow-2xl">
-            <div className="text-f1red text-[11px] font-black uppercase tracking-[0.16em] animate-pulse">
-              Loading Event
-            </div>
-            <div className="mt-2 text-xs text-muted">
-              Fetching the latest session and preparing track data.
-            </div>
-          </div>
-        </div>
-      )}
+      <RaceWeekendTopOverlaysAdapter
+        isLoadingEventSession={isLoadingEventSession}
+        showStartingLights={sessionStartMs > 0 && isRaceSession}
+        sessionTimeMs={t}
+        lightsOutMs={lightsOutMs}
+      />
 
-      {/* Starting lights — absolute overlay, race sessions only */}
-      {sessionStartMs > 0 && isRaceSession && lightsOutMs != null && (
-        <StartingLights t={t} lightsOutMs={lightsOutMs} />
-      )}
+      <RaceWeekendMainViewsAdapter
+        currentView={currentView}
+        leaderboardView={leaderboardView}
+        trackerView={trackerView}
+        commentaryView={commentaryView}
+      />
 
-      {/* ── LEADERBOARD VIEW ──────────────────────────────────────────── */}
-      {currentView === "leaderboard" && (
-        <LeaderboardView
-          header={sharedSessionHeader}
-          loadingIndicator={leaderboardLoadingIndicator}
-          content={leaderboardContent}
-        />
-      )}
+      <RaceWeekendOverlaysAdapter
+        catchupSummaryEnabled={catchupSummaryEnabled}
+        catchupSummary={catchupSummary}
+        drivers={drivers.data ?? []}
+        onDismissCatchup={dismissCatchup}
+        showFinalClassification={showFinalClassification}
+        hasSessionResultError={sessionResult.isError}
+        showQualifyingBanner={
+          sessionStartMs > 0 &&
+          isQualiSession(sessionName) &&
+          !!qualiPhase &&
+          isQualiEliminationsDialogOpen
+        }
+        qualiPhase={qualiPhase}
+        positions={positions.data ?? []}
+        sessionTimeMs={t}
+        sessionStartMs={sessionStartMs}
+        countdownMs={countdownMs}
+        onCloseQualifyingBanner={closeQualiEliminationsDialog}
+        isResultsDialogOpen={isResultsDialogOpen}
+        results={sessionResult.data ?? []}
+        sessionName={session?.session_name}
+        onCloseResultsDialog={closeResultsDialog}
+      />
 
-      {/* ── DRIVER TRACKER VIEW ───────────────────────────────────────── */}
-      {currentView === "tracker" && (
-        <TrackerSection
-          header={sharedSessionHeader}
-          showOverlayToasts={activeTrackerTab !== "map"}
-          activeTab={activeTrackerTab}
-          onTrackerTabChange={handleTrackerTabChange}
-          toasts={toasts}
-          drivers={drivers.data ?? []}
-          onDismissToast={dismiss}
-          radioAutoplay={settingToastRadioAutoplay}
-          soundsEnabled={toastSoundsEnabled}
-          maxVisibleToasts={notificationMaxVisible}
-          mobilePlayback={trackerMobilePlayback}
-          mobileTimingContent={mobileTimingContent}
-          mobileMapContent={mobileMapContent}
-          strategyContent={strategyPanelContent}
-          mobileChartContent={mobileChartContent}
-          mobileGapContent={mobileGapContent}
-          desktopTimingContent={desktopTimingContent}
-          desktopChartContent={desktopChartContent}
-          desktopGapContent={desktopGapContent}
-          desktopFocusedTelemetry={trackerDesktopFocusedTelemetry}
-          desktopSplitRef={trackerDesktopSplitRef}
-          desktopPanelWidth={trackerDesktopPanelWidth}
-          onDesktopResizeMouseDown={trackerDesktopResizeHandleProps.onMouseDown}
-          onDesktopResizeTouchStart={
-            trackerDesktopResizeHandleProps.onTouchStart
-          }
-          onDesktopResizeDoubleClick={
-            trackerDesktopResizeHandleProps.onDoubleClick
-          }
-          desktopMapContent={trackMapContent}
-          isLoadingSessionData={isLoadingSessionData}
-        />
-      )}
-
-      {/* ── COMMENTARY VIEW ───────────────────────────────────────────── */}
-      {currentView === "commentary" && (
-        <CommentarySection
-          header={sharedSessionHeader}
-          tabs={commentaryTabs}
-          activeTab={commentaryTab ?? "rc"}
-          onTabChange={(tab) => {
-            trackEvent("raceweekend_commentary_tab_changed", { tab });
-            setCommentaryTab(tab);
-          }}
-          lapLabel={commentaryLapLabel}
-          timeMode={commentaryTimeMode}
-          onToggleTimeMode={handleCommentaryTimeModeToggle}
-          content={commentaryContent}
-        />
-      )}
-
-      {/* Catch-up summary — appears over the whole layout after a big scrub-forward */}
-      {catchupSummaryEnabled && catchupSummary !== null && (
-        <CatchupSummary
-          summary={catchupSummary}
-          drivers={drivers.data ?? []}
-          onDismiss={dismissCatchup}
-        />
-      )}
-
-      {showFinalClassification && sessionResult.isError && (
-        <div className="shrink-0 border-t border-panel">
-          <ErrorMessage message="Failed to load final classification" compact />
-        </div>
-      )}
-
-      {sessionStartMs > 0 &&
-        isQualiSession(sessionName) &&
-        qualiPhase &&
-        isQualiEliminationsDialogOpen && (
-          <QualifyingBanner
-            phase={qualiPhase}
-            drivers={drivers.data ?? []}
-            positions={positions.data ?? []}
-            sessionTimeMs={t}
-            sessionStartMs={sessionStartMs}
-            countdownMs={countdownMs}
-            openByDefault
-            dialogOnly
-            onClose={() => setIsQualiEliminationsDialogOpen(false)}
-          />
-        )}
-
-      {showFinalClassification &&
-        !sessionResult.isError &&
-        isResultsDialogOpen && (
-          <FinalClassificationDialog
-            results={sessionResult.data ?? []}
-            drivers={drivers.data ?? []}
-            sessionName={session?.session_name}
-            onClose={() => setIsResultsDialogOpen(false)}
-          />
-        )}
-
-      {!showTrackerInlinePlayback && (
-        <PlaybackBar
-          durationMs={playbackDurationMs}
-          lapStarts={lapMarks}
-          pitTimes={pitMarks}
-          flagTimes={flagMarks}
-          safetyCarTimes={safetyCarMarks}
-          overtakeTimes={overtakeMarks}
-          radioTimes={radioMarks}
-          raceControlMarkers={raceControlMarkers}
-          markerSummary={markerSummary}
-          canReplayCurrentIncident={currentReplayIncident !== undefined}
-          onReplayCurrentIncident={replayCurrentIncident}
-          canReplayNextIncident={
-            nextReplayIncident !== undefined ||
-            firstReplayIncident !== undefined
-          }
-          onReplayNextIncident={replayNextIncident}
-          incidentReplayHint={incidentReplayHint}
-          countdownMs={countdownMs}
-          qualiPhase={qualiPhase}
-          q2StartMs={qualiPhaseStartTimes.q2StartMs}
-          q3StartMs={qualiPhaseStartTimes.q3StartMs}
-          showSpeedControls={showPlaybackSpeedControls}
-          showEventChips={showPlaybackEventChips}
-        />
-      )}
+      <RaceWeekendFooterPlayback
+        enabled={!showTrackerInlinePlayback}
+        showSpeedControls={showPlaybackSpeedControls}
+        showEventChips={showPlaybackEventChips}
+        playbackBarProps={sharedPlaybackBarProps}
+      />
     </div>
   );
 }
