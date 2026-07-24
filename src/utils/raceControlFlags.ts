@@ -3,6 +3,8 @@ import type { RaceControl } from "@/api/types";
 interface RaceControlLike {
   flag: string | null;
   message: string;
+  scope?: string | null;
+  sector?: number | null;
 }
 
 const VSC_FLAGS = new Set(["VIRTUAL_SC", "VIRTUAL_SAFETY_CAR", "VSC"]);
@@ -25,12 +27,23 @@ export type SafetyControlPhase =
   | "vsc_start"
   | "vsc_end";
 
+export function isSectorScopedRaceControl(entry: RaceControlLike): boolean {
+  const scopeKey = (entry.scope ?? "").toLowerCase();
+  if (scopeKey.includes("track")) return false;
+  if (scopeKey.includes("sector")) return true;
+  return entry.sector !== null && entry.sector !== undefined;
+}
+
 export function isTrackClearSignal(entry: RaceControlLike): boolean {
   const flagKey = normalizeFlag(entry.flag);
   if (flagKey === "GREEN" || flagKey === "CLEAR") return true;
 
   const msg = normalizeMessage(entry.message);
   return includesAny(msg, ["TRACK CLEAR", "GREEN FLAG", "RESTART"]);
+}
+
+export function isGlobalTrackClearSignal(entry: RaceControlLike): boolean {
+  return isTrackClearSignal(entry) && !isSectorScopedRaceControl(entry);
 }
 
 export function getSafetyControlPhase(

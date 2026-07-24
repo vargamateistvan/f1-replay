@@ -77,6 +77,34 @@ describe("buildIncidentWindows safety control phases", () => {
       },
     ]);
   });
+
+  it("does not end safety-car window on sector clear with marshal sector numbers", () => {
+    const events = normalizeRaceControl(
+      [
+        rc({ date: iso(10), message: "SAFETY CAR DEPLOYED", lap_number: 5 }),
+        rc({
+          date: iso(14),
+          flag: "CLEAR",
+          scope: "Sector",
+          sector: 19,
+          message: "CLEAR IN TRACK SECTOR 19",
+        }),
+        rc({ date: iso(30), message: "SAFETY CAR IN THIS LAP", lap_number: 7 }),
+      ],
+      START,
+    );
+
+    expect(buildIncidentWindows(events)).toEqual([
+      {
+        id: "safety_car-10000",
+        kind: "safety_car",
+        label: "Safety Car",
+        startMs: 10_000,
+        endMs: 30_000,
+        startLap: 5,
+      },
+    ]);
+  });
 });
 
 describe("deriveTrackFlagState", () => {
@@ -142,6 +170,39 @@ describe("deriveTrackFlagState", () => {
       [
         rc({ date: iso(10), flag: "YELLOW", scope: "Sector", sector: 1 }),
         rc({ date: iso(20), flag: "RED", scope: "Track", message: "RED FLAG" }),
+      ],
+      START,
+      START + 30_000,
+    );
+
+    expect(state?.globalFlag).toBe("RED");
+  });
+
+  it("keeps RED global flag when same-timestamp sector CLEAR arrives for sector 17/19", () => {
+    const state = deriveTrackFlagState(
+      [
+        rc({
+          date: iso(10),
+          flag: "YELLOW",
+          scope: "Sector",
+          sector: 19,
+          message: "YELLOW IN TRACK SECTOR 19",
+        }),
+        rc({ date: iso(20), flag: "RED", scope: "Track", message: "RED FLAG" }),
+        rc({
+          date: iso(20),
+          flag: "CLEAR",
+          scope: "Sector",
+          sector: 17,
+          message: "CLEAR IN TRACK SECTOR 17",
+        }),
+        rc({
+          date: iso(20),
+          flag: "CLEAR",
+          scope: "Sector",
+          sector: 19,
+          message: "CLEAR IN TRACK SECTOR 19",
+        }),
       ],
       START,
       START + 30_000,

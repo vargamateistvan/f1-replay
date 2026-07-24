@@ -1,7 +1,9 @@
 import type { RaceControl, Position, Pit } from "@/api/types";
 import {
   getSafetyControlPhase,
+  isGlobalTrackClearSignal,
   isTrackClearSignal,
+  isSectorScopedRaceControl,
 } from "@/utils/raceControlFlags";
 
 export type RaceControlSeverity = "info" | "warning" | "critical";
@@ -77,19 +79,9 @@ const TRACK_FLAG_STATE_EMPTY: TrackFlagState = {
   updatedAtMs: 0,
 };
 
-function toSectorNumber(sector: number | null): 1 | 2 | 3 | null {
+function toTimingSectorNumber(sector: number | null): 1 | 2 | 3 | null {
   if (sector === 1 || sector === 2 || sector === 3) return sector;
   return null;
-}
-
-function isSectorScoped(
-  scope: string | null,
-  sector: 1 | 2 | 3 | null,
-): sector is 1 | 2 | 3 {
-  if (sector === null) return false;
-  const scopeKey = (scope ?? "").toLowerCase();
-  if (scopeKey.includes("track")) return false;
-  return true;
 }
 
 /**
@@ -120,14 +112,15 @@ export function deriveTrackFlagState(
     if (eventMs > cutoffMs) break;
 
     const flagKey = toFlagKey(entry.flag);
-    const sector = toSectorNumber(entry.sector);
-    const sectorScoped = isSectorScoped(entry.scope, sector);
+    const timingSector = toTimingSectorNumber(entry.sector);
+    const sectorScoped = isSectorScopedRaceControl(entry);
     const clearSignal = isTrackClearSignal(entry);
 
     if (clearSignal) {
       state.updatedAtMs = eventMs;
       if (sectorScoped) {
-        state.sectorFlags[sector] = null;
+        // Marshal sectors can be >3 in OpenF1; only timing sectors 1/2/3 are tracked.
+        if (timingSector !== null) state.sectorFlags[timingSector] = null;
       } else {
         state.globalFlag = null;
         state.sectorFlags = { 1: null, 2: null, 3: null };
@@ -152,7 +145,9 @@ export function deriveTrackFlagState(
 
     state.updatedAtMs = eventMs;
     if (sectorScoped) {
-      state.sectorFlags[sector] = resolvedFlagKey;
+      // Ignore non-timing sector numbers to avoid corrupting global state.
+      if (timingSector !== null)
+        state.sectorFlags[timingSector] = resolvedFlagKey;
     } else {
       state.globalFlag = resolvedFlagKey;
     }
@@ -534,7 +529,7 @@ function incidentKindFor(
 function isTrackClear(e: NormalizedRaceControlEvent): boolean {
   const phase = getSafetyControlPhase(e.raw);
   if (phase === "safety_car_end" || phase === "vsc_end") return true;
-  return isTrackClearSignal(e.raw);
+  return isGlobalTrackClearSignal(e.raw);
 }
 
 export function buildIncidentWindows(

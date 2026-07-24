@@ -71,7 +71,7 @@ import { weatherAtSessionTime } from "@/utils/weather";
 import { buildKeyMoments } from "@/components/CommentaryPanels/keyMoments";
 import {
   getSafetyControlPhase,
-  isTrackClearSignal,
+  isGlobalTrackClearSignal,
 } from "@/utils/raceControlFlags";
 import {
   isPracticeSession,
@@ -411,7 +411,7 @@ export default function RaceWeekend() {
       relMs,
       phase: getSafetyControlPhase(row),
       messageUpper: (row.message ?? "").toUpperCase(),
-      clearsTrack: isTrackClearSignal(row),
+      clearsTrack: isGlobalTrackClearSignal(row),
     }));
   }, [timedRaceControl]);
 
@@ -1220,15 +1220,10 @@ export default function RaceWeekend() {
     ? detectQualiPhase(raceControl.data ?? [], sessionStartMs, t)
     : null;
   const commentaryStatusLabel = useMemo(() => {
-    if (isPracticeCommentarySession) return "Session";
-    if (isQualiSession(sessionName)) return qualiPhase ?? "Q";
+    if (isPracticeCommentarySession) return sessionName || "Practice";
+    if (isQualiSession(sessionName)) return sessionName || "Qualifying";
     return `Lap ${commentaryLapLabel}`;
-  }, [
-    isPracticeCommentarySession,
-    commentaryLapLabel,
-    qualiPhase,
-    sessionName,
-  ]);
+  }, [isPracticeCommentarySession, commentaryLapLabel, sessionName]);
 
   const qualiPhaseStartTimes = useMemo(() => {
     if (!sessionStartMs || !isQualiSession(sessionName)) {
