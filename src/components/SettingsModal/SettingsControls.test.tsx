@@ -111,6 +111,9 @@ describe("SettingsControls", () => {
     fireEvent.click(screen.getByRole("button", { name: "2×" }));
     expect(state.setSetting).toHaveBeenCalledWith("defaultSpeed", 2);
 
+    fireEvent.click(screen.getByRole("button", { name: "16×" }));
+    expect(state.setSetting).toHaveBeenCalledWith("defaultSpeed", 16);
+
     fireEvent.click(screen.getByText("Reset to defaults"));
     expect(state.reset).toHaveBeenCalled();
   });

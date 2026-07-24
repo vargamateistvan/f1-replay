@@ -2,6 +2,7 @@ import type { ReactNode } from "react";
 import { useSettings, type AppSettings } from "@/stores/settings";
 import { useMediaQuery } from "@/hooks/useMediaQuery";
 import { trackEvent } from "@/lib/analytics";
+import { SPEEDS } from "@/constants";
 
 function toAnalyticsValue(
   value: AppSettings[keyof AppSettings],
@@ -91,8 +92,26 @@ export function SectionHeader({ children }: { children: ReactNode }) {
 
 // ── Speed selector ────────────────────────────────────────────────────────────
 
-const SPEED_OPTIONS = [1, 2, 4, 8] as const;
 const NOTIFICATION_LIMIT_OPTIONS = [2, 4, 6, 8] as const;
+const CATCHUP_EVENT_TYPE_OPTIONS = [
+  { kind: "pit", label: "Pit stops", color: "#3d78ff" },
+  { kind: "flag", label: "Flags", color: "#f5a623" },
+  { kind: "penalty", label: "Penalties", color: "#e8002d" },
+  { kind: "overtake", label: "Overtakes", color: "#22c55e" },
+  { kind: "fastest_lap", label: "Fastest laps", color: "#9b59f5" },
+  { kind: "investigation", label: "Investigations", color: "#f5a623" },
+  { kind: "radio", label: "Radio", color: "#6b6b7a" },
+] as const;
+
+const NOTIFICATION_EVENT_TYPE_OPTIONS = [
+  { key: "toastPit", label: "Pit stops", color: "#3d78ff" },
+  { key: "toastFlag", label: "Flags", color: "#f5a623" },
+  { key: "toastPenalty", label: "Penalties", color: "#e8002d" },
+  { key: "toastOvertake", label: "Overtakes", color: "#22c55e" },
+  { key: "toastFastestLap", label: "Fastest laps", color: "#9b59f5" },
+  { key: "toastInvestigation", label: "Investigations", color: "#f5a623" },
+  { key: "toastRadio", label: "Radio", color: "#6b6b7a" },
+] as const;
 
 export function SpeedSelector({
   value,
@@ -112,7 +131,7 @@ export function SpeedSelector({
         </div>
       </div>
       <div className="flex gap-1 shrink-0">
-        {SPEED_OPTIONS.map((s) => (
+        {SPEEDS.map((s) => (
           <button
             key={s}
             onClick={() => onChange(s)}
@@ -438,25 +457,7 @@ export function SettingsBody() {
             Default visible event types
           </div>
           <div className="flex flex-wrap gap-1.5">
-            {(
-              [
-                { kind: "pit", label: "Pit stops", color: "#3d78ff" },
-                { kind: "flag", label: "Flags", color: "#f5a623" },
-                { kind: "penalty", label: "Penalties", color: "#e8002d" },
-                { kind: "overtake", label: "Overtakes", color: "#22c55e" },
-                {
-                  kind: "fastest_lap",
-                  label: "Fastest laps",
-                  color: "#9b59f5",
-                },
-                {
-                  kind: "investigation",
-                  label: "Investigations",
-                  color: "#f5a623",
-                },
-                { kind: "radio", label: "Radio", color: "#6b6b7a" },
-              ] as const
-            ).map(({ kind, label, color }) => {
+            {CATCHUP_EVENT_TYPE_OPTIONS.map(({ kind, label, color }) => {
               const active =
                 settings.catchupSummaryDefaultFilters.includes(kind);
               return (
@@ -502,12 +503,9 @@ export function SettingsBody() {
         onChange={(v) => updateSetting("notificationMaxVisible", v)}
         disabled={!settings.toastsEnabled}
       />
-      <SettingRow
-        label="Team radio"
-        checked={settings.toastRadio}
-        onChange={toggle("toastRadio")}
-        disabled={!settings.toastsEnabled}
-      />
+      <div className="-mt-2.5 mb-1 text-[10px] text-muted/80 leading-tight border-b border-panel pb-2.5">
+        Controls the number of simultaneous toasts shown in the live stack.
+      </div>
       <SettingRow
         label="Auto-play radio messages"
         description="Automatically play new team radio toasts"
@@ -527,73 +525,35 @@ export function SettingsBody() {
           Default visible event types
         </div>
         <div className="flex flex-wrap gap-1.5">
-          {(
-            [
-              {
-                key: "toastFlag",
-                label: "Flags",
-                color: "#f5a623",
-                active: settings.toastFlag,
-                disabled: !settings.toastsEnabled,
-              },
-              {
-                key: "toastInvestigation",
-                label: "Investigations",
-                color: "#ffd36a",
-                active: settings.toastInvestigation,
-                disabled: !settings.toastsEnabled,
-              },
-              {
-                key: "toastPenalty",
-                label: "Penalties",
-                color: "#e8002d",
-                active: settings.toastPenalty,
-                disabled: !settings.toastsEnabled,
-              },
-            ] as const
-          ).map(({ key, label, color, active, disabled }) => (
-            <button
-              key={key}
-              onClick={() =>
-                updateSetting(key, !active as AppSettings[typeof key])
-              }
-              disabled={disabled}
-              className={[
-                "text-[10px] font-bold px-2 py-0.5 rounded-sm border transition-all",
-                "focus:outline-none focus-visible:ring-1 focus-visible:ring-white/40",
-                active
-                  ? "border-transparent text-black"
-                  : "border-panel text-muted bg-transparent",
-                disabled ? "opacity-50 cursor-not-allowed" : "",
-              ].join(" ")}
-              style={
-                active ? { backgroundColor: color, borderColor: color } : {}
-              }
-              aria-pressed={active}
-            >
-              {label}
-            </button>
-          ))}
+          {NOTIFICATION_EVENT_TYPE_OPTIONS.map(({ key, label, color }) => {
+            const active = settings[key];
+            const disabled = !settings.toastsEnabled;
+            return (
+              <button
+                key={key}
+                onClick={() =>
+                  updateSetting(key, !active as AppSettings[typeof key])
+                }
+                disabled={disabled}
+                className={[
+                  "text-[10px] font-bold px-2 py-0.5 rounded-sm border transition-all",
+                  "focus:outline-none focus-visible:ring-1 focus-visible:ring-white/40",
+                  active
+                    ? "border-transparent text-black"
+                    : "border-panel text-muted bg-transparent",
+                  disabled ? "opacity-50 cursor-not-allowed" : "",
+                ].join(" ")}
+                style={
+                  active ? { backgroundColor: color, borderColor: color } : {}
+                }
+                aria-pressed={active}
+              >
+                {label}
+              </button>
+            );
+          })}
         </div>
       </div>
-      <SettingRow
-        label="Overtakes"
-        checked={settings.toastOvertake}
-        onChange={toggle("toastOvertake")}
-        disabled={!settings.toastsEnabled}
-      />
-      <SettingRow
-        label="Pit stops"
-        checked={settings.toastPit}
-        onChange={toggle("toastPit")}
-        disabled={!settings.toastsEnabled}
-      />
-      <SettingRow
-        label="Fastest lap"
-        checked={settings.toastFastestLap}
-        onChange={toggle("toastFastestLap")}
-        disabled={!settings.toastsEnabled}
-      />
 
       <SectionHeader>Race Views</SectionHeader>
       <SettingRow

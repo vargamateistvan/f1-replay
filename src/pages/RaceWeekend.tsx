@@ -1071,7 +1071,11 @@ export default function RaceWeekend() {
     settingToastFastestLap,
   ]);
 
-  const { toasts, dismiss } = useEventToasts(filteredToastEvents, t);
+  const { toasts, dismiss } = useEventToasts(
+    filteredToastEvents,
+    t,
+    notificationMaxVisible,
+  );
   const { summary: catchupSummary, dismiss: dismissCatchup } =
     useCatchupSummary(filteredToastEvents, t);
 

@@ -2,7 +2,6 @@ import { useEffect, useRef, useState } from "react";
 import type { ToastEvent } from "@/timeline/events";
 
 const JUMP_THRESHOLD_MS = 5_000;
-const MAX_VISIBLE = 4;
 const AUTO_DISMISS_MS = 8_000;
 
 export interface ActiveToast {
@@ -10,7 +9,11 @@ export interface ActiveToast {
   addedAt: number;
 }
 
-export function useEventToasts(events: ToastEvent[], t: number) {
+export function useEventToasts(
+  events: ToastEvent[],
+  t: number,
+  maxVisible = 4,
+) {
   const prevTRef = useRef(t);
   const seenRef = useRef(new Set<string>());
   const [toasts, setToasts] = useState<ActiveToast[]>([]);
@@ -41,9 +44,9 @@ export function useEventToasts(events: ToastEvent[], t: number) {
       const pruned = prev.filter((at) => now - at.addedAt < AUTO_DISMISS_MS);
       if (fresh.length === 0) return pruned;
       const incoming = fresh.map((ev) => ({ event: ev, addedAt: now }));
-      return [...incoming, ...pruned].slice(0, MAX_VISIBLE);
+      return [...incoming, ...pruned].slice(0, maxVisible);
     });
-  }, [t, events]);
+  }, [t, events, maxVisible]);
 
   const dismiss = (id: string) =>
     setToasts((prev) => prev.filter((at) => at.event.id !== id));
