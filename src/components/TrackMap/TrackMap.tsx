@@ -177,6 +177,7 @@ interface Props {
   readonly activeSectorFlag?: ActiveTrackFlag | null;
   readonly activeTrackFlagState?: ActiveTrackFlagState | null;
   readonly activeTrackVehicles?: ActiveTrackVehicles | null;
+  readonly safetyCarSirenOn?: boolean;
   readonly showSectorBox?: boolean;
   readonly showTrackControls?: boolean;
   readonly showCompass?: boolean;
@@ -185,6 +186,35 @@ interface Props {
   readonly showEnhancedVisuals?: boolean;
   readonly onSelectDriver?: (driverNumber: number) => void;
 }
+
+const SPECIAL_TRACK_VEHICLES: Record<
+  number,
+  {
+    shortLabel: string;
+    fullLabel: string;
+    fill: string;
+    stroke: string;
+    text: string;
+    halo: string;
+  }
+> = {
+  242: {
+    shortLabel: "SC",
+    fullLabel: "SAFETY CAR",
+    fill: "#f5a623",
+    stroke: "#7a5400",
+    text: "#101010",
+    halo: "rgba(245,166,35,0.55)",
+  },
+  243: {
+    shortLabel: "MC",
+    fullLabel: "MEDICAL CAR",
+    fill: "#e8002d",
+    stroke: "#5f121d",
+    text: "#ffffff",
+    halo: "rgba(232,0,45,0.55)",
+  },
+};
 
 export function TrackMap({
   sessionKey,
@@ -204,6 +234,7 @@ export function TrackMap({
   activeSectorFlag = null,
   activeTrackFlagState = null,
   activeTrackVehicles = null,
+  safetyCarSirenOn = false,
   showSectorBox = true,
   showTrackControls = true,
   showCompass = true,
@@ -1949,7 +1980,12 @@ export function TrackMap({
             )
             .map(({ num, x, y }) => {
               const driver = driverByNumber.get(num);
-              const color = teamColor(driver?.team_colour, "#ffffff");
+              const specialVehicle = SPECIAL_TRACK_VEHICLES[num];
+              const isSafetyCar = num === 242;
+              const sirenOn = isSafetyCar && safetyCarSirenOn;
+              const color = specialVehicle
+                ? specialVehicle.fill
+                : teamColor(driver?.team_colour, "#ffffff");
               const { sx, sy } = locationToSvg(x, y, bounds, innerW, innerH);
               const focused = focusDriver === num;
               const dimmed = focusDriver !== null && !focused;
@@ -1965,6 +2001,21 @@ export function TrackMap({
                 : focused
                   ? 6.5
                   : 4.5;
+              const serviceRadius = focused ? dotRadius + 0.7 : dotRadius + 0.4;
+              const markerStroke = specialVehicle
+                ? specialVehicle.stroke
+                : "#ffffff";
+              const markerTextColor = specialVehicle
+                ? num === 242 && !lightMode
+                  ? "#ffffff"
+                  : specialVehicle.text
+                : "#ffffff";
+              const markerText = specialVehicle
+                ? specialVehicle.shortLabel
+                : String(num);
+              const markerLabel = specialVehicle
+                ? specialVehicle.fullLabel
+                : (driver?.name_acronym ?? num);
               return (
                 <g
                   key={num}
@@ -2016,34 +2067,87 @@ export function TrackMap({
                     <circle
                       r={dotRadius + 2.5}
                       fill="none"
-                      stroke={color}
+                      stroke={specialVehicle ? specialVehicle.halo : color}
                       strokeWidth={1.5}
                       strokeOpacity={0.5}
                     />
                   )}
+                  {specialVehicle && (
+                    <circle
+                      r={serviceRadius + 1.8}
+                      fill="none"
+                      stroke={specialVehicle.stroke}
+                      strokeWidth={1.1}
+                      strokeDasharray="2.2 1.6"
+                      strokeOpacity={0.8}
+                    />
+                  )}
+                  {isSafetyCar && sirenOn && (
+                    <>
+                      <circle
+                        r={serviceRadius + 3.2}
+                        fill="none"
+                        stroke={specialVehicle?.fill ?? "#f5a623"}
+                        strokeWidth={1.2}
+                        strokeOpacity={0.78}
+                      >
+                        <animate
+                          attributeName="r"
+                          values={`${(serviceRadius + 2.4).toFixed(1)};${(serviceRadius + 5.8).toFixed(1)};${(serviceRadius + 2.4).toFixed(1)}`}
+                          dur="0.95s"
+                          repeatCount="indefinite"
+                        />
+                        <animate
+                          attributeName="stroke-opacity"
+                          values="0.85;0.25;0.85"
+                          dur="0.95s"
+                          repeatCount="indefinite"
+                        />
+                      </circle>
+                    </>
+                  )}
+                  {isSafetyCar && !sirenOn && (
+                    <circle
+                      r={serviceRadius + 3.4}
+                      fill="none"
+                      stroke="#9aa4be"
+                      strokeWidth={0.9}
+                      strokeOpacity={0.34}
+                    />
+                  )}
                   <circle
-                    r={dotRadius}
+                    r={specialVehicle ? serviceRadius : dotRadius}
                     fill={color}
-                    stroke="#ffffff"
+                    stroke={markerStroke}
                     strokeWidth={focused ? 1.6 : 1.2}
-                    strokeOpacity={focused ? 0.9 : 0.6}
+                    strokeOpacity={focused ? 0.9 : 0.78}
                   />
-                  {mapShowDriverNumberInside && (
+                  {(mapShowDriverNumberInside || specialVehicle) && (
                     <text
                       x={0}
                       y={0}
                       transform={`rotate(${-rotationDeg.toFixed(1)} 0 0)`}
                       textAnchor="middle"
                       dominantBaseline="middle"
-                      fontSize={focused ? (num >= 10 ? 5.2 : 5.8) : 4.4}
-                      fill="#ffffff"
+                      fontSize={
+                        specialVehicle
+                          ? focused
+                            ? 4.1
+                            : 3.8
+                          : focused
+                            ? num >= 10
+                              ? 5.2
+                              : 5.8
+                            : 4.4
+                      }
+                      fill={markerTextColor}
                       stroke="rgba(0,0,0,0.58)"
                       strokeWidth={0.6}
                       paintOrder="stroke"
                       fontFamily="Inter, sans-serif"
                       fontWeight="900"
                     >
-                      {num}
+                      {markerText}
                     </text>
                   )}
                   {/* Compound badge: small dot in tyre-compound colour */}
@@ -2064,12 +2168,12 @@ export function TrackMap({
                       textAnchor="end"
                       transform={`rotate(${-rotationDeg.toFixed(1)} ${(focused ? 15 : 10).toFixed(1)} ${(-5).toFixed(1)})`}
                       fontSize={focused ? 9 : 8}
-                      fill={color}
+                      fill={specialVehicle ? markerTextColor : color}
                       fontFamily="Inter, sans-serif"
                       fontWeight="900"
                       letterSpacing="0.04em"
                     >
-                      {driver?.name_acronym ?? num}
+                      {markerLabel}
                     </text>
                   )}
                 </g>

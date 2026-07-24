@@ -103,6 +103,8 @@ const PANEL = "bg-surface border border-panel";
 const PANEL_TITLE =
   "text-[10px] font-bold text-muted px-3 py-2 border-b border-panel uppercase tracking-[0.12em] border-l-2 border-l-f1red bg-track";
 const OVERTAKE_PULSE_MS = 4_000;
+const SAFETY_CAR_SIREN_LEAVING_MS = 45_000;
+const SAFETY_CAR_SIREN_RETURN_MS = 90_000;
 const TRACKER_DESKTOP_PANEL_WIDTH_STORAGE_KEY =
   "f1-replay.tracker.desktopPanelWidth";
 const TRACKER_DESKTOP_PANEL_MIN_WIDTH = 420;
@@ -841,6 +843,53 @@ export default function RaceWeekend() {
     isMapVisible,
   ]);
 
+  const safetyCarSirenOn = useMemo(() => {
+    if (!isMapVisible || !sessionStartMs) return false;
+    const cutoff = sessionStartMs + tSlow;
+    const safetyCarStarts = timedRaceControlSignals.filter(
+      (signal) => signal.phase === "safety_car_start",
+    );
+    const safetyCarEnds = timedRaceControlSignals.filter(
+      (signal) => signal.phase === "safety_car_end",
+    );
+
+    const lastSafetyCarStart = lastAtOrBefore(
+      safetyCarStarts,
+      cutoff,
+      (signal) => signal.absMs,
+    );
+    const lastSafetyCarEnd = lastAtOrBefore(
+      safetyCarEnds,
+      cutoff,
+      (signal) => signal.absMs,
+    );
+
+    // Siren ON when leaving the pit lane at deployment and while returning in.
+    if (
+      lastSafetyCarEnd &&
+      cutoff - lastSafetyCarEnd.absMs <= SAFETY_CAR_SIREN_RETURN_MS
+    ) {
+      return true;
+    }
+
+    const safetyCarDeployed = activeTrackVehicles?.safetyCar ?? false;
+    if (
+      safetyCarDeployed &&
+      lastSafetyCarStart &&
+      cutoff - lastSafetyCarStart.absMs <= SAFETY_CAR_SIREN_LEAVING_MS
+    ) {
+      return true;
+    }
+
+    return false;
+  }, [
+    timedRaceControlSignals,
+    sessionStartMs,
+    tSlow,
+    isMapVisible,
+    activeTrackVehicles,
+  ]);
+
   const {
     toastsEnabled,
     toastRadio: settingToastRadio,
@@ -1389,6 +1438,7 @@ export default function RaceWeekend() {
       showEnhancedVisuals={mapShowEnhancedVisuals}
       weatherOverlay={mapShowWeather ? weatherAtT : null}
       activeTrackVehicles={activeTrackVehicles}
+      safetyCarSirenOn={safetyCarSirenOn}
       retiredDrivers={retiredDrivers}
       onSelectDriver={toggleFocus}
     />
