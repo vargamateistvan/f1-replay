@@ -210,10 +210,14 @@ export function SessionInfoBar({
     onShowEliminations !== undefined &&
     qualiPhase !== null &&
     typeof countdownMs === "number";
+  const showTimedCountdownTile =
+    !showQualiEliminationTile &&
+    !isRaceSession &&
+    typeof countdownMs === "number";
 
   return (
     <div className="shrink-0 flex items-stretch overflow-x-auto border-b border-panel bg-track text-[10px] font-bold uppercase tracking-[0.1em]">
-      {/* Left tile: qualifying elimination action in quali; lap counter elsewhere */}
+      {/* Left tile: qualifying action in quali; countdown in timed practice; lap counter in race */}
       {showQualiEliminationTile ? (
         <button
           type="button"
@@ -232,6 +236,13 @@ export function SessionInfoBar({
             Eliminated
           </span>
         </button>
+      ) : showTimedCountdownTile ? (
+        <div className="flex shrink-0 items-center justify-center gap-2 border-r border-panel px-2.5 py-2 sm:justify-start sm:px-4">
+          <span className="text-muted">Countdown</span>
+          <span className="text-white tabular-nums font-mono">
+            {countdownMs <= 0 ? "00:00" : fmtElapsed(countdownMs)}
+          </span>
+        </div>
       ) : (
         <div className="flex shrink-0 items-center justify-center gap-2 border-r border-panel px-2.5 py-2 sm:justify-start sm:px-4">
           <span className="text-muted">Lap</span>

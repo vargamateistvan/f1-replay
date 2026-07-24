@@ -124,4 +124,23 @@ describe("SessionInfoBar", () => {
     );
     expect(onShowEliminations).toHaveBeenCalledTimes(1);
   });
+
+  it("shows countdown instead of lap counter for timed non-race sessions", () => {
+    const sessionStartMs = Date.parse("2024-01-01T00:00:00.000Z");
+
+    render(
+      <SessionInfoBar
+        laps={[] as Lap[]}
+        raceControl={[] as RaceControl[]}
+        sessionTimeMs={10_000}
+        sessionStartMs={sessionStartMs}
+        countdownMs={3_500_000}
+        isRaceSession={false}
+      />,
+    );
+
+    expect(screen.getByText("Countdown")).toBeInTheDocument();
+    expect(screen.getByText("58:20")).toBeInTheDocument();
+    expect(screen.queryByText("Lap")).not.toBeInTheDocument();
+  });
 });
