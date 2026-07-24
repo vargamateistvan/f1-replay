@@ -24,6 +24,7 @@ import {
   useTrackOutline,
   locationToSvg,
 } from "@/hooks/useTrackMap";
+import { useMediaQuery } from "@/hooks/useMediaQuery";
 import { buildIndex, interpolateXY } from "@/timeline/interpolate";
 import { teamColor } from "@/utils/color";
 import { useSettings } from "@/stores/settings";
@@ -261,6 +262,7 @@ export function TrackMap({
   const mapShowMarshalHeatmap = useSettings((s) => s.mapShowMarshalHeatmap);
   const mapShowCornerNumbers = useSettings((s) => s.mapShowCornerNumbers);
   const mapShowElevation = useSettings((s) => s.mapShowElevation);
+  const isCompactViewport = useMediaQuery("(max-width: 767px)");
   const [zoomLevel, setZoomLevel] = useState(1);
   const [rotationDeg, setRotationDeg] = useState(0);
   const cameraViewRef = useRef<CameraView>({ x: 0, y: 0, w: SVG_W, h: SVG_H });
@@ -485,6 +487,13 @@ export function TrackMap({
   }, [rotationDeg, setAndPersistRotation]);
 
   useEffect(() => {
+    if (isCompactViewport) {
+      // Mobile always starts in fit-to-track mode to avoid cropped views
+      // from previously persisted desktop zoom/rotation values.
+      setZoomLevel(1);
+      setRotationDeg(defaultRotationDeg);
+      return;
+    }
     if (typeof window === "undefined") {
       setZoomLevel(1);
       setRotationDeg(defaultRotationDeg);
@@ -508,7 +517,12 @@ export function TrackMap({
       setZoomLevel(1);
       setRotationDeg(defaultRotationDeg);
     }
-  }, [zoomStorageKey, rotationStorageKey, defaultRotationDeg]);
+  }, [
+    isCompactViewport,
+    zoomStorageKey,
+    rotationStorageKey,
+    defaultRotationDeg,
+  ]);
 
   // Fetch telemetry for the focused driver's last completed lap.
   // Only fires when a driver is focused and a lap number is known; result is
