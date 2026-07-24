@@ -6,6 +6,7 @@ import type {
   ChapterKind,
 } from "@/timeline/raceControl";
 import { buildLapLookup, lapNumberAtMs } from "@/utils/lapLookup";
+import { isPracticeSession } from "@/utils/session";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -331,11 +332,15 @@ export function RaceChapters({
 
   const chapterGroups = useMemo<ChapterGroup[]>(() => {
     const isQualifying = sessionType?.toLowerCase().includes("qualifying");
+    const isPractice = sessionType ? isPracticeSession(sessionType) : false;
     const groups: ChapterGroup[] = [];
 
     for (const chapter of visibleChapters) {
       let lapNumber: number | null;
-      if (isQualifying) {
+      if (isPractice) {
+        // Practice chapters should live under a single session group.
+        lapNumber = null;
+      } else if (isQualifying) {
         lapNumber = phaseLookup(chapter.startMs);
       } else {
         lapNumber = lapNumberAtMs(lapLookup, chapter.startMs);

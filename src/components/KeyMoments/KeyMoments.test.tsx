@@ -64,4 +64,47 @@ describe("KeyMoments", () => {
     expect(screen.queryByText("VSC")).not.toBeInTheDocument();
     expect(screen.queryByText("VSC deployed")).not.toBeInTheDocument();
   });
+
+  it("groups practice key moments under one session header", () => {
+    const onJump = vi.fn();
+    const sessionStartMs = Date.parse("2024-01-01T00:00:00.000Z");
+    const laps: Lap[] = [
+      {
+        lap_number: 1,
+        date_start: "2024-01-01T00:00:00.000Z",
+      },
+      {
+        lap_number: 2,
+        date_start: "2024-01-01T00:01:00.000Z",
+      },
+    ] as Lap[];
+
+    render(
+      <KeyMoments
+        moments={[
+          {
+            ms: 10_000,
+            kind: "lead_change",
+            label: "VER takes the lead",
+            color: "#e8002d",
+          },
+          {
+            ms: 70_000,
+            kind: "vsc",
+            label: "VSC deployed",
+            color: "#f5a623",
+          },
+        ]}
+        laps={laps}
+        sessionType="Practice 3"
+        sessionStartMs={sessionStartMs}
+        sessionTimeMs={90_000}
+        onJump={onJump}
+      />,
+    );
+
+    expect(screen.getAllByText("Session")).toHaveLength(1);
+    expect(screen.queryByText("Lap 1")).not.toBeInTheDocument();
+    expect(screen.queryByText("Lap 2")).not.toBeInTheDocument();
+  });
 });

@@ -2,6 +2,7 @@ import { useMemo } from "react";
 import type { Lap } from "@/api/types";
 import type { KeyMoment } from "@/components/KeyMoments/types";
 import { buildLapLookup, lapNumberAtMs } from "@/utils/lapLookup";
+import { isPracticeSession } from "@/utils/session";
 
 interface Props {
   moments: KeyMoment[];
@@ -69,11 +70,14 @@ export function KeyMoments({
 
   const momentGroups = useMemo<MomentGroup[]>(() => {
     const isQualifying = sessionType?.toLowerCase().includes("qualifying");
+    const isPractice = sessionType ? isPracticeSession(sessionType) : false;
     const groups: MomentGroup[] = [];
 
     for (const moment of visibleMoments) {
       let lapNumber: number | null;
-      if (isQualifying) {
+      if (isPractice) {
+        lapNumber = null;
+      } else if (isQualifying) {
         lapNumber = phaseLookup(moment.ms);
       } else {
         lapNumber = lapNumberAtMs(lapLookup, moment.ms);

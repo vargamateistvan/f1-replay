@@ -5,6 +5,7 @@ import { useSettings } from "@/stores/settings";
 import { teamColor } from "@/utils/color";
 import { buildLapLookup, lapNumberAtMs } from "@/utils/lapLookup";
 import { upperBoundByValue } from "@/utils/sortedTime";
+import { isPracticeSession } from "@/utils/session";
 
 interface Props {
   readonly entries: Overtake[];
@@ -95,11 +96,14 @@ export function OvertakeFeed({
 
   const lapGroups = useMemo<LapGroup[]>(() => {
     const isQualifying = sessionType?.toLowerCase().includes("qualifying");
+    const isPractice = sessionType ? isPracticeSession(sessionType) : false;
     const groups: LapGroup[] = [];
 
     for (const item of visible) {
       let groupKey: number | null;
-      if (isQualifying) {
+      if (isPractice) {
+        groupKey = null;
+      } else if (isQualifying) {
         groupKey = phaseLookup(item.dateMs - sessionStartMs);
       } else {
         groupKey = item.lapNumber;

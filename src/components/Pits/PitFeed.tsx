@@ -5,6 +5,7 @@ import { useSettings } from "@/stores/settings";
 import { teamColor } from "@/utils/color";
 import { laneDuration, pitStopTime } from "@/utils/pit";
 import { upperBoundByValue } from "@/utils/sortedTime";
+import { isPracticeSession } from "@/utils/session";
 
 interface Props {
   readonly entries: Pit[];
@@ -82,11 +83,14 @@ export function PitFeed({
 
   const lapGroups = useMemo<LapGroup[]>(() => {
     const isQualifying = sessionType?.toLowerCase().includes("qualifying");
+    const isPractice = sessionType ? isPracticeSession(sessionType) : false;
     const groups: LapGroup[] = [];
 
     for (const item of visible) {
       let lapNumber: number | null;
-      if (isQualifying) {
+      if (isPractice) {
+        lapNumber = null;
+      } else if (isQualifying) {
         lapNumber = phaseLookup(item.dateMs - sessionStartMs);
       } else {
         lapNumber = item.entry.lap_number ?? null;

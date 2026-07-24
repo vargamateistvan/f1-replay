@@ -11,6 +11,7 @@ import {
   type RaceControlSeverity,
   type RaceControlKind,
 } from "@/timeline/raceControl";
+import { isPracticeSession } from "@/utils/session";
 
 // ─── Visual config ───────────────────────────────────────────────────────────
 
@@ -198,6 +199,13 @@ export function RaceControlFeed({
   // Lap/phase groups — descending so newest is on top
   const lapGroups = useMemo(() => {
     const isQualifying = sessionType?.toLowerCase().includes("qualifying");
+    const isPractice = sessionType ? isPracticeSession(sessionType) : false;
+
+    if (isPractice) {
+      return filteredEntries.length
+        ? [{ lapNumber: null, events: filteredEntries }]
+        : [];
+    }
 
     if (isQualifying) {
       // For qualifying, group by phase (Q1, Q2, Q3)

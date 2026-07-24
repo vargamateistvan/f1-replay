@@ -147,4 +147,49 @@ describe("RaceControl", () => {
       "race_control_99.csv",
     );
   });
+
+  it("groups practice race control events under one session header", () => {
+    render(
+      <RaceControlFeed
+        entries={
+          [
+            {
+              category: "Flag",
+              date: "2024-01-01T00:00:10.000Z",
+              driver_number: null,
+              flag: "YELLOW",
+              lap_number: 1,
+              meeting_key: 1,
+              message: "Yellow flag sector 2",
+              qualifying_phase: null,
+              scope: "sector",
+              sector: 2,
+              session_key: 99,
+            },
+            {
+              category: "Incident",
+              date: "2024-01-01T00:01:10.000Z",
+              driver_number: 16,
+              flag: null,
+              lap_number: 2,
+              meeting_key: 1,
+              message: "Car 16 under investigation",
+              qualifying_phase: null,
+              scope: null,
+              sector: null,
+              session_key: 99,
+            },
+          ] as RaceControl[]
+        }
+        sessionType="Practice 1"
+        sessionTimeMs={90_000}
+        sessionStartMs={Date.parse("2024-01-01T00:00:00.000Z")}
+        drivers={drivers}
+      />,
+    );
+
+    expect(screen.getAllByText("Session").length).toBeGreaterThan(0);
+    expect(screen.queryByText("Lap 1")).not.toBeInTheDocument();
+    expect(screen.queryByText("Lap 2")).not.toBeInTheDocument();
+  });
 });

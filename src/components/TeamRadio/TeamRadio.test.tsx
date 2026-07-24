@@ -125,4 +125,51 @@ describe("TeamRadio", () => {
       "team_radio_77.csv",
     );
   });
+
+  it("groups practice radio items under one session header", () => {
+    const sessionStartMs = Date.parse("2024-01-01T00:00:00.000Z");
+    const laps = [
+      {
+        date_start: "2024-01-01T00:00:00.000Z",
+        driver_number: 1,
+        lap_number: 1,
+      },
+      {
+        date_start: "2024-01-01T00:01:00.000Z",
+        driver_number: 1,
+        lap_number: 2,
+      },
+    ] as Lap[];
+
+    render(
+      <TeamRadioFeed
+        entries={
+          [
+            {
+              date: "2024-01-01T00:00:10.000Z",
+              driver_number: 1,
+              meeting_key: 1,
+              recording_url: "https://example.com/radio1.mp3",
+              session_key: 77,
+            },
+            {
+              date: "2024-01-01T00:01:10.000Z",
+              driver_number: 1,
+              meeting_key: 1,
+              recording_url: "https://example.com/radio2.mp3",
+              session_key: 77,
+            },
+          ] as TeamRadio[]
+        }
+        sessionKey={77}
+        sessionType="Practice 1"
+        drivers={drivers}
+        laps={laps}
+        sessionTimeMs={90_000}
+        sessionStartMs={sessionStartMs}
+      />,
+    );
+
+    expect(screen.getAllByText("Session")).toHaveLength(1);
+  });
 });

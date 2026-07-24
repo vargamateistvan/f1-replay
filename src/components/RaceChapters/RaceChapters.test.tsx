@@ -119,4 +119,56 @@ describe("RaceChapters", () => {
     fireEvent.click(screen.getByRole("button", { name: "Incident Only" }));
     expect(screen.queryByText("Race Start")).not.toBeInTheDocument();
   });
+
+  it("groups practice session chapters under one group", () => {
+    const sessionStartMs = Date.parse("2024-01-01T00:00:00.000Z");
+    const laps: Lap[] = [
+      {
+        lap_number: 1,
+        date_start: "2024-01-01T00:00:00.000Z",
+      },
+      {
+        lap_number: 2,
+        date_start: "2024-01-01T00:01:00.000Z",
+      },
+    ] as Lap[];
+
+    const chapters: RaceChapter[] = [
+      {
+        id: "practice-green",
+        kind: "green",
+        label: "Green Flag",
+        startMs: 10_000,
+        endMs: null,
+        durationMs: null,
+        incidentWindowId: null,
+      },
+      {
+        id: "practice-yellow",
+        kind: "yellow",
+        label: "Yellow Flag",
+        startMs: 70_000,
+        endMs: null,
+        durationMs: null,
+        incidentWindowId: null,
+      },
+    ];
+
+    render(
+      <RaceChapters
+        chapters={chapters}
+        snapshots={[]}
+        drivers={drivers}
+        laps={laps}
+        sessionType="Practice 1"
+        sessionStartMs={sessionStartMs}
+        sessionTimeMs={80_000}
+        onJump={vi.fn()}
+      />,
+    );
+
+    expect(screen.getAllByText("Session")).toHaveLength(1);
+    expect(screen.queryByText("Lap 1")).not.toBeInTheDocument();
+    expect(screen.queryByText("Lap 2")).not.toBeInTheDocument();
+  });
 });

@@ -157,4 +157,53 @@ describe("OvertakeFeed", () => {
       "overtakes_10.csv",
     );
   });
+
+  it("groups practice overtakes under one session header", () => {
+    const sessionStartMs = Date.parse("2024-01-01T00:00:00.000Z");
+    const laps = [
+      {
+        date_start: "2024-01-01T00:00:00.000Z",
+        driver_number: 1,
+        lap_number: 1,
+      },
+      {
+        date_start: "2024-01-01T00:01:00.000Z",
+        driver_number: 1,
+        lap_number: 2,
+      },
+    ] as Lap[];
+
+    render(
+      <OvertakeFeed
+        entries={
+          [
+            {
+              date: "2024-01-01T00:00:10.000Z",
+              overtaking_driver_number: 1,
+              overtaken_driver_number: 16,
+              position: 2,
+              meeting_key: 1,
+              session_key: 10,
+            },
+            {
+              date: "2024-01-01T00:01:10.000Z",
+              overtaking_driver_number: 63,
+              overtaken_driver_number: 1,
+              position: 1,
+              meeting_key: 1,
+              session_key: 10,
+            },
+          ] as Overtake[]
+        }
+        sessionKey={10}
+        sessionType="Practice 2"
+        drivers={drivers}
+        laps={laps}
+        sessionTimeMs={90_000}
+        sessionStartMs={sessionStartMs}
+      />,
+    );
+
+    expect(screen.getAllByText("Session")).toHaveLength(1);
+  });
 });
