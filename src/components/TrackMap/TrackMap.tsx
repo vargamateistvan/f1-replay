@@ -266,6 +266,23 @@ export function TrackMap({
       `f1-replay:track-rotation:${sessionKey ?? "none"}:${circuitKey ?? "none"}`,
     [sessionKey, circuitKey],
   );
+  const zoomStorageKey = useMemo(
+    () =>
+      `f1-replay:track-zoom:${sessionKey ?? "none"}:${circuitKey ?? "none"}`,
+    [sessionKey, circuitKey],
+  );
+
+  const persistZoomLevel = useCallback(
+    (next: number) => {
+      if (typeof window === "undefined") return;
+      try {
+        window.localStorage.setItem(zoomStorageKey, String(next));
+      } catch {
+        // Ignore storage errors (private mode / quota).
+      }
+    },
+    [zoomStorageKey],
+  );
 
   const setAndPersistRotation = useCallback(
     (next: number) => {
@@ -460,21 +477,30 @@ export function TrackMap({
   }, [rotationDeg, setAndPersistRotation]);
 
   useEffect(() => {
-    setZoomLevel(1);
     if (typeof window === "undefined") {
+      setZoomLevel(1);
       setRotationDeg(defaultRotationDeg);
       return;
     }
     try {
+      const savedZoom = window.localStorage.getItem(zoomStorageKey);
+      const parsedZoom = savedZoom === null ? Number.NaN : Number(savedZoom);
+      setZoomLevel(
+        Number.isFinite(parsedZoom)
+          ? Math.min(3, Math.max(0.6, parsedZoom))
+          : 1,
+      );
+
       const saved = window.localStorage.getItem(rotationStorageKey);
       const parsed = saved === null ? Number.NaN : Number(saved);
       setRotationDeg(
         Number.isFinite(parsed) ? normalizeDeg(parsed) : defaultRotationDeg,
       );
     } catch {
+      setZoomLevel(1);
       setRotationDeg(defaultRotationDeg);
     }
-  }, [rotationStorageKey, defaultRotationDeg]);
+  }, [zoomStorageKey, rotationStorageKey, defaultRotationDeg]);
 
   // Fetch telemetry for the focused driver's last completed lap.
   // Only fires when a driver is focused and a lap number is known; result is
@@ -2214,6 +2240,7 @@ export function TrackMap({
               onClick={() => {
                 setZoomLevel((z) => {
                   const next = Math.max(0.6, z - 0.2);
+                  persistZoomLevel(next);
                   trackEvent("trackmap_zoom_changed", { zoom: next });
                   return next;
                 });
@@ -2228,6 +2255,7 @@ export function TrackMap({
               onClick={() => {
                 setZoomLevel((z) => {
                   const next = Math.min(3, z + 0.2);
+                  persistZoomLevel(next);
                   trackEvent("trackmap_zoom_changed", { zoom: next });
                   return next;
                 });
@@ -2242,6 +2270,7 @@ export function TrackMap({
               onClick={() => {
                 trackEvent("trackmap_zoom_reset");
                 setZoomLevel(1);
+                persistZoomLevel(1);
               }}
               className="w-7 h-7 flex items-center justify-center border border-panel text-white/85 hover:text-white hover:border-white/50 transition-colors"
               title="Reset zoom"
