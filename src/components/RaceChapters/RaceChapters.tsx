@@ -56,6 +56,12 @@ const CHAPTER_CONFIG: Record<
     text: "#fbbf24",
     trackCls: "border-l-amber-500",
   },
+  yellow: {
+    badge: "YELLOW",
+    bg: "#78350f22",
+    text: "#fcd34d",
+    trackCls: "border-l-yellow-400",
+  },
   red_flag: {
     badge: "RED",
     bg: "#7f1d1d22",
@@ -303,11 +309,12 @@ export function RaceChapters({
   sessionType,
   sessionStartMs = 0,
   sessionTimeMs,
-  showAllItems = false,
+  showAllItems: _showAllItems = false,
   onJump,
   onPlayWindow,
   phaseLookup = () => null,
 }: Props) {
+  void _showAllItems;
   const [incidentOnly, setIncidentOnly] = useState(false);
   const lapLookup = useMemo(
     () => buildLapLookup(laps, sessionStartMs),
@@ -317,13 +324,9 @@ export function RaceChapters({
   const visibleChapters = useMemo(
     () =>
       incidentOnly
-        ? chapters.filter(
-            (c) =>
-              c.incidentWindowId !== null &&
-              (showAllItems || c.startMs <= sessionTimeMs),
-          )
-        : chapters.filter((c) => showAllItems || c.startMs <= sessionTimeMs),
-    [chapters, incidentOnly, showAllItems, sessionTimeMs],
+        ? chapters.filter((c) => c.incidentWindowId !== null)
+        : chapters,
+    [chapters, incidentOnly],
   );
 
   const chapterGroups = useMemo<ChapterGroup[]>(() => {

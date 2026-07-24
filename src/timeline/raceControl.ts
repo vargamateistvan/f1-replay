@@ -497,7 +497,11 @@ export function groupEventsByPhase(
 // An incident window pairs the moment a SC/VSC/red-flag starts with the
 // subsequent "track clear" or restart event.
 
-export type IncidentWindowKind = "safety_car" | "vsc" | "red_flag";
+export type IncidentWindowKind =
+  | "safety_car"
+  | "vsc"
+  | "red_flag"
+  | "yellow_flag";
 
 export interface IncidentWindow {
   id: string;
@@ -521,6 +525,9 @@ function incidentKindFor(
   if (flagKey === "VIRTUAL_SC" || flagKey === "VIRTUAL_SAFETY_CAR")
     return "vsc";
   if (flagKey === "RED") return "red_flag";
+  if (flagKey === "YELLOW" || flagKey === "DOUBLE_YELLOW") {
+    return "yellow_flag";
+  }
   return null;
 }
 
@@ -538,6 +545,7 @@ export function buildIncidentWindows(
     safety_car: 0,
     vsc: 0,
     red_flag: 0,
+    yellow_flag: 0,
   };
 
   let openWindow: {
@@ -571,7 +579,9 @@ export function buildIncidentWindows(
           ? `Safety Car ${num > 1 ? num : ""}`.trim()
           : kind === "vsc"
             ? `Virtual SC ${num > 1 ? num : ""}`.trim()
-            : `Red Flag ${num > 1 ? num : ""}`.trim();
+            : kind === "red_flag"
+              ? `Red Flag ${num > 1 ? num : ""}`.trim()
+              : `Yellow Flag ${num > 1 ? num : ""}`.trim();
       openWindow = {
         kind,
         id: `${kind}-${e.ms}`,
@@ -598,6 +608,7 @@ export type ChapterKind =
   | "green"
   | "safety_car"
   | "vsc"
+  | "yellow"
   | "red_flag"
   | "finish";
 
@@ -646,7 +657,7 @@ export function buildRaceChapters(
     const end = w.endMs;
     chapters.push({
       id: w.id,
-      kind: w.kind,
+      kind: w.kind === "yellow_flag" ? "yellow" : w.kind,
       label: w.label,
       startMs: w.startMs,
       endMs: end,
