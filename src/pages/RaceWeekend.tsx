@@ -1219,6 +1219,16 @@ export default function RaceWeekend() {
   const qualiPhase = isQualiSession(sessionName)
     ? detectQualiPhase(raceControl.data ?? [], sessionStartMs, t)
     : null;
+  const commentaryStatusLabel = useMemo(() => {
+    if (isPracticeCommentarySession) return "Session";
+    if (isQualiSession(sessionName)) return qualiPhase ?? "Q";
+    return `Lap ${commentaryLapLabel}`;
+  }, [
+    isPracticeCommentarySession,
+    commentaryLapLabel,
+    qualiPhase,
+    sessionName,
+  ]);
 
   const qualiPhaseStartTimes = useMemo(() => {
     if (!sessionStartMs || !isQualiSession(sessionName)) {
@@ -1992,12 +2002,9 @@ export default function RaceWeekend() {
           <div className="shrink-0 border-b border-panel bg-surface/70 px-3 py-1.5">
             <div className="flex items-center gap-3">
               <span className="text-[10px] font-black uppercase tracking-[0.12em] text-muted">
-                {isPracticeCommentarySession ? "Session" : "Lap "}
-                {!isPracticeCommentarySession && (
-                  <span className="text-white tabular-nums">
-                    {commentaryLapLabel}
-                  </span>
-                )}
+                <span className="text-white tabular-nums">
+                  {commentaryStatusLabel}
+                </span>
               </span>
               <button
                 type="button"
