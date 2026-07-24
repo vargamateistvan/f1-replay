@@ -156,23 +156,30 @@ export function PitFeed({
               return (
                 <div
                   key={`${entry.driver_number}-${entry.lap_number}-${entry.date}-${idx}`}
-                  className="flex items-center gap-3 border-b border-panel px-2 py-2.5 text-xs transition-colors hover:bg-white/[0.04]"
+                  className="mb-0.5 flex items-start gap-3 border-b border-panel px-2 py-2.5 text-xs transition-colors hover:bg-white/[0.04]"
+                  style={{ borderLeft: `2px solid ${color}` }}
                 >
                   <span className="w-10 shrink-0 text-[10px] font-mono tabular-nums text-muted">
                     {fmtSessionTime(ms)}
                   </span>
-                  <span className="shrink-0 bg-[#f5a623] px-1.5 py-0.5 text-[8px] font-black uppercase tracking-widest text-black">
-                    Pit
-                  </span>
                   <div className="min-w-0 flex-1">
-                    <div
-                      className="truncate text-[11px] font-bold"
-                      style={{ color }}
-                    >
-                      {driver?.name_acronym ?? entry.driver_number}
+                    <div className="truncate text-[11px] font-bold text-white/90">
+                      Pit stop for{" "}
+                      <span style={{ color }}>
+                        {driver?.name_acronym ?? entry.driver_number}
+                      </span>
                     </div>
                     <div className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-[10px] text-muted">
+                      <span className="inline-flex h-5 w-fit max-w-full shrink-0 items-center justify-center rounded px-1.5 whitespace-nowrap text-center text-[8px] font-black uppercase tracking-widest leading-none bg-amber-500/20 text-amber-300">
+                        Pit
+                      </span>
                       <span>Lap {entry.lap_number}</span>
+                      <span
+                        className="font-black uppercase tracking-widest"
+                        style={{ color }}
+                      >
+                        {driver?.name_acronym ?? entry.driver_number}
+                      </span>
                       {stop !== null && (
                         <span className="font-mono tabular-nums text-white/90">
                           Stop {stop.toFixed(1)}s

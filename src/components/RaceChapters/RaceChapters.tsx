@@ -97,8 +97,8 @@ function WhatChangedCard({ snapshot, drivers }: WhatChangedCardProps) {
   }
 
   return (
-    <div className="mx-2 mb-2 rounded border border-panel bg-track text-[10px]">
-      <div className="px-2 py-1 border-b border-panel text-[9px] font-black uppercase tracking-widest text-muted">
+    <div className="mt-1 rounded border border-panel bg-track/80 text-[10px]">
+      <div className="border-b border-panel px-2 py-1 text-[9px] font-black uppercase tracking-widest text-muted">
         What Changed
       </div>
 
@@ -109,7 +109,7 @@ function WhatChangedCard({ snapshot, drivers }: WhatChangedCardProps) {
           return (
             <div
               key={c.driverNumber}
-              className="flex items-center gap-2 px-2 py-1"
+              className="flex items-center gap-2 px-2 py-1.5"
             >
               <span className="text-green-400 font-black w-5 text-center shrink-0">
                 ▲{c.delta}
@@ -135,7 +135,7 @@ function WhatChangedCard({ snapshot, drivers }: WhatChangedCardProps) {
           return (
             <div
               key={c.driverNumber}
-              className="flex items-center gap-2 px-2 py-1"
+              className="flex items-center gap-2 px-2 py-1.5"
             >
               <span className="text-red-400 font-black w-5 text-center shrink-0">
                 ▼{Math.abs(c.delta)}
@@ -206,55 +206,46 @@ function ChapterRow({
   const canReplayWindow = onPlayWindow && chapter.endMs !== null;
 
   return (
-    <div
-      className={`border-b border-panel ${isCurrent ? "bg-white/[0.04]" : ""}`}
-    >
+    <div className="mb-0.5 overflow-hidden rounded border border-panel bg-surface/80">
       <div
-        className={`w-full flex items-center gap-3 px-3 py-2.5 text-left transition-colors hover:bg-white/[0.04] border-l-2 ${cfg.trackCls}`}
-        style={{ background: isCurrent ? undefined : cfg.bg }}
+        className={`w-full flex items-start gap-3 px-2 py-2.5 text-left transition-colors hover:bg-white/[0.04] border-l-2 ${cfg.trackCls} ${isCurrent ? "bg-track/50" : ""}`}
       >
-        {/* Time */}
-        <span className="text-[10px] font-mono tabular-nums text-muted w-10 shrink-0">
+        <span className="w-10 shrink-0 text-[10px] font-mono tabular-nums text-muted">
           {fmtMs(chapter.startMs)}
         </span>
 
-        {/* Badge */}
-        <span
-          className="text-[8px] font-black uppercase tracking-widest px-1.5 py-0.5 shrink-0 rounded-sm"
-          style={{
-            background: cfg.bg,
-            color: cfg.text,
-            border: `1px solid ${cfg.text}33`,
-          }}
-        >
-          {cfg.badge}
-        </span>
-
-        {/* Label */}
-        <span className="flex-1 min-w-0">
-          <span className="text-[11px] font-bold block truncate text-white/90">
+        <span className="min-w-0 flex-1">
+          <span className="block truncate text-[11px] font-bold text-white/90">
             {chapter.label}
           </span>
-          {chapter.durationMs !== null && (
-            <span className="text-[9px] text-muted block">
-              {fmtDuration(chapter.durationMs)}
+          <span className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-[10px] text-muted">
+            <span
+              className="inline-flex h-5 w-fit max-w-full shrink-0 items-center justify-center rounded px-1.5 whitespace-nowrap text-center text-[8px] font-black uppercase tracking-widest leading-none"
+              style={{
+                background: cfg.bg,
+                color: cfg.text,
+              }}
+            >
+              {cfg.badge}
             </span>
-          )}
-        </span>
-
-        {/* Current indicator */}
-        {isCurrent && (
-          <span className="shrink-0 text-[8px] font-black uppercase tracking-widest text-f1red">
-            NOW
+            {chapter.durationMs !== null && (
+              <span>{fmtDuration(chapter.durationMs)}</span>
+            )}
+            <span className="font-mono tabular-nums text-white/70">
+              chapter
+            </span>
+            {isCurrent && (
+              <span className="font-black uppercase tracking-widest text-f1red">
+                NOW
+              </span>
+            )}
           </span>
-        )}
-
-        {/* Jump / replay actions */}
+        </span>
         <div className="shrink-0 flex items-center gap-1">
           <button
             type="button"
             onClick={() => onJump(chapter.startMs)}
-            className="h-6 px-2 text-[9px] font-black uppercase tracking-widest bg-panel text-muted hover:text-white hover:bg-track"
+            className="h-6 rounded px-2 text-[9px] font-black uppercase tracking-widest bg-panel text-muted transition-colors hover:bg-track hover:text-white"
             aria-label={`Jump to ${chapter.label}`}
             title={`Jump to ${chapter.label}`}
           >
@@ -264,13 +255,14 @@ function ChapterRow({
             <button
               type="button"
               onClick={() => onPlayWindow(chapter.startMs, chapter.endMs!)}
-              className="h-6 px-2 text-[9px] font-black uppercase tracking-widest bg-f1red text-white hover:bg-red-600"
+              className="h-6 rounded px-2 text-[9px] font-black uppercase tracking-widest bg-f1red text-white transition-colors hover:bg-red-600"
               aria-label={`Replay ${chapter.label}`}
               title={`Replay ${chapter.label}`}
             >
               Replay
             </button>
           )}
+          <span className="shrink-0 text-[10px] text-muted">›</span>
         </div>
       </div>
 
@@ -379,31 +371,31 @@ export function RaceChapters({
   }
 
   return (
-    <div className="panel-scroll">
-      <div className="sticky top-0 z-10 flex items-center gap-2 px-2 py-1.5 border-b border-panel bg-track">
+    <div className="panel-scroll px-2 pb-2 space-y-1">
+      <div className="sticky top-0 z-20 flex items-center gap-2 rounded border border-panel bg-track/95 px-2 py-1.5 backdrop-blur">
         <button
           type="button"
           onClick={() => setIncidentOnly((v) => !v)}
           aria-pressed={incidentOnly}
-          className={`h-6 px-2 text-[9px] font-black uppercase tracking-widest transition-colors ${
+          className={`h-6 rounded px-2 text-[9px] font-black uppercase tracking-widest transition-colors ${
             incidentOnly
-              ? "bg-amber-500/20 text-amber-300 border border-amber-500/40"
-              : "bg-panel text-muted hover:text-white"
+              ? "border border-amber-500/40 bg-amber-500/20 text-amber-300"
+              : "bg-panel text-muted hover:text-white hover:bg-track"
           }`}
         >
           Incident Only
         </button>
-        <span className="text-[9px] text-muted uppercase tracking-widest">
+        <span className="text-[9px] uppercase tracking-widest text-muted">
           {visibleChapters.length} chapters
         </span>
       </div>
-      <div>
+      <div className="space-y-1">
         {chapterGroups.map((group, groupIndex) => (
           <div
             key={`${group.lapNumber ?? "session"}-${groupIndex}`}
-            className="mb-0.5"
+            className="overflow-hidden rounded border border-panel bg-surface/80"
           >
-            <div className="sticky top-9 z-10 border-b border-panel bg-track px-2 py-0.5 text-[9px] font-black uppercase tracking-widest text-muted select-none">
+            <div className="sticky top-0 z-10 border-b border-panel bg-track px-2 py-0.5 text-[9px] font-black uppercase tracking-widest text-muted select-none">
               {(() => {
                 const isQualifying = sessionType
                   ?.toLowerCase()

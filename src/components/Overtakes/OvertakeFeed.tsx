@@ -167,13 +167,11 @@ export function OvertakeFeed({
               return (
                 <div
                   key={`${e.overtaking_driver_number}-${e.overtaken_driver_number}-${e.date}-${e.position ?? "na"}`}
-                  className="flex items-center gap-3 border-b border-panel px-2 py-2.5 text-xs transition-colors hover:bg-white/[0.04]"
+                  className="mb-0.5 flex items-start gap-3 border-b border-panel px-2 py-2.5 text-xs transition-colors hover:bg-white/[0.04]"
+                  style={{ borderLeft: `2px solid ${overColor}` }}
                 >
                   <span className="w-10 shrink-0 text-[10px] font-mono tabular-nums text-muted">
                     {fmtSessionTime(ms)}
-                  </span>
-                  <span className="shrink-0 bg-[#39d743] px-1.5 py-0.5 text-[8px] font-black uppercase tracking-widest text-black">
-                    Pass
                   </span>
                   <div className="min-w-0 flex-1">
                     <div className="truncate text-[11px] font-bold text-white/90">
@@ -186,8 +184,15 @@ export function OvertakeFeed({
                       </span>
                     </div>
                     <div className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-[10px] text-muted">
+                      <span className="inline-flex h-5 w-fit max-w-full shrink-0 items-center justify-center rounded px-1.5 whitespace-nowrap text-center text-[8px] font-black uppercase tracking-widest leading-none bg-green-500/20 text-green-300">
+                        Pass
+                      </span>
                       {e.position !== null && <span>for P{e.position}</span>}
                       {lapNumber !== null && <span>Lap {lapNumber}</span>}
+                      <span className="font-black uppercase tracking-widest text-white/80">
+                        {over?.name_acronym ?? e.overtaking_driver_number} vs{" "}
+                        {under?.name_acronym ?? e.overtaken_driver_number}
+                      </span>
                     </div>
                   </div>
                   <span className="shrink-0 text-muted text-[10px]">›</span>

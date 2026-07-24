@@ -103,7 +103,7 @@ export function KeyMoments({
   }
 
   return (
-    <div className="panel-scroll">
+    <div className="panel-scroll px-2 pb-2 space-y-1">
       {momentGroups.map((group, groupIndex) => (
         <div
           key={`${group.lapNumber ?? "session"}-${groupIndex}`}
@@ -127,20 +127,15 @@ export function KeyMoments({
               <button
                 key={`${m.kind}-${m.ms}-${i}`}
                 onClick={() => onJump(m.ms)}
-                className="w-full flex items-center gap-3 border-b border-panel px-3 py-2.5 text-left transition-colors hover:bg-white/[0.04]"
+                className="mb-0.5 w-full flex items-start gap-3 border-b border-panel px-2 py-2.5 text-left transition-colors hover:bg-white/[0.04]"
+                style={{ borderLeft: `2px solid ${cfg.badgeBg}` }}
               >
                 <span className="text-[10px] font-mono tabular-nums text-muted w-10 shrink-0">
                   {fmtMs(m.ms)}
                 </span>
-                <span
-                  className="text-[8px] font-black uppercase tracking-widest px-1.5 py-0.5 shrink-0"
-                  style={{ background: cfg.badgeBg, color: cfg.badgeText }}
-                >
-                  {cfg.badge}
-                </span>
                 <span className="flex-1 min-w-0">
                   <span
-                    className="text-[11px] font-bold block truncate"
+                    className="text-[11px] font-bold block truncate text-white/90"
                     style={{
                       color:
                         m.kind === "lead_change"
@@ -150,14 +145,28 @@ export function KeyMoments({
                   >
                     {m.label}
                   </span>
-                  {m.sublabel && (
+                  <span className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-[10px] text-muted">
                     <span
-                      className="text-[10px] font-mono tabular-nums block"
-                      style={{ color: m.color }}
+                      className="inline-flex h-5 w-fit max-w-full shrink-0 items-center justify-center rounded px-1.5 whitespace-nowrap text-center text-[8px] font-black uppercase tracking-widest leading-none"
+                      style={{
+                        background: cfg.badgeBg,
+                        color: cfg.badgeText,
+                      }}
                     >
-                      {m.sublabel}
+                      {cfg.badge}
                     </span>
-                  )}
+                    {m.sublabel && (
+                      <span
+                        className="font-mono tabular-nums"
+                        style={{ color: m.color }}
+                      >
+                        {m.sublabel}
+                      </span>
+                    )}
+                    <span className="font-mono tabular-nums text-white/70">
+                      chapter
+                    </span>
+                  </span>
                 </span>
                 <span className="text-muted text-[10px] shrink-0">›</span>
               </button>

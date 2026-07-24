@@ -186,37 +186,35 @@ export function TeamRadioFeed({
               return (
                 <div
                   key={`${e.driver_number}-${e.date}-${e.recording_url}`}
-                  className="flex items-center gap-3 border-b border-panel px-2 py-2.5 transition-colors hover:bg-white/[0.04]"
+                  className="mb-0.5 flex items-start gap-3 border-b border-panel px-2 py-2.5 transition-colors hover:bg-white/[0.04]"
+                  style={{ borderLeft: `2px solid ${color}` }}
                 >
                   <span className="w-10 shrink-0 text-[10px] font-mono tabular-nums text-muted">
                     {fmtSessionTime(entryMs, sessionStartMs)}
                   </span>
-                  <span
-                    className="shrink-0 px-1.5 py-0.5 text-[8px] font-black uppercase tracking-widest"
-                    style={{ background: color, color: "#fff" }}
-                  >
-                    Radio
-                  </span>
                   <div className="flex-1 min-w-0">
-                    <div
-                      className="truncate text-[11px] font-bold"
-                      style={{ color }}
-                    >
-                      {driver?.name_acronym ?? e.driver_number}
+                    <div className="truncate text-[11px] font-bold text-white/90">
+                      Team radio for{" "}
+                      <span style={{ color }}>
+                        {driver?.name_acronym ?? e.driver_number}
+                      </span>
                     </div>
                     <div className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-[10px] text-muted">
+                      <span className="inline-flex h-5 w-fit max-w-full shrink-0 items-center justify-center rounded px-1.5 whitespace-nowrap text-center text-[8px] font-black uppercase tracking-widest leading-none bg-track text-white/80">
+                        Radio
+                      </span>
                       {lapNumber !== null && <span>Lap {lapNumber}</span>}
-                      <span className="font-mono tabular-nums text-white/80">
-                        Team radio
+                      <span className="font-mono tabular-nums text-white/70">
+                        clip
                       </span>
                     </div>
                   </div>
-                  <div className="shrink-0">
+                  <div className="shrink-0 flex items-center gap-1.5">
                     <button
                       onClick={() => recordingUrl && play(recordingUrl)}
                       disabled={!hasAudio}
                       aria-label={isPlaying ? "Stop" : "Play"}
-                      className={`flex items-center gap-1.5 px-2.5 py-1 text-[10px] font-black uppercase tracking-widest transition-colors ${
+                      className={`flex h-6 items-center gap-1.5 rounded px-2 text-[9px] font-black uppercase tracking-widest transition-colors ${
                         isPlaying
                           ? "bg-f1red text-white"
                           : "bg-panel text-muted hover:text-white hover:bg-track"
@@ -242,6 +240,7 @@ export function TeamRadioFeed({
                         </>
                       )}
                     </button>
+                    <span className="shrink-0 text-[10px] text-muted">›</span>
                     {isPlaying && recordingUrl && (
                       <audio
                         key={recordingUrl}

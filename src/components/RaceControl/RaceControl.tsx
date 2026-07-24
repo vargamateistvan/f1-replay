@@ -26,22 +26,17 @@ const FLAG_CONFIG: Record<
     text: "text-yellow-200",
   },
   RED: { label: "RED FLAG", bar: "bg-red-600", text: "text-red-300" },
-  SAFETY_CAR: {
-    label: "SAFETY CAR",
-    bar: "bg-yellow-500",
-    text: "text-yellow-300",
-  },
-  VIRTUAL_SC: {
-    label: "VIRTUAL SC",
-    bar: "bg-yellow-600",
-    text: "text-yellow-400",
-  },
   CHEQUERED: { label: "CHEQUERED", bar: "bg-white", text: "text-gray-900" },
   BLUE: { label: "BLUE", bar: "bg-blue-500", text: "text-blue-300" },
   BLACK_AND_WHITE: {
     label: "BLK/WHT",
     bar: "bg-gray-400",
     text: "text-gray-200",
+  },
+  VIRTUAL_SC: {
+    label: "VIRTUAL SC",
+    bar: "bg-yellow-600",
+    text: "text-yellow-300",
   },
   CLEAR: { label: "CLEAR", bar: "bg-green-600", text: "text-green-300" },
 };
@@ -268,7 +263,7 @@ export function RaceControlFeed({
     focusDriver !== null ? driverMap.get(focusDriver) : null;
 
   return (
-    <div className="flex flex-col md:flex-1 md:min-h-0">
+    <div className="panel-scroll px-2 pb-2 space-y-1">
       {/* ── Active flag banner ─────────────────────────────────── */}
       {flagConfig && (
         <div
@@ -308,10 +303,10 @@ export function RaceControlFeed({
           type="button"
           onClick={() => setShowPenalties((v) => !v)}
           aria-pressed={showPenalties}
-          className={`h-6 px-2 text-[9px] font-black uppercase tracking-widest rounded transition-colors ml-1 ${
+          className={`h-6 rounded px-2 text-[9px] font-black uppercase tracking-widest transition-colors ${
             showPenalties
-              ? "bg-amber-500/20 text-amber-300 border border-amber-500/40"
-              : "bg-track text-muted"
+              ? "border border-amber-500/40 bg-amber-500/20 text-amber-300"
+              : "bg-track text-muted hover:text-white hover:bg-panel"
           }`}
         >
           Tracker
@@ -326,7 +321,7 @@ export function RaceControlFeed({
                 `race_control_${sessionKey}.csv`,
               );
             }}
-            className="h-6 px-2 text-[9px] font-black uppercase tracking-widest rounded transition-colors bg-track text-muted hover:text-white hover:bg-panel"
+            className="h-6 rounded px-2 text-[9px] font-black uppercase tracking-widest bg-panel text-muted transition-colors hover:bg-track hover:text-white"
             aria-label="Export race control CSV"
           >
             Export CSV
@@ -337,27 +332,32 @@ export function RaceControlFeed({
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           placeholder="Search…"
-          className="ml-auto h-6 px-2 text-[10px] bg-track text-white placeholder:text-muted border border-panel rounded outline-none focus:border-muted w-24"
+          className="ml-auto h-6 w-28 min-w-0 rounded border border-panel bg-surface px-2 text-[10px] text-white placeholder:text-muted outline-none focus:border-muted sm:w-32"
         />
       </div>
 
       {/* ── Driver focus banner ────────────────────────────────── */}
       {focusDriver !== null && (
         <div
-          className="shrink-0 flex items-center gap-2 px-2 py-1 border-b border-panel bg-track"
+          className="rounded border border-panel bg-surface/80 px-2 py-1.5"
           style={{
             borderLeft: `3px solid #${focusedDriver?.team_colour ?? "e8002d"}`,
           }}
         >
-          <span className="text-[10px] font-black uppercase tracking-widest text-white">
+          <span
+            className="text-[10px] font-black uppercase tracking-widest"
+            style={{ color: `#${focusedDriver?.team_colour ?? "ffffff"}` }}
+          >
             {focusedDriver?.name_acronym ?? `#${focusDriver}`}
           </span>
-          <span className="text-muted text-[9px]">driver filter active</span>
+          <span className="text-[9px] uppercase tracking-widest text-muted">
+            driver filter active
+          </span>
           {onClearFocus && (
             <button
               type="button"
               onClick={onClearFocus}
-              className="ml-auto text-muted hover:text-white text-[9px] font-black uppercase tracking-widest"
+              className="ml-auto text-[9px] font-black uppercase tracking-widest text-muted hover:text-white"
               aria-label="Clear driver filter"
             >
               ✕ Clear
@@ -368,12 +368,12 @@ export function RaceControlFeed({
 
       {/* ── Penalty / investigation tracker ───────────────────── */}
       {showPenalties && (
-        <div className="shrink-0 border-b border-panel">
-          <div className="px-2 py-1 text-[9px] font-black uppercase tracking-widest text-muted bg-surface">
+        <div className="overflow-hidden rounded border border-panel bg-surface/80">
+          <div className="border-b border-panel bg-track px-2 py-1 text-[9px] font-black uppercase tracking-widest text-muted">
             Penalty Tracker
           </div>
           {penaltyStates.length === 0 ? (
-            <div className="px-2 py-1.5 text-muted text-[10px]">
+            <div className="px-2 py-2 text-[10px] text-muted">
               No incidents in view
             </div>
           ) : (
@@ -384,27 +384,27 @@ export function RaceControlFeed({
                 return (
                   <div
                     key={ps.driverNumber}
-                    className="flex items-center gap-2 px-2 py-1"
+                    className="flex items-center gap-2 px-2 py-2 transition-colors hover:bg-white/[0.04]"
                     style={{
                       borderLeft: `3px solid #${d?.team_colour ?? "636369"}`,
                     }}
                   >
                     <span
-                      className="text-[10px] font-black uppercase w-8 shrink-0"
+                      className="w-10 shrink-0 text-[10px] font-black uppercase tracking-widest"
                       style={{ color: `#${d?.team_colour ?? "ffffff"}` }}
                     >
                       {d?.name_acronym ?? `#${ps.driverNumber}`}
                     </span>
                     <span
-                      className={`rounded px-1.5 py-0.5 text-[9px] font-black uppercase tracking-widest ${cfg.cls}`}
+                      className={`shrink-0 rounded px-1.5 py-0.5 text-[9px] font-black uppercase tracking-widest ${cfg.cls}`}
                     >
                       {cfg.label}
                     </span>
-                    <span className="text-muted text-[9px] flex-1 truncate">
+                    <span className="min-w-0 flex-1 truncate text-[10px] text-white/90">
                       {ps.latestDescription}
                     </span>
                     {ps.lapNumber !== null && (
-                      <span className="shrink-0 text-muted font-mono text-[9px]">
+                      <span className="shrink-0 font-mono text-[9px] tabular-nums text-muted">
                         L{ps.lapNumber}
                       </span>
                     )}
@@ -417,18 +417,18 @@ export function RaceControlFeed({
       )}
 
       {/* ── Lap-grouped feed ───────────────────────────────────── */}
-      <div className="panel-scroll">
+      <div className="space-y-1">
         {visibleLapGroups.length === 0 && (
-          <div className="p-2 text-muted text-xs">
+          <div className="rounded border border-panel bg-surface/80 p-3 text-xs text-muted">
             {sessionStartMs ? "No events match filters" : "Select a session"}
           </div>
         )}
         {hasMoreEvents && (
-          <div className="px-2 py-1.5 border-b border-panel bg-surface sticky top-0 z-20">
+          <div className="sticky top-0 z-10 rounded border border-panel bg-surface/80 px-2 py-1.5">
             <button
               type="button"
               onClick={() => setRenderLimit((prev) => prev + RENDER_STEP)}
-              className="h-6 px-2 text-[9px] font-black uppercase tracking-widest rounded transition-colors bg-track text-muted hover:text-white hover:bg-panel"
+              className="h-6 rounded px-2 text-[9px] font-black uppercase tracking-widest transition-colors bg-track text-muted hover:text-white hover:bg-panel"
             >
               Load older ({totalFilteredEvents - renderLimit} hidden)
             </button>
@@ -447,73 +447,86 @@ export function RaceControlFeed({
               : "Session";
 
           return (
-            <div key={group.lapNumber ?? "session"} className="mb-0.5">
+            <div
+              key={group.lapNumber ?? "session"}
+              className="overflow-hidden rounded border border-panel bg-surface/80"
+            >
               {/* Lap/phase header */}
-              <div className="sticky top-0 z-10 px-2 py-0.5 bg-surface border-b border-panel text-[9px] font-black uppercase tracking-widest text-muted select-none">
+              <div className="sticky top-0 z-10 border-b border-panel bg-track px-2 py-0.5 text-[9px] font-black uppercase tracking-widest text-muted select-none">
                 {headerText}
               </div>
               {/* Events in this lap/phase — reverse so newest is first within the group */}
-              {[...group.events].reverse().map((e) => {
-                const cfg = FLAG_CONFIG[toFlagKey(e.flag)] ?? DEFAULT_CONFIG;
-                const sector = sectorBadge(e);
-                const severity = SEVERITY_BADGE[e.severity];
-                const typeLabel = e.kind.replace(/_/g, " ");
-                const eventDriver =
-                  e.driverNumber !== null
-                    ? driverMap.get(e.driverNumber)
-                    : null;
-                return (
-                  <div
-                    key={e.id}
-                    className={`flex gap-2 px-2 py-1.5 text-xs border-b border-panel ${
-                      eventDriver ? "bg-track" : ""
-                    }`}
-                    style={
-                      eventDriver
-                        ? {
-                            borderLeft: `2px solid #${eventDriver.team_colour}`,
-                          }
-                        : undefined
-                    }
-                  >
-                    {/* Left column: flag label + driver acronym + severity + kind */}
-                    <div className="flex shrink-0 flex-col items-start gap-0.5 w-[4.5rem]">
-                      {e.flag && (
-                        <span
-                          className={`font-black text-[10px] uppercase tracking-widest ${cfg.text}`}
-                        >
-                          {cfg.label || e.flag}
-                        </span>
-                      )}
-                      {eventDriver && (
-                        <span
-                          className="font-black text-[10px] uppercase tracking-widest"
-                          style={{ color: `#${eventDriver.team_colour}` }}
-                        >
-                          {eventDriver.name_acronym}
-                        </span>
-                      )}
-                      <span
-                        className={`rounded px-1 py-0.5 text-[8px] font-black uppercase tracking-widest ${severity.cls}`}
-                      >
-                        {severity.label}
+              <div className="divide-y divide-panel">
+                {[...group.events].reverse().map((e) => {
+                  const cfg = FLAG_CONFIG[toFlagKey(e.flag)] ?? DEFAULT_CONFIG;
+                  const sector = sectorBadge(e);
+                  const severity = SEVERITY_BADGE[e.severity];
+                  const typeLabel = e.kind.replace(/_/g, " ");
+                  const eventDriver =
+                    e.driverNumber !== null
+                      ? driverMap.get(e.driverNumber)
+                      : null;
+                  const sessionMs = new Date(e.date).getTime() - sessionStartMs;
+                  const pad = (n: number) => String(n).padStart(2, "0");
+                  const eventTime = (() => {
+                    const ms = Math.max(0, sessionMs);
+                    const s = Math.floor(ms / 1000);
+                    const m = Math.floor(s / 60);
+                    const h = Math.floor(m / 60);
+                    return h > 0
+                      ? `${h}:${pad(m % 60)}:${pad(s % 60)}`
+                      : `${pad(m)}:${pad(s % 60)}`;
+                  })();
+                  const badgeLabel = e.flag
+                    ? cfg.label || e.flag
+                    : severity.label;
+                  return (
+                    <div
+                      key={e.id}
+                      className={`mb-0.5 flex items-start gap-3 px-2 py-2.5 transition-colors hover:bg-white/[0.04] ${
+                        eventDriver ? "bg-track/50" : ""
+                      }`}
+                      style={
+                        eventDriver
+                          ? {
+                              borderLeft: `2px solid #${eventDriver.team_colour}`,
+                            }
+                          : undefined
+                      }
+                    >
+                      <span className="w-10 shrink-0 text-[10px] font-mono tabular-nums text-muted">
+                        {eventTime}
                       </span>
-                      <span className="rounded bg-panel px-1 py-0.5 text-[8px] font-black uppercase tracking-widest text-muted">
-                        {typeLabel}
-                      </span>
-                      {sector && (
-                        <span className="rounded bg-panel px-1 py-0.5 text-[8px] font-black uppercase tracking-widest text-muted">
-                          {sector}
-                        </span>
-                      )}
+                      <div className="min-w-0 flex-1">
+                        <div className="truncate text-[11px] font-bold text-white/90">
+                          {e.description}
+                        </div>
+                        <div className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-[10px] text-muted">
+                          <span
+                            className={`inline-flex h-5 w-fit max-w-full shrink-0 items-center justify-center rounded px-1.5 whitespace-nowrap text-center text-[8px] font-black uppercase tracking-widest leading-none ${severity.cls}`}
+                          >
+                            {badgeLabel}
+                          </span>
+                          {eventDriver && (
+                            <span
+                              className="font-black uppercase tracking-widest"
+                              style={{ color: `#${eventDriver.team_colour}` }}
+                            >
+                              {eventDriver.name_acronym}
+                            </span>
+                          )}
+                          {e.flag && <span>{cfg.label || e.flag}</span>}
+                          {sector && <span>{sector}</span>}
+                          <span className="font-mono tabular-nums text-white/70">
+                            {typeLabel}
+                          </span>
+                        </div>
+                      </div>
+                      <span className="shrink-0 text-[10px] text-muted">›</span>
                     </div>
-                    {/* Message */}
-                    <span className="flex-1 text-white/90 leading-snug text-[11px]">
-                      {e.description}
-                    </span>
-                  </div>
-                );
-              })}
+                  );
+                })}
+              </div>
             </div>
           );
         })}
