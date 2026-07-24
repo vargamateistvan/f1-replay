@@ -51,6 +51,7 @@ vi.mock("@/hooks/useMediaQuery", () => ({
 
 describe("PlaybackBar marker interactions", () => {
   beforeEach(() => {
+    timelineState.t = 0;
     timelineState.setT.mockClear();
   });
 
@@ -121,5 +122,51 @@ describe("PlaybackBar marker interactions", () => {
     expect(
       screen.getByRole("button", { name: "Replay current incident window" }),
     ).toBeDisabled();
+  });
+
+  it("supports typing MM:SS time and jumping on Enter", () => {
+    render(<PlaybackBar durationMs={120_000} />);
+
+    const input = screen.getByRole("textbox", { name: "Playback time" });
+    fireEvent.focus(input);
+    fireEvent.change(input, { target: { value: "01:23" } });
+    fireEvent.keyDown(input, { key: "Enter" });
+    fireEvent.blur(input);
+
+    expect(timelineState.setT).toHaveBeenCalledWith(83_000);
+  });
+
+  it("supports typing HH:MM:SS time", () => {
+    render(<PlaybackBar durationMs={4_000_000} />);
+
+    const input = screen.getByRole("textbox", { name: "Playback time" });
+    fireEvent.focus(input);
+    fireEvent.change(input, { target: { value: "1:02:03" } });
+    fireEvent.keyDown(input, { key: "Enter" });
+    fireEvent.blur(input);
+
+    expect(timelineState.setT).toHaveBeenCalledWith(3_723_000);
+  });
+
+  it("clamps typed seconds to the session duration", () => {
+    render(<PlaybackBar durationMs={60_000} />);
+
+    const input = screen.getByRole("textbox", { name: "Playback time" });
+    fireEvent.focus(input);
+    fireEvent.change(input, { target: { value: "90" } });
+    fireEvent.keyDown(input, { key: "Enter" });
+    fireEvent.blur(input);
+
+    expect(timelineState.setT).toHaveBeenCalledWith(60_000);
+  });
+
+  it("ignores invalid typed time values", () => {
+    render(<PlaybackBar durationMs={120_000} />);
+
+    const input = screen.getByRole("textbox", { name: "Playback time" });
+    fireEvent.change(input, { target: { value: "oops" } });
+    fireEvent.keyDown(input, { key: "Enter" });
+
+    expect(timelineState.setT).not.toHaveBeenCalled();
   });
 });

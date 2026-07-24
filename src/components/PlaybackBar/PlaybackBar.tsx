@@ -54,6 +54,28 @@ function fmtTime(ms: number) {
     : `${pad(m)}:${pad(s % 60)}`;
 }
 
+function parseSeekTimeInput(value: string): number | null {
+  const trimmed = value.trim();
+  if (!trimmed) return null;
+
+  if (/^\d+$/.test(trimmed)) {
+    return Number(trimmed) * 1000;
+  }
+
+  const parts = trimmed.split(":");
+  if (parts.length < 2 || parts.length > 3) return null;
+  if (parts.some((part) => !/^\d+$/.test(part))) return null;
+
+  const nums = parts.map((part) => Number(part));
+  if (nums.some((num) => !Number.isFinite(num))) return null;
+
+  const [a, b, c] = nums;
+  if (parts.length === 2) {
+    return (a * 60 + b) * 1000;
+  }
+  return (a * 3600 + b * 60 + (c ?? 0)) * 1000;
+}
+
 function markerTooltip(label: string, ms: number) {
   return `${label} at ${fmtTime(ms)}`;
 }
@@ -125,9 +147,18 @@ export function PlaybackBar({
   const setT = useTimeline((s) => s.setT);
   const setPlaying = useTimeline((s) => s.setPlaying);
   const [showMarkers, setShowMarkers] = useState(true);
+  const [timeInput, setTimeInput] = useState(() => fmtTime(t));
+  const [isEditingTime, setIsEditingTime] = useState(false);
   const isCompactViewport = useMediaQuery("(max-width: 639px)");
   const hasClampedRef = useRef(false);
+  const skipTimeCommitOnBlurRef = useRef(false);
   const lightMode = useSettings((s) => s.lightMode);
+
+  useEffect(() => {
+    if (!isEditingTime) {
+      setTimeInput(fmtTime(t));
+    }
+  }, [isEditingTime, t]);
 
   // Clamp playhead to duration end and stop playback when reached.
   useEffect(() => {
@@ -155,6 +186,22 @@ export function PlaybackBar({
     },
     [clamp, setT],
   );
+
+  const commitTimeInput = useCallback(() => {
+    const parsedMs = parseSeekTimeInput(timeInput);
+    if (parsedMs === null) {
+      setTimeInput(fmtTime(t));
+      return;
+    }
+    const targetMs = clamp(parsedMs);
+    trackEvent("playback_time_jump", {
+      from_ms: Math.round(t),
+      target_ms: Math.round(targetMs),
+      raw_input: timeInput,
+    });
+    setT(targetMs);
+    setTimeInput(fmtTime(targetMs));
+  }, [clamp, setT, t, timeInput]);
 
   const trackJump = useCallback(
     (action: string, target: number | null) => {
@@ -264,9 +311,38 @@ export function PlaybackBar({
         </button>
 
         {/* Current time */}
-        <span className="text-muted font-mono text-xs tabular-nums w-9 text-right shrink-0 sm:w-10">
-          {fmtTime(t)}
-        </span>
+        <input
+          type="text"
+          value={timeInput}
+          onFocus={(e) => {
+            setIsEditingTime(true);
+            e.currentTarget.select();
+          }}
+          onBlur={() => {
+            setIsEditingTime(false);
+            if (skipTimeCommitOnBlurRef.current) {
+              skipTimeCommitOnBlurRef.current = false;
+              setTimeInput(fmtTime(t));
+              return;
+            }
+            commitTimeInput();
+          }}
+          onChange={(e) => setTimeInput(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") {
+              e.currentTarget.blur();
+            } else if (e.key === "Escape") {
+              skipTimeCommitOnBlurRef.current = true;
+              e.currentTarget.blur();
+            }
+          }}
+          inputMode="numeric"
+          autoComplete="off"
+          spellCheck={false}
+          aria-label="Playback time"
+          title="Type MM:SS or HH:MM:SS and press Enter"
+          className="h-7 w-14 shrink-0 border border-panel bg-panel px-1 text-right font-mono text-xs tabular-nums text-muted transition-colors focus:border-f1red focus:text-white focus:outline-none sm:w-16"
+        />
 
         {/* Scrubber */}
         <div className="relative flex-1 h-4 flex items-center">
