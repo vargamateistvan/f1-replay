@@ -50,6 +50,7 @@ import {
   buildToastEvents,
 } from "@/timeline/events";
 import {
+  deriveMarshalSectorFlagState,
   buildRaceControlMarkers,
   buildIncidentWindows,
   clusterRaceControlMarkers,
@@ -812,6 +813,16 @@ export default function RaceWeekend() {
     );
   }, [raceControl.data, sessionStartMs, tSlow, isMapVisible]);
 
+  const activeMarshalSectorFlagState = useMemo(() => {
+    if (!isMapVisible) return null;
+    if (!sessionStartMs) return null;
+    return deriveMarshalSectorFlagState(
+      raceControl.data ?? [],
+      sessionStartMs,
+      sessionStartMs + tSlow,
+    );
+  }, [raceControl.data, sessionStartMs, tSlow, isMapVisible]);
+
   const activeTrackVehicles = useMemo<ActiveTrackVehicles | null>(() => {
     if (!isMapVisible) return null;
     if (!sessionStartMs) return null;
@@ -1445,6 +1456,9 @@ export default function RaceWeekend() {
       focusDriverLap={focusDriverLap}
       showFocusedHud={mapShowDriverHud}
       activeTrackFlagState={mapShowSectorFlags ? activeTrackFlagState : null}
+      activeMarshalSectorFlagState={
+        mapShowSectorFlags ? activeMarshalSectorFlagState : null
+      }
       showSectorBox={mapShowSectorBox}
       showTrackControls={mapShowTrackControls}
       showCompass={mapShowCompass}

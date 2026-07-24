@@ -73,6 +73,12 @@ export interface TrackFlagState {
   updatedAtMs: number;
 }
 
+export interface MarshalSectorFlagState {
+  globalFlag: string | null;
+  sectorFlags: Record<number, string>;
+  updatedAtMs: number;
+}
+
 const TRACK_FLAG_STATE_EMPTY: TrackFlagState = {
   globalFlag: null,
   sectorFlags: { 1: null, 2: null, 3: null },
@@ -158,6 +164,80 @@ export function deriveTrackFlagState(
     state.sectorFlags[1] === TRACK_FLAG_STATE_EMPTY.sectorFlags[1] &&
     state.sectorFlags[2] === TRACK_FLAG_STATE_EMPTY.sectorFlags[2] &&
     state.sectorFlags[3] === TRACK_FLAG_STATE_EMPTY.sectorFlags[3]
+  ) {
+    return null;
+  }
+
+  return state;
+}
+
+/**
+ * Derive active marshal-sector flags using raw sector numbers from race control
+ * (for example 17, 19), plus global track-level state.
+ */
+export function deriveMarshalSectorFlagState(
+  entries: RaceControl[],
+  sessionStartMs: number,
+  cutoffMs: number,
+): MarshalSectorFlagState | null {
+  if (!sessionStartMs || entries.length === 0) return null;
+
+  const state: MarshalSectorFlagState = {
+    globalFlag: null,
+    sectorFlags: {},
+    updatedAtMs: 0,
+  };
+
+  const sorted = [...entries].sort(
+    (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime(),
+  );
+
+  for (const entry of sorted) {
+    const eventMs = new Date(entry.date).getTime();
+    if (eventMs > cutoffMs) break;
+
+    const flagKey = toFlagKey(entry.flag);
+    const sectorScoped = isSectorScopedRaceControl(entry);
+    const clearSignal = isTrackClearSignal(entry);
+
+    if (clearSignal) {
+      state.updatedAtMs = eventMs;
+      if (sectorScoped) {
+        if (entry.sector !== null) delete state.sectorFlags[entry.sector];
+      } else {
+        state.globalFlag = null;
+        state.sectorFlags = {};
+      }
+      continue;
+    }
+
+    // Infer missing flag from message when OpenF1 omits flag field.
+    const msg = (entry.message ?? "").toUpperCase();
+    const resolvedFlagKey =
+      flagKey ||
+      (msg.includes("RED FLAG") ? "RED" : null) ||
+      (msg.includes("SAFETY CAR DEPLOYED") || msg.includes("SAFETY CAR IN")
+        ? "SAFETY_CAR"
+        : null) ||
+      (msg.includes("VIRTUAL SAFETY CAR DEPLOYED") ||
+      msg.includes("VSC DEPLOYED")
+        ? "VIRTUAL_SC"
+        : null);
+
+    if (!resolvedFlagKey) continue;
+
+    state.updatedAtMs = eventMs;
+    if (sectorScoped) {
+      if (entry.sector !== null)
+        state.sectorFlags[entry.sector] = resolvedFlagKey;
+    } else {
+      state.globalFlag = resolvedFlagKey;
+    }
+  }
+
+  if (
+    state.globalFlag === null &&
+    Object.keys(state.sectorFlags).length === 0
   ) {
     return null;
   }

@@ -149,6 +149,12 @@ export interface ActiveTrackFlagState {
   updatedAtMs: number;
 }
 
+export interface ActiveMarshalSectorFlagState {
+  globalFlag: string | null;
+  sectorFlags: Record<number, string>;
+  updatedAtMs: number;
+}
+
 export interface ActiveTrackVehicles {
   safetyCar: boolean;
   vsc: boolean;
@@ -176,6 +182,7 @@ interface Props {
   readonly weatherOverlay?: Weather | null;
   readonly activeSectorFlag?: ActiveTrackFlag | null;
   readonly activeTrackFlagState?: ActiveTrackFlagState | null;
+  readonly activeMarshalSectorFlagState?: ActiveMarshalSectorFlagState | null;
   readonly activeTrackVehicles?: ActiveTrackVehicles | null;
   readonly safetyCarSirenOn?: boolean;
   readonly showSectorBox?: boolean;
@@ -233,6 +240,7 @@ export function TrackMap({
   weatherOverlay = null,
   activeSectorFlag = null,
   activeTrackFlagState = null,
+  activeMarshalSectorFlagState = null,
   activeTrackVehicles = null,
   safetyCarSirenOn = false,
   showSectorBox = true,
@@ -1040,7 +1048,12 @@ export function TrackMap({
         | 1
         | 2
         | 3;
-      return { arc: normArc[bestIdx]!, sector, index: i };
+      return {
+        arc: normArc[bestIdx]!,
+        sector,
+        index: i,
+        marshalNumber: ms.number,
+      };
     });
 
     postArcs.sort((a, b) => a.arc - b.arc);
@@ -1050,7 +1063,14 @@ export function TrackMap({
       const arcStart = post.arc;
       const arcEnd = next ? next.arc : 1;
       const len = Math.max(arcEnd - arcStart, 0.001);
-      return { arcStart, len, sector: post.sector, index: post.index, i };
+      return {
+        arcStart,
+        len,
+        sector: post.sector,
+        index: post.index,
+        marshalNumber: post.marshalNumber,
+        i,
+      };
     });
   }, [trackGeometry, circuitGeom]);
 
@@ -1351,16 +1371,10 @@ export function TrackMap({
     lightMode,
   ]);
 
-  const marshalLightNodes = useMemo(() => {
-    if (
-      !showEnhancedVisuals ||
-      !trackGeometry ||
-      !circuitGeom?.marshalSectors.length
-    ) {
-      return null;
-    }
+  const marshalSectorFlagOverlays = useMemo(() => {
+    if (!trackGeometry || !marshalHeatmapSegments.length) return null;
 
-    const lightColors: Record<string, string> = {
+    const FLAG_COLORS: Record<string, string> = {
       YELLOW: "#f5d400",
       DOUBLE_YELLOW: "#f5d400",
       RED: "#e8002d",
@@ -1371,64 +1385,78 @@ export function TrackMap({
       CLEAR: "#39b54a",
     };
 
-    const flagForSector = (sector: 1 | 2 | 3): string => {
-      if (!normalizedTrackFlagState) return "CLEAR";
+    const fallbackSectorFlag = (sector: 1 | 2 | 3): string | null => {
+      if (!normalizedTrackFlagState) return null;
       if (normalizedTrackFlagState.globalFlag === "RED") return "RED";
       return (
         normalizedTrackFlagState.sectorFlags[sector] ??
-        normalizedTrackFlagState.globalFlag ??
-        "CLEAR"
+        normalizedTrackFlagState.globalFlag
       );
     };
 
-    const { bounds, innerW, innerH } = trackGeometry;
-    const total = circuitGeom.marshalSectors.length;
-
     return (
       <>
-        {circuitGeom.marshalSectors.map((marshalSector, i) => {
-          const sector = (i < total / 3 ? 1 : i < (2 * total) / 3 ? 2 : 3) as
-            | 1
-            | 2
-            | 3;
-          const flag = flagForSector(sector);
-          if (flag === "CLEAR" || flag === "GREEN") return null;
-          const color = lightColors[flag] ?? lightColors.YELLOW;
-          const { sx, sy } = locationToSvg(
-            marshalSector.trackPosition.x,
-            marshalSector.trackPosition.y,
-            bounds,
-            innerW,
-            innerH,
-          );
-          const cx = sx + PAD;
-          const cy = sy + PAD;
+        {marshalHeatmapSegments.map((seg) => {
+          const marshalFlag =
+            activeMarshalSectorFlagState?.sectorFlags?.[seg.marshalNumber];
+          const flag =
+            activeMarshalSectorFlagState?.globalFlag === "RED"
+              ? "RED"
+              : (activeMarshalSectorFlagState?.globalFlag ??
+                marshalFlag ??
+                fallbackSectorFlag(seg.sector));
+
+          if (!flag || flag === "GREEN" || flag === "CLEAR") return null;
+          const color = FLAG_COLORS[flag] ?? null;
+          if (!color) return null;
+
           return (
-            <g key={`marshal-light-${marshalSector.number}`}>
-              <circle cx={cx} cy={cy} r={3.1} fill={color} opacity={0.35}>
-                <animate
-                  attributeName="r"
-                  values="2.4;4.8;2.4"
-                  dur="1.25s"
-                  repeatCount="indefinite"
-                />
-                <animate
-                  attributeName="opacity"
-                  values="0.25;0.62;0.25"
-                  dur="1.25s"
-                  repeatCount="indefinite"
-                />
-              </circle>
-              <circle cx={cx} cy={cy} r={1.45} fill={color} opacity={0.95} />
+            <g
+              key={`marshal-flag-segment-${seg.marshalNumber}`}
+              data-testid={`marshal-flag-segment-${seg.marshalNumber}`}
+            >
+              <path
+                d={trackGeometry.pathData}
+                fill="none"
+                stroke={color}
+                strokeWidth={10}
+                strokeLinecap="round"
+                pathLength={1}
+                strokeDasharray={`${seg.len.toFixed(4)} ${(1 - seg.len).toFixed(4)}`}
+                strokeDashoffset={`-${seg.arcStart.toFixed(4)}`}
+                opacity={0.2}
+              />
+              <path
+                d={trackGeometry.pathData}
+                fill="none"
+                stroke={color}
+                strokeWidth={6}
+                strokeLinecap="round"
+                pathLength={1}
+                strokeDasharray={`${seg.len.toFixed(4)} ${(1 - seg.len).toFixed(4)}`}
+                strokeDashoffset={`-${seg.arcStart.toFixed(4)}`}
+                opacity={0.55}
+              />
+              <path
+                d={trackGeometry.pathData}
+                fill="none"
+                stroke="#ffffff"
+                strokeWidth={1.5}
+                strokeLinecap="round"
+                pathLength={1}
+                strokeDasharray={`${seg.len.toFixed(4)} ${(1 - seg.len).toFixed(4)}`}
+                strokeDashoffset={`-${seg.arcStart.toFixed(4)}`}
+                opacity={0.14}
+              />
             </g>
           );
         })}
       </>
     );
   }, [
-    showEnhancedVisuals,
     trackGeometry,
-    circuitGeom,
+    marshalHeatmapSegments,
+    activeMarshalSectorFlagState,
     normalizedTrackFlagState,
   ]);
 
@@ -1962,10 +1990,11 @@ export function TrackMap({
           {/* Marshal sector dots (baked geometry only) — shown with heatmap */}
           {mapShowMarshalHeatmap ? marshalSectorOverlays : null}
 
-          {marshalLightNodes}
-
           {/* Active flag tint over marshal sectors / sector boxes */}
           {sectorFlagTints}
+
+          {/* Per-marshal-sector flag overlays using the same style as major sectors. */}
+          {marshalSectorFlagOverlays}
 
           {/* Corner numbers (baked geometry only) */}
           {mapShowCornerNumbers ? cornerOverlays : null}

@@ -1,8 +1,13 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { render } from "@testing-library/react";
-import { TrackMap, type ActiveTrackFlagState } from "./TrackMap";
+import { render, screen } from "@testing-library/react";
+import {
+  TrackMap,
+  type ActiveMarshalSectorFlagState,
+  type ActiveTrackFlagState,
+} from "./TrackMap";
 import type { Location } from "@/api/types";
 import { useTrackOutline } from "@/hooks/useTrackMap";
+import { getCircuitGeometry } from "@/data/circuitGeometry";
 
 let timelineT = 0;
 
@@ -263,5 +268,56 @@ describe("TrackMap sector flag state rendering", () => {
     );
 
     expect(container).toBeTruthy();
+  });
+
+  it("renders marshal-sector track overlays using raw sector numbers", () => {
+    vi.mocked(useTrackOutline).mockReturnValue(
+      mockTrackOutlineQueryResult(mockOutline),
+    );
+    vi.mocked(getCircuitGeometry).mockReturnValue({
+      marshalSectors: [
+        {
+          number: 17,
+          trackPosition: { x: 10, y: 10 },
+        },
+        {
+          number: 18,
+          trackPosition: { x: 45, y: 45 },
+        },
+        {
+          number: 19,
+          trackPosition: { x: 80, y: 80 },
+        },
+      ],
+      corners: [],
+      metadata: {
+        generatedAt: "2026-01-01T00:00:00.000Z",
+        source: "test",
+      },
+    } as never);
+
+    const marshalState: ActiveMarshalSectorFlagState = {
+      globalFlag: null,
+      sectorFlags: {
+        17: "YELLOW",
+        19: "RED",
+      },
+      updatedAtMs: 0,
+    };
+
+    render(
+      <TrackMap
+        sessionKey={1}
+        drivers={[mockDriver]}
+        locationData={mockLocationData}
+        sessionStartMs={0}
+        circuitKey={123}
+        year={2026}
+        activeMarshalSectorFlagState={marshalState}
+      />,
+    );
+
+    expect(screen.getByTestId("marshal-flag-segment-17")).toBeInTheDocument();
+    expect(screen.getByTestId("marshal-flag-segment-19")).toBeInTheDocument();
   });
 });

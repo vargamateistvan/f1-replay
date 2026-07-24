@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import type { RaceControl } from "@/api/types";
 import {
   buildIncidentWindows,
+  deriveMarshalSectorFlagState,
   deriveTrackFlagState,
   normalizeRaceControl,
 } from "./raceControl";
@@ -223,5 +224,35 @@ describe("deriveTrackFlagState", () => {
 
     // After sorting: GREEN at 10s, RED at 20s — result should be RED
     expect(state?.globalFlag).toBe("RED");
+  });
+
+  it("tracks raw marshal sector flags (e.g. 17/19) independently", () => {
+    const state = deriveMarshalSectorFlagState(
+      [
+        rc({ date: iso(10), flag: "YELLOW", scope: "Sector", sector: 19 }),
+        rc({ date: iso(11), flag: "YELLOW", scope: "Sector", sector: 17 }),
+        rc({ date: iso(20), flag: "CLEAR", scope: "Sector", sector: 17 }),
+      ],
+      START,
+      START + 30_000,
+    );
+
+    expect(state?.globalFlag).toBeNull();
+    expect(state?.sectorFlags[19]).toBe("YELLOW");
+    expect(state?.sectorFlags[17]).toBeUndefined();
+  });
+
+  it("applies global red over marshal sector flags", () => {
+    const state = deriveMarshalSectorFlagState(
+      [
+        rc({ date: iso(10), flag: "YELLOW", scope: "Sector", sector: 19 }),
+        rc({ date: iso(12), flag: "RED", scope: "Track", message: "RED FLAG" }),
+      ],
+      START,
+      START + 30_000,
+    );
+
+    expect(state?.globalFlag).toBe("RED");
+    expect(state?.sectorFlags[19]).toBe("YELLOW");
   });
 });
