@@ -1599,6 +1599,7 @@ export default function RaceWeekend() {
       drivers={drivers.data ?? []}
       locationData={location.data}
       sessionStartMs={sessionStartMs}
+      sessionGmtOffset={session?.gmt_offset ?? "+00:00"}
       focusDriver={focusDriver}
       pulseDrivers={pulseDrivers}
       circuitShortName={session?.circuit_short_name}

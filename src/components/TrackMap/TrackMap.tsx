@@ -1,5 +1,6 @@
 import { useMemo, useState, useEffect, useRef, useCallback } from "react";
 import {
+  Clock3,
   CloudRain,
   Droplets,
   Gauge,
@@ -92,6 +93,62 @@ function normalizeDeg(deg: number): number {
   return value;
 }
 
+function formatTrackClock(
+  ms: number,
+  timezone: "local" | "utc",
+  localTimeZone?: string,
+): string {
+  const date = new Date(ms);
+  return date.toLocaleTimeString("en-GB", {
+    hour12: false,
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+    ...(timezone === "utc"
+      ? { timeZone: "UTC" }
+      : localTimeZone
+        ? { timeZone: localTimeZone }
+        : {}),
+  });
+}
+
+function parseGmtOffsetToMinutes(offset: string | null | undefined): number {
+  if (!offset) return 0;
+  const text = offset.trim();
+  const m = /^([+-])?(\d{1,2}):(\d{2})(?::(\d{2}))?$/.exec(text);
+  if (!m) return 0;
+  const sign = m[1] === "-" ? -1 : 1;
+  const hours = Number(m[2]);
+  const mins = Number(m[3]);
+  return sign * (hours * 60 + mins);
+}
+
+function formatTrackTimeZoneId(offsetMinutes: number): string {
+  if (offsetMinutes === 0) return "Etc/UTC";
+  const abs = Math.abs(offsetMinutes);
+  const hh = Math.floor(abs / 60);
+  const mm = abs % 60;
+  if (mm === 0) {
+    // IANA Etc/GMT sign is inverted by convention: UTC+9 => Etc/GMT-9.
+    return `Etc/GMT${offsetMinutes > 0 ? "-" : "+"}${hh}`;
+  }
+  const sign = offsetMinutes < 0 ? "-" : "+";
+  const hourPart = String(hh).padStart(2, "0");
+  const minPart = String(mm).padStart(2, "0");
+  return `UTC${sign}${hourPart}:${minPart}`;
+}
+
+function formatClockAtOffset(ms: number, offsetMinutes: number): string {
+  const shifted = new Date(ms + offsetMinutes * 60_000);
+  return shifted.toLocaleTimeString("en-GB", {
+    hour12: false,
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+    timeZone: "UTC",
+  });
+}
+
 const ROTATION_STEP_DEG = 15;
 const FOLLOW_CAMERA_FOCUS_ALPHA = 0.35;
 const FOLLOW_CAMERA_RETURN_ALPHA = 0.2;
@@ -168,6 +225,7 @@ interface Props {
   readonly drivers: Driver[];
   readonly locationData: Location[];
   readonly sessionStartMs: number;
+  readonly sessionGmtOffset?: string | null;
   readonly focusDriver?: number | null;
   readonly pulseDrivers?: readonly number[];
   readonly circuitShortName?: string | null;
@@ -229,6 +287,7 @@ export function TrackMap({
   drivers,
   locationData,
   sessionStartMs,
+  sessionGmtOffset = "+00:00",
   focusDriver = null,
   pulseDrivers,
   circuitShortName,
@@ -262,6 +321,7 @@ export function TrackMap({
   const mapShowMarshalHeatmap = useSettings((s) => s.mapShowMarshalHeatmap);
   const mapShowCornerNumbers = useSettings((s) => s.mapShowCornerNumbers);
   const mapShowElevation = useSettings((s) => s.mapShowElevation);
+  const mapShowClock = useSettings((s) => s.mapShowClock);
   const isCompactViewport = useMediaQuery("(max-width: 767px)");
   const [zoomLevel, setZoomLevel] = useState(1);
   const [rotationDeg, setRotationDeg] = useState(0);
@@ -325,6 +385,32 @@ export function TrackMap({
   const speedUnit = speedUnitLabel(metricSystem);
   const tempUnit = temperatureUnitLabel(metricSystem);
   const windUnit = windSpeedUnitLabel(metricSystem);
+  const trackOffsetMinutes = useMemo(
+    () => parseGmtOffsetToMinutes(sessionGmtOffset),
+    [sessionGmtOffset],
+  );
+  const trackTimeZoneId = useMemo(
+    () => formatTrackTimeZoneId(trackOffsetMinutes),
+    [trackOffsetMinutes],
+  );
+  const browserTimeZone = useMemo(
+    () => Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC",
+    [],
+  );
+  const trackClock = useMemo(
+    () =>
+      formatClockAtOffset(sessionStartMs + Math.max(0, t), trackOffsetMinutes),
+    [sessionStartMs, t, trackOffsetMinutes],
+  );
+  const localClock = useMemo(
+    () =>
+      formatTrackClock(
+        sessionStartMs + Math.max(0, t),
+        "local",
+        browserTimeZone,
+      ),
+    [browserTimeZone, sessionStartMs, t],
+  );
 
   const normalizedTrackFlagState = useMemo<ActiveTrackFlagState | null>(() => {
     if (activeTrackFlagState) return activeTrackFlagState;
@@ -2406,109 +2492,158 @@ export function TrackMap({
         </div>
       )}
 
-      {/* Bottom-left overlay: weather */}
-      {weatherOverlay ? (
-        <div
-          className={`absolute bottom-2 left-2 hidden md:block pointer-events-none border border-panel border-l-2 px-2 py-1.5 ${weatherOverlayClass}`}
-          style={{
-            minWidth: 184,
-            backdropFilter: "blur(4px)",
-          }}
-        >
-          <div className="flex items-center gap-1.5 text-[8px] font-black uppercase tracking-[0.14em] text-muted">
-            <CloudRain size={10} strokeWidth={2.2} aria-hidden="true" />
-            Track Weather
-            {weatherOverlay.rainfall > 0 && (
-              <span className="ml-auto inline-flex items-center rounded-sm bg-sky-600/85 px-1 py-0.5 text-[7px] font-black tracking-[0.12em] text-white">
-                Rain
-              </span>
-            )}
-          </div>
-          <div className="mt-1.5 grid grid-cols-2 gap-x-3">
-            <div className="space-y-1">
+      {/* Bottom-left overlays: track clock + weather */}
+      <div className="absolute bottom-2 left-2 z-20 pointer-events-none flex flex-col gap-1">
+        {mapShowClock && (
+          <div
+            className={`hidden md:block border border-panel border-l-2 px-2 py-1.5 ${weatherOverlayClass}`}
+            style={{
+              minWidth: 184,
+              backdropFilter: "blur(4px)",
+            }}
+          >
+            <div className="flex items-center gap-1.5 text-[8px] font-black uppercase tracking-[0.14em] text-muted">
+              <Clock3 size={10} strokeWidth={2.2} aria-hidden="true" />
+              Track Time
+            </div>
+            <div className="mt-1.5 grid grid-cols-2 gap-x-3 gap-y-1">
               <div className="flex items-center justify-between gap-2">
-                <span className="inline-flex items-center gap-1 text-[8px] uppercase tracking-[0.12em] text-muted">
-                  <Thermometer size={9} strokeWidth={2.1} aria-hidden="true" />
+                <span className="text-[8px] uppercase tracking-[0.12em] text-muted">
                   Track
                 </span>
                 <span className="text-[10px] font-mono tabular-nums text-white text-right">
-                  {toDisplayTemperature(
-                    weatherOverlay.track_temperature,
-                    metricSystem,
-                  ).toFixed(1)}{" "}
-                  {tempUnit}
-                </span>
-              </div>
-              <div className="flex items-center justify-between gap-2">
-                <span className="inline-flex items-center gap-1 text-[8px] uppercase tracking-[0.12em] text-muted">
-                  <Droplets size={9} strokeWidth={2.1} aria-hidden="true" />
-                  Hum
-                </span>
-                <span className="text-[10px] font-mono tabular-nums text-white text-right">
-                  {weatherOverlay.humidity}%
-                </span>
-              </div>
-              <div className="flex items-center justify-between gap-2">
-                <span className="inline-flex items-center gap-1 text-[8px] uppercase tracking-[0.12em] text-muted">
-                  <Wind size={9} strokeWidth={2.1} aria-hidden="true" />
-                  Wind
-                </span>
-                <span className="text-[10px] font-mono tabular-nums text-white text-right">
-                  {toDisplayWindSpeed(
-                    weatherOverlay.wind_speed,
-                    metricSystem,
-                  ).toFixed(1)}{" "}
-                  {windUnit}
-                </span>
-              </div>
-            </div>
-            <div className="space-y-1">
-              <div className="flex items-center justify-between gap-2">
-                <span className="inline-flex items-center gap-1 text-[8px] uppercase tracking-[0.12em] text-muted">
-                  <Thermometer size={9} strokeWidth={2.1} aria-hidden="true" />
-                  Air
-                </span>
-                <span className="text-[10px] font-mono tabular-nums text-white text-right">
-                  {toDisplayTemperature(
-                    weatherOverlay.air_temperature,
-                    metricSystem,
-                  ).toFixed(1)}{" "}
-                  {tempUnit}
-                </span>
-              </div>
-              <div className="flex items-center justify-between gap-2">
-                <span className="inline-flex items-center gap-1 text-[8px] uppercase tracking-[0.12em] text-muted">
-                  <Gauge size={9} strokeWidth={2.1} aria-hidden="true" />
-                  Press
-                </span>
-                <span className="text-[10px] font-mono tabular-nums text-white text-right">
-                  {weatherOverlay.pressure.toFixed(0)} hPa
+                  {trackClock}
                 </span>
               </div>
               <div className="flex items-center justify-between gap-2">
                 <span className="text-[8px] uppercase tracking-[0.12em] text-muted">
-                  Dir/Rain
+                  Local
                 </span>
-                <span className="text-[10px] font-mono tabular-nums text-right">
-                  <span className="text-white">
-                    {windDir(weatherOverlay.wind_direction)}
-                  </span>
-                  <span className="text-muted"> / </span>
-                  <span
-                    className={
-                      weatherOverlay.rainfall > 0
-                        ? "text-[#7dd3fc]"
-                        : "text-muted"
-                    }
-                  >
-                    {weatherOverlay.rainfall > 0 ? "YES" : "NO"}
-                  </span>
+                <span className="text-[10px] font-mono tabular-nums text-white text-right">
+                  {localClock}
                 </span>
+              </div>
+              <span className="col-span-2 text-[7px] uppercase tracking-[0.12em] text-muted">
+                Track timezone: {trackTimeZoneId}
+              </span>
+              <span className="col-span-2 text-[7px] uppercase tracking-[0.12em] text-muted">
+                Local timezone: {browserTimeZone}
+              </span>
+            </div>
+          </div>
+        )}
+
+        {weatherOverlay ? (
+          <div
+            className={`hidden md:block border border-panel border-l-2 px-2 py-1.5 ${weatherOverlayClass}`}
+            style={{
+              minWidth: 184,
+              backdropFilter: "blur(4px)",
+            }}
+          >
+            <div className="flex items-center gap-1.5 text-[8px] font-black uppercase tracking-[0.14em] text-muted">
+              <CloudRain size={10} strokeWidth={2.2} aria-hidden="true" />
+              Track Weather
+              {weatherOverlay.rainfall > 0 && (
+                <span className="ml-auto inline-flex items-center rounded-sm bg-sky-600/85 px-1 py-0.5 text-[7px] font-black tracking-[0.12em] text-white">
+                  Rain
+                </span>
+              )}
+            </div>
+            <div className="mt-1.5 grid grid-cols-2 gap-x-3">
+              <div className="space-y-1">
+                <div className="flex items-center justify-between gap-2">
+                  <span className="inline-flex items-center gap-1 text-[8px] uppercase tracking-[0.12em] text-muted">
+                    <Thermometer
+                      size={9}
+                      strokeWidth={2.1}
+                      aria-hidden="true"
+                    />
+                    Track
+                  </span>
+                  <span className="text-[10px] font-mono tabular-nums text-white text-right">
+                    {toDisplayTemperature(
+                      weatherOverlay.track_temperature,
+                      metricSystem,
+                    ).toFixed(1)}{" "}
+                    {tempUnit}
+                  </span>
+                </div>
+                <div className="flex items-center justify-between gap-2">
+                  <span className="inline-flex items-center gap-1 text-[8px] uppercase tracking-[0.12em] text-muted">
+                    <Droplets size={9} strokeWidth={2.1} aria-hidden="true" />
+                    Hum
+                  </span>
+                  <span className="text-[10px] font-mono tabular-nums text-white text-right">
+                    {weatherOverlay.humidity}%
+                  </span>
+                </div>
+                <div className="flex items-center justify-between gap-2">
+                  <span className="inline-flex items-center gap-1 text-[8px] uppercase tracking-[0.12em] text-muted">
+                    <Wind size={9} strokeWidth={2.1} aria-hidden="true" />
+                    Wind
+                  </span>
+                  <span className="text-[10px] font-mono tabular-nums text-white text-right">
+                    {toDisplayWindSpeed(
+                      weatherOverlay.wind_speed,
+                      metricSystem,
+                    ).toFixed(1)}{" "}
+                    {windUnit}
+                  </span>
+                </div>
+              </div>
+              <div className="space-y-1">
+                <div className="flex items-center justify-between gap-2">
+                  <span className="inline-flex items-center gap-1 text-[8px] uppercase tracking-[0.12em] text-muted">
+                    <Thermometer
+                      size={9}
+                      strokeWidth={2.1}
+                      aria-hidden="true"
+                    />
+                    Air
+                  </span>
+                  <span className="text-[10px] font-mono tabular-nums text-white text-right">
+                    {toDisplayTemperature(
+                      weatherOverlay.air_temperature,
+                      metricSystem,
+                    ).toFixed(1)}{" "}
+                    {tempUnit}
+                  </span>
+                </div>
+                <div className="flex items-center justify-between gap-2">
+                  <span className="inline-flex items-center gap-1 text-[8px] uppercase tracking-[0.12em] text-muted">
+                    <Gauge size={9} strokeWidth={2.1} aria-hidden="true" />
+                    Press
+                  </span>
+                  <span className="text-[10px] font-mono tabular-nums text-white text-right">
+                    {weatherOverlay.pressure.toFixed(0)} hPa
+                  </span>
+                </div>
+                <div className="flex items-center justify-between gap-2">
+                  <span className="text-[8px] uppercase tracking-[0.12em] text-muted">
+                    Dir/Rain
+                  </span>
+                  <span className="text-[10px] font-mono tabular-nums text-right">
+                    <span className="text-white">
+                      {windDir(weatherOverlay.wind_direction)}
+                    </span>
+                    <span className="text-muted"> / </span>
+                    <span
+                      className={
+                        weatherOverlay.rainfall > 0
+                          ? "text-[#7dd3fc]"
+                          : "text-muted"
+                      }
+                    >
+                      {weatherOverlay.rainfall > 0 ? "YES" : "NO"}
+                    </span>
+                  </span>
+                </div>
               </div>
             </div>
           </div>
-        </div>
-      ) : null}
+        ) : null}
+      </div>
 
       {/* Focused-driver HUD — speed / gear / throttle + brake bars */}
       {showFocusedHud &&

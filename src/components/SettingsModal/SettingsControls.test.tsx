@@ -82,6 +82,8 @@ vi.mock("@/stores/settings", () => ({
     mapShowTrackControls: true,
     mapShowCompass: true,
     mapShowWeather: true,
+    mapShowClock: true,
+    mapClockTimezone: "local",
     mapShowDriverAcronym: true,
     mapShowDriverNumberInside: false,
     mapShowEnhancedVisuals: true,
