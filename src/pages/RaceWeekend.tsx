@@ -250,6 +250,9 @@ export default function RaceWeekend() {
   const [incidentReplayHint, setIncidentReplayHint] = useState<string | null>(
     null,
   );
+  const hasAutoShownResultsRef = useRef(false);
+  const resultsModalAutoOpenedRef = useRef(false);
+  const shouldResumeAfterResultsCloseRef = useRef(false);
 
   const sessions = useSessions(meetingKey);
 
@@ -371,6 +374,7 @@ export default function RaceWeekend() {
   const setSessionStart = useTimeline((s) => s.setSessionStart);
   const setTimelineT = useTimeline((s) => s.setT);
   const setTimelinePlaying = useTimeline((s) => s.setPlaying);
+  const timelinePlaying = useTimeline((s) => s.playing);
   const playbackSpeed = useTimeline((s) => s.speed);
   // Throttled to ~10 Hz. Step-based panels (LiveTiming, Strategy, Weather, etc.)
   // don't need 60 fps; TrackMap drives its own 60 Hz loop internally.
@@ -1346,15 +1350,57 @@ export default function RaceWeekend() {
     t,
   ]);
 
+  function openResultsDialog() {
+    resultsModalAutoOpenedRef.current = false;
+    shouldResumeAfterResultsCloseRef.current = false;
+    setIsResultsDialogOpen(true);
+  }
+
+  function closeResultsDialog() {
+    setIsResultsDialogOpen(false);
+
+    const shouldResume =
+      resultsModalAutoOpenedRef.current &&
+      shouldResumeAfterResultsCloseRef.current &&
+      t < playbackDurationMs;
+
+    resultsModalAutoOpenedRef.current = false;
+    shouldResumeAfterResultsCloseRef.current = false;
+
+    if (shouldResume) {
+      setTimelinePlaying(true);
+    }
+  }
+
   useEffect(() => {
     if (!showFinalClassification) {
       setIsResultsDialogOpen(false);
+      hasAutoShownResultsRef.current = false;
+      resultsModalAutoOpenedRef.current = false;
+      shouldResumeAfterResultsCloseRef.current = false;
       return;
     }
-    if (!sessionResult.isError) {
+
+    if (!sessionResult.isError && !hasAutoShownResultsRef.current) {
+      hasAutoShownResultsRef.current = true;
+      resultsModalAutoOpenedRef.current = true;
+      shouldResumeAfterResultsCloseRef.current =
+        timelinePlaying && t < playbackDurationMs;
+
       setIsResultsDialogOpen(true);
+
+      if (timelinePlaying) {
+        setTimelinePlaying(false);
+      }
     }
-  }, [showFinalClassification, sessionResult.isError]);
+  }, [
+    playbackDurationMs,
+    sessionResult.isError,
+    setTimelinePlaying,
+    showFinalClassification,
+    t,
+    timelinePlaying,
+  ]);
 
   useEffect(() => {
     if (!isQualiSession(sessionName) || !qualiPhase) {
@@ -1606,7 +1652,7 @@ export default function RaceWeekend() {
             }
             onShowResults={
               showFinalClassification && !sessionResult.isError
-                ? () => setIsResultsDialogOpen(true)
+                ? openResultsDialog
                 : undefined
             }
             onJumpToSessionTime={(sessionTimeMs) => setTimelineT(sessionTimeMs)}
@@ -1658,7 +1704,7 @@ export default function RaceWeekend() {
             }
             onShowResults={
               showFinalClassification && !sessionResult.isError
-                ? () => setIsResultsDialogOpen(true)
+                ? openResultsDialog
                 : undefined
             }
             onJumpToSessionTime={(sessionTimeMs) => setTimelineT(sessionTimeMs)}
@@ -2056,7 +2102,7 @@ export default function RaceWeekend() {
             }
             onShowResults={
               showFinalClassification && !sessionResult.isError
-                ? () => setIsResultsDialogOpen(true)
+                ? openResultsDialog
                 : undefined
             }
             onJumpToSessionTime={(sessionTimeMs) => setTimelineT(sessionTimeMs)}
@@ -2215,7 +2261,7 @@ export default function RaceWeekend() {
             results={sessionResult.data ?? []}
             drivers={drivers.data ?? []}
             sessionName={session?.session_name}
-            onClose={() => setIsResultsDialogOpen(false)}
+            onClose={closeResultsDialog}
           />
         )}
 
