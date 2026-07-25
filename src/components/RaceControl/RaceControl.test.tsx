@@ -192,4 +192,63 @@ describe("RaceControl", () => {
     expect(screen.queryByText("Lap 1")).not.toBeInTheDocument();
     expect(screen.queryByText("Lap 2")).not.toBeInTheDocument();
   });
+
+  it("orders qualifying groups from Q3 to Q1", () => {
+    render(
+      <RaceControlFeed
+        entries={
+          [
+            {
+              category: "Session",
+              date: "2024-01-01T00:00:10.000Z",
+              driver_number: null,
+              flag: null,
+              lap_number: null,
+              meeting_key: 1,
+              message: "Q1 STARTED",
+              qualifying_phase: 1,
+              scope: null,
+              sector: null,
+              session_key: 99,
+            },
+            {
+              category: "Session",
+              date: "2024-01-01T00:10:10.000Z",
+              driver_number: null,
+              flag: null,
+              lap_number: null,
+              meeting_key: 1,
+              message: "Q2 STARTED",
+              qualifying_phase: 2,
+              scope: null,
+              sector: null,
+              session_key: 99,
+            },
+            {
+              category: "Session",
+              date: "2024-01-01T00:20:10.000Z",
+              driver_number: null,
+              flag: null,
+              lap_number: null,
+              meeting_key: 1,
+              message: "Q3 STARTED",
+              qualifying_phase: 3,
+              scope: null,
+              sector: null,
+              session_key: 99,
+            },
+          ] as RaceControl[]
+        }
+        sessionType="Qualifying"
+        sessionTimeMs={2_000_000}
+        sessionStartMs={Date.parse("2024-01-01T00:00:00.000Z")}
+        drivers={drivers}
+      />,
+    );
+
+    const headers = screen
+      .getAllByText(/^Q[123]$/)
+      .map((node) => node.textContent);
+    expect(headers.slice(0, 3)).toEqual(["Q3", "Q2", "Q1"]);
+  });
 });

@@ -210,12 +210,10 @@ export function RaceControlFeed({
     if (isQualifying) {
       // For qualifying, group by phase (Q1, Q2, Q3)
       const phaseGroups = groupEventsByPhase(filteredEntries);
-      return phaseGroups
-        .map((pg) => ({
-          lapNumber: pg.phase,
-          events: pg.events,
-        }))
-        .reverse(); // Reverse so Q3 is on top
+      return phaseGroups.map((pg) => ({
+        lapNumber: pg.phase,
+        events: pg.events,
+      }));
     }
 
     // For race/sprint, group by lap
