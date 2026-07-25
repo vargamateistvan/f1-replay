@@ -731,14 +731,53 @@ export function LiveTiming({
   const qualiPhaseStarts = useMemo(() => {
     let q2StartMs: number | null = null;
     let q3StartMs: number | null = null;
-    for (const entry of raceControl) {
+    let q1EndMs: number | null = null;
+    let q2EndMs: number | null = null;
+
+    const sortedRaceControl = [...raceControl].sort(
+      (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime(),
+    );
+
+    for (const entry of sortedRaceControl) {
       const relMs = new Date(entry.date).getTime() - sessionStartMs;
       if (relMs > sessionTimeMs) break;
       const msg = (entry.message ?? "").toUpperCase();
-      if (q2StartMs === null && /\bQ2\b/.test(msg)) q2StartMs = relMs;
-      if (q3StartMs === null && /\bQ3\b/.test(msg)) q3StartMs = relMs;
+
+      if (q2StartMs === null && entry.qualifying_phase === 2) q2StartMs = relMs;
+      if (q3StartMs === null && entry.qualifying_phase === 3) q3StartMs = relMs;
+
+      if (
+        q2StartMs === null &&
+        /\bQ2\b/.test(msg) &&
+        /(STARTED|START|GREEN|WILL START|SESSION START)/.test(msg)
+      ) {
+        q2StartMs = relMs;
+      }
+      if (
+        q3StartMs === null &&
+        /\bQ3\b/.test(msg) &&
+        /(STARTED|START|GREEN|WILL START|SESSION START)/.test(msg)
+      ) {
+        q3StartMs = relMs;
+      }
+
+      if (
+        q1EndMs === null &&
+        /\bQ1\b/.test(msg) &&
+        /(END|ENDED|ELIMINAT|CHEQUERED|OVER|WILL NOT BE RESUMED)/.test(msg)
+      ) {
+        q1EndMs = relMs;
+      }
+      if (
+        q2EndMs === null &&
+        /\bQ2\b/.test(msg) &&
+        /(END|ENDED|ELIMINAT|CHEQUERED|OVER|WILL NOT BE RESUMED)/.test(msg)
+      ) {
+        q2EndMs = relMs;
+      }
     }
-    return { q2StartMs, q3StartMs };
+
+    return { q2StartMs, q3StartMs, q1EndMs, q2EndMs };
   }, [raceControl, sessionStartMs, sessionTimeMs]);
 
   const timedOrder = useMemo(() => {
@@ -795,16 +834,32 @@ export function LiveTiming({
       };
     }
 
+    const q1Completed =
+      qualiPhaseStarts.q2StartMs !== null || qualiPhaseStarts.q1EndMs !== null;
+
+    if (!q1Completed) {
+      return {
+        order: currentOrder,
+        eliminatedQ1: [] as number[],
+        eliminatedQ2: [] as number[],
+      };
+    }
+
     const q1CutoffAbs =
       qualiPhaseStarts.q2StartMs !== null
         ? sessionStartMs + Math.max(0, qualiPhaseStarts.q2StartMs - 1)
-        : currentT;
+        : qualiPhaseStarts.q1EndMs !== null
+          ? sessionStartMs + Math.max(0, qualiPhaseStarts.q1EndMs)
+          : currentT;
     const q1Ranking = rankAt(q1CutoffAbs);
     const eliminatedQ1 = q1Ranking.slice(
       Math.max(0, q1Ranking.length - q1EliminationCount),
     );
 
-    if (qualiPhase === "Q2") {
+    const q2Completed =
+      qualiPhaseStarts.q3StartMs !== null || qualiPhaseStarts.q2EndMs !== null;
+
+    if (!q2Completed) {
       const active = currentOrder.filter((n) => !eliminatedQ1.includes(n));
       return {
         order: [...active, ...eliminatedQ1],
@@ -816,7 +871,9 @@ export function LiveTiming({
     const q2CutoffAbs =
       qualiPhaseStarts.q3StartMs !== null
         ? sessionStartMs + Math.max(0, qualiPhaseStarts.q3StartMs - 1)
-        : currentT;
+        : qualiPhaseStarts.q2EndMs !== null
+          ? sessionStartMs + Math.max(0, qualiPhaseStarts.q2EndMs)
+          : currentT;
     const q2Ranking = rankAt(q2CutoffAbs).filter(
       (n) => !eliminatedQ1.includes(n),
     );
@@ -842,6 +899,8 @@ export function LiveTiming({
     qualiPhase,
     qualiPhaseStarts.q2StartMs,
     qualiPhaseStarts.q3StartMs,
+    qualiPhaseStarts.q1EndMs,
+    qualiPhaseStarts.q2EndMs,
     sessionStartMs,
   ]);
 

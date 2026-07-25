@@ -1,17 +1,17 @@
-import type { RaceControl } from '@/api/types'
+import type { RaceControl } from "@/api/types";
 
-export type QualiPhase = 'Q1' | 'Q2' | 'Q3'
+export type QualiPhase = "Q1" | "Q2" | "Q3";
 
 export function isPracticeSession(name: string): boolean {
-  return /practice/i.test(name)
+  return /practice/i.test(name);
 }
 
 export function isQualiSession(name: string): boolean {
-  return /qualifying/i.test(name)
+  return /qualifying/i.test(name);
 }
 
 export function isTimedSession(name: string): boolean {
-  return isPracticeSession(name) || isQualiSession(name)
+  return isPracticeSession(name) || isQualiSession(name);
 }
 
 // Returns the qualifying phase (Q1/Q2/Q3) active at session-relative time t.
@@ -22,16 +22,29 @@ export function detectQualiPhase(
   sessionStartMs: number,
   t: number,
 ): QualiPhase | null {
-  if (!messages.length) return null
-  let phase: QualiPhase | null = null
-  for (const msg of messages) {
-    const ms = new Date(msg.date).getTime() - sessionStartMs
-    if (ms > t) break
-    const m = msg.message.match(/\bQ([123])\b/i)
+  if (!messages.length) return null;
+
+  const sorted = [...messages].sort(
+    (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime(),
+  );
+
+  let phase: QualiPhase | null = null;
+  for (const msg of sorted) {
+    const ms = new Date(msg.date).getTime() - sessionStartMs;
+    if (ms > t) break;
+
+    const explicitPhase = msg.qualifying_phase;
+    if (explicitPhase === 1 || explicitPhase === 2 || explicitPhase === 3) {
+      phase = `Q${explicitPhase}` as QualiPhase;
+      continue;
+    }
+
+    // Fallback for feeds that do not populate qualifying_phase.
+    const m = msg.message.match(/\bQ([123])\b/i);
     if (m) {
-      const candidate = `Q${m[1]}` as QualiPhase
-      if (phase === null || candidate > phase) phase = candidate
+      const candidate = `Q${m[1]}` as QualiPhase;
+      if (phase === null || candidate > phase) phase = candidate;
     }
   }
-  return phase
+  return phase;
 }

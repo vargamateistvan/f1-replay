@@ -413,7 +413,7 @@ describe("LiveTiming", () => {
     expect(screen.getAllByText("187").length).toBeGreaterThan(0);
   });
 
-  it("orders qualifying by best lap and keeps eliminated drivers locked", () => {
+  it("shows Q1 eliminations after Q1 is completed", () => {
     const sessionStartMs = Date.parse("2024-01-01T00:00:00.000Z");
     const fieldDrivers = Array.from({ length: 20 }, (_, i) => {
       const n = i + 1;
@@ -471,7 +471,7 @@ describe("LiveTiming", () => {
               lap_number: 0,
               meeting_key: 1,
               message: "Q2 STARTED",
-              qualifying_phase: null,
+              qualifying_phase: 2,
               scope: null,
               sector: null,
               session_key: 1,
@@ -489,6 +489,94 @@ describe("LiveTiming", () => {
     expect(rows[2]).toHaveTextContent("D02");
     expect(rows[3]).toHaveTextContent("D03");
     expect(screen.getAllByText("OUT Q1").length).toBe(5);
+  });
+
+  it("does not show elimination tags during Q1", () => {
+    const sessionStartMs = Date.parse("2024-01-01T00:00:00.000Z");
+    const fieldDrivers = Array.from({ length: 20 }, (_, i) => {
+      const n = i + 1;
+      return {
+        driver_number: n,
+        name_acronym: `D${String(n).padStart(2, "0")}`,
+        full_name: `Driver ${n}`,
+        team_colour: "3671C6",
+      };
+    }) as unknown as Driver[];
+
+    const fieldPositions = Array.from({ length: 20 }, (_, i) => ({
+      driver_number: i + 1,
+      position: i + 1,
+      date: "2024-01-01T00:04:50.000Z",
+    })) as Position[];
+
+    const fieldLaps = Array.from({ length: 20 }, (_, i) => {
+      const n = i + 1;
+      const lap = 80 + n;
+      return {
+        date_start: "2024-01-01T00:01:00.000Z",
+        driver_number: n,
+        duration_sector_1: 26 + n * 0.1,
+        duration_sector_2: 26 + n * 0.1,
+        duration_sector_3: 26 + n * 0.1,
+        i1_speed: null,
+        i2_speed: null,
+        is_pit_out_lap: false,
+        lap_duration: lap,
+        lap_number: 1,
+        meeting_key: 1,
+        segments_sector_1: [2049],
+        segments_sector_2: [2049],
+        segments_sector_3: [2049],
+        session_key: 1,
+        st_speed: null,
+      };
+    }) as Lap[];
+
+    render(
+      <LiveTiming
+        drivers={fieldDrivers}
+        positions={fieldPositions}
+        intervals={[]}
+        pits={[]}
+        laps={fieldLaps}
+        raceControl={
+          [
+            {
+              category: "Track Status",
+              date: "2024-01-01T00:00:30.000Z",
+              driver_number: 0,
+              flag: null,
+              lap_number: 0,
+              meeting_key: 1,
+              message: "Q1 STARTED",
+              qualifying_phase: 1,
+              scope: null,
+              sector: null,
+              session_key: 1,
+            },
+            {
+              category: "Track Status",
+              date: "2024-01-01T00:04:40.000Z",
+              driver_number: 0,
+              flag: null,
+              lap_number: 0,
+              meeting_key: 1,
+              message: "Q1 CHEQUERED FLAG",
+              qualifying_phase: 1,
+              scope: null,
+              sector: null,
+              session_key: 1,
+            },
+          ] as unknown as RaceControl[]
+        }
+        sessionName="Qualifying"
+        sessionTimeMs={250_000}
+        sessionStartMs={sessionStartMs}
+      />,
+    );
+
+    expect(screen.queryByText("OUT Q1")).not.toBeInTheDocument();
+    expect(screen.queryByText("OUT Q2")).not.toBeInTheDocument();
   });
 
   it("highlights a row when a timed-session lap is just completed", () => {

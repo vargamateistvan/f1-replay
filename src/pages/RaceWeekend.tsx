@@ -1223,10 +1223,6 @@ export default function RaceWeekend() {
 
   // ── Session countdown (practice / qualifying) ────────────────────────────
   const sessionName = session?.session_name ?? "";
-  const countdownMs =
-    isTimedSession(sessionName) && effectiveDuration > 0
-      ? Math.max(0, effectiveDuration - t)
-      : null;
   const qualiPhase = isQualiSession(sessionName)
     ? detectQualiPhase(raceControl.data ?? [], sessionStartMs, t)
     : null;
@@ -1241,20 +1237,114 @@ export default function RaceWeekend() {
       return {
         q2StartMs: null as number | null,
         q3StartMs: null as number | null,
+        q1EndMs: null as number | null,
+        q2EndMs: null as number | null,
+        q3EndMs: null as number | null,
       };
     }
 
     let q2StartMs: number | null = null;
     let q3StartMs: number | null = null;
+    let q1EndMs: number | null = null;
+    let q2EndMs: number | null = null;
+    let q3EndMs: number | null = null;
     for (const { row: entry, relMs } of timedRaceControl) {
       const msg = (entry.message ?? "").toUpperCase();
-      if (q2StartMs === null && /\bQ2\b/.test(msg)) q2StartMs = relMs;
-      if (q3StartMs === null && /\bQ3\b/.test(msg)) q3StartMs = relMs;
-      if (q2StartMs !== null && q3StartMs !== null) break;
+
+      // Prefer explicit phase markers from the API when present.
+      if (q2StartMs === null && entry.qualifying_phase === 2) q2StartMs = relMs;
+      if (q3StartMs === null && entry.qualifying_phase === 3) q3StartMs = relMs;
+
+      // Fallback for sessions where qualifying_phase is missing.
+      if (
+        q2StartMs === null &&
+        /\bQ2\b/.test(msg) &&
+        /(STARTED|START|GREEN|WILL START|SESSION START)/.test(msg)
+      ) {
+        q2StartMs = relMs;
+      }
+      if (
+        q3StartMs === null &&
+        /\bQ3\b/.test(msg) &&
+        /(STARTED|START|GREEN|WILL START|SESSION START)/.test(msg)
+      ) {
+        q3StartMs = relMs;
+      }
+
+      if (
+        q1EndMs === null &&
+        /\bQ1\b/.test(msg) &&
+        /(END|ENDED|ELIMINAT|CHEQUERED|OVER|WILL NOT BE RESUMED)/.test(msg)
+      ) {
+        q1EndMs = relMs;
+      }
+      if (
+        q2EndMs === null &&
+        /\bQ2\b/.test(msg) &&
+        /(END|ENDED|ELIMINAT|CHEQUERED|OVER|WILL NOT BE RESUMED)/.test(msg)
+      ) {
+        q2EndMs = relMs;
+      }
+      if (
+        q3EndMs === null &&
+        /\bQ3\b/.test(msg) &&
+        /(END|ENDED|ELIMINAT|CHEQUERED|OVER|WILL NOT BE RESUMED)/.test(msg)
+      ) {
+        q3EndMs = relMs;
+      }
+
+      if (
+        q2StartMs !== null &&
+        q3StartMs !== null &&
+        q1EndMs !== null &&
+        q2EndMs !== null &&
+        q3EndMs !== null
+      ) {
+        break;
+      }
     }
 
-    return { q2StartMs, q3StartMs };
+    return { q2StartMs, q3StartMs, q1EndMs, q2EndMs, q3EndMs };
   }, [timedRaceControl, sessionName, sessionStartMs]);
+
+  const countdownMs = useMemo(() => {
+    if (!isTimedSession(sessionName) || effectiveDuration <= 0) return null;
+
+    if (!isQualiSession(sessionName)) {
+      return Math.max(0, effectiveDuration - t);
+    }
+
+    const fallbackEnd = effectiveDuration;
+    let phaseEndMs: number | null = null;
+
+    if (qualiPhase === "Q1") {
+      phaseEndMs =
+        qualiPhaseStartTimes.q2StartMs ??
+        qualiPhaseStartTimes.q1EndMs ??
+        fallbackEnd;
+    } else if (qualiPhase === "Q2") {
+      phaseEndMs =
+        qualiPhaseStartTimes.q3StartMs ??
+        qualiPhaseStartTimes.q2EndMs ??
+        fallbackEnd;
+    } else if (qualiPhase === "Q3") {
+      phaseEndMs = qualiPhaseStartTimes.q3EndMs ?? fallbackEnd;
+    } else {
+      phaseEndMs = fallbackEnd;
+    }
+
+    return Math.max(0, phaseEndMs - t);
+  }, [
+    effectiveDuration,
+    qualiPhase,
+    qualiPhaseStartTimes.q1EndMs,
+    qualiPhaseStartTimes.q2EndMs,
+    qualiPhaseStartTimes.q2StartMs,
+    qualiPhaseStartTimes.q3EndMs,
+    qualiPhaseStartTimes.q3StartMs,
+    sessionName,
+    t,
+  ]);
 
   useEffect(() => {
     if (!showFinalClassification) {
