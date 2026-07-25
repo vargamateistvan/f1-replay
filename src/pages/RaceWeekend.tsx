@@ -250,6 +250,7 @@ export default function RaceWeekend() {
   const [incidentReplayHint, setIncidentReplayHint] = useState<string | null>(
     null,
   );
+  const prevSessionKeyRef = useRef<number | null>(null);
   const hasAutoShownResultsRef = useRef(false);
   const resultsModalAutoOpenedRef = useRef(false);
   const shouldResumeAfterResultsCloseRef = useRef(false);
@@ -506,6 +507,22 @@ export default function RaceWeekend() {
     setIncidentReplayEndMs(null);
     setIncidentReplayHint(null);
   }, [sessionKey]);
+
+  useEffect(() => {
+    if (sessionKey === null) {
+      prevSessionKeyRef.current = null;
+      return;
+    }
+
+    if (
+      prevSessionKeyRef.current !== null &&
+      prevSessionKeyRef.current !== sessionKey
+    ) {
+      setTimelineT(0);
+    }
+
+    prevSessionKeyRef.current = sessionKey;
+  }, [sessionKey, setTimelineT]);
 
   useEffect(() => {
     if (!incidentReplayHint) return;
