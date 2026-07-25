@@ -25,7 +25,6 @@ export interface AppSettings {
   mapShowCompass: boolean;
   mapShowWeather: boolean;
   mapShowClock: boolean;
-  mapClockTimezone: "local" | "utc";
   mapShowDriverAcronym: boolean;
   mapShowDriverNumberInside: boolean;
   mapShowEnhancedVisuals: boolean;
@@ -123,7 +122,6 @@ export const SETTINGS_DEFAULTS: AppSettings = {
   mapShowCompass: true,
   mapShowWeather: true,
   mapShowClock: true,
-  mapClockTimezone: "local",
   mapShowDriverAcronym: true,
   mapShowDriverNumberInside: false,
   mapShowEnhancedVisuals: true,

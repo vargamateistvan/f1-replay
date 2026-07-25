@@ -225,51 +225,6 @@ export function UnitSelector({
   );
 }
 
-export function TrackClockTimezoneSelector({
-  value,
-  onChange,
-  disabled = false,
-}: {
-  value: "local" | "utc";
-  onChange: (v: "local" | "utc") => void;
-  disabled?: boolean;
-}) {
-  return (
-    <div
-      className={`flex items-center justify-between gap-4 py-3 border-b border-panel ${disabled ? "opacity-40" : ""}`}
-    >
-      <div>
-        <div className="text-[13px] text-white/90 leading-tight">
-          Track clock timezone
-        </div>
-        <div className="text-[11px] text-muted mt-0.5 leading-tight">
-          Choose whether the map clock uses your local timezone or UTC
-        </div>
-      </div>
-      <div className="flex gap-1 shrink-0">
-        {(
-          [
-            ["local", "Local"],
-            ["utc", "UTC"],
-          ] as const
-        ).map(([timezone, label]) => (
-          <button
-            key={timezone}
-            onClick={() => !disabled && onChange(timezone)}
-            disabled={disabled}
-            className={`px-3 h-8 text-[11px] font-bold rounded transition-colors ${
-              value === timezone
-                ? "bg-f1red text-white"
-                : "bg-track text-muted hover:text-white hover:bg-panel"
-            } ${disabled ? "cursor-not-allowed" : ""}`}
-          >
-            {label}
-          </button>
-        ))}
-      </div>
-    </div>
-  );
-}
 // ── Settings body (all sections) ──────────────────────────────────────────────
 
 export function SettingsBody() {
@@ -821,11 +776,6 @@ export function SettingsBody() {
         description="Show session wall-clock time in track map view"
         checked={settings.mapShowClock}
         onChange={toggle("mapShowClock")}
-      />
-      <TrackClockTimezoneSelector
-        value={settings.mapClockTimezone}
-        onChange={(v) => updateSetting("mapClockTimezone", v)}
-        disabled={!settings.mapShowClock}
       />
       <SettingRow
         label="Driver acronym labels"
