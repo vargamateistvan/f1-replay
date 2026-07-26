@@ -1372,6 +1372,10 @@ function DriverLapCard({
 
   const hasHeadshot = !!safeHeadshotUrl && !headshotFailed;
   const avatarLabel = driverTag.toUpperCase().slice(0, 3);
+  const isBestSelected =
+    lap !== null && bestLap !== null && Number(lap) === Number(bestLap);
+  const isLatestSelected =
+    lap !== null && latestLap !== null && Number(lap) === Number(latestLap);
 
   return (
     <div className="h-full lg:h-[248px] rounded border border-panel bg-track p-1.5">
@@ -1470,27 +1474,37 @@ function DriverLapCard({
         </div>
       </div>
 
-      {!compact && (
-        <div className="mt-1.5 flex flex-wrap items-center gap-1">
-          <button
-            onClick={onBest}
-            disabled={driver === null || bestLap === null}
-            className="h-6 border border-panel bg-surface px-2 text-[10px] font-bold uppercase tracking-[0.12em] text-white disabled:opacity-50"
-            title="Select best valid lap"
-          >
-            Best {bestLap !== null ? `L${bestLap}` : ""}
-          </button>
+      <div className="mt-1.5 flex flex-wrap items-center gap-1">
+        <button
+          onClick={onBest}
+          disabled={driver === null || bestLap === null}
+          className={`border px-2 font-bold uppercase tracking-[0.12em] disabled:opacity-50 ${
+            compact ? "h-5 text-[9px]" : "h-6 text-[10px]"
+          } ${
+            isBestSelected
+              ? "border-[#6f54a2] bg-[#2a1b3f] text-[#dfcbff]"
+              : "border-panel bg-surface text-white"
+          }`}
+          title="Select best valid lap"
+        >
+          Best {bestLap !== null ? `L${bestLap}` : ""}
+        </button>
 
-          <button
-            onClick={onLatest}
-            disabled={driver === null || latestLap === null}
-            className="h-6 border border-panel bg-surface px-2 text-[10px] font-bold uppercase tracking-[0.12em] text-white disabled:opacity-50"
-            title="Select latest valid lap"
-          >
-            Latest {latestLap !== null ? `L${latestLap}` : ""}
-          </button>
-        </div>
-      )}
+        <button
+          onClick={onLatest}
+          disabled={driver === null || latestLap === null}
+          className={`border px-2 font-bold uppercase tracking-[0.12em] disabled:opacity-50 ${
+            compact ? "h-5 text-[9px]" : "h-6 text-[10px]"
+          } ${
+            isLatestSelected
+              ? "border-[#2c6ab7] bg-[#112744] text-[#b9dcff]"
+              : "border-panel bg-surface text-white"
+          }`}
+          title="Select latest valid lap"
+        >
+          Latest {latestLap !== null ? `L${latestLap}` : ""}
+        </button>
+      </div>
 
       <div className="mt-1.5 flex flex-wrap items-center gap-1">
         <span className="rounded border border-panel bg-surface px-2 py-1 text-[10px] font-bold uppercase tracking-[0.1em] text-muted">
