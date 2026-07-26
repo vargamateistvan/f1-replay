@@ -294,9 +294,8 @@ export function Nav() {
 
     const start = new Date(nextMeeting.date_start);
     const end = new Date(nextMeeting.date_end);
-    const monthFmt = new Intl.DateTimeFormat("en", { month: "short" });
-    const startMonth = monthFmt.format(start).toUpperCase();
-    const endMonth = monthFmt.format(end).toUpperCase();
+    const startMonth = MONTHS_SHORT[start.getUTCMonth()].toUpperCase();
+    const endMonth = MONTHS_SHORT[end.getUTCMonth()].toUpperCase();
     const startDay = String(start.getUTCDate()).padStart(2, "0");
     const endDay = String(end.getUTCDate()).padStart(2, "0");
 
@@ -791,7 +790,25 @@ export function Nav() {
               <select
                 aria-label="Event"
                 value={meetingKey ?? ""}
-                onChange={(e) => onMeeting(Number(e.target.value))}
+                onChange={(e) => {
+                  const raw = e.target.value;
+                  if (raw === "") {
+                    setSearchParams(
+                      (prev) => {
+                        const next = new URLSearchParams(prev);
+                        next.delete("meeting");
+                        next.delete("session");
+                        return next;
+                      },
+                      { replace: true },
+                    );
+                    return;
+                  }
+
+                  const val = Number(raw);
+                  if (!Number.isFinite(val) || val <= 0) return;
+                  onMeeting(val);
+                }}
                 disabled={meetings.isPending}
                 className={`${SELECT} min-w-0 flex-[1_1_132px] sm:flex-[1_1_160px] sm:max-w-none`}
               >
@@ -854,11 +871,16 @@ export function Nav() {
                 aria-label="Session"
                 value={sessionKey ?? ""}
                 onChange={(e) => {
-                  const val = Number(e.target.value);
-                  if (!Number.isNaN(val)) {
-                    setSessionKey(val);
-                    trackEvent("nav_session_changed", { session_key: val });
+                  const raw = e.target.value;
+                  if (raw === "") {
+                    setSessionKey(null);
+                    return;
                   }
+
+                  const val = Number(raw);
+                  if (!Number.isFinite(val) || val <= 0) return;
+                  setSessionKey(val);
+                  trackEvent("nav_session_changed", { session_key: val });
                 }}
                 disabled={sessions.isPending || !meetingKey}
                 className={`${SELECT} min-w-0 flex-[1_1_108px] sm:flex-none`}

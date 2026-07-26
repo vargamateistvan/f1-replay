@@ -440,7 +440,7 @@ export function RaceControlFeed({
             </button>
           </div>
         )}
-        {visibleLapGroups.map((group) => {
+        {visibleLapGroups.map((group, groupIndex) => {
           const isQualifying = sessionType
             ?.toLowerCase()
             .includes("qualifying");
@@ -454,7 +454,7 @@ export function RaceControlFeed({
 
           return (
             <div
-              key={group.lapNumber ?? "session"}
+              key={`${group.lapNumber ?? "session"}-${groupIndex}`}
               className="overflow-hidden rounded border border-panel bg-surface/80"
             >
               {/* Lap/phase header */}

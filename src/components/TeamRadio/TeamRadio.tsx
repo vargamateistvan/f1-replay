@@ -167,7 +167,7 @@ export function TeamRadioFeed({
           </button>
         </div>
       )}
-      {lapGroups.map((group) => {
+      {lapGroups.map((group, groupIndex) => {
         const isQualifying = sessionType?.toLowerCase().includes("qualifying");
         const headerText =
           isQualifying && group.lapNumber !== null
@@ -176,7 +176,10 @@ export function TeamRadioFeed({
               ? `Lap ${group.lapNumber}`
               : "Session";
         return (
-          <div key={group.lapNumber ?? "session"} className="mb-0.5">
+          <div
+            key={`${group.lapNumber ?? "session"}-${groupIndex}`}
+            className="mb-0.5"
+          >
             <div className="sticky top-0 z-10 border-b border-panel bg-surface px-2 py-0.5 text-[9px] font-black uppercase tracking-widest text-muted select-none">
               {headerText}
             </div>
