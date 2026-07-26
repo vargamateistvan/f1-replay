@@ -11,8 +11,8 @@ interface Props {
   meetingKey: number | null;
   sessionKey: number | null;
   onYear: (y: number) => void;
-  onMeeting: (k: number) => void;
-  onSession: (k: number) => void;
+  onMeeting: (k: number | null) => void;
+  onSession: (k: number | null) => void;
 }
 
 const CIRCUIT_TYPE_LABEL: Record<string, string> = {
@@ -178,6 +178,11 @@ export function SessionPicker({
                 if (now - lastSelectChangeRef.current < 100) return;
                 lastSelectChangeRef.current = now;
                 try {
+                  if (e.target.value === "") {
+                    onMeeting(null);
+                    onSession(null);
+                    return;
+                  }
                   console.log("[SessionPicker] Meeting selection started", {
                     value: e.target.value,
                   });
@@ -228,6 +233,10 @@ export function SessionPicker({
                 if (now - lastSelectChangeRef.current < 100) return;
                 lastSelectChangeRef.current = now;
                 try {
+                  if (e.target.value === "") {
+                    onSession(null);
+                    return;
+                  }
                   console.log("[SessionPicker] Session selection started", {
                     value: e.target.value,
                   });
