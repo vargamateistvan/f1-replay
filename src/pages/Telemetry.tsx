@@ -1704,90 +1704,108 @@ function SplitsTable({
   return (
     <div className={PANEL}>
       <div className={PANEL_TITLE}>Sector splits</div>
-      <table className="w-full font-mono text-xs">
-        <thead>
-          <tr className="text-[10px] uppercase tracking-widest text-[#636369]">
-            <th className="px-3 py-1 text-left">Driver</th>
-            <th className="px-3 py-1 text-right">Lap #</th>
-            <th className="px-3 py-1 text-right">S1</th>
-            <th className="px-3 py-1 text-right">S2</th>
-            <th className="px-3 py-1 text-right">S3</th>
-            <th className="px-3 py-1 text-right">Lap</th>
-            {hasSpeedData && (
-              <>
-                <th className="px-3 py-1 text-right text-[#88c0d0]">I1</th>
-                <th className="px-3 py-1 text-right text-[#88c0d0]">I2</th>
-                <th
-                  className="px-3 py-1 text-right text-[#88c0d0]"
-                  title={`Speed trap (${speedUnit})`}
-                >
-                  ST
-                </th>
-              </>
-            )}
-          </tr>
-        </thead>
-
-        <tbody>
-          {rows.map((r) => (
-            <tr key={`${r.num}-${r.lapNo}`} className="border-t border-panel">
-              <td className="px-3 py-1">
-                <span className="font-black" style={{ color: r.color }}>
-                  {r.acr}
-                </span>
-              </td>
-              <td className="px-3 py-1 text-right tabular-nums text-muted">
-                {r.lapNo}
-              </td>
-              <td
-                className={`px-3 py-1 text-right tabular-nums ${clsMin(r.s1, fastest.s1)}`}
-              >
-                {fmt(r.s1)}
-              </td>
-              <td
-                className={`px-3 py-1 text-right tabular-nums ${clsMin(r.s2, fastest.s2)}`}
-              >
-                {fmt(r.s2)}
-              </td>
-              <td
-                className={`px-3 py-1 text-right tabular-nums ${clsMin(r.s3, fastest.s3)}`}
-              >
-                {fmt(r.s3)}
-              </td>
-              <td
-                className={`px-3 py-1 text-right tabular-nums font-bold ${clsMin(
-                  r.lap,
-                  fastest.lap,
-                )}`}
-              >
-                {fmtLap(r.lap)}
-              </td>
+      <div className="overflow-x-auto">
+        <table className="w-full min-w-[620px] font-mono text-xs">
+          <thead>
+            <tr className="text-[10px] uppercase tracking-widest text-[#636369]">
+              <th className="whitespace-nowrap px-2 py-1 text-left sm:px-3">
+                Driver
+              </th>
+              <th className="whitespace-nowrap px-2 py-1 text-right sm:px-3">
+                Lap #
+              </th>
+              <th className="whitespace-nowrap px-2 py-1 text-right sm:px-3">
+                S1
+              </th>
+              <th className="whitespace-nowrap px-2 py-1 text-right sm:px-3">
+                S2
+              </th>
+              <th className="whitespace-nowrap px-2 py-1 text-right sm:px-3">
+                S3
+              </th>
+              <th className="whitespace-nowrap px-2 py-1 text-right sm:px-3">
+                Lap
+              </th>
               {hasSpeedData && (
                 <>
-                  <td
-                    className={`px-3 py-1 text-right tabular-nums ${clsMax(r.i1, fastest.i1)}`}
-                    title="Intermediate 1 speed"
-                  >
-                    {fmtSpeed(r.i1)}
-                  </td>
-                  <td
-                    className={`px-3 py-1 text-right tabular-nums ${clsMax(r.i2, fastest.i2)}`}
-                    title="Intermediate 2 speed"
-                  >
-                    {fmtSpeed(r.i2)}
-                  </td>
-                  <td
-                    className={`px-3 py-1 text-right tabular-nums ${clsMax(r.st, fastest.st)}`}
+                  <th className="whitespace-nowrap px-2 py-1 text-right text-[#88c0d0] sm:px-3">
+                    I1
+                  </th>
+                  <th className="whitespace-nowrap px-2 py-1 text-right text-[#88c0d0] sm:px-3">
+                    I2
+                  </th>
+                  <th
+                    className="whitespace-nowrap px-2 py-1 text-right text-[#88c0d0] sm:px-3"
                     title={`Speed trap (${speedUnit})`}
                   >
-                    {fmtSpeed(r.st)}
-                  </td>
+                    ST
+                  </th>
                 </>
               )}
             </tr>
-          ))}
-        </tbody>
-      </table>
+          </thead>
+
+          <tbody>
+            {rows.map((r) => (
+              <tr key={`${r.num}-${r.lapNo}`} className="border-t border-panel">
+                <td className="whitespace-nowrap px-2 py-1 sm:px-3">
+                  <span className="font-black" style={{ color: r.color }}>
+                    {r.acr}
+                  </span>
+                </td>
+                <td className="whitespace-nowrap px-2 py-1 text-right tabular-nums text-muted sm:px-3">
+                  {r.lapNo}
+                </td>
+                <td
+                  className={`whitespace-nowrap px-2 py-1 text-right tabular-nums sm:px-3 ${clsMin(r.s1, fastest.s1)}`}
+                >
+                  {fmt(r.s1)}
+                </td>
+                <td
+                  className={`whitespace-nowrap px-2 py-1 text-right tabular-nums sm:px-3 ${clsMin(r.s2, fastest.s2)}`}
+                >
+                  {fmt(r.s2)}
+                </td>
+                <td
+                  className={`whitespace-nowrap px-2 py-1 text-right tabular-nums sm:px-3 ${clsMin(r.s3, fastest.s3)}`}
+                >
+                  {fmt(r.s3)}
+                </td>
+                <td
+                  className={`whitespace-nowrap px-2 py-1 text-right tabular-nums font-bold sm:px-3 ${clsMin(
+                    r.lap,
+                    fastest.lap,
+                  )}`}
+                >
+                  {fmtLap(r.lap)}
+                </td>
+                {hasSpeedData && (
+                  <>
+                    <td
+                      className={`whitespace-nowrap px-2 py-1 text-right tabular-nums sm:px-3 ${clsMax(r.i1, fastest.i1)}`}
+                      title="Intermediate 1 speed"
+                    >
+                      {fmtSpeed(r.i1)}
+                    </td>
+                    <td
+                      className={`whitespace-nowrap px-2 py-1 text-right tabular-nums sm:px-3 ${clsMax(r.i2, fastest.i2)}`}
+                      title="Intermediate 2 speed"
+                    >
+                      {fmtSpeed(r.i2)}
+                    </td>
+                    <td
+                      className={`whitespace-nowrap px-2 py-1 text-right tabular-nums sm:px-3 ${clsMax(r.st, fastest.st)}`}
+                      title={`Speed trap (${speedUnit})`}
+                    >
+                      {fmtSpeed(r.st)}
+                    </td>
+                  </>
+                )}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
       {hasSpeedData && (
         <p className="px-3 py-1 text-[10px] text-[#636369]">
           I1 / I2 = intermediate speeds · ST = speed trap · unit: {speedUnit} ·
