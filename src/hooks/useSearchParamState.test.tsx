@@ -39,6 +39,10 @@ describe("useSearchParamState", () => {
     act(() => result.current.setSession(null));
     expect(result.current.session).toBeNull();
     expect(result.current.search).not.toContain("session=");
+
+    act(() => result.current.setSession(Number.POSITIVE_INFINITY));
+    expect(result.current.session).toBeNull();
+    expect(result.current.search).not.toContain("session=");
   });
 
   it("uses fallback for missing string param and deletes when set back to fallback", () => {
@@ -52,5 +56,45 @@ describe("useSearchParamState", () => {
     act(() => result.current.setView("tracker"));
     expect(result.current.view).toBe("tracker");
     expect(result.current.search).not.toContain("view=");
+  });
+
+  it("uses fallback for empty numeric query param instead of coercing to 0", () => {
+    const emptyWrapper = ({ children }: { children: React.ReactNode }) => (
+      <MemoryRouter
+        initialEntries={["/race?session="]}
+        future={{
+          v7_startTransition: true,
+          v7_relativeSplatPath: true,
+        }}
+      >
+        {children}
+      </MemoryRouter>
+    );
+
+    const { result } = renderHook(() => useHarness(), {
+      wrapper: emptyWrapper,
+    });
+
+    expect(result.current.session).toBeNull();
+  });
+
+  it("uses fallback for invalid numeric query params", () => {
+    const invalidWrapper = ({ children }: { children: React.ReactNode }) => (
+      <MemoryRouter
+        initialEntries={["/race?session=Infinity"]}
+        future={{
+          v7_startTransition: true,
+          v7_relativeSplatPath: true,
+        }}
+      >
+        {children}
+      </MemoryRouter>
+    );
+
+    const { result } = renderHook(() => useHarness(), {
+      wrapper: invalidWrapper,
+    });
+
+    expect(result.current.session).toBeNull();
   });
 });

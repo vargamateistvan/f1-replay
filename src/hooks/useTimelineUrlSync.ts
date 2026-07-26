@@ -33,7 +33,7 @@ export function useTimelineUrlSync(sessionKey: number | null, ready: boolean) {
     const store = useTimeline.getState();
     if (sp.get("t") !== null) {
       const tSec = Number(sp.get("t"));
-      if (!Number.isNaN(tSec)) store.setT(tSec * 1000);
+      if (Number.isFinite(tSec) && tSec >= 0) store.setT(tSec * 1000);
     }
     if (sp.get("speed") !== null) {
       const speed = Number(sp.get("speed"));

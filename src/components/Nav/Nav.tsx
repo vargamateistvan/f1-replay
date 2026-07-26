@@ -32,6 +32,7 @@ const VIEW_TABS: { id: MainView; label: string }[] = [
   { id: "tracker", label: "Driver Tracker" },
   { id: "commentary", label: "Commentary" },
 ];
+const VALID_VIEWS = new Set<MainView>(["leaderboard", "tracker", "commentary"]);
 
 const SELECT =
   "bg-surface text-white border border-panel text-[11px] font-medium px-2 py-1 focus:outline-none focus:border-muted appearance-none cursor-pointer transition-colors disabled:opacity-60 disabled:cursor-not-allowed light:bg-white light:text-black light:border-slate-300 light:focus:border-slate-500 light:[color-scheme:light] light:[&>option]:bg-white light:[&>option]:text-black";
@@ -408,7 +409,9 @@ export function Nav() {
       ? `${eventLabel} · ${sessionLabel}`
       : (eventLabel ?? "SELECT SESSION");
 
-  const currentView = view ?? "tracker";
+  const currentView: MainView = VALID_VIEWS.has(view as MainView)
+    ? (view as MainView)
+    : "tracker";
   const location = useLocation();
   const navigate = useNavigate();
   const isMainRoute = location.pathname === "/";

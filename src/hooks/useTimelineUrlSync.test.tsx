@@ -81,4 +81,30 @@ describe("useTimelineUrlSync", () => {
 
     expect(useTimeline.getState().speed).toBe(8);
   });
+
+  it("restores finite non-negative playhead from URL", () => {
+    window.history.replaceState({}, "", "/race?t=12");
+
+    renderHook(() => useTimelineUrlSync(1, true), { wrapper });
+
+    expect(useTimeline.getState().t).toBe(12_000);
+  });
+
+  it("ignores non-finite playhead values from URL", () => {
+    useTimeline.getState().setT(5_000);
+    window.history.replaceState({}, "", "/race?t=Infinity");
+
+    renderHook(() => useTimelineUrlSync(1, true), { wrapper });
+
+    expect(useTimeline.getState().t).toBe(5_000);
+  });
+
+  it("ignores negative playhead values from URL", () => {
+    useTimeline.getState().setT(9_000);
+    window.history.replaceState({}, "", "/race?t=-3");
+
+    renderHook(() => useTimelineUrlSync(1, true), { wrapper });
+
+    expect(useTimeline.getState().t).toBe(9_000);
+  });
 });

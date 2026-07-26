@@ -100,6 +100,26 @@ import type { CommentaryTab } from "@/components/CommentaryPanels/CommentaryPane
 // Sub-tab options per view
 type TrackerTab = "timing" | "chart" | "gap" | "map" | "strategy";
 type CommentaryTimeMode = "elapsed" | "all";
+const VALID_MAIN_VIEWS = new Set<MainView>([
+  "leaderboard",
+  "tracker",
+  "commentary",
+]);
+const VALID_TRACKER_TABS = new Set<TrackerTab>([
+  "timing",
+  "chart",
+  "gap",
+  "map",
+  "strategy",
+]);
+const VALID_COMMENTARY_TABS = new Set<CommentaryTab>([
+  "rc",
+  "radio",
+  "pits",
+  "passes",
+  "moments",
+  "chapters",
+]);
 
 const PANEL = "bg-surface border border-panel";
 const PANEL_TITLE =
@@ -206,8 +226,7 @@ export default function RaceWeekend() {
   // Main view driven by the Nav's view tab buttons.
   // Clamp to valid values so old `?view=map` deep links fall back gracefully.
   const [view, setView] = useStringParam<MainView>("view", "tracker");
-  const VALID_VIEWS: MainView[] = ["leaderboard", "tracker", "commentary"];
-  const currentView: MainView = VALID_VIEWS.includes(view as MainView)
+  const currentView: MainView = VALID_MAIN_VIEWS.has(view as MainView)
     ? (view as MainView)
     : "tracker";
 
@@ -222,10 +241,21 @@ export default function RaceWeekend() {
   );
   const [commentaryTimeMode, setCommentaryTimeMode] =
     useStringParam<CommentaryTimeMode>("cmode", "elapsed");
-  const activeTrackerTab = trackerTab ?? "timing";
+  const activeTrackerTab: TrackerTab = VALID_TRACKER_TABS.has(
+    trackerTab as TrackerTab,
+  )
+    ? (trackerTab as TrackerTab)
+    : "timing";
+  const activeCommentaryTab: CommentaryTab = VALID_COMMENTARY_TABS.has(
+    commentaryTab as CommentaryTab,
+  )
+    ? (commentaryTab as CommentaryTab)
+    : "rc";
+
   const [focusDriver] = useNumberParam("focus", null);
   const [compareDriver] = useNumberParam("compare", null);
   const [, setSearchParams] = useSearchParams();
+
   const isCompactViewport = useMediaQuery("(max-width: 767px)");
   const [isResultsDialogOpen, setIsResultsDialogOpen] = useState(false);
   const [isQualiEliminationsDialogOpen, setIsQualiEliminationsDialogOpen] =
@@ -537,7 +567,7 @@ export default function RaceWeekend() {
     (drivers.isPending || positions.isPending || intervals.isPending);
   const isLoadingEventSession =
     meetingKey !== null &&
-    (sessionKey === null || sessions.isPending || isLoadingSessionData);
+    (sessions.isPending || isLoadingSessionData);
 
   const locationChunkIdx = locationChunkIndexFor(t);
   const telemetryChunkIdx = chunkIndexFor(t);
@@ -1004,7 +1034,7 @@ export default function RaceWeekend() {
   const trackerTimingTelemetryEnabled =
     (trackerTimingDesktopTelemetryEnabled || trackerTimingMobileCarData) &&
     currentView === "tracker" &&
-    (trackerTab ?? "timing") === "timing";
+    activeTrackerTab === "timing";
   const telemetryEnabled =
     (leaderboardTelemetry && currentView === "leaderboard") ||
     trackerTimingTelemetryEnabled;
@@ -1729,7 +1759,7 @@ export default function RaceWeekend() {
           />
           <div className="flex flex-col md:flex-1 md:min-h-0 md:overflow-hidden relative">
             {/* Toast overlay — covers both mobile and desktop tracker content */}
-            {(trackerTab ?? "timing") !== "map" && (
+            {activeTrackerTab !== "map" && (
               <EventToastStack
                 toasts={toasts}
                 drivers={drivers.data ?? []}
@@ -1764,7 +1794,7 @@ export default function RaceWeekend() {
                       setTrackerTab(tab);
                     }}
                     className={`w-full px-1.5 py-2 text-[10px] font-bold uppercase tracking-wider border-b-2 -mb-px transition-colors ${
-                      (trackerTab ?? "timing") === tab
+                      activeTrackerTab === tab
                         ? "text-white border-f1red bg-surface"
                         : "text-muted border-transparent hover:text-white"
                     }`}
@@ -1805,7 +1835,7 @@ export default function RaceWeekend() {
 
               {/* Tab content */}
               <div className="flex flex-col md:flex-1 md:min-h-0 md:overflow-hidden">
-                {(trackerTab ?? "timing") === "timing" && (
+                {activeTrackerTab === "timing" && (
                   <>
                     {/* Timing tower */}
                     <div className="flex flex-col md:flex-1 md:min-h-0 md:overflow-hidden">
@@ -1845,7 +1875,7 @@ export default function RaceWeekend() {
                   </>
                 )}
 
-                {(trackerTab ?? "timing") === "map" && (
+                {activeTrackerTab === "map" && (
                   <div className="min-h-[80vw] bg-[#10101a] flex flex-col md:flex-1 md:min-w-0">
                     {mapShowWeather && (
                       <div className="shrink-0 border-b border-panel">
@@ -1890,7 +1920,7 @@ export default function RaceWeekend() {
                   </div>
                 )}
 
-                {(trackerTab ?? "timing") === "strategy" && (
+                {activeTrackerTab === "strategy" && (
                   <div
                     className={`${PANEL} flex-1 flex flex-col overflow-hidden border-0`}
                   >
@@ -1913,7 +1943,7 @@ export default function RaceWeekend() {
                   </div>
                 )}
 
-                {(trackerTab ?? "timing") === "chart" && (
+                {activeTrackerTab === "chart" && (
                   <div className="h-[52vh] min-h-[280px] bg-[#10101a]">
                     <Suspense fallback={<PanelFallback />}>
                       <LapChart
@@ -1928,7 +1958,7 @@ export default function RaceWeekend() {
                   </div>
                 )}
 
-                {(trackerTab ?? "timing") === "gap" && (
+                {activeTrackerTab === "gap" && (
                   <div className="h-[52vh] min-h-[280px] bg-[#10101a]">
                     <Suspense fallback={<PanelFallback />}>
                       <GapChart
@@ -1975,7 +2005,7 @@ export default function RaceWeekend() {
                         setTrackerTab(tab);
                       }}
                       className={`flex-1 px-2 py-1 text-[10px] font-bold uppercase tracking-wider transition-colors ${
-                        (trackerTab ?? "timing") === tab
+                        activeTrackerTab === tab
                           ? "text-white border-b-2 border-f1red -mb-px bg-surface"
                           : "text-muted hover:text-white bg-track"
                       }`}
@@ -1987,13 +2017,13 @@ export default function RaceWeekend() {
 
                 {/* Panel content */}
                 <div className="flex-1 min-h-0 flex flex-col overflow-hidden">
-                  {(trackerTab ?? "timing") === "timing" &&
+                  {activeTrackerTab === "timing" &&
                     (positions.isError ? (
                       <ErrorMessage message="Failed to load timing data" />
                     ) : (
                       timingTower
                     ))}
-                  {(trackerTab ?? "timing") === "strategy" && (
+                  {activeTrackerTab === "strategy" && (
                     <div
                       className={`${PANEL} flex-1 flex flex-col overflow-hidden border-0`}
                     >
@@ -2015,7 +2045,7 @@ export default function RaceWeekend() {
                       </div>
                     </div>
                   )}
-                  {(trackerTab ?? "timing") === "chart" && (
+                  {activeTrackerTab === "chart" && (
                     <Suspense fallback={<PanelFallback />}>
                       <LapChart
                         drivers={drivers.data ?? []}
@@ -2027,7 +2057,7 @@ export default function RaceWeekend() {
                       />
                     </Suspense>
                   )}
-                  {(trackerTab ?? "timing") === "gap" && (
+                  {activeTrackerTab === "gap" && (
                     <Suspense fallback={<PanelFallback />}>
                       <GapChart
                         drivers={drivers.data ?? []}
@@ -2137,7 +2167,7 @@ export default function RaceWeekend() {
                     setCommentaryTab(tab);
                   }}
                   className={`w-full px-1.5 py-2 text-[10px] font-bold uppercase tracking-wider transition-colors border-b-2 sm:shrink-0 sm:w-auto sm:px-4 sm:text-[11px] ${
-                    (commentaryTab ?? "rc") === tab
+                    activeCommentaryTab === tab
                       ? "text-white border-f1red -mb-px"
                       : "text-muted border-transparent hover:text-white"
                   }`}
@@ -2146,7 +2176,7 @@ export default function RaceWeekend() {
                   <span className="hidden sm:block">{label}</span>
                   <span
                     className={`mt-1 block font-mono text-[9px] leading-none tabular-nums ${
-                      (commentaryTab ?? "rc") === tab
+                      activeCommentaryTab === tab
                         ? "text-white/70"
                         : "text-muted/80"
                     }`}
@@ -2203,7 +2233,7 @@ export default function RaceWeekend() {
           <div className="flex flex-col md:flex-1 md:min-h-0 md:overflow-hidden">
             <Suspense fallback={<PanelFallback />}>
               <CommentaryPanels
-                commentaryTab={commentaryTab ?? "rc"}
+                commentaryTab={activeCommentaryTab}
                 raceControlError={raceControl.isError}
                 teamRadioError={teamRadio.isError}
                 pitsError={pits.isError}

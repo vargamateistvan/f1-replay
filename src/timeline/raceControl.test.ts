@@ -255,4 +255,24 @@ describe("deriveTrackFlagState", () => {
     expect(state?.globalFlag).toBe("RED");
     expect(state?.sectorFlags[19]).toBe("YELLOW");
   });
+
+  it("normalizes missing flag values from message text", () => {
+    const events = normalizeRaceControl(
+      [
+        rc({
+          date: iso(14),
+          flag: null,
+          scope: "Sector",
+          sector: 2,
+          message: "YELLOW FLAG IN SECTOR 2",
+        }),
+      ],
+      START,
+    );
+
+    expect(events).toHaveLength(1);
+    expect(events[0]?.flag).toBe("YELLOW");
+    expect(events[0]?.kind).toBe("flag");
+    expect(events[0]?.title).toBe("Yellow Flag");
+  });
 });

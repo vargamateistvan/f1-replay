@@ -13,15 +13,15 @@ export function useNumberParam(
 ): readonly [number | null, (next: number | null) => void] {
   const [params, setParams] = useSearchParams();
   const raw = params.get(key);
-  const parsed = raw === null ? fallback : Number(raw);
-  const value = parsed === null || Number.isNaN(parsed) ? fallback : parsed;
+  const parsed = raw === null || raw.trim() === "" ? fallback : Number(raw);
+  const value = parsed === null || !Number.isFinite(parsed) ? fallback : parsed;
 
   const setValue = useCallback(
     (next: number | null) => {
       setParams(
         (prev) => {
           const p = new URLSearchParams(prev);
-          if (next === null || Number.isNaN(next)) p.delete(key);
+          if (next === null || !Number.isFinite(next)) p.delete(key);
           else p.set(key, String(next));
           return p;
         },

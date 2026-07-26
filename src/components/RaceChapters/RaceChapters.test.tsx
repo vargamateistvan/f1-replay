@@ -171,4 +171,54 @@ describe("RaceChapters", () => {
     expect(screen.queryByText("Lap 1")).not.toBeInTheDocument();
     expect(screen.queryByText("Lap 2")).not.toBeInTheDocument();
   });
+
+  it("shows only elapsed chapters unless showAllItems is enabled", () => {
+    const chapters: RaceChapter[] = [
+      {
+        id: "elapsed",
+        kind: "green",
+        label: "Elapsed Chapter",
+        startMs: 10_000,
+        endMs: null,
+        durationMs: null,
+        incidentWindowId: null,
+      },
+      {
+        id: "future",
+        kind: "yellow",
+        label: "Future Chapter",
+        startMs: 80_000,
+        endMs: null,
+        durationMs: null,
+        incidentWindowId: null,
+      },
+    ];
+
+    const { rerender } = render(
+      <RaceChapters
+        chapters={chapters}
+        snapshots={[]}
+        drivers={drivers}
+        sessionTimeMs={20_000}
+        showAllItems={false}
+        onJump={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByText("Elapsed Chapter")).toBeInTheDocument();
+    expect(screen.queryByText("Future Chapter")).not.toBeInTheDocument();
+
+    rerender(
+      <RaceChapters
+        chapters={chapters}
+        snapshots={[]}
+        drivers={drivers}
+        sessionTimeMs={20_000}
+        showAllItems
+        onJump={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByText("Future Chapter")).toBeInTheDocument();
+  });
 });

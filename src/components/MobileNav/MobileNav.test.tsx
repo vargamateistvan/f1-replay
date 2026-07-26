@@ -75,4 +75,10 @@ describe("MobileNav", () => {
     render(<MobileNav />);
     expect(mobileNavState.setView).toHaveBeenCalledWith("tracker");
   });
+
+  it("normalizes invalid view params back to tracker on mobile main route", () => {
+    mobileNavState.view = "invalid";
+    render(<MobileNav />);
+    expect(mobileNavState.setView).toHaveBeenCalledWith("tracker");
+  });
 });

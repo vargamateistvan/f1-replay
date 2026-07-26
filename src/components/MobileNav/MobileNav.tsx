@@ -5,6 +5,8 @@ import { useSettings } from "@/stores/settings";
 import type { MainView } from "@/components/Nav";
 import { trackEvent } from "@/lib/analytics";
 
+const VALID_VIEWS = new Set<MainView>(["leaderboard", "tracker", "commentary"]);
+
 export function MobileNav() {
   const [searchParams] = useSearchParams();
   const location = useLocation();
@@ -12,8 +14,16 @@ export function MobileNav() {
   const openHelp = useSettings((s) => s.openHelp);
   const [view, setView] = useStringParam<MainView>("view", "tracker");
   const [showMore, setShowMore] = useState(false);
-  const currentView: MainView = view ?? "tracker";
+  const currentView: MainView = VALID_VIEWS.has(view as MainView)
+    ? (view as MainView)
+    : "tracker";
   const isMain = location.pathname === "/";
+
+  useEffect(() => {
+    if (!isMain) return;
+    if (VALID_VIEWS.has(view as MainView)) return;
+    setView("tracker");
+  }, [isMain, setView, view]);
 
   useEffect(() => {
     if (!isMain || typeof window === "undefined") return;

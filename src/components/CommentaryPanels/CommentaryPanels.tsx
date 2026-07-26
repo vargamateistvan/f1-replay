@@ -8,6 +8,7 @@ import {
   computeWhatChanged,
   normalizeRaceControl,
   buildPhaseAtMsLookup,
+  toFlagKey,
 } from "@/timeline/raceControl";
 import type {
   Driver,
@@ -306,7 +307,11 @@ export function CommentaryPanels({
     if (!raceControlEntries.length || !sessionStartMs) return null;
     let lastChequered: number | null = null;
     for (const entry of raceControlEntries) {
-      if (entry.flag !== "CHEQUERED") continue;
+      const flagKey = toFlagKey(entry.flag);
+      const message = (entry.message ?? "").toUpperCase();
+      if (flagKey !== "CHEQUERED" && !message.includes("CHEQUERED")) {
+        continue;
+      }
       lastChequered = new Date(entry.date).getTime() - sessionStartMs;
     }
     return lastChequered;

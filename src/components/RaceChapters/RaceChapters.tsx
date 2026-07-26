@@ -310,25 +310,26 @@ export function RaceChapters({
   sessionType,
   sessionStartMs = 0,
   sessionTimeMs,
-  showAllItems: _showAllItems = false,
+  showAllItems = false,
   onJump,
   onPlayWindow,
   phaseLookup = () => null,
 }: Props) {
-  void _showAllItems;
   const [incidentOnly, setIncidentOnly] = useState(false);
   const lapLookup = useMemo(
     () => buildLapLookup(laps, sessionStartMs),
     [laps, sessionStartMs],
   );
 
-  const visibleChapters = useMemo(
-    () =>
-      incidentOnly
-        ? chapters.filter((c) => c.incidentWindowId !== null)
-        : chapters,
-    [chapters, incidentOnly],
-  );
+  const visibleChapters = useMemo(() => {
+    const timeScoped = showAllItems
+      ? chapters
+      : chapters.filter((chapter) => chapter.startMs <= sessionTimeMs);
+
+    return incidentOnly
+      ? timeScoped.filter((chapter) => chapter.incidentWindowId !== null)
+      : timeScoped;
+  }, [chapters, incidentOnly, sessionTimeMs, showAllItems]);
 
   const chapterGroups = useMemo<ChapterGroup[]>(() => {
     const isQualifying = sessionType?.toLowerCase().includes("qualifying");

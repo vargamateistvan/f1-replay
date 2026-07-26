@@ -90,6 +90,41 @@ function toTimingSectorNumber(sector: number | null): 1 | 2 | 3 | null {
   return null;
 }
 
+function resolveFlagKeyFromRaceControlEntry(entry: RaceControl): string | null {
+  const flagKey = toFlagKey(entry.flag);
+  if (flagKey) return flagKey;
+
+  const safetyPhase = getSafetyControlPhase(entry);
+  if (safetyPhase === "safety_car_end" || safetyPhase === "vsc_end") {
+    return null;
+  }
+  if (safetyPhase === "safety_car_start") return "SAFETY_CAR";
+  if (safetyPhase === "vsc_start") return "VIRTUAL_SC";
+
+  // OpenF1 can leave `flag` empty while still sending a structured flag message.
+  const message = (entry.message ?? "").toUpperCase();
+
+  if (message.includes("DOUBLE YELLOW")) return "DOUBLE_YELLOW";
+  if (message.includes("YELLOW FLAG") || message.includes("YELLOW IN")) {
+    return "YELLOW";
+  }
+  if (message.includes("RED FLAG")) return "RED";
+  if (
+    message.includes("VIRTUAL SAFETY CAR") ||
+    message.includes("VSC DEPLOYED")
+  ) {
+    return "VIRTUAL_SC";
+  }
+  if (message.includes("SAFETY CAR DEPLOYED")) {
+    return "SAFETY_CAR";
+  }
+  if (message.includes("GREEN FLAG") || message.includes("TRACK CLEAR")) {
+    return "GREEN";
+  }
+
+  return null;
+}
+
 /**
  * Derive current global + sector flag state up to a playhead time.
  *
@@ -117,7 +152,7 @@ export function deriveTrackFlagState(
     const eventMs = new Date(entry.date).getTime();
     if (eventMs > cutoffMs) break;
 
-    const flagKey = toFlagKey(entry.flag);
+    const flagKey = resolveFlagKeyFromRaceControlEntry(entry) ?? "";
     const timingSector = toTimingSectorNumber(entry.sector);
     const sectorScoped = isSectorScopedRaceControl(entry);
     const clearSignal = isTrackClearSignal(entry);
@@ -196,7 +231,7 @@ export function deriveMarshalSectorFlagState(
     const eventMs = new Date(entry.date).getTime();
     if (eventMs > cutoffMs) break;
 
-    const flagKey = toFlagKey(entry.flag);
+    const flagKey = resolveFlagKeyFromRaceControlEntry(entry) ?? "";
     const sectorScoped = isSectorScopedRaceControl(entry);
     const clearSignal = isTrackClearSignal(entry);
 
@@ -342,23 +377,26 @@ export function normalizeRaceControl(
     seen.add(key);
 
     const ms = new Date(entry.date).getTime() - sessionStartMs;
-    const flagKey = toFlagKey(entry.flag);
-    const kind = classifyKind(entry, flagKey);
+    const inferredFlagKey = resolveFlagKeyFromRaceControlEntry(entry) ?? "";
+    const explicitFlag = (entry.flag ?? "").trim();
+    const normalizedFlag =
+      explicitFlag !== "" ? entry.flag : inferredFlagKey || null;
+    const kind = classifyKind(entry, inferredFlagKey);
     const description = (entry.message ?? "").trim() || "Race control update";
 
     out.push({
       id: key,
       ms,
       kind,
-      severity: classifySeverity(kind, flagKey, description),
+      severity: classifySeverity(kind, inferredFlagKey, description),
       date: entry.date,
       driverNumber: entry.driver_number,
       lapNumber: entry.lap_number,
       sector: entry.sector,
       scope: entry.scope,
-      flag: entry.flag,
+      flag: normalizedFlag,
       category: entry.category,
-      title: titleFor(entry, kind, flagKey),
+      title: titleFor(entry, kind, inferredFlagKey),
       description,
       qualifyingPhase: entry.qualifying_phase,
       raw: entry,
