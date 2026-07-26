@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import { fireEvent, render, screen } from "@testing-library/react";
 import { TelemetryChart } from "@/components/TelemetryChart/TelemetryChart";
 
@@ -41,6 +41,10 @@ vi.mock("uplot", () => {
 });
 
 describe("TelemetryChart", () => {
+  beforeEach(() => {
+    uPlotState.instances.length = 0;
+  });
+
   it("covers no-data and interactive controls", () => {
     const onHoverX = vi.fn();
     const { container, rerender } = render(
@@ -79,5 +83,45 @@ describe("TelemetryChart", () => {
 
     fireEvent.doubleClick(chartArea);
     expect(container).toBeTruthy();
+  });
+
+  it("syncs x zoom between chart instances", () => {
+    render(
+      <>
+        <TelemetryChart
+          title="Speed"
+          xData={[0, 50, 100, 150]}
+          series={[
+            { label: "VER", color: "#e8002d", data: [100, 150, 140, 130] },
+          ]}
+          interactiveControls
+        />
+        <TelemetryChart
+          title="Throttle"
+          xData={[0, 50, 100, 150]}
+          series={[{ label: "NOR", color: "#ff8800", data: [80, 70, 60, 55] }]}
+          interactiveControls
+        />
+      </>,
+    );
+
+    const zoomInButtons = screen.getAllByRole("button", { name: "Zoom in" });
+    fireEvent.click(zoomInButtons[0]!);
+
+    expect(uPlotState.instances.length).toBe(2);
+    expect(uPlotState.instances[0]!.setScaleCalls.length).toBeGreaterThan(0);
+    expect(uPlotState.instances[1]!.setScaleCalls.length).toBeGreaterThan(0);
+
+    const srcLast =
+      uPlotState.instances[0]!.setScaleCalls[
+        uPlotState.instances[0]!.setScaleCalls.length - 1
+      ]!;
+    const dstLast =
+      uPlotState.instances[1]!.setScaleCalls[
+        uPlotState.instances[1]!.setScaleCalls.length - 1
+      ]!;
+
+    expect(dstLast.min).toBe(srcLast.min);
+    expect(dstLast.max).toBe(srcLast.max);
   });
 });

@@ -3,6 +3,11 @@ import uPlot from "uplot";
 import "uplot/dist/uPlot.min.css";
 import { ErrorMessage } from "@/components/ErrorMessage";
 
+const X_SYNC_EVENT = "telemetrychart:x-sync";
+const X_SYNC_GROUP = "telemetry";
+
+let nextChartInstanceId = 1;
+
 export interface ChartSeries {
   label: string;
   color: string;
@@ -29,6 +34,78 @@ interface Props {
   readonly onHoverX?: (x: number | null) => void;
 }
 
+interface ChartTheme {
+  accent: string;
+  grid: string;
+  glow: string;
+  bg: string;
+}
+
+function themeForTitle(title: string): ChartTheme {
+  const t = title.toLowerCase();
+
+  if (t.includes("speed")) {
+    return {
+      accent: "#5aa2ff",
+      grid: "#2a3c66",
+      glow: "rgba(78, 151, 255, 0.28)",
+      bg: "radial-gradient(circle_at_top_right,rgba(76,132,255,0.2),transparent 40%),radial-gradient(circle_at_bottom_left,rgba(0,103,255,0.12),transparent 45%),linear-gradient(180deg,rgba(12,18,34,0.95),rgba(13,17,30,0.9))",
+    };
+  }
+
+  if (t.includes("throttle")) {
+    return {
+      accent: "#41d97a",
+      grid: "#274f3a",
+      glow: "rgba(65, 217, 122, 0.22)",
+      bg: "radial-gradient(circle_at_top_right,rgba(42,165,92,0.22),transparent 42%),radial-gradient(circle_at_bottom_left,rgba(29,128,74,0.16),transparent 45%),linear-gradient(180deg,rgba(12,28,24,0.95),rgba(12,22,20,0.9))",
+    };
+  }
+
+  if (t.includes("brake")) {
+    return {
+      accent: "#ff6b7f",
+      grid: "#5a2d3a",
+      glow: "rgba(255, 92, 118, 0.24)",
+      bg: "radial-gradient(circle_at_top_right,rgba(255,87,112,0.22),transparent 40%),radial-gradient(circle_at_bottom_left,rgba(188,42,70,0.16),transparent 45%),linear-gradient(180deg,rgba(34,13,22,0.95),rgba(30,13,20,0.9))",
+    };
+  }
+
+  if (t.includes("gear")) {
+    return {
+      accent: "#f2ca5f",
+      grid: "#5a4a2a",
+      glow: "rgba(242, 202, 95, 0.22)",
+      bg: "radial-gradient(circle_at_top_right,rgba(242,202,95,0.2),transparent 42%),radial-gradient(circle_at_bottom_left,rgba(171,126,36,0.16),transparent 46%),linear-gradient(180deg,rgba(33,24,12,0.95),rgba(28,21,12,0.9))",
+    };
+  }
+
+  if (t.includes("rpm")) {
+    return {
+      accent: "#b58cff",
+      grid: "#473366",
+      glow: "rgba(181, 140, 255, 0.24)",
+      bg: "radial-gradient(circle_at_top_right,rgba(177,122,255,0.22),transparent 40%),radial-gradient(circle_at_bottom_left,rgba(106,63,173,0.16),transparent 45%),linear-gradient(180deg,rgba(24,14,37,0.95),rgba(21,14,31,0.9))",
+    };
+  }
+
+  if (t.includes("delta")) {
+    return {
+      accent: "#62d4ff",
+      grid: "#2a4f5d",
+      glow: "rgba(98, 212, 255, 0.24)",
+      bg: "radial-gradient(circle_at_top_right,rgba(68,199,255,0.2),transparent 42%),radial-gradient(circle_at_bottom_left,rgba(41,139,196,0.16),transparent 45%),linear-gradient(180deg,rgba(12,24,34,0.95),rgba(12,20,30,0.9))",
+    };
+  }
+
+  return {
+    accent: "#8ea2ff",
+    grid: "#2b3963",
+    glow: "rgba(142, 162, 255, 0.22)",
+    bg: "radial-gradient(circle_at_top_right,rgba(80,97,220,0.16),transparent 42%),radial-gradient(circle_at_bottom_left,rgba(232,0,45,0.08),transparent 40%),linear-gradient(180deg,rgba(13,15,24,0.95),rgba(14,16,26,0.9))",
+  };
+}
+
 export function TelemetryChart({
   title,
   xData,
@@ -43,11 +120,29 @@ export function TelemetryChart({
   distanceUnit = "m",
   distanceScale = 1,
 }: Props) {
+  const theme = themeForTitle(title);
+  const chartInstanceIdRef = useRef(nextChartInstanceId++);
+  const suppressBroadcastRef = useRef(false);
   const containerRef = useRef<HTMLDivElement>(null);
   const plotRef = useRef<uPlot | null>(null);
   const fullRangeRef = useRef<{ min: number; max: number } | null>(null);
   const currentRangeRef = useRef<{ min: number; max: number } | null>(null);
   const showSeriesChips = series.length > 0;
+
+  const broadcastScale = (min: number, max: number) => {
+    if (typeof window === "undefined") return;
+
+    window.dispatchEvent(
+      new CustomEvent(X_SYNC_EVENT, {
+        detail: {
+          group: X_SYNC_GROUP,
+          sourceId: chartInstanceIdRef.current,
+          min,
+          max,
+        },
+      }),
+    );
+  };
 
   const setXScale = (nextMin: number, nextMax: number) => {
     const plot = plotRef.current as
@@ -133,9 +228,9 @@ export function TelemetryChart({
       },
       axes: [
         {
-          stroke: "#6b7280",
-          grid: { stroke: "#1e2d4a", width: 1 },
-          ticks: { stroke: "#1e2d4a" },
+          stroke: "#95a3bd",
+          grid: { stroke: theme.grid, width: 1 },
+          ticks: { stroke: theme.grid },
           values: (_u, vals) =>
             vals.map((v) => {
               const displayed = v * distanceScale;
@@ -147,9 +242,9 @@ export function TelemetryChart({
             }),
         },
         {
-          stroke: "#6b7280",
-          grid: { stroke: "#1e2d4a", width: 1 },
-          ticks: { stroke: "#1e2d4a" },
+          stroke: "#95a3bd",
+          grid: { stroke: theme.grid, width: 1 },
+          ticks: { stroke: theme.grid },
         },
       ],
       series: [
@@ -168,7 +263,7 @@ export function TelemetryChart({
         ...series.map((s) => ({
           label: s.label,
           stroke: s.color,
-          width: s.width ?? 1.5,
+          width: s.width ?? 1.8,
           fill: s.fill,
           points: { show: s.points ?? false },
           scale: s.scale ?? "y",
@@ -213,7 +308,12 @@ export function TelemetryChart({
 
     const onSetScale = () => {
       const range = readXScale();
-      if (range) currentRangeRef.current = range;
+      if (!range) return;
+
+      currentRangeRef.current = range;
+      if (!suppressBroadcastRef.current) {
+        broadcastScale(range.min, range.max);
+      }
     };
 
     const onSetCursor = (u: uPlot) => {
@@ -257,7 +357,38 @@ export function TelemetryChart({
     legendDecimals,
     distanceUnit,
     distanceScale,
+    theme.grid,
   ]);
+
+  // Keep x-axis zoom/pan synchronized across telemetry charts.
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+
+    const onSync = (event: Event) => {
+      const customEvent = event as CustomEvent<{
+        group: string;
+        sourceId: number;
+        min: number;
+        max: number;
+      }>;
+
+      const payload = customEvent.detail;
+      if (!payload || payload.group !== X_SYNC_GROUP) return;
+      if (payload.sourceId === chartInstanceIdRef.current) return;
+
+      suppressBroadcastRef.current = true;
+      try {
+        setXScale(payload.min, payload.max);
+      } finally {
+        suppressBroadcastRef.current = false;
+      }
+    };
+
+    window.addEventListener(X_SYNC_EVENT, onSync);
+    return () => {
+      window.removeEventListener(X_SYNC_EVENT, onSync);
+    };
+  }, []);
 
   // Fallback hover tracking for test environments that do not emit uPlot
   // cursor hooks from synthetic pointer events.
@@ -335,9 +466,19 @@ export function TelemetryChart({
   }
 
   return (
-    <div className="overflow-hidden rounded border border-panel bg-surface shadow-[0_14px_36px_rgba(0,0,0,0.26)] ring-1 ring-white/5 [&_.u-title]:px-3 [&_.u-title]:pt-2.5 [&_.u-title]:pb-1 [&_.u-title]:text-[11px] [&_.u-title]:font-black [&_.u-title]:uppercase [&_.u-title]:tracking-[0.12em] [&_.u-title]:text-white/90 [&_.u-wrap]:bg-[radial-gradient(circle_at_top_right,rgba(80,97,220,0.16),transparent_42%),radial-gradient(circle_at_bottom_left,rgba(232,0,45,0.08),transparent_40%),linear-gradient(180deg,rgba(13,15,24,0.95),rgba(14,16,26,0.9))] [&_.u-legend]:mx-3 [&_.u-legend]:mb-2 [&_.u-legend]:rounded [&_.u-legend]:border [&_.u-legend]:border-panel/80 [&_.u-legend]:bg-black/20 [&_.u-legend]:px-2 [&_.u-legend]:py-1 [&_.u-legend]:text-[11px] [&_.u-legend]:font-medium [&_.u-legend_.u-label]:pr-2 [&_.u-legend_.u-value]:inline-block [&_.u-legend_.u-value]:min-w-[84px] [&_.u-legend_.u-value]:text-right [&_.u-legend_.u-value]:font-mono [&_.u-legend_.u-value]:[font-variant-numeric:tabular-nums] [&_.u-axis]:text-[10px] [&_.u-axis]:text-muted [&_.u-cursor-x]:bg-white/30 [&_.u-cursor-y]:bg-white/25">
+    <div
+      className="overflow-hidden rounded border border-panel bg-surface shadow-[0_14px_36px_rgba(0,0,0,0.26)] ring-1 ring-white/5 [&_.u-title]:px-3 [&_.u-title]:pt-2.5 [&_.u-title]:pb-1 [&_.u-title]:text-[11px] [&_.u-title]:font-black [&_.u-title]:uppercase [&_.u-title]:tracking-[0.12em] [&_.u-title]:text-white/90 [&_.u-legend]:mx-3 [&_.u-legend]:mb-2 [&_.u-legend]:rounded [&_.u-legend]:border [&_.u-legend]:border-panel/80 [&_.u-legend]:bg-black/20 [&_.u-legend]:px-2 [&_.u-legend]:py-1 [&_.u-legend]:text-[11px] [&_.u-legend]:font-medium [&_.u-legend_.u-label]:pr-2 [&_.u-legend_.u-value]:inline-block [&_.u-legend_.u-value]:min-w-[84px] [&_.u-legend_.u-value]:text-right [&_.u-legend_.u-value]:font-mono [&_.u-legend_.u-value]:[font-variant-numeric:tabular-nums] [&_.u-axis]:text-[10px] [&_.u-axis]:text-muted [&_.u-cursor-x]:bg-white/30 [&_.u-cursor-y]:bg-white/25"
+      style={{
+        boxShadow: `0 14px 36px rgba(0,0,0,0.26), inset 0 1px 0 rgba(255,255,255,0.04), 0 0 0 1px ${theme.glow}`,
+      }}
+    >
       {interactiveControls && (
-        <div className="flex items-center gap-1 border-b border-panel bg-[linear-gradient(90deg,rgba(18,20,31,0.95),rgba(14,16,24,0.9))] px-2 py-1.5">
+        <div
+          className="flex items-center gap-1 border-b border-panel px-2 py-1.5"
+          style={{
+            background: `linear-gradient(90deg, rgba(18,20,31,0.95), rgba(14,16,24,0.9)), ${theme.bg}`,
+          }}
+        >
           <span className="text-[9px] font-bold uppercase tracking-widest text-muted">
             Zoom
           </span>
@@ -393,11 +534,15 @@ export function TelemetryChart({
                 <span
                   key={`${line.label}-${idx}`}
                   className="inline-flex items-center gap-1 rounded border border-panel/90 bg-track/80 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-[0.1em] text-white/85"
+                  style={{ boxShadow: `inset 0 0 0 1px ${line.color}33` }}
                   title={`${line.label} series`}
                 >
                   <span
                     className="h-1.5 w-3 rounded-full"
-                    style={{ backgroundColor: line.color }}
+                    style={{
+                      backgroundColor: line.color,
+                      boxShadow: `0 0 8px ${line.color}`,
+                    }}
                   />
                   {line.label}
                 </span>
@@ -417,11 +562,15 @@ export function TelemetryChart({
             <span
               key={`${line.label}-${idx}`}
               className="inline-flex items-center gap-1 rounded border border-panel/90 bg-track/80 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-[0.1em] text-white/85"
+              style={{ boxShadow: `inset 0 0 0 1px ${line.color}33` }}
               title={`${line.label} series`}
             >
               <span
                 className="h-1.5 w-3 rounded-full"
-                style={{ backgroundColor: line.color }}
+                style={{
+                  backgroundColor: line.color,
+                  boxShadow: `0 0 8px ${line.color}`,
+                }}
               />
               {line.label}
             </span>
@@ -429,7 +578,7 @@ export function TelemetryChart({
         </div>
       )}
 
-      <div ref={containerRef} />
+      <div ref={containerRef} style={{ background: theme.bg }} />
     </div>
   );
 }
