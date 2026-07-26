@@ -124,6 +124,14 @@ describe("PlaybackBar marker interactions", () => {
     ).toBeDisabled();
   });
 
+  it("disables replay next incident action when callback is missing", () => {
+    render(<PlaybackBar durationMs={120_000} canReplayNextIncident />);
+
+    expect(
+      screen.getByRole("button", { name: "Replay next incident window" }),
+    ).toBeDisabled();
+  });
+
   it("supports typing MM:SS time and jumping on Enter", () => {
     render(<PlaybackBar durationMs={120_000} />);
 
@@ -146,6 +154,30 @@ describe("PlaybackBar marker interactions", () => {
     fireEvent.blur(input);
 
     expect(timelineState.setT).toHaveBeenCalledWith(3_723_000);
+  });
+
+  it("rejects MM:SS values with invalid seconds", () => {
+    render(<PlaybackBar durationMs={120_000} />);
+
+    const input = screen.getByRole("textbox", { name: "Playback time" });
+    fireEvent.focus(input);
+    fireEvent.change(input, { target: { value: "01:99" } });
+    fireEvent.keyDown(input, { key: "Enter" });
+    fireEvent.blur(input);
+
+    expect(timelineState.setT).not.toHaveBeenCalled();
+  });
+
+  it("rejects HH:MM:SS values with invalid minute/second fields", () => {
+    render(<PlaybackBar durationMs={4_000_000} />);
+
+    const input = screen.getByRole("textbox", { name: "Playback time" });
+    fireEvent.focus(input);
+    fireEvent.change(input, { target: { value: "1:99:03" } });
+    fireEvent.keyDown(input, { key: "Enter" });
+    fireEvent.blur(input);
+
+    expect(timelineState.setT).not.toHaveBeenCalled();
   });
 
   it("clamps typed seconds to the session duration", () => {

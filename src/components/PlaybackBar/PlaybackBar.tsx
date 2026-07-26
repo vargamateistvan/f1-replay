@@ -71,8 +71,10 @@ function parseSeekTimeInput(value: string): number | null {
 
   const [a, b, c] = nums;
   if (parts.length === 2) {
+    if (b >= 60) return null;
     return (a * 60 + b) * 1000;
   }
+  if (b >= 60 || (c ?? 0) >= 60) return null;
   return (a * 3600 + b * 60 + (c ?? 0)) * 1000;
 }
 
@@ -223,6 +225,10 @@ export function PlaybackBar({
   const nextSafetyCar = nextAfter(safetyCarTimes, t);
   const nextPass = nextAfter(overtakeTimes, t);
   const nextRadio = nextAfter(radioTimes, t);
+  const hasReplayCurrentAction =
+    canReplayCurrentIncident && onReplayCurrentIncident !== undefined;
+  const hasReplayNextAction =
+    canReplayNextIncident && onReplayNextIncident !== undefined;
 
   return (
     <div
@@ -350,7 +356,7 @@ export function PlaybackBar({
             type="range"
             min={0}
             max={durationMs}
-            value={Math.min(t, durationMs)}
+            value={Math.max(0, Math.min(t, durationMs))}
             onChange={(e) => setT(Number(e.target.value))}
             className="w-full h-1 cursor-pointer"
             style={{ touchAction: "none" }}
@@ -509,14 +515,14 @@ export function PlaybackBar({
           )}
           <button
             onClick={() => {
-              if (onReplayCurrentIncident) {
+              if (hasReplayCurrentAction) {
                 trackEvent("playback_incident_replay_current", {
                   current_ms: Math.round(t),
                 });
                 onReplayCurrentIncident();
               }
             }}
-            disabled={!canReplayCurrentIncident}
+            disabled={!hasReplayCurrentAction}
             className={CHIP_STRETCH}
             aria-label="Replay current incident window"
           >
@@ -524,20 +530,20 @@ export function PlaybackBar({
           </button>
           <button
             onClick={() => {
-              if (onReplayNextIncident) {
+              if (hasReplayNextAction) {
                 trackEvent("playback_incident_replay_next", {
                   current_ms: Math.round(t),
                 });
                 onReplayNextIncident();
               }
             }}
-            disabled={!canReplayNextIncident}
+            disabled={!hasReplayNextAction}
             className={CHIP_STRETCH}
             aria-label="Replay next incident window"
           >
             Incident ›
           </button>
-          {incidentReplayHint && canReplayNextIncident && (
+          {incidentReplayHint && hasReplayNextAction && (
             <span className="h-7 flex items-center px-2 text-[9px] font-black uppercase tracking-widest bg-amber-500/20 text-amber-300 border border-amber-500/30 shrink-0">
               {incidentReplayHint}
             </span>
