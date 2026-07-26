@@ -47,6 +47,7 @@ export function TelemetryChart({
   const plotRef = useRef<uPlot | null>(null);
   const fullRangeRef = useRef<{ min: number; max: number } | null>(null);
   const currentRangeRef = useRef<{ min: number; max: number } | null>(null);
+  const showSeriesChips = series.length > 0;
 
   const setXScale = (nextMin: number, nextMax: number) => {
     const plot = plotRef.current as
@@ -326,7 +327,7 @@ export function TelemetryChart({
     return (
       <div
         style={{ height }}
-        className="bg-surface rounded border border-panel"
+        className="rounded border border-panel bg-surface shadow-[0_14px_36px_rgba(0,0,0,0.24)]"
       >
         <ErrorMessage message="No data found" variant="empty" />
       </div>
@@ -334,16 +335,16 @@ export function TelemetryChart({
   }
 
   return (
-    <div className="bg-surface rounded border border-panel overflow-hidden [&_.u-legend]:text-[11px] [&_.u-legend]:font-medium [&_.u-legend_.u-label]:pr-2 [&_.u-legend_.u-value]:inline-block [&_.u-legend_.u-value]:min-w-[84px] [&_.u-legend_.u-value]:text-right [&_.u-legend_.u-value]:font-mono [&_.u-legend_.u-value]:[font-variant-numeric:tabular-nums]">
+    <div className="overflow-hidden rounded border border-panel bg-surface shadow-[0_14px_36px_rgba(0,0,0,0.26)] ring-1 ring-white/5 [&_.u-title]:px-3 [&_.u-title]:pt-2.5 [&_.u-title]:pb-1 [&_.u-title]:text-[11px] [&_.u-title]:font-black [&_.u-title]:uppercase [&_.u-title]:tracking-[0.12em] [&_.u-title]:text-white/90 [&_.u-wrap]:bg-[radial-gradient(circle_at_top_right,rgba(80,97,220,0.16),transparent_42%),radial-gradient(circle_at_bottom_left,rgba(232,0,45,0.08),transparent_40%),linear-gradient(180deg,rgba(13,15,24,0.95),rgba(14,16,26,0.9))] [&_.u-legend]:mx-3 [&_.u-legend]:mb-2 [&_.u-legend]:rounded [&_.u-legend]:border [&_.u-legend]:border-panel/80 [&_.u-legend]:bg-black/20 [&_.u-legend]:px-2 [&_.u-legend]:py-1 [&_.u-legend]:text-[11px] [&_.u-legend]:font-medium [&_.u-legend_.u-label]:pr-2 [&_.u-legend_.u-value]:inline-block [&_.u-legend_.u-value]:min-w-[84px] [&_.u-legend_.u-value]:text-right [&_.u-legend_.u-value]:font-mono [&_.u-legend_.u-value]:[font-variant-numeric:tabular-nums] [&_.u-axis]:text-[10px] [&_.u-axis]:text-muted [&_.u-cursor-x]:bg-white/30 [&_.u-cursor-y]:bg-white/25">
       {interactiveControls && (
-        <div className="flex items-center gap-1 border-b border-panel bg-track px-2 py-1">
-          <span className="text-[9px] uppercase tracking-widest text-muted">
+        <div className="flex items-center gap-1 border-b border-panel bg-[linear-gradient(90deg,rgba(18,20,31,0.95),rgba(14,16,24,0.9))] px-2 py-1.5">
+          <span className="text-[9px] font-bold uppercase tracking-widest text-muted">
             Zoom
           </span>
           <button
             type="button"
             onClick={() => pan(-0.2)}
-            className="h-6 w-6 rounded border border-panel/80 text-[11px] text-white/80 hover:text-white hover:border-white/60"
+            className="h-6 w-6 rounded border border-panel/80 bg-black/20 text-[11px] text-white/80 transition-colors hover:border-white/60 hover:text-white"
             title="Pan left"
             aria-label="Pan left"
           >
@@ -352,7 +353,7 @@ export function TelemetryChart({
           <button
             type="button"
             onClick={() => zoom(0.82)}
-            className="h-6 w-6 rounded border border-panel/80 text-[11px] text-white/80 hover:text-white hover:border-white/60"
+            className="h-6 w-6 rounded border border-panel/80 bg-black/20 text-[11px] text-white/80 transition-colors hover:border-white/60 hover:text-white"
             title="Zoom in"
             aria-label="Zoom in"
           >
@@ -361,7 +362,7 @@ export function TelemetryChart({
           <button
             type="button"
             onClick={() => zoom(1.22)}
-            className="h-6 w-6 rounded border border-panel/80 text-[11px] text-white/80 hover:text-white hover:border-white/60"
+            className="h-6 w-6 rounded border border-panel/80 bg-black/20 text-[11px] text-white/80 transition-colors hover:border-white/60 hover:text-white"
             title="Zoom out"
             aria-label="Zoom out"
           >
@@ -370,7 +371,7 @@ export function TelemetryChart({
           <button
             type="button"
             onClick={() => pan(0.2)}
-            className="h-6 w-6 rounded border border-panel/80 text-[11px] text-white/80 hover:text-white hover:border-white/60"
+            className="h-6 w-6 rounded border border-panel/80 bg-black/20 text-[11px] text-white/80 transition-colors hover:border-white/60 hover:text-white"
             title="Pan right"
             aria-label="Pan right"
           >
@@ -379,17 +380,55 @@ export function TelemetryChart({
           <button
             type="button"
             onClick={resetZoom}
-            className="ml-1 h-6 px-2 rounded border border-panel/80 text-[9px] font-bold uppercase tracking-widest text-white/80 hover:text-white hover:border-white/60"
+            className="ml-1 h-6 rounded border border-panel/80 bg-black/20 px-2 text-[9px] font-bold uppercase tracking-widest text-white/80 transition-colors hover:border-white/60 hover:text-white"
             title="Reset zoom"
             aria-label="Reset zoom"
           >
             Reset
           </button>
-          <span className="ml-auto text-[9px] text-muted hidden sm:inline">
-            Use controls to zoom · drag to select
+
+          {showSeriesChips && (
+            <div className="ml-2 hidden items-center gap-1 lg:flex">
+              {series.map((line, idx) => (
+                <span
+                  key={`${line.label}-${idx}`}
+                  className="inline-flex items-center gap-1 rounded border border-panel/90 bg-track/80 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-[0.1em] text-white/85"
+                  title={`${line.label} series`}
+                >
+                  <span
+                    className="h-1.5 w-3 rounded-full"
+                    style={{ backgroundColor: line.color }}
+                  />
+                  {line.label}
+                </span>
+              ))}
+            </div>
+          )}
+
+          <span className="ml-auto hidden text-[9px] text-muted sm:inline">
+            Drag to zoom window · double-click reset
           </span>
         </div>
       )}
+
+      {!interactiveControls && showSeriesChips && (
+        <div className="flex flex-wrap items-center gap-1 border-b border-panel/80 bg-black/15 px-2 py-1.5">
+          {series.map((line, idx) => (
+            <span
+              key={`${line.label}-${idx}`}
+              className="inline-flex items-center gap-1 rounded border border-panel/90 bg-track/80 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-[0.1em] text-white/85"
+              title={`${line.label} series`}
+            >
+              <span
+                className="h-1.5 w-3 rounded-full"
+                style={{ backgroundColor: line.color }}
+              />
+              {line.label}
+            </span>
+          ))}
+        </div>
+      )}
+
       <div ref={containerRef} />
     </div>
   );
