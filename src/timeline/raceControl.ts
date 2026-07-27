@@ -346,6 +346,10 @@ function titleFor(
   if (kind === "session_status") return "Session Status";
   if (kind === "drs") return "DRS";
   if (kind === "car_event") return "Car Event";
+  if (kind === "other") {
+    const message = (entry.message ?? "").trim();
+    if (message !== "") return message;
+  }
   const category = (entry.category ?? "").trim();
   if (category !== "") return category;
   return "Race Control";
@@ -462,7 +466,8 @@ export function clusterRaceControlMarkers(
 
     clusters.push({
       id: rep.id,
-      ms: anchor.ms, // always start of the cluster window
+      // Keep jump target aligned with the displayed representative label.
+      ms: rep.ms,
       severity: rep.severity,
       label:
         group.length > 1

@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import type { RaceControl } from "@/api/types";
 import {
   buildIncidentWindows,
+  clusterRaceControlMarkers,
   deriveMarshalSectorFlagState,
   deriveTrackFlagState,
   normalizeRaceControl,
@@ -103,6 +104,32 @@ describe("buildIncidentWindows safety control phases", () => {
         startMs: 10_000,
         endMs: 30_000,
         startLap: 5,
+      },
+    ]);
+  });
+});
+
+describe("clusterRaceControlMarkers", () => {
+  it("keeps representative timestamp so marker jump matches shown event", () => {
+    const clustered = clusterRaceControlMarkers(
+      [
+        { id: "a", ms: 10_000, severity: "warning", label: "Yellow Flag" },
+        {
+          id: "b",
+          ms: 15_000,
+          severity: "critical",
+          label: "Safety Car",
+        },
+      ],
+      20_000,
+    );
+
+    expect(clustered).toEqual([
+      {
+        id: "b",
+        ms: 15_000,
+        severity: "critical",
+        label: "Safety Car (+1 more)",
       },
     ]);
   });
