@@ -12,6 +12,8 @@ import type {
 import { teamColor } from "@/utils/color";
 import { useSettings } from "@/stores/settings";
 import { toSafeExternalUrl } from "@/utils/url";
+import { FALLBACK_LANGUAGE } from "@/i18n/language";
+import { t } from "@/i18n/translations";
 
 interface Props {
   toasts: ActiveToast[];
@@ -94,6 +96,7 @@ export function EventToastStack({
   soundsEnabled = false,
   maxVisible = 4,
 }: Props) {
+  const language = useSettings((s) => s.language ?? FALLBACK_LANGUAGE);
   const driverMap = new Map(drivers.map((d) => [d.driver_number, d]));
   const visibleToasts = toasts.slice(0, maxVisible);
   const playedRef = useRef(new Set<string>());
@@ -153,7 +156,7 @@ export function EventToastStack({
             : "relative z-10 w-[198px] ml-auto px-1 pt-0.5 pb-0.5 md:self-end md:w-[220px] md:px-0 md:pt-1 md:pb-1",
         ].join(" ")}
         role="region"
-        aria-label="Live race notifications"
+        aria-label={t(language, "eventToast.liveRaceNotifications")}
       >
         <div className="toast-cards pointer-events-none flex flex-col gap-1.5">
           {visibleToasts.map((at) => (
@@ -290,13 +293,14 @@ function DismissBtn({
   id: string;
   onDismiss: (id: string) => void;
 }) {
+  const language = useSettings((s) => s.language ?? FALLBACK_LANGUAGE);
   return (
     <button
       onClick={() => onDismiss(id)}
       className="absolute top-1 right-1 z-10 flex items-center justify-center pointer-events-auto
                  w-6 h-6 text-muted hover:text-white transition-colors text-xs"
       style={{ touchAction: "manipulation" }}
-      aria-label="Dismiss"
+      aria-label={t(language, "eventToast.dismiss")}
     >
       ×
     </button>
@@ -316,6 +320,7 @@ function RadioToast({
   onDismiss: (id: string) => void;
   radioAutoplay: boolean;
 }) {
+  const language = useSettings((s) => s.language ?? FALLBACK_LANGUAGE);
   const [playing, setPlaying] = useState(radioAutoplay);
   const p = at.event.payload as RadioPayload;
   const driver = driverMap.get(p.driverNumber);
@@ -332,7 +337,7 @@ function RadioToast({
       <span className="w-[3px] shrink-0" style={{ background: color }} />
       <div className="flex-1 min-w-0 px-2.5 py-1.5 pr-8 md:px-3 md:py-2 md:pr-8">
         <div className="text-[9px] text-muted uppercase tracking-widest mb-0.5">
-          Radio
+          {t(language, "eventToast.radio")}
         </div>
         <div className="flex items-center gap-1.5">
           <span
@@ -348,14 +353,16 @@ function RadioToast({
             className={`text-[9px] font-black uppercase tracking-widest px-2 py-1 rounded-md transition-colors flex items-center gap-1 ${playing ? "bg-f1red text-white" : "bg-panel text-muted hover:text-white"}`}
           >
             {!hasAudio ? (
-              <>N/A</>
+              <>{t(language, "eventToast.na")}</>
             ) : playing ? (
               <>
-                <Square size={11} strokeWidth={2.4} aria-hidden="true" /> Stop
+                <Square size={11} strokeWidth={2.4} aria-hidden="true" />{" "}
+                {t(language, "eventToast.stop")}
               </>
             ) : (
               <>
-                <Play size={11} strokeWidth={2.4} aria-hidden="true" /> Play
+                <Play size={11} strokeWidth={2.4} aria-hidden="true" />{" "}
+                {t(language, "eventToast.play")}
               </>
             )}
           </button>
@@ -384,6 +391,7 @@ function FlagToast({
   at: ActiveToast;
   onDismiss: (id: string) => void;
 }) {
+  const language = useSettings((s) => s.language ?? FALLBACK_LANGUAGE);
   const p = at.event.payload as FlagPayload;
   const kind = at.event.kind;
   const cfg = FLAG_COLORS[p.flag] ?? {
@@ -423,7 +431,7 @@ function FlagToast({
           onClick={() => onDismiss(at.event.id)}
           className="ml-auto flex items-center justify-center w-5 h-5 text-xs transition-opacity opacity-70 hover:opacity-100"
           style={{ color: header.text, touchAction: "manipulation" }}
-          aria-label="Dismiss"
+          aria-label={t(language, "eventToast.dismiss")}
         >
           ×
         </button>
@@ -545,6 +553,7 @@ function FastestLapToast({
   onDismiss: (id: string) => void;
 }) {
   const lightMode = useSettings((s) => s.lightMode);
+  const language = useSettings((s) => s.language ?? FALLBACK_LANGUAGE);
   const p = at.event.payload as FastestLapPayload;
   const driver = driverMap.get(p.driverNumber);
 
@@ -564,7 +573,7 @@ function FastestLapToast({
           className="text-[10px] font-black uppercase tracking-widest"
           style={{ color: lightMode ? "#12121a" : "#ffffff" }}
         >
-          Fastest Lap
+          {t(language, "eventToast.fastestLap")}
         </span>
         <span
           className="text-[9px] font-mono"
@@ -580,7 +589,7 @@ function FastestLapToast({
               : "ml-auto flex items-center justify-center w-5 h-5 text-xs text-white/70 hover:text-white transition-colors"
           }
           style={{ touchAction: "manipulation" }}
-          aria-label="Dismiss"
+          aria-label={t(language, "eventToast.dismiss")}
         >
           ×
         </button>

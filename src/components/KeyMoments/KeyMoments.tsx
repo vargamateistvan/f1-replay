@@ -3,6 +3,9 @@ import type { Lap } from "@/api/types";
 import type { KeyMoment } from "@/components/KeyMoments/types";
 import { buildLapLookup, lapNumberAtMs } from "@/utils/lapLookup";
 import { isPracticeSession } from "@/utils/session";
+import { useSettings } from "@/stores/settings";
+import { FALLBACK_LANGUAGE } from "@/i18n/language";
+import { t } from "@/i18n/translations";
 
 interface Props {
   moments: KeyMoment[];
@@ -22,17 +25,33 @@ type MomentGroup = {
 
 const KIND_CONFIG: Record<
   KeyMoment["kind"],
-  { badge: string; badgeBg: string; badgeText: string }
+  { badgeKey: string; badgeBg: string; badgeText: string }
 > = {
   lead_change: {
-    badge: "LEAD",
+    badgeKey: "keyMoments.badges.lead",
     badgeBg: "rgb(var(--color-panel) / 1)",
     badgeText: "#fff",
   },
-  fastest_lap: { badge: "FASTEST", badgeBg: "#9b59f5", badgeText: "#fff" },
-  safety_car: { badge: "SC", badgeBg: "#f5a623", badgeText: "#000" },
-  vsc: { badge: "VSC", badgeBg: "#f5a623", badgeText: "#000" },
-  red_flag: { badge: "RED", badgeBg: "#e8002d", badgeText: "#fff" },
+  fastest_lap: {
+    badgeKey: "keyMoments.badges.fastest",
+    badgeBg: "#9b59f5",
+    badgeText: "#fff",
+  },
+  safety_car: {
+    badgeKey: "keyMoments.badges.sc",
+    badgeBg: "#f5a623",
+    badgeText: "#000",
+  },
+  vsc: {
+    badgeKey: "keyMoments.badges.vsc",
+    badgeBg: "#f5a623",
+    badgeText: "#000",
+  },
+  red_flag: {
+    badgeKey: "keyMoments.badges.red",
+    badgeBg: "#e8002d",
+    badgeText: "#fff",
+  },
 };
 
 function fmtMs(ms: number): string {
@@ -55,6 +74,7 @@ export function KeyMoments({
   onJump,
   phaseLookup = () => null,
 }: Readonly<Props>) {
+  const language = useSettings((s) => s.language ?? FALLBACK_LANGUAGE);
   const visibleMoments = useMemo(
     () =>
       showAllItems
@@ -101,7 +121,7 @@ export function KeyMoments({
   if (visibleMoments.length === 0) {
     return (
       <div className="text-muted text-xs p-3">
-        No key moments yet — scrub forward or select a session
+        {t(language, "keyMoments.noKeyMomentsYet")}
       </div>
     );
   }
@@ -121,8 +141,10 @@ export function KeyMoments({
               return isQualifying && group.lapNumber !== null
                 ? `Q${group.lapNumber}`
                 : group.lapNumber !== null
-                  ? `Lap ${group.lapNumber}`
-                  : "Session";
+                  ? t(language, "keyMoments.lapWithNumber", {
+                      lap: group.lapNumber,
+                    })
+                  : t(language, "keyMoments.session");
             })()}
           </div>
           {group.moments.map((m, i) => {
@@ -157,7 +179,7 @@ export function KeyMoments({
                         color: cfg.badgeText,
                       }}
                     >
-                      {cfg.badge}
+                      {t(language, cfg.badgeKey)}
                     </span>
                     {m.sublabel && (
                       <span
@@ -168,7 +190,7 @@ export function KeyMoments({
                       </span>
                     )}
                     <span className="font-mono tabular-nums text-white/70">
-                      chapter
+                      {t(language, "keyMoments.chapter")}
                     </span>
                   </span>
                 </span>

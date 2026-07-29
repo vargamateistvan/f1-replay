@@ -2,6 +2,9 @@ import { useEffect, useRef } from "react";
 import uPlot from "uplot";
 import "uplot/dist/uPlot.min.css";
 import { ErrorMessage } from "@/components/ErrorMessage";
+import { useSettings } from "@/stores/settings";
+import { FALLBACK_LANGUAGE } from "@/i18n/language";
+import { t as tr } from "@/i18n/translations";
 
 const X_SYNC_EVENT = "telemetrychart:x-sync";
 const X_SYNC_GROUP = "telemetry";
@@ -121,6 +124,7 @@ export function TelemetryChart({
   distanceScale = 1,
 }: Props) {
   const theme = themeForTitle(title);
+  const language = useSettings((s) => s.language ?? FALLBACK_LANGUAGE);
   const chartInstanceIdRef = useRef(nextChartInstanceId++);
   const suppressBroadcastRef = useRef(false);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -460,7 +464,10 @@ export function TelemetryChart({
         style={{ height }}
         className="rounded border border-panel bg-surface shadow-[0_14px_36px_rgba(0,0,0,0.24)]"
       >
-        <ErrorMessage message="No data found" variant="empty" />
+        <ErrorMessage
+          message={tr(language, "telemetryChart.noDataFound")}
+          variant="empty"
+        />
       </div>
     );
   }
@@ -480,14 +487,14 @@ export function TelemetryChart({
           }}
         >
           <span className="text-[9px] font-bold uppercase tracking-widest text-muted">
-            Zoom
+            {tr(language, "telemetryChart.zoom")}
           </span>
           <button
             type="button"
             onClick={() => pan(-0.2)}
             className="h-6 w-6 rounded border border-panel/80 bg-black/20 text-[11px] text-white/80 transition-colors hover:border-white/60 hover:text-white"
-            title="Pan left"
-            aria-label="Pan left"
+            title={tr(language, "telemetryChart.panLeft")}
+            aria-label={tr(language, "telemetryChart.panLeft")}
           >
             ←
           </button>
@@ -495,8 +502,8 @@ export function TelemetryChart({
             type="button"
             onClick={() => zoom(0.82)}
             className="h-6 w-6 rounded border border-panel/80 bg-black/20 text-[11px] text-white/80 transition-colors hover:border-white/60 hover:text-white"
-            title="Zoom in"
-            aria-label="Zoom in"
+            title={tr(language, "telemetryChart.zoomIn")}
+            aria-label={tr(language, "telemetryChart.zoomIn")}
           >
             +
           </button>
@@ -504,8 +511,8 @@ export function TelemetryChart({
             type="button"
             onClick={() => zoom(1.22)}
             className="h-6 w-6 rounded border border-panel/80 bg-black/20 text-[11px] text-white/80 transition-colors hover:border-white/60 hover:text-white"
-            title="Zoom out"
-            aria-label="Zoom out"
+            title={tr(language, "telemetryChart.zoomOut")}
+            aria-label={tr(language, "telemetryChart.zoomOut")}
           >
             −
           </button>
@@ -513,8 +520,8 @@ export function TelemetryChart({
             type="button"
             onClick={() => pan(0.2)}
             className="h-6 w-6 rounded border border-panel/80 bg-black/20 text-[11px] text-white/80 transition-colors hover:border-white/60 hover:text-white"
-            title="Pan right"
-            aria-label="Pan right"
+            title={tr(language, "telemetryChart.panRight")}
+            aria-label={tr(language, "telemetryChart.panRight")}
           >
             →
           </button>
@@ -522,10 +529,10 @@ export function TelemetryChart({
             type="button"
             onClick={resetZoom}
             className="ml-1 h-6 rounded border border-panel/80 bg-black/20 px-2 text-[9px] font-bold uppercase tracking-widest text-white/80 transition-colors hover:border-white/60 hover:text-white"
-            title="Reset zoom"
-            aria-label="Reset zoom"
+            title={tr(language, "telemetryChart.resetZoom")}
+            aria-label={tr(language, "telemetryChart.resetZoom")}
           >
-            Reset
+            {tr(language, "telemetryChart.reset")}
           </button>
 
           {showSeriesChips && (
@@ -535,7 +542,9 @@ export function TelemetryChart({
                   key={`${line.label}-${idx}`}
                   className="inline-flex items-center gap-1 rounded border border-panel/90 bg-track/80 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-[0.1em] text-white/85"
                   style={{ boxShadow: `inset 0 0 0 1px ${line.color}33` }}
-                  title={`${line.label} series`}
+                  title={tr(language, "telemetryChart.seriesTitle", {
+                    label: line.label,
+                  })}
                 >
                   <span
                     className="h-1.5 w-3 rounded-full"
@@ -551,7 +560,7 @@ export function TelemetryChart({
           )}
 
           <span className="ml-auto hidden text-[9px] text-muted sm:inline">
-            Drag to zoom window · double-click reset
+            {tr(language, "telemetryChart.zoomHint")}
           </span>
         </div>
       )}
@@ -563,7 +572,9 @@ export function TelemetryChart({
               key={`${line.label}-${idx}`}
               className="inline-flex items-center gap-1 rounded border border-panel/90 bg-track/80 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-[0.1em] text-white/85"
               style={{ boxShadow: `inset 0 0 0 1px ${line.color}33` }}
-              title={`${line.label} series`}
+              title={tr(language, "telemetryChart.seriesTitle", {
+                label: line.label,
+              })}
             >
               <span
                 className="h-1.5 w-3 rounded-full"

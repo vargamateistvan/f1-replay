@@ -2,6 +2,9 @@ import { useEffect, useMemo, useRef, type MouseEvent } from "react";
 import type { Driver, SessionResult } from "@/api/types";
 import { teamColor } from "@/utils/color";
 import { DriverHeadshot } from "@/components/DriverHeadshot";
+import { useSettings } from "@/stores/settings";
+import { FALLBACK_LANGUAGE, type SupportedLanguage } from "@/i18n/language";
+import { t } from "@/i18n/translations";
 
 interface Props {
   readonly results: SessionResult[];
@@ -63,23 +66,32 @@ function formatRelativeDurationClock(
   return formatted ? `+${formatted}` : null;
 }
 
-function resultStatus(result: SessionResult): string {
-  if (result.dsq) return "DSQ";
-  if (result.dns) return "DNS";
-  if (result.dnf) return "DNF";
-  return "CLASSIFIED";
+function resultStatus(
+  result: SessionResult,
+  language: SupportedLanguage,
+): string {
+  if (result.dsq) return t(language, "finalClassification.statuses.dsq");
+  if (result.dns) return t(language, "finalClassification.statuses.dns");
+  if (result.dnf) return t(language, "finalClassification.statuses.dnf");
+  return t(language, "finalClassification.statuses.classified");
 }
 
-function resultDetail(result: SessionResult): string {
+function resultDetail(
+  result: SessionResult,
+  language: SupportedLanguage,
+): string {
   if (result.dsq || result.dns || result.dnf) {
     return (
       formatGapValue(normalizeValue(result.gap_to_leader)) ??
       formatRelativeDurationClock(result.duration) ??
-      "Not classified"
+      t(language, "finalClassification.notClassified")
     );
   }
   if (result.position === 1) {
-    return formatDurationClock(result.duration) ?? "Winner";
+    return (
+      formatDurationClock(result.duration) ??
+      t(language, "finalClassification.winner")
+    );
   }
   return (
     formatGapValue(normalizeValue(result.gap_to_leader)) ??
@@ -116,6 +128,7 @@ export function FinalClassificationDialog({
   sessionName,
   onClose,
 }: DialogProps) {
+  const language = useSettings((s) => s.language ?? FALLBACK_LANGUAGE);
   const backdropRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -140,15 +153,15 @@ export function FinalClassificationDialog({
         <div className="flex items-center justify-between border-b border-panel px-4 py-3 sm:px-5">
           <div>
             <div className="text-[10px] font-black uppercase tracking-[0.2em] text-f1red">
-              Final Classification
+              {t(language, "finalClassification.title")}
             </div>
             <div className="mt-1 text-sm font-black text-white sm:text-base">
-              {sessionName ?? "Session Results"}
+              {sessionName ?? t(language, "finalClassification.sessionResults")}
             </div>
           </div>
           <button
             onClick={onClose}
-            aria-label="Close results dialog"
+            aria-label={t(language, "finalClassification.closeDialog")}
             className="flex h-8 w-8 items-center justify-center text-lg text-muted transition-colors hover:bg-white/5 hover:text-white"
           >
             ×
@@ -182,6 +195,7 @@ function FinalClassificationContent({
   contentClassName,
   tableClassName,
 }: ContentProps) {
+  const language = useSettings((s) => s.language ?? FALLBACK_LANGUAGE);
   const driverByNumber = useMemo(
     () => new Map(drivers.map((driver) => [driver.driver_number, driver])),
     [drivers],
@@ -194,11 +208,11 @@ function FinalClassificationContent({
         result,
         driver,
         color: teamColor(driver?.team_colour),
-        status: resultStatus(result),
-        detail: resultDetail(result),
+        status: resultStatus(result, language),
+        detail: resultDetail(result, language),
       };
     });
-  }, [results, driverByNumber]);
+  }, [results, driverByNumber, language]);
 
   const podium = decorated.filter(
     (entry) => entry.result.position && entry.result.position <= 3,
@@ -211,14 +225,14 @@ function FinalClassificationContent({
       {!hideHeader && (
         <div className="border-b border-panel px-4 py-3 sm:px-5">
           <div className="text-[10px] font-black uppercase tracking-[0.2em] text-f1red">
-            Final Classification
+            {t(language, "finalClassification.title")}
           </div>
           <div className="mt-1 flex flex-wrap items-end justify-between gap-2">
             <div className="text-lg font-black text-white sm:text-xl">
-              {sessionName ?? "Session Results"}
+              {sessionName ?? t(language, "finalClassification.sessionResults")}
             </div>
             <div className="text-[11px] uppercase tracking-[0.16em] text-muted">
-              Official session result
+              {t(language, "finalClassification.officialSessionResult")}
             </div>
           </div>
         </div>
@@ -252,7 +266,7 @@ function FinalClassificationContent({
                 </div>
                 <div className="text-right">
                   <div className="text-[10px] font-black uppercase tracking-[0.16em] text-muted">
-                    Points
+                    {t(language, "finalClassification.points")}
                   </div>
                   <div className="text-lg font-black text-white">
                     {entry.result.points ?? 0}
@@ -261,10 +275,13 @@ function FinalClassificationContent({
               </div>
               <div className="mt-2 text-xs text-white/85">
                 {entry.driver?.full_name ??
-                  `Driver ${entry.result.driver_number}`}
+                  t(language, "finalClassification.driverWithNumber", {
+                    number: entry.result.driver_number,
+                  })}
               </div>
               <div className="mt-1 text-[11px] text-muted">
-                {entry.driver?.team_name ?? "Unknown team"}
+                {entry.driver?.team_name ??
+                  t(language, "finalClassification.unknownTeam")}
               </div>
               <div className="mt-3 flex items-center justify-between text-[11px] uppercase tracking-[0.14em]">
                 <span className="text-muted">{entry.status}</span>
@@ -282,11 +299,21 @@ function FinalClassificationContent({
         <table className="w-full border-collapse">
           <thead>
             <tr className="sticky top-0 border-b border-panel bg-track/95 text-[10px] font-black uppercase tracking-[0.16em] text-muted">
-              <th className="px-4 py-2 text-left sm:px-5">Pos</th>
-              <th className="px-4 py-2 text-left">Driver</th>
-              <th className="hidden px-4 py-2 text-left md:table-cell">Team</th>
-              <th className="px-4 py-2 text-right">Laps</th>
-              <th className="px-4 py-2 text-right sm:px-5">Gap / Time</th>
+              <th className="px-4 py-2 text-left sm:px-5">
+                {t(language, "finalClassification.pos")}
+              </th>
+              <th className="px-4 py-2 text-left">
+                {t(language, "finalClassification.driver")}
+              </th>
+              <th className="hidden px-4 py-2 text-left md:table-cell">
+                {t(language, "finalClassification.team")}
+              </th>
+              <th className="px-4 py-2 text-right">
+                {t(language, "finalClassification.laps")}
+              </th>
+              <th className="px-4 py-2 text-right sm:px-5">
+                {t(language, "finalClassification.gapTime")}
+              </th>
             </tr>
           </thead>
           <tbody>
@@ -313,7 +340,8 @@ function FinalClassificationContent({
                       {entry.driver?.name_acronym ?? entry.result.driver_number}
                     </span>
                     <span className="hidden text-muted sm:inline">
-                      {entry.driver?.full_name ?? "Unknown driver"}
+                      {entry.driver?.full_name ??
+                        t(language, "finalClassification.unknownDriver")}
                     </span>
                   </div>
                 </td>

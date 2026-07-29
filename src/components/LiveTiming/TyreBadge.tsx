@@ -1,5 +1,7 @@
 import type { Stint } from "@/api/types";
 import { useSettings } from "@/stores/settings";
+import { FALLBACK_LANGUAGE } from "@/i18n/language";
+import { t } from "@/i18n/translations";
 
 interface Props {
   stints: Stint[];
@@ -56,6 +58,7 @@ export function TyreBadge({
   startCompound,
 }: Props) {
   const lightMode = useSettings((s) => s.lightMode);
+  const language = useSettings((s) => s.language ?? FALLBACK_LANGUAGE);
   const lap = currentLap ?? 0;
   const active = stints
     .filter((s) => s.driver_number === driverNumber)
@@ -70,7 +73,10 @@ export function TyreBadge({
   return (
     <span
       className="flex w-full items-center justify-between"
-      title={`${active.compound} · ${age} lap${age === 1 ? "" : "s"} old`}
+      title={t(language, "liveTiming.tyreAgeTitle", {
+        compound: active.compound,
+        age,
+      })}
     >
       <span
         className="font-mono text-[10px] font-black tabular-nums sm:text-[11px]"
@@ -80,7 +86,11 @@ export function TyreBadge({
       </span>
       <CompoundRing compound={active.compound} />
       {changed && (
-        <span className="sr-only">Starting compound was {startCompound}</span>
+        <span className="sr-only">
+          {t(language, "liveTiming.startingCompoundWas", {
+            compound: startCompound,
+          })}
+        </span>
       )}
     </span>
   );

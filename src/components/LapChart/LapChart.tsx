@@ -11,6 +11,9 @@ import {
 } from "recharts";
 import type { Driver, Position } from "@/api/types";
 import { teamColor } from "@/utils/color";
+import { useSettings } from "@/stores/settings";
+import { FALLBACK_LANGUAGE, type SupportedLanguage } from "@/i18n/language";
+import { t } from "@/i18n/translations";
 
 interface Props {
   readonly drivers: Driver[];
@@ -33,6 +36,7 @@ export function LapChart({
   currentLap,
 }: Props) {
   const [showAllLaps, setShowAllLaps] = useState(false);
+  const language = useSettings((s) => s.language ?? FALLBACK_LANGUAGE);
 
   // Per-driver position entries in session-relative ms (matching lapStarts), sorted.
   const byDriver = useMemo(() => {
@@ -82,7 +86,7 @@ export function LapChart({
   if (rows.length === 0) {
     return (
       <div className="flex items-center justify-center h-full text-muted text-sm">
-        No position data for a lap chart yet
+        {t(language, "lapChart.noPositionData")}
       </div>
     );
   }
@@ -101,9 +105,15 @@ export function LapChart({
                 ? "border-f1red bg-f1red text-white"
                 : "border-panel bg-track text-muted hover:text-white"
             }`}
-            title={showAllLaps ? "Showing all laps" : "Showing elapsed laps"}
+            title={
+              showAllLaps
+                ? t(language, "lapChart.showingAllLaps")
+                : t(language, "lapChart.showingElapsedLaps")
+            }
           >
-            {showAllLaps ? "All" : "Elapsed"}
+            {showAllLaps
+              ? t(language, "lapChart.all")
+              : t(language, "lapChart.elapsed")}
           </button>
         </div>
       )}
@@ -129,7 +139,7 @@ export function LapChart({
             axisLine={false}
             tickLine={false}
           />
-          <Tooltip content={<LapTooltip />} />
+          <Tooltip content={<LapTooltip language={language} />} />
           {playbackLap > 0 && (
             <ReferenceLine x={playbackLap} stroke="#E8002D" strokeWidth={1} />
           )}
@@ -170,12 +180,14 @@ function stepPos(
 interface TooltipProps {
   active?: boolean;
   label?: number | string;
+  language: SupportedLanguage;
 }
-function LapTooltip({ active, label }: TooltipProps) {
+function LapTooltip({ active, label, language }: TooltipProps) {
   if (!active) return null;
+  const lapLabel = label ?? "-";
   return (
     <div className="bg-surface border border-panel text-[10px] font-bold uppercase tracking-widest px-2 py-1">
-      Lap {label}
+      {t(language, "lapChart.lapWithNumber", { lap: lapLabel })}
     </div>
   );
 }

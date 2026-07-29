@@ -25,6 +25,9 @@ import {
 } from "@/components/CommentaryPanels/keyMoments";
 import type { IncidentWindow } from "@/timeline/raceControl";
 import type { KeyMoment } from "@/components/KeyMoments/types";
+import { useSettings } from "@/stores/settings";
+import { FALLBACK_LANGUAGE, type SupportedLanguage } from "@/i18n/language";
+import { t } from "@/i18n/translations";
 
 export type CommentaryTab =
   | "rc"
@@ -65,10 +68,10 @@ const RaceChapters = lazy(() =>
   })),
 );
 
-function PanelFallback() {
+function PanelFallback({ language }: { language: SupportedLanguage }) {
   return (
     <div className="flex h-full min-h-[120px] items-center justify-center text-[10px] font-bold uppercase tracking-[0.12em] text-muted animate-pulse">
-      Loading Panel
+      {t(language, "commentary.loadingPanel")}
     </div>
   );
 }
@@ -124,15 +127,20 @@ type RenderContext = Readonly<{
   whatChangedSnapshots: ReturnType<typeof computeWhatChanged>;
   onPlayWindow: (startMs: number, endMs: number) => void;
   phaseLookup: (ms: number) => number | null;
+  language: SupportedLanguage;
 }>;
 
 function renderCommentaryTabContent(ctx: RenderContext): ReactNode {
   switch (ctx.commentaryTab) {
     case "rc": {
       if (ctx.raceControlError)
-        return <ErrorMessage message="Failed to load race control" />;
+        return (
+          <ErrorMessage
+            message={t(ctx.language, "commentary.error.raceControl")}
+          />
+        );
       return (
-        <Suspense fallback={<PanelFallback />}>
+        <Suspense fallback={<PanelFallback language={ctx.language} />}>
           <RaceControlFeed
             entries={ctx.raceControlEntries}
             sessionKey={ctx.sessionKey}
@@ -151,9 +159,13 @@ function renderCommentaryTabContent(ctx: RenderContext): ReactNode {
     }
     case "radio": {
       if (ctx.teamRadioError)
-        return <ErrorMessage message="Failed to load team radio" />;
+        return (
+          <ErrorMessage
+            message={t(ctx.language, "commentary.error.teamRadio")}
+          />
+        );
       return (
-        <Suspense fallback={<PanelFallback />}>
+        <Suspense fallback={<PanelFallback language={ctx.language} />}>
           <TeamRadioFeed
             entries={ctx.teamRadioEntries}
             sessionKey={ctx.sessionKey}
@@ -171,9 +183,13 @@ function renderCommentaryTabContent(ctx: RenderContext): ReactNode {
     }
     case "pits": {
       if (ctx.pitsError)
-        return <ErrorMessage message="Failed to load pit stops" />;
+        return (
+          <ErrorMessage
+            message={t(ctx.language, "commentary.error.pitStops")}
+          />
+        );
       return (
-        <Suspense fallback={<PanelFallback />}>
+        <Suspense fallback={<PanelFallback language={ctx.language} />}>
           <PitFeed
             entries={ctx.pitEntries}
             sessionKey={ctx.sessionKey}
@@ -189,9 +205,13 @@ function renderCommentaryTabContent(ctx: RenderContext): ReactNode {
     }
     case "passes": {
       if (ctx.overtakesError)
-        return <ErrorMessage message="Failed to load overtakes" />;
+        return (
+          <ErrorMessage
+            message={t(ctx.language, "commentary.error.overtakes")}
+          />
+        );
       return (
-        <Suspense fallback={<PanelFallback />}>
+        <Suspense fallback={<PanelFallback language={ctx.language} />}>
           <OvertakeFeed
             entries={ctx.overtakeEntries}
             sessionKey={ctx.sessionKey}
@@ -208,7 +228,7 @@ function renderCommentaryTabContent(ctx: RenderContext): ReactNode {
     }
     case "moments": {
       return (
-        <Suspense fallback={<PanelFallback />}>
+        <Suspense fallback={<PanelFallback language={ctx.language} />}>
           <KeyMoments
             moments={ctx.keyMoments}
             sessionType={ctx.sessionType}
@@ -224,7 +244,7 @@ function renderCommentaryTabContent(ctx: RenderContext): ReactNode {
     }
     case "chapters": {
       return (
-        <Suspense fallback={<PanelFallback />}>
+        <Suspense fallback={<PanelFallback language={ctx.language} />}>
           <RaceChapters
             chapters={ctx.raceChapters}
             snapshots={ctx.whatChangedSnapshots}
@@ -271,6 +291,7 @@ export function CommentaryPanels({
   onClearFocus,
   onPlayWindow,
 }: Readonly<Props>) {
+  const language = useSettings((s) => s.language ?? FALLBACK_LANGUAGE);
   const shouldBuildMoments = commentaryTab === "moments";
   const shouldBuildChapters = commentaryTab === "chapters";
 
@@ -388,5 +409,6 @@ export function CommentaryPanels({
     whatChangedSnapshots,
     onPlayWindow,
     phaseLookup,
+    language,
   });
 }

@@ -4,6 +4,8 @@ import { useStringParam } from "@/hooks/useSearchParamState";
 import { useSettings } from "@/stores/settings";
 import type { MainView } from "@/components/Nav";
 import { trackEvent } from "@/lib/analytics";
+import { FALLBACK_LANGUAGE } from "@/i18n/language";
+import { t } from "@/i18n/translations";
 
 const VALID_VIEWS = new Set<MainView>(["leaderboard", "tracker", "commentary"]);
 
@@ -12,6 +14,7 @@ export function MobileNav() {
   const location = useLocation();
   const navigate = useNavigate();
   const openHelp = useSettings((s) => s.openHelp);
+  const language = useSettings((s) => s.language ?? FALLBACK_LANGUAGE);
   const [view, setView] = useStringParam<MainView>("view", "tracker");
   const [showMore, setShowMore] = useState(false);
   const currentView: MainView = VALID_VIEWS.has(view as MainView)
@@ -60,19 +63,19 @@ export function MobileNav() {
             onClick={() => goTo(`/telemetry?${searchParams}`)}
             className="h-10 rounded-sm bg-panel px-2 text-[10px] font-black uppercase tracking-[0.12em] text-white"
           >
-            Telemetry
+            {t(language, "mobileNav.telemetry")}
           </button>
           <button
             onClick={() => goTo(`/standings?${searchParams}`)}
             className="h-10 rounded-sm bg-panel px-2 text-[10px] font-black uppercase tracking-[0.12em] text-white"
           >
-            Standings
+            {t(language, "mobileNav.standings")}
           </button>
           <button
             onClick={() => goTo("/settings")}
             className="h-10 rounded-sm bg-panel px-2 text-[10px] font-black uppercase tracking-[0.12em] text-white"
           >
-            Settings
+            {t(language, "mobileNav.settings")}
           </button>
           <button
             onClick={() => {
@@ -82,19 +85,19 @@ export function MobileNav() {
             }}
             className="h-10 rounded-sm bg-panel px-2 text-[10px] font-black uppercase tracking-[0.12em] text-white"
           >
-            Help
+            {t(language, "mobileNav.help")}
           </button>
           <button
             onClick={() => goTo("/privacy")}
             className="h-10 rounded-sm bg-panel px-2 text-[10px] font-black uppercase tracking-[0.12em] text-white"
           >
-            Privacy
+            {t(language, "mobileNav.privacy")}
           </button>
           <button
             onClick={() => goTo("/terms")}
             className="h-10 rounded-sm bg-panel px-2 text-[10px] font-black uppercase tracking-[0.12em] text-white"
           >
-            Terms
+            {t(language, "mobileNav.terms")}
           </button>
         </div>
       )}
@@ -111,7 +114,7 @@ export function MobileNav() {
           className={btn(isMain && currentView === "tracker")}
         >
           <span className="text-base leading-none">◉</span>
-          <span>Tracker</span>
+          <span>{t(language, "mobileNav.tracker")}</span>
         </button>
         <button
           onClick={() => {
@@ -124,7 +127,7 @@ export function MobileNav() {
           className={btn(isMain && currentView === "commentary")}
         >
           <span className="text-base leading-none">≋</span>
-          <span>Feeds</span>
+          <span>{t(language, "mobileNav.feeds")}</span>
         </button>
         <button
           onClick={() => {
@@ -143,7 +146,7 @@ export function MobileNav() {
           aria-expanded={showMore}
         >
           <span className="text-base leading-none">⋯</span>
-          <span>More</span>
+          <span>{t(language, "mobileNav.more")}</span>
         </button>
       </div>
     </nav>

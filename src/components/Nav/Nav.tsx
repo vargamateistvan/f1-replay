@@ -24,13 +24,15 @@ import {
 } from "@/api/circuitFactsLookup";
 import { toSafeExternalUrl } from "@/utils/url";
 import { trackEvent } from "@/lib/analytics";
+import { FALLBACK_LANGUAGE } from "@/i18n/language";
+import { t } from "@/i18n/translations";
 
 export type MainView = "leaderboard" | "tracker" | "commentary";
 
 const VIEW_TABS: { id: MainView; label: string }[] = [
-  { id: "leaderboard", label: "Leaderboard" },
-  { id: "tracker", label: "Driver Tracker" },
-  { id: "commentary", label: "Commentary" },
+  { id: "leaderboard", label: "nav.tabs.leaderboard" },
+  { id: "tracker", label: "nav.tabs.tracker" },
+  { id: "commentary", label: "nav.tabs.commentary" },
 ];
 const VALID_VIEWS = new Set<MainView>(["leaderboard", "tracker", "commentary"]);
 
@@ -38,9 +40,9 @@ const SELECT =
   "bg-surface text-white border border-panel text-[11px] font-medium px-2 py-1 focus:outline-none focus:border-muted appearance-none cursor-pointer transition-colors disabled:opacity-60 disabled:cursor-not-allowed light:bg-white light:text-black light:border-slate-300 light:focus:border-slate-500 light:[color-scheme:light] light:[&>option]:bg-white light:[&>option]:text-black";
 
 const CIRCUIT_TYPE_LABEL: Record<string, string> = {
-  Permanent: "Permanent",
-  "Temporary - Street": "Street Circuit",
-  "Temporary - Road": "Road Course",
+  Permanent: "nav.circuitTypes.permanent",
+  "Temporary - Street": "nav.circuitTypes.street",
+  "Temporary - Road": "nav.circuitTypes.road",
 };
 
 const TRACK_FACTS_ENABLED = false;
@@ -60,21 +62,6 @@ function parseGmtOffsetToMinutes(offset: string | null | undefined): number {
   return sign * (hours * 60 + minutes + Math.round(seconds / 60));
 }
 
-const MONTHS_SHORT = [
-  "Jan",
-  "Feb",
-  "Mar",
-  "Apr",
-  "May",
-  "Jun",
-  "Jul",
-  "Aug",
-  "Sep",
-  "Oct",
-  "Nov",
-  "Dec",
-] as const;
-
 function formatTwo(n: number): string {
   return String(n).padStart(2, "0");
 }
@@ -89,9 +76,17 @@ function formatTrackLocal(dateIso: string, offsetMin: number): string {
   return `${formatTwo(shifted.getUTCHours())}:${formatTwo(shifted.getUTCMinutes())}`;
 }
 
-function formatTrackLocalDayMonth(dateIso: string, offsetMin: number): string {
+function formatTrackLocalDayMonth(
+  dateIso: string,
+  offsetMin: number,
+  locale: string,
+): string {
   const shifted = withOffsetUtcDate(dateIso, offsetMin);
-  return `${formatTwo(shifted.getUTCDate())} ${MONTHS_SHORT[shifted.getUTCMonth()]}`;
+  const month = new Intl.DateTimeFormat(locale, {
+    month: "short",
+    timeZone: "UTC",
+  }).format(shifted);
+  return `${formatTwo(shifted.getUTCDate())} ${month}`;
 }
 
 function resolveTrackOffsetMin(
@@ -108,6 +103,8 @@ export function Nav() {
   const openHelp = useSettings((s) => s.openHelp);
   const setSetting = useSettings((s) => s.setSetting);
   const metricSystem = useSettings((s) => s.metricSystem);
+  const language = useSettings((s) => s.language ?? FALLBACK_LANGUAGE);
+  const locale = language === "zh-Hans" ? "zh-CN" : language;
   const showNextRaceWeekendBanner = useSettings(
     (s) => s.showNextRaceWeekendBanner,
   );
@@ -295,14 +292,18 @@ export function Nav() {
 
     const start = new Date(nextMeeting.date_start);
     const end = new Date(nextMeeting.date_end);
-    const startMonth = MONTHS_SHORT[start.getUTCMonth()].toUpperCase();
-    const endMonth = MONTHS_SHORT[end.getUTCMonth()].toUpperCase();
+    const monthFormatter = new Intl.DateTimeFormat(locale, {
+      month: "short",
+      timeZone: "UTC",
+    });
+    const startMonth = monthFormatter.format(start);
+    const endMonth = monthFormatter.format(end);
     const startDay = String(start.getUTCDate()).padStart(2, "0");
     const endDay = String(end.getUTCDate()).padStart(2, "0");
 
     if (startMonth === endMonth) return `${startDay} - ${endDay} ${startMonth}`;
     return `${startDay} ${startMonth} - ${endDay} ${endMonth}`;
-  }, [nextMeeting]);
+  }, [nextMeeting, locale]);
 
   const nextMeetingCountdown = useMemo(() => {
     if (!nextMeeting) return null;
@@ -407,7 +408,7 @@ export function Nav() {
   const headerLabel =
     eventLabel && sessionLabel
       ? `${eventLabel} · ${sessionLabel}`
-      : (eventLabel ?? "SELECT SESSION");
+      : (eventLabel ?? t(language, "nav.selectSession"));
 
   const currentView: MainView = VALID_VIEWS.has(view as MainView)
     ? (view as MainView)
@@ -442,7 +443,7 @@ export function Nav() {
             navigate(viewHref(currentView));
           }}
           className="flex items-center gap-1.5 mr-3 sm:mr-6 select-none shrink-0 hover:opacity-80 transition-opacity"
-          aria-label="F1 Replay home"
+          aria-label={t(language, "nav.home")}
         >
           <AppLogo size={22} />
           <span className="font-black text-white text-[12px] sm:text-sm tracking-[0.18em] sm:tracking-[0.22em] uppercase leading-none">
@@ -474,7 +475,7 @@ export function Nav() {
                   : "text-white/60 border-transparent hover:text-white/90 hover:border-white/40"
               }`}
             >
-              {label}
+              {t(language, label)}
             </button>
           ))}
         </nav>
@@ -490,7 +491,7 @@ export function Nav() {
               }`
             }
           >
-            Telemetry
+            {t(language, "nav.telemetry")}
           </NavLink>
           <NavLink
             to={`/standings?${searchParams}`}
@@ -502,7 +503,7 @@ export function Nav() {
               }`
             }
           >
-            Standings
+            {t(language, "nav.standings")}
           </NavLink>
         </div>
 
@@ -513,8 +514,8 @@ export function Nav() {
             openSettings();
           }}
           className="hidden md:flex w-8 h-10 items-center justify-center text-white/70 hover:text-white hover:opacity-80 transition-opacity ml-1"
-          aria-label="Settings"
-          title="Settings"
+          aria-label={t(language, "nav.settings")}
+          title={t(language, "nav.settings")}
         >
           <svg
             width="16"
@@ -563,8 +564,8 @@ export function Nav() {
             openHelp();
           }}
           className="hidden md:flex w-8 h-10 items-center justify-center text-white/70 hover:text-white hover:opacity-80 transition-opacity ml-1"
-          aria-label="How it works"
-          title="How it works"
+          aria-label={t(language, "nav.howItWorks")}
+          title={t(language, "nav.howItWorks")}
         >
           <svg
             width="16"
@@ -614,7 +615,9 @@ export function Nav() {
                 {nextMeetingCountryFlagUrl && (
                   <img
                     src={nextMeetingCountryFlagUrl}
-                    alt={`${nextMeeting.country_name} flag`}
+                    alt={t(language, "nav.countryFlagAlt", {
+                      country: nextMeeting.country_name,
+                    })}
                     className="h-4 w-6 object-cover rounded-[2px] border border-white/20 shrink-0 light:border-slate-300"
                     loading="lazy"
                     referrerPolicy="no-referrer"
@@ -642,7 +645,7 @@ export function Nav() {
                   )}
                   <span className="text-white/45 light:text-slate-400">|</span>
                   <span className="shrink-0">
-                    {nextMeetingDateRange ?? "TBA"}
+                    {nextMeetingDateRange ?? t(language, "nav.tba")}
                   </span>
                 </div>
               </div>
@@ -658,8 +661,8 @@ export function Nav() {
                   trackEvent("nav_next_banner_hidden");
                   setSetting("showNextRaceWeekendBanner", false);
                 }}
-                aria-label="Hide next race banner"
-                title="Hide banner"
+                aria-label={t(language, "nav.hideNextRaceBanner")}
+                title={t(language, "nav.hideBanner")}
                 className="h-6 w-6 shrink-0 inline-flex items-center justify-center rounded-sm text-white/65 hover:text-white hover:bg-white/10 light:text-slate-500 light:hover:text-slate-800 light:hover:bg-slate-100"
               >
                 ×
@@ -682,7 +685,9 @@ export function Nav() {
             <div className="flex items-center justify-between border-b border-panel px-5 py-3.5">
               <div className="min-w-0">
                 <div className="text-[13px] font-bold text-white tracking-wide truncate">
-                  {nextMeeting.meeting_name} Agenda
+                  {t(language, "nav.agendaTitle", {
+                    meeting: nextMeeting.meeting_name,
+                  })}
                 </div>
                 <div className="text-[10px] text-muted uppercase tracking-widest truncate">
                   {nextMeeting.country_name} · {nextMeeting.circuit_short_name}
@@ -695,8 +700,8 @@ export function Nav() {
                   setShowNextAgenda(false);
                 }}
                 className="w-7 h-7 flex items-center justify-center rounded text-muted hover:text-white hover:bg-panel transition-colors text-base"
-                aria-label="Close agenda"
-                title="Close"
+                aria-label={t(language, "nav.closeAgenda")}
+                title={t(language, "nav.close")}
               >
                 ×
               </button>
@@ -704,16 +709,16 @@ export function Nav() {
 
             <div className="p-4 overflow-y-auto max-h-[calc(88dvh-60px)]">
               <div className="mb-3 text-[10px] font-black uppercase tracking-[0.14em] text-muted">
-                Event Time
+                {t(language, "nav.eventTime")}
               </div>
 
               {nextMeetingSessions.isPending ? (
                 <div className="text-[11px] text-f1red animate-pulse">
-                  Loading agenda...
+                  {t(language, "nav.loadingAgenda")}
                 </div>
               ) : nextAgendaSessions.length === 0 ? (
                 <div className="text-[11px] text-muted">
-                  Agenda not available yet.
+                  {t(language, "nav.agendaNotAvailable")}
                 </div>
               ) : (
                 <div className="flex flex-col gap-2">
@@ -726,9 +731,9 @@ export function Nav() {
                         {s.session_name}
                       </div>
                       <div className="mt-1 text-[10px] text-muted font-mono tracking-wide">
-                        {`${formatTrackLocalDayMonth(s.date_start, resolveTrackOffsetMin(s.gmt_offset, nextMeeting.gmt_offset))} ${formatTrackLocal(s.date_start, resolveTrackOffsetMin(s.gmt_offset, nextMeeting.gmt_offset))} - ${formatTrackLocal(s.date_end, resolveTrackOffsetMin(s.gmt_offset, nextMeeting.gmt_offset))}`}
+                        {`${formatTrackLocalDayMonth(s.date_start, resolveTrackOffsetMin(s.gmt_offset, nextMeeting.gmt_offset), locale)} ${formatTrackLocal(s.date_start, resolveTrackOffsetMin(s.gmt_offset, nextMeeting.gmt_offset))} - ${formatTrackLocal(s.date_end, resolveTrackOffsetMin(s.gmt_offset, nextMeeting.gmt_offset))}`}
                         <span className="ml-2 uppercase tracking-widest text-white/50">
-                          {`EVENT (${s.gmt_offset || nextMeeting.gmt_offset || "+00:00"})`}
+                          {`${t(language, "nav.eventLabel")} (${s.gmt_offset || nextMeeting.gmt_offset || "+00:00"})`}
                         </span>
                       </div>
                     </div>
@@ -743,9 +748,13 @@ export function Nav() {
       {/* ── Auth failure banner ───────────────────────────────── */}
       {authFailed && (
         <div className="bg-f1red/15 border-b border-f1red/40 px-4 py-1 text-[10px] text-red-300 font-mono">
-          OpenF1 returned <span className="font-bold">401/403</span> — set{" "}
-          <span className="font-bold">VITE_OPENF1_API_KEY</span> in{" "}
-          <span className="font-bold">.env.local</span> and restart.
+          {t(language, "nav.authErrorPrefix")}{" "}
+          <span className="font-bold">401/403</span>{" "}
+          {t(language, "nav.authErrorSet")}{" "}
+          <span className="font-bold">VITE_OPENF1_API_KEY</span>{" "}
+          {t(language, "nav.authErrorIn")}{" "}
+          <span className="font-bold">.env.local</span>{" "}
+          {t(language, "nav.authErrorRestart")}
         </div>
       )}
 
@@ -762,15 +771,15 @@ export function Nav() {
             {live && (
               <span className="flex items-center gap-1 bg-f1red text-white text-[9px] font-black uppercase tracking-widest px-2 py-0.5 shrink-0">
                 <span className="w-1.5 h-1.5 rounded-full bg-white animate-pulse" />
-                Live
+                {t(language, "nav.live")}
               </span>
             )}
 
             <span className="hidden sm:inline text-[9px] font-bold uppercase tracking-widest text-muted shrink-0">
-              Year
+              {t(language, "nav.year")}
             </span>
             <select
-              aria-label="Season year"
+              aria-label={t(language, "nav.seasonYear")}
               value={year}
               onChange={(e) => onYear(Number(e.target.value))}
               className={`${SELECT} shrink-0 w-[4.5rem] sm:w-auto`}
@@ -783,15 +792,15 @@ export function Nav() {
             </select>
 
             <span className="hidden sm:inline text-[9px] font-bold uppercase tracking-widest text-muted shrink-0">
-              Event
+              {t(language, "nav.event")}
             </span>
             {meetings.isError && !authFailed ? (
               <span className="text-red-400 font-mono text-[10px] shrink-0">
-                Failed to load events
+                {t(language, "nav.failedLoadEvents")}
               </span>
             ) : (
               <select
-                aria-label="Event"
+                aria-label={t(language, "nav.event")}
                 value={meetingKey ?? ""}
                 onChange={(e) => {
                   const raw = e.target.value;
@@ -815,7 +824,7 @@ export function Nav() {
                 disabled={meetings.isPending}
                 className={`${SELECT} min-w-0 flex-[1_1_132px] sm:flex-[1_1_160px] sm:max-w-none`}
               >
-                <option value="">— event —</option>
+                <option value="">{t(language, "nav.eventPlaceholder")}</option>
                 {startedMeetings.map((m) => (
                   <option key={m.meeting_key} value={m.meeting_key}>
                     {m.location} — {m.meeting_name}
@@ -829,7 +838,9 @@ export function Nav() {
                 {selectedCircuitImageUrl && !isCircuitImageBroken && (
                   <img
                     src={selectedCircuitImageUrl}
-                    alt={`${selectedMeeting.circuit_short_name} circuit`}
+                    alt={t(language, "nav.circuitAlt", {
+                      circuit: selectedMeeting.circuit_short_name,
+                    })}
                     className="hidden lg:block h-5 w-7 object-cover rounded-sm border border-panel/80"
                     loading="lazy"
                     referrerPolicy="no-referrer"
@@ -841,7 +852,9 @@ export function Nav() {
                 {selectedCountryFlagUrl && (
                   <img
                     src={selectedCountryFlagUrl}
-                    alt={`${selectedMeeting.country_name} flag`}
+                    alt={t(language, "nav.countryFlagAlt", {
+                      country: selectedMeeting.country_name,
+                    })}
                     className="h-3.5 w-5 object-cover rounded-[2px] border border-panel/80"
                     loading="lazy"
                     referrerPolicy="no-referrer"
@@ -851,27 +864,31 @@ export function Nav() {
                   {selectedMeeting.meeting_name}
                 </span>
                 <span className="hidden sm:inline text-[9px] text-muted uppercase tracking-widest light:text-slate-500">
-                  {CIRCUIT_TYPE_LABEL[selectedMeeting.circuit_type] ??
-                    selectedMeeting.circuit_type}
+                  {CIRCUIT_TYPE_LABEL[selectedMeeting.circuit_type]
+                    ? t(
+                        language,
+                        CIRCUIT_TYPE_LABEL[selectedMeeting.circuit_type]!,
+                      )
+                    : selectedMeeting.circuit_type}
                 </span>
                 {selectedMeeting.is_cancelled && (
                   <span className="bg-red-500/15 border border-red-500/40 text-red-300 text-[9px] font-bold uppercase tracking-widest px-1.5 py-0.5 rounded-sm">
-                    Cancelled
+                    {t(language, "nav.cancelled")}
                   </span>
                 )}
               </div>
             )}
 
             <span className="hidden sm:inline text-[9px] font-bold uppercase tracking-widest text-muted shrink-0">
-              Session
+              {t(language, "nav.session")}
             </span>
             {sessions.isError && !authFailed ? (
               <span className="text-red-400 font-mono text-[10px] shrink-0">
-                Failed to load sessions
+                {t(language, "nav.failedLoadSessions")}
               </span>
             ) : (
               <select
-                aria-label="Session"
+                aria-label={t(language, "nav.session")}
                 value={sessionKey ?? ""}
                 onChange={(e) => {
                   const raw = e.target.value;
@@ -888,7 +905,9 @@ export function Nav() {
                 disabled={sessions.isPending || !meetingKey}
                 className={`${SELECT} min-w-0 flex-[1_1_108px] sm:flex-none`}
               >
-                <option value="">— session —</option>
+                <option value="">
+                  {t(language, "nav.sessionPlaceholder")}
+                </option>
                 {sessions.data?.map((s) => (
                   <option key={s.session_key} value={s.session_key}>
                     {s.session_name}
@@ -899,7 +918,7 @@ export function Nav() {
 
             {(meetings.isPending || sessions.isPending) && (
               <span className="text-muted text-[9px] animate-pulse shrink-0 ml-auto sm:ml-0">
-                Loading…
+                {t(language, "nav.loading")}
               </span>
             )}
 
@@ -909,7 +928,7 @@ export function Nav() {
               disabled={meetings.isPending || !meetings.data?.length}
               className="h-6 px-2 text-[9px] font-black uppercase tracking-widest rounded transition-colors bg-panel text-muted hover:text-white hover:bg-track disabled:opacity-40 disabled:cursor-not-allowed light:bg-white light:text-slate-600 light:border light:border-slate-300 light:hover:text-slate-900 light:hover:bg-slate-100"
             >
-              Latest
+              {t(language, "nav.latest")}
             </button>
           </div>
         </div>
@@ -926,7 +945,9 @@ export function Nav() {
             <div className="flex items-center justify-between border-b border-panel px-5 py-3.5">
               <div className="min-w-0">
                 <div className="text-[13px] font-bold text-white tracking-wide truncate">
-                  {selectedMeeting.circuit_short_name} Track Facts
+                  {t(language, "nav.trackFactsTitle", {
+                    circuit: selectedMeeting.circuit_short_name,
+                  })}
                 </div>
                 <div className="text-[10px] text-muted uppercase tracking-widest truncate">
                   {selectedMeeting.country_name}
@@ -936,8 +957,8 @@ export function Nav() {
                 type="button"
                 onClick={() => setShowCircuitFacts(false)}
                 className="w-7 h-7 flex items-center justify-center rounded text-muted hover:text-white hover:bg-panel transition-colors text-base"
-                aria-label="Close track facts"
-                title="Close"
+                aria-label={t(language, "nav.closeTrackFacts")}
+                title={t(language, "nav.close")}
               >
                 ×
               </button>
@@ -949,7 +970,9 @@ export function Nav() {
                   <div className="rounded border border-black/10 bg-gradient-to-b from-[#f6f8fb] to-[#e8edf4] p-2">
                     <img
                       src={selectedCircuitImageUrl}
-                      alt={`${selectedMeeting.circuit_short_name} track layout`}
+                      alt={t(language, "nav.trackLayoutAlt", {
+                        circuit: selectedMeeting.circuit_short_name,
+                      })}
                       className="w-full max-h-44 object-contain rounded [filter:contrast(1.08)_drop-shadow(0_1px_0_rgba(255,255,255,0.45))]"
                       loading="lazy"
                       referrerPolicy="no-referrer"
@@ -963,18 +986,19 @@ export function Nav() {
 
               {selectedCircuitImageUrl && isCircuitImageBroken && (
                 <div className="mb-3 rounded border border-panel/80 bg-track/70 px-3 py-2 text-[10px] text-muted">
-                  Track layout image unavailable for this event.
+                  {t(language, "nav.trackLayoutUnavailable")}
                 </div>
               )}
 
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
                 {[
                   {
-                    label: "Length",
+                    label: t(language, "nav.trackFacts.length"),
                     value: (() => {
-                      if (!visibleFacts?.lengthKm) return "N/A";
+                      if (!visibleFacts?.lengthKm) return t(language, "nav.na");
                       const parsed = Number(visibleFacts.lengthKm);
-                      if (!Number.isFinite(parsed)) return "N/A";
+                      if (!Number.isFinite(parsed))
+                        return t(language, "nav.na");
                       const converted = toDisplayDistanceKm(
                         parsed,
                         metricSystem,
@@ -983,11 +1007,13 @@ export function Nav() {
                     })(),
                   },
                   {
-                    label: "Race Distance",
+                    label: t(language, "nav.trackFacts.raceDistance"),
                     value: (() => {
-                      if (!visibleFacts?.raceDistanceKm) return "N/A";
+                      if (!visibleFacts?.raceDistanceKm)
+                        return t(language, "nav.na");
                       const parsed = Number(visibleFacts.raceDistanceKm);
-                      if (!Number.isFinite(parsed)) return "N/A";
+                      if (!Number.isFinite(parsed))
+                        return t(language, "nav.na");
                       const converted = toDisplayDistanceKm(
                         parsed,
                         metricSystem,
@@ -996,35 +1022,37 @@ export function Nav() {
                     })(),
                   },
                   {
-                    label: "Laps",
-                    value: visibleFacts?.laps ?? "N/A",
+                    label: t(language, "nav.trackFacts.laps"),
+                    value: visibleFacts?.laps ?? t(language, "nav.na"),
                   },
                   {
-                    label: "Turns",
-                    value: visibleFacts?.turns ?? "N/A",
+                    label: t(language, "nav.trackFacts.turns"),
+                    value: visibleFacts?.turns ?? t(language, "nav.na"),
                   },
                   {
-                    label: "Lap Record",
-                    value: visibleFacts?.lapRecord ?? "N/A",
+                    label: t(language, "nav.trackFacts.lapRecord"),
+                    value: visibleFacts?.lapRecord ?? t(language, "nav.na"),
                   },
                   {
-                    label: "DRS Zones",
-                    value: visibleFacts?.drsZones ?? "N/A",
+                    label: t(language, "nav.trackFacts.drsZones"),
+                    value: visibleFacts?.drsZones ?? t(language, "nav.na"),
                   },
                   {
-                    label: "First GP",
-                    value: visibleFacts?.firstGpYear ?? "N/A",
+                    label: t(language, "nav.trackFacts.firstGp"),
+                    value: visibleFacts?.firstGpYear ?? t(language, "nav.na"),
                   },
                   {
-                    label: "Direction",
-                    value: visibleFacts?.direction ?? "N/A",
+                    label: t(language, "nav.trackFacts.direction"),
+                    value: visibleFacts?.direction ?? t(language, "nav.na"),
                   },
                   {
-                    label: "Altitude",
+                    label: t(language, "nav.trackFacts.altitude"),
                     value: (() => {
-                      if (!visibleFacts?.altitudeM) return "N/A";
+                      if (!visibleFacts?.altitudeM)
+                        return t(language, "nav.na");
                       const parsed = Number(visibleFacts.altitudeM);
-                      if (!Number.isFinite(parsed)) return "N/A";
+                      if (!Number.isFinite(parsed))
+                        return t(language, "nav.na");
                       const converted = toDisplayAltitudeM(
                         parsed,
                         metricSystem,
@@ -1050,11 +1078,11 @@ export function Nav() {
               <div className="mt-3 border-t border-panel/70 pt-2">
                 {apiFactsLoading && (
                   <div className="mb-1 text-[10px] text-f1red animate-pulse">
-                    Fetching facts from API...
+                    {t(language, "nav.fetchingFacts")}
                   </div>
                 )}
                 <div className="text-[10px] text-muted leading-relaxed">
-                  Data source: live circuit facts fetched from API at runtime.
+                  {t(language, "nav.dataSource")}
                 </div>
                 {selectedCircuitInfoUrl && (
                   <a
@@ -1063,7 +1091,7 @@ export function Nav() {
                     rel="noopener noreferrer"
                     className="mt-1 inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-widest text-f1red hover:text-white transition-colors"
                   >
-                    Official circuit information
+                    {t(language, "nav.officialCircuitInfo")}
                     <span aria-hidden="true">↗</span>
                   </a>
                 )}

@@ -15,6 +15,8 @@ import { nextAfter, prevBefore } from "@/timeline/events";
 import type { RaceControlMarker, MarkerSummary } from "@/timeline/raceControl";
 import { useSettings } from "@/stores/settings";
 import { trackEvent } from "@/lib/analytics";
+import { FALLBACK_LANGUAGE, type SupportedLanguage } from "@/i18n/language";
+import { t as tr } from "@/i18n/translations";
 
 interface Props {
   durationMs: number;
@@ -78,8 +80,8 @@ function parseSeekTimeInput(value: string): number | null {
   return (a * 3600 + b * 60 + (c ?? 0)) * 1000;
 }
 
-function markerTooltip(label: string, ms: number) {
-  return `${label} at ${fmtTime(ms)}`;
+function markerTooltip(label: string, ms: number, language: SupportedLanguage) {
+  return tr(language, "playback.atTime", { label, time: fmtTime(ms) });
 }
 
 const JUMP_BTN =
@@ -89,8 +91,10 @@ const CHIP_STRETCH =
 
 const SpeedButtons = memo(function SpeedButtons({
   className,
+  language,
 }: {
   className?: string;
+  language: SupportedLanguage;
 }) {
   const speed = useTimeline((s) => s.speed);
   const setSpeed = useTimeline((s) => s.setSpeed);
@@ -104,7 +108,7 @@ const SpeedButtons = memo(function SpeedButtons({
             trackEvent("playback_speed_changed", { speed: s });
           }}
           aria-pressed={speed === s}
-          aria-label={`${s}x speed`}
+          aria-label={tr(language, "playback.speedAria", { speed: s })}
           className={`text-[10px] font-black uppercase tracking-widest transition-colors ${
             speed === s
               ? "bg-f1red text-white"
@@ -154,7 +158,7 @@ export function PlaybackBar({
   const isCompactViewport = useMediaQuery("(max-width: 639px)");
   const hasClampedRef = useRef(false);
   const skipTimeCommitOnBlurRef = useRef(false);
-  const lightMode = useSettings((s) => s.lightMode);
+  const { lightMode, language = FALLBACK_LANGUAGE } = useSettings();
 
   useEffect(() => {
     if (!isEditingTime) {
@@ -257,8 +261,8 @@ export function PlaybackBar({
           onClick={() => trackJump("to_start", 0)}
           disabled={t <= 0}
           className={JUMP_BTN}
-          aria-label="Jump to start"
-          title="Jump to start"
+          aria-label={tr(language, "playback.jumpToStart")}
+          title={tr(language, "playback.jumpToStart")}
         >
           <SkipBack size={14} strokeWidth={2.2} aria-hidden="true" />
         </button>
@@ -268,8 +272,8 @@ export function PlaybackBar({
           onClick={() => trackJump("previous_lap", prevLap)}
           disabled={prevLap === null}
           className={JUMP_BTN}
-          aria-label="Lap start"
-          title="Lap start ([)"
+          aria-label={tr(language, "playback.lapStart")}
+          title={tr(language, "playback.lapStartHotkey")}
         >
           <Rewind size={14} strokeWidth={2.2} aria-hidden="true" />
         </button>
@@ -284,8 +288,12 @@ export function PlaybackBar({
             toggle();
           }}
           className="w-8 h-8 bg-f1red text-white font-bold flex items-center justify-center hover:bg-red-600 transition-colors shrink-0"
-          aria-label={playing ? "Pause" : "Play"}
-          title="Play / pause (Space)"
+          aria-label={
+            playing
+              ? tr(language, "playback.pause")
+              : tr(language, "playback.play")
+          }
+          title={tr(language, "playback.playPauseHotkey")}
         >
           {playing ? (
             <Pause size={14} strokeWidth={2.4} aria-hidden="true" />
@@ -299,8 +307,8 @@ export function PlaybackBar({
           onClick={() => trackJump("next_lap", nextLap)}
           disabled={nextLap === null}
           className={JUMP_BTN}
-          aria-label="Next lap"
-          title="Next lap (])"
+          aria-label={tr(language, "playback.nextLap")}
+          title={tr(language, "playback.nextLapHotkey")}
         >
           <FastForward size={14} strokeWidth={2.2} aria-hidden="true" />
         </button>
@@ -310,8 +318,8 @@ export function PlaybackBar({
           onClick={() => trackJump("to_end", durationMs)}
           disabled={durationMs <= 0 || t >= durationMs}
           className={JUMP_BTN}
-          aria-label="Jump to end"
-          title="Jump to end"
+          aria-label={tr(language, "playback.jumpToEnd")}
+          title={tr(language, "playback.jumpToEnd")}
         >
           <SkipForward size={14} strokeWidth={2.2} aria-hidden="true" />
         </button>
@@ -345,8 +353,8 @@ export function PlaybackBar({
           inputMode="numeric"
           autoComplete="off"
           spellCheck={false}
-          aria-label="Playback time"
-          title="Type MM:SS or HH:MM:SS and press Enter"
+          aria-label={tr(language, "playback.playbackTime")}
+          title={tr(language, "playback.timeInputHint")}
           className="h-7 w-14 shrink-0 border border-panel bg-panel px-1 text-right font-mono text-xs tabular-nums text-muted transition-colors focus:border-f1red focus:text-white focus:outline-none sm:w-16"
         />
 
@@ -360,7 +368,7 @@ export function PlaybackBar({
             onChange={(e) => setT(Number(e.target.value))}
             className="w-full h-1 cursor-pointer"
             style={{ touchAction: "none" }}
-            aria-label="Seek"
+            aria-label={tr(language, "playback.seek")}
           />
           {durationMs > 0 && showMarkers && !isCompactViewport && (
             <div className="absolute inset-0 pointer-events-none">
@@ -374,13 +382,19 @@ export function PlaybackBar({
                     : marker.severity === "warning"
                       ? "bg-amber-400"
                       : "bg-slate-400";
-                const tooltip = markerTooltip(marker.label, marker.ms);
+                const tooltip = markerTooltip(
+                  marker.label,
+                  marker.ms,
+                  language,
+                );
                 return (
                   <button
                     key={marker.id}
                     type="button"
                     title={tooltip}
-                    aria-label={`Jump to incident: ${tooltip}`}
+                    aria-label={tr(language, "playback.jumpToIncident", {
+                      tooltip,
+                    })}
                     onClick={() => {
                       trackEvent("playback_marker_jump", {
                         marker_type: marker.label,
@@ -434,8 +448,8 @@ export function PlaybackBar({
               }}
               title={
                 showMarkers
-                  ? "Hide race-control markers"
-                  : "Show race-control markers"
+                  ? tr(language, "playback.hideRaceControlMarkers")
+                  : tr(language, "playback.showRaceControlMarkers")
               }
               aria-pressed={showMarkers}
               className={`hidden sm:flex items-center gap-1 shrink-0 h-7 px-2 text-[9px] font-black uppercase tracking-widest transition-colors border ${
@@ -461,13 +475,19 @@ export function PlaybackBar({
 
         {/* Speed buttons — desktop only (mobile lives in chips row) */}
         {showSpeedControls && (
-          <SpeedButtons className="hidden sm:flex gap-px shrink-0 [&>button]:px-2.5 [&>button]:py-1" />
+          <SpeedButtons
+            className="hidden sm:flex gap-px shrink-0 [&>button]:px-2.5 [&>button]:py-1"
+            language={language}
+          />
         )}
       </div>
 
       {/* ── Speed row — mobile only ──────────────────────────────── */}
       {showSpeedControls && (
-        <SpeedButtons className="sm:hidden flex gap-px [&>button]:flex-1 [&>button]:h-7" />
+        <SpeedButtons
+          className="sm:hidden flex gap-px [&>button]:flex-1 [&>button]:h-7"
+          language={language}
+        />
       )}
 
       {/* ── Event jump chips row ─────────────────────────────────── */}
@@ -489,7 +509,9 @@ export function PlaybackBar({
                       : "text-white"
                 }
               >
-                {countdownMs <= 0 ? "ENDED" : fmtTime(countdownMs)}
+                {countdownMs <= 0
+                  ? tr(language, "playback.ended")
+                  : fmtTime(countdownMs)}
               </span>
             </span>
           )}
@@ -499,17 +521,17 @@ export function PlaybackBar({
                 onClick={() => trackJump("jump_q2", q2StartMs)}
                 disabled={q2StartMs === null || q2StartMs <= t}
                 className={CHIP_STRETCH}
-                aria-label="Forward to Q2"
+                aria-label={tr(language, "playback.forwardToQ2")}
               >
-                Q2 ›
+                {tr(language, "playback.q2Chip")}
               </button>
               <button
                 onClick={() => trackJump("jump_q3", q3StartMs)}
                 disabled={q3StartMs === null || q3StartMs <= t}
                 className={CHIP_STRETCH}
-                aria-label="Forward to Q3"
+                aria-label={tr(language, "playback.forwardToQ3")}
               >
-                Q3 ›
+                {tr(language, "playback.q3Chip")}
               </button>
             </>
           )}
@@ -524,9 +546,9 @@ export function PlaybackBar({
             }}
             disabled={!hasReplayCurrentAction}
             className={CHIP_STRETCH}
-            aria-label="Replay current incident window"
+            aria-label={tr(language, "playback.replayCurrentIncidentWindow")}
           >
-            Incident ⟳
+            {tr(language, "playback.incidentReplayCurrent")}
           </button>
           <button
             onClick={() => {
@@ -539,9 +561,9 @@ export function PlaybackBar({
             }}
             disabled={!hasReplayNextAction}
             className={CHIP_STRETCH}
-            aria-label="Replay next incident window"
+            aria-label={tr(language, "playback.replayNextIncidentWindow")}
           >
-            Incident ›
+            {tr(language, "playback.incidentReplayNext")}
           </button>
           {incidentReplayHint && hasReplayNextAction && (
             <span className="h-7 flex items-center px-2 text-[9px] font-black uppercase tracking-widest bg-amber-500/20 text-amber-300 border border-amber-500/30 shrink-0">
@@ -552,41 +574,41 @@ export function PlaybackBar({
             onClick={() => trackJump("next_pit", nextPit)}
             disabled={nextPit === null}
             className={CHIP_STRETCH}
-            aria-label="Jump to next pit stop"
+            aria-label={tr(language, "playback.jumpToNextPitStop")}
           >
-            Pit ›
+            {tr(language, "playback.pitChip")}
           </button>
           <button
             onClick={() => trackJump("next_flag", nextFlag)}
             disabled={nextFlag === null}
             className={CHIP_STRETCH}
-            aria-label="Jump to next flag or safety car"
+            aria-label={tr(language, "playback.jumpToNextFlagOrSafetyCar")}
           >
-            Flag ›
+            {tr(language, "playback.flagChip")}
           </button>
           <button
             onClick={() => trackJump("next_safety_car", nextSafetyCar)}
             disabled={nextSafetyCar === null}
             className={CHIP_STRETCH}
-            aria-label="Jump to next safety car"
+            aria-label={tr(language, "playback.jumpToNextSafetyCar")}
           >
-            SC ›
+            {tr(language, "playback.scChip")}
           </button>
           <button
             onClick={() => trackJump("next_overtake", nextPass)}
             disabled={nextPass === null}
             className={CHIP_STRETCH}
-            aria-label="Jump to next overtake"
+            aria-label={tr(language, "playback.jumpToNextOvertake")}
           >
-            Pass ›
+            {tr(language, "playback.passChip")}
           </button>
           <button
             onClick={() => trackJump("next_radio", nextRadio)}
             disabled={nextRadio === null}
             className={CHIP_STRETCH}
-            aria-label="Jump to next radio message"
+            aria-label={tr(language, "playback.jumpToNextRadioMessage")}
           >
-            Radio ›
+            {tr(language, "playback.radioChip")}
           </button>
         </div>
       )}

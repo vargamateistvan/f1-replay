@@ -8,6 +8,8 @@ import { buildLapLookup, lapNumberAtMs } from "@/utils/lapLookup";
 import { upperBoundByValue } from "@/utils/sortedTime";
 import { isPracticeSession } from "@/utils/session";
 import { toSafeExternalUrl } from "@/utils/url";
+import { FALLBACK_LANGUAGE } from "@/i18n/language";
+import { t } from "@/i18n/translations";
 
 interface Props {
   readonly entries: TeamRadioEntry[];
@@ -57,6 +59,7 @@ export function TeamRadioFeed({
   phaseLookup = () => null,
 }: Props) {
   const showCsvExportButtons = useSettings((s) => s.showCsvExportButtons);
+  const language = useSettings((s) => s.language ?? FALLBACK_LANGUAGE);
   const [playing, setPlaying] = useState<string | null>(null);
   const [renderLimit, setRenderLimit] = useState(120);
   const currentT = sessionStartMs + sessionTimeMs;
@@ -128,10 +131,9 @@ export function TeamRadioFeed({
   let emptyMessage = "Select a session";
   if (sessionStartMs !== 0) {
     if (sessionYear !== null && sessionYear >= 2026) {
-      emptyMessage =
-        "No radio messages for this session. OpenF1 coverage is often limited in 2026+ events.";
+      emptyMessage = t(language, "teamRadio.noMessages2026");
     } else {
-      emptyMessage = "No radio messages yet — scrub forward";
+      emptyMessage = t(language, "teamRadio.noMessagesYet");
     }
   }
 
@@ -161,9 +163,9 @@ export function TeamRadioFeed({
               );
             }}
             className="h-6 px-2 text-[9px] font-black uppercase tracking-widest rounded transition-colors bg-panel text-muted hover:text-white hover:bg-track"
-            aria-label="Export team radio CSV"
+            aria-label={t(language, "teamRadio.exportCsv")}
           >
-            Export CSV
+            {t(language, "teamRadio.exportCsv")}
           </button>
         </div>
       )}
@@ -173,8 +175,8 @@ export function TeamRadioFeed({
           isQualifying && group.lapNumber !== null
             ? `Q${group.lapNumber}`
             : group.lapNumber !== null
-              ? `Lap ${group.lapNumber}`
-              : "Session";
+              ? `${t(language, "teamRadio.lap")} ${group.lapNumber}`
+              : t(language, "teamRadio.session");
         return (
           <div
             key={`${group.lapNumber ?? "session"}-${groupIndex}`}
@@ -201,18 +203,22 @@ export function TeamRadioFeed({
                   </span>
                   <div className="flex-1 min-w-0">
                     <div className="truncate text-[11px] font-bold text-white/90">
-                      Team radio for{" "}
+                      {t(language, "teamRadio.teamRadioFor")}{" "}
                       <span style={{ color }}>
                         {driver?.name_acronym ?? e.driver_number}
                       </span>
                     </div>
                     <div className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-[10px] text-muted">
                       <span className="inline-flex h-5 w-fit max-w-full shrink-0 items-center justify-center rounded px-1.5 whitespace-nowrap text-center text-[8px] font-black uppercase tracking-widest leading-none bg-track text-white/80">
-                        Radio
+                        {t(language, "teamRadio.radio")}
                       </span>
-                      {lapNumber !== null && <span>Lap {lapNumber}</span>}
+                      {lapNumber !== null && (
+                        <span>
+                          {t(language, "teamRadio.lap")} {lapNumber}
+                        </span>
+                      )}
                       <span className="font-mono tabular-nums text-white/70">
-                        clip
+                        {t(language, "teamRadio.clip")}
                       </span>
                     </div>
                   </div>
@@ -220,7 +226,11 @@ export function TeamRadioFeed({
                     <button
                       onClick={() => recordingUrl && play(recordingUrl)}
                       disabled={!hasAudio}
-                      aria-label={isPlaying ? "Stop" : "Play"}
+                      aria-label={
+                        isPlaying
+                          ? t(language, "teamRadio.stop")
+                          : t(language, "teamRadio.play")
+                      }
                       className={`flex h-6 items-center gap-1.5 rounded px-2 text-[9px] font-black uppercase tracking-widest transition-colors ${
                         isPlaying
                           ? "bg-f1red text-white"
@@ -234,7 +244,7 @@ export function TeamRadioFeed({
                             strokeWidth={2.4}
                             aria-hidden="true"
                           />{" "}
-                          Stop
+                          {t(language, "teamRadio.stop")}
                         </>
                       ) : (
                         <>
@@ -243,7 +253,7 @@ export function TeamRadioFeed({
                             strokeWidth={2.4}
                             aria-hidden="true"
                           />{" "}
-                          Play
+                          {t(language, "teamRadio.play")}
                         </>
                       )}
                     </button>
@@ -274,7 +284,9 @@ export function TeamRadioFeed({
             onClick={() => setRenderLimit((v) => v + 120)}
             className="h-6 px-2 text-[9px] font-black uppercase tracking-widest rounded transition-colors bg-panel text-muted hover:text-white hover:bg-track"
           >
-            Load older ({visibleAll.length - visible.length} left)
+            {t(language, "teamRadio.loadOlder", {
+              left: visibleAll.length - visible.length,
+            })}
           </button>
         </div>
       )}

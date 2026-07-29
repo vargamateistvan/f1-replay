@@ -6,6 +6,8 @@ import { teamColor } from "@/utils/color";
 import { buildLapLookup, lapNumberAtMs } from "@/utils/lapLookup";
 import { upperBoundByValue } from "@/utils/sortedTime";
 import { isPracticeSession } from "@/utils/session";
+import { FALLBACK_LANGUAGE } from "@/i18n/language";
+import { t } from "@/i18n/translations";
 
 interface Props {
   readonly entries: Overtake[];
@@ -52,6 +54,7 @@ export function OvertakeFeed({
   phaseLookup = () => null,
 }: Props) {
   const showCsvExportButtons = useSettings((s) => s.showCsvExportButtons);
+  const language = useSettings((s) => s.language ?? FALLBACK_LANGUAGE);
   const [renderLimit, setRenderLimit] = useState(120);
   const currentT = sessionStartMs + sessionTimeMs;
 
@@ -123,8 +126,8 @@ export function OvertakeFeed({
     return (
       <div className="text-muted text-xs p-3">
         {sessionStartMs
-          ? "No overtakes yet — scrub forward"
-          : "Select a session"}
+          ? t(language, "overtakes.noOvertakesYet")
+          : t(language, "overtakes.selectSession")}
       </div>
     );
   }
@@ -143,9 +146,9 @@ export function OvertakeFeed({
               );
             }}
             className="h-6 px-2 text-[9px] font-black uppercase tracking-widest rounded transition-colors bg-panel text-muted hover:text-white hover:bg-track"
-            aria-label="Export overtakes CSV"
+            aria-label={t(language, "overtakes.exportCsv")}
           >
-            Export CSV
+            {t(language, "overtakes.exportCsv")}
           </button>
         </div>
       )}
@@ -155,8 +158,8 @@ export function OvertakeFeed({
           isQualifying && group.lapNumber !== null
             ? `Q${group.lapNumber}`
             : group.lapNumber !== null
-              ? `Lap ${group.lapNumber}`
-              : "Session";
+              ? `${t(language, "overtakes.lap")} ${group.lapNumber}`
+              : t(language, "overtakes.session");
         return (
           <div
             key={`${group.lapNumber ?? "session"}-${groupIndex}`}
@@ -185,7 +188,9 @@ export function OvertakeFeed({
                       <span style={{ color: overColor }}>
                         {over?.name_acronym ?? e.overtaking_driver_number}
                       </span>{" "}
-                      <span className="text-white/55">passed</span>{" "}
+                      <span className="text-white/55">
+                        {t(language, "overtakes.passed")}
+                      </span>{" "}
                       <span style={{ color: underColor }}>
                         {under?.name_acronym ?? e.overtaken_driver_number}
                       </span>
@@ -194,8 +199,18 @@ export function OvertakeFeed({
                       <span className="inline-flex h-5 w-fit max-w-full shrink-0 items-center justify-center rounded px-1.5 whitespace-nowrap text-center text-[8px] font-black uppercase tracking-widest leading-none bg-green-500/20 text-green-300">
                         Pass
                       </span>
-                      {e.position !== null && <span>for P{e.position}</span>}
-                      {lapNumber !== null && <span>Lap {lapNumber}</span>}
+                      {e.position !== null && (
+                        <span>
+                          {t(language, "overtakes.forPosition", {
+                            position: e.position,
+                          })}
+                        </span>
+                      )}
+                      {lapNumber !== null && (
+                        <span>
+                          {t(language, "overtakes.lap")} {lapNumber}
+                        </span>
+                      )}
                       <span className="font-black uppercase tracking-widest text-white/80">
                         {over?.name_acronym ?? e.overtaking_driver_number} vs{" "}
                         {under?.name_acronym ?? e.overtaken_driver_number}
@@ -216,7 +231,9 @@ export function OvertakeFeed({
             onClick={() => setRenderLimit((v) => v + 120)}
             className="h-6 px-2 text-[9px] font-black uppercase tracking-widest rounded transition-colors bg-panel text-muted hover:text-white hover:bg-track"
           >
-            Load older ({visibleAll.length - visible.length} left)
+            {t(language, "overtakes.loadOlder", {
+              left: visibleAll.length - visible.length,
+            })}
           </button>
         </div>
       )}

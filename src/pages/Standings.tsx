@@ -16,17 +16,28 @@ import {
 import { ErrorMessage } from "@/components/ErrorMessage";
 import { useNumberParam, useStringParam } from "@/hooks/useSearchParamState";
 import { YEARS, DEFAULT_YEAR } from "@/constants";
+import { useSettings } from "@/stores/settings";
+import { FALLBACK_LANGUAGE, type SupportedLanguage } from "@/i18n/language";
+import { t } from "@/i18n/translations";
 
 type Tab = "drivers" | "constructors";
 
 // ── Loading progress bar ──────────────────────────────────────────────────────
-function LoadingBar({ loaded, total }: { loaded: number; total: number }) {
+function LoadingBar({
+  loaded,
+  total,
+  language,
+}: {
+  loaded: number;
+  total: number;
+  language: SupportedLanguage;
+}) {
   if (total === 0) return null;
   const pct = Math.round((loaded / total) * 100);
   return (
     <div className="flex items-center gap-3 text-xs text-muted font-mono px-4 py-1 bg-surface border-b border-panel">
       <span>
-        Loading race results… {loaded}/{total}
+        {t(language, "standings.loadingRaceResults")} {loaded}/{total}
       </span>
       <div className="flex-1 h-1 bg-panel rounded overflow-hidden">
         <div
@@ -45,7 +56,11 @@ interface TooltipProps<T> {
   payload?: Array<{ payload: T }>;
 }
 
-function DriverTooltip({ active, payload }: TooltipProps<DriverStanding>) {
+function DriverTooltip({
+  active,
+  payload,
+  language,
+}: TooltipProps<DriverStanding> & { language: SupportedLanguage }) {
   if (!active || !payload?.[0]) return null;
   const d = payload[0].payload;
   return (
@@ -55,7 +70,8 @@ function DriverTooltip({ active, payload }: TooltipProps<DriverStanding>) {
       </div>
       <div className="text-muted">{d.team}</div>
       <div className="mt-1">
-        <span className="text-white font-bold">{d.points}</span> pts
+        <span className="text-white font-bold">{d.points}</span>{" "}
+        {t(language, "standings.pts")}
         {d.pointsDelta != null && (
           <span
             className={`ml-2 text-[10px] ${
@@ -67,12 +83,13 @@ function DriverTooltip({ active, payload }: TooltipProps<DriverStanding>) {
             }`}
           >
             {d.pointsDelta > 0 ? "+" : ""}
-            {d.pointsDelta} this race
+            {d.pointsDelta} {t(language, "standings.thisRace")}
           </span>
         )}
       </div>
       <div className="text-muted">
-        {d.wins} wins · {d.podiums} podiums
+        {d.wins} {t(language, "standings.wins")} · {d.podiums}{" "}
+        {t(language, "standings.podiums")}
       </div>
     </div>
   );
@@ -81,7 +98,8 @@ function DriverTooltip({ active, payload }: TooltipProps<DriverStanding>) {
 function ConstructorTooltip({
   active,
   payload,
-}: TooltipProps<ConstructorStanding>) {
+  language,
+}: TooltipProps<ConstructorStanding> & { language: SupportedLanguage }) {
   if (!active || !payload?.[0]) return null;
   const c = payload[0].payload;
   return (
@@ -90,22 +108,32 @@ function ConstructorTooltip({
         {c.name}
       </div>
       <div className="mt-1">
-        <span className="text-white font-bold">{c.points}</span> pts
+        <span className="text-white font-bold">{c.points}</span>{" "}
+        {t(language, "standings.pts")}
       </div>
       <div className="text-muted">
-        {c.wins} win{c.wins !== 1 ? "s" : ""}
+        {c.wins}{" "}
+        {c.wins !== 1
+          ? t(language, "standings.wins")
+          : t(language, "standings.win")}
       </div>
     </div>
   );
 }
 
 // ── Driver standings ──────────────────────────────────────────────────────────
-function DriverTable({ standings }: { standings: DriverStanding[] }) {
+function DriverTable({
+  standings,
+  language,
+}: {
+  standings: DriverStanding[];
+  language: SupportedLanguage;
+}) {
   if (standings.length === 0)
     return (
       <div className="min-h-32">
         <ErrorMessage
-          message="No data found for the selected season"
+          message={t(language, "standings.noDataForSeason")}
           variant="empty"
         />
       </div>
@@ -116,22 +144,22 @@ function DriverTable({ standings }: { standings: DriverStanding[] }) {
         <thead>
           <tr className="sticky top-0 bg-track z-10 border-b border-panel">
             <th className="text-left py-2 px-3 text-[10px] font-bold uppercase tracking-widest text-muted w-8">
-              P
+              {t(language, "standings.posAbbrev")}
             </th>
             <th className="text-left py-2 px-3 text-[10px] font-bold uppercase tracking-widest text-muted">
-              Driver
+              {t(language, "standings.driver")}
             </th>
             <th className="text-left py-2 px-3 text-[10px] font-bold uppercase tracking-widest text-muted hidden sm:table-cell">
-              Team
+              {t(language, "standings.team")}
             </th>
             <th className="text-right py-2 px-3 text-[10px] font-bold uppercase tracking-widest text-muted w-16">
-              Pts
+              {t(language, "standings.pts")}
             </th>
             <th className="text-right py-2 px-3 text-[10px] font-bold uppercase tracking-widest text-muted w-12 hidden sm:table-cell">
-              Wins
+              {t(language, "standings.wins")}
             </th>
             <th className="text-right py-2 px-3 text-[10px] font-bold uppercase tracking-widest text-muted w-16 hidden sm:table-cell">
-              Podiums
+              {t(language, "standings.podiums")}
             </th>
           </tr>
         </thead>
@@ -202,7 +230,13 @@ function DriverTable({ standings }: { standings: DriverStanding[] }) {
   );
 }
 
-function DriverChart({ standings }: { standings: DriverStanding[] }) {
+function DriverChart({
+  standings,
+  language,
+}: {
+  standings: DriverStanding[];
+  language: SupportedLanguage;
+}) {
   const maxPts = standings[0]?.points ?? 1;
   return (
     <ResponsiveContainer
@@ -233,7 +267,7 @@ function DriverChart({ standings }: { standings: DriverStanding[] }) {
         />
         <Tooltip
           cursor={{ fill: "rgb(var(--color-panel) / 0.2)" }}
-          content={<DriverTooltip />}
+          content={<DriverTooltip language={language} />}
         />
         <Bar dataKey="points" radius={[0, 3, 3, 0]}>
           {standings.map((s) => (
@@ -246,12 +280,18 @@ function DriverChart({ standings }: { standings: DriverStanding[] }) {
 }
 
 // ── Constructor standings ─────────────────────────────────────────────────────
-function ConstructorTable({ standings }: { standings: ConstructorStanding[] }) {
+function ConstructorTable({
+  standings,
+  language,
+}: {
+  standings: ConstructorStanding[];
+  language: SupportedLanguage;
+}) {
   if (standings.length === 0)
     return (
       <div className="min-h-32">
         <ErrorMessage
-          message="No data found for the selected season"
+          message={t(language, "standings.noDataForSeason")}
           variant="empty"
         />
       </div>
@@ -262,16 +302,16 @@ function ConstructorTable({ standings }: { standings: ConstructorStanding[] }) {
         <thead>
           <tr className="sticky top-0 bg-track z-10 border-b border-panel">
             <th className="text-left py-2 px-3 text-[10px] font-bold uppercase tracking-widest text-muted w-8">
-              P
+              {t(language, "standings.posAbbrev")}
             </th>
             <th className="text-left py-2 px-3 text-[10px] font-bold uppercase tracking-widest text-muted">
-              Constructor
+              {t(language, "standings.constructor")}
             </th>
             <th className="text-right py-2 px-3 text-[10px] font-bold uppercase tracking-widest text-muted w-16">
-              Pts
+              {t(language, "standings.pts")}
             </th>
             <th className="text-right py-2 px-3 text-[10px] font-bold uppercase tracking-widest text-muted w-12 hidden sm:table-cell">
-              Wins
+              {t(language, "standings.wins")}
             </th>
           </tr>
         </thead>
@@ -333,7 +373,13 @@ function ConstructorTable({ standings }: { standings: ConstructorStanding[] }) {
   );
 }
 
-function ConstructorChart({ standings }: { standings: ConstructorStanding[] }) {
+function ConstructorChart({
+  standings,
+  language,
+}: {
+  standings: ConstructorStanding[];
+  language: SupportedLanguage;
+}) {
   const maxPts = standings[0]?.points ?? 1;
   return (
     <ResponsiveContainer
@@ -365,7 +411,7 @@ function ConstructorChart({ standings }: { standings: ConstructorStanding[] }) {
         />
         <Tooltip
           cursor={{ fill: "#1e2d4a33" }}
-          content={<ConstructorTooltip />}
+          content={<ConstructorTooltip language={language} />}
         />
         <Bar dataKey="points" radius={[0, 3, 3, 0]}>
           {standings.map((s) => (
@@ -382,6 +428,7 @@ export default function Standings() {
   const [yearParam, setYear] = useNumberParam("year", DEFAULT_YEAR);
   const year = yearParam ?? DEFAULT_YEAR;
   const [tab, setTab] = useStringParam<Tab>("tab", "drivers");
+  const language = useSettings((s) => s.language ?? FALLBACK_LANGUAGE);
 
   const {
     driverStandings,
@@ -398,11 +445,11 @@ export default function Standings() {
       {/* Header */}
       <div className="flex flex-wrap items-center gap-3 px-4 pt-2 pb-2 bg-surface border-b border-panel">
         <span className="text-f1red font-black text-sm tracking-[0.18em] uppercase">
-          STANDINGS
+          {t(language, "standings.title")}
         </span>
 
         <label className="text-[10px] font-bold uppercase tracking-widest text-muted">
-          Year
+          {t(language, "standings.year")}
         </label>
         <select
           value={year}
@@ -418,60 +465,74 @@ export default function Standings() {
 
         {isLoading && (
           <span className="text-muted text-xs animate-pulse">
-            Loading sessions…
+            {t(language, "standings.loadingSessions")}
           </span>
         )}
 
         {/* Tabs */}
         <div className="flex h-11 w-full sm:ml-auto sm:w-auto">
-          {(["drivers", "constructors"] as Tab[]).map((t) => (
+          {(["drivers", "constructors"] as Tab[]).map((tabKey) => (
             <button
-              key={t}
-              onClick={() => setTab(t)}
+              key={tabKey}
+              onClick={() => setTab(tabKey)}
               className={`h-11 flex-1 items-center justify-center px-4 text-xs font-bold uppercase tracking-[0.12em] transition-colors border-b-2 sm:flex-none ${
-                tab === t
+                tab === tabKey
                   ? "text-white border-f1red"
                   : "text-muted border-transparent hover:text-white"
               }`}
             >
-              {t}
+              {t(language, `standings.tabs.${tabKey}`)}
             </button>
           ))}
         </div>
       </div>
 
       {/* Progress bar while race results are loading */}
-      {isFetching && <LoadingBar loaded={loadedRaces} total={totalRaces} />}
+      {isFetching && (
+        <LoadingBar
+          loaded={loadedRaces}
+          total={totalRaces}
+          language={language}
+        />
+      )}
 
       {/* Content */}
       {isError ? (
         <div className="flex-1">
-          <ErrorMessage message="Failed to load championship data" />
+          <ErrorMessage message={t(language, "standings.failedToLoad")} />
         </div>
       ) : (
         <div className="flex flex-col sm:flex-row gap-0 md:flex-1 md:overflow-hidden">
           {tab === "drivers" ? (
             <>
               <div className="sm:w-[420px] shrink-0 sm:border-r border-b sm:border-b-0 border-panel md:overflow-auto md:max-h-full">
-                <DriverTable standings={driverStandings} />
+                <DriverTable standings={driverStandings} language={language} />
               </div>
               <div className="md:flex-1 md:overflow-auto p-4 bg-track min-h-[18rem]">
                 <div className="text-[10px] text-muted font-bold mb-3 uppercase tracking-[0.12em]">
-                  Points — {year} Driver Championship
+                  {t(language, "standings.pointsLabel")} - {year}{" "}
+                  {t(language, "standings.driverChampionship")}
                 </div>
-                <DriverChart standings={driverStandings} />
+                <DriverChart standings={driverStandings} language={language} />
               </div>
             </>
           ) : (
             <>
               <div className="sm:w-[360px] shrink-0 sm:border-r border-b sm:border-b-0 border-panel md:overflow-auto md:max-h-full">
-                <ConstructorTable standings={constructorStandings} />
+                <ConstructorTable
+                  standings={constructorStandings}
+                  language={language}
+                />
               </div>
               <div className="md:flex-1 md:overflow-auto p-4 bg-track min-h-[18rem]">
                 <div className="text-[10px] text-muted font-bold mb-3 uppercase tracking-[0.12em]">
-                  Points — {year} Constructor Championship
+                  {t(language, "standings.pointsLabel")} - {year}{" "}
+                  {t(language, "standings.constructorChampionship")}
                 </div>
-                <ConstructorChart standings={constructorStandings} />
+                <ConstructorChart
+                  standings={constructorStandings}
+                  language={language}
+                />
               </div>
             </>
           )}

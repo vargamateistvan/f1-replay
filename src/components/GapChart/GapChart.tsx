@@ -11,6 +11,9 @@ import {
 } from "recharts";
 import type { Driver, Interval } from "@/api/types";
 import { teamColor } from "@/utils/color";
+import { useSettings } from "@/stores/settings";
+import { FALLBACK_LANGUAGE, type SupportedLanguage } from "@/i18n/language";
+import { t } from "@/i18n/translations";
 
 // Cap the Y axis so lapped cars don't collapse the interesting battle zone.
 const MAX_GAP_SEC = 120;
@@ -36,6 +39,7 @@ export function GapChart({
   currentLap = 0,
 }: Props) {
   const [showAllLaps, setShowAllLaps] = useState(false);
+  const language = useSettings((s) => s.language ?? FALLBACK_LANGUAGE);
 
   // Per-driver sorted arrays of {ms, gap}. Strings like "1 LAP" are excluded;
   // gaps are capped at MAX_GAP_SEC so lapped cars don't distort the Y axis.
@@ -112,7 +116,7 @@ export function GapChart({
   if (rows.length === 0) {
     return (
       <div className="flex items-center justify-center h-full text-muted text-sm">
-        No gap data available yet
+        {t(language, "gapChart.noGapData")}
       </div>
     );
   }
@@ -129,9 +133,15 @@ export function GapChart({
                 ? "border-f1red bg-f1red text-white"
                 : "border-panel bg-track text-muted hover:text-white"
             }`}
-            title={showAllLaps ? "Showing all laps" : "Showing elapsed laps"}
+            title={
+              showAllLaps
+                ? t(language, "gapChart.showingAllLaps")
+                : t(language, "gapChart.showingElapsedLaps")
+            }
           >
-            {showAllLaps ? "All" : "Elapsed"}
+            {showAllLaps
+              ? t(language, "gapChart.all")
+              : t(language, "gapChart.elapsed")}
           </button>
         </div>
       )}
@@ -160,7 +170,12 @@ export function GapChart({
             tickFormatter={(v: number) => `${v}s`}
           />
           <Tooltip
-            content={<GapTooltip axisMode={useLapAxis ? "lap" : "time"} />}
+            content={
+              <GapTooltip
+                axisMode={useLapAxis ? "lap" : "time"}
+                language={language}
+              />
+            }
           />
           <ReferenceLine
             x={useLapAxis ? currentLap : sessionTimeMs}
@@ -218,6 +233,7 @@ interface GapTooltipProps {
   label?: number;
   payload?: TooltipPayload[];
   axisMode?: "time" | "lap";
+  language: SupportedLanguage;
 }
 
 function GapTooltip({
@@ -225,20 +241,27 @@ function GapTooltip({
   label,
   payload,
   axisMode = "time",
+  language,
 }: GapTooltipProps) {
   if (!active || !payload?.length || label == null) return null;
   const sorted = [...payload].sort((a, b) => a.value - b.value);
   return (
     <div className="bg-surface border border-panel px-2 py-1.5 text-[10px]">
       <div className="text-muted mb-1 font-bold uppercase tracking-widest">
-        {axisMode === "lap" ? `Lap ${label}` : msToMin(label)}
+        {axisMode === "lap"
+          ? t(language, "gapChart.lapWithNumber", { lap: label })
+          : msToMin(label)}
       </div>
       {sorted.map((p) => (
         <div key={p.name} className="flex gap-2 items-center">
           <span style={{ color: p.stroke }} className="font-bold w-8">
             {p.name}
           </span>
-          <span className="text-white">+{p.value.toFixed(3)}s</span>
+          <span className="text-white">
+            {t(language, "gapChart.deltaSeconds", {
+              value: p.value.toFixed(3),
+            })}
+          </span>
         </div>
       ))}
     </div>

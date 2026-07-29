@@ -66,6 +66,8 @@ import { ResizeHandle } from "@/components/ResizeHandle";
 import { isSessionLive } from "@/utils/live";
 import { DEFAULT_SESSION_MS } from "@/constants";
 import { useSettings } from "@/stores/settings";
+import { FALLBACK_LANGUAGE } from "@/i18n/language";
+import { t as tr } from "@/i18n/translations";
 import { deriveRetiredDrivers } from "@/utils/retirement";
 import { computeBattlingDrivers } from "@/utils/battles";
 import { weatherAtSessionTime } from "@/utils/weather";
@@ -206,9 +208,10 @@ const CommentaryPanels = lazy(() =>
 );
 
 function PanelFallback() {
+  const language = useSettings((s) => s.language ?? FALLBACK_LANGUAGE);
   return (
     <div className="flex h-full min-h-[120px] items-center justify-center text-[10px] font-bold uppercase tracking-[0.12em] text-muted animate-pulse">
-      Loading Panel
+      {tr(language, "commentary.loadingPanel")}
     </div>
   );
 }
@@ -566,8 +569,7 @@ export default function RaceWeekend() {
     sessionKey !== null &&
     (drivers.isPending || positions.isPending || intervals.isPending);
   const isLoadingEventSession =
-    meetingKey !== null &&
-    (sessions.isPending || isLoadingSessionData);
+    meetingKey !== null && (sessions.isPending || isLoadingSessionData);
 
   const locationChunkIdx = locationChunkIndexFor(t);
   const telemetryChunkIdx = chunkIndexFor(t);
@@ -1019,6 +1021,7 @@ export default function RaceWeekend() {
     isHelpOpen,
     isOpen: isSettingsOpen,
     openHelp,
+    language = FALLBACK_LANGUAGE,
   } = useSettings();
 
   // ── Live car telemetry for the leaderboard (all drivers) ────────────────────
@@ -1249,20 +1252,51 @@ export default function RaceWeekend() {
   const commentaryTabs = useMemo(
     () =>
       [
-        ["rc", "Race Control", "RC", raceControl.data?.length ?? 0, "entries"],
-        ["radio", "Team Radio", "Radio", teamRadio.data?.length ?? 0, "clips"],
-        ["pits", "Pit Stops", "Pits", pits.data?.length ?? 0, "stops"],
-        ["passes", "Overtakes", "Passes", overtakes.data?.length ?? 0, "moves"],
+        [
+          "rc",
+          tr(language, "commentary.tab.rc"),
+          tr(language, "commentary.tabShort.rc"),
+          raceControl.data?.length ?? 0,
+          tr(language, "commentary.meta.entries"),
+        ],
+        [
+          "radio",
+          tr(language, "commentary.tab.radio"),
+          tr(language, "commentary.tabShort.radio"),
+          teamRadio.data?.length ?? 0,
+          tr(language, "commentary.meta.clips"),
+        ],
+        [
+          "pits",
+          tr(language, "commentary.tab.pits"),
+          tr(language, "commentary.tabShort.pits"),
+          pits.data?.length ?? 0,
+          tr(language, "commentary.meta.stops"),
+        ],
+        [
+          "passes",
+          tr(language, "commentary.tab.passes"),
+          tr(language, "commentary.tabShort.passes"),
+          overtakes.data?.length ?? 0,
+          tr(language, "commentary.meta.moves"),
+        ],
         [
           "moments",
-          "Key Moments",
-          "Moments",
+          tr(language, "commentary.tab.moments"),
+          tr(language, "commentary.tabShort.moments"),
           commentaryKeyMomentsCount,
-          "beats",
+          tr(language, "commentary.meta.beats"),
         ],
-        ["chapters", "Chapters", "Chptrs", incidentWindows.length, "windows"],
+        [
+          "chapters",
+          tr(language, "commentary.tab.chapters"),
+          tr(language, "commentary.tabShort.chapters"),
+          incidentWindows.length,
+          tr(language, "commentary.meta.windows"),
+        ],
       ] as const,
     [
+      language,
       commentaryKeyMomentsCount,
       incidentWindows.length,
       overtakes.data?.length,
@@ -1278,10 +1312,12 @@ export default function RaceWeekend() {
     ? detectQualiPhase(raceControl.data ?? [], sessionStartMs, t)
     : null;
   const commentaryStatusLabel = useMemo(() => {
-    if (isPracticeCommentarySession) return sessionName || "Practice";
-    if (isQualiSession(sessionName)) return sessionName || "Qualifying";
-    return `Lap ${commentaryLapLabel}`;
-  }, [isPracticeCommentarySession, commentaryLapLabel, sessionName]);
+    if (isPracticeCommentarySession)
+      return sessionName || tr(language, "commentary.status.practice");
+    if (isQualiSession(sessionName))
+      return sessionName || tr(language, "commentary.status.qualifying");
+    return `${tr(language, "commentary.status.lap")} ${commentaryLapLabel}`;
+  }, [commentaryLapLabel, isPracticeCommentarySession, language, sessionName]);
 
   const qualiPhaseStartTimes = useMemo(() => {
     if (!sessionStartMs || !isQualiSession(sessionName)) {
@@ -1664,10 +1700,10 @@ export default function RaceWeekend() {
         <div className="absolute inset-0 z-40 flex items-center justify-center bg-[#0b0c12]/86 backdrop-blur-sm">
           <div className="mx-4 w-full max-w-sm rounded border border-panel bg-surface px-4 py-4 text-center shadow-2xl">
             <div className="text-f1red text-[11px] font-black uppercase tracking-[0.16em] animate-pulse">
-              Loading Event
+              {tr(language, "telemetry.loadingEvent")}
             </div>
             <div className="mt-2 text-xs text-muted">
-              Fetching the latest session and preparing track data.
+              {tr(language, "telemetry.loadingEventDescription")}
             </div>
           </div>
         </div>
@@ -1711,10 +1747,10 @@ export default function RaceWeekend() {
             <div className="border-b border-panel bg-track px-3 py-2 sm:px-4">
               <div className="rounded-sm border border-panel bg-surface px-3 py-2">
                 <div className="text-f1red text-[10px] font-black uppercase tracking-[0.14em] animate-pulse">
-                  Loading session data
+                  {tr(language, "raceWeekend.loadingSessionData")}
                 </div>
                 <div className="mt-1 text-xs text-muted">
-                  Preparing timing and event feeds for this session.
+                  {tr(language, "raceWeekend.preparingSessionData")}
                 </div>
               </div>
             </div>
@@ -1722,7 +1758,9 @@ export default function RaceWeekend() {
 
           <div className="flex flex-col md:flex-1 md:min-h-0 md:overflow-hidden">
             {positions.isError ? (
-              <ErrorMessage message="Failed to load timing data" />
+              <ErrorMessage
+                message={tr(language, "raceWeekend.errors.timingData")}
+              />
             ) : (
               leaderboardTower
             )}
@@ -1777,11 +1815,14 @@ export default function RaceWeekend() {
               <div className="sticky top-0 z-20 grid grid-cols-5 w-full border-b border-panel shrink-0 bg-track/95 backdrop-blur">
                 {(
                   [
-                    ["timing", "Timing"],
-                    ["map", "Track"],
-                    ["strategy", "Tyre Strategy"],
-                    ["chart", "Chart"],
-                    ["gap", "Gap"],
+                    ["timing", tr(language, "raceWeekend.trackerTabs.timing")],
+                    ["map", tr(language, "raceWeekend.trackerTabs.track")],
+                    [
+                      "strategy",
+                      tr(language, "raceWeekend.trackerTabs.strategy"),
+                    ],
+                    ["chart", tr(language, "raceWeekend.trackerTabs.chart")],
+                    ["gap", tr(language, "raceWeekend.trackerTabs.gap")],
                   ] as [TrackerTab, string][]
                 ).map(([tab, label]) => (
                   <button
@@ -1840,7 +1881,12 @@ export default function RaceWeekend() {
                     {/* Timing tower */}
                     <div className="flex flex-col md:flex-1 md:min-h-0 md:overflow-hidden">
                       {positions.isError ? (
-                        <ErrorMessage message="Failed to load timing data" />
+                        <ErrorMessage
+                          message={tr(
+                            language,
+                            "raceWeekend.errors.timingData",
+                          )}
+                        />
                       ) : (
                         timingTower
                       )}
@@ -1881,7 +1927,7 @@ export default function RaceWeekend() {
                       <div className="shrink-0 border-b border-panel">
                         {weather.isError ? (
                           <ErrorMessage
-                            message="Failed to load weather"
+                            message={tr(language, "raceWeekend.errors.weather")}
                             compact
                           />
                         ) : (
@@ -1905,7 +1951,12 @@ export default function RaceWeekend() {
                         layout="overlay"
                       />
                       {drivers.isError ? (
-                        <ErrorMessage message="Failed to load driver data" />
+                        <ErrorMessage
+                          message={tr(
+                            language,
+                            "raceWeekend.errors.driverData",
+                          )}
+                        />
                       ) : (
                         <Suspense fallback={<PanelFallback />}>
                           {trackMap}
@@ -1913,7 +1964,7 @@ export default function RaceWeekend() {
                       )}
                       {isLoadingSessionData && (
                         <span className="absolute top-2 right-2 text-f1red text-[10px] animate-pulse">
-                          Loading…
+                          {tr(language, "raceWeekend.loading")}
                         </span>
                       )}
                     </div>
@@ -1925,7 +1976,7 @@ export default function RaceWeekend() {
                     className={`${PANEL} flex-1 flex flex-col overflow-hidden border-0`}
                   >
                     <div className={`${PANEL_TITLE} shrink-0`}>
-                      Tyre Strategy
+                      {tr(language, "raceWeekend.trackerTabs.strategy")}
                     </div>
                     <div className="min-h-0 overflow-y-auto md:panel-scroll [-webkit-overflow-scrolling:touch]">
                       <Suspense fallback={<PanelFallback />}>
@@ -1942,7 +1993,6 @@ export default function RaceWeekend() {
                     </div>
                   </div>
                 )}
-
                 {activeTrackerTab === "chart" && (
                   <div className="h-[52vh] min-h-[280px] bg-[#10101a]">
                     <Suspense fallback={<PanelFallback />}>
@@ -1989,10 +2039,16 @@ export default function RaceWeekend() {
                 <div className="flex border-b border-panel shrink-0">
                   {(
                     [
-                      ["timing", "Timing"],
-                      ["strategy", "Tyre Strategy"],
-                      ["chart", "Laps"],
-                      ["gap", "Gap"],
+                      [
+                        "timing",
+                        tr(language, "raceWeekend.trackerTabs.timing"),
+                      ],
+                      [
+                        "strategy",
+                        tr(language, "raceWeekend.trackerTabs.strategy"),
+                      ],
+                      ["chart", tr(language, "raceWeekend.trackerTabs.laps")],
+                      ["gap", tr(language, "raceWeekend.trackerTabs.gap")],
                     ] as [TrackerTab, string][]
                   ).map(([tab, label]) => (
                     <button
@@ -2019,7 +2075,9 @@ export default function RaceWeekend() {
                 <div className="flex-1 min-h-0 flex flex-col overflow-hidden">
                   {activeTrackerTab === "timing" &&
                     (positions.isError ? (
-                      <ErrorMessage message="Failed to load timing data" />
+                      <ErrorMessage
+                        message={tr(language, "raceWeekend.errors.timingData")}
+                      />
                     ) : (
                       timingTower
                     ))}
@@ -2028,7 +2086,7 @@ export default function RaceWeekend() {
                       className={`${PANEL} flex-1 flex flex-col overflow-hidden border-0`}
                     >
                       <div className={`${PANEL_TITLE} shrink-0`}>
-                        Tyre Strategy
+                        {tr(language, "raceWeekend.trackerTabs.strategy")}
                       </div>
                       <div className="min-h-0 overflow-y-auto md:panel-scroll [-webkit-overflow-scrolling:touch]">
                         <Suspense fallback={<PanelFallback />}>
@@ -2112,13 +2170,15 @@ export default function RaceWeekend() {
               <div className="flex-1 min-w-0 bg-[#10101a] flex flex-col">
                 <div className="relative flex-1 min-h-0">
                   {drivers.isError ? (
-                    <ErrorMessage message="Failed to load driver data" />
+                    <ErrorMessage
+                      message={tr(language, "raceWeekend.errors.driverData")}
+                    />
                   ) : (
                     <Suspense fallback={<PanelFallback />}>{trackMap}</Suspense>
                   )}
                   {isLoadingSessionData && (
                     <span className="absolute top-2 right-2 text-f1red text-[10px] animate-pulse">
-                      Loading…
+                      {tr(language, "raceWeekend.loading")}
                     </span>
                   )}
                 </div>
@@ -2220,11 +2280,13 @@ export default function RaceWeekend() {
                 }`}
                 title={
                   commentaryTimeMode === "all"
-                    ? "Showing all commentary items"
-                    : "Showing elapsed commentary items"
+                    ? tr(language, "commentary.timeMode.titleAll")
+                    : tr(language, "commentary.timeMode.titleElapsed")
                 }
               >
-                {commentaryTimeMode === "all" ? "All" : "Elapsed"}
+                {commentaryTimeMode === "all"
+                  ? tr(language, "commentary.timeMode.all")
+                  : tr(language, "commentary.timeMode.elapsed")}
               </button>
             </div>
           </div>
@@ -2281,7 +2343,10 @@ export default function RaceWeekend() {
 
       {showFinalClassification && sessionResult.isError && (
         <div className="shrink-0 border-t border-panel">
-          <ErrorMessage message="Failed to load final classification" compact />
+          <ErrorMessage
+            message={tr(language, "raceWeekend.errors.finalClassification")}
+            compact
+          />
         </div>
       )}
 

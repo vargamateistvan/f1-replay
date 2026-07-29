@@ -33,6 +33,8 @@ import { SectorBar, type SectorTier } from "./SectorBar";
 import { TyreBadge } from "./TyreBadge";
 import { DriverHeadshot } from "@/components/DriverHeadshot";
 import { TooltipCard } from "@/components/TooltipCard/TooltipCard";
+import { FALLBACK_LANGUAGE, type SupportedLanguage } from "@/i18n/language";
+import { t as tr } from "@/i18n/translations";
 
 interface Props {
   readonly drivers: Driver[];
@@ -121,10 +123,10 @@ type TimingDisplayValue = number | string | null;
 const Q3_GRID_SIZE = 10;
 const LAP_SET_FLASH_MS = 4_000;
 
-function fmtGap(val: TimingDisplayValue) {
+function fmtGap(val: TimingDisplayValue, language: SupportedLanguage) {
   if (val === null) return "—";
   if (typeof val === "string") return val;
-  if (val === 0) return "LEAD";
+  if (val === 0) return tr(language, "liveTiming.lead");
   return `+${val.toFixed(3)}`;
 }
 
@@ -171,12 +173,14 @@ function StatusBadgeTooltip({
   badgeClassName,
   tooltipAccentClassName,
   ariaLabel,
+  title,
 }: Readonly<{
   label: string;
   tooltip: string;
   badgeClassName: string;
   tooltipAccentClassName?: string;
   ariaLabel: string;
+  title: string;
 }>) {
   const anchorRef = useRef<HTMLSpanElement | null>(null);
   const [open, setOpen] = useState(false);
@@ -230,7 +234,7 @@ function StatusBadgeTooltip({
         typeof document !== "undefined" &&
         createPortal(
           <TooltipCard
-            title="Status"
+            title={title}
             text={tooltip}
             accentClassName={tooltipAccentClassName}
             className="pointer-events-none fixed z-[9999] w-56 max-w-[calc(100vw-2rem)]"
@@ -410,6 +414,7 @@ export function LiveTiming({
 }: Props) {
   const metricSystem = useSettings((s) => s.metricSystem);
   const lightMode = useSettings((s) => s.lightMode);
+  const language = useSettings((s) => s.language ?? FALLBACK_LANGUAGE);
   const speedUnitShort = speedUnitLabel(metricSystem);
   const speedUnitCompact = speedUnitCompactLabel(metricSystem);
   const columns: TimingColumnVisibility = {
@@ -1050,10 +1055,10 @@ export function LiveTiming({
       <div className="p-3 sm:p-4">
         <div className="rounded-sm border border-panel bg-surface px-3 py-3 sm:px-4">
           <div className="text-[10px] font-black uppercase tracking-[0.14em] text-f1red animate-pulse">
-            Loading timing data
+            {tr(language, "liveTiming.loadingTimingData")}
           </div>
           <div className="mt-1 text-xs text-muted">
-            Pulling positions, gaps, and sector references.
+            {tr(language, "liveTiming.loadingTimingDataDetail")}
           </div>
         </div>
       </div>
@@ -1064,12 +1069,14 @@ export function LiveTiming({
       <div className="p-3 sm:p-4">
         <div className="rounded-sm border border-panel bg-surface px-3 py-3 sm:px-4">
           <div className="text-[10px] font-black uppercase tracking-[0.14em] text-white">
-            {sessionStartMs ? "Waiting for timing" : "No session selected"}
+            {sessionStartMs
+              ? tr(language, "liveTiming.waitingForTiming")
+              : tr(language, "liveTiming.noSessionSelected")}
           </div>
           <div className="mt-1 text-xs text-muted">
             {sessionStartMs
-              ? "Scrub forward or wait for the first classified samples."
-              : "Choose an event and session to populate the timing tower."}
+              ? tr(language, "liveTiming.waitingForTimingDetail")
+              : tr(language, "liveTiming.noSessionSelectedDetail")}
           </div>
         </div>
       </div>
@@ -1100,8 +1107,15 @@ export function LiveTiming({
                       className="flex min-w-0 items-center gap-1.5 border border-panel bg-track px-1.5 py-1 sm:gap-2 sm:px-2"
                       title={
                         best
-                          ? `${label} ${best.time.toFixed(3)} · ${driver?.full_name ?? best.driverNumber} · Lap ${best.lapNumber}`
-                          : `${label} not set yet`
+                          ? tr(language, "liveTiming.sectorBestTitle", {
+                              sector: label,
+                              time: best.time.toFixed(3),
+                              driver: driver?.full_name ?? best.driverNumber,
+                              lap: best.lapNumber,
+                            })
+                          : tr(language, "liveTiming.sectorNotSetYet", {
+                              sector: label,
+                            })
                       }
                     >
                       <span className="bg-[#9b59f5] px-1.5 py-0.5 text-[9px] font-black uppercase tracking-widest text-white">
@@ -1121,7 +1135,7 @@ export function LiveTiming({
                         </>
                       ) : (
                         <span className="truncate text-[9px] uppercase tracking-[0.1em] text-muted sm:text-[10px] sm:tracking-[0.12em]">
-                          Waiting
+                          {tr(language, "liveTiming.waiting")}
                         </span>
                       )}
                     </div>
@@ -1132,15 +1146,14 @@ export function LiveTiming({
           ) : (
             <div className="flex items-center gap-2 rounded-sm border border-panel bg-track px-2 py-2">
               <span className="bg-[#9b59f5] px-1.5 py-0.5 text-[9px] font-black uppercase tracking-widest text-white shrink-0">
-                Sectors
+                {tr(language, "settings.columns.sectors")}
               </span>
               <div className="min-w-0">
                 <div className="text-[10px] font-black uppercase tracking-[0.12em] text-white">
-                  First timed lap pending
+                  {tr(language, "liveTiming.firstTimedLapPending")}
                 </div>
                 <div className="text-[10px] text-muted">
-                  Sector references will appear as soon as timed laps are
-                  registered.
+                  {tr(language, "liveTiming.sectorReferencesPending")}
                 </div>
               </div>
             </div>
@@ -1157,47 +1170,47 @@ export function LiveTiming({
                 <th
                   className={`${mobilePositionColumnClass} ${headerCellClass} text-left w-8`}
                 >
-                  P
+                  {tr(language, "settings.columns.p")}
                 </th>
               )}
               {columns.driver && (
                 <th className={`${mobileDriverColumnClass} ${driverColClass}`}>
-                  Driver
+                  {tr(language, "settings.columns.driver")}
                 </th>
               )}
               {columns.alerts && (
                 <th
                   className={`${mobileAlertsColumnClass} ${headerCellClass} text-center w-[2rem] lg:w-[2.25rem]`}
                 >
-                  Alerts
+                  {tr(language, "settings.columns.alerts")}
                 </th>
               )}
               {columns.bestLap && (
                 <th
                   className={`${mobileBestLapColumnClass} ${headerCellClass} text-right w-[4.25rem] min-[390px]:w-[4.75rem] sm:w-[5rem]`}
                 >
-                  Best Lap
+                  {tr(language, "settings.columns.bestlap")}
                 </th>
               )}
               {columns.lastLap && (
                 <th
                   className={`${mobileLastLapColumnClass} ${headerCellClass} text-right w-[4.25rem] min-[390px]:w-[4.75rem] sm:w-[5rem]`}
                 >
-                  Last Lap
+                  {tr(language, "settings.columns.lastlap")}
                 </th>
               )}
               {columns.gap && (
                 <th
                   className={`${mobileGapColumnClass} ${headerCellClass} text-right w-[4.25rem] min-[390px]:w-[4.75rem] sm:w-[5rem]`}
                 >
-                  Gap
+                  {tr(language, "settings.columns.gap")}
                 </th>
               )}
               {showIntervalColumn && columns.interval && (
                 <th
                   className={`${mobileIntervalColumnClass} ${headerCellClass} text-right w-[4.25rem] min-[390px]:w-[4.75rem] sm:w-[5rem]`}
                 >
-                  Interval
+                  {tr(language, "settings.columns.interval")}
                 </th>
               )}
               {columns.s1 && (
@@ -1225,28 +1238,28 @@ export function LiveTiming({
                 <th
                   className={`${mobilePosDeltaColumnClass} ${headerCellClass} text-left w-[2.75rem] min-[390px]:w-[2.25rem] sm:w-[2.5rem]`}
                 >
-                  Pos
+                  {tr(language, "settings.columns.pos")}
                 </th>
               )}
               {columns.tyre && (
                 <th
                   className={`${mobileTyreColumnClass} ${headerCellClass} text-left w-[2.25rem] lg:w-[2.5rem]`}
                 >
-                  Tyre
+                  {tr(language, "settings.columns.tyre")}
                 </th>
               )}
               {columns.pit && (
                 <th
                   className={`${mobilePitCountColumnClass} ${headerCellClass} text-center w-[2.25rem] lg:w-[2.5rem]`}
                 >
-                  Pit
+                  {tr(language, "settings.columns.pit")}
                 </th>
               )}
               {columns.currentLap && (
                 <th
                   className={`${mobileCurrentLapColumnClass} ${headerCellClass} text-center w-16`}
                 >
-                  Lap
+                  {tr(language, "settings.columns.lap")}
                 </th>
               )}
               {showTelemetry && (
@@ -1255,7 +1268,9 @@ export function LiveTiming({
                     <th
                       className={`${headerCellClass} ${speedColumnClass} text-right w-[3rem]`}
                     >
-                      <span className="block leading-none">Speed</span>
+                      <span className="block leading-none">
+                        {tr(language, "settings.columns.speed")}
+                      </span>
                       <span className="block text-[8px] normal-case tracking-normal text-muted leading-none mt-0.5">
                         {speedUnitShort}
                       </span>
@@ -1265,28 +1280,28 @@ export function LiveTiming({
                     <th
                       className={`${headerCellClass} ${gearColumnClass} text-center w-6`}
                     >
-                      Gear
+                      {tr(language, "settings.columns.gear")}
                     </th>
                   )}
                   {columns.rpm && (
                     <th
                       className={`${headerCellClass} ${rpmColumnClass} text-right w-[3.5rem]`}
                     >
-                      RPM
+                      {tr(language, "settings.columns.rpm")}
                     </th>
                   )}
                   {columns.thrBrk && (
                     <th
                       className={`${headerCellClass} ${pedalColumnClass} text-center ${pedalHeaderWidthClass}`}
                     >
-                      Thr/Brk
+                      {tr(language, "settings.columns.thrbrk")}
                     </th>
                   )}
                   {showDrs && columns.drs && (
                     <th
                       className={`${headerCellClass} ${drsColumnClass} text-center ${drsHeaderWidthClass}`}
                     >
-                      DRS
+                      {tr(language, "settings.columns.drs")}
                     </th>
                   )}
                 </>
@@ -1308,11 +1323,15 @@ export function LiveTiming({
                 penaltyStatus === "investigating" || penaltyStatus === "noted";
               const hasPenaltyMarker = penaltyStatus === "penalty";
               const investigationTitle = markerDetail
-                ? `Under investigation: ${markerDetail}`
-                : "Under investigation";
+                ? tr(language, "liveTiming.underInvestigationDetail", {
+                    detail: markerDetail,
+                  })
+                : tr(language, "liveTiming.underInvestigation");
               const penaltyTitle = markerDetail
-                ? `Penalty issued: ${markerDetail}`
-                : "Penalty issued";
+                ? tr(language, "liveTiming.penaltyIssuedDetail", {
+                    detail: markerDetail,
+                  })
+                : tr(language, "liveTiming.penaltyIssued");
               const lastLap = lastLapMap.get(num) ?? null;
               const bestLap = bestLapMap.get(num) ?? null;
               const currentLap = currentLapMap.get(num) ?? null;
@@ -1334,7 +1353,11 @@ export function LiveTiming({
               const gearDisplay = car
                 ? String(car.n_gear === 0 ? "N" : car.n_gear)
                 : "-";
-              const drsDisplay = car ? (car.drs >= 10 ? "ON" : "OFF") : "--";
+              const drsDisplay = car
+                ? car.drs >= 10
+                  ? tr(language, "liveTiming.on")
+                  : tr(language, "liveTiming.off")
+                : "--";
               const pb = personalBestMap.get(num) ?? {
                 s1: null,
                 s2: null,
@@ -1435,7 +1458,7 @@ export function LiveTiming({
                   <span
                     className={`inline-flex bg-[#3a214a] text-[#e7c7ff] font-black uppercase tracking-widest ${statusBadgeClass}`}
                   >
-                    OUT {row.eliminatedPhase}
+                    {tr(language, "liveTiming.out")} {row.eliminatedPhase}
                   </span>
                 );
               } else if (retired) {
@@ -1443,7 +1466,7 @@ export function LiveTiming({
                   <span
                     className={`hidden min-[390px]:inline-flex bg-[#3a1010] text-[#ff5252] font-black uppercase tracking-widest ${statusBadgeClass}`}
                   >
-                    RET
+                    {tr(language, "liveTiming.ret")}
                   </span>
                 );
               } else if (isOutlap) {
@@ -1451,7 +1474,7 @@ export function LiveTiming({
                   <span
                     className={`bg-[#4b5563] text-[#d0d5dd] font-black uppercase tracking-widest ${statusBadgeClass}`}
                   >
-                    OUTLAP
+                    {tr(language, "liveTiming.outlap")}
                   </span>
                 );
               } else if (inPit) {
@@ -1459,7 +1482,7 @@ export function LiveTiming({
                   <span
                     className={`bg-[#f5a623] text-black font-black uppercase tracking-widest animate-pulse ${statusBadgeClass}`}
                   >
-                    PIT
+                    {tr(language, "liveTiming.pit")}
                   </span>
                 );
               }
@@ -1556,7 +1579,9 @@ export function LiveTiming({
                               )}
                               {columns.rpm && (
                                 <span className="inline-flex min-w-0 items-center gap-1 text-[#c4b5fd]">
-                                  <span className="text-[#a79ac9]">RPM</span>
+                                  <span className="text-[#a79ac9]">
+                                    {tr(language, "settings.columns.rpm")}
+                                  </span>
                                   <span className="w-[5ch] text-right">
                                     {rpmDisplay}
                                   </span>
@@ -1564,7 +1589,9 @@ export function LiveTiming({
                               )}
                               {columns.gear && (
                                 <span className="inline-flex min-w-0 items-center gap-1 text-[#fde68a]">
-                                  <span className="text-[#d2bf72]">G</span>
+                                  <span className="text-[#d2bf72]">
+                                    {tr(language, "liveTiming.gearShort")}
+                                  </span>
                                   <span className="w-[3ch] text-right">
                                     {gearDisplay}
                                   </span>
@@ -1574,7 +1601,9 @@ export function LiveTiming({
                                 <span
                                   className={`inline-flex min-w-0 items-center gap-1 ${car && car.drs >= 10 ? "text-[#39d743]" : "text-[#9ca3af]"}`}
                                 >
-                                  <span className="text-[#9ba1a8]">DRS</span>
+                                  <span className="text-[#9ba1a8]">
+                                    {tr(language, "settings.columns.drs")}
+                                  </span>
                                   <span className="w-[3ch] text-right">
                                     {drsDisplay}
                                   </span>
@@ -1583,13 +1612,19 @@ export function LiveTiming({
                               {columns.thrBrk && (
                                 <span className="col-span-2 inline-flex min-w-0 items-center justify-start gap-1.5">
                                   <MobilePedalMeter
-                                    label="T"
+                                    label={tr(
+                                      language,
+                                      "liveTiming.throttleShort",
+                                    )}
                                     value={car ? car.throttle : null}
                                     color="#39d743"
                                     labelClassName="text-[#6eb989]"
                                   />
                                   <MobilePedalMeter
-                                    label="B"
+                                    label={tr(
+                                      language,
+                                      "liveTiming.brakeShort",
+                                    )}
                                     value={car ? car.brake : null}
                                     color="#ff5252"
                                     labelClassName="text-[#c88787]"
@@ -1615,7 +1650,11 @@ export function LiveTiming({
                             <StatusBadgeTooltip
                               label="!"
                               tooltip={investigationTitle}
-                              ariaLabel="Under investigation"
+                              ariaLabel={tr(
+                                language,
+                                "liveTiming.underInvestigation",
+                              )}
+                              title={tr(language, "liveTiming.status")}
                               badgeClassName={`bg-[#f5a623] text-black font-black uppercase tracking-widest cursor-help ${statusBadgeClass}`}
                               tooltipAccentClassName="bg-[#f5a623]"
                             />
@@ -1624,7 +1663,11 @@ export function LiveTiming({
                             <StatusBadgeTooltip
                               label="!"
                               tooltip={penaltyTitle}
-                              ariaLabel="Penalty issued"
+                              ariaLabel={tr(
+                                language,
+                                "liveTiming.penaltyIssued",
+                              )}
+                              title={tr(language, "liveTiming.status")}
                               badgeClassName={`bg-[#ff5252] text-white font-black uppercase tracking-widest cursor-help ${statusBadgeClass}`}
                               tooltipAccentClassName="bg-[#ff5252]"
                             />
@@ -1660,7 +1703,7 @@ export function LiveTiming({
                     <td
                       className={`${mobileGapColumnClass} ${rowCellPad} align-middle px-1 text-right font-mono ${dense ? "text-[9px] min-[390px]:text-[10px]" : "text-[10px] min-[390px]:text-[11px]"} tabular-nums text-muted sm:px-2`}
                     >
-                      {fmtGap(gapValue)}
+                      {fmtGap(gapValue, language)}
                     </td>
                   )}
 
@@ -1684,7 +1727,11 @@ export function LiveTiming({
                           segments={lastLap?.segments_sector_1}
                           showMinisectors={showMinisectors}
                           widthClass={sectorBarWidthClass}
-                          title={`S1: ${lastLap?.duration_sector_1?.toFixed(3) ?? "—"}`}
+                          title={tr(language, "liveTiming.sectorTitle", {
+                            sector: "S1",
+                            value:
+                              lastLap?.duration_sector_1?.toFixed(3) ?? "—",
+                          })}
                         />
                         {wideSectors && (
                           <span className="text-[9px] font-mono tabular-nums text-muted leading-none">
@@ -1704,7 +1751,11 @@ export function LiveTiming({
                           segments={lastLap?.segments_sector_2}
                           showMinisectors={showMinisectors}
                           widthClass={sectorBarWidthClass}
-                          title={`S2: ${lastLap?.duration_sector_2?.toFixed(3) ?? "—"}`}
+                          title={tr(language, "liveTiming.sectorTitle", {
+                            sector: "S2",
+                            value:
+                              lastLap?.duration_sector_2?.toFixed(3) ?? "—",
+                          })}
                         />
                         {wideSectors && (
                           <span className="text-[9px] font-mono tabular-nums text-muted leading-none">
@@ -1724,7 +1775,11 @@ export function LiveTiming({
                           segments={lastLap?.segments_sector_3}
                           showMinisectors={showMinisectors}
                           widthClass={sectorBarWidthClass}
-                          title={`S3: ${lastLap?.duration_sector_3?.toFixed(3) ?? "—"}`}
+                          title={tr(language, "liveTiming.sectorTitle", {
+                            sector: "S3",
+                            value:
+                              lastLap?.duration_sector_3?.toFixed(3) ?? "—",
+                          })}
                         />
                         {wideSectors && (
                           <span className="text-[9px] font-mono tabular-nums text-muted leading-none">
@@ -1741,8 +1796,13 @@ export function LiveTiming({
                       className={`${mobilePosDeltaColumnClass} ${rowCellPad} align-middle px-1 text-left font-black ${dense ? "text-[11px]" : "text-xs min-[390px]:text-sm"} tabular-nums sm:px-2`}
                       title={
                         startPos !== null
-                          ? `Started P${startPos}`
-                          : "Starting position unavailable"
+                          ? tr(language, "liveTiming.startedPosition", {
+                              position: startPos,
+                            })
+                          : tr(
+                              language,
+                              "liveTiming.startingPositionUnavailable",
+                            )
                       }
                     >
                       {gainedContent}
@@ -1845,7 +1905,9 @@ export function LiveTiming({
                                   ? "bg-[#39d743] text-black"
                                   : "bg-panel text-muted"
                               }`}
-                              title={`DRS raw value ${car.drs}`}
+                              title={tr(language, "liveTiming.drsRawValue", {
+                                value: car.drs,
+                              })}
                             >
                               {car.drs >= 10 ? "ON" : "OFF"}
                             </span>

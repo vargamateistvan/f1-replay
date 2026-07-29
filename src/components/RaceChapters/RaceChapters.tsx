@@ -7,6 +7,9 @@ import type {
 } from "@/timeline/raceControl";
 import { buildLapLookup, lapNumberAtMs } from "@/utils/lapLookup";
 import { isPracticeSession } from "@/utils/session";
+import { useSettings } from "@/stores/settings";
+import { FALLBACK_LANGUAGE, type SupportedLanguage } from "@/i18n/language";
+import { t } from "@/i18n/translations";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -31,46 +34,46 @@ function fmtDuration(ms: number): string {
 
 const CHAPTER_CONFIG: Record<
   ChapterKind,
-  { badge: string; bg: string; text: string; trackCls: string }
+  { badgeKey: string; bg: string; text: string; trackCls: string }
 > = {
   start: {
-    badge: "START",
+    badgeKey: "raceChapters.badges.start",
     bg: "rgb(var(--color-track) / 1)",
     text: "#9ca3af",
     trackCls: "border-l-[#636369]",
   },
   green: {
-    badge: "GREEN",
+    badgeKey: "raceChapters.badges.green",
     bg: "#14532d22",
     text: "#86efac",
     trackCls: "border-l-green-600",
   },
   safety_car: {
-    badge: "SC",
+    badgeKey: "raceChapters.badges.sc",
     bg: "#78350f22",
     text: "#fcd34d",
     trackCls: "border-l-amber-400",
   },
   vsc: {
-    badge: "VSC",
+    badgeKey: "raceChapters.badges.vsc",
     bg: "#78350f15",
     text: "#fbbf24",
     trackCls: "border-l-amber-500",
   },
   yellow: {
-    badge: "YELLOW",
+    badgeKey: "raceChapters.badges.yellow",
     bg: "#78350f22",
     text: "#fcd34d",
     trackCls: "border-l-yellow-400",
   },
   red_flag: {
-    badge: "RED",
+    badgeKey: "raceChapters.badges.red",
     bg: "#7f1d1d22",
     text: "#fca5a5",
     trackCls: "border-l-red-500",
   },
   finish: {
-    badge: "FINISH",
+    badgeKey: "raceChapters.badges.finish",
     bg: "rgb(var(--color-track) / 1)",
     text: "#9ca3af",
     trackCls: "border-l-[#636369]",
@@ -82,9 +85,14 @@ const CHAPTER_CONFIG: Record<
 interface WhatChangedCardProps {
   snapshot: WhatChangedSnapshot;
   drivers: Driver[];
+  language: SupportedLanguage;
 }
 
-function WhatChangedCard({ snapshot, drivers }: WhatChangedCardProps) {
+function WhatChangedCard({
+  snapshot,
+  drivers,
+  language,
+}: WhatChangedCardProps) {
   const driverMap = new Map(drivers.map((d) => [d.driver_number, d]));
 
   const gainers = snapshot.positionChanges
@@ -106,7 +114,7 @@ function WhatChangedCard({ snapshot, drivers }: WhatChangedCardProps) {
   return (
     <div className="mt-1 rounded border border-panel bg-track/80 text-[10px]">
       <div className="border-b border-panel px-2 py-1 text-[9px] font-black uppercase tracking-widest text-muted">
-        What Changed
+        {t(language, "raceChapters.whatChanged")}
       </div>
 
       <div className="divide-y divide-panel">
@@ -166,7 +174,7 @@ function WhatChangedCard({ snapshot, drivers }: WhatChangedCardProps) {
         {snapshot.pitsDuringWindow.length > 0 && (
           <div className="flex flex-wrap items-center gap-1 px-2 py-1">
             <span className="text-muted text-[9px] font-black uppercase tracking-widest shrink-0">
-              Pitted:
+              {t(language, "raceChapters.pitted")}
             </span>
             {snapshot.pitsDuringWindow.map((dn) => {
               const d = driverMap.get(dn);
@@ -197,6 +205,7 @@ interface ChapterRowProps {
   isCurrent: boolean;
   snapshot: WhatChangedSnapshot | null;
   drivers: Driver[];
+  language: SupportedLanguage;
   onJump: (ms: number) => void;
   onPlayWindow?: (startMs: number, endMs: number) => void;
 }
@@ -206,6 +215,7 @@ function ChapterRow({
   isCurrent,
   snapshot,
   drivers,
+  language,
   onJump,
   onPlayWindow,
 }: ChapterRowProps) {
@@ -233,17 +243,17 @@ function ChapterRow({
                 color: cfg.text,
               }}
             >
-              {cfg.badge}
+              {t(language, cfg.badgeKey)}
             </span>
             {chapter.durationMs !== null && (
               <span>{fmtDuration(chapter.durationMs)}</span>
             )}
             <span className="font-mono tabular-nums text-white/70">
-              chapter
+              {t(language, "raceChapters.chapter")}
             </span>
             {isCurrent && (
               <span className="font-black uppercase tracking-widest text-f1red">
-                NOW
+                {t(language, "raceChapters.now")}
               </span>
             )}
           </span>
@@ -253,20 +263,28 @@ function ChapterRow({
             type="button"
             onClick={() => onJump(chapter.startMs)}
             className="h-6 rounded px-2 text-[9px] font-black uppercase tracking-widest bg-panel text-muted transition-colors hover:bg-track hover:text-white"
-            aria-label={`Jump to ${chapter.label}`}
-            title={`Jump to ${chapter.label}`}
+            aria-label={t(language, "raceChapters.jumpToLabel", {
+              label: chapter.label,
+            })}
+            title={t(language, "raceChapters.jumpToLabel", {
+              label: chapter.label,
+            })}
           >
-            Jump
+            {t(language, "raceChapters.jump")}
           </button>
           {canReplayWindow && (
             <button
               type="button"
               onClick={() => onPlayWindow(chapter.startMs, chapter.endMs!)}
               className="h-6 rounded px-2 text-[9px] font-black uppercase tracking-widest bg-f1red text-white transition-colors hover:bg-red-600"
-              aria-label={`Replay ${chapter.label}`}
-              title={`Replay ${chapter.label}`}
+              aria-label={t(language, "raceChapters.replayLabel", {
+                label: chapter.label,
+              })}
+              title={t(language, "raceChapters.replayLabel", {
+                label: chapter.label,
+              })}
             >
-              Replay
+              {t(language, "raceChapters.replay")}
             </button>
           )}
           <span className="shrink-0 text-[10px] text-muted">›</span>
@@ -275,7 +293,11 @@ function ChapterRow({
 
       {/* What Changed inline card — only for completed incident windows */}
       {snapshot !== null && (
-        <WhatChangedCard snapshot={snapshot} drivers={drivers} />
+        <WhatChangedCard
+          snapshot={snapshot}
+          drivers={drivers}
+          language={language}
+        />
       )}
     </div>
   );
@@ -316,6 +338,7 @@ export function RaceChapters({
   phaseLookup = () => null,
 }: Props) {
   const [incidentOnly, setIncidentOnly] = useState(false);
+  const language = useSettings((s) => s.language ?? FALLBACK_LANGUAGE);
   const lapLookup = useMemo(
     () => buildLapLookup(laps, sessionStartMs),
     [laps, sessionStartMs],
@@ -365,7 +388,7 @@ export function RaceChapters({
   if (chapters.length === 0) {
     return (
       <div className="text-muted text-xs p-3">
-        No session loaded — select a race session to see chapters
+        {t(language, "raceChapters.noSessionLoaded")}
       </div>
     );
   }
@@ -392,10 +415,12 @@ export function RaceChapters({
               : "bg-panel text-muted hover:text-white hover:bg-track"
           }`}
         >
-          Incident Only
+          {t(language, "raceChapters.incidentOnly")}
         </button>
         <span className="text-[9px] uppercase tracking-widest text-muted">
-          {visibleChapters.length} chapters
+          {t(language, "raceChapters.chaptersCount", {
+            count: visibleChapters.length,
+          })}
         </span>
       </div>
       <div className="space-y-1">
@@ -412,8 +437,10 @@ export function RaceChapters({
                 return isQualifying && group.lapNumber !== null
                   ? `Q${group.lapNumber}`
                   : group.lapNumber !== null
-                    ? `Lap ${group.lapNumber}`
-                    : "Session";
+                    ? t(language, "raceChapters.lapWithNumber", {
+                        lap: group.lapNumber,
+                      })
+                    : t(language, "raceChapters.session");
               })()}
             </div>
             {group.chapters.map((ch) => {
@@ -428,6 +455,7 @@ export function RaceChapters({
                   isCurrent={ch.id === currentChapterId}
                   snapshot={snapshot}
                   drivers={drivers}
+                  language={language}
                   onJump={onJump}
                   onPlayWindow={onPlayWindow}
                 />

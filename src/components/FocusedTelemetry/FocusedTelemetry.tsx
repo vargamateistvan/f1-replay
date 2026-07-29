@@ -10,6 +10,8 @@ import { teamColor } from "@/utils/color";
 import { lastAtOrBefore } from "@/utils/sortedTime";
 import { useSettings } from "@/stores/settings";
 import { speedUnitLabel, toDisplaySpeed } from "@/utils/units";
+import { FALLBACK_LANGUAGE } from "@/i18n/language";
+import { t as tr } from "@/i18n/translations";
 
 interface Props {
   readonly sessionKey: number | null;
@@ -38,6 +40,7 @@ export function FocusedTelemetry({
   // than sufficient and avoids 60-fps re-renders from a direct useTimeline() call.
   const t = useCoarseTime(500);
   const metricSystem = useSettings((s) => s.metricSystem);
+  const language = useSettings((s) => s.language ?? FALLBACK_LANGUAGE);
   const chunkIdx = chunkIndexFor(t);
   const { data } = useCarDataWindow(
     sessionKey,
@@ -181,18 +184,18 @@ export function FocusedTelemetry({
           <button
             onClick={onClearCompare}
             className="ml-auto shrink-0 text-muted hover:text-white text-[10px] font-black uppercase tracking-widest"
-            aria-label="Clear comparison driver"
-            title="Clear comparison driver"
+            aria-label={tr(language, "focusedTelemetry.clearComparisonDriver")}
+            title={tr(language, "focusedTelemetry.clearComparisonDriver")}
           >
-            Clear compare
+            {tr(language, "focusedTelemetry.clearCompare")}
           </button>
         )}
 
         <button
           onClick={onClear}
           className="shrink-0 text-muted hover:text-white text-sm leading-none"
-          aria-label="Clear focus"
-          title="Clear focus"
+          aria-label={tr(language, "focusedTelemetry.clearFocus")}
+          title={tr(language, "focusedTelemetry.clearFocus")}
         >
           ✕
         </button>
@@ -200,14 +203,18 @@ export function FocusedTelemetry({
 
       {sample === null && !compareDriver && (
         <div className="mt-2 text-muted">
-          No telemetry at this point — scrub into the session
+          {tr(language, "focusedTelemetry.noTelemetryAtPoint")}
         </div>
       )}
 
       {compareTelemetry && (
         <div className="mt-3 grid gap-2 lg:grid-cols-3">
           <TelemetryChart
-            title={`Speed (${speedUnit}) · L${driverLap ?? "—"} vs L${compareDriverLap ?? "—"}`}
+            title={tr(language, "focusedTelemetry.speedComparisonTitle", {
+              speedUnit,
+              driverLap: driverLap ?? "—",
+              compareLap: compareDriverLap ?? "—",
+            })}
             xData={compareTelemetry.xData}
             yMin={0}
             yMax={speedChartMax}
@@ -215,7 +222,7 @@ export function FocusedTelemetry({
             series={compareTelemetry.speed}
           />
           <TelemetryChart
-            title="Throttle"
+            title={tr(language, "focusedTelemetry.throttle")}
             xData={compareTelemetry.xData}
             yMin={0}
             yMax={100}
@@ -223,7 +230,9 @@ export function FocusedTelemetry({
             series={compareTelemetry.throttle}
           />
           <TelemetryChart
-            title={`${driver?.name_acronym ?? "A"} ahead (+)`}
+            title={tr(language, "focusedTelemetry.aheadDelta", {
+              driver: driver?.name_acronym ?? "A",
+            })}
             xData={compareTelemetry.xData}
             height={180}
             series={compareTelemetry.delta}
@@ -253,6 +262,7 @@ function DriverStrip({
   drsOn: boolean;
   metricSystem: "metric" | "imperial";
 }) {
+  const language = useSettings((s) => s.language ?? FALLBACK_LANGUAGE);
   const speedValue = sample
     ? Math.round(toDisplaySpeed(sample.speed, metricSystem))
     : null;
@@ -270,30 +280,44 @@ function DriverStrip({
       {sample ? (
         <>
           <Metric
-            label="Speed"
+            label={tr(language, "focusedTelemetry.speed")}
             value={`${speedValue}`}
             unit={speedUnit}
             w="w-[3ch]"
           />
           <Metric
-            label="Gear"
+            label={tr(language, "focusedTelemetry.gear")}
             value={sample.n_gear === 0 ? "N" : String(sample.n_gear)}
             w="w-[1ch]"
           />
-          <Metric label="RPM" value={`${Math.round(sample.rpm)}`} w="w-[5ch]" />
-          <Bar label="Thr" value={sample.throttle} color="#39d743" />
-          <Bar label="Brk" value={sample.brake} color="#ff5252" />
+          <Metric
+            label={tr(language, "focusedTelemetry.rpm")}
+            value={`${Math.round(sample.rpm)}`}
+            w="w-[5ch]"
+          />
+          <Bar
+            label={tr(language, "focusedTelemetry.thr")}
+            value={sample.throttle}
+            color="#39d743"
+          />
+          <Bar
+            label={tr(language, "focusedTelemetry.brk")}
+            value={sample.brake}
+            color="#ff5252"
+          />
           <span
             className={`px-1.5 py-0.5 text-[10px] font-black uppercase tracking-widest ${
               drsOn ? "bg-[#39d743] text-black" : "bg-panel text-[#636369]"
             }`}
-            title="DRS"
+            title={tr(language, "focusedTelemetry.drs")}
           >
-            DRS
+            {tr(language, "focusedTelemetry.drs")}
           </span>
         </>
       ) : (
-        <span className="text-muted">No live sample</span>
+        <span className="text-muted">
+          {tr(language, "focusedTelemetry.noLiveSample")}
+        </span>
       )}
     </span>
   );

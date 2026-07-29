@@ -1,5 +1,6 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
+import { detectDefaultLanguage, type SupportedLanguage } from "@/i18n/language";
 
 // All user-configurable preferences. These are persisted to localStorage.
 export interface AppSettings {
@@ -85,6 +86,8 @@ export interface AppSettings {
   lightMode: boolean;
   // Units
   metricSystem: "metric" | "imperial";
+  // Language
+  language: SupportedLanguage;
 }
 
 interface SettingsStore extends AppSettings {
@@ -184,6 +187,7 @@ export const SETTINGS_DEFAULTS: AppSettings = {
   showNextRaceWeekendBanner: true,
   lightMode: false,
   metricSystem: "metric",
+  language: detectDefaultLanguage(),
 };
 
 export const useSettings = create<SettingsStore>()(

@@ -2,6 +2,9 @@ import { useEffect, useMemo, useState } from "react";
 import type { Driver, Position } from "@/api/types";
 import type { QualiPhase } from "@/utils/session";
 import { teamColor } from "@/utils/color";
+import { useSettings } from "@/stores/settings";
+import { FALLBACK_LANGUAGE, type SupportedLanguage } from "@/i18n/language";
+import { t as tr } from "@/i18n/translations";
 
 interface Props {
   readonly phase: QualiPhase | null;
@@ -38,6 +41,7 @@ function fmtCountdown(ms: number): string {
 function bannerMeta(
   phase: QualiPhase,
   fieldSize: number,
+  language: SupportedLanguage,
 ): {
   title: string;
   subtitle: string;
@@ -52,22 +56,24 @@ function bannerMeta(
 
   if (phase === "Q1") {
     return {
-      title: "Q1 Running",
-      subtitle: "No drivers eliminated yet",
+      title: tr(language, "qualifyingBanner.q1Running"),
+      subtitle: tr(language, "qualifyingBanner.noDriversEliminatedYet"),
       groups: [],
     };
   }
   if (phase === "Q2") {
     const q1Subtitle =
       q1EliminationCount === 1
-        ? "1 driver out"
-        : `${q1EliminationCount} drivers out`;
+        ? tr(language, "qualifyingBanner.oneDriverOut")
+        : tr(language, "qualifyingBanner.driversOut", {
+            count: q1EliminationCount,
+          });
     return {
-      title: "Q1 Eliminated",
+      title: tr(language, "qualifyingBanner.q1Eliminated"),
       subtitle: q1Subtitle,
       groups: [
         {
-          title: "Q1 Eliminated",
+          title: tr(language, "qualifyingBanner.q1Eliminated"),
           subtitle: q1Subtitle,
           range:
             q1EliminationCount > 0 ? [Math.max(1, q1MinPos), fieldSize] : null,
@@ -78,23 +84,29 @@ function bannerMeta(
 
   const q1Subtitle =
     q1EliminationCount === 1
-      ? "1 driver out"
-      : `${q1EliminationCount} drivers out`;
+      ? tr(language, "qualifyingBanner.oneDriverOut")
+      : tr(language, "qualifyingBanner.driversOut", {
+          count: q1EliminationCount,
+        });
   const q2Subtitle =
     q2EliminationCount === 1
-      ? "1 driver out"
-      : `${q2EliminationCount} drivers out`;
+      ? tr(language, "qualifyingBanner.oneDriverOut")
+      : tr(language, "qualifyingBanner.driversOut", {
+          count: q2EliminationCount,
+        });
   return {
-    title: "Q1 & Q2 Eliminated",
-    subtitle: `${Math.max(0, q1EliminationCount + q2EliminationCount)} drivers out`,
+    title: tr(language, "qualifyingBanner.q1q2Eliminated"),
+    subtitle: tr(language, "qualifyingBanner.driversOut", {
+      count: Math.max(0, q1EliminationCount + q2EliminationCount),
+    }),
     groups: [
       {
-        title: "Q2 Eliminated",
+        title: tr(language, "qualifyingBanner.q2Eliminated"),
         subtitle: q2Subtitle,
         range: q2EliminationCount > 0 ? [q2MinPos, q2MaxPos] : null,
       },
       {
-        title: "Q1 Eliminated",
+        title: tr(language, "qualifyingBanner.q1Eliminated"),
         subtitle: q1Subtitle,
         range:
           q1EliminationCount > 0 ? [Math.max(1, q1MinPos), fieldSize] : null,
@@ -116,6 +128,7 @@ export function QualifyingBanner({
 }: Props) {
   const [open, setOpen] = useState(openByDefault);
   const currentT = sessionStartMs + sessionTimeMs;
+  const language = useSettings((s) => s.language ?? FALLBACK_LANGUAGE);
 
   const driverByNumber = useMemo(
     () => new Map(drivers.map((driver) => [driver.driver_number, driver])),
@@ -139,8 +152,8 @@ export function QualifyingBanner({
 
   const meta = useMemo(() => {
     if (!phase) return null;
-    return bannerMeta(phase, fieldSize);
-  }, [phase, fieldSize]);
+    return bannerMeta(phase, fieldSize, language);
+  }, [phase, fieldSize, language]);
 
   const eliminatedGroups = useMemo(() => {
     if (!phase || !meta)
@@ -205,7 +218,7 @@ export function QualifyingBanner({
               onClick={() => setOpen(true)}
               className="rounded border border-white/10 bg-black/25 px-2 py-1 text-[10px] font-black uppercase tracking-[0.12em] text-white transition-colors hover:border-f1red/40 hover:bg-f1red/10"
             >
-              Eliminated
+              {tr(language, "qualifyingBanner.eliminated")}
             </button>
           </div>
         </div>
@@ -217,7 +230,7 @@ export function QualifyingBanner({
             <div className="flex items-center justify-between border-b border-panel px-4 py-3 sm:px-5">
               <div>
                 <div className="text-[10px] font-black uppercase tracking-[0.2em] text-f1red">
-                  {phase} Elimination
+                  {tr(language, "qualifyingBanner.phaseElimination", { phase })}
                 </div>
                 <div className="mt-1 text-sm font-black text-white sm:text-base">
                   {meta.title}
@@ -226,7 +239,10 @@ export function QualifyingBanner({
               </div>
               <button
                 onClick={() => setOpen(false)}
-                aria-label="Close elimination dialog"
+                aria-label={tr(
+                  language,
+                  "qualifyingBanner.closeEliminationDialog",
+                )}
                 className="flex h-8 w-8 items-center justify-center text-lg text-muted transition-colors hover:bg-white/5 hover:text-white"
               >
                 ×
@@ -236,7 +252,7 @@ export function QualifyingBanner({
             <div className="px-4 py-4 sm:px-5">
               {eliminatedGroups.every((group) => group.drivers.length === 0) ? (
                 <div className="rounded border border-panel bg-track px-3 py-3 text-sm text-muted">
-                  No eliminated drivers available yet.
+                  {tr(language, "qualifyingBanner.noEliminatedDrivers")}
                 </div>
               ) : (
                 <div className="space-y-4">
@@ -252,7 +268,7 @@ export function QualifyingBanner({
                       </div>
                       {group.drivers.length === 0 ? (
                         <div className="rounded border border-panel bg-track px-3 py-2 text-xs text-muted">
-                          No drivers locked out in this group yet.
+                          {tr(language, "qualifyingBanner.noDriversLockedOut")}
                         </div>
                       ) : (
                         <div className="grid gap-2 sm:grid-cols-2">
@@ -280,7 +296,7 @@ export function QualifyingBanner({
                                   {driver?.name_acronym ?? entry.driverNumber}
                                 </span>
                                 <span className="ml-auto text-[10px] uppercase tracking-[0.12em] text-white/55">
-                                  out
+                                  {tr(language, "qualifyingBanner.out")}
                                 </span>
                               </div>
                             );

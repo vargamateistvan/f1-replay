@@ -3,6 +3,8 @@ import { CloudRain, Droplets, Gauge, Thermometer, Wind } from "lucide-react";
 import type { Weather } from "@/api/types";
 import { downloadEndpointCsv } from "@/api/client";
 import { useSettings } from "@/stores/settings";
+import { FALLBACK_LANGUAGE } from "@/i18n/language";
+import { t } from "@/i18n/translations";
 import { weatherAtSessionTime } from "@/utils/weather";
 import {
   toDisplayTemperature,
@@ -50,6 +52,7 @@ export function WeatherPanel({
   const showCsvExportButtons = useSettings((s) => s.showCsvExportButtons);
   const lightMode = useSettings((s) => s.lightMode);
   const metricSystem = useSettings((s) => s.metricSystem);
+  const language = useSettings((s) => s.language ?? FALLBACK_LANGUAGE);
   const currentT = sessionStartMs + sessionTimeMs;
 
   const w = useMemo(
@@ -65,7 +68,11 @@ export function WeatherPanel({
   );
 
   if (!w) {
-    return <div className="text-muted text-xs p-3">No weather data</div>;
+    return (
+      <div className="text-muted text-xs p-3">
+        {t(language, "weatherPanel.noWeatherData")}
+      </div>
+    );
   }
 
   const isRaining = w.rainfall > 0;
@@ -107,7 +114,7 @@ export function WeatherPanel({
     >
       <div className="mb-2 flex items-center gap-2">
         <span className="text-[10px] font-black uppercase tracking-[0.16em] text-white/85">
-          Track Weather
+          {t(language, "weatherPanel.trackWeather")}
         </span>
         {sessionKey !== null && showCsvExportButtons && (
           <button
@@ -120,15 +127,15 @@ export function WeatherPanel({
               );
             }}
             className={exportButtonClass}
-            aria-label="Export weather CSV"
+            aria-label={t(language, "weatherPanel.exportCsv")}
           >
-            Export CSV
+            {t(language, "weatherPanel.exportCsv")}
           </button>
         )}
         {isRaining && (
           <span className="inline-flex items-center gap-1 bg-sky-600/85 text-white text-[9px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded-sm">
             <CloudRain size={10} strokeWidth={2.4} aria-hidden="true" />
-            Rain
+            {t(language, "weatherPanel.rain")}
           </span>
         )}
       </div>
@@ -138,7 +145,7 @@ export function WeatherPanel({
           <div className={cardClass}>
             <div className="text-[9px] font-bold uppercase tracking-widest text-muted flex items-center gap-1">
               <Thermometer size={10} strokeWidth={2.2} aria-hidden="true" />
-              Track
+              {t(language, "weatherPanel.track")}
             </div>
             <div className="font-mono tabular-nums text-sm text-white">
               {trackTemp.toFixed(1)}°{tempUnit}
@@ -150,7 +157,7 @@ export function WeatherPanel({
           <div className={cardClass}>
             <div className="text-[9px] font-bold uppercase tracking-widest text-muted flex items-center gap-1">
               <Thermometer size={10} strokeWidth={2.2} aria-hidden="true" />
-              Air
+              {t(language, "weatherPanel.air")}
             </div>
             <div className="font-mono tabular-nums text-sm text-white">
               {airTemp.toFixed(1)}°{tempUnit}
@@ -159,7 +166,7 @@ export function WeatherPanel({
           <div className={cardClass}>
             <div className="text-[9px] font-bold uppercase tracking-widest text-muted flex items-center gap-1">
               <Wind size={10} strokeWidth={2.2} aria-hidden="true" />
-              Wind
+              {t(language, "weatherPanel.wind")}
             </div>
             <div className="font-mono tabular-nums text-sm text-white">
               {windSpeed.toFixed(1)}
@@ -170,24 +177,26 @@ export function WeatherPanel({
         <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-muted">
           <span className="inline-flex items-center gap-1">
             <Droplets size={10} strokeWidth={2.2} aria-hidden="true" />
-            Humidity <span className="font-mono text-white">{w.humidity}%</span>
+            {t(language, "weatherPanel.humidity")}{" "}
+            <span className="font-mono text-white">{w.humidity}%</span>
           </span>
           <span className="inline-flex items-center gap-1">
             <Gauge size={10} strokeWidth={2.2} aria-hidden="true" />
-            Pressure{" "}
+            {t(language, "weatherPanel.pressure")}{" "}
             <span className="font-mono text-white">
               {w.pressure.toFixed(0)} hPa
             </span>
           </span>
           <span>
-            Dir <span className="font-mono text-white">{windArrow}</span>
+            {t(language, "weatherPanel.direction")}{" "}
+            <span className="font-mono text-white">{windArrow}</span>
           </span>
         </div>
       </div>
       <div className="hidden grid-cols-[auto_1fr_auto_1fr] gap-x-4 gap-y-1 sm:grid">
         <span className="text-[10px] font-bold uppercase tracking-widest text-muted flex items-center gap-1">
           <Thermometer size={12} strokeWidth={2.2} aria-hidden="true" />
-          Track
+          {t(language, "weatherPanel.track")}
         </span>
         <span className="font-mono tabular-nums text-xs">
           {trackTemp.toFixed(1)}°{tempUnit}
@@ -197,7 +206,7 @@ export function WeatherPanel({
         </span>
         <span className="text-[10px] font-bold uppercase tracking-widest text-muted flex items-center gap-1">
           <Thermometer size={12} strokeWidth={2.2} aria-hidden="true" />
-          Air
+          {t(language, "weatherPanel.air")}
         </span>
         <span className="font-mono tabular-nums text-xs">
           {airTemp.toFixed(1)}°{tempUnit}
@@ -205,12 +214,12 @@ export function WeatherPanel({
 
         <span className="text-[10px] font-bold uppercase tracking-widest text-muted flex items-center gap-1">
           <Droplets size={12} strokeWidth={2.2} aria-hidden="true" />
-          Humidity
+          {t(language, "weatherPanel.humidity")}
         </span>
         <span className="font-mono tabular-nums text-xs">{w.humidity}%</span>
         <span className="text-[10px] font-bold uppercase tracking-widest text-muted flex items-center gap-1">
           <Gauge size={12} strokeWidth={2.2} aria-hidden="true" />
-          Pressure
+          {t(language, "weatherPanel.pressure")}
         </span>
         <span className="font-mono tabular-nums text-xs">
           {w.pressure.toFixed(0)} hPa
@@ -218,7 +227,7 @@ export function WeatherPanel({
 
         <span className="text-[10px] font-bold uppercase tracking-widest text-muted flex items-center gap-1">
           <Wind size={12} strokeWidth={2.2} aria-hidden="true" />
-          Wind
+          {t(language, "weatherPanel.wind")}
         </span>
         <span className="font-mono tabular-nums text-xs col-span-3">
           {windSpeed.toFixed(1)} {windUnit} {windArrow}

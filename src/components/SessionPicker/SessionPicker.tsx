@@ -5,6 +5,9 @@ import { YEARS } from "@/constants";
 import { useCallback, useEffect, useState, useRef } from "react";
 import { toSafeExternalUrl } from "@/utils/url";
 import { trackEvent } from "@/lib/analytics";
+import { useSettings } from "@/stores/settings";
+import { FALLBACK_LANGUAGE } from "@/i18n/language";
+import { t } from "@/i18n/translations";
 
 interface Props {
   year: number;
@@ -16,9 +19,9 @@ interface Props {
 }
 
 const CIRCUIT_TYPE_LABEL: Record<string, string> = {
-  Permanent: "Permanent",
-  "Temporary - Street": "Street Circuit",
-  "Temporary - Road": "Road Course",
+  Permanent: "nav.circuitTypes.permanent",
+  "Temporary - Street": "nav.circuitTypes.street",
+  "Temporary - Road": "nav.circuitTypes.road",
 };
 
 const SELECT =
@@ -32,6 +35,7 @@ export function SessionPicker({
   onMeeting,
   onSession,
 }: Props) {
+  const language = useSettings((s) => s.language ?? FALLBACK_LANGUAGE);
   const meetings = useMeetings(year);
   const sessions = useSessions(meetingKey);
   const [selectLatestSessionOnLoad, setSelectLatestSessionOnLoad] =
@@ -117,20 +121,22 @@ export function SessionPicker({
     <div>
       {authFailed && (
         <div className="bg-f1red/15 border-b border-f1red/40 px-4 py-1.5 text-[11px] text-red-300 font-mono">
-          OpenF1 returned <span className="font-bold">401/403</span> — the API
-          is rejecting requests. Historical data is normally free; if it now
-          requires a token, set{" "}
-          <span className="font-bold">VITE_OPENF1_API_KEY</span> in{" "}
-          <span className="font-bold">.env.local</span> and restart.
+          {t(language, "sessionPicker.authErrorPrefix")}{" "}
+          <span className="font-bold">401/403</span>{" "}
+          {t(language, "sessionPicker.authErrorBody")}{" "}
+          <span className="font-bold">VITE_OPENF1_API_KEY</span>{" "}
+          {t(language, "sessionPicker.authErrorIn")}{" "}
+          <span className="font-bold">.env.local</span>{" "}
+          {t(language, "sessionPicker.authErrorRestart")}
         </div>
       )}
       <div className="bg-surface border-b border-panel light:bg-white light:border-slate-300/80">
         <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 px-4 py-2 light:bg-white">
           <span className="text-[10px] font-bold uppercase tracking-widest text-muted">
-            Year
+            {t(language, "nav.year")}
           </span>
           <select
-            aria-label="Season year"
+            aria-label={t(language, "nav.seasonYear")}
             value={year}
             onChange={(e) => {
               const now = Date.now();
@@ -163,15 +169,15 @@ export function SessionPicker({
           </select>
 
           <span className="text-[10px] font-bold uppercase tracking-widest text-muted">
-            Event
+            {t(language, "nav.event")}
           </span>
           {meetings.isError ? (
             <span className="text-red-400 font-mono text-[11px]">
-              Failed to load events
+              {t(language, "nav.failedLoadEvents")}
             </span>
           ) : (
             <select
-              aria-label="Event"
+              aria-label={t(language, "nav.event")}
               value={meetingKey ?? ""}
               onChange={(e) => {
                 const now = Date.now();
@@ -208,7 +214,9 @@ export function SessionPicker({
               disabled={meetings.isPending}
               className={`${SELECT} min-w-44`}
             >
-              <option value="">— select —</option>
+              <option value="">
+                {t(language, "sessionPicker.selectPlaceholder")}
+              </option>
               {meetings.data?.map((m) => (
                 <option key={m.meeting_key} value={m.meeting_key}>
                   {m.location} — {m.meeting_name}
@@ -218,15 +226,15 @@ export function SessionPicker({
           )}
 
           <span className="text-[10px] font-bold uppercase tracking-widest text-muted">
-            Session
+            {t(language, "nav.session")}
           </span>
           {sessions.isError ? (
             <span className="text-red-400 font-mono text-[11px]">
-              Failed to load sessions
+              {t(language, "nav.failedLoadSessions")}
             </span>
           ) : (
             <select
-              aria-label="Session"
+              aria-label={t(language, "nav.session")}
               value={sessionKey ?? ""}
               onChange={(e) => {
                 const now = Date.now();
@@ -261,7 +269,9 @@ export function SessionPicker({
               disabled={sessions.isPending || !meetingKey}
               className={SELECT}
             >
-              <option value="">— select —</option>
+              <option value="">
+                {t(language, "sessionPicker.selectPlaceholder")}
+              </option>
               {sessions.data?.map((s) => (
                 <option key={s.session_key} value={s.session_key}>
                   {s.session_name}
@@ -273,13 +283,13 @@ export function SessionPicker({
           {live && (
             <span className="flex items-center gap-1.5 bg-f1red text-white text-[10px] font-black uppercase tracking-widest px-2 py-1">
               <span className="w-1.5 h-1.5 rounded-full bg-white animate-pulse" />
-              Live
+              {t(language, "nav.live")}
             </span>
           )}
 
           {(meetings.isPending || sessions.isPending) && (
             <span className="text-muted text-[10px] animate-pulse">
-              Loading…
+              {t(language, "nav.loading")}
             </span>
           )}
 
@@ -289,7 +299,7 @@ export function SessionPicker({
             disabled={meetings.isPending || !meetings.data?.length}
             className="h-7 px-2 text-[10px] font-black uppercase tracking-widest rounded bg-track text-muted hover:text-white hover:bg-panel disabled:opacity-40 disabled:cursor-not-allowed light:bg-white light:text-slate-600 light:border light:border-slate-300 light:hover:text-slate-900 light:hover:bg-slate-100"
           >
-            Latest Event
+            {t(language, "sessionPicker.latestEvent")}
           </button>
         </div>
 
@@ -298,7 +308,9 @@ export function SessionPicker({
             {selectedCircuitImageUrl && (
               <img
                 src={selectedCircuitImageUrl}
-                alt={`${selectedMeeting.circuit_short_name} circuit`}
+                alt={t(language, "sessionPicker.circuitAlt", {
+                  circuit: selectedMeeting.circuit_short_name,
+                })}
                 className="hidden sm:block h-6 w-8 object-cover rounded-sm border border-panel/80"
                 loading="lazy"
                 referrerPolicy="no-referrer"
@@ -307,7 +319,9 @@ export function SessionPicker({
             {selectedCountryFlagUrl && (
               <img
                 src={selectedCountryFlagUrl}
-                alt={`${selectedMeeting.country_name} flag`}
+                alt={t(language, "sessionPicker.countryFlagAlt", {
+                  country: selectedMeeting.country_name,
+                })}
                 className="h-4 w-6 object-cover rounded-[2px] border border-panel/80"
                 loading="lazy"
                 referrerPolicy="no-referrer"
@@ -317,12 +331,13 @@ export function SessionPicker({
               {selectedMeeting.meeting_name}
             </span>
             <span className="text-[9px] text-muted uppercase tracking-widest">
-              {CIRCUIT_TYPE_LABEL[selectedMeeting.circuit_type] ??
-                selectedMeeting.circuit_type}
+              {CIRCUIT_TYPE_LABEL[selectedMeeting.circuit_type]
+                ? t(language, CIRCUIT_TYPE_LABEL[selectedMeeting.circuit_type]!)
+                : selectedMeeting.circuit_type}
             </span>
             {selectedMeeting.is_cancelled && (
               <span className="bg-red-500/15 border border-red-500/40 text-red-300 text-[9px] font-bold uppercase tracking-widest px-1.5 py-0.5 rounded-sm">
-                Cancelled
+                {t(language, "nav.cancelled")}
               </span>
             )}
           </div>

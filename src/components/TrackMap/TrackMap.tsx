@@ -29,6 +29,8 @@ import { useMediaQuery } from "@/hooks/useMediaQuery";
 import { buildIndex, interpolateXY } from "@/timeline/interpolate";
 import { teamColor } from "@/utils/color";
 import { useSettings } from "@/stores/settings";
+import { FALLBACK_LANGUAGE } from "@/i18n/language";
+import { t as tr } from "@/i18n/translations";
 import { resampleToAxis } from "@/utils/telemetry";
 import {
   speedUnitLabel,
@@ -314,6 +316,7 @@ export function TrackMap({
   const t = useCoarseTime(100);
   const lightMode = useSettings((s) => s.lightMode);
   const metricSystem = useSettings((s) => s.metricSystem);
+  const language = useSettings((s) => s.language ?? FALLBACK_LANGUAGE);
   const mapShowDriverAcronym = useSettings((s) => s.mapShowDriverAcronym);
   const mapShowDriverNumberInside = useSettings(
     (s) => s.mapShowDriverNumberInside,
@@ -1565,7 +1568,7 @@ export function TrackMap({
   if (!sessionKey) {
     return (
       <div className="flex items-center justify-center w-full h-full text-muted text-sm">
-        Select a session to load the track
+        {tr(language, "trackMap.selectSessionToLoadTrack")}
       </div>
     );
   }
@@ -1573,7 +1576,7 @@ export function TrackMap({
   if (isPending && !outline) {
     return (
       <div className="flex items-center justify-center w-full h-full text-muted text-sm animate-pulse">
-        Loading track outline…
+        {tr(language, "trackMap.loadingTrackOutline")}
       </div>
     );
   }
@@ -1581,7 +1584,7 @@ export function TrackMap({
   if (!outline) {
     return (
       <div className="flex items-center justify-center w-full h-full text-muted text-sm">
-        No location data available for this session
+        {tr(language, "trackMap.noLocationDataForSession")}
       </div>
     );
   }
@@ -2375,7 +2378,7 @@ export function TrackMap({
                 });
               }}
               className="w-7 h-7 flex items-center justify-center border border-panel text-white/85 hover:text-white hover:border-white/50 transition-colors"
-              title="Zoom out"
+              title={tr(language, "trackMap.zoomOut")}
             >
               <ZoomOut size={14} strokeWidth={2.2} aria-hidden="true" />
             </button>
@@ -2390,7 +2393,7 @@ export function TrackMap({
                 });
               }}
               className="w-7 h-7 flex items-center justify-center border border-panel text-white/85 hover:text-white hover:border-white/50 transition-colors"
-              title="Zoom in"
+              title={tr(language, "trackMap.zoomIn")}
             >
               <ZoomIn size={14} strokeWidth={2.2} aria-hidden="true" />
             </button>
@@ -2402,7 +2405,7 @@ export function TrackMap({
                 persistZoomLevel(1);
               }}
               className="w-7 h-7 flex items-center justify-center border border-panel text-white/85 hover:text-white hover:border-white/50 transition-colors"
-              title="Reset zoom"
+              title={tr(language, "trackMap.resetZoom")}
             >
               <Search size={14} strokeWidth={2.2} aria-hidden="true" />
             </button>
@@ -2417,7 +2420,7 @@ export function TrackMap({
                 rotateLeft();
               }}
               className="w-7 h-7 flex items-center justify-center border border-panel text-white/85 hover:text-white hover:border-white/50 transition-colors"
-              title="Rotate left"
+              title={tr(language, "trackMap.rotateLeft")}
             >
               <RotateCcw size={14} strokeWidth={2.2} aria-hidden="true" />
             </button>
@@ -2430,7 +2433,7 @@ export function TrackMap({
                 rotateRight();
               }}
               className="w-7 h-7 flex items-center justify-center border border-panel text-white/85 hover:text-white hover:border-white/50 transition-colors"
-              title="Rotate right"
+              title={tr(language, "trackMap.rotateRight")}
             >
               <RotateCw size={14} strokeWidth={2.2} aria-hidden="true" />
             </button>
@@ -2443,7 +2446,7 @@ export function TrackMap({
                 setAndPersistRotation(defaultRotationDeg);
               }}
               className="w-7 h-7 flex items-center justify-center border border-panel text-white/85 hover:text-white hover:border-white/50 transition-colors"
-              title="Reset rotation"
+              title={tr(language, "trackMap.resetRotation")}
             >
               <LocateFixed size={14} strokeWidth={2.2} aria-hidden="true" />
             </button>
@@ -2461,7 +2464,7 @@ export function TrackMap({
           }}
         >
           <div className="flex items-center justify-between text-[8px] font-black uppercase tracking-[0.14em] text-muted">
-            <span>Lap Speed</span>
+            <span>{tr(language, "trackMap.lapSpeed")}</span>
             <span>{speedUnit}</span>
           </div>
           <div
@@ -2473,7 +2476,9 @@ export function TrackMap({
           />
           <div className="mt-1 flex items-center justify-between text-[9px] font-mono tabular-nums text-white">
             <span>{heatStats.min}</span>
-            <span className="text-muted">AVG {heatStats.avg}</span>
+            <span className="text-muted">
+              {tr(language, "trackMap.avg")} {heatStats.avg}
+            </span>
             <span>{heatStats.max}</span>
           </div>
         </div>
@@ -2486,9 +2491,9 @@ export function TrackMap({
             background: overlayBackground,
             backdropFilter: "blur(4px)",
           }}
-          title="Using coarse circuit layout fallback because baked geometry and GPS outline data were unavailable"
+          title={tr(language, "trackMap.fallbackTooltip")}
         >
-          Fallback layout
+          {tr(language, "trackMap.fallbackLayout")}
         </div>
       )}
 
@@ -2504,12 +2509,12 @@ export function TrackMap({
           >
             <div className="flex items-center gap-1.5 text-[8px] font-black uppercase tracking-[0.14em] text-muted">
               <Clock3 size={10} strokeWidth={2.2} aria-hidden="true" />
-              Track Time
+              {tr(language, "trackMap.trackTime")}
             </div>
             <div className="mt-1.5 grid grid-cols-2 gap-x-3 gap-y-1">
               <div className="flex items-center justify-between gap-2">
                 <span className="text-[8px] uppercase tracking-[0.12em] text-muted">
-                  Track
+                  {tr(language, "trackMap.track")}
                 </span>
                 <span className="text-[10px] font-mono tabular-nums text-white text-right">
                   {trackClock}
@@ -2517,17 +2522,17 @@ export function TrackMap({
               </div>
               <div className="flex items-center justify-between gap-2">
                 <span className="text-[8px] uppercase tracking-[0.12em] text-muted">
-                  Local
+                  {tr(language, "trackMap.local")}
                 </span>
                 <span className="text-[10px] font-mono tabular-nums text-white text-right">
                   {localClock}
                 </span>
               </div>
               <span className="col-span-2 text-[7px] uppercase tracking-[0.12em] text-muted">
-                Track timezone: {trackTimeZoneId}
+                {tr(language, "trackMap.trackTimezone")}: {trackTimeZoneId}
               </span>
               <span className="col-span-2 text-[7px] uppercase tracking-[0.12em] text-muted">
-                Local timezone: {browserTimeZone}
+                {tr(language, "trackMap.localTimezone")}: {browserTimeZone}
               </span>
             </div>
           </div>
@@ -2543,10 +2548,10 @@ export function TrackMap({
           >
             <div className="flex items-center gap-1.5 text-[8px] font-black uppercase tracking-[0.14em] text-muted">
               <CloudRain size={10} strokeWidth={2.2} aria-hidden="true" />
-              Track Weather
+              {tr(language, "trackMap.trackWeather")}
               {weatherOverlay.rainfall > 0 && (
                 <span className="ml-auto inline-flex items-center rounded-sm bg-sky-600/85 px-1 py-0.5 text-[7px] font-black tracking-[0.12em] text-white">
-                  Rain
+                  {tr(language, "trackMap.rain")}
                 </span>
               )}
             </div>
@@ -2559,7 +2564,7 @@ export function TrackMap({
                       strokeWidth={2.1}
                       aria-hidden="true"
                     />
-                    Track
+                    {tr(language, "trackMap.track")}
                   </span>
                   <span className="text-[10px] font-mono tabular-nums text-white text-right">
                     {toDisplayTemperature(
@@ -2572,7 +2577,7 @@ export function TrackMap({
                 <div className="flex items-center justify-between gap-2">
                   <span className="inline-flex items-center gap-1 text-[8px] uppercase tracking-[0.12em] text-muted">
                     <Droplets size={9} strokeWidth={2.1} aria-hidden="true" />
-                    Hum
+                    {tr(language, "trackMap.hum")}
                   </span>
                   <span className="text-[10px] font-mono tabular-nums text-white text-right">
                     {weatherOverlay.humidity}%
@@ -2581,7 +2586,7 @@ export function TrackMap({
                 <div className="flex items-center justify-between gap-2">
                   <span className="inline-flex items-center gap-1 text-[8px] uppercase tracking-[0.12em] text-muted">
                     <Wind size={9} strokeWidth={2.1} aria-hidden="true" />
-                    Wind
+                    {tr(language, "trackMap.wind")}
                   </span>
                   <span className="text-[10px] font-mono tabular-nums text-white text-right">
                     {toDisplayWindSpeed(
@@ -2600,7 +2605,7 @@ export function TrackMap({
                       strokeWidth={2.1}
                       aria-hidden="true"
                     />
-                    Air
+                    {tr(language, "trackMap.air")}
                   </span>
                   <span className="text-[10px] font-mono tabular-nums text-white text-right">
                     {toDisplayTemperature(
@@ -2613,7 +2618,7 @@ export function TrackMap({
                 <div className="flex items-center justify-between gap-2">
                   <span className="inline-flex items-center gap-1 text-[8px] uppercase tracking-[0.12em] text-muted">
                     <Gauge size={9} strokeWidth={2.1} aria-hidden="true" />
-                    Press
+                    {tr(language, "trackMap.press")}
                   </span>
                   <span className="text-[10px] font-mono tabular-nums text-white text-right">
                     {weatherOverlay.pressure.toFixed(0)} hPa
@@ -2621,7 +2626,7 @@ export function TrackMap({
                 </div>
                 <div className="flex items-center justify-between gap-2">
                   <span className="text-[8px] uppercase tracking-[0.12em] text-muted">
-                    Dir/Rain
+                    {tr(language, "trackMap.dirRain")}
                   </span>
                   <span className="text-[10px] font-mono tabular-nums text-right">
                     <span className="text-white">
@@ -2635,7 +2640,9 @@ export function TrackMap({
                           : "text-muted"
                       }
                     >
-                      {weatherOverlay.rainfall > 0 ? "YES" : "NO"}
+                      {weatherOverlay.rainfall > 0
+                        ? tr(language, "trackMap.yes")
+                        : tr(language, "trackMap.no")}
                     </span>
                   </span>
                 </div>
@@ -2681,7 +2688,9 @@ export function TrackMap({
               </div>
               {/* Throttle bar */}
               <div className="flex items-center gap-1.5">
-                <span className="text-[8px] text-muted w-5 shrink-0">THR</span>
+                <span className="text-[8px] text-muted w-5 shrink-0">
+                  {tr(language, "trackMap.thr")}
+                </span>
                 <div className="flex-1 h-1.5 bg-panel rounded-sm overflow-hidden">
                   <div
                     className="h-full bg-[#39b54a] rounded-sm transition-none"
@@ -2691,7 +2700,9 @@ export function TrackMap({
               </div>
               {/* Brake bar */}
               <div className="flex items-center gap-1.5">
-                <span className="text-[8px] text-muted w-5 shrink-0">BRK</span>
+                <span className="text-[8px] text-muted w-5 shrink-0">
+                  {tr(language, "trackMap.brk")}
+                </span>
                 <div className="flex-1 h-1.5 bg-panel rounded-sm overflow-hidden">
                   <div
                     className="h-full bg-f1red rounded-sm transition-none"
@@ -2715,7 +2726,7 @@ export function TrackMap({
                 className="px-1.5 py-0.5 text-[8px] font-black uppercase tracking-[0.14em] text-muted text-center"
                 style={{ background: overlayBackground }}
               >
-                Sectors
+                {tr(language, "trackMap.sectors")}
               </div>
               <div className="flex gap-px">
                 {([1, 2, 3] as const).map((sectorNum) => {
@@ -2752,7 +2763,7 @@ export function TrackMap({
             {showCompass && (
               <div
                 className="w-[46px] h-12 bg-track/85 flex items-center justify-center"
-                title="Compass"
+                title={tr(language, "trackMap.compass")}
               >
                 <svg
                   viewBox="0 0 24 24"
@@ -2846,7 +2857,7 @@ export function TrackMap({
                   exportTrackSnapshot(svgRef.current);
                 }}
                 className="px-2 py-0.5 text-[9px] font-bold uppercase tracking-widest bg-track/80 border border-panel text-muted hover:text-white hover:border-white/30 transition-colors backdrop-blur-sm"
-                title="Download track snapshot as PNG"
+                title={tr(language, "trackMap.downloadPng")}
               >
                 ↓ PNG
               </button>

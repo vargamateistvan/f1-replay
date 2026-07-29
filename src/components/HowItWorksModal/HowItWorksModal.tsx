@@ -1,9 +1,11 @@
 import { useCallback, useEffect, useRef, type MouseEvent } from "react";
 import { useSettings } from "@/stores/settings";
 import { trackEvent } from "@/lib/analytics";
+import { FALLBACK_LANGUAGE } from "@/i18n/language";
+import { t } from "@/i18n/translations";
 
 export function HowItWorksModal() {
-  const { isHelpOpen, closeHelp } = useSettings();
+  const { isHelpOpen, closeHelp, language = FALLBACK_LANGUAGE } = useSettings();
   const backdropRef = useRef<HTMLDivElement>(null);
 
   const closeWithReason = useCallback(
@@ -60,12 +62,12 @@ export function HowItWorksModal() {
               <path d="M12 8h.01" />
             </svg>
             <span className="text-[13px] font-bold text-white tracking-wide">
-              How It Works
+              {t(language, "howItWorks.title")}
             </span>
           </div>
           <button
             onClick={() => closeWithReason("button")}
-            aria-label="Close help"
+            aria-label={t(language, "howItWorks.closeHelp")}
             className="w-7 h-7 flex items-center justify-center rounded text-muted hover:text-white hover:bg-panel transition-colors text-base"
           >
             ×
@@ -81,36 +83,42 @@ export function HowItWorksModal() {
             {/* Getting Started */}
             <section>
               <h3 className="text-[13px] font-bold text-white uppercase tracking-widest mb-2">
-                🏁 Getting Started
+                {t(language, "howItWorks.gettingStartedTitle")}
               </h3>
               <p className="text-[12px] leading-relaxed mb-3">
-                Select a circuit and session (Free Practice, Qualifying, or
-                Race) from the top navigation. The app will load real-time F1
-                data from the OpenF1 API.
+                {t(language, "howItWorks.gettingStartedBody")}
               </p>
             </section>
 
             {/* Playback */}
             <section>
               <h3 className="text-[13px] font-bold text-white uppercase tracking-widest mb-2">
-                ▶️ Playback & Navigation
+                {t(language, "howItWorks.playbackTitle")}
               </h3>
               <ul className="text-[12px] leading-relaxed space-y-1.5 ml-3">
                 <li>
-                  <strong className="text-white">Play/Pause:</strong> Toggle
-                  playback with the button or spacebar
+                  <strong className="text-white">
+                    {t(language, "howItWorks.playPauseLabel")}
+                  </strong>{" "}
+                  {t(language, "howItWorks.playPauseBody")}
                 </li>
                 <li>
-                  <strong className="text-white">Scrub Timeline:</strong> Click
-                  or drag the playback bar to jump to any time
+                  <strong className="text-white">
+                    {t(language, "howItWorks.scrubTimelineLabel")}
+                  </strong>{" "}
+                  {t(language, "howItWorks.scrubTimelineBody")}
                 </li>
                 <li>
-                  <strong className="text-white">Speed Control:</strong> Adjust
-                  playback speed (1×, 2×, 4×, 8×, 16×)
+                  <strong className="text-white">
+                    {t(language, "howItWorks.speedControlLabel")}
+                  </strong>{" "}
+                  {t(language, "howItWorks.speedControlBody")}
                 </li>
                 <li>
-                  <strong className="text-white">Keyboard:</strong> Arrow keys
-                  frame-step, Space toggles play
+                  <strong className="text-white">
+                    {t(language, "howItWorks.keyboardLabel")}
+                  </strong>{" "}
+                  {t(language, "howItWorks.keyboardBody")}
                 </li>
               </ul>
             </section>
@@ -118,34 +126,38 @@ export function HowItWorksModal() {
             {/* Telemetry */}
             <section>
               <h3 className="text-[13px] font-bold text-white uppercase tracking-widest mb-2">
-                📊 Telemetry & Performance
+                {t(language, "howItWorks.telemetryTitle")}
               </h3>
               <ul className="text-[12px] leading-relaxed space-y-1.5 ml-3">
                 <li>
-                  <strong className="text-white">Telemetry Metrics:</strong>{" "}
-                  View high-frequency speed, throttle, brake, RPM, gear, DRS,
-                  and brake temperature data
+                  <strong className="text-white">
+                    {t(language, "howItWorks.telemetryMetricsLabel")}
+                  </strong>{" "}
+                  {t(language, "howItWorks.telemetryMetricsBody")}
                 </li>
                 <li>
                   <strong className="text-white">
-                    Multi-Driver Comparison:
+                    {t(language, "howItWorks.multiDriverComparisonLabel")}
                   </strong>{" "}
-                  Select one or more drivers to compare side-by-side telemetry
-                  traces
+                  {t(language, "howItWorks.multiDriverComparisonBody")}
                 </li>
                 <li>
-                  <strong className="text-white">Tire Data:</strong> Monitor
-                  tire surface temperatures and compound wear progression during
-                  stints
+                  <strong className="text-white">
+                    {t(language, "howItWorks.tireDataLabel")}
+                  </strong>{" "}
+                  {t(language, "howItWorks.tireDataBody")}
                 </li>
                 <li>
-                  <strong className="text-white">Focused Overlay:</strong> Use
-                  the focused telemetry view for full-screen, high-resolution
-                  analysis
+                  <strong className="text-white">
+                    {t(language, "howItWorks.focusedOverlayLabel")}
+                  </strong>{" "}
+                  {t(language, "howItWorks.focusedOverlayBody")}
                 </li>
                 <li>
-                  <strong className="text-white">Hover Details:</strong> Inspect
-                  exact values at any point in time with precision tooltips
+                  <strong className="text-white">
+                    {t(language, "howItWorks.hoverDetailsLabel")}
+                  </strong>{" "}
+                  {t(language, "howItWorks.hoverDetailsBody")}
                 </li>
               </ul>
             </section>
@@ -153,39 +165,50 @@ export function HowItWorksModal() {
             {/* Strategy */}
             <section>
               <h3 className="text-[13px] font-bold text-white uppercase tracking-widest mb-2">
-                🏎️ Tire Strategy & Race Events
+                {t(language, "howItWorks.strategyTitle")}
               </h3>
               <ul className="text-[12px] leading-relaxed space-y-1.5 ml-3">
                 <li>
-                  <strong className="text-white">Strategy Timeline:</strong>{" "}
-                  Visualize pit stops, tire compound changes, stint lengths, and
-                  tire age tracking
+                  <strong className="text-white">
+                    {t(language, "howItWorks.strategyTimelineLabel")}
+                  </strong>{" "}
+                  {t(language, "howItWorks.strategyTimelineBody")}
                 </li>
                 <li>
-                  <strong className="text-white">Tire Compounds:</strong>{" "}
-                  Color-coded compound visualization (soft, medium, hard,
-                  intermediate, wet) for all stints
+                  <strong className="text-white">
+                    {t(language, "howItWorks.tireCompoundsLabel")}
+                  </strong>{" "}
+                  {t(language, "howItWorks.tireCompoundsBody")}
                 </li>
                 <li>
-                  <strong className="text-white">Pit Analysis:</strong> Exact
-                  pit timings and strategy call sequences per driver
+                  <strong className="text-white">
+                    {t(language, "howItWorks.pitAnalysisLabel")}
+                  </strong>{" "}
+                  {t(language, "howItWorks.pitAnalysisBody")}
                 </li>
                 <li>
-                  <strong className="text-white">Overtakes Tab:</strong>{" "}
-                  Complete list of overtakes with tactical context
+                  <strong className="text-white">
+                    {t(language, "howItWorks.overtakesTabLabel")}
+                  </strong>{" "}
+                  {t(language, "howItWorks.overtakesTabBody")}
                 </li>
                 <li>
-                  <strong className="text-white">Live Timing:</strong> Current
-                  position, gaps, intervals, pit status, and active in-pit tags
+                  <strong className="text-white">
+                    {t(language, "howItWorks.liveTimingLabel")}
+                  </strong>{" "}
+                  {t(language, "howItWorks.liveTimingBody")}
                 </li>
                 <li>
-                  <strong className="text-white">Team Radio:</strong> Driver
-                  communications synced to playback, with direct in-toast audio
-                  playback when recordings are available
+                  <strong className="text-white">
+                    {t(language, "howItWorks.teamRadioLabel")}
+                  </strong>{" "}
+                  {t(language, "howItWorks.teamRadioBody")}
                 </li>
                 <li>
-                  <strong className="text-white">Race Control:</strong> Flags,
-                  SC/VSC, incidents, and official messages
+                  <strong className="text-white">
+                    {t(language, "howItWorks.raceControlLabel")}
+                  </strong>{" "}
+                  {t(language, "howItWorks.raceControlBody")}
                 </li>
               </ul>
             </section>
@@ -193,35 +216,44 @@ export function HowItWorksModal() {
             {/* Track Info */}
             <section>
               <h3 className="text-[13px] font-bold text-white uppercase tracking-widest mb-2">
-                🏁 Track Information
+                {t(language, "howItWorks.trackInformationTitle")}
               </h3>
               <ul className="text-[12px] leading-relaxed space-y-1.5 ml-3">
                 <li>
-                  <strong className="text-white">Circuit Layout:</strong> Visual
-                  track map with turn names, DRS zones, and sector divisions
+                  <strong className="text-white">
+                    {t(language, "howItWorks.circuitLayoutLabel")}
+                  </strong>{" "}
+                  {t(language, "howItWorks.circuitLayoutBody")}
                 </li>
                 <li>
-                  <strong className="text-white">Sector Performance:</strong>{" "}
-                  Real-time sector times and speed trap data for comparison
+                  <strong className="text-white">
+                    {t(language, "howItWorks.sectorPerformanceLabel")}
+                  </strong>{" "}
+                  {t(language, "howItWorks.sectorPerformanceBody")}
                 </li>
                 <li>
-                  <strong className="text-white">Driver Focus:</strong> Click a
-                  driver in timing or on-map to focus the camera and follow that
-                  car around the circuit
+                  <strong className="text-white">
+                    {t(language, "howItWorks.driverFocusLabel")}
+                  </strong>{" "}
+                  {t(language, "howItWorks.driverFocusBody")}
                 </li>
                 <li>
-                  <strong className="text-white">Driver Heatmap:</strong> Focus
-                  mode can overlay lap-based speed heatmap colors on the track
-                  map for quick pace reads
+                  <strong className="text-white">
+                    {t(language, "howItWorks.driverHeatmapLabel")}
+                  </strong>{" "}
+                  {t(language, "howItWorks.driverHeatmapBody")}
                 </li>
                 <li>
-                  <strong className="text-white">Circuit Details:</strong> Track
-                  name, length, total lap count, and key characteristics when
-                  available
+                  <strong className="text-white">
+                    {t(language, "howItWorks.circuitDetailsLabel")}
+                  </strong>{" "}
+                  {t(language, "howItWorks.circuitDetailsBody")}
                 </li>
                 <li>
-                  <strong className="text-white">Track Status:</strong> Live
-                  weather, flags, and track condition updates
+                  <strong className="text-white">
+                    {t(language, "howItWorks.trackStatusLabel")}
+                  </strong>{" "}
+                  {t(language, "howItWorks.trackStatusBody")}
                 </li>
               </ul>
             </section>
@@ -229,26 +261,32 @@ export function HowItWorksModal() {
             {/* Views */}
             <section>
               <h3 className="text-[13px] font-bold text-white uppercase tracking-widest mb-2">
-                👁️ Main Views
+                {t(language, "howItWorks.mainViewsTitle")}
               </h3>
               <ul className="text-[12px] leading-relaxed space-y-1.5 ml-3">
                 <li>
-                  <strong className="text-white">Leaderboard:</strong> Grid view
-                  of race standings with gaps and intervals
+                  <strong className="text-white">
+                    {t(language, "howItWorks.leaderboardLabel")}
+                  </strong>{" "}
+                  {t(language, "howItWorks.leaderboardBody")}
                 </li>
                 <li>
-                  <strong className="text-white">Driver Tracker:</strong>{" "}
-                  Immersive replay with track map, tire strategy, telemetry,
-                  radio, and timing data with focused driver telemetry parity
+                  <strong className="text-white">
+                    {t(language, "howItWorks.driverTrackerLabel")}
+                  </strong>{" "}
+                  {t(language, "howItWorks.driverTrackerBody")}
                 </li>
                 <li>
-                  <strong className="text-white">Commentary:</strong> Event
-                  feeds (radio, race control, overtakes, weather)
+                  <strong className="text-white">
+                    {t(language, "howItWorks.commentaryLabel")}
+                  </strong>{" "}
+                  {t(language, "howItWorks.commentaryBody")}
                 </li>
                 <li>
-                  <strong className="text-white">Final Results:</strong> Open
-                  the Final Classification dialog with podium cards and complete
-                  race result table after sessions finish
+                  <strong className="text-white">
+                    {t(language, "howItWorks.finalResultsLabel")}
+                  </strong>{" "}
+                  {t(language, "howItWorks.finalResultsBody")}
                 </li>
               </ul>
             </section>
@@ -256,33 +294,38 @@ export function HowItWorksModal() {
             {/* Architecture */}
             <section>
               <h3 className="text-[13px] font-bold text-white uppercase tracking-widest mb-2">
-                🧠 How It Works Under The Hood
+                {t(language, "howItWorks.underTheHoodTitle")}
               </h3>
               <ul className="text-[12px] leading-relaxed space-y-1.5 ml-3">
                 <li>
-                  <strong className="text-white">Shared Timeline:</strong> A
-                  single session clock drives map, timing, telemetry, toasts,
-                  and event feeds.
+                  <strong className="text-white">
+                    {t(language, "howItWorks.sharedTimelineLabel")}
+                  </strong>{" "}
+                  {t(language, "howItWorks.sharedTimelineBody")}
                 </li>
                 <li>
-                  <strong className="text-white">Smart Caching:</strong> API
-                  responses are persisted with TanStack Query, so switching tabs
-                  and revisiting sessions stays fast.
+                  <strong className="text-white">
+                    {t(language, "howItWorks.smartCachingLabel")}
+                  </strong>{" "}
+                  {t(language, "howItWorks.smartCachingBody")}
                 </li>
                 <li>
-                  <strong className="text-white">Derived Event Layers:</strong>
-                  Timeline helpers transform raw API rows into markers, toasts,
-                  chapters, and track-state overlays.
+                  <strong className="text-white">
+                    {t(language, "howItWorks.derivedEventLayersLabel")}
+                  </strong>{" "}
+                  {t(language, "howItWorks.derivedEventLayersBody")}
                 </li>
                 <li>
-                  <strong className="text-white">Map Interpolation:</strong>
-                  Car positions are interpolated at the current playhead time,
-                  then rendered on SVG geometry for smooth replay motion.
+                  <strong className="text-white">
+                    {t(language, "howItWorks.mapInterpolationLabel")}
+                  </strong>{" "}
+                  {t(language, "howItWorks.mapInterpolationBody")}
                 </li>
                 <li>
-                  <strong className="text-white">Live Settings:</strong>
-                  Overlay and notification toggles update the UI immediately
-                  without reloading session data.
+                  <strong className="text-white">
+                    {t(language, "howItWorks.liveSettingsLabel")}
+                  </strong>{" "}
+                  {t(language, "howItWorks.liveSettingsBody")}
                 </li>
               </ul>
             </section>
@@ -290,30 +333,35 @@ export function HowItWorksModal() {
             {/* Settings */}
             <section>
               <h3 className="text-[13px] font-bold text-white uppercase tracking-widest mb-2">
-                ⚙️ Settings
+                {t(language, "howItWorks.settingsTitle")}
               </h3>
               <p className="text-[12px] leading-relaxed mb-2">
-                Customize your experience:
+                {t(language, "howItWorks.customizeIntro")}
               </p>
               <ul className="text-[12px] leading-relaxed space-y-1.5 ml-3">
                 <li>
-                  <strong className="text-white">Notifications:</strong>{" "}
-                  Enable/disable event toasts (radio, flags, overtakes, pits,
-                  fastest laps)
+                  <strong className="text-white">
+                    {t(language, "howItWorks.notificationsLabel")}
+                  </strong>{" "}
+                  {t(language, "howItWorks.notificationsBody")}
                 </li>
                 <li>
-                  <strong className="text-white">Track Map:</strong> Show/hide
-                  focused HUD, leaderboard, tyre badges, battle rings, sector
-                  flags, and heatmap overlays
+                  <strong className="text-white">
+                    {t(language, "howItWorks.trackMapLabel")}
+                  </strong>{" "}
+                  {t(language, "howItWorks.trackMapBody")}
                 </li>
                 <li>
-                  <strong className="text-white">Playback Speed:</strong> Set
-                  default speed and enable speed controls
+                  <strong className="text-white">
+                    {t(language, "howItWorks.playbackSpeedLabel")}
+                  </strong>{" "}
+                  {t(language, "howItWorks.playbackSpeedBody")}
                 </li>
                 <li>
-                  <strong className="text-white">Resilience:</strong> Friendly
-                  error pages handle route and runtime failures without breaking
-                  the app shell
+                  <strong className="text-white">
+                    {t(language, "howItWorks.resilienceLabel")}
+                  </strong>{" "}
+                  {t(language, "howItWorks.resilienceBody")}
                 </li>
               </ul>
             </section>
@@ -321,44 +369,70 @@ export function HowItWorksModal() {
             {/* Keyboard Shortcuts */}
             <section className="pb-2">
               <h3 className="text-[13px] font-bold text-white uppercase tracking-widest mb-2">
-                ⌨️ Keyboard Shortcuts
+                {t(language, "howItWorks.keyboardShortcutsTitle")}
               </h3>
               <div className="grid grid-cols-2 gap-2 text-[11px] sm:grid-cols-3">
                 <div>
-                  <div className="text-f1red font-mono">Space</div>
-                  <div className="text-[10px]">Play/Pause</div>
+                  <div className="text-f1red font-mono">
+                    {t(language, "howItWorks.keySpace")}
+                  </div>
+                  <div className="text-[10px]">
+                    {t(language, "howItWorks.shortcutPlayPause")}
+                  </div>
                 </div>
                 <div>
                   <div className="text-f1red font-mono">← →</div>
-                  <div className="text-[10px]">Scrub ±5s</div>
+                  <div className="text-[10px]">
+                    {t(language, "howItWorks.shortcutScrub")}
+                  </div>
                 </div>
                 <div>
                   <div className="text-f1red font-mono">↑ ↓</div>
-                  <div className="text-[10px]">Speed up/down</div>
+                  <div className="text-[10px]">
+                    {t(language, "howItWorks.shortcutSpeed")}
+                  </div>
                 </div>
                 <div>
                   <div className="text-f1red font-mono">[ ]</div>
-                  <div className="text-[10px]">Prev/next lap</div>
+                  <div className="text-[10px]">
+                    {t(language, "howItWorks.shortcutLap")}
+                  </div>
                 </div>
                 <div>
-                  <div className="text-f1red font-mono">J K</div>
-                  <div className="text-[10px]">Prev/next key moment</div>
+                  <div className="text-f1red font-mono">
+                    {t(language, "howItWorks.keyJK")}
+                  </div>
+                  <div className="text-[10px]">
+                    {t(language, "howItWorks.shortcutKeyMoment")}
+                  </div>
                 </div>
                 <div>
                   <div className="text-f1red font-mono">1 2 3</div>
-                  <div className="text-[10px]">Switch main view</div>
+                  <div className="text-[10px]">
+                    {t(language, "howItWorks.shortcutView")}
+                  </div>
                 </div>
                 <div>
-                  <div className="text-f1red font-mono">Home End</div>
-                  <div className="text-[10px]">Jump start/end</div>
+                  <div className="text-f1red font-mono">
+                    {t(language, "howItWorks.keyHomeEnd")}
+                  </div>
+                  <div className="text-[10px]">
+                    {t(language, "howItWorks.shortcutJump")}
+                  </div>
                 </div>
                 <div>
                   <div className="text-f1red font-mono">? / H</div>
-                  <div className="text-[10px]">Open this help</div>
+                  <div className="text-[10px]">
+                    {t(language, "howItWorks.shortcutHelp")}
+                  </div>
                 </div>
                 <div>
-                  <div className="text-f1red font-mono">Esc</div>
-                  <div className="text-[10px]">Close modal</div>
+                  <div className="text-f1red font-mono">
+                    {t(language, "howItWorks.keyEsc")}
+                  </div>
+                  <div className="text-[10px]">
+                    {t(language, "howItWorks.shortcutClose")}
+                  </div>
                 </div>
               </div>
             </section>
@@ -366,7 +440,8 @@ export function HowItWorksModal() {
             <hr className="border-panel my-2" />
 
             <p className="text-[11px] text-muted leading-relaxed pb-2">
-              <strong>Tip:</strong> All data is from the public{" "}
+              <strong>{t(language, "howItWorks.tipLabel")}</strong>{" "}
+              {t(language, "howItWorks.tipBodyPrefix")}{" "}
               <a
                 href="https://api.openf1.org"
                 target="_blank"
@@ -375,24 +450,24 @@ export function HowItWorksModal() {
               >
                 OpenF1 API
               </a>
-              . No account required!
+              . {t(language, "howItWorks.tipBodySuffix")}
             </p>
 
             <p className="text-[11px] text-muted leading-relaxed pb-2">
-              Found a bug or have feedback?{" "}
+              {t(language, "howItWorks.feedbackPrefix")}{" "}
               <a
                 href="https://github.com/vargamateistvan/f1-replay/issues"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="text-f1red hover:underline"
               >
-                Report an issue
+                {t(language, "howItWorks.feedbackLink")}
               </a>
               .
             </p>
 
             <p className="text-[11px] text-muted leading-relaxed pb-2">
-              Author:{" "}
+              {t(language, "howItWorks.author")}:{" "}
               <a
                 href="https://github.com/vargamateistvan"
                 target="_blank"
@@ -405,7 +480,7 @@ export function HowItWorksModal() {
 
             <section className="pt-1 pb-3">
               <p className="text-[11px] text-muted leading-relaxed pb-2">
-                Enjoying the project? Support development with a slice.
+                {t(language, "howItWorks.supportBody")}
               </p>
               <a
                 href="https://buymeacoffee.com/matt_varga"
@@ -414,7 +489,7 @@ export function HowItWorksModal() {
                 className="inline-flex items-center gap-2 rounded-md border border-panel bg-f1red px-3 py-2 text-[12px] font-semibold text-white transition hover:brightness-110"
               >
                 <span aria-hidden="true">🍕</span>
-                Buy me a pizza
+                {t(language, "howItWorks.buyPizza")}
               </a>
             </section>
           </div>

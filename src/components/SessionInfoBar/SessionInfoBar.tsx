@@ -2,6 +2,8 @@ import { useEffect, useMemo, useState } from "react";
 import type { Lap, RaceControl } from "@/api/types";
 import { useSettings } from "@/stores/settings";
 import { toDisplayTemperature, temperatureUnitLabel } from "@/utils/units";
+import { FALLBACK_LANGUAGE } from "@/i18n/language";
+import { t } from "@/i18n/translations";
 
 interface Props {
   laps: Lap[];
@@ -27,16 +29,40 @@ interface TrackStatus {
 }
 
 const FLAG_STATUS: Record<string, TrackStatus> = {
-  FORMATION_LAP: { label: "FORMATION LAP", bg: "#1c1c2e", color: "#c8c8ff" },
-  GREEN: { label: "GREEN FLAG", bg: "#39b54a", color: "#fff" },
-  CLEAR: { label: "TRACK CLEAR", bg: "#39b54a", color: "#fff" },
-  YELLOW: { label: "YELLOW FLAG", bg: "#f5d400", color: "#000" },
-  DOUBLE_YELLOW: { label: "DBL YELLOW", bg: "#f5d400", color: "#000" },
-  RED: { label: "RED FLAG", bg: "#e8002d", color: "#fff" },
-  SAFETY_CAR: { label: "SAFETY CAR", bg: "#f5a623", color: "#000" },
-  VIRTUAL_SAFETY_CAR: { label: "VSC", bg: "#f5a623", color: "#000" },
-  CHEQUERED: { label: "CHEQUERED", bg: "#e8e8e8", color: "#000" },
-  BLACK_AND_WHITE: { label: "B&W FLAG", bg: "#888", color: "#fff" },
+  FORMATION_LAP: {
+    label: "sessionInfo.flag.formationLap",
+    bg: "#1c1c2e",
+    color: "#c8c8ff",
+  },
+  GREEN: { label: "sessionInfo.flag.green", bg: "#39b54a", color: "#fff" },
+  CLEAR: { label: "sessionInfo.flag.clear", bg: "#39b54a", color: "#fff" },
+  YELLOW: { label: "sessionInfo.flag.yellow", bg: "#f5d400", color: "#000" },
+  DOUBLE_YELLOW: {
+    label: "sessionInfo.flag.doubleYellow",
+    bg: "#f5d400",
+    color: "#000",
+  },
+  RED: { label: "sessionInfo.flag.red", bg: "#e8002d", color: "#fff" },
+  SAFETY_CAR: {
+    label: "sessionInfo.flag.safetyCar",
+    bg: "#f5a623",
+    color: "#000",
+  },
+  VIRTUAL_SAFETY_CAR: {
+    label: "sessionInfo.flag.vsc",
+    bg: "#f5a623",
+    color: "#000",
+  },
+  CHEQUERED: {
+    label: "sessionInfo.flag.chequered",
+    bg: "#e8e8e8",
+    color: "#000",
+  },
+  BLACK_AND_WHITE: {
+    label: "sessionInfo.flag.blackWhite",
+    bg: "#888",
+    color: "#fff",
+  },
 };
 
 function deriveStatus(entries: RaceControl[], currentT: number): TrackStatus {
@@ -99,6 +125,7 @@ export function SessionInfoBar({
 }: Readonly<Props>) {
   const lightMode = useSettings((s) => s.lightMode);
   const metricSystem = useSettings((s) => s.metricSystem);
+  const language = useSettings((s) => s.language ?? FALLBACK_LANGUAGE);
   const [isLapDialogOpen, setIsLapDialogOpen] = useState(false);
   const [lapInput, setLapInput] = useState("");
   const [lapError, setLapError] = useState<string | null>(null);
@@ -106,7 +133,11 @@ export function SessionInfoBar({
 
   const formationStatus = useMemo<TrackStatus>(() => {
     return lightMode
-      ? { label: "FORMATION LAP", bg: "#e8ecf8", color: "#4a5575" }
+      ? {
+          label: "sessionInfo.flag.formationLap",
+          bg: "#e8ecf8",
+          color: "#4a5575",
+        }
       : FLAG_STATUS["FORMATION_LAP"];
   }, [lightMode]);
 
@@ -188,16 +219,24 @@ export function SessionInfoBar({
   function submitLapSelection() {
     const parsed = Number(lapInput);
     if (!Number.isInteger(parsed)) {
-      setLapError("Enter a whole lap number.");
+      setLapError(t(language, "sessionInfo.errors.wholeLap"));
       return;
     }
     if (parsed < 1 || parsed > selectableLapMax) {
-      setLapError(`Enter a lap between 1 and ${selectableLapMax}.`);
+      setLapError(
+        t(language, "sessionInfo.errors.lapBetween", {
+          max: selectableLapMax,
+        }),
+      );
       return;
     }
     const targetMs = lapStartsByNumber.get(parsed);
     if (targetMs === undefined) {
-      setLapError(`Lap ${parsed} is not available in loaded timing data.`);
+      setLapError(
+        t(language, "sessionInfo.errors.lapUnavailable", {
+          lap: parsed,
+        }),
+      );
       return;
     }
     onJumpToSessionTime?.(targetMs);
@@ -223,8 +262,8 @@ export function SessionInfoBar({
           type="button"
           onClick={onShowEliminations}
           className="flex shrink-0 items-center gap-2 border-r border-panel px-2.5 py-2 text-[10px] font-black uppercase tracking-[0.12em] text-white transition-colors hover:bg-white/5 hover:text-f1red sm:px-4 sm:tracking-[0.16em]"
-          aria-label="Show eliminated drivers"
-          title="Show eliminated drivers"
+          aria-label={t(language, "sessionInfo.actions.showEliminated")}
+          title={t(language, "sessionInfo.actions.showEliminated")}
         >
           <span className="rounded bg-f1red px-1.5 py-0.5 text-[9px] font-black tracking-[0.16em] text-white">
             {qualiPhase}
@@ -233,19 +272,21 @@ export function SessionInfoBar({
             {countdownMs <= 0 ? "00:00" : fmtElapsed(countdownMs)}
           </span>
           <span className="text-[10px] font-black tracking-[0.12em] text-white">
-            Eliminated
+            {t(language, "sessionInfo.eliminated")}
           </span>
         </button>
       ) : showTimedCountdownTile ? (
         <div className="flex shrink-0 items-center justify-center gap-2 border-r border-panel px-2.5 py-2 sm:justify-start sm:px-4">
-          <span className="text-muted">Countdown</span>
+          <span className="text-muted">
+            {t(language, "sessionInfo.countdown")}
+          </span>
           <span className="text-white tabular-nums font-mono">
             {countdownMs <= 0 ? "00:00" : fmtElapsed(countdownMs)}
           </span>
         </div>
       ) : (
         <div className="flex shrink-0 items-center justify-center gap-2 border-r border-panel px-2.5 py-2 sm:justify-start sm:px-4">
-          <span className="text-muted">Lap</span>
+          <span className="text-muted">{t(language, "sessionInfo.lap")}</span>
           <button
             type="button"
             onClick={() => setIsLapDialogOpen(true)}
@@ -253,7 +294,9 @@ export function SessionInfoBar({
             style={{
               color: isFormationLap ? formationStatus.color : undefined,
             }}
-            title={`Jump to lap (1-${selectableLapMax})`}
+            title={t(language, "sessionInfo.actions.jumpToLapRange", {
+              max: selectableLapMax,
+            })}
           >
             {lapDisplay}
           </button>
@@ -267,14 +310,14 @@ export function SessionInfoBar({
             className="px-2 py-0.5 text-center text-[9px] font-black tracking-widest"
             style={{ background: status.bg, color: status.color }}
           >
-            {status.label}
+            {t(language, status.label)}
           </span>
         </div>
       )}
 
       {/* Elapsed time */}
       <div className="flex shrink-0 items-center justify-center gap-2 border-r border-panel px-2.5 py-2 sm:justify-start sm:px-4">
-        <span className="text-muted">Time</span>
+        <span className="text-muted">{t(language, "sessionInfo.time")}</span>
         <span className="text-white tabular-nums font-mono">
           {fmtElapsed(sessionTimeMs)}
         </span>
@@ -282,13 +325,13 @@ export function SessionInfoBar({
 
       {/* Weather temperatures */}
       <div className="flex shrink-0 items-center justify-center gap-2 border-r border-panel px-2.5 py-2 sm:justify-start sm:px-4">
-        <span className="text-muted">Air</span>
+        <span className="text-muted">{t(language, "sessionInfo.air")}</span>
         <span className="text-white tabular-nums font-mono">
           {fmtTemp(airTemp, metricSystem)}
         </span>
       </div>
       <div className="flex shrink-0 items-center justify-center gap-2 border-r border-panel px-2.5 py-2 sm:justify-start sm:px-4">
-        <span className="text-muted">Track</span>
+        <span className="text-muted">{t(language, "sessionInfo.track")}</span>
         <span className="text-white tabular-nums font-mono">
           {fmtTemp(trackTemp, metricSystem)}
         </span>
@@ -299,8 +342,10 @@ export function SessionInfoBar({
           onClick={onShowEliminations}
           className="shrink-0 border-r border-panel px-3 py-2 text-[10px] font-black uppercase tracking-[0.12em] text-white transition-colors hover:bg-white/5 hover:text-f1red sm:px-4 sm:tracking-[0.16em]"
         >
-          <span className="sm:hidden">Out</span>
-          <span className="hidden sm:inline">Eliminated</span>
+          <span className="sm:hidden">{t(language, "sessionInfo.out")}</span>
+          <span className="hidden sm:inline">
+            {t(language, "sessionInfo.eliminated")}
+          </span>
         </button>
       )}
 
@@ -309,8 +354,12 @@ export function SessionInfoBar({
           onClick={onShowResults}
           className="shrink-0 border-r border-panel px-3 py-2 text-[10px] font-black uppercase tracking-[0.12em] text-white transition-colors hover:bg-white/5 hover:text-f1red sm:px-4 sm:tracking-[0.16em]"
         >
-          <span className="sm:hidden">Results</span>
-          <span className="hidden sm:inline">Show Results</span>
+          <span className="sm:hidden">
+            {t(language, "sessionInfo.results")}
+          </span>
+          <span className="hidden sm:inline">
+            {t(language, "sessionInfo.showResults")}
+          </span>
         </button>
       )}
 
@@ -318,7 +367,9 @@ export function SessionInfoBar({
       {latestMsg && (
         <div className="hidden min-w-0 flex-1 items-center gap-2 px-4 py-2 sm:flex">
           {latestMsg.lap_number !== null && (
-            <span className="text-muted shrink-0">L{latestMsg.lap_number}</span>
+            <span className="text-muted shrink-0">
+              {t(language, "sessionInfo.lapShort")} {latestMsg.lap_number}
+            </span>
           )}
           <span className="text-white/70 truncate normal-case tracking-normal font-medium">
             {latestMsg.message}
@@ -331,10 +382,12 @@ export function SessionInfoBar({
           <div className="w-full max-w-sm border border-panel bg-track shadow-2xl">
             <div className="border-b border-panel px-4 py-3">
               <div className="text-[10px] font-black uppercase tracking-[0.2em] text-f1red">
-                Jump To Lap
+                {t(language, "sessionInfo.jumpToLap")}
               </div>
               <div className="mt-1 text-xs text-white/70 normal-case tracking-normal">
-                Enter a lap number between 1 and {selectableLapMax}.
+                {t(language, "sessionInfo.enterLapBetween", {
+                  max: selectableLapMax,
+                })}
               </div>
             </div>
             <div className="space-y-3 px-4 py-4 normal-case tracking-normal">
@@ -342,7 +395,7 @@ export function SessionInfoBar({
                 htmlFor="lap-jump-input"
                 className="block text-[11px] font-semibold uppercase tracking-[0.14em] text-muted"
               >
-                Lap Number
+                {t(language, "sessionInfo.lapNumber")}
               </label>
               <input
                 id="lap-jump-input"
@@ -374,14 +427,14 @@ export function SessionInfoBar({
                 onClick={() => setIsLapDialogOpen(false)}
                 className="border border-panel bg-track px-3 py-1.5 text-[10px] font-black uppercase tracking-[0.14em] text-muted transition-colors hover:text-white"
               >
-                Cancel
+                {t(language, "sessionInfo.cancel")}
               </button>
               <button
                 type="button"
                 onClick={submitLapSelection}
                 className="border border-f1red bg-f1red px-3 py-1.5 text-[10px] font-black uppercase tracking-[0.14em] text-white transition-colors hover:brightness-110"
               >
-                Jump
+                {t(language, "sessionInfo.jump")}
               </button>
             </div>
           </div>

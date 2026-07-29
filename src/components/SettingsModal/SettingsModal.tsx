@@ -2,9 +2,11 @@ import { useCallback, useEffect, useRef, type MouseEvent } from "react";
 import { useSettings } from "@/stores/settings";
 import { SettingsBody } from "./SettingsControls";
 import { trackEvent } from "@/lib/analytics";
+import { FALLBACK_LANGUAGE } from "@/i18n/language";
+import { t } from "@/i18n/translations";
 
 export function SettingsModal() {
-  const { isOpen, closeModal } = useSettings();
+  const { isOpen, closeModal, language = FALLBACK_LANGUAGE } = useSettings();
   const backdropRef = useRef<HTMLDivElement>(null);
 
   const closeWithReason = useCallback(
@@ -83,12 +85,12 @@ export function SettingsModal() {
               <circle cx="11" cy="12" r="2" fill="currentColor" />
             </svg>
             <span className="text-[13px] font-bold text-white tracking-wide">
-              Settings
+              {t(language, "settingsPage.title")}
             </span>
           </div>
           <button
             onClick={() => closeWithReason("button")}
-            aria-label="Close settings"
+            aria-label={t(language, "settingsModal.closeSettings")}
             className="w-7 h-7 flex items-center justify-center rounded text-muted hover:text-white hover:bg-panel transition-colors text-base"
           >
             ×

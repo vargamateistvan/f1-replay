@@ -6,6 +6,8 @@ import { teamColor } from "@/utils/color";
 import { laneDuration, pitStopTime } from "@/utils/pit";
 import { upperBoundByValue } from "@/utils/sortedTime";
 import { isPracticeSession } from "@/utils/session";
+import { FALLBACK_LANGUAGE } from "@/i18n/language";
+import { t } from "@/i18n/translations";
 
 interface Props {
   readonly entries: Pit[];
@@ -49,6 +51,7 @@ export function PitFeed({
   phaseLookup = () => null,
 }: Props) {
   const showCsvExportButtons = useSettings((s) => s.showCsvExportButtons);
+  const language = useSettings((s) => s.language ?? FALLBACK_LANGUAGE);
   const [renderLimit, setRenderLimit] = useState(120);
   const currentT = sessionStartMs + sessionTimeMs;
 
@@ -110,8 +113,8 @@ export function PitFeed({
     return (
       <div className="text-muted text-xs p-3">
         {sessionStartMs
-          ? "No pit stops yet - scrub forward"
-          : "Select a session"}
+          ? t(language, "pitFeed.noPitStopsYet")
+          : t(language, "pitFeed.selectSession")}
       </div>
     );
   }
@@ -130,9 +133,9 @@ export function PitFeed({
               );
             }}
             className="h-6 px-2 text-[9px] font-black uppercase tracking-widest rounded transition-colors bg-panel text-muted hover:text-white hover:bg-track"
-            aria-label="Export pit stops CSV"
+            aria-label={t(language, "pitFeed.exportCsv")}
           >
-            Export CSV
+            {t(language, "pitFeed.exportCsv")}
           </button>
         </div>
       )}
@@ -143,8 +146,8 @@ export function PitFeed({
           isQualifying && group.lapNumber !== null
             ? `Q${group.lapNumber}`
             : group.lapNumber !== null
-              ? `Lap ${group.lapNumber}`
-              : "Session";
+              ? `${t(language, "pitFeed.lap")} ${group.lapNumber}`
+              : t(language, "pitFeed.session");
         return (
           <div
             key={`${group.lapNumber ?? "session"}-${groupIndex}`}
@@ -171,7 +174,7 @@ export function PitFeed({
                   </span>
                   <div className="min-w-0 flex-1">
                     <div className="truncate text-[11px] font-bold text-white/90">
-                      Pit stop for{" "}
+                      {t(language, "pitFeed.pitStopFor")}{" "}
                       <span style={{ color }}>
                         {driver?.name_acronym ?? entry.driver_number}
                       </span>
@@ -180,7 +183,9 @@ export function PitFeed({
                       <span className="inline-flex h-5 w-fit max-w-full shrink-0 items-center justify-center rounded px-1.5 whitespace-nowrap text-center text-[8px] font-black uppercase tracking-widest leading-none bg-amber-500/20 text-amber-300">
                         Pit
                       </span>
-                      <span>Lap {entry.lap_number}</span>
+                      <span>
+                        {t(language, "pitFeed.lap")} {entry.lap_number}
+                      </span>
                       <span
                         className="font-black uppercase tracking-widest"
                         style={{ color }}
@@ -213,7 +218,9 @@ export function PitFeed({
             onClick={() => setRenderLimit((v) => v + 120)}
             className="h-6 px-2 text-[9px] font-black uppercase tracking-widest rounded transition-colors bg-panel text-muted hover:text-white hover:bg-track"
           >
-            Load older ({visibleAll.length - visible.length} left)
+            {t(language, "pitFeed.loadOlder", {
+              left: visibleAll.length - visible.length,
+            })}
           </button>
         </div>
       )}

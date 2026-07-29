@@ -1,8 +1,12 @@
 import { useNavigate } from "react-router-dom";
 import { SettingsBody } from "@/components/SettingsModal/SettingsControls";
+import { useSettings } from "@/stores/settings";
+import { FALLBACK_LANGUAGE } from "@/i18n/language";
+import { t } from "@/i18n/translations";
 
 export default function Settings() {
   const navigate = useNavigate();
+  const language = useSettings((s) => s.language ?? FALLBACK_LANGUAGE);
 
   return (
     <div className="flex flex-col md:h-full bg-track">
@@ -11,7 +15,7 @@ export default function Settings() {
         <button
           onClick={() => navigate(-1)}
           className="w-8 h-8 flex items-center justify-center text-muted hover:text-white transition-colors"
-          aria-label="Go back"
+          aria-label={t(language, "settingsPage.goBack")}
         >
           <svg
             width="18"
@@ -26,7 +30,7 @@ export default function Settings() {
           </svg>
         </button>
         <span className="text-[14px] font-bold text-white tracking-wide">
-          Settings
+          {t(language, "settingsPage.title")}
         </span>
       </div>
 

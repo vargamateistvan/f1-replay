@@ -1,4 +1,7 @@
 import React from "react";
+import { useSettings } from "@/stores/settings";
+import { FALLBACK_LANGUAGE } from "@/i18n/language";
+import { t } from "@/i18n/translations";
 
 interface Props {
   onMouseDown: (e: React.MouseEvent) => void;
@@ -21,13 +24,14 @@ export function ResizeHandle({
   className = "",
 }: Props) {
   const isVertical = orientation === "vertical";
+  const language = useSettings((s) => s.language ?? FALLBACK_LANGUAGE);
 
   return (
     <div
       onMouseDown={onMouseDown}
       onTouchStart={onTouchStart}
       onDoubleClick={onDoubleClick}
-      title="Drag to resize · Double-click to reset"
+      title={t(language, "resizeHandle.dragToResize")}
       role="separator"
       aria-orientation={orientation}
       className={`shrink-0 bg-panel hover:bg-track active:bg-f1red transition-colors flex items-center justify-center group select-none ${

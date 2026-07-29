@@ -13,6 +13,8 @@ import type {
 import { teamColor } from "@/utils/color";
 import { useSettings } from "@/stores/settings";
 import { toSafeExternalUrl } from "@/utils/url";
+import { FALLBACK_LANGUAGE, type SupportedLanguage } from "@/i18n/language";
+import { t } from "@/i18n/translations";
 
 interface Props {
   summary: CatchupSummaryData;
@@ -64,11 +66,13 @@ function CatchupEventRow({
   driverMap,
   playingUrl,
   onToggleRadio,
+  language,
 }: Readonly<{
   ev: import("@/timeline/events").ToastEvent;
   driverMap: Map<number, import("@/api/types").Driver>;
   playingUrl: string | null;
   onToggleRadio: (url: string) => void;
+  language: SupportedLanguage;
 }>) {
   if (ev.kind === "fastest_lap") {
     const p = ev.payload as FastestLapPayload;
@@ -82,7 +86,7 @@ function CatchupEventRow({
         <div className="flex items-center justify-between gap-2">
           <div className="flex items-center gap-1.5">
             <span className="text-[8px] font-black px-1 py-0.5 bg-[#9b59f5] text-white uppercase tracking-widest shrink-0">
-              FASTEST
+              {t(language, "catchupSummary.fastest")}
             </span>
             <span
               className="text-[12px] font-black"
@@ -101,7 +105,9 @@ function CatchupEventRow({
         <div className="flex items-center gap-2 mt-0.5">
           {typeof p.lapNumber === "number" && (
             <span className="text-[9px] text-muted font-mono">
-              Lap {p.lapNumber}
+              {t(language, "catchupSummary.lapWithNumber", {
+                lap: p.lapNumber,
+              })}
             </span>
           )}
           <span
@@ -141,7 +147,9 @@ function CatchupEventRow({
           <span className="text-[10px] text-white/70 block">{p.message}</span>
           {typeof p.lapNumber === "number" && (
             <span className="text-[9px] text-muted font-mono">
-              Lap {p.lapNumber}
+              {t(language, "catchupSummary.lapWithNumber", {
+                lap: p.lapNumber,
+              })}
             </span>
           )}
         </div>
@@ -155,7 +163,7 @@ function CatchupEventRow({
       <div className="px-3 py-2 border-l-2 border-l-[#e8002d]">
         <div className="flex items-center justify-between gap-2">
           <span className="text-[8px] font-black px-1 py-0.5 bg-[#e8002d] text-white uppercase tracking-widest shrink-0">
-            PENALTY
+            {t(language, "catchupSummary.penalty")}
           </span>
           <span className="text-[10px] font-mono tabular-nums text-muted shrink-0">
             {fmtRaceTime(ev.ms)}
@@ -165,7 +173,9 @@ function CatchupEventRow({
           <span className="text-[10px] text-white/70 block">{p.message}</span>
           {typeof p.lapNumber === "number" && (
             <span className="text-[9px] text-muted font-mono">
-              Lap {p.lapNumber}
+              {t(language, "catchupSummary.lapWithNumber", {
+                lap: p.lapNumber,
+              })}
             </span>
           )}
         </div>
@@ -179,7 +189,7 @@ function CatchupEventRow({
       <div className="px-3 py-2 border-l-2 border-l-[#f5a623]">
         <div className="flex items-center justify-between gap-2">
           <span className="text-[8px] font-black px-1 py-0.5 bg-[#f5a623] text-black uppercase tracking-widest shrink-0">
-            INVESTIGATION
+            {t(language, "catchupSummary.investigation")}
           </span>
           <span className="text-[10px] font-mono tabular-nums text-muted shrink-0">
             {fmtRaceTime(ev.ms)}
@@ -189,7 +199,9 @@ function CatchupEventRow({
           <span className="text-[10px] text-white/70 block">{p.message}</span>
           {typeof p.lapNumber === "number" && (
             <span className="text-[9px] text-muted font-mono">
-              Lap {p.lapNumber}
+              {t(language, "catchupSummary.lapWithNumber", {
+                lap: p.lapNumber,
+              })}
             </span>
           )}
         </div>
@@ -237,7 +249,7 @@ function CatchupEventRow({
         <div className="flex items-center justify-between gap-2">
           <div className="flex items-center gap-1.5">
             <span className="text-[8px] font-black px-1 py-0.5 bg-[#3d78ff] text-white uppercase tracking-widest shrink-0">
-              PIT
+              {t(language, "catchupSummary.pit")}
             </span>
             <span
               className="text-[12px] font-black"
@@ -256,12 +268,16 @@ function CatchupEventRow({
         <div className="flex items-center gap-2 mt-0.5">
           {typeof p.lapNumber === "number" && (
             <span className="text-[9px] text-muted font-mono">
-              Lap {p.lapNumber}
+              {t(language, "catchupSummary.lapWithNumber", {
+                lap: p.lapNumber,
+              })}
             </span>
           )}
           {typeof p.pitDuration === "number" && (
             <span className="text-[9px] font-mono tabular-nums text-white/70">
-              {p.pitDuration.toFixed(1)}s stop
+              {t(language, "catchupSummary.pitStopDuration", {
+                duration: p.pitDuration.toFixed(1),
+              })}
             </span>
           )}
         </div>
@@ -281,7 +297,7 @@ function CatchupEventRow({
         <div className="flex items-center justify-between gap-2">
           <div className="flex items-center gap-1.5">
             <span className="text-[8px] font-black px-1 py-0.5 bg-[#6b6b7a] text-white uppercase tracking-widest shrink-0">
-              RADIO
+              {t(language, "catchupSummary.radio")}
             </span>
             <span
               className="text-[12px] font-black"
@@ -300,7 +316,11 @@ function CatchupEventRow({
             <button
               onClick={() => recordingUrl && onToggleRadio(recordingUrl)}
               disabled={!hasAudio}
-              aria-label={isPlaying ? "Stop" : "Play"}
+              aria-label={
+                isPlaying
+                  ? t(language, "catchupSummary.stop")
+                  : t(language, "catchupSummary.play")
+              }
               className={[
                 "flex items-center gap-1 px-2 py-0.5 text-[9px] font-black uppercase tracking-widest transition-colors",
                 isPlaying
@@ -313,11 +333,13 @@ function CatchupEventRow({
             >
               {isPlaying ? (
                 <>
-                  <Square size={9} strokeWidth={2.4} aria-hidden="true" /> Stop
+                  <Square size={9} strokeWidth={2.4} aria-hidden="true" />{" "}
+                  {t(language, "catchupSummary.stop")}
                 </>
               ) : (
                 <>
-                  <Play size={9} strokeWidth={2.4} aria-hidden="true" /> Play
+                  <Play size={9} strokeWidth={2.4} aria-hidden="true" />{" "}
+                  {t(language, "catchupSummary.play")}
                 </>
               )}
             </button>
@@ -326,7 +348,9 @@ function CatchupEventRow({
         {typeof p.lapNumber === "number" && (
           <div className="mt-0.5">
             <span className="text-[9px] text-muted font-mono">
-              Lap {p.lapNumber}
+              {t(language, "catchupSummary.lapWithNumber", {
+                lap: p.lapNumber,
+              })}
             </span>
           </div>
         )}
@@ -358,46 +382,61 @@ interface FilterChip {
 
 type ChipConfig = {
   kind: ToastKind;
-  mkLabel: (n: number) => string;
   color: string;
 };
 
 const CHIP_CONFIGS: ChipConfig[] = [
-  {
-    kind: "pit",
-    mkLabel: (n) => `${n} pit stop${n > 1 ? "s" : ""}`,
-    color: "#3d78ff",
-  },
-  {
-    kind: "flag",
-    mkLabel: (n) => `${n} flag${n > 1 ? "s" : ""}`,
-    color: "#f5a623",
-  },
-  {
-    kind: "penalty",
-    mkLabel: (n) => `${n} ${n > 1 ? "penalties" : "penalty"}`,
-    color: "#e8002d",
-  },
-  {
-    kind: "overtake",
-    mkLabel: (n) => `${n} overtake${n > 1 ? "s" : ""}`,
-    color: "#22c55e",
-  },
-  {
-    kind: "fastest_lap",
-    mkLabel: (n) => `${n} fastest lap${n > 1 ? "s" : ""}`,
-    color: "#9b59f5",
-  },
-  {
-    kind: "investigation",
-    mkLabel: (n) => `${n} ${n > 1 ? "investigations" : "investigation"}`,
-    color: "#f5a623",
-  },
-  { kind: "radio", mkLabel: (n) => `${n} radio`, color: "#6b6b7a" },
+  { kind: "pit", color: "#3d78ff" },
+  { kind: "flag", color: "#f5a623" },
+  { kind: "penalty", color: "#e8002d" },
+  { kind: "overtake", color: "#22c55e" },
+  { kind: "fastest_lap", color: "#9b59f5" },
+  { kind: "investigation", color: "#f5a623" },
+  { kind: "radio", color: "#6b6b7a" },
 ];
+
+function chipLabel(
+  kind: ToastKind,
+  count: number,
+  language: SupportedLanguage,
+): string {
+  switch (kind) {
+    case "pit":
+      return count === 1
+        ? t(language, "catchupSummary.chips.pitOne")
+        : t(language, "catchupSummary.chips.pitMany", { count });
+    case "flag":
+      return count === 1
+        ? t(language, "catchupSummary.chips.flagOne")
+        : t(language, "catchupSummary.chips.flagMany", { count });
+    case "penalty":
+      return count === 1
+        ? t(language, "catchupSummary.chips.penaltyOne")
+        : t(language, "catchupSummary.chips.penaltyMany", { count });
+    case "overtake":
+      return count === 1
+        ? t(language, "catchupSummary.chips.overtakeOne")
+        : t(language, "catchupSummary.chips.overtakeMany", { count });
+    case "fastest_lap":
+      return count === 1
+        ? t(language, "catchupSummary.chips.fastestLapOne")
+        : t(language, "catchupSummary.chips.fastestLapMany", { count });
+    case "investigation":
+      return count === 1
+        ? t(language, "catchupSummary.chips.investigationOne")
+        : t(language, "catchupSummary.chips.investigationMany", { count });
+    case "radio":
+      return count === 1
+        ? t(language, "catchupSummary.chips.radioOne")
+        : t(language, "catchupSummary.chips.radioMany", { count });
+    default:
+      return String(count);
+  }
+}
 
 export function CatchupSummary({ summary, drivers, onDismiss }: Props) {
   const defaultFilters = useSettings((s) => s.catchupSummaryDefaultFilters);
+  const language = useSettings((s) => s.language ?? FALLBACK_LANGUAGE);
   const driverMap = new Map(drivers.map((d) => [d.driver_number, d]));
   const duration = summary.toMs - summary.fromMs;
 
@@ -412,7 +451,7 @@ export function CatchupSummary({ summary, drivers, onDismiss }: Props) {
     (c) => (counts[c.kind] ?? 0) > 0,
   ).map((c) => ({
     kind: c.kind,
-    label: c.mkLabel(counts[c.kind]!),
+    label: chipLabel(c.kind, counts[c.kind]!, language),
     count: counts[c.kind]!,
     color: c.color,
   }));
@@ -458,7 +497,7 @@ export function CatchupSummary({ summary, drivers, onDismiss }: Props) {
         <div className="flex items-center gap-2 px-3 py-2 bg-track border-b border-panel">
           <span className="text-[10px] font-black uppercase tracking-widest text-white/80 flex items-center gap-1">
             <FastForward size={11} strokeWidth={2.4} aria-hidden="true" />
-            While you were away
+            {t(language, "catchupSummary.whileYouWereAway")}
           </span>
           <span className="text-[10px] font-mono text-muted ml-1">
             ({fmtDuration(duration)})
@@ -466,7 +505,7 @@ export function CatchupSummary({ summary, drivers, onDismiss }: Props) {
           <button
             onClick={onDismiss}
             className="ml-auto text-muted hover:text-white text-xs"
-            aria-label="Dismiss"
+            aria-label={t(language, "catchupSummary.dismiss")}
           >
             ×
           </button>
@@ -516,12 +555,13 @@ export function CatchupSummary({ summary, drivers, onDismiss }: Props) {
                   driverMap={driverMap}
                   playingUrl={playingUrl}
                   onToggleRadio={toggleRadio}
+                  language={language}
                 />
               ))}
             </div>
           ) : (
             <p className="text-[11px] text-muted px-3 py-3 text-center">
-              No events match the selected filters
+              {t(language, "catchupSummary.noEventsMatchFilters")}
             </p>
           )}
         </div>
@@ -531,7 +571,7 @@ export function CatchupSummary({ summary, drivers, onDismiss }: Props) {
           onClick={onDismiss}
           className="w-full py-1.5 text-[9px] font-black uppercase tracking-widest text-muted hover:text-white border-t border-panel transition-colors"
         >
-          Dismiss
+          {t(language, "catchupSummary.dismiss")}
         </button>
       </div>
     </div>

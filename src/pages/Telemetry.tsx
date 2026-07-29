@@ -15,6 +15,8 @@ import {
 import { useDrivers, useLaps, useSessions } from "@/hooks/useSession";
 import { useNumberParam, useStringParam } from "@/hooks/useSearchParamState";
 import { useSettings } from "@/stores/settings";
+import { FALLBACK_LANGUAGE, type SupportedLanguage } from "@/i18n/language";
+import { t } from "@/i18n/translations";
 import { teamColor } from "@/utils/color";
 import { computeDelta, resampleToAxis, smooth } from "@/utils/telemetry";
 import { speedUnitLabel, toDisplaySpeed } from "@/utils/units";
@@ -141,17 +143,20 @@ function sparklineStats(values: number[]): SparklineStats | null {
   return { min, max, avg: sum / values.length };
 }
 
-function formatDeltaHint(deltaSeconds: number | null): DeltaHint {
+function formatDeltaHint(
+  deltaSeconds: number | null,
+  language: SupportedLanguage,
+): DeltaHint {
   if (deltaSeconds === null || !Number.isFinite(deltaSeconds)) {
     return {
-      text: "Δ N/A",
+      text: t(language, "telemetry.deltaNA"),
       className: "text-muted border-[#4a4a5d] bg-[#171823]",
     };
   }
 
   if (Math.abs(deltaSeconds) < 0.001) {
     return {
-      text: "Δ 0.000s",
+      text: t(language, "telemetry.deltaZero"),
       className: "text-muted border-[#4a4a5d] bg-[#171823]",
     };
   }
@@ -168,6 +173,7 @@ function formatDeltaHint(deltaSeconds: number | null): DeltaHint {
 export default function Telemetry() {
   const lightMode = useSettings((s) => s.lightMode);
   const metricSystem = useSettings((s) => s.metricSystem);
+  const language = useSettings((s) => s.language ?? FALLBACK_LANGUAGE);
   const [activeMode, setActiveMode] = useState<"quali" | "race" | null>(null);
   const [isCardsAccordionOpen, setIsCardsAccordionOpen] = useState(true);
   const [searchParams] = useSearchParams();
@@ -371,8 +377,8 @@ export default function Telemetry() {
     (driver: number | null, lapNo: number | null): LapMeta => {
       if (driver === null || lapNo === null) {
         return {
-          timeText: "No lap selected",
-          statusLabel: "Idle",
+          timeText: t(language, "telemetry.noLapSelected"),
+          statusLabel: t(language, "telemetry.idle"),
           statusClass: "text-muted border-[#444458] bg-[#171822]",
         };
       }
@@ -380,8 +386,8 @@ export default function Telemetry() {
       const lap = lapLookup.get(`${driver}:${lapNo}`);
       if (!lap) {
         return {
-          timeText: "No timing data",
-          statusLabel: "Missing",
+          timeText: t(language, "telemetry.noTimingData"),
+          statusLabel: t(language, "telemetry.missing"),
           statusClass: "text-[#f5d400] border-[#7e7422] bg-[#2a240f]",
         };
       }
@@ -389,26 +395,26 @@ export default function Telemetry() {
       if (lap.is_pit_out_lap) {
         return {
           timeText: formatLapTime(lap.lap_duration),
-          statusLabel: "Pit Out",
+          statusLabel: t(language, "telemetry.pitOut"),
           statusClass: "text-[#f5a623] border-[#875d18] bg-[#2d1f0e]",
         };
       }
 
       if (lap.lap_duration === null) {
         return {
-          timeText: "No timing data",
-          statusLabel: "Invalid",
+          timeText: t(language, "telemetry.noTimingData"),
+          statusLabel: t(language, "telemetry.invalid"),
           statusClass: "text-[#f5d400] border-[#7e7422] bg-[#2a240f]",
         };
       }
 
       return {
         timeText: formatLapTime(lap.lap_duration),
-        statusLabel: "Valid",
+        statusLabel: t(language, "telemetry.valid"),
         statusClass: "text-[#39b54a] border-[#276d33] bg-[#112419]",
       };
     },
-    [lapLookup],
+    [lapLookup, language],
   );
 
   const lapMetaA = useMemo(
@@ -619,15 +625,15 @@ export default function Telemetry() {
 
   const deltaHintA = useMemo<DeltaHint>(
     () => ({
-      text: "Reference",
+      text: t(language, "telemetry.reference"),
       className: "text-[#9bc9ff] border-[#385b8a] bg-[#172437]",
     }),
-    [],
+    [language],
   );
 
   const deltaHintB = useMemo(
-    () => formatDeltaHint(finishDeltaB),
-    [finishDeltaB],
+    () => formatDeltaHint(finishDeltaB, language),
+    [finishDeltaB, language],
   );
   const splitRows = useMemo(() => {
     const slots = [
@@ -781,10 +787,10 @@ export default function Telemetry() {
         <div className="absolute inset-0 z-40 flex items-center justify-center bg-black/80 backdrop-blur-sm">
           <div className="mx-4 w-full max-w-sm rounded border border-panel bg-surface px-4 py-4 text-center shadow-2xl">
             <div className="text-f1red text-[11px] font-black uppercase tracking-[0.16em] animate-pulse">
-              Loading Event
+              {t(language, "telemetry.loadingEvent")}
             </div>
             <div className="mt-2 text-xs text-muted">
-              Fetching sessions and loading telemetry context.
+              {t(language, "telemetry.loadingEventDescription")}
             </div>
           </div>
         </div>
@@ -801,17 +807,17 @@ export default function Telemetry() {
           <button
             onClick={applyBestToAll}
             className="h-[34px] border border-panel bg-track px-3 text-[10px] font-black uppercase tracking-widest text-white transition-colors hover:border-f1red"
-            title="Pick each selected driver's best recorded lap"
+            title={t(language, "telemetry.bestAllTitle")}
           >
-            Best all
+            {t(language, "telemetry.bestAll")}
           </button>
 
           <button
             onClick={syncOtherLapsToA}
             className="h-[34px] border border-panel bg-track px-3 text-[10px] font-black uppercase tracking-widest text-white transition-colors hover:border-f1red"
-            title="Use Driver A lap number for Driver B and Driver C"
+            title={t(language, "telemetry.syncToATitle")}
           >
-            Sync to A
+            {t(language, "telemetry.syncToA")}
           </button>
 
           <button
@@ -821,9 +827,9 @@ export default function Telemetry() {
                 ? "border-[#cb9dff] bg-[#3b2350] text-white shadow-[0_0_0_1px_rgba(203,157,255,0.35),0_0_24px_rgba(155,89,245,0.35)]"
                 : "border-[#63407a] bg-[#23152d] text-[#dcc3ff] hover:border-[#a569d8]"
             }`}
-            title="Quali mode: best laps + smoothing"
+            title={t(language, "telemetry.qualiModeTitle")}
           >
-            Quali mode
+            {t(language, "telemetry.qualiMode")}
           </button>
 
           <button
@@ -833,13 +839,13 @@ export default function Telemetry() {
                 ? "border-[#9bc9ff] bg-[#1a2639] text-white shadow-[0_0_0_1px_rgba(155,201,255,0.35),0_0_24px_rgba(0,103,255,0.3)]"
                 : "border-panel bg-track text-white hover:border-[#95b7ff]"
             }`}
-            title="Race mode: latest laps + raw traces"
+            title={t(language, "telemetry.raceModeTitle")}
           >
-            Race mode
+            {t(language, "telemetry.raceMode")}
           </button>
 
           <div className="ml-auto flex items-center gap-2">
-            <span className={LABEL}>Shared lap</span>
+            <span className={LABEL}>{t(language, "telemetry.sharedLap")}</span>
             <select
               value={sharedLap ?? ""}
               onChange={(e) => {
@@ -853,10 +859,10 @@ export default function Telemetry() {
               disabled={!driverA}
               className={`${SELECT} min-w-[120px]`}
             >
-              <option value="">None</option>
+              <option value="">{t(language, "telemetry.none")}</option>
               {availableLaps.map((n) => (
                 <option key={n} value={n}>
-                  Lap {n}
+                  {t(language, "telemetry.lap")} {n}
                 </option>
               ))}
             </select>
@@ -865,7 +871,7 @@ export default function Telemetry() {
 
         <div className="mb-2 flex items-center justify-between">
           <span className="text-[10px] font-bold uppercase tracking-[0.12em] text-muted">
-            Driver & track preview
+            {t(language, "telemetry.driverTrackPreview")}
           </span>
           <button
             type="button"
@@ -882,25 +888,27 @@ export default function Telemetry() {
             aria-expanded={isCardsAccordionOpen}
             title={
               isCardsAccordionOpen
-                ? "Collapse preview cards"
-                : "Expand preview cards"
+                ? t(language, "telemetry.collapsePreviewCards")
+                : t(language, "telemetry.expandPreviewCards")
             }
           >
-            {isCardsAccordionOpen ? "Hide" : "Show"}
+            {isCardsAccordionOpen
+              ? t(language, "telemetry.hide")
+              : t(language, "telemetry.show")}
           </button>
         </div>
 
         {isCardsAccordionOpen && (
           <div className="grid grid-cols-1 gap-1.5 lg:grid-cols-3">
             <DriverLapCard
-              slotLabel="Driver A"
+              slotLabel={t(language, "telemetry.driverA")}
               accent={colorFor(driverA, 0)}
               driverTag={acr(driverA, "A")}
               driverName={
                 driverA !== null
                   ? (driverByNumber.get(driverA)?.full_name ??
                     acr(driverA, "A"))
-                  : "Unselected"
+                  : t(language, "telemetry.unselected")
               }
               driverHeadshotUrl={
                 driverA !== null
@@ -916,7 +924,7 @@ export default function Telemetry() {
                 });
               }}
               driverOptions={drivers.data ?? []}
-              driverPlaceholder="Select anchor"
+              driverPlaceholder={t(language, "telemetry.selectAnchor")}
               lap={selectedLapA}
               lapOptions={
                 driverA !== null ? (lapsByDriver.get(driverA) ?? []) : []
@@ -964,14 +972,14 @@ export default function Telemetry() {
             />
 
             <DriverLapCard
-              slotLabel="Driver B"
+              slotLabel={t(language, "telemetry.driverB")}
               accent={colorFor(driverB, 1)}
               driverTag={acr(driverB, "B")}
               driverName={
                 driverB !== null
                   ? (driverByNumber.get(driverB)?.full_name ??
                     acr(driverB, "B"))
-                  : "Unselected"
+                  : t(language, "telemetry.unselected")
               }
               driverHeadshotUrl={
                 driverB !== null
@@ -990,7 +998,7 @@ export default function Telemetry() {
                 (d) =>
                   d.driver_number !== driverA && d.driver_number !== driverC,
               )}
-              driverPlaceholder="Optional"
+              driverPlaceholder={t(language, "telemetry.optional")}
               lap={selectedLapB}
               lapOptions={
                 driverB !== null ? (lapsByDriver.get(driverB) ?? []) : []
@@ -1040,7 +1048,7 @@ export default function Telemetry() {
             <div className="h-full lg:h-[248px] rounded border border-panel bg-track p-1.5 flex flex-col">
               <div className="mb-1 flex items-center gap-1.5">
                 <span className="text-[10px] font-black uppercase tracking-[0.15em] text-muted">
-                  Track position preview
+                  {t(language, "telemetry.trackPositionPreview")}
                 </span>
                 <span className="h-1.5 w-8 rounded-full bg-f1red" />
               </div>
@@ -1052,7 +1060,7 @@ export default function Telemetry() {
                     viewBox={`0 0 ${TRACK_SVG_W} ${TRACK_SVG_H}`}
                     className="relative h-full w-full"
                     role="img"
-                    aria-label="Lap track preview"
+                    aria-label={t(language, "telemetry.lapTrackPreview")}
                   >
                     <g
                       transform={`rotate(${trackPreview.rotationDeg.toFixed(1)} ${(TRACK_SVG_W / 2).toFixed(1)} ${(TRACK_SVG_H / 2).toFixed(1)})`}
@@ -1099,7 +1107,7 @@ export default function Telemetry() {
                 </div>
               ) : (
                 <div className="flex min-h-[112px] flex-1 items-center justify-center rounded border border-panel bg-track px-3 text-center text-xs text-muted">
-                  Select Driver A and a valid lap to draw the track.
+                  {t(language, "telemetry.selectDriverAAndLap")}
                 </div>
               )}
             </div>
@@ -1115,7 +1123,7 @@ export default function Telemetry() {
 
         {isLoading && (
           <span className="mt-1 block text-xs text-f1red animate-pulse">
-            Loading telemetry...
+            {t(language, "telemetry.loadingTelemetry")}
           </span>
         )}
       </div>
@@ -1128,14 +1136,16 @@ export default function Telemetry() {
         {(() => {
           if (hasError) {
             return (
-              <ErrorMessage message="Failed to load telemetry for a selected driver" />
+              <ErrorMessage
+                message={t(language, "telemetry.failedToLoadTelemetry")}
+              />
             );
           }
 
           if (!driverA || !selectedLapA) {
             return (
               <div className="flex h-full items-center justify-center text-sm text-muted">
-                Select Driver A and a lap to view telemetry
+                {t(language, "telemetry.selectDriverAAndLapToView")}
               </div>
             );
           }
@@ -1143,7 +1153,7 @@ export default function Telemetry() {
           if (noTelemetry) {
             return (
               <div className="flex h-full items-center justify-center text-sm text-muted">
-                No telemetry available for this lap - try another lap or driver
+                {t(language, "telemetry.noTelemetryForLap")}
               </div>
             );
           }
@@ -1179,7 +1189,9 @@ export default function Telemetry() {
               <SplitsTable rows={splitRows} fastest={fastest} />
 
               <TelemetryChart
-                title={`Speed (${speedUnit})`}
+                title={t(language, "telemetry.speedWithUnit", {
+                  speedUnit,
+                })}
                 xData={xDist}
                 yMin={0}
                 yMax={speedChartMax}
@@ -1192,7 +1204,7 @@ export default function Telemetry() {
                 series={speedSeries}
               />
               <TelemetryChart
-                title="Throttle (%)"
+                title={t(language, "telemetry.throttle")}
                 xData={xDist}
                 yMin={0}
                 yMax={100}
@@ -1205,7 +1217,7 @@ export default function Telemetry() {
                 series={throttleSeries}
               />
               <TelemetryChart
-                title="Brake"
+                title={t(language, "telemetry.brake")}
                 xData={xDist}
                 yMin={0}
                 yMax={100}
@@ -1218,28 +1230,28 @@ export default function Telemetry() {
                 series={brakeSeries}
               />
               <TelemetryChart
-                title="Gear"
+                title={t(language, "telemetry.gear")}
                 xData={xDist}
                 yMin={0}
                 yMax={9}
                 height={210}
                 interactiveControls
                 onHoverX={handleChartHoverX}
-                legendUnit="gear"
+                legendUnit={t(language, "telemetry.gearUnit")}
                 legendDecimals={0}
                 distanceUnit={distanceUnit}
                 distanceScale={distanceScale}
                 series={gearSeries}
               />
               <TelemetryChart
-                title="RPM"
+                title={t(language, "telemetry.rpm")}
                 xData={xDist}
                 yMin={0}
                 yMax={15000}
                 height={220}
                 interactiveControls
                 onHoverX={handleChartHoverX}
-                legendUnit="rpm"
+                legendUnit={t(language, "telemetry.rpmUnit")}
                 distanceUnit={distanceUnit}
                 distanceScale={distanceScale}
                 series={rpmSeries}
@@ -1248,13 +1260,17 @@ export default function Telemetry() {
               {deltaSeries.length > 0 && (
                 <div className={PANEL}>
                   <div className={PANEL_TITLE}>
-                    Delta vs {acr(driverA, "A")}
+                    {t(language, "telemetry.deltaVs", {
+                      driver: acr(driverA, "A"),
+                    })}
                     <span className="ml-2 font-normal normal-case tracking-normal text-muted">
-                      (+ = {acr(driverA, "A")} ahead)
+                      {t(language, "telemetry.deltaHint", {
+                        driver: acr(driverA, "A"),
+                      })}
                     </span>
                   </div>
                   <TelemetryChart
-                    title=""
+                    title={t(language, "telemetry.deltaChartTitle")}
                     xData={xDist}
                     height={220}
                     interactiveControls
@@ -1362,6 +1378,7 @@ function DriverLapCard({
   compact: boolean;
   disabled: boolean;
 }) {
+  const language = useSettings((s) => s.language ?? FALLBACK_LANGUAGE);
   const speedStats = useMemo(() => sparklineStats(speedTrace), [speedTrace]);
   const [headshotFailed, setHeadshotFailed] = useState(false);
   const safeHeadshotUrl = toSafeExternalUrl(driverHeadshotUrl);
@@ -1385,7 +1402,9 @@ function DriverLapCard({
             {hasHeadshot ? (
               <img
                 src={safeHeadshotUrl}
-                alt={`${driverName} profile`}
+                alt={t(language, "telemetry.driverProfileAlt", {
+                  driver: driverName,
+                })}
                 className="h-full w-full object-cover"
                 onError={() => setHeadshotFailed(true)}
                 loading="lazy"
@@ -1439,7 +1458,7 @@ function DriverLapCard({
                 ? "border-[#5f4c7c] bg-[#251a35] text-[#d4b7ff] animate-[pulse_0.45s_ease-out_1]"
                 : "border-panel bg-surface text-muted"
             }`}
-            title="Total sector wins for selected lap"
+            title={t(language, "telemetry.totalSectorWinsTooltip")}
           >
             W{sectorWins.total}
           </span>
@@ -1448,7 +1467,7 @@ function DriverLapCard({
 
       <div className="grid grid-cols-1 gap-1.5 sm:grid-cols-[minmax(0,1fr)_108px]">
         <DriverSelect
-          label="Driver"
+          label={t(language, "telemetry.driver")}
           value={driver}
           onChange={onDriverChange}
           options={driverOptions}
@@ -1457,17 +1476,17 @@ function DriverLapCard({
         />
 
         <div className="flex min-w-0 flex-col gap-1">
-          <span className={LABEL}>Lap</span>
+          <span className={LABEL}>{t(language, "telemetry.lap")}</span>
           <select
             value={lap ?? ""}
             onChange={(e) => onLapChange(Number(e.target.value) || null)}
             disabled={disabled || driver === null}
             className={`${SELECT} min-w-0`}
           >
-            <option value="">Select</option>
+            <option value="">{t(language, "telemetry.select")}</option>
             {lapOptions.map((n) => (
               <option key={n} value={n}>
-                Lap {n}
+                {t(language, "telemetry.lap")} {n}
               </option>
             ))}
           </select>
@@ -1485,9 +1504,10 @@ function DriverLapCard({
               ? "border-[#6f54a2] bg-[#2a1b3f] text-[#dfcbff]"
               : "border-panel bg-surface text-white"
           }`}
-          title="Select best valid lap"
+          title={t(language, "telemetry.selectBestLapTooltip")}
         >
-          Best {bestLap !== null ? `L${bestLap}` : ""}
+          {t(language, "telemetry.best")}{" "}
+          {bestLap !== null ? `L${bestLap}` : ""}
         </button>
 
         <button
@@ -1500,9 +1520,10 @@ function DriverLapCard({
               ? "border-[#2c6ab7] bg-[#112744] text-[#b9dcff]"
               : "border-panel bg-surface text-white"
           }`}
-          title="Select latest valid lap"
+          title={t(language, "telemetry.selectLatestLapTooltip")}
         >
-          Latest {latestLap !== null ? `L${latestLap}` : ""}
+          {t(language, "telemetry.latest")}{" "}
+          {latestLap !== null ? `L${latestLap}` : ""}
         </button>
       </div>
 
@@ -1517,7 +1538,7 @@ function DriverLapCard({
         </span>
         <span
           className={`rounded border px-2 py-1 text-[10px] font-bold uppercase tracking-[0.1em] ${deltaHint.className}`}
-          title="Estimated lap-end delta versus Driver A"
+          title={t(language, "telemetry.deltaTooltip")}
         >
           {deltaHint.text}
         </span>
@@ -1527,12 +1548,12 @@ function DriverLapCard({
         <div className="mt-1.5 overflow-hidden rounded border border-panel bg-surface">
           <div className="flex items-center justify-between border-b border-[#2d2d3b] px-2 py-1">
             <span className="text-[10px] font-bold uppercase tracking-[0.12em] text-muted">
-              Speed trace
+              {t(language, "telemetry.speedTrace")}
             </span>
             {speedStats && (
               <span className="text-[10px] font-semibold text-muted">
-                AVG {Math.round(speedStats.avg)} · MAX{" "}
-                {Math.round(speedStats.max)}
+                {t(language, "telemetry.avg")} {Math.round(speedStats.avg)} ·{" "}
+                {t(language, "telemetry.max")} {Math.round(speedStats.max)}
               </span>
             )}
           </div>
@@ -1558,6 +1579,7 @@ function SectorChip({
   active: boolean;
   animationSeed: number | null;
 }) {
+  const language = useSettings((s) => s.language ?? FALLBACK_LANGUAGE);
   return (
     <span
       key={`${label}-${animationSeed ?? "none"}-${active ? 1 : 0}`}
@@ -1566,7 +1588,11 @@ function SectorChip({
           ? "border-[#6f54a2] bg-[#2a1b3f] text-[#dfcbff] animate-[pulse_0.45s_ease-out_1]"
           : "border-panel bg-surface text-muted"
       }`}
-      title={active ? `${label} winner` : `${label} not quickest`}
+      title={
+        active
+          ? t(language, "telemetry.sectorWinner", { label })
+          : t(language, "telemetry.sectorNotQuickest", { label })
+      }
     >
       {label}
     </span>
@@ -1582,10 +1608,11 @@ function SpeedSparkline({
   color: string;
   driverTag: string;
 }) {
+  const language = useSettings((s) => s.language ?? FALLBACK_LANGUAGE);
   if (values.length < 2) {
     return (
       <div className="flex h-10 items-center justify-center text-[10px] font-semibold uppercase tracking-[0.12em] text-muted">
-        No trace
+        {t(language, "telemetry.noTrace")}
       </div>
     );
   }
@@ -1614,7 +1641,7 @@ function SpeedSparkline({
       viewBox={`0 0 ${width} ${height}`}
       className="block h-10 w-full"
       preserveAspectRatio="none"
-      aria-label="Lap speed sparkline"
+      aria-label={t(language, "telemetry.lapSpeedSparkline")}
       role="img"
     >
       <polyline points={areaPoints} fill={`${color}22`} stroke="none" />
@@ -1696,7 +1723,7 @@ function SplitsTable({
     st: number | null;
   };
 }) {
-  const { metricSystem } = useSettings();
+  const { metricSystem, language } = useSettings();
 
   if (rows.length === 0) return null;
   const speedUnit = speedUnitLabel(metricSystem);
@@ -1717,16 +1744,18 @@ function SplitsTable({
 
   return (
     <div className={PANEL}>
-      <div className={PANEL_TITLE}>Sector splits</div>
+      <div className={PANEL_TITLE}>
+        {t(language ?? FALLBACK_LANGUAGE, "telemetry.sectorSplits")}
+      </div>
       <div className="overflow-x-auto">
         <table className="w-full min-w-[620px] font-mono text-xs">
           <thead>
             <tr className="text-[10px] uppercase tracking-widest text-[#636369]">
               <th className="whitespace-nowrap px-2 py-1 text-left sm:px-3">
-                Driver
+                {t(language ?? FALLBACK_LANGUAGE, "telemetry.driver")}
               </th>
               <th className="whitespace-nowrap px-2 py-1 text-right sm:px-3">
-                Lap #
+                {t(language ?? FALLBACK_LANGUAGE, "telemetry.lapNumber")}
               </th>
               <th className="whitespace-nowrap px-2 py-1 text-right sm:px-3">
                 S1
@@ -1750,7 +1779,11 @@ function SplitsTable({
                   </th>
                   <th
                     className="whitespace-nowrap px-2 py-1 text-right text-[#88c0d0] sm:px-3"
-                    title={`Speed trap (${speedUnit})`}
+                    title={t(
+                      language ?? FALLBACK_LANGUAGE,
+                      "telemetry.speedTrap",
+                      { speedUnit },
+                    )}
                   >
                     ST
                   </th>
@@ -1797,19 +1830,29 @@ function SplitsTable({
                   <>
                     <td
                       className={`whitespace-nowrap px-2 py-1 text-right tabular-nums sm:px-3 ${clsMax(r.i1, fastest.i1)}`}
-                      title="Intermediate 1 speed"
+                      title={t(
+                        language ?? FALLBACK_LANGUAGE,
+                        "telemetry.intermediate1Speed",
+                      )}
                     >
                       {fmtSpeed(r.i1)}
                     </td>
                     <td
                       className={`whitespace-nowrap px-2 py-1 text-right tabular-nums sm:px-3 ${clsMax(r.i2, fastest.i2)}`}
-                      title="Intermediate 2 speed"
+                      title={t(
+                        language ?? FALLBACK_LANGUAGE,
+                        "telemetry.intermediate2Speed",
+                      )}
                     >
                       {fmtSpeed(r.i2)}
                     </td>
                     <td
                       className={`whitespace-nowrap px-2 py-1 text-right tabular-nums sm:px-3 ${clsMax(r.st, fastest.st)}`}
-                      title={`Speed trap (${speedUnit})`}
+                      title={t(
+                        language ?? FALLBACK_LANGUAGE,
+                        "telemetry.speedTrap",
+                        { speedUnit },
+                      )}
                     >
                       {fmtSpeed(r.st)}
                     </td>
@@ -1822,8 +1865,9 @@ function SplitsTable({
       </div>
       {hasSpeedData && (
         <p className="px-3 py-1 text-[10px] text-[#636369]">
-          I1 / I2 = intermediate speeds · ST = speed trap · unit: {speedUnit} ·
-          cyan = fastest
+          {t(language ?? FALLBACK_LANGUAGE, "telemetry.speedLegend", {
+            speedUnit,
+          })}
         </p>
       )}
     </div>

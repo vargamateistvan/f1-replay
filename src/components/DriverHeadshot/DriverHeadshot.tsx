@@ -1,5 +1,8 @@
 import { useEffect, useState } from "react";
 import type { Driver } from "@/api/types";
+import { FALLBACK_LANGUAGE } from "@/i18n/language";
+import { t } from "@/i18n/translations";
+import { useSettings } from "@/stores/settings";
 import { toSafeExternalUrl } from "@/utils/url";
 
 interface Props {
@@ -23,6 +26,7 @@ function fallbackLabel(driver: Driver | undefined): string {
 
 export function DriverHeadshot({ driver, accent, size = "md" }: Props) {
   const [failed, setFailed] = useState(false);
+  const language = useSettings((s) => s.language ?? FALLBACK_LANGUAGE);
   const safeHeadshotUrl = toSafeExternalUrl(driver?.headshot_url);
 
   useEffect(() => {
@@ -46,7 +50,7 @@ export function DriverHeadshot({ driver, accent, size = "md" }: Props) {
   return (
     <img
       src={safeHeadshotUrl}
-      alt={driver?.full_name ?? "Driver headshot"}
+      alt={driver?.full_name ?? t(language, "driverHeadshot.defaultAlt")}
       loading="lazy"
       onError={() => setFailed(true)}
       className={`${className} object-cover`}

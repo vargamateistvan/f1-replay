@@ -1,0 +1,1041 @@
+{
+  "commentary": {
+    "loadingPanel": "パネルを読み込み中",
+    "error": {
+      "raceControl": "レースコントロールの読み込みに失敗しました",
+      "teamRadio": "チームラジオの読み込みに失敗しました",
+      "pitStops": "ピットストップの読み込みに失敗しました",
+      "overtakes": "オーバーテイクの読み込みに失敗しました"
+    },
+    "tab": {
+      "rc": "レースコントロール",
+      "radio": "チームラジオ",
+      "pits": "ピット",
+      "passes": "オーバーテイク",
+      "moments": "重要な瞬間",
+      "chapters": "チャプター"
+    },
+    "meta": {
+      "entries": "件",
+      "clips": "クリップ",
+      "stops": "ストップ",
+      "moves": "動き",
+      "beats": "瞬間",
+      "windows": "区間"
+    },
+    "timeMode": {
+      "all": "すべて",
+      "elapsed": "経過",
+      "titleAll": "すべての解説項目を表示",
+      "titleElapsed": "経過した解説項目を表示"
+    },
+    "status": {
+      "practice": "プラクティス",
+      "qualifying": "予選",
+      "lap": "ラップ"
+    },
+    "tabShort": {
+      "rc": "RC",
+      "radio": "Radio",
+      "pits": "Pits",
+      "passes": "Passes",
+      "moments": "Moments",
+      "chapters": "Chptrs"
+    }
+  },
+  "settings": {
+    "sections": {
+      "appearance": "Appearance",
+      "playback": "Playback",
+      "notifications": "Notifications",
+      "raceViews": "Race Views",
+      "trackMap": "Track Map",
+      "dataInterface": "Data & Interface",
+      "support": "Support"
+    },
+    "language": {
+      "label": "言語",
+      "description": "アプリの言語を選択（この端末に保存）"
+    },
+    "lightMode": {
+      "label": "Light mode",
+      "description": "Switch to a light colour scheme"
+    },
+    "units": {
+      "label": "Units",
+      "description": "Display distances in km or miles, temperature in °C or °F",
+      "metric": "Metric",
+      "imperial": "Imperial"
+    },
+    "playback": {
+      "defaultSpeed": {
+        "label": "Default playback speed",
+        "description": "Applied when a new session loads"
+      },
+      "speedControls": {
+        "label": "Playback speed controls",
+        "description": "Show 1x/2x/4x/8x buttons in playback bar"
+      },
+      "forwardChips": {
+        "label": "Forward event chips",
+        "description": "Show jump chips (incident, pit, flag, SC, pass, radio)"
+      },
+      "catchupSummary": {
+        "label": "Catch-up summary",
+        "description": "Show missed events after a large scrub forward"
+      }
+    },
+    "defaultVisibleEventTypes": "Default visible event types",
+    "eventTypes": {
+      "pit": "Pit stops",
+      "flag": "Flags",
+      "penalty": "Penalties",
+      "overtake": "Overtakes",
+      "fastestLap": "Fastest laps",
+      "investigation": "Investigations",
+      "radio": "Radio"
+    },
+    "notifications": {
+      "enable": {
+        "label": "Enable notifications",
+        "description": "Show event toasts during playback"
+      },
+      "maxVisible": {
+        "label": "Max visible notifications",
+        "description": "Applies to mobile and desktop toast stack"
+      },
+      "stackHint": "Controls the number of simultaneous toasts shown in the live stack.",
+      "autoPlayRadio": {
+        "label": "Auto-play radio messages",
+        "description": "Automatically play new team radio toasts"
+      },
+      "sounds": {
+        "label": "Toast sounds",
+        "description": "Play short sound cues for new notifications"
+      }
+    },
+    "raceViews": {
+      "liveTelemetry": {
+        "label": "Live car telemetry",
+        "description": "Speed, gear, RPM, throttle, brake & DRS columns"
+      },
+      "timingMinisectors": {
+        "label": "Timing minisectors",
+        "description": "Show minisector strips under S1/S2/S3 bars"
+      },
+      "timingBoxTelemetry": {
+        "label": "Timing box live telemetry",
+        "description": "Show speed, gear, RPM, throttle, brake & DRS in tracker timing"
+      },
+      "trackerColumns": {
+        "title": "Driver tracker columns",
+        "description": "Pick which leaderboard-style timing columns appear in the tracker table"
+      },
+      "mobileTimingCarData": {
+        "label": "Mobile timing car data",
+        "description": "Show speed, RPM, gear, DRS, throttle and brake in tracker timing rows on mobile"
+      },
+      "mobileColumns": {
+        "title": "Mobile timing columns",
+        "description": "Pick which timing columns appear in mobile timing rows"
+      }
+    },
+    "columns": {
+      "p": "P",
+      "driver": "Driver",
+      "alerts": "Alerts",
+      "bestlap": "Best lap",
+      "lastlap": "Last lap",
+      "gap": "Gap",
+      "interval": "Interval",
+      "sectors": "Sectors",
+      "pos": "Pos",
+      "tyre": "Tyre",
+      "pit": "Pit",
+      "lap": "Lap",
+      "speed": "Speed",
+      "gear": "Gear",
+      "rpm": "RPM",
+      "thrbrk": "Thr/Brk",
+      "drs": "DRS"
+    },
+    "trackMap": {
+      "tyreBadges": {
+        "label": "Tyre compound badges",
+        "description": "Compound icons on each driver dot"
+      },
+      "drsRings": {
+        "label": "DRS battle rings",
+        "description": "Highlight drivers within 1s"
+      },
+      "focusHud": {
+        "label": "Focused driver HUD",
+        "description": "Speed, gear and throttle for selected driver"
+      },
+      "sectorFlagColoring": {
+        "label": "Sector flag colouring",
+        "description": "Tint track sectors on yellow/red flags"
+      },
+      "sectorStatusBox": {
+        "label": "Sector status box",
+        "description": "Show S1/S2/S3 flag chips near compass"
+      },
+      "controls": {
+        "label": "Track controls",
+        "description": "Show zoom and rotate controls on map"
+      },
+      "compass": {
+        "label": "Compass overlay",
+        "description": "Show north indicator in track controls"
+      },
+      "weather": {
+        "label": "Track weather",
+        "description": "Show weather panel/overlay in track map view"
+      },
+      "clock": {
+        "label": "Track time clock",
+        "description": "Show session wall-clock time in track map view"
+      },
+      "driverAcronym": {
+        "label": "Driver acronym labels",
+        "description": "Show 3-letter driver labels next to car dots"
+      },
+      "driverNumberInside": {
+        "label": "Driver number inside dot",
+        "description": "Show driver number centered in each car dot"
+      },
+      "enhancedVisuals": {
+        "label": "Enhanced track visuals",
+        "description": "Show finish line, sector markers, ghost delta map, braking hotspots, overtake arcs, condition ribbon, marshal lights and elevation contours"
+      },
+      "marshalHeatmap": {
+        "label": "Marshal sector heatmap",
+        "description": "Paint all ~15-22 individual marshal posts as coloured arc segments on the track (S1 red / S2 yellow / S3 blue)"
+      },
+      "cornerNumbers": {
+        "label": "Corner numbers",
+        "description": "Show corner numbers next to the track from baked circuit geometry"
+      },
+      "elevationHeatmap": {
+        "label": "Elevation heatmap",
+        "description": "Colour the track ribbon by altitude (blue = low, yellow = high)"
+      },
+      "pngSnapshot": {
+        "label": "PNG track snapshot",
+        "description": "Show download button for track screenshots"
+      }
+    },
+    "dataInterface": {
+      "csvExport": {
+        "label": "CSV export buttons",
+        "description": "Show export controls on Race Control, Team Radio, Overtakes and Weather panels"
+      },
+      "nextRaceBanner": {
+        "label": "Next race weekend banner",
+        "description": "Show countdown banner for the next race weekend"
+      }
+    },
+    "support": {
+      "coffeeButton": {
+        "label": "Buy Me a Coffee button",
+        "description": "Show the floating support widget"
+      }
+    },
+    "resetDefaults": "Reset to defaults"
+  },
+  "mobileNav": {
+    "telemetry": "Telemetry",
+    "standings": "Standings",
+    "settings": "Settings",
+    "help": "Help",
+    "privacy": "Privacy",
+    "terms": "Terms",
+    "tracker": "Tracker",
+    "feeds": "Feeds",
+    "more": "More"
+  },
+  "settingsPage": {
+    "title": "Settings",
+    "goBack": "Go back"
+  },
+  "standings": {
+    "title": "Standings",
+    "year": "Year",
+    "loadingSessions": "Loading sessions...",
+    "loadingRaceResults": "Loading race results...",
+    "thisRace": "this race",
+    "wins": "Wins",
+    "win": "Win",
+    "podiums": "Podiums",
+    "noDataForSeason": "No data found for the selected season",
+    "driver": "Driver",
+    "team": "Team",
+    "pts": "Pts",
+    "constructor": "Constructor",
+    "failedToLoad": "Failed to load championship data",
+    "pointsLabel": "Points",
+    "driverChampionship": "Driver Championship",
+    "constructorChampionship": "Constructor Championship",
+    "tabs": {
+      "drivers": "Drivers",
+      "constructors": "Constructors"
+    },
+    "posAbbrev": "P"
+  },
+  "sessionInfo": {
+    "flag": {
+      "formationLap": "FORMATION LAP",
+      "green": "GREEN FLAG",
+      "clear": "TRACK CLEAR",
+      "yellow": "YELLOW FLAG",
+      "doubleYellow": "DBL YELLOW",
+      "red": "RED FLAG",
+      "safetyCar": "SAFETY CAR",
+      "chequered": "CHEQUERED",
+      "blackWhite": "B&W FLAG",
+      "vsc": "VSC"
+    },
+    "actions": {
+      "showEliminated": "Show eliminated drivers",
+      "jumpToLapRange": "Jump to lap (1-{{max}})"
+    },
+    "errors": {
+      "wholeLap": "Enter a whole lap number.",
+      "lapBetween": "Enter a lap between 1 and {{max}}.",
+      "lapUnavailable": "Lap {{lap}} is not available in loaded timing data."
+    },
+    "eliminated": "Eliminated",
+    "countdown": "Countdown",
+    "lap": "Lap",
+    "time": "Time",
+    "air": "Air",
+    "track": "Track",
+    "out": "Out",
+    "results": "Results",
+    "showResults": "Show Results",
+    "lapShort": "L",
+    "jumpToLap": "Jump To Lap",
+    "enterLapBetween": "Enter a lap number between 1 and {{max}}.",
+    "lapNumber": "Lap Number",
+    "cancel": "Cancel",
+    "jump": "Jump"
+  },
+  "nav": {
+    "home": "F1 Replay home",
+    "selectSession": "SELECT SESSION",
+    "tabs": {
+      "leaderboard": "Leaderboard",
+      "tracker": "Driver Tracker",
+      "commentary": "Commentary"
+    },
+    "telemetry": "Telemetry",
+    "standings": "Standings",
+    "settings": "Settings",
+    "howItWorks": "How it works",
+    "live": "Live",
+    "year": "Year",
+    "seasonYear": "Season year",
+    "event": "Event",
+    "failedLoadEvents": "Failed to load events",
+    "eventPlaceholder": "- event -",
+    "cancelled": "Cancelled",
+    "session": "Session",
+    "failedLoadSessions": "Failed to load sessions",
+    "sessionPlaceholder": "- session -",
+    "loading": "Loading...",
+    "latest": "Latest",
+    "circuitTypes": {
+      "permanent": "Permanent",
+      "street": "Street Circuit",
+      "road": "Road Course"
+    },
+    "tba": "TBA",
+    "hideNextRaceBanner": "Hide next race banner",
+    "hideBanner": "Hide banner",
+    "agendaTitle": "{{meeting}} Agenda",
+    "closeAgenda": "Close agenda",
+    "close": "Close",
+    "eventTime": "Event Time",
+    "loadingAgenda": "Loading agenda...",
+    "agendaNotAvailable": "Agenda not available yet.",
+    "eventLabel": "EVENT",
+    "authErrorPrefix": "OpenF1 returned",
+    "authErrorSet": "- set",
+    "authErrorIn": "in",
+    "authErrorRestart": "and restart.",
+    "trackFactsTitle": "{{circuit}} Track Facts",
+    "closeTrackFacts": "Close track facts",
+    "trackLayoutUnavailable": "Track layout image unavailable for this event.",
+    "trackFacts": {
+      "length": "Length",
+      "raceDistance": "Race Distance",
+      "laps": "Laps",
+      "turns": "Turns",
+      "lapRecord": "Lap Record",
+      "drsZones": "DRS Zones",
+      "firstGp": "First GP",
+      "direction": "Direction",
+      "altitude": "Altitude"
+    },
+    "fetchingFacts": "Fetching facts from API...",
+    "dataSource": "Data source: live circuit facts fetched from API at runtime.",
+    "officialCircuitInfo": "Official circuit information",
+    "countryFlagAlt": "{{country}} flag",
+    "circuitAlt": "{{circuit}} circuit",
+    "trackLayoutAlt": "{{circuit}} track layout"
+  },
+  "telemetry": {
+    "loadingEvent": "Loading Event",
+    "loadingEventDescription": "Fetching sessions and loading telemetry context.",
+    "bestAll": "Best all",
+    "bestAllTitle": "Pick each selected driver's best recorded lap",
+    "syncToA": "Sync to A",
+    "syncToATitle": "Use Driver A lap number for Driver B and Driver C",
+    "qualiMode": "Quali mode",
+    "qualiModeTitle": "Quali mode: best laps + smoothing",
+    "raceMode": "Race mode",
+    "raceModeTitle": "Race mode: latest laps + raw traces",
+    "sharedLap": "Shared lap",
+    "none": "None",
+    "lap": "Lap",
+    "driverTrackPreview": "Driver & track preview",
+    "collapsePreviewCards": "Collapse preview cards",
+    "expandPreviewCards": "Expand preview cards",
+    "hide": "Hide",
+    "show": "Show",
+    "driverA": "Driver A",
+    "driverB": "Driver B",
+    "unselected": "Unselected",
+    "selectAnchor": "Select anchor",
+    "optional": "Optional",
+    "trackPositionPreview": "Track position preview",
+    "lapTrackPreview": "Lap track preview",
+    "selectDriverAAndLap": "Select Driver A and a valid lap to draw the track.",
+    "loadingTelemetry": "Loading telemetry...",
+    "failedToLoadTelemetry": "Failed to load telemetry for a selected driver",
+    "selectDriverAAndLapToView": "Select Driver A and a lap to view telemetry",
+    "noTelemetryForLap": "No telemetry available for this lap - try another lap or driver",
+    "deltaNA": "Δ N/A",
+    "deltaZero": "Δ 0.000s",
+    "noLapSelected": "No lap selected",
+    "idle": "Idle",
+    "noTimingData": "No timing data",
+    "missing": "Missing",
+    "pitOut": "Pit Out",
+    "invalid": "Invalid",
+    "valid": "Valid",
+    "reference": "Reference",
+    "throttle": "Throttle (%)",
+    "brake": "Brake",
+    "gear": "Gear",
+    "gearUnit": "gear",
+    "rpm": "RPM",
+    "rpmUnit": "rpm",
+    "deltaVs": "Delta vs {{driver}}",
+    "deltaHint": "(+ = {{driver}} ahead)",
+    "driver": "Driver",
+    "select": "Select",
+    "best": "Best",
+    "latest": "Latest",
+    "speedTrace": "Speed trace",
+    "avg": "AVG",
+    "max": "MAX",
+    "totalSectorWinsTooltip": "Total sector wins for selected lap",
+    "selectBestLapTooltip": "Select best valid lap",
+    "selectLatestLapTooltip": "Select latest valid lap",
+    "deltaTooltip": "Estimated lap-end delta versus Driver A",
+    "sectorWinner": "{{label}} winner",
+    "sectorNotQuickest": "{{label}} not quickest",
+    "noTrace": "No trace",
+    "lapSpeedSparkline": "Lap speed sparkline",
+    "sectorSplits": "Sector splits",
+    "lapNumber": "Lap #",
+    "speedTrap": "Speed trap ({{speedUnit}})",
+    "intermediate1Speed": "Intermediate 1 speed",
+    "intermediate2Speed": "Intermediate 2 speed",
+    "speedLegend": "I1 / I2 = intermediate speeds · ST = speed trap · unit: {{speedUnit}} · cyan = fastest",
+    "speedWithUnit": "Speed ({{speedUnit}})",
+    "driverProfileAlt": "{{driver}} profile",
+    "deltaChartTitle": "Delta (s)"
+  },
+  "privacyPage": {
+    "legal": "Legal",
+    "title": "Privacy Policy",
+    "lastUpdated": "Last updated: {{date}}",
+    "intro": "F1 Replay uses analytics and consent tooling to understand site usage and improve reliability. This policy explains what data is processed at a high level.",
+    "sections": {
+      "collect": {
+        "title": "What We Collect",
+        "body": "We may process technical and usage data such as page views, browser and device metadata, referrer URLs, and interaction events. We do not intentionally collect sensitive personal data through analytics events."
+      },
+      "cookies": {
+        "title": "Cookies and Consent",
+        "body": "We use Cookiebot for consent management and Google tools for measurement. Non-essential storage and analytics are controlled by your consent preferences."
+      },
+      "thirdParties": {
+        "title": "Third Parties",
+        "body": "Data may be processed by third-party providers such as Google and Cookiebot in accordance with their terms and privacy policies."
+      },
+      "contact": {
+        "title": "Contact",
+        "body": "For privacy inquiries, contact: security@f1replay.app"
+      }
+    },
+    "disclaimer": "This page is a general summary and not legal advice.",
+    "termsLink": "Terms of Service",
+    "backToReplay": "Back to Replay"
+  },
+  "termsPage": {
+    "legal": "Legal",
+    "title": "Terms of Service",
+    "lastUpdated": "Last updated: {{date}}",
+    "intro": "By using F1 Replay, you agree to these terms. If you do not agree, please stop using the service.",
+    "sections": {
+      "use": {
+        "title": "Use of Service",
+        "body": "You may use the app for lawful, personal, or internal business purposes. You agree not to abuse, disrupt, or reverse engineer the service in a way that harms its availability."
+      },
+      "dataSources": {
+        "title": "Data Sources",
+        "body": "The platform displays motorsport data from third-party sources. Data may be delayed, incomplete, or inaccurate at times."
+      },
+      "noWarranty": {
+        "title": "No Warranty",
+        "body": "The service is provided on an \"as is\" and \"as available\" basis without warranties of any kind."
+      },
+      "liability": {
+        "title": "Limitation of Liability",
+        "body": "To the maximum extent permitted by law, F1 Replay is not liable for indirect, incidental, or consequential damages arising from your use of the service."
+      },
+      "contact": {
+        "title": "Contact",
+        "body": "For legal questions, contact: security@f1replay.app"
+      }
+    },
+    "disclaimer": "This page is a basic template and not legal advice.",
+    "privacyLink": "Privacy Policy",
+    "backToReplay": "Back to Replay"
+  },
+  "sessionPicker": {
+    "authErrorPrefix": "OpenF1 returned",
+    "authErrorBody": "- the API is rejecting requests. Historical data is normally free; if it now requires a token, set",
+    "authErrorIn": "in",
+    "authErrorRestart": "and restart.",
+    "selectPlaceholder": "- select -",
+    "latestEvent": "Latest Event",
+    "circuitAlt": "{{circuit}} circuit",
+    "countryFlagAlt": "{{country}} flag"
+  },
+  "finalClassification": {
+    "title": "Final Classification",
+    "sessionResults": "Session Results",
+    "closeDialog": "Close results dialog",
+    "officialSessionResult": "Official session result",
+    "points": "Points",
+    "driverWithNumber": "Driver {{number}}",
+    "unknownTeam": "Unknown team",
+    "pos": "Pos",
+    "driver": "Driver",
+    "team": "Team",
+    "laps": "Laps",
+    "gapTime": "Gap / Time",
+    "unknownDriver": "Unknown driver",
+    "winner": "Winner",
+    "notClassified": "Not classified",
+    "statuses": {
+      "dsq": "DSQ",
+      "dns": "DNS",
+      "dnf": "DNF",
+      "classified": "CLASSIFIED"
+    }
+  },
+  "focusedTelemetry": {
+    "clearComparisonDriver": "Clear comparison driver",
+    "clearCompare": "Clear compare",
+    "clearFocus": "Clear focus",
+    "noTelemetryAtPoint": "No telemetry at this point - scrub into the session",
+    "throttle": "Throttle",
+    "aheadDelta": "{{driver}} ahead (+)",
+    "speed": "Speed",
+    "gear": "Gear",
+    "rpm": "RPM",
+    "thr": "Thr",
+    "brk": "Brk",
+    "drs": "DRS",
+    "noLiveSample": "No live sample",
+    "speedComparisonTitle": "Speed ({{speedUnit}}) · L{{driverLap}} vs L{{compareLap}}"
+  },
+  "weatherPanel": {
+    "noWeatherData": "No weather data",
+    "trackWeather": "Track Weather",
+    "exportCsv": "Export CSV",
+    "rain": "Rain",
+    "track": "Track",
+    "air": "Air",
+    "wind": "Wind",
+    "humidity": "Humidity",
+    "pressure": "Pressure",
+    "direction": "Dir"
+  },
+  "overtakes": {
+    "noOvertakesYet": "No overtakes yet - scrub forward",
+    "selectSession": "Select a session",
+    "exportCsv": "Export CSV",
+    "lap": "Lap",
+    "session": "Session",
+    "passed": "passed",
+    "forPosition": "for P{{position}}",
+    "loadOlder": "Load older ({{left}} left)"
+  },
+  "teamRadio": {
+    "selectSession": "Select a session",
+    "noMessages2026": "No radio messages for this session. OpenF1 coverage is often limited in 2026+ events.",
+    "noMessagesYet": "No radio messages yet - scrub forward",
+    "exportCsv": "Export CSV",
+    "lap": "Lap",
+    "session": "Session",
+    "teamRadioFor": "Team radio for",
+    "clip": "clip",
+    "loadOlder": "Load older ({{left}} left)",
+    "radio": "Radio",
+    "stop": "Stop",
+    "play": "Play"
+  },
+  "pitFeed": {
+    "noPitStopsYet": "No pit stops yet - scrub forward",
+    "selectSession": "Select a session",
+    "exportCsv": "Export CSV",
+    "lap": "Lap",
+    "session": "Session",
+    "pitStopFor": "Pit stop for",
+    "loadOlder": "Load older ({{left}} left)"
+  },
+  "raceControl": {
+    "groups": {
+      "flags": "Flags",
+      "incidents": "Incidents",
+      "session": "Session",
+      "drs": "DRS",
+      "other": "Other"
+    },
+    "tracker": "Tracker",
+    "exportCsv": "Export CSV",
+    "searchPlaceholder": "Search...",
+    "driverFilterActive": "driver filter active",
+    "clearDriverFilter": "Clear driver filter",
+    "clear": "Clear",
+    "penaltyTracker": "Penalty Tracker",
+    "noIncidents": "No incidents in view",
+    "noEvents": "No events match filters",
+    "selectSession": "Select a session",
+    "loadOlder": "Load older ({{hidden}} hidden)",
+    "lap": "Lap",
+    "session": "Session",
+    "unknown": "Unknown",
+    "flag": {
+      "green": "GREEN",
+      "yellow": "YELLOW",
+      "doubleYellow": "DBL YELLOW",
+      "red": "RED FLAG",
+      "chequered": "CHEQUERED",
+      "blue": "BLUE",
+      "blackAndWhite": "BLK/WHT",
+      "virtualSc": "VIRTUAL SC",
+      "clear": "CLEAR"
+    },
+    "severity": {
+      "info": "Info",
+      "warn": "Warn",
+      "critical": "Critical"
+    },
+    "penalty": {
+      "noted": "Noted",
+      "investigating": "Investigating",
+      "penalty": "Penalty",
+      "cleared": "Cleared"
+    },
+    "kinds": {
+      "flag": "flag",
+      "safetyCar": "safety car",
+      "penalty": "penalty",
+      "investigation": "investigation",
+      "sessionStatus": "session status",
+      "drs": "drs",
+      "carEvent": "car event",
+      "other": "other"
+    }
+  },
+  "trackMap": {
+    "zoomOut": "Zoom out",
+    "zoomIn": "Zoom in",
+    "resetZoom": "Reset zoom",
+    "rotateLeft": "Rotate left",
+    "rotateRight": "Rotate right",
+    "resetRotation": "Reset rotation",
+    "fallbackTooltip": "Using coarse circuit layout fallback because baked geometry and GPS outline data were unavailable",
+    "fallbackLayout": "Fallback layout",
+    "trackTime": "Track Time",
+    "track": "Track",
+    "local": "Local",
+    "trackTimezone": "Track timezone",
+    "localTimezone": "Local timezone",
+    "trackWeather": "Track Weather",
+    "rain": "Rain",
+    "hum": "Hum",
+    "wind": "Wind",
+    "air": "Air",
+    "press": "Press",
+    "dirRain": "Dir/Rain",
+    "yes": "YES",
+    "no": "NO",
+    "lapSpeed": "Lap Speed",
+    "avg": "AVG",
+    "thr": "THR",
+    "brk": "BRK",
+    "sectors": "Sectors",
+    "compass": "Compass",
+    "downloadPng": "Download track snapshot as PNG",
+    "selectSessionToLoadTrack": "Select a session to load the track",
+    "loadingTrackOutline": "Loading track outline...",
+    "noLocationDataForSession": "No location data available for this session"
+  },
+  "howItWorks": {
+    "title": "How It Works",
+    "closeHelp": "Close help",
+    "gettingStartedTitle": "🏁 Getting Started",
+    "gettingStartedBody": "Select a circuit and session (Free Practice, Qualifying, or Race) from the top navigation. The app will load real-time F1 data from the OpenF1 API.",
+    "playbackTitle": "▶️ Playback & Navigation",
+    "playPauseLabel": "Play/Pause:",
+    "playPauseBody": "Toggle playback with the button or spacebar",
+    "scrubTimelineLabel": "Scrub Timeline:",
+    "scrubTimelineBody": "Click or drag the playback bar to jump to any time",
+    "speedControlLabel": "Speed Control:",
+    "speedControlBody": "Adjust playback speed (1x, 2x, 4x, 8x, 16x)",
+    "keyboardLabel": "Keyboard:",
+    "keyboardBody": "Arrow keys frame-step, Space toggles play",
+    "telemetryTitle": "📊 Telemetry & Performance",
+    "telemetryMetricsLabel": "Telemetry Metrics:",
+    "telemetryMetricsBody": "View high-frequency speed, throttle, brake, RPM, gear, DRS, and brake temperature data",
+    "multiDriverComparisonLabel": "Multi-Driver Comparison:",
+    "multiDriverComparisonBody": "Select one or more drivers to compare side-by-side telemetry traces",
+    "tireDataLabel": "Tire Data:",
+    "tireDataBody": "Monitor tire surface temperatures and compound wear progression during stints",
+    "focusedOverlayLabel": "Focused Overlay:",
+    "focusedOverlayBody": "Use the focused telemetry view for full-screen, high-resolution analysis",
+    "hoverDetailsLabel": "Hover Details:",
+    "hoverDetailsBody": "Inspect exact values at any point in time with precision tooltips",
+    "strategyTitle": "🏎️ Tire Strategy & Race Events",
+    "strategyTimelineLabel": "Strategy Timeline:",
+    "strategyTimelineBody": "Visualize pit stops, tire compound changes, stint lengths, and tire age tracking",
+    "tireCompoundsLabel": "Tire Compounds:",
+    "tireCompoundsBody": "Color-coded compound visualization (soft, medium, hard, intermediate, wet) for all stints",
+    "pitAnalysisLabel": "Pit Analysis:",
+    "pitAnalysisBody": "Exact pit timings and strategy call sequences per driver",
+    "overtakesTabLabel": "Overtakes Tab:",
+    "overtakesTabBody": "Complete list of overtakes with tactical context",
+    "liveTimingLabel": "Live Timing:",
+    "liveTimingBody": "Current position, gaps, intervals, pit status, and active in-pit tags",
+    "teamRadioLabel": "Team Radio:",
+    "teamRadioBody": "Driver communications synced to playback, with direct in-toast audio playback when recordings are available",
+    "raceControlLabel": "Race Control:",
+    "raceControlBody": "Flags, SC/VSC, incidents, and official messages",
+    "trackInformationTitle": "🏁 Track Information",
+    "circuitLayoutLabel": "Circuit Layout:",
+    "circuitLayoutBody": "Visual track map with turn names, DRS zones, and sector divisions",
+    "sectorPerformanceLabel": "Sector Performance:",
+    "sectorPerformanceBody": "Real-time sector times and speed trap data for comparison",
+    "driverFocusLabel": "Driver Focus:",
+    "driverFocusBody": "Click a driver in timing or on-map to focus the camera and follow that car around the circuit",
+    "driverHeatmapLabel": "Driver Heatmap:",
+    "driverHeatmapBody": "Focus mode can overlay lap-based speed heatmap colors on the track map for quick pace reads",
+    "circuitDetailsLabel": "Circuit Details:",
+    "circuitDetailsBody": "Track name, length, total lap count, and key characteristics when available",
+    "trackStatusLabel": "Track Status:",
+    "trackStatusBody": "Live weather, flags, and track condition updates",
+    "mainViewsTitle": "👁️ Main Views",
+    "leaderboardLabel": "Leaderboard:",
+    "leaderboardBody": "Grid view of race standings with gaps and intervals",
+    "driverTrackerLabel": "Driver Tracker:",
+    "driverTrackerBody": "Immersive replay with track map, tire strategy, telemetry, radio, and timing data with focused driver telemetry parity",
+    "commentaryLabel": "Commentary:",
+    "commentaryBody": "Event feeds (radio, race control, overtakes, weather)",
+    "finalResultsLabel": "Final Results:",
+    "finalResultsBody": "Open the Final Classification dialog with podium cards and complete race result table after sessions finish",
+    "underTheHoodTitle": "🧠 How It Works Under The Hood",
+    "sharedTimelineLabel": "Shared Timeline:",
+    "sharedTimelineBody": "A single session clock drives map, timing, telemetry, toasts, and event feeds.",
+    "smartCachingLabel": "Smart Caching:",
+    "smartCachingBody": "API responses are persisted with TanStack Query, so switching tabs and revisiting sessions stays fast.",
+    "derivedEventLayersLabel": "Derived Event Layers:",
+    "derivedEventLayersBody": "Timeline helpers transform raw API rows into markers, toasts, chapters, and track-state overlays.",
+    "mapInterpolationLabel": "Map Interpolation:",
+    "mapInterpolationBody": "Car positions are interpolated at the current playhead time, then rendered on SVG geometry for smooth replay motion.",
+    "liveSettingsLabel": "Live Settings:",
+    "liveSettingsBody": "Overlay and notification toggles update the UI immediately without reloading session data.",
+    "settingsTitle": "⚙️ Settings",
+    "customizeIntro": "Customize your experience:",
+    "notificationsLabel": "Notifications:",
+    "notificationsBody": "Enable/disable event toasts (radio, flags, overtakes, pits, fastest laps)",
+    "trackMapLabel": "Track Map:",
+    "trackMapBody": "Show/hide focused HUD, leaderboard, tyre badges, battle rings, sector flags, and heatmap overlays",
+    "playbackSpeedLabel": "Playback Speed:",
+    "playbackSpeedBody": "Set default speed and enable speed controls",
+    "resilienceLabel": "Resilience:",
+    "resilienceBody": "Friendly error pages handle route and runtime failures without breaking the app shell",
+    "keyboardShortcutsTitle": "⌨️ Keyboard Shortcuts",
+    "shortcutPlayPause": "Play/Pause",
+    "shortcutScrub": "Scrub +/-5s",
+    "shortcutSpeed": "Speed up/down",
+    "shortcutLap": "Prev/next lap",
+    "shortcutKeyMoment": "Prev/next key moment",
+    "shortcutView": "Switch main view",
+    "shortcutJump": "Jump start/end",
+    "shortcutHelp": "Open this help",
+    "shortcutClose": "Close modal",
+    "tipLabel": "Tip:",
+    "tipBodyPrefix": "All data is from the public",
+    "tipBodySuffix": "No account required!",
+    "feedbackPrefix": "Found a bug or have feedback?",
+    "feedbackLink": "Report an issue",
+    "author": "Author",
+    "supportBody": "Enjoying the project? Support development with a slice.",
+    "buyPizza": "Buy me a pizza",
+    "keySpace": "Space",
+    "keyJK": "J K",
+    "keyHomeEnd": "Home End",
+    "keyEsc": "Esc"
+  },
+  "playback": {
+    "atTime": "{{label}} at {{time}}",
+    "speedAria": "{{speed}}x speed",
+    "jumpToStart": "Jump to start",
+    "lapStart": "Lap start",
+    "lapStartHotkey": "Lap start ([)",
+    "pause": "Pause",
+    "play": "Play",
+    "playPauseHotkey": "Play / pause (Space)",
+    "nextLap": "Next lap",
+    "nextLapHotkey": "Next lap (])",
+    "jumpToEnd": "Jump to end",
+    "playbackTime": "Playback time",
+    "timeInputHint": "Type MM:SS or HH:MM:SS and press Enter",
+    "seek": "Seek",
+    "jumpToIncident": "Jump to incident: {{tooltip}}",
+    "hideRaceControlMarkers": "Hide race-control markers",
+    "showRaceControlMarkers": "Show race-control markers",
+    "ended": "ENDED",
+    "forwardToQ2": "Forward to Q2",
+    "q2Chip": "Q2 ›",
+    "forwardToQ3": "Forward to Q3",
+    "q3Chip": "Q3 ›",
+    "replayCurrentIncidentWindow": "Replay current incident window",
+    "incidentReplayCurrent": "Incident ⟳",
+    "replayNextIncidentWindow": "Replay next incident window",
+    "incidentReplayNext": "Incident ›",
+    "jumpToNextPitStop": "Jump to next pit stop",
+    "pitChip": "Pit ›",
+    "jumpToNextFlagOrSafetyCar": "Jump to next flag or safety car",
+    "flagChip": "Flag ›",
+    "jumpToNextSafetyCar": "Jump to next safety car",
+    "scChip": "SC ›",
+    "jumpToNextOvertake": "Jump to next overtake",
+    "passChip": "Pass ›",
+    "jumpToNextRadioMessage": "Jump to next radio message",
+    "radioChip": "Radio ›"
+  },
+  "telemetryChart": {
+    "noDataFound": "No data found",
+    "zoom": "Zoom",
+    "panLeft": "Pan left",
+    "zoomIn": "Zoom in",
+    "zoomOut": "Zoom out",
+    "panRight": "Pan right",
+    "resetZoom": "Reset zoom",
+    "reset": "Reset",
+    "seriesTitle": "{{label}} series",
+    "zoomHint": "Drag to zoom window - double-click reset"
+  },
+  "resizeHandle": {
+    "dragToResize": "Drag to resize · Double-click to reset"
+  },
+  "liveTiming": {
+    "status": "Status",
+    "waiting": "Waiting",
+    "firstTimedLapPending": "First timed lap pending",
+    "sectorReferencesPending": "Sector references will appear as soon as timed laps are registered.",
+    "underInvestigation": "Under investigation",
+    "underInvestigationDetail": "Under investigation: {{detail}}",
+    "penaltyIssued": "Penalty issued",
+    "penaltyIssuedDetail": "Penalty issued: {{detail}}",
+    "on": "ON",
+    "off": "OFF",
+    "out": "OUT",
+    "ret": "RET",
+    "outlap": "OUTLAP",
+    "pit": "PIT",
+    "gearShort": "G",
+    "lead": "LEAD",
+    "sectorTitle": "{{sector}}: {{value}}",
+    "startedPosition": "Started P{{position}}",
+    "startingPositionUnavailable": "Starting position unavailable",
+    "drsRawValue": "DRS raw value {{value}}",
+    "tyreAgeTitle": "{{compound}} · {{age}} laps old",
+    "startingCompoundWas": "Starting compound was {{compound}}",
+    "sectorBestTitle": "{{sector}} {{time}} · {{driver}} · Lap {{lap}}",
+    "sectorNotSetYet": "{{sector}} not set yet",
+    "loadingTimingData": "Loading timing data",
+    "loadingTimingDataDetail": "Pulling positions, gaps, and sector references.",
+    "waitingForTiming": "Waiting for timing",
+    "waitingForTimingDetail": "Scrub forward or wait for the first classified samples.",
+    "noSessionSelected": "No session selected",
+    "noSessionSelectedDetail": "Choose an event and session to populate the timing tower.",
+    "throttleShort": "T",
+    "brakeShort": "B"
+  },
+  "settingsModal": {
+    "closeSettings": "Close settings"
+  },
+  "qualifyingBanner": {
+    "eliminated": "Eliminated",
+    "closeEliminationDialog": "Close elimination dialog",
+    "noEliminatedDrivers": "No eliminated drivers available yet.",
+    "noDriversLockedOut": "No drivers locked out in this group yet.",
+    "q1Running": "Q1 Running",
+    "noDriversEliminatedYet": "No drivers eliminated yet",
+    "oneDriverOut": "1 driver out",
+    "driversOut": "{{count}} drivers out",
+    "q1Eliminated": "Q1 Eliminated",
+    "q2Eliminated": "Q2 Eliminated",
+    "q1q2Eliminated": "Q1 & Q2 Eliminated",
+    "phaseElimination": "{{phase}} Elimination",
+    "out": "out"
+  },
+  "catchupSummary": {
+    "whileYouWereAway": "While you were away",
+    "dismiss": "Dismiss",
+    "fastest": "FASTEST",
+    "penalty": "PENALTY",
+    "investigation": "INVESTIGATION",
+    "pit": "PIT",
+    "radio": "RADIO",
+    "stop": "Stop",
+    "play": "Play",
+    "lapWithNumber": "Lap {{lap}}",
+    "pitStopDuration": "{{duration}}s stop",
+    "noEventsMatchFilters": "No events match the selected filters",
+    "chips": {
+      "pitOne": "1 pit stop",
+      "pitMany": "{{count}} pit stops",
+      "flagOne": "1 flag",
+      "flagMany": "{{count}} flags",
+      "penaltyOne": "1 penalty",
+      "penaltyMany": "{{count}} penalties",
+      "overtakeOne": "1 overtake",
+      "overtakeMany": "{{count}} overtakes",
+      "fastestLapOne": "1 fastest lap",
+      "fastestLapMany": "{{count}} fastest laps",
+      "investigationOne": "1 investigation",
+      "investigationMany": "{{count}} investigations",
+      "radioOne": "1 radio",
+      "radioMany": "{{count}} radio"
+    }
+  },
+  "eventToast": {
+    "liveRaceNotifications": "Live race notifications",
+    "dismiss": "Dismiss",
+    "radio": "Radio",
+    "na": "N/A",
+    "stop": "Stop",
+    "play": "Play",
+    "fastestLap": "Fastest Lap"
+  },
+  "keyMoments": {
+    "noKeyMomentsYet": "No key moments yet — scrub forward or select a session",
+    "lapWithNumber": "Lap {{lap}}",
+    "session": "Session",
+    "chapter": "chapter",
+    "badges": {
+      "lead": "LEAD",
+      "fastest": "FASTEST",
+      "sc": "SC",
+      "vsc": "VSC",
+      "red": "RED"
+    }
+  },
+  "gapChart": {
+    "noGapData": "No gap data available yet",
+    "showingAllLaps": "Showing all laps",
+    "showingElapsedLaps": "Showing elapsed laps",
+    "all": "All",
+    "elapsed": "Elapsed",
+    "lapWithNumber": "Lap {{lap}}",
+    "deltaSeconds": "+{{value}}s"
+  },
+  "raceChapters": {
+    "whatChanged": "What Changed",
+    "pitted": "Pitted:",
+    "chapter": "chapter",
+    "now": "NOW",
+    "jumpToLabel": "Jump to {{label}}",
+    "jump": "Jump",
+    "replayLabel": "Replay {{label}}",
+    "replay": "Replay",
+    "noSessionLoaded": "No session loaded — select a race session to see chapters",
+    "incidentOnly": "Incident Only",
+    "chaptersCount": "{{count}} chapters",
+    "lapWithNumber": "Lap {{lap}}",
+    "session": "Session",
+    "badges": {
+      "start": "START",
+      "green": "GREEN",
+      "sc": "SC",
+      "vsc": "VSC",
+      "yellow": "YELLOW",
+      "red": "RED",
+      "finish": "FINISH"
+    }
+  },
+  "strategy": {
+    "noStrategyData": "No strategy data",
+    "tyreStintsWillAppear": "Tyre stints will appear here once lap and compound data are available.",
+    "showingAllLaps": "Showing all laps",
+    "showingElapsedLaps": "Showing elapsed laps",
+    "all": "All",
+    "elapsed": "Elapsed",
+    "activeStintTitle": "{{compound}} · {{age}} laps old",
+    "noActiveStint": "No active stint",
+    "stintSegmentTitle": "{{compound}} (new+{{age}}) L{{start}}-{{end}}",
+    "pitMarkerTitle": "Pit L{{lap}}{{stopSuffix}}",
+    "stopSuffix": " ({{seconds}}s)"
+  },
+  "lapChart": {
+    "noPositionData": "No position data for a lap chart yet",
+    "showingAllLaps": "Showing all laps",
+    "showingElapsedLaps": "Showing elapsed laps",
+    "all": "All",
+    "elapsed": "Elapsed",
+    "lapWithNumber": "Lap {{lap}}"
+  },
+  "raceWeekend": {
+    "loadingSessionData": "Loading session data",
+    "preparingSessionData": "Preparing timing and event feeds for this session.",
+    "loading": "Loading...",
+    "errors": {
+      "timingData": "Failed to load timing data",
+      "weather": "Failed to load weather",
+      "driverData": "Failed to load driver data",
+      "finalClassification": "Failed to load final classification"
+    },
+    "trackerTabs": {
+      "timing": "Timing",
+      "track": "Track",
+      "strategy": "Tyre Strategy",
+      "chart": "Chart",
+      "laps": "Laps",
+      "gap": "Gap"
+    }
+  },
+  "driverHeadshot": {
+    "defaultAlt": "Driver headshot"
+  }
+}

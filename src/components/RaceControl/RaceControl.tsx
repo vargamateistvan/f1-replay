@@ -12,6 +12,8 @@ import {
   type RaceControlKind,
 } from "@/timeline/raceControl";
 import { isPracticeSession } from "@/utils/session";
+import { FALLBACK_LANGUAGE } from "@/i18n/language";
+import { t } from "@/i18n/translations";
 
 // ─── Visual config ───────────────────────────────────────────────────────────
 
@@ -19,27 +21,51 @@ const FLAG_CONFIG: Record<
   string,
   { label: string; bar: string; text: string }
 > = {
-  GREEN: { label: "GREEN", bar: "bg-green-600", text: "text-green-300" },
-  YELLOW: { label: "YELLOW", bar: "bg-yellow-500", text: "text-yellow-300" },
+  GREEN: {
+    label: "raceControl.flag.green",
+    bar: "bg-green-600",
+    text: "text-green-300",
+  },
+  YELLOW: {
+    label: "raceControl.flag.yellow",
+    bar: "bg-yellow-500",
+    text: "text-yellow-300",
+  },
   DOUBLE_YELLOW: {
-    label: "DBL YELLOW",
+    label: "raceControl.flag.doubleYellow",
     bar: "bg-yellow-400",
     text: "text-yellow-200",
   },
-  RED: { label: "RED FLAG", bar: "bg-red-600", text: "text-red-300" },
-  CHEQUERED: { label: "CHEQUERED", bar: "bg-white", text: "text-gray-900" },
-  BLUE: { label: "BLUE", bar: "bg-blue-500", text: "text-blue-300" },
+  RED: {
+    label: "raceControl.flag.red",
+    bar: "bg-red-600",
+    text: "text-red-300",
+  },
+  CHEQUERED: {
+    label: "raceControl.flag.chequered",
+    bar: "bg-white",
+    text: "text-gray-900",
+  },
+  BLUE: {
+    label: "raceControl.flag.blue",
+    bar: "bg-blue-500",
+    text: "text-blue-300",
+  },
   BLACK_AND_WHITE: {
-    label: "BLK/WHT",
+    label: "raceControl.flag.blackAndWhite",
     bar: "bg-gray-400",
     text: "text-gray-200",
   },
   VIRTUAL_SC: {
-    label: "VIRTUAL SC",
+    label: "raceControl.flag.virtualSc",
     bar: "bg-yellow-600",
     text: "text-yellow-300",
   },
-  CLEAR: { label: "CLEAR", bar: "bg-green-600", text: "text-green-300" },
+  CLEAR: {
+    label: "raceControl.flag.clear",
+    bar: "bg-green-600",
+    text: "text-green-300",
+  },
 };
 
 const DEFAULT_CONFIG = { label: "", bar: "bg-track", text: "text-muted" };
@@ -48,19 +74,34 @@ const SEVERITY_BADGE: Record<
   RaceControlSeverity,
   { label: string; cls: string }
 > = {
-  info: { label: "Info", cls: "bg-track text-white/80" },
-  warning: { label: "Warn", cls: "bg-amber-500/20 text-amber-300" },
-  critical: { label: "Critical", cls: "bg-red-500/20 text-red-300" },
+  info: { label: "raceControl.severity.info", cls: "bg-track text-white/80" },
+  warning: {
+    label: "raceControl.severity.warn",
+    cls: "bg-amber-500/20 text-amber-300",
+  },
+  critical: {
+    label: "raceControl.severity.critical",
+    cls: "bg-red-500/20 text-red-300",
+  },
 };
 
 const PENALTY_STATUS_CONFIG = {
-  noted: { label: "Noted", cls: "bg-slate-500/20 text-slate-300" },
+  noted: {
+    label: "raceControl.penalty.noted",
+    cls: "bg-slate-500/20 text-slate-300",
+  },
   investigating: {
-    label: "Investigating",
+    label: "raceControl.penalty.investigating",
     cls: "bg-amber-500/20 text-amber-300",
   },
-  penalty: { label: "Penalty", cls: "bg-red-500/20 text-red-300" },
-  cleared: { label: "Cleared", cls: "bg-green-500/20 text-green-300" },
+  penalty: {
+    label: "raceControl.penalty.penalty",
+    cls: "bg-red-500/20 text-red-300",
+  },
+  cleared: {
+    label: "raceControl.penalty.cleared",
+    cls: "bg-green-500/20 text-green-300",
+  },
 };
 
 // ─── Kind filter groups ───────────────────────────────────────────────────────
@@ -68,16 +109,39 @@ const PENALTY_STATUS_CONFIG = {
 type KindGroup = { key: string; label: string; kinds: RaceControlKind[] };
 
 const KIND_GROUPS: KindGroup[] = [
-  { key: "flags", label: "Flags", kinds: ["flag", "safety_car"] },
+  {
+    key: "flags",
+    label: "raceControl.groups.flags",
+    kinds: ["flag", "safety_car"],
+  },
   {
     key: "incidents",
-    label: "Incidents",
+    label: "raceControl.groups.incidents",
     kinds: ["penalty", "investigation"],
   },
-  { key: "session", label: "Session", kinds: ["session_status"] },
-  { key: "drs", label: "DRS", kinds: ["drs"] },
-  { key: "other", label: "Other", kinds: ["car_event", "other"] },
+  {
+    key: "session",
+    label: "raceControl.groups.session",
+    kinds: ["session_status"],
+  },
+  { key: "drs", label: "raceControl.groups.drs", kinds: ["drs"] },
+  {
+    key: "other",
+    label: "raceControl.groups.other",
+    kinds: ["car_event", "other"],
+  },
 ];
+
+const KIND_LABEL_KEYS: Record<RaceControlKind, string> = {
+  flag: "raceControl.kinds.flag",
+  safety_car: "raceControl.kinds.safetyCar",
+  penalty: "raceControl.kinds.penalty",
+  investigation: "raceControl.kinds.investigation",
+  session_status: "raceControl.kinds.sessionStatus",
+  drs: "raceControl.kinds.drs",
+  car_event: "raceControl.kinds.carEvent",
+  other: "raceControl.kinds.other",
+};
 
 const ALL_GROUP_KEYS = new Set(KIND_GROUPS.map((g) => g.key));
 const INITIAL_RENDER_LIMIT = 180;
@@ -129,6 +193,7 @@ export function RaceControlFeed({
   onClearFocus,
 }: Props) {
   const showCsvExportButtons = useSettings((s) => s.showCsvExportButtons);
+  const language = useSettings((s) => s.language ?? FALLBACK_LANGUAGE);
   const [activeGroups, setActiveGroups] = useState<Set<string>>(
     () => new Set(ALL_GROUP_KEYS),
   );
@@ -278,7 +343,7 @@ export function RaceControlFeed({
           <span
             className={`font-black text-[10px] tracking-widest uppercase ${flagConfig.text}`}
           >
-            {flagConfig.label}
+            {t(language, flagConfig.label)}
           </span>
           {currentSector && (
             <span className="rounded bg-black/15 px-1.5 py-0.5 text-[9px] font-black uppercase tracking-widest text-inherit">
@@ -302,7 +367,7 @@ export function RaceControlFeed({
                 : "bg-track text-muted"
             }`}
           >
-            {g.label}
+            {t(language, g.label)}
           </button>
         ))}
         <button
@@ -315,7 +380,7 @@ export function RaceControlFeed({
               : "bg-track text-muted hover:text-white hover:bg-panel"
           }`}
         >
-          Tracker
+          {t(language, "raceControl.tracker")}
         </button>
         {sessionKey !== null && showCsvExportButtons && (
           <button
@@ -328,16 +393,16 @@ export function RaceControlFeed({
               );
             }}
             className="h-6 rounded px-2 text-[9px] font-black uppercase tracking-widest bg-panel text-muted transition-colors hover:bg-track hover:text-white"
-            aria-label="Export race control CSV"
+            aria-label={t(language, "raceControl.exportCsv")}
           >
-            Export CSV
+            {t(language, "raceControl.exportCsv")}
           </button>
         )}
         <input
           type="search"
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          placeholder="Search…"
+          placeholder={t(language, "raceControl.searchPlaceholder")}
           className="ml-auto h-6 w-28 min-w-0 rounded border border-panel bg-surface px-2 text-[10px] text-white placeholder:text-muted outline-none focus:border-muted sm:w-32"
         />
       </div>
@@ -357,16 +422,16 @@ export function RaceControlFeed({
             {focusedDriver?.name_acronym ?? `#${focusDriver}`}
           </span>
           <span className="text-[9px] uppercase tracking-widest text-muted">
-            driver filter active
+            {t(language, "raceControl.driverFilterActive")}
           </span>
           {onClearFocus && (
             <button
               type="button"
               onClick={onClearFocus}
               className="ml-auto text-[9px] font-black uppercase tracking-widest text-muted hover:text-white"
-              aria-label="Clear driver filter"
+              aria-label={t(language, "raceControl.clearDriverFilter")}
             >
-              ✕ Clear
+              ✕ {t(language, "raceControl.clear")}
             </button>
           )}
         </div>
@@ -376,11 +441,11 @@ export function RaceControlFeed({
       {showPenalties && (
         <div className="overflow-hidden rounded border border-panel bg-surface/80">
           <div className="border-b border-panel bg-track px-2 py-1 text-[9px] font-black uppercase tracking-widest text-muted">
-            Penalty Tracker
+            {t(language, "raceControl.penaltyTracker")}
           </div>
           {penaltyStates.length === 0 ? (
             <div className="px-2 py-2 text-[10px] text-muted">
-              No incidents in view
+              {t(language, "raceControl.noIncidents")}
             </div>
           ) : (
             <div className="divide-y divide-panel">
@@ -404,7 +469,7 @@ export function RaceControlFeed({
                     <span
                       className={`shrink-0 rounded px-1.5 py-0.5 text-[9px] font-black uppercase tracking-widest ${cfg.cls}`}
                     >
-                      {cfg.label}
+                      {t(language, cfg.label)}
                     </span>
                     <span className="min-w-0 flex-1 truncate text-[10px] text-white/90">
                       {ps.latestDescription}
@@ -426,7 +491,9 @@ export function RaceControlFeed({
       <div className="space-y-1">
         {visibleLapGroups.length === 0 && (
           <div className="rounded border border-panel bg-surface/80 p-3 text-xs text-muted">
-            {sessionStartMs ? "No events match filters" : "Select a session"}
+            {sessionStartMs
+              ? t(language, "raceControl.noEvents")
+              : t(language, "raceControl.selectSession")}
           </div>
         )}
         {hasMoreEvents && (
@@ -436,7 +503,9 @@ export function RaceControlFeed({
               onClick={() => setRenderLimit((prev) => prev + RENDER_STEP)}
               className="h-6 rounded px-2 text-[9px] font-black uppercase tracking-widest transition-colors bg-track text-muted hover:text-white hover:bg-panel"
             >
-              Load older ({totalFilteredEvents - renderLimit} hidden)
+              {t(language, "raceControl.loadOlder", {
+                hidden: totalFilteredEvents - renderLimit,
+              })}
             </button>
           </div>
         )}
@@ -447,10 +516,10 @@ export function RaceControlFeed({
           const headerText = isQualifying
             ? group.lapNumber !== null
               ? `Q${group.lapNumber}`
-              : "Session"
+              : t(language, "raceControl.session")
             : group.lapNumber !== null
-              ? `Lap ${group.lapNumber}`
-              : "Session";
+              ? `${t(language, "raceControl.lap")} ${group.lapNumber}`
+              : t(language, "raceControl.session");
 
           return (
             <div
@@ -467,7 +536,10 @@ export function RaceControlFeed({
                   const cfg = FLAG_CONFIG[toFlagKey(e.flag)] ?? DEFAULT_CONFIG;
                   const sector = sectorBadge(e);
                   const severity = SEVERITY_BADGE[e.severity];
-                  const typeLabel = e.kind.replace(/_/g, " ");
+                  const typeLabel = t(
+                    language,
+                    KIND_LABEL_KEYS[e.kind] ?? "raceControl.unknown",
+                  );
                   const eventDriver =
                     e.driverNumber !== null
                       ? driverMap.get(e.driverNumber)
@@ -484,8 +556,8 @@ export function RaceControlFeed({
                       : `${pad(m)}:${pad(s % 60)}`;
                   })();
                   const badgeLabel = e.flag
-                    ? cfg.label || e.flag
-                    : severity.label;
+                    ? t(language, cfg.label || "raceControl.unknown") || e.flag
+                    : t(language, severity.label);
                   return (
                     <div
                       key={e.id}
@@ -521,7 +593,11 @@ export function RaceControlFeed({
                               {eventDriver.name_acronym}
                             </span>
                           )}
-                          {e.flag && <span>{cfg.label || e.flag}</span>}
+                          {e.flag && (
+                            <span>
+                              {t(language, cfg.label || "raceControl.unknown")}
+                            </span>
+                          )}
                           {sector && <span>{sector}</span>}
                           <span className="font-mono tabular-nums text-white/70">
                             {typeLabel}

@@ -3,6 +3,12 @@ import { useSettings, type AppSettings } from "@/stores/settings";
 import { useMediaQuery } from "@/hooks/useMediaQuery";
 import { trackEvent } from "@/lib/analytics";
 import { SPEEDS } from "@/constants";
+import {
+  FALLBACK_LANGUAGE,
+  LANGUAGE_OPTIONS,
+  type SupportedLanguage,
+} from "@/i18n/language";
+import { t } from "@/i18n/translations";
 
 function toAnalyticsValue(
   value: AppSettings[keyof AppSettings],
@@ -94,29 +100,67 @@ export function SectionHeader({ children }: { children: ReactNode }) {
 
 const NOTIFICATION_LIMIT_OPTIONS = [2, 4, 6, 8] as const;
 const CATCHUP_EVENT_TYPE_OPTIONS = [
-  { kind: "pit", label: "Pit stops", color: "#3d78ff" },
-  { kind: "flag", label: "Flags", color: "#f5a623" },
-  { kind: "penalty", label: "Penalties", color: "#e8002d" },
-  { kind: "overtake", label: "Overtakes", color: "#22c55e" },
-  { kind: "fastest_lap", label: "Fastest laps", color: "#9b59f5" },
-  { kind: "investigation", label: "Investigations", color: "#f5a623" },
-  { kind: "radio", label: "Radio", color: "#6b6b7a" },
+  { kind: "pit", labelKey: "settings.eventTypes.pit", color: "#3d78ff" },
+  { kind: "flag", labelKey: "settings.eventTypes.flag", color: "#f5a623" },
+  {
+    kind: "penalty",
+    labelKey: "settings.eventTypes.penalty",
+    color: "#e8002d",
+  },
+  {
+    kind: "overtake",
+    labelKey: "settings.eventTypes.overtake",
+    color: "#22c55e",
+  },
+  {
+    kind: "fastest_lap",
+    labelKey: "settings.eventTypes.fastestLap",
+    color: "#9b59f5",
+  },
+  {
+    kind: "investigation",
+    labelKey: "settings.eventTypes.investigation",
+    color: "#f5a623",
+  },
+  { kind: "radio", labelKey: "settings.eventTypes.radio", color: "#6b6b7a" },
 ] as const;
 
 const NOTIFICATION_EVENT_TYPE_OPTIONS = [
-  { key: "toastPit", label: "Pit stops", color: "#3d78ff" },
-  { key: "toastFlag", label: "Flags", color: "#f5a623" },
-  { key: "toastPenalty", label: "Penalties", color: "#e8002d" },
-  { key: "toastOvertake", label: "Overtakes", color: "#22c55e" },
-  { key: "toastFastestLap", label: "Fastest laps", color: "#9b59f5" },
-  { key: "toastInvestigation", label: "Investigations", color: "#f5a623" },
-  { key: "toastRadio", label: "Radio", color: "#6b6b7a" },
+  { key: "toastPit", labelKey: "settings.eventTypes.pit", color: "#3d78ff" },
+  { key: "toastFlag", labelKey: "settings.eventTypes.flag", color: "#f5a623" },
+  {
+    key: "toastPenalty",
+    labelKey: "settings.eventTypes.penalty",
+    color: "#e8002d",
+  },
+  {
+    key: "toastOvertake",
+    labelKey: "settings.eventTypes.overtake",
+    color: "#22c55e",
+  },
+  {
+    key: "toastFastestLap",
+    labelKey: "settings.eventTypes.fastestLap",
+    color: "#9b59f5",
+  },
+  {
+    key: "toastInvestigation",
+    labelKey: "settings.eventTypes.investigation",
+    color: "#f5a623",
+  },
+  {
+    key: "toastRadio",
+    labelKey: "settings.eventTypes.radio",
+    color: "#6b6b7a",
+  },
 ] as const;
 
 export function SpeedSelector({
+  language,
   value,
   onChange,
 }: {
+  language: SupportedLanguage;
   value: number;
   onChange: (v: number) => void;
 }) {
@@ -124,10 +168,10 @@ export function SpeedSelector({
     <div className="flex items-center justify-between gap-4 py-3 border-b border-panel">
       <div>
         <div className="text-[13px] text-white/90 leading-tight">
-          Default playback speed
+          {t(language, "settings.playback.defaultSpeed.label")}
         </div>
         <div className="text-[11px] text-muted mt-0.5 leading-tight">
-          Applied when a new session loads
+          {t(language, "settings.playback.defaultSpeed.description")}
         </div>
       </div>
       <div className="flex gap-1 shrink-0">
@@ -150,10 +194,12 @@ export function SpeedSelector({
 }
 
 export function NotificationLimitSelector({
+  language,
   value,
   onChange,
   disabled = false,
 }: {
+  language: SupportedLanguage;
   value: 2 | 4 | 6 | 8;
   onChange: (v: 2 | 4 | 6 | 8) => void;
   disabled?: boolean;
@@ -164,10 +210,10 @@ export function NotificationLimitSelector({
     >
       <div>
         <div className="text-[13px] text-white/90 leading-tight">
-          Max visible notifications
+          {t(language, "settings.notifications.maxVisible.label")}
         </div>
         <div className="text-[11px] text-muted mt-0.5 leading-tight">
-          Applies to mobile and desktop toast stack
+          {t(language, "settings.notifications.maxVisible.description")}
         </div>
       </div>
       <div className="flex gap-1 shrink-0">
@@ -192,18 +238,22 @@ export function NotificationLimitSelector({
 // ── Unit selector ─────────────────────────────────────────────────────────────
 
 export function UnitSelector({
+  language,
   value,
   onChange,
 }: {
+  language: SupportedLanguage;
   value: "metric" | "imperial";
   onChange: (v: "metric" | "imperial") => void;
 }) {
   return (
     <div className="flex items-center justify-between gap-4 py-3 border-b border-panel">
       <div>
-        <div className="text-[13px] text-white/90 leading-tight">Units</div>
+        <div className="text-[13px] text-white/90 leading-tight">
+          {t(language, "settings.units.label")}
+        </div>
         <div className="text-[11px] text-muted mt-0.5 leading-tight">
-          Display distances in km or miles, temperature in °C or °F
+          {t(language, "settings.units.description")}
         </div>
       </div>
       <div className="flex gap-1 shrink-0">
@@ -217,10 +267,45 @@ export function UnitSelector({
                 : "bg-track text-muted hover:text-white hover:bg-panel"
             }`}
           >
-            {unit === "metric" ? "Metric" : "Imperial"}
+            {unit === "metric"
+              ? t(language, "settings.units.metric")
+              : t(language, "settings.units.imperial")}
           </button>
         ))}
       </div>
+    </div>
+  );
+}
+
+export function LanguageSelector({
+  value,
+  onChange,
+}: {
+  value: SupportedLanguage;
+  onChange: (v: SupportedLanguage) => void;
+}) {
+  return (
+    <div className="flex items-center justify-between gap-4 py-3 border-b border-panel">
+      <div>
+        <div className="text-[13px] text-white/90 leading-tight">
+          {t(value, "settings.language.label")}
+        </div>
+        <div className="text-[11px] text-muted mt-0.5 leading-tight">
+          {t(value, "settings.language.description")}
+        </div>
+      </div>
+      <select
+        aria-label={t(value, "settings.language.label")}
+        value={value}
+        onChange={(event) => onChange(event.target.value as SupportedLanguage)}
+        className="h-8 min-w-[140px] rounded border border-panel bg-track px-2 text-[11px] font-bold text-white outline-none transition-colors focus:border-f1red"
+      >
+        {LANGUAGE_OPTIONS.map((option) => (
+          <option key={option.code} value={option.code}>
+            {option.label}
+          </option>
+        ))}
+      </select>
     </div>
   );
 }
@@ -230,6 +315,8 @@ export function UnitSelector({
 export function SettingsBody() {
   const { setSetting, reset, ...settings } = useSettings();
   const isMobileViewport = useMediaQuery("(max-width: 767px)");
+  const language = settings.language ?? FALLBACK_LANGUAGE;
+  const tr = (key: string) => t(language, key);
 
   function updateSetting<K extends keyof AppSettings>(
     key: K,
@@ -391,6 +478,13 @@ export function SettingsBody() {
     },
   ] as const;
 
+  const translatedTrackerTimingColumns = trackerTimingColumns.map((column) => ({
+    ...column,
+    label: tr(
+      `settings.columns.${column.label.toLowerCase().replace("/", "").replace(" ", "")}`,
+    ),
+  }));
+
   const mobileTimingColumns = [
     {
       label: "P",
@@ -494,50 +588,63 @@ export function SettingsBody() {
     },
   ] as const;
 
+  const translatedMobileTimingColumns = mobileTimingColumns.map((column) => ({
+    ...column,
+    label: tr(
+      `settings.columns.${column.label.toLowerCase().replace("/", "").replace(" ", "")}`,
+    ),
+  }));
+
   return (
     <>
-      <SectionHeader>Appearance</SectionHeader>
+      <SectionHeader>{tr("settings.sections.appearance")}</SectionHeader>
+      <LanguageSelector
+        value={language}
+        onChange={(v) => updateSetting("language", v)}
+      />
       <SettingRow
-        label="Light mode"
-        description="Switch to a light colour scheme"
+        label={tr("settings.lightMode.label")}
+        description={tr("settings.lightMode.description")}
         checked={settings.lightMode}
         onChange={toggle("lightMode")}
       />
       <UnitSelector
+        language={language}
         value={settings.metricSystem}
         onChange={(v) => updateSetting("metricSystem", v)}
       />
 
-      <SectionHeader>Playback</SectionHeader>
+      <SectionHeader>{tr("settings.sections.playback")}</SectionHeader>
       <SpeedSelector
+        language={language}
         value={settings.defaultSpeed}
         onChange={(v) => updateSetting("defaultSpeed", v)}
       />
       <SettingRow
-        label="Playback speed controls"
-        description="Show 1x/2x/4x/8x buttons in playback bar"
+        label={tr("settings.playback.speedControls.label")}
+        description={tr("settings.playback.speedControls.description")}
         checked={settings.showPlaybackSpeedControls}
         onChange={toggle("showPlaybackSpeedControls")}
       />
       <SettingRow
-        label="Forward event chips"
-        description="Show jump chips (incident, pit, flag, SC, pass, radio)"
+        label={tr("settings.playback.forwardChips.label")}
+        description={tr("settings.playback.forwardChips.description")}
         checked={settings.showPlaybackEventChips}
         onChange={toggle("showPlaybackEventChips")}
       />
       <SettingRow
-        label="Catch-up summary"
-        description="Show missed events after a large scrub forward"
+        label={tr("settings.playback.catchupSummary.label")}
+        description={tr("settings.playback.catchupSummary.description")}
         checked={settings.catchupSummaryEnabled}
         onChange={toggle("catchupSummaryEnabled")}
       />
       {settings.catchupSummaryEnabled && (
         <div className="py-2.5 border-b border-panel">
           <div className="text-[11px] text-muted mb-2 leading-tight">
-            Default visible event types
+            {tr("settings.defaultVisibleEventTypes")}
           </div>
           <div className="flex flex-wrap gap-1.5">
-            {CATCHUP_EVENT_TYPE_OPTIONS.map(({ kind, label, color }) => {
+            {CATCHUP_EVENT_TYPE_OPTIONS.map(({ kind, labelKey, color }) => {
               const active =
                 settings.catchupSummaryDefaultFilters.includes(kind);
               return (
@@ -563,7 +670,7 @@ export function SettingsBody() {
                   }
                   aria-pressed={active}
                 >
-                  {label}
+                  {tr(labelKey)}
                 </button>
               );
             })}
@@ -571,41 +678,42 @@ export function SettingsBody() {
         </div>
       )}
 
-      <SectionHeader>Notifications</SectionHeader>
+      <SectionHeader>{tr("settings.sections.notifications")}</SectionHeader>
       <SettingRow
-        label="Enable notifications"
-        description="Show event toasts during playback"
+        label={tr("settings.notifications.enable.label")}
+        description={tr("settings.notifications.enable.description")}
         checked={settings.toastsEnabled}
         onChange={toggle("toastsEnabled")}
       />
       <NotificationLimitSelector
+        language={language}
         value={settings.notificationMaxVisible}
         onChange={(v) => updateSetting("notificationMaxVisible", v)}
         disabled={!settings.toastsEnabled}
       />
       <div className="-mt-2.5 mb-1 text-[10px] text-muted/80 leading-tight border-b border-panel pb-2.5">
-        Controls the number of simultaneous toasts shown in the live stack.
+        {tr("settings.notifications.stackHint")}
       </div>
       <SettingRow
-        label="Auto-play radio messages"
-        description="Automatically play new team radio toasts"
+        label={tr("settings.notifications.autoPlayRadio.label")}
+        description={tr("settings.notifications.autoPlayRadio.description")}
         checked={settings.toastRadioAutoplay}
         onChange={toggle("toastRadioAutoplay")}
         disabled={!settings.toastsEnabled || !settings.toastRadio}
       />
       <SettingRow
-        label="Toast sounds"
-        description="Play short sound cues for new notifications"
+        label={tr("settings.notifications.sounds.label")}
+        description={tr("settings.notifications.sounds.description")}
         checked={settings.toastSoundsEnabled}
         onChange={toggle("toastSoundsEnabled")}
         disabled={!settings.toastsEnabled}
       />
       <div className="py-2.5 border-b border-panel">
         <div className="text-[11px] text-muted mb-2 leading-tight">
-          Default visible event types
+          {tr("settings.defaultVisibleEventTypes")}
         </div>
         <div className="flex flex-wrap gap-1.5">
-          {NOTIFICATION_EVENT_TYPE_OPTIONS.map(({ key, label, color }) => {
+          {NOTIFICATION_EVENT_TYPE_OPTIONS.map(({ key, labelKey, color }) => {
             const active = settings[key];
             const disabled = !settings.toastsEnabled;
             return (
@@ -628,30 +736,30 @@ export function SettingsBody() {
                 }
                 aria-pressed={active}
               >
-                {label}
+                {tr(labelKey)}
               </button>
             );
           })}
         </div>
       </div>
 
-      <SectionHeader>Race Views</SectionHeader>
+      <SectionHeader>{tr("settings.sections.raceViews")}</SectionHeader>
       <SettingRow
-        label="Live car telemetry"
-        description="Speed, gear, RPM, throttle, brake & DRS columns"
+        label={tr("settings.raceViews.liveTelemetry.label")}
+        description={tr("settings.raceViews.liveTelemetry.description")}
         checked={settings.leaderboardTelemetry}
         onChange={toggle("leaderboardTelemetry")}
       />
       <SettingRow
-        label="Timing minisectors"
-        description="Show minisector strips under S1/S2/S3 bars"
+        label={tr("settings.raceViews.timingMinisectors.label")}
+        description={tr("settings.raceViews.timingMinisectors.description")}
         checked={settings.timingShowMinisectors}
         onChange={toggle("timingShowMinisectors")}
       />
       {!isMobileViewport && (
         <SettingRow
-          label="Timing box live telemetry"
-          description="Show speed, gear, RPM, throttle, brake & DRS in tracker timing"
+          label={tr("settings.raceViews.timingBoxTelemetry.label")}
+          description={tr("settings.raceViews.timingBoxTelemetry.description")}
           checked={settings.trackerTimingTelemetry}
           onChange={toggle("trackerTimingTelemetry")}
         />
@@ -659,49 +767,14 @@ export function SettingsBody() {
       {!isMobileViewport && (
         <div className="py-2.5 border-b border-panel">
           <div className="text-[13px] text-white/90 leading-tight">
-            Driver tracker columns
+            {tr("settings.raceViews.trackerColumns.title")}
           </div>
           <div className="text-[11px] text-muted mt-0.5 leading-tight">
-            Pick which leaderboard-style timing columns appear in the tracker
-            table
+            {tr("settings.raceViews.trackerColumns.description")}
           </div>
           <div className="mt-2 flex flex-wrap gap-1.5">
-            {trackerTimingColumns.map(({ label, active, onToggle }) => (
-              <button
-                key={label}
-                onClick={onToggle}
-                className={[
-                  "text-[10px] font-bold px-2 py-0.5 rounded-sm border transition-all",
-                  "focus:outline-none focus-visible:ring-1 focus-visible:ring-white/40",
-                  active
-                    ? "border-f1red bg-f1red text-white"
-                    : "border-panel bg-transparent text-muted hover:border-muted hover:text-white",
-                ].join(" ")}
-                aria-pressed={active}
-              >
-                {label}
-              </button>
-            ))}
-          </div>
-        </div>
-      )}
-      {isMobileViewport && (
-        <div>
-          <SettingRow
-            label="Mobile timing car data"
-            description="Show speed, RPM, gear, DRS, throttle and brake in tracker timing rows on mobile"
-            checked={settings.trackerTimingMobileCarData}
-            onChange={toggle("trackerTimingMobileCarData")}
-          />
-          <div className="py-2.5 border-b border-panel">
-            <div className="text-[13px] text-white/90 leading-tight">
-              Mobile timing columns
-            </div>
-            <div className="text-[11px] text-muted mt-0.5 leading-tight">
-              Pick which timing columns appear in mobile timing rows
-            </div>
-            <div className="mt-2 flex flex-wrap gap-1.5">
-              {mobileTimingColumns.map(({ label, active, onToggle }) => (
+            {translatedTrackerTimingColumns.map(
+              ({ label, active, onToggle }) => (
                 <button
                   key={label}
                   onClick={onToggle}
@@ -716,128 +789,168 @@ export function SettingsBody() {
                 >
                   {label}
                 </button>
-              ))}
+              ),
+            )}
+          </div>
+        </div>
+      )}
+      {isMobileViewport && (
+        <div>
+          <SettingRow
+            label={tr("settings.raceViews.mobileTimingCarData.label")}
+            description={tr(
+              "settings.raceViews.mobileTimingCarData.description",
+            )}
+            checked={settings.trackerTimingMobileCarData}
+            onChange={toggle("trackerTimingMobileCarData")}
+          />
+          <div className="py-2.5 border-b border-panel">
+            <div className="text-[13px] text-white/90 leading-tight">
+              {tr("settings.raceViews.mobileColumns.title")}
+            </div>
+            <div className="text-[11px] text-muted mt-0.5 leading-tight">
+              {tr("settings.raceViews.mobileColumns.description")}
+            </div>
+            <div className="mt-2 flex flex-wrap gap-1.5">
+              {translatedMobileTimingColumns.map(
+                ({ label, active, onToggle }) => (
+                  <button
+                    key={label}
+                    onClick={onToggle}
+                    className={[
+                      "text-[10px] font-bold px-2 py-0.5 rounded-sm border transition-all",
+                      "focus:outline-none focus-visible:ring-1 focus-visible:ring-white/40",
+                      active
+                        ? "border-f1red bg-f1red text-white"
+                        : "border-panel bg-transparent text-muted hover:border-muted hover:text-white",
+                    ].join(" ")}
+                    aria-pressed={active}
+                  >
+                    {label}
+                  </button>
+                ),
+              )}
             </div>
           </div>
         </div>
       )}
 
-      <SectionHeader>Track Map</SectionHeader>
+      <SectionHeader>{tr("settings.sections.trackMap")}</SectionHeader>
       <SettingRow
-        label="Tyre compound badges"
-        description="Compound icons on each driver dot"
+        label={tr("settings.trackMap.tyreBadges.label")}
+        description={tr("settings.trackMap.tyreBadges.description")}
         checked={settings.mapShowCompoundBadges}
         onChange={toggle("mapShowCompoundBadges")}
       />
       <SettingRow
-        label="DRS battle rings"
-        description="Highlight drivers within 1s"
+        label={tr("settings.trackMap.drsRings.label")}
+        description={tr("settings.trackMap.drsRings.description")}
         checked={settings.mapShowBattleRings}
         onChange={toggle("mapShowBattleRings")}
       />
       <SettingRow
-        label="Focused driver HUD"
-        description="Speed, gear and throttle for selected driver"
+        label={tr("settings.trackMap.focusHud.label")}
+        description={tr("settings.trackMap.focusHud.description")}
         checked={settings.mapShowDriverHud}
         onChange={toggle("mapShowDriverHud")}
       />
       <SettingRow
-        label="Sector flag colouring"
-        description="Tint track sectors on yellow/red flags"
+        label={tr("settings.trackMap.sectorFlagColoring.label")}
+        description={tr("settings.trackMap.sectorFlagColoring.description")}
         checked={settings.mapShowSectorFlags}
         onChange={toggle("mapShowSectorFlags")}
       />
       <SettingRow
-        label="Sector status box"
-        description="Show S1/S2/S3 flag chips near compass"
+        label={tr("settings.trackMap.sectorStatusBox.label")}
+        description={tr("settings.trackMap.sectorStatusBox.description")}
         checked={settings.mapShowSectorBox}
         onChange={toggle("mapShowSectorBox")}
       />
       <SettingRow
-        label="Track controls"
-        description="Show zoom and rotate controls on map"
+        label={tr("settings.trackMap.controls.label")}
+        description={tr("settings.trackMap.controls.description")}
         checked={settings.mapShowTrackControls}
         onChange={toggle("mapShowTrackControls")}
       />
       <SettingRow
-        label="Compass overlay"
-        description="Show north indicator in track controls"
+        label={tr("settings.trackMap.compass.label")}
+        description={tr("settings.trackMap.compass.description")}
         checked={settings.mapShowCompass}
         onChange={toggle("mapShowCompass")}
       />
       <SettingRow
-        label="Track weather"
-        description="Show weather panel/overlay in track map view"
+        label={tr("settings.trackMap.weather.label")}
+        description={tr("settings.trackMap.weather.description")}
         checked={settings.mapShowWeather}
         onChange={toggle("mapShowWeather")}
       />
       <SettingRow
-        label="Track time clock"
-        description="Show session wall-clock time in track map view"
+        label={tr("settings.trackMap.clock.label")}
+        description={tr("settings.trackMap.clock.description")}
         checked={settings.mapShowClock}
         onChange={toggle("mapShowClock")}
       />
       <SettingRow
-        label="Driver acronym labels"
-        description="Show 3-letter driver labels next to car dots"
+        label={tr("settings.trackMap.driverAcronym.label")}
+        description={tr("settings.trackMap.driverAcronym.description")}
         checked={settings.mapShowDriverAcronym}
         onChange={toggle("mapShowDriverAcronym")}
       />
       <SettingRow
-        label="Driver number inside dot"
-        description="Show driver number centered in each car dot"
+        label={tr("settings.trackMap.driverNumberInside.label")}
+        description={tr("settings.trackMap.driverNumberInside.description")}
         checked={settings.mapShowDriverNumberInside}
         onChange={toggle("mapShowDriverNumberInside")}
       />
       <SettingRow
-        label="Enhanced track visuals"
-        description="Show finish line, sector markers, ghost delta map, braking hotspots, overtake arcs, condition ribbon, marshal lights and elevation contours"
+        label={tr("settings.trackMap.enhancedVisuals.label")}
+        description={tr("settings.trackMap.enhancedVisuals.description")}
         checked={settings.mapShowEnhancedVisuals}
         onChange={toggle("mapShowEnhancedVisuals")}
       />
       <SettingRow
-        label="Marshal sector heatmap"
-        description="Paint all ~15-22 individual marshal posts as coloured arc segments on the track (S1 red / S2 yellow / S3 blue)"
+        label={tr("settings.trackMap.marshalHeatmap.label")}
+        description={tr("settings.trackMap.marshalHeatmap.description")}
         checked={settings.mapShowMarshalHeatmap}
         onChange={toggle("mapShowMarshalHeatmap")}
       />
       <SettingRow
-        label="Corner numbers"
-        description="Show corner numbers next to the track from baked circuit geometry"
+        label={tr("settings.trackMap.cornerNumbers.label")}
+        description={tr("settings.trackMap.cornerNumbers.description")}
         checked={settings.mapShowCornerNumbers}
         onChange={toggle("mapShowCornerNumbers")}
       />
       <SettingRow
-        label="Elevation heatmap"
-        description="Colour the track ribbon by altitude (blue = low, yellow = high)"
+        label={tr("settings.trackMap.elevationHeatmap.label")}
+        description={tr("settings.trackMap.elevationHeatmap.description")}
         checked={settings.mapShowElevation}
         onChange={toggle("mapShowElevation")}
       />
       <SettingRow
-        label="PNG track snapshot"
-        description="Show download button for track screenshots"
+        label={tr("settings.trackMap.pngSnapshot.label")}
+        description={tr("settings.trackMap.pngSnapshot.description")}
         checked={settings.trackScreenshotPngEnabled}
         onChange={toggle("trackScreenshotPngEnabled")}
       />
 
-      <SectionHeader>Data & Interface</SectionHeader>
+      <SectionHeader>{tr("settings.sections.dataInterface")}</SectionHeader>
       <SettingRow
-        label="CSV export buttons"
-        description="Show export controls on Race Control, Team Radio, Overtakes and Weather panels"
+        label={tr("settings.dataInterface.csvExport.label")}
+        description={tr("settings.dataInterface.csvExport.description")}
         checked={settings.showCsvExportButtons}
         onChange={toggle("showCsvExportButtons")}
       />
       <SettingRow
-        label="Next race weekend banner"
-        description="Show countdown banner for the next race weekend"
+        label={tr("settings.dataInterface.nextRaceBanner.label")}
+        description={tr("settings.dataInterface.nextRaceBanner.description")}
         checked={settings.showNextRaceWeekendBanner}
         onChange={toggle("showNextRaceWeekendBanner")}
       />
 
-      <SectionHeader>Support</SectionHeader>
+      <SectionHeader>{tr("settings.sections.support")}</SectionHeader>
       <SettingRow
-        label="Buy Me a Coffee button"
-        description="Show the floating support widget"
+        label={tr("settings.support.coffeeButton.label")}
+        description={tr("settings.support.coffeeButton.description")}
         checked={settings.showCoffeeWidget}
         onChange={toggle("showCoffeeWidget")}
       />
@@ -850,7 +963,7 @@ export function SettingsBody() {
           }}
           className="text-[11px] font-medium text-muted hover:text-white transition-colors px-3 py-1.5 rounded hover:bg-panel"
         >
-          Reset to defaults
+          {tr("settings.resetDefaults")}
         </button>
       </div>
     </>

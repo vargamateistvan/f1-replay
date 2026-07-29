@@ -2,6 +2,9 @@ import { useMemo, useState } from "react";
 import type { Stint, Driver, Lap, Pit } from "@/api/types";
 import { teamColor } from "@/utils/color";
 import { pitStopTime } from "@/utils/pit";
+import { useSettings } from "@/stores/settings";
+import { FALLBACK_LANGUAGE } from "@/i18n/language";
+import { t } from "@/i18n/translations";
 
 const COMPOUND_COLOR: Record<string, string> = {
   SOFT: "#E8002D",
@@ -41,6 +44,7 @@ export function StrategyBar({
   currentLap,
 }: Props) {
   const [showAllLaps, setShowAllLaps] = useState(false);
+  const language = useSettings((s) => s.language ?? FALLBACK_LANGUAGE);
   const currentT = sessionStartMs + sessionTimeMs;
 
   const driverByNumber = useMemo(
@@ -139,11 +143,10 @@ export function StrategyBar({
       <div className="p-3 sm:p-4">
         <div className="rounded-sm border border-panel bg-track px-3 py-3 sm:px-4">
           <div className="text-[10px] font-black uppercase tracking-[0.14em] text-white">
-            No strategy data
+            {t(language, "strategy.noStrategyData")}
           </div>
           <div className="mt-1 text-xs text-muted">
-            Tyre stints will appear here once lap and compound data are
-            available.
+            {t(language, "strategy.tyreStintsWillAppear")}
           </div>
         </div>
       </div>
@@ -161,9 +164,15 @@ export function StrategyBar({
               ? "border-f1red bg-f1red text-white"
               : "border-panel bg-track text-muted hover:text-white"
           }`}
-          title={showAllLaps ? "Showing all laps" : "Showing elapsed laps"}
+          title={
+            showAllLaps
+              ? t(language, "strategy.showingAllLaps")
+              : t(language, "strategy.showingElapsedLaps")
+          }
         >
-          {showAllLaps ? "All" : "Elapsed"}
+          {showAllLaps
+            ? t(language, "strategy.all")
+            : t(language, "strategy.elapsed")}
         </button>
       </div>
 
@@ -204,8 +213,11 @@ export function StrategyBar({
               className="w-7 shrink-0 text-center text-[8px] font-black uppercase tracking-[0.04em] text-white/70 tabular-nums sm:w-10 sm:text-[9px] sm:tracking-[0.08em]"
               title={
                 activeStint
-                  ? `${activeStint.compound} · ${activeStint.age} lap${activeStint.age === 1 ? "" : "s"} old`
-                  : "No active stint"
+                  ? t(language, "strategy.activeStintTitle", {
+                      compound: activeStint.compound,
+                      age: activeStint.age,
+                    })
+                  : t(language, "strategy.noActiveStint")
               }
             >
               {activeStint ? `${activeStint.age}L` : "—"}
@@ -226,7 +238,12 @@ export function StrategyBar({
                 return (
                   <div
                     key={s.stint_number}
-                    title={`${s.compound} (new+${s.tyre_age_at_start}) L${s.lap_start}–${s.lap_end}`}
+                    title={t(language, "strategy.stintSegmentTitle", {
+                      compound: s.compound,
+                      age: s.tyre_age_at_start,
+                      start: s.lap_start,
+                      end: s.lap_end,
+                    })}
                     className="absolute top-0 h-full flex items-center justify-center"
                     style={{
                       left: `${left}%`,
@@ -253,7 +270,15 @@ export function StrategyBar({
                 return (
                   <div
                     key={i}
-                    title={`Pit L${p.lap_number}${stop !== null ? ` (${stop.toFixed(1)}s)` : ""}`}
+                    title={t(language, "strategy.pitMarkerTitle", {
+                      lap: p.lap_number,
+                      stopSuffix:
+                        stop !== null
+                          ? t(language, "strategy.stopSuffix", {
+                              seconds: stop.toFixed(1),
+                            })
+                          : "",
+                    })}
                     className="absolute top-0 h-full w-px bg-[#636369] z-10"
                     style={{ left: `${left}%` }}
                   />
