@@ -50,6 +50,7 @@ jobs:
       - name: Build
         env:
           VITE_APP_VERSION: ${{ github.sha }}
+          VITE_OPENF1_API_BASE: ${{ secrets.VITE_OPENF1_API_BASE }}
         run: yarn build
 
       - uses: actions/upload-pages-artifact@v3
