@@ -41,6 +41,7 @@
     "react-router-dom": "^6.28.0",
     "recharts": "^3.0.0",
     "uplot": "^1.6.31",
+    "wrangler": "^4.119.0",
     "zustand": "^5.0.2"
   },
   "devDependencies": {

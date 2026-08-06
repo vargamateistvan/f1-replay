@@ -1,0 +1,17 @@
+name = "f1-replay-proxy"
+main = "src/index.ts"
+compatibility_date = "2024-10-22"
+compatibility_flags = ["nodejs_compat"]
+
+# KV namespace binding.
+# After running `wrangler kv namespace create CACHE` replace the id below
+# with the one printed by that command, and set preview_id for `wrangler dev`.
+[[kv_namespaces]]
+binding = "CACHE"
+id = "4601e1837a1e4c288428bfe7a6fb447c"
+preview_id = "e4b5f4d660ae47d0ba187ed5b2b25f74"
+
+[vars]
+# Set OPENF1_API_KEY as a secret instead:
+#   wrangler secret put OPENF1_API_KEY
+# Leave this block here as documentation; secrets are not listed in wrangler.toml.
