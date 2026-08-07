@@ -3,6 +3,13 @@ main = "src/index.ts"
 compatibility_date = "2024-10-22"
 compatibility_flags = ["nodejs_compat"]
 
+[observability.logs]
+enabled = true
+invocation_logs = true
+
+[observability.traces]
+enabled = false
+
 # KV namespace binding.
 # After running `wrangler kv namespace create CACHE` replace the id below
 # with the one printed by that command, and set preview_id for `wrangler dev`.
