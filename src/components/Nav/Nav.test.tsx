@@ -85,7 +85,7 @@ vi.mock("@/api/circuitFactsLookup", () => ({
 describe("Nav", () => {
   beforeEach(() => {
     state.searchParams = new URLSearchParams(
-      "year=2025&meeting=22&session=202&view=tracker",
+      "year=2025&meeting=22&session=202&view=tracker&t=123",
     );
     state.setSearchParams.mockReset();
     state.navigate.mockReset();
@@ -166,5 +166,23 @@ describe("Nav", () => {
 
     fireEvent.click(screen.getByRole("button", { name: "How it works" }));
     expect(state.openHelp).toHaveBeenCalled();
+  });
+
+  it("clears the replay time when selecting a different session", () => {
+    render(<Nav />);
+
+    fireEvent.change(screen.getByLabelText("Session"), {
+      target: { value: "101" },
+    });
+
+    expect(state.setSearchParams).toHaveBeenCalledTimes(1);
+    const [updater] = state.setSearchParams.mock.calls[0] as [
+      (prev: URLSearchParams) => URLSearchParams,
+      { replace: boolean },
+    ];
+    const next = updater(state.searchParams);
+
+    expect(next.get("session")).toBe("101");
+    expect(next.has("t")).toBe(false);
   });
 });

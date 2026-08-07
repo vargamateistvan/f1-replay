@@ -3,6 +3,8 @@ import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { SessionPicker } from "@/components/SessionPicker";
 
 const state = vi.hoisted(() => ({
+  searchParams: new URLSearchParams("year=2025&meeting=22&session=202&t=123"),
+  setSearchParams: vi.fn(),
   meetings: {
     data: [] as Array<Record<string, unknown>>,
     isPending: false,
@@ -35,8 +37,14 @@ vi.mock("@/utils/live", () => ({
   isSessionLive: () => state.live,
 }));
 
+vi.mock("react-router-dom", () => ({
+  useSearchParams: () => [state.searchParams, state.setSearchParams],
+}));
+
 describe("SessionPicker", () => {
   beforeEach(() => {
+    state.searchParams = new URLSearchParams("year=2025&meeting=22&session=202&t=123");
+    state.setSearchParams.mockReset();
     state.meetings = {
       data: [],
       isPending: false,
@@ -161,5 +169,86 @@ describe("SessionPicker", () => {
     expect(screen.getByText("Failed to load events")).toBeInTheDocument();
     expect(screen.getByText("Loading…")).toBeInTheDocument();
     expect(screen.getByLabelText("Session")).toBeDisabled();
+  });
+
+  it("clears replay time when changing year, event, or session", () => {
+    state.meetings = {
+      data: [
+        {
+          year: 2024,
+          meeting_key: 11,
+          meeting_name: "Bahrain Grand Prix",
+          location: "Sakhir",
+          date_start: "2024-03-01T00:00:00.000Z",
+          circuit_type: "Permanent",
+        },
+        {
+          year: 2025,
+          meeting_key: 22,
+          meeting_name: "Australian Grand Prix",
+          location: "Melbourne",
+          date_start: "2025-03-15T00:00:00.000Z",
+          circuit_type: "Temporary - Street",
+        },
+      ],
+      isPending: false,
+      isError: false,
+      error: null,
+    } as typeof state.meetings;
+    state.sessions = {
+      data: [
+        {
+          session_key: 101,
+          session_name: "Practice 1",
+          date_start: "2025-03-14T01:00:00.000Z",
+        },
+        {
+          session_key: 202,
+          session_name: "Race",
+          date_start: "2025-03-16T04:00:00.000Z",
+        },
+      ],
+      isPending: false,
+      isError: false,
+      error: null,
+    } as typeof state.sessions;
+    const nowSpy = vi.spyOn(Date, "now").mockImplementation(() => {
+      const current = nowSpy.mock.calls.length * 200;
+      return current;
+    });
+
+    render(
+      <SessionPicker
+        year={2025}
+        meetingKey={22}
+        sessionKey={202}
+        onYear={vi.fn()}
+        onMeeting={vi.fn()}
+        onSession={vi.fn()}
+      />,
+    );
+
+    fireEvent.change(screen.getByLabelText("Season year"), {
+      target: { value: "2024" },
+    });
+    fireEvent.change(screen.getByLabelText("Event"), {
+      target: { value: "11" },
+    });
+    fireEvent.change(screen.getByLabelText("Session"), {
+      target: { value: "101" },
+    });
+
+    expect(state.setSearchParams.mock.calls.length).toBeGreaterThanOrEqual(3);
+
+    for (const call of state.setSearchParams.mock.calls) {
+      const [updater] = call as [
+        (prev: URLSearchParams) => URLSearchParams,
+        { replace: boolean },
+      ];
+      const next = updater(state.searchParams);
+      expect(next.has("t")).toBe(false);
+    }
+
+    nowSpy.mockRestore();
   });
 });

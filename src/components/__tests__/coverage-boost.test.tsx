@@ -179,6 +179,20 @@ function renderWithRouter(pathname: string) {
   );
 }
 
+function renderInRouter(node: ReactNode, pathname: string = "/") {
+  return render(
+    <MemoryRouter
+      initialEntries={[pathname]}
+      future={{
+        v7_startTransition: true,
+        v7_relativeSplatPath: true,
+      }}
+    >
+      {node}
+    </MemoryRouter>,
+  );
+}
+
 describe("component coverage boost", () => {
   beforeEach(() => {
     mockState.meetings = {
@@ -355,7 +369,7 @@ describe("component coverage boost", () => {
     const onMeeting = vi.fn();
     const onSession = vi.fn();
 
-    render(
+    renderInRouter(
       <SessionPicker
         year={2024}
         meetingKey={22}
@@ -393,7 +407,7 @@ describe("component coverage boost", () => {
       error: null,
     };
 
-    render(
+    renderInRouter(
       <SessionPicker
         year={2024}
         meetingKey={null}

@@ -3,6 +3,7 @@ import { isAuthError } from "@/api/client";
 import { isSessionLive } from "@/utils/live";
 import { YEARS } from "@/constants";
 import { useCallback, useEffect, useState, useRef } from "react";
+import { useSearchParams } from "react-router-dom";
 import { toSafeExternalUrl } from "@/utils/url";
 import { trackEvent } from "@/lib/analytics";
 
@@ -24,6 +25,11 @@ const CIRCUIT_TYPE_LABEL: Record<string, string> = {
 const SELECT =
   "bg-panel text-white border border-panel text-xs font-medium px-3 py-1.5 focus:outline-none focus:border-muted transition-colors disabled:opacity-60 disabled:cursor-not-allowed light:bg-white light:text-black light:border-slate-300 light:focus:border-slate-500 light:[color-scheme:light] light:[&>option]:bg-white light:[&>option]:text-black";
 
+function clearReplayTimeParam(params: URLSearchParams) {
+  params.delete("t");
+  return params;
+}
+
 export function SessionPicker({
   year,
   meetingKey,
@@ -32,6 +38,7 @@ export function SessionPicker({
   onMeeting,
   onSession,
 }: Props) {
+  const [, setSearchParams] = useSearchParams();
   const meetings = useMeetings(year);
   const sessions = useSessions(meetingKey);
   const [selectLatestSessionOnLoad, setSelectLatestSessionOnLoad] =
@@ -74,11 +81,15 @@ export function SessionPicker({
             new Date(b.date_start).getTime() - new Date(a.date_start).getTime(),
         )[0];
       if (latestSession) {
+        setSearchParams(
+          (prev) => clearReplayTimeParam(new URLSearchParams(prev)),
+          { replace: true },
+        );
         onSession(latestSession.session_key);
         setSelectLatestSessionOnLoad(false);
       }
     }
-  }, [selectLatestSessionOnLoad, sessions.data, onSession]);
+  }, [selectLatestSessionOnLoad, sessions.data, onSession, setSearchParams]);
 
   const selectLatestEvent = useCallback(
     (source: "auto" | "manual" = "auto") => {
@@ -142,6 +153,10 @@ export function SessionPicker({
                 });
                 const val = Number(e.target.value);
                 console.log("[SessionPicker] Year value parsed:", val);
+                setSearchParams(
+                  (prev) => clearReplayTimeParam(new URLSearchParams(prev)),
+                  { replace: true },
+                );
                 onYear(val);
                 trackEvent("sessionpicker_year_changed", { year: val });
                 console.log("[SessionPicker] onYear completed");
@@ -179,6 +194,10 @@ export function SessionPicker({
                 lastSelectChangeRef.current = now;
                 try {
                   if (e.target.value === "") {
+                    setSearchParams(
+                      (prev) => clearReplayTimeParam(new URLSearchParams(prev)),
+                      { replace: true },
+                    );
                     onMeeting(null);
                     onSession(null);
                     return;
@@ -190,6 +209,10 @@ export function SessionPicker({
                   console.log("[SessionPicker] Meeting value parsed:", val);
                   if (!Number.isNaN(val) && val !== 0) {
                     console.log("[SessionPicker] Calling onMeeting:", val);
+                    setSearchParams(
+                      (prev) => clearReplayTimeParam(new URLSearchParams(prev)),
+                      { replace: true },
+                    );
                     onMeeting(val);
                     trackEvent("sessionpicker_meeting_changed", {
                       meeting_key: val,
@@ -234,6 +257,10 @@ export function SessionPicker({
                 lastSelectChangeRef.current = now;
                 try {
                   if (e.target.value === "") {
+                    setSearchParams(
+                      (prev) => clearReplayTimeParam(new URLSearchParams(prev)),
+                      { replace: true },
+                    );
                     onSession(null);
                     return;
                   }
@@ -244,6 +271,10 @@ export function SessionPicker({
                   console.log("[SessionPicker] Session value parsed:", val);
                   if (!Number.isNaN(val) && val !== 0) {
                     console.log("[SessionPicker] Calling onSession:", val);
+                    setSearchParams(
+                      (prev) => clearReplayTimeParam(new URLSearchParams(prev)),
+                      { replace: true },
+                    );
                     onSession(val);
                     trackEvent("sessionpicker_session_changed", {
                       session_key: val,

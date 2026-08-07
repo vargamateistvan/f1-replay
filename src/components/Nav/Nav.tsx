@@ -103,6 +103,11 @@ function resolveTrackOffsetMin(
   return parseGmtOffsetToMinutes(meetingOffset);
 }
 
+function clearReplayTimeParam(params: URLSearchParams) {
+  params.delete("t");
+  return params;
+}
+
 export function Nav() {
   const openSettings = useSettings((s) => s.openModal);
   const openHelp = useSettings((s) => s.openHelp);
@@ -127,7 +132,7 @@ export function Nav() {
   const [yearParam] = useNumberParam("year", DEFAULT_YEAR);
   const year = yearParam ?? DEFAULT_YEAR;
   const [meetingKey] = useNumberParam("meeting", null);
-  const [sessionKey, setSessionKey] = useNumberParam("session", null);
+  const [sessionKey] = useNumberParam("session", null);
   const [view] = useStringParam<MainView>("view", "tracker");
 
   const meetings = useMeetings(year);
@@ -235,6 +240,7 @@ export function Nav() {
         setSearchParams((prev) => {
           const next = new URLSearchParams(prev);
           next.set("session", String(latestSession.session_key));
+          clearReplayTimeParam(next);
           return next;
         });
         setSelectLatestSessionOnLoad(false);
@@ -337,6 +343,7 @@ export function Nav() {
         next.set("year", String(y));
         next.delete("meeting");
         next.delete("session");
+        clearReplayTimeParam(next);
         return next;
       },
       { replace: true },
@@ -351,6 +358,7 @@ export function Nav() {
         const next = new URLSearchParams(prev);
         next.set("meeting", String(k));
         next.delete("session");
+        clearReplayTimeParam(next);
         return next;
       },
       { replace: true },
@@ -379,6 +387,8 @@ export function Nav() {
         const next = new URLSearchParams(prev);
         next.set("year", String(latest.year));
         next.set("meeting", String(latest.meeting_key));
+        next.delete("session");
+        clearReplayTimeParam(next);
         return next;
       });
       setSelectLatestSessionOnLoad(true);
@@ -801,6 +811,7 @@ export function Nav() {
                         const next = new URLSearchParams(prev);
                         next.delete("meeting");
                         next.delete("session");
+                        clearReplayTimeParam(next);
                         return next;
                       },
                       { replace: true },
@@ -876,13 +887,29 @@ export function Nav() {
                 onChange={(e) => {
                   const raw = e.target.value;
                   if (raw === "") {
-                    setSessionKey(null);
+                    setSearchParams(
+                      (prev) => {
+                        const next = new URLSearchParams(prev);
+                        next.delete("session");
+                        clearReplayTimeParam(next);
+                        return next;
+                      },
+                      { replace: true },
+                    );
                     return;
                   }
 
                   const val = Number(raw);
                   if (!Number.isFinite(val) || val <= 0) return;
-                  setSessionKey(val);
+                  setSearchParams(
+                    (prev) => {
+                      const next = new URLSearchParams(prev);
+                      next.set("session", String(val));
+                      clearReplayTimeParam(next);
+                      return next;
+                    },
+                    { replace: true },
+                  );
                   trackEvent("nav_session_changed", { session_key: val });
                 }}
                 disabled={sessions.isPending || !meetingKey}
