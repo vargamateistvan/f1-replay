@@ -1,40 +1,33 @@
 /**
  * f1-replay OpenF1 proxy — Cloudflare Worker
  *
- * Proxies every GET /v1/<endpoint>?<params> to api.openf1.org and caches
- * the JSON response in Cloudflare KV with a TTL that depends on whether the
- * data is from a live session or a historical (immutable) one.
+ * Proxies GET /v1/<endpoint>?<params> to api.openf1.org and caches
+ * JSON responses in Cloudflare KV.
  *
  * Cache TTL strategy
  * ──────────────────
- * Historical data never changes after a session ends, so we cache it for 30
- * days. Live data gets short TTLs so the UI stays current.
+ * STATIC / RESULT     → 30 days
+ * Historical data     → 30 days
+ * Live location/data  → 5 s
+ * Live position/laps  → 20 s
+ * Other live data     → 60 s
  *
- *  Bucket        │ Endpoints                                    │ TTL
- *  ──────────────┼──────────────────────────────────────────────┼──────────
- *  STATIC        │ meetings, sessions, drivers, starting_grid,  │ 30 days
- *                │ championship_drivers, championship_teams      │
- *  RESULT        │ session_result                                │ 30 days
- *  WINDOW (hist) │ location, car_data  (date< is in the past)   │ 30 days
- *  WINDOW (live) │ location, car_data  (date< is recent)        │ 5 s
- *  LIVE FAST     │ position, intervals, laps                     │ 20 s
- *  LIVE SLOW     │ weather, race_control, team_radio,            │ 60 s
- *                │ pit, stints, overtakes                        │
- *
- * Empty [] responses are never cached — data may not be available yet.
+ * Empty [] responses are never cached.
  *
  * CORS
  * ────
- * The SPA is served from a different origin (GitHub Pages / localhost), so
- * the worker adds permissive CORS headers on every response.
+ * The SPA is served from a different origin, so the worker adds
+ * permissive CORS headers to every response.
  */
 
 export interface Env {
-  /** KV namespace bound in wrangler.toml as `CACHE`. */
   CACHE: KVNamespace;
+
   /**
-   * Optional OpenF1 bearer token (set with `wrangler secret put OPENF1_API_KEY`).
-   * The public API works fine without one; supply a token if you have a paid tier.
+   * Optional OpenF1 bearer token.
+   *
+   * Set with:
+   *   wrangler secret put OPENF1_API_KEY
    */
   OPENF1_API_KEY?: string;
 }
@@ -44,14 +37,27 @@ export interface Env {
 const OPENF1_BASE = "https://api.openf1.org/v1";
 
 const TTL_PERMANENT = 60 * 60 * 24 * 30; // 30 days
-const TTL_LIVE_FAST = 20;                 // 20 s  — positions / intervals / laps
-const TTL_LIVE_SLOW = 60;                 // 60 s  — weather / radio / control
-const TTL_LIVE_WINDOW = 5;               // 5 s   — location / car_data (live session)
+const TTL_LIVE_FAST = 20; // position / intervals / laps
+const TTL_LIVE_SLOW = 60; // weather / radio / race control
+const TTL_LIVE_WINDOW = 5; // location / car_data
 
-// Mirror of src/utils/live.ts: ±30 min buffer around session bounds.
+// ±30 min buffer around session bounds.
 const LIVE_BUFFER_MS = 30 * 60 * 1000;
 
-// Endpoint classification sets — matched against the first path segment.
+// ── Request deduplication ────────────────────────────────────────────────────
+//
+// This prevents multiple simultaneous requests inside the SAME Worker isolate
+// from all hitting OpenF1 when the KV cache is empty.
+//
+// Important:
+// Cloudflare Workers are distributed, so this does NOT provide global
+// deduplication across every Worker instance. KV still provides the main
+// cross-user/cross-instance cache.
+
+const inFlightRequests = new Map<string, Promise<Response>>();
+
+// ── Endpoint classification ─────────────────────────────────────────────────
+
 const STATIC_ENDPOINTS = new Set([
   "meetings",
   "sessions",
@@ -63,44 +69,80 @@ const STATIC_ENDPOINTS = new Set([
 
 const RESULT_ENDPOINTS = new Set(["session_result"]);
 
-// These endpoints are always queried with date-window params (date>, date<).
 const WINDOW_ENDPOINTS = new Set(["location", "car_data"]);
 
-// High-frequency live feeds.
 const LIVE_FAST_ENDPOINTS = new Set(["position", "intervals", "laps"]);
 
-// Everything else (weather, race_control, team_radio, pit, stints, overtakes)
-// falls into the LIVE_SLOW bucket.
+// Everything else falls into LIVE_SLOW.
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
 /**
- * A date-window query is historical when its upper bound (`date<`) is more
- * than LIVE_BUFFER_MS in the past — meaning the session it belongs to is over.
+ * Determines whether a date-window query is historical.
+ *
+ * If date< is more than 30 minutes in the past, consider the data immutable.
  */
 function isWindowHistorical(params: URLSearchParams): boolean {
   const upper = params.get("date<");
-  if (!upper) return false;
-  return Date.parse(upper) < Date.now() - LIVE_BUFFER_MS;
+
+  if (!upper) {
+    return false;
+  }
+
+  const timestamp = Date.parse(upper);
+
+  if (Number.isNaN(timestamp)) {
+    return false;
+  }
+
+  return timestamp < Date.now() - LIVE_BUFFER_MS;
 }
 
+/**
+ * Determines the cache TTL for an endpoint.
+ */
 function chooseTtl(endpoint: string, params: URLSearchParams): number {
   if (STATIC_ENDPOINTS.has(endpoint) || RESULT_ENDPOINTS.has(endpoint)) {
     return TTL_PERMANENT;
   }
+
   if (WINDOW_ENDPOINTS.has(endpoint)) {
     return isWindowHistorical(params) ? TTL_PERMANENT : TTL_LIVE_WINDOW;
   }
+
   if (LIVE_FAST_ENDPOINTS.has(endpoint)) {
     return isWindowHistorical(params) ? TTL_PERMANENT : TTL_LIVE_FAST;
   }
-  // LIVE_SLOW bucket
+
+  // LIVE_SLOW bucket.
   return isWindowHistorical(params) ? TTL_PERMANENT : TTL_LIVE_SLOW;
 }
 
 /**
- * Cache key: full path + query string, prefixed so KV keys are namespaced.
- * Identical requests from different users share the same key.
+ * Normalize query parameters so equivalent URLs share the same cache key.
+ *
+ * Example:
+ *
+ * ?session_key=9158&driver_number=1
+ *
+ * and
+ *
+ * ?driver_number=1&session_key=9158
+ *
+ * will produce the same cache key.
+ */
+function normalizeSearchParams(searchParams: URLSearchParams): string {
+  const normalized = new URLSearchParams(searchParams);
+
+  normalized.sort();
+
+  const query = normalized.toString();
+
+  return query ? `?${query}` : "";
+}
+
+/**
+ * Creates a KV cache key.
  */
 function makeCacheKey(pathname: string, search: string): string {
   return `openf1:${pathname}${search}`;
@@ -118,7 +160,10 @@ const CORS: Record<string, string> = {
 function corsHeaders(
   extra: Record<string, string> = {},
 ): Record<string, string> {
-  return { ...CORS, ...extra };
+  return {
+    ...CORS,
+    ...extra,
+  };
 }
 
 function jsonResponse(
@@ -135,44 +180,83 @@ function jsonResponse(
   });
 }
 
+// ── Origin fetch ─────────────────────────────────────────────────────────────
+
+async function fetchFromOpenF1(openf1Url: string, env: Env): Promise<Response> {
+  const originHeaders: HeadersInit = {
+    Accept: "application/json",
+  };
+
+  if (env.OPENF1_API_KEY) {
+    (originHeaders as Record<string, string>).Authorization =
+      `Bearer ${env.OPENF1_API_KEY}`;
+  }
+
+  return fetch(openf1Url, {
+    headers: originHeaders,
+  });
+}
+
 // ── Worker entry point ───────────────────────────────────────────────────────
 
 export default {
   async fetch(request: Request, env: Env): Promise<Response> {
-    // Handle CORS preflight.
+    // ── CORS preflight ────────────────────────────────────────────────────────
+
     if (request.method === "OPTIONS") {
-      return new Response(null, { status: 204, headers: corsHeaders() });
+      return new Response(null, {
+        status: 204,
+        headers: corsHeaders(),
+      });
     }
 
+    // Only GET is supported.
     if (request.method !== "GET") {
-      return new Response("Method Not Allowed", { status: 405 });
+      return new Response("Method Not Allowed", {
+        status: 405,
+        headers: corsHeaders(),
+      });
     }
 
     const url = new URL(request.url);
 
-    // The worker is deployed at the root; the SPA sends requests to /v1/<endpoint>.
-    // Strip the /v1 prefix to derive the OpenF1 path segment.
-    // e.g. /v1/location?session_key=9158&date>=… → endpoint="location"
+    // ── Parse endpoint ────────────────────────────────────────────────────────
+
     const pathname = url.pathname.replace(/^\/v1\/?/, "") || "";
-    const endpoint = pathname.split("/")[0]; // "location", "laps", …
+
+    const endpoint = pathname.split("/")[0];
 
     if (!endpoint) {
       return jsonResponse(
-        JSON.stringify({ error: "Missing endpoint" }),
+        JSON.stringify({
+          error: "Missing endpoint",
+        }),
         400,
       );
     }
 
+    // ── Build OpenF1 URL ──────────────────────────────────────────────────────
+
     const openf1Url = `${OPENF1_BASE}/${pathname}${url.search}`;
+
     const ttl = chooseTtl(endpoint, url.searchParams);
-    const cacheKey = makeCacheKey(`/${pathname}`, url.search);
+
+    // Normalize query parameters for the cache key.
+    const normalizedSearch = normalizeSearchParams(url.searchParams);
+
+    const cacheKey = makeCacheKey(`/${pathname}`, normalizedSearch);
 
     // ── KV read ───────────────────────────────────────────────────────────────
+
     let cached: string | null = null;
+
     try {
       cached = await env.CACHE.get(cacheKey);
     } catch {
-      // KV unavailable — fall through to origin. Don't fail the user's request.
+      // KV unavailable.
+      //
+      // We deliberately fall through to OpenF1 instead of failing
+      // the user's request.
     }
 
     if (cached !== null) {
@@ -182,53 +266,97 @@ export default {
       });
     }
 
-    // ── Origin fetch ──────────────────────────────────────────────────────────
-    const originHeaders: HeadersInit = { Accept: "application/json" };
-    if (env.OPENF1_API_KEY) {
-      (originHeaders as Record<string, string>).Authorization =
-        `Bearer ${env.OPENF1_API_KEY}`;
-    }
+    // ── Request deduplication ─────────────────────────────────────────────────
+    //
+    // If another request in this Worker isolate is already fetching
+    // the exact same resource, wait for it instead of starting
+    // another OpenF1 request.
 
-    let originRes: Response;
-    try {
-      originRes = await fetch(openf1Url, { headers: originHeaders });
-    } catch (err) {
-      return jsonResponse(
-        JSON.stringify({ error: "Origin unreachable", detail: String(err) }),
-        502,
-      );
-    }
+    const existingRequest = inFlightRequests.get(cacheKey);
 
-    // Pass non-200 responses through without caching them.
-    if (!originRes.ok) {
-      const body = await originRes.text();
-      return new Response(body, {
-        status: originRes.status,
-        headers: corsHeaders({
-          "Content-Type":
-            originRes.headers.get("Content-Type") ?? "application/json",
-          "X-Cache": "MISS",
-        }),
+    if (existingRequest) {
+      const response = await existingRequest;
+
+      return new Response(response.body, {
+        status: response.status,
+        headers: response.headers,
       });
     }
 
-    const body = await originRes.text();
+    // ── OpenF1 request ────────────────────────────────────────────────────────
 
-    // ── KV write ──────────────────────────────────────────────────────────────
-    // Skip caching empty arrays — live data may not exist yet and we don't want
-    // to serve a stale [] to subsequent requests within the TTL window.
-    const isEmpty = body.trim() === "[]";
-    if (!isEmpty) {
+    const fetchPromise = (async (): Promise<Response> => {
+      let originRes: Response;
+
       try {
-        await env.CACHE.put(cacheKey, body, { expirationTtl: ttl });
-      } catch {
-        // Best-effort — a failed KV write must never break the response.
+        originRes = await fetchFromOpenF1(openf1Url, env);
+      } catch (err) {
+        return jsonResponse(
+          JSON.stringify({
+            error: "Origin unreachable",
+            detail: String(err),
+          }),
+          502,
+        );
       }
-    }
 
-    return jsonResponse(body, 200, {
-      "X-Cache": "MISS",
-      "Cache-Control": `public, max-age=${ttl}`,
-    });
+      // Pass non-200 responses through without caching.
+      if (!originRes.ok) {
+        const body = await originRes.text();
+
+        return new Response(body, {
+          status: originRes.status,
+          headers: corsHeaders({
+            "Content-Type":
+              originRes.headers.get("Content-Type") ?? "application/json",
+            "X-Cache": "MISS",
+          }),
+        });
+      }
+
+      const body = await originRes.text();
+
+      // Do not cache empty arrays.
+      //
+      // This is important for live data because [] can simply mean
+      // that the data is not available yet.
+      const isEmpty = body.trim() === "[]";
+
+      if (!isEmpty) {
+        try {
+          await env.CACHE.put(cacheKey, body, {
+            expirationTtl: ttl,
+          });
+        } catch {
+          // Best effort.
+          //
+          // A failed KV write must never break the response.
+        }
+      }
+
+      return jsonResponse(body, 200, {
+        "X-Cache": "MISS",
+        "Cache-Control": `public, max-age=${ttl}`,
+      });
+    })();
+
+    inFlightRequests.set(cacheKey, fetchPromise);
+
+    try {
+      const response = await fetchPromise;
+
+      // Clone the response before returning it so the response
+      // can safely be consumed by multiple waiting requests.
+      return new Response(response.body, {
+        status: response.status,
+        headers: response.headers,
+      });
+    } finally {
+      // Always remove the in-flight entry.
+      //
+      // This allows a future request to fetch the resource again
+      // after the current request has completed.
+      inFlightRequests.delete(cacheKey);
+    }
   },
 } satisfies ExportedHandler<Env>;
