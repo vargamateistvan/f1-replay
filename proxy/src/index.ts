@@ -1,8 +1,15 @@
 /**
  * f1-replay OpenF1 proxy — Cloudflare Worker
  *
- * Proxies GET /v1/<endpoint>?<params> to api.openf1.org and caches
- * JSON responses in Cloudflare KV.
+ * Cache hierarchy:
+ *
+ *   Browser
+ *      ↓
+ *   Cloudflare Cache API  ← fastest
+ *      ↓ MISS
+ *   Cloudflare KV          ← persistent/shared cache
+ *      ↓ MISS
+ *   OpenF1 API
  *
  * Cache TTL strategy
  * ──────────────────
@@ -44,15 +51,15 @@ const TTL_LIVE_WINDOW = 5; // location / car_data
 // ±30 min buffer around session bounds.
 const LIVE_BUFFER_MS = 30 * 60 * 1000;
 
-// ── Request deduplication ────────────────────────────────────────────────────
+// ── In-flight request deduplication ──────────────────────────────────────────
 //
-// This prevents multiple simultaneous requests inside the SAME Worker isolate
-// from all hitting OpenF1 when the KV cache is empty.
+// Prevents multiple simultaneous requests in the SAME Worker isolate from
+// hitting OpenF1 when the cache is empty.
 //
-// Important:
-// Cloudflare Workers are distributed, so this does NOT provide global
-// deduplication across every Worker instance. KV still provides the main
-// cross-user/cross-instance cache.
+// This is intentionally only an optimization. Cloudflare Workers are
+// distributed, so requests handled by different isolates can still race.
+//
+// KV + Cache API provide the actual cross-request caching.
 
 const inFlightRequests = new Map<string, Promise<Response>>();
 
@@ -119,7 +126,7 @@ function chooseTtl(endpoint: string, params: URLSearchParams): number {
 }
 
 /**
- * Normalize query parameters so equivalent URLs share the same cache key.
+ * Normalize query parameters so equivalent URLs share the same KV key.
  *
  * Example:
  *
@@ -129,7 +136,7 @@ function chooseTtl(endpoint: string, params: URLSearchParams): number {
  *
  * ?driver_number=1&session_key=9158
  *
- * will produce the same cache key.
+ * produce the same KV key.
  */
 function normalizeSearchParams(searchParams: URLSearchParams): string {
   const normalized = new URLSearchParams(searchParams);
@@ -180,7 +187,7 @@ function jsonResponse(
   });
 }
 
-// ── Origin fetch ─────────────────────────────────────────────────────────────
+// ── OpenF1 ───────────────────────────────────────────────────────────────────
 
 async function fetchFromOpenF1(openf1Url: string, env: Env): Promise<Response> {
   const originHeaders: HeadersInit = {
@@ -197,11 +204,11 @@ async function fetchFromOpenF1(openf1Url: string, env: Env): Promise<Response> {
   });
 }
 
-// ── Worker entry point ───────────────────────────────────────────────────────
+// ── Worker ───────────────────────────────────────────────────────────────────
 
 export default {
   async fetch(request: Request, env: Env): Promise<Response> {
-    // ── CORS preflight ────────────────────────────────────────────────────────
+    // ── CORS preflight ───────────────────────────────────────────────────────
 
     if (request.method === "OPTIONS") {
       return new Response(null, {
@@ -220,7 +227,7 @@ export default {
 
     const url = new URL(request.url);
 
-    // ── Parse endpoint ────────────────────────────────────────────────────────
+    // ── Parse endpoint ───────────────────────────────────────────────────────
 
     const pathname = url.pathname.replace(/^\/v1\/?/, "") || "";
 
@@ -235,44 +242,94 @@ export default {
       );
     }
 
-    // ── Build OpenF1 URL ──────────────────────────────────────────────────────
-
-    const openf1Url = `${OPENF1_BASE}/${pathname}${url.search}`;
+    // ── Determine TTL ─────────────────────────────────────────────────────────
 
     const ttl = chooseTtl(endpoint, url.searchParams);
 
-    // Normalize query parameters for the cache key.
+    // ── Cache keys ────────────────────────────────────────────────────────────
+
+    //
+    // Cache API:
+    // Use the complete request URL.
+    //
+    // This lets Cloudflare treat each public URL as a distinct cache entry.
+    //
+    const edgeCacheKey = new Request(url.toString(), {
+      method: "GET",
+    });
+
+    //
+    // KV:
+    // Normalize query parameter ordering so equivalent queries share
+    // the same KV entry.
+    //
     const normalizedSearch = normalizeSearchParams(url.searchParams);
 
-    const cacheKey = makeCacheKey(`/${pathname}`, normalizedSearch);
+    const kvCacheKey = makeCacheKey(`/${pathname}`, normalizedSearch);
 
-    // ── KV read ───────────────────────────────────────────────────────────────
+    // ── LEVEL 1: Cloudflare Cache API ─────────────────────────────────────────
+    // eslint-disable-next-line no-undef
+    const edgeCache = caches.default;
+
+    let edgeCached: Response | undefined;
+
+    try {
+      edgeCached = await edgeCache.match(edgeCacheKey);
+    } catch {
+      // Cache API failure should never break the request.
+    }
+
+    if (edgeCached) {
+      return new Response(edgeCached.body, {
+        status: edgeCached.status,
+        headers: corsHeaders({
+          "Content-Type":
+            edgeCached.headers.get("Content-Type") ?? "application/json",
+          "X-Cache": "EDGE",
+          "Cache-Control": `public, max-age=${ttl}`,
+        }),
+      });
+    }
+
+    // ── LEVEL 2: KV ───────────────────────────────────────────────────────────
 
     let cached: string | null = null;
 
     try {
-      cached = await env.CACHE.get(cacheKey);
+      cached = await env.CACHE.get(kvCacheKey);
     } catch {
       // KV unavailable.
-      //
-      // We deliberately fall through to OpenF1 instead of failing
-      // the user's request.
+      // Fall through to OpenF1.
     }
 
     if (cached !== null) {
-      return jsonResponse(cached, 200, {
-        "X-Cache": "HIT",
+      const response = jsonResponse(cached, 200, {
+        "X-Cache": "KV",
         "Cache-Control": `public, max-age=${ttl}`,
       });
+
+      //
+      // Warm the Cloudflare edge cache.
+      //
+      // Don't await this. The user doesn't need to wait for
+      // the edge cache write.
+      //
+      try {
+        await edgeCache.put(edgeCacheKey, response.clone());
+      } catch {
+        // Best effort.
+      }
+
+      return response;
     }
 
-    // ── Request deduplication ─────────────────────────────────────────────────
+    // ── LEVEL 3: Request deduplication ─────────────────────────────────────────
     //
     // If another request in this Worker isolate is already fetching
-    // the exact same resource, wait for it instead of starting
+    // this exact resource, wait for that request instead of creating
     // another OpenF1 request.
 
-    const existingRequest = inFlightRequests.get(cacheKey);
+    const existingRequest = inFlightRequests.get(kvCacheKey);
 
     if (existingRequest) {
       const response = await existingRequest;
@@ -283,9 +340,11 @@ export default {
       });
     }
 
-    // ── OpenF1 request ────────────────────────────────────────────────────────
+    // ── LEVEL 4: OpenF1 ────────────────────────────────────────────────────────
 
     const fetchPromise = (async (): Promise<Response> => {
+      const openf1Url = `${OPENF1_BASE}/${pathname}${url.search}`;
+
       let originRes: Response;
 
       try {
@@ -300,7 +359,7 @@ export default {
         );
       }
 
-      // Pass non-200 responses through without caching.
+      // Never cache OpenF1 errors.
       if (!originRes.ok) {
         const body = await originRes.text();
 
@@ -316,47 +375,48 @@ export default {
 
       const body = await originRes.text();
 
-      // Do not cache empty arrays.
-      //
-      // This is important for live data because [] can simply mean
-      // that the data is not available yet.
+      // Never cache empty arrays.
       const isEmpty = body.trim() === "[]";
 
+      const response = jsonResponse(body, 200, {
+        "X-Cache": "MISS",
+        "Cache-Control": `public, max-age=${ttl}`,
+      });
+
       if (!isEmpty) {
+        // ── Store in KV ─────────────────────────────────────────────────────
+
         try {
-          await env.CACHE.put(cacheKey, body, {
+          await env.CACHE.put(kvCacheKey, body, {
             expirationTtl: ttl,
           });
         } catch {
           // Best effort.
-          //
-          // A failed KV write must never break the response.
+        }
+
+        // ── Store in Cloudflare Cache API ───────────────────────────────────
+
+        try {
+          await edgeCache.put(edgeCacheKey, response.clone());
+        } catch {
+          // Best effort.
         }
       }
 
-      return jsonResponse(body, 200, {
-        "X-Cache": "MISS",
-        "Cache-Control": `public, max-age=${ttl}`,
-      });
+      return response;
     })();
 
-    inFlightRequests.set(cacheKey, fetchPromise);
+    inFlightRequests.set(kvCacheKey, fetchPromise);
 
     try {
       const response = await fetchPromise;
 
-      // Clone the response before returning it so the response
-      // can safely be consumed by multiple waiting requests.
       return new Response(response.body, {
         status: response.status,
         headers: response.headers,
       });
     } finally {
-      // Always remove the in-flight entry.
-      //
-      // This allows a future request to fetch the resource again
-      // after the current request has completed.
-      inFlightRequests.delete(cacheKey);
+      inFlightRequests.delete(kvCacheKey);
     }
   },
 } satisfies ExportedHandler<Env>;
