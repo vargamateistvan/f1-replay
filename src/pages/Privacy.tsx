@@ -38,17 +38,16 @@ export default function Privacy() {
               Cookies and Consent
             </h2>
             <p className="mt-2">
-              We use Cookiebot for consent management and Google tools for
-              measurement. Non-essential storage and analytics are controlled by
-              your consent preferences.
+              We use Google tools for measurement. Non-essential storage and
+              analytics are controlled by your consent preferences.
             </p>
           </div>
 
           <div>
             <h2 className="text-base font-bold text-white">Third Parties</h2>
             <p className="mt-2">
-              Data may be processed by third-party providers such as Google and
-              Cookiebot in accordance with their terms and privacy policies.
+              Data may be processed by third-party providers such as Google in
+              accordance with their terms and privacy policies.
             </p>
           </div>
 
