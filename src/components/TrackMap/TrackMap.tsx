@@ -2171,6 +2171,8 @@ export function TrackMap({
               const markerLabel = specialVehicle
                 ? specialVehicle.fullLabel
                 : (driver?.name_acronym ?? num);
+              const labelX = focused ? 10 : 10;
+              const labelY = focused ? -9 : -7;
               return (
                 <g
                   key={num}
@@ -2318,10 +2320,10 @@ export function TrackMap({
                   )}
                   {showLabel && (
                     <text
-                      x={focused ? 15 : 10}
-                      y={-5}
-                      textAnchor="end"
-                      transform={`rotate(${-rotationDeg.toFixed(1)} ${(focused ? 15 : 10).toFixed(1)} ${(-5).toFixed(1)})`}
+                      x={labelX}
+                      y={labelY}
+                      textAnchor="start"
+                      transform={`rotate(${-rotationDeg.toFixed(1)} ${labelX.toFixed(1)} ${labelY.toFixed(1)})`}
                       fontSize={focused ? 9 : 8}
                       fill={specialVehicle ? markerTextColor : color}
                       fontFamily="Inter, sans-serif"

@@ -66,9 +66,18 @@ vi.mock("@/data/circuitGeometry", () => ({
 }));
 
 vi.mock("@/stores/settings", () => ({
-  useSettings: vi.fn(() => ({
-    lightMode: false,
-  })),
+  useSettings: vi.fn((selector) =>
+    selector({
+      lightMode: false,
+      metricSystem: "metric",
+      mapShowDriverAcronym: true,
+      mapShowDriverNumberInside: false,
+      mapShowMarshalHeatmap: false,
+      mapShowCornerNumbers: false,
+      mapShowElevation: false,
+      mapShowClock: false,
+    }),
+  ),
 }));
 
 const mockDriver = {
@@ -171,6 +180,26 @@ describe("TrackMap sector flag state rendering", () => {
 
     const svgAfter = container.querySelector("svg");
     expect(svgAfter?.getAttribute("viewBox")).toBe(viewBoxBefore);
+  });
+
+  it("renders acronym labels with a visible offset from the dot", () => {
+    vi.mocked(useTrackOutline).mockReturnValue(
+      mockTrackOutlineQueryResult(mockOutline),
+    );
+
+    render(
+      <TrackMap
+        sessionKey={1}
+        drivers={[mockDriver]}
+        locationData={mockLocationData}
+        sessionStartMs={0}
+      />,
+    );
+
+    const label = screen.getByText("TST");
+    expect(label).toBeTruthy();
+    expect(label.getAttribute("text-anchor")).toBe("start");
+    expect(label.getAttribute("x")).toBe("10");
   });
 
   it("renders without crashing when activeTrackFlagState has independent sectors", () => {
