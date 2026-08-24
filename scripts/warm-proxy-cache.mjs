@@ -1,4 +1,6 @@
 #!/usr/bin/env node
+import { appendFileSync } from "node:fs";
+
 /**
  * Warm the OpenF1 proxy cache (proxy/) for recently-finished sessions.
  *
@@ -36,6 +38,7 @@ const WARM_SECRET = process.env.WARM_SECRET ?? "";
 const SESSION_KEY = process.env.SESSION_KEY ?? "";
 const LOOKBACK_HOURS = Number(process.env.LOOKBACK_HOURS) || 3;
 const MIN_AGE_MINUTES = Number(process.env.MIN_AGE_MINUTES) || 40;
+const GITHUB_STEP_SUMMARY = process.env.GITHUB_STEP_SUMMARY ?? "";
 
 // Mirror src/constants.ts — keep in sync.
 const LOCATION_CHUNK_MS = 2 * 60 * 1000; // LOCATION_CHUNK_MS
@@ -58,6 +61,33 @@ if (PROXY_BASE.includes("api.openf1.org")) {
 }
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+
+function writeGithubSummary(lines) {
+  if (!GITHUB_STEP_SUMMARY) return;
+  try {
+    appendFileSync(GITHUB_STEP_SUMMARY, `${lines.join("\n")}\n`, "utf8");
+  } catch (err) {
+    console.warn(
+      `Could not write GitHub summary: ${err instanceof Error ? err.message : String(err)}`,
+    );
+  }
+}
+
+function snapshotStats() {
+  return { ...stats };
+}
+
+function diffStats(before, after) {
+  return {
+    hit: after.hit - before.hit,
+    miss: after.miss - before.miss,
+    noData: after.noData - before.noData,
+    empty: after.empty - before.empty,
+    forbidden: after.forbidden - before.forbidden,
+    unauthorized: after.unauthorized - before.unauthorized,
+    error: after.error - before.error,
+  };
+}
 
 // ── URL construction (mirrors src/api/client.ts fetchEndpoint) ──────────────
 
@@ -291,14 +321,25 @@ function sessionUrls(session) {
 const sessions = await findSessionsToWarm();
 
 if (sessions.length === 0) {
-  console.log(
-    `No sessions ended in the last ${LOOKBACK_HOURS} h (min age ${MIN_AGE_MINUTES} min). Nothing to warm.`,
-  );
+  const message = `No sessions ended in the last ${LOOKBACK_HOURS} h (min age ${MIN_AGE_MINUTES} min). Nothing to warm.`;
+  console.log(message);
+  writeGithubSummary([
+    "## Warm Proxy Cache",
+    "",
+    "No sessions matched the warm-up window in this run.",
+    "",
+    `- Lookback hours: \`${LOOKBACK_HOURS}\``,
+    `- Minimum age (minutes): \`${MIN_AGE_MINUTES}\``,
+    `- Proxy base: \`${PROXY_BASE}\``,
+  ]);
   process.exit(0);
 }
 
+const perSession = [];
+
 for (const session of sessions) {
   const urls = sessionUrls(session);
+  const before = snapshotStats();
   console.log(
     `Warming ${session.session_name} @ ${session.circuit_short_name} ` +
       `(session_key=${session.session_key}, ${urls.length} URLs)…`,
@@ -327,6 +368,15 @@ for (const session of sessions) {
   if (skipped > 0) {
     console.log(`  skipped ${skipped} windows past the end of session data`);
   }
+
+  perSession.push({
+    key: session.session_key,
+    name: session.session_name,
+    circuit: session.circuit_short_name,
+    urls: urls.length,
+    skipped,
+    stats: diffStats(before, stats),
+  });
 }
 
 console.log(
@@ -340,6 +390,29 @@ if (stats.error > 0 && stats.hit === 0 && stats.forbidden > 0) {
     "All requests were forbidden. Check that PROXY_BASE points to your proxy (not api.openf1.org) and verify the Worker's OPENF1_API_KEY secret is valid or unset.",
   );
 }
+
+writeGithubSummary([
+  "## Warm Proxy Cache",
+  "",
+  `- Proxy base: \`${PROXY_BASE}\``,
+  `- Sessions warmed: \`${sessions.length}\``,
+  `- Cache hits: \`${stats.hit}\``,
+  `- Misses (warmed): \`${stats.miss}\``,
+  `- No-data windows: \`${stats.noData}\``,
+  `- Empty responses: \`${stats.empty}\``,
+  `- 403 responses: \`${stats.forbidden}\``,
+  `- 401 responses: \`${stats.unauthorized}\``,
+  `- Errors: \`${stats.error}\``,
+  "",
+  "### Per-session breakdown",
+  "",
+  "| Session key | Session | Circuit | URLs | Hits | Misses | No-data | 403 | 401 | Errors | Skipped windows |",
+  "|---:|---|---|---:|---:|---:|---:|---:|---:|---:|---:|",
+  ...perSession.map(
+    (s) =>
+      `| ${s.key} | ${s.name} | ${s.circuit} | ${s.urls} | ${s.stats.hit} | ${s.stats.miss} | ${s.stats.noData} | ${s.stats.forbidden} | ${s.stats.unauthorized} | ${s.stats.error} | ${s.skipped} |`,
+  ),
+]);
 
 // Empty/no-data responses are never cached by the proxy, so a fully-warmed
 // session still reports them as misses on re-runs — expected and harmless.
