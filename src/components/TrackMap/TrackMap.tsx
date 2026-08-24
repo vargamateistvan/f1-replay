@@ -248,6 +248,10 @@ interface Props {
   readonly showTrackControls?: boolean;
   readonly showCompass?: boolean;
   readonly showFocusedHud?: boolean;
+  /** True when the all-driver car_data window is already being fetched
+   * (leaderboard telemetry columns) — reuse it for the HUD instead of
+   * per-driver requests. */
+  readonly sharedAllDriverWindow?: boolean;
   readonly showTrackScreenshot?: boolean;
   readonly showEnhancedVisuals?: boolean;
   readonly onSelectDriver?: (driverNumber: number) => void;
@@ -307,6 +311,7 @@ export function TrackMap({
   showTrackControls = true,
   showCompass = true,
   showFocusedHud = true,
+  sharedAllDriverWindow = false,
   showTrackScreenshot = true,
   showEnhancedVisuals = true,
   onSelectDriver,
@@ -447,6 +452,7 @@ export function TrackMap({
     showFocusedHud ? focusDriver : null,
     sessionStartMs,
     chunkIdx,
+    { sharedAllDriverWindow },
   );
 
   // Baked official geometry — available immediately when the bake script has run.

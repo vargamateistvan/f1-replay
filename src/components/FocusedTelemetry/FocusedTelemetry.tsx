@@ -18,6 +18,9 @@ interface Props {
   readonly sessionStartMs: number;
   readonly driverLap?: number | null;
   readonly compareDriverLap?: number | null;
+  /** True when the all-driver car_data window is already being fetched
+   * (leaderboard telemetry columns) — reuse it instead of per-driver requests. */
+  readonly sharedAllDriverWindow?: boolean;
   readonly onClear: () => void;
   readonly onClearCompare?: () => void;
 }
@@ -31,6 +34,7 @@ export function FocusedTelemetry({
   sessionStartMs,
   driverLap = null,
   compareDriverLap = null,
+  sharedAllDriverWindow = false,
   onClear,
   onClearCompare,
 }: Props) {
@@ -44,12 +48,14 @@ export function FocusedTelemetry({
     driver?.driver_number ?? null,
     sessionStartMs,
     chunkIdx,
+    { sharedAllDriverWindow },
   );
   const { data: compareData } = useCarDataWindow(
     sessionKey,
     compareDriver?.driver_number ?? null,
     sessionStartMs,
     chunkIdx,
+    { sharedAllDriverWindow },
   );
   const lapData = useCarDataForLap(
     sessionKey,

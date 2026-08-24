@@ -20,6 +20,29 @@ function chunkDates(sessionStartMs: number, idx: number) {
   };
 }
 
+// Shared query options so other hooks (useCarDataWindow in shared mode) can
+// subscribe to the exact same query — TanStack Query dedupes on the key, so no
+// extra network requests are made for data the leaderboard already fetches.
+export function allCarDataWindowQueryKey(sessionKey: number, idx: number) {
+  return ["allCarDataWindow", sessionKey, idx] as const;
+}
+
+export function allCarDataWindowQueryOptions(
+  sessionKey: number,
+  sessionStartMs: number,
+  idx: number,
+) {
+  return {
+    queryKey: allCarDataWindowQueryKey(sessionKey, idx),
+    queryFn: () => {
+      const { start, end } = chunkDates(sessionStartMs, idx);
+      return api.carDataWindowAll(sessionKey, start, end);
+    },
+    staleTime: Infinity,
+    gcTime: Infinity,
+  };
+}
+
 export function useAllCarDataWindow(
   sessionKey: number | null,
   sessionStartMs: number,
@@ -36,14 +59,8 @@ export function useAllCarDataWindow(
   const includeNextChunk = options?.includeNextChunk ?? true;
 
   const makeOptions = (idx: number) => ({
-    queryKey: ["allCarDataWindow", sessionKey, idx] as const,
-    queryFn: () => {
-      const { start, end } = chunkDates(sessionStartMs, idx);
-      return api.carDataWindowAll(sessionKey!, start, end);
-    },
+    ...allCarDataWindowQueryOptions(sessionKey ?? 0, sessionStartMs, idx),
     enabled: on && idx >= 0,
-    staleTime: Infinity,
-    gcTime: Infinity,
   });
 
   const previous = useQuery({

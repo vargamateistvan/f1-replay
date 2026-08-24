@@ -107,4 +107,73 @@ describe("useCarDataWindow", () => {
     });
     expect(mockRemoveQueries).toHaveBeenCalledTimes(4);
   });
+
+  it("shared mode reads the all-driver window and filters by driver", () => {
+    mockUseQuery.mockImplementation(
+      (options: {
+        queryKey: readonly unknown[];
+        enabled?: boolean;
+      }) => {
+        if (options.queryKey[0] === "allCarDataWindow") {
+          return {
+            data: [
+              { date: "2024-01-01T00:00:00Z", driver_number: 44 },
+              { date: "2024-01-01T00:00:00Z", driver_number: 1 },
+            ],
+            isPending: false,
+          };
+        }
+        return { data: [], isPending: true };
+      },
+    );
+
+    const { result } = renderHook(() =>
+      useCarDataWindow(1, 44, 1_000, 5, { sharedAllDriverWindow: true }),
+    );
+
+    // current + next shared chunks, only driver 44's rows
+    expect(result.current.data).toHaveLength(2);
+    expect(
+      result.current.data.every((d) => d.driver_number === 44),
+    ).toBe(true);
+    expect(result.current.isPending).toBe(false);
+  });
+
+  it("shared mode disables per-driver queries and enables shared ones", () => {
+    mockUseQuery.mockReturnValue({ data: [], isPending: false });
+
+    renderHook(() =>
+      useCarDataWindow(1, 44, 1_000, 5, { sharedAllDriverWindow: true }),
+    );
+
+    const calls = mockUseQuery.mock.calls.map(
+      (call) =>
+        call[0] as { queryKey: readonly unknown[]; enabled?: boolean },
+    );
+    const perDriver = calls.filter((o) => o.queryKey[0] === "carDataWindow");
+    const shared = calls.filter((o) => o.queryKey[0] === "allCarDataWindow");
+
+    expect(perDriver).toHaveLength(2);
+    expect(perDriver.every((o) => o.enabled === false)).toBe(true);
+    expect(shared).toHaveLength(2);
+    expect(shared.every((o) => o.enabled === true)).toBe(true);
+    expect(shared.map((o) => o.queryKey)).toEqual([
+      ["allCarDataWindow", 1, 5],
+      ["allCarDataWindow", 1, 6],
+    ]);
+  });
+
+  it("shared mode evicts leftover per-driver chunks", () => {
+    mockUseQuery.mockReturnValue({ data: [], isPending: false });
+    mockFindAll.mockReturnValue([
+      { queryKey: ["carDataWindow", 1, 44, 5] },
+      { queryKey: ["carDataWindow", 1, 44, 6] },
+    ]);
+
+    renderHook(() =>
+      useCarDataWindow(1, 44, 1_000, 5, { sharedAllDriverWindow: true }),
+    );
+
+    expect(mockRemoveQueries).toHaveBeenCalledTimes(2);
+  });
 });

@@ -1637,6 +1637,7 @@ export default function RaceWeekend() {
       battlingDrivers={mapShowBattleRings ? battlingDrivers : undefined}
       focusDriverLap={focusDriverLap}
       showFocusedHud={mapShowDriverHud}
+      sharedAllDriverWindow={telemetryEnabled}
       activeTrackFlagState={mapShowSectorFlags ? activeTrackFlagState : null}
       activeMarshalSectorFlagState={
         mapShowSectorFlags ? activeMarshalSectorFlagState : null
@@ -1862,6 +1863,7 @@ export default function RaceWeekend() {
                             sessionStartMs={sessionStartMs}
                             driverLap={focusDriverLap}
                             compareDriverLap={compareDriverLap}
+                            sharedAllDriverWindow={telemetryEnabled}
                             onClear={clearFocusSelection}
                             onClearCompare={() =>
                               setFocusSelection(focusDriver, null)
@@ -2090,6 +2092,7 @@ export default function RaceWeekend() {
                         sessionStartMs={sessionStartMs}
                         driverLap={focusDriverLap}
                         compareDriverLap={compareDriverLap}
+                        sharedAllDriverWindow={telemetryEnabled}
                         onClear={clearFocusSelection}
                         onClearCompare={() =>
                           setFocusSelection(focusDriver, null)
