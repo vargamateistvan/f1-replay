@@ -37,27 +37,9 @@ function shouldTrackAnalytics(): boolean {
   );
 }
 
-function ensureDataLayer(): void {
-  if (typeof window === "undefined") return;
-  window.dataLayer = window.dataLayer || [];
-}
-
-function ensureGtagStub(): void {
-  if (typeof window === "undefined") return;
-  ensureDataLayer();
-  if (!window.gtag) {
-    window.gtag = function gtag(...args) {
-      window.dataLayer.push(args);
-    } as Gtag;
-  }
-}
-
 export function initializeAnalytics(): void {
-  if (initialized || !shouldTrackAnalytics()) return;
-
-  ensureGtagStub();
-  window.gtag?.("js", new Date());
-  window.gtag?.("config", GA_MEASUREMENT_ID);
+  if (initialized || !shouldTrackAnalytics() || typeof window === "undefined")
+    return;
   initialized = true;
 }
 

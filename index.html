@@ -65,26 +65,14 @@
       }
     }
   </script>
+  <!-- Google tag (gtag.js) -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-R9T6QJHL5X"></script>
   <script>
-    if (
-      window.location.hostname !== "localhost" &&
-      window.location.hostname !== "127.0.0.1" &&
-      window.location.hostname !== "[::1]"
-    ) {
-      window.dataLayer = window.dataLayer || [];
-      function gtag() {
-        dataLayer.push(arguments);
-      }
-      window.gtag = gtag;
-
-      var script = document.createElement("script");
-      script.async = true;
-      script.src = "https://www.googletagmanager.com/gtag/js?id=G-R9T6QJHL5X";
-      document.head.appendChild(script);
-
-      gtag("js", new Date());
-      gtag("config", "G-R9T6QJHL5X");
-    }
+    window.dataLayer = window.dataLayer || [];
+    function gtag() { dataLayer.push(arguments); }
+    window.gtag = gtag;
+    gtag('js', new Date());
+    gtag('config', 'G-R9T6QJHL5X');
   </script>
   <script>
     // Decode the SPA redirect format used by 404.html on static hosts (GitHub Pages).
