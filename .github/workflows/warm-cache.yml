@@ -1,0 +1,57 @@
+name: Warm Proxy Cache
+
+# Warms the Cloudflare Worker proxy (proxy/) with every canonical URL the SPA
+# requests for a session, right after that session ends. The first real user
+# then gets KV/edge cache hits instead of spending OpenF1 rate-limit budget
+# (3 req/s, 30 req/min) on cold fetches.
+#
+# The cron only runs Thursday–Sunday (UTC) — F1 weekend sessions all fall in
+# that range — plus early Monday hours to catch sessions that end late Sunday
+# UTC. Each run is a cheap no-op (one discovery request) when no session
+# ended recently. Sessions become eligible MIN_AGE_MINUTES (40) after
+# date_end — the proxy only classifies date windows as historical/permanent
+# once `date<` is more than 30 minutes in the past.
+#
+# Secrets used (all optional):
+#   VITE_OPENF1_API_BASE — proxy base URL; falls back to the public proxy.
+#   WARM_SECRET          — must match the Worker secret set with
+#                          `wrangler secret put WARM_SECRET`. Without it the
+#                          run still warms location/car_data/static endpoints,
+#                          but laps/position/intervals/weather only get their
+#                          short live TTLs, and meetings/sessions lists are
+#                          not refreshed.
+
+on:
+  schedule:
+    # Hourly on Thursday–Sunday (UTC), when F1 sessions actually run.
+    - cron: "27 * * * 0,4-6"
+    # Monday 00–03 UTC catch-up for sessions ending late Sunday UTC.
+    - cron: "27 0-3 * * 1"
+  workflow_dispatch:
+    inputs:
+      session_key:
+        description: "Warm one specific OpenF1 session_key (skips discovery)"
+        required: false
+      lookback_hours:
+        description: "How many hours back to look for ended sessions"
+        required: false
+        default: "3"
+
+jobs:
+  warm:
+    runs-on: ubuntu-latest
+    name: Warm session data into proxy cache
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+
+      - name: Warm proxy cache
+        run: node scripts/warm-proxy-cache.mjs
+        env:
+          PROXY_BASE: ${{ secrets.VITE_OPENF1_API_BASE || 'https://proxy.f1replay.app/v1' }}
+          WARM_SECRET: ${{ secrets.WARM_SECRET }}
+          SESSION_KEY: ${{ inputs.session_key }}
+          LOOKBACK_HOURS: ${{ inputs.lookback_hours || '3' }}

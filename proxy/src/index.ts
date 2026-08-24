@@ -21,6 +21,14 @@
  *
  * Empty [] responses are never cached.
  *
+ * Cache warming
+ * ─────────────
+ * The warm-cache GitHub workflow (scripts/warm-proxy-cache.mjs) replays every
+ * canonical app URL after a session ends. Requests carrying a valid
+ * `X-Warm-Secret` header are cached permanently, and `X-Warm-Refresh: 1`
+ * additionally bypasses the cache read to re-fetch mutable lists
+ * (meetings/sessions) from OpenF1.
+ *
  * CORS
  * ────
  * The SPA is served from a different origin, so the worker adds
@@ -37,6 +45,21 @@ export interface Env {
    *   wrangler secret put OPENF1_API_KEY
    */
   OPENF1_API_KEY?: string;
+
+  /**
+   * Optional shared secret for cache-warming requests.
+   *
+   * When set, requests carrying a matching `X-Warm-Secret` header are cached
+   * permanently regardless of endpoint classification. This lets the
+   * warm-cache GitHub workflow persist non-window endpoints (laps, position,
+   * intervals, weather…) for finished sessions — those endpoints carry no
+   * `date<` param, so chooseTtl cannot tell they are historical and would
+   * otherwise only cache them for 20–60 s.
+   *
+   * Set with:
+   *   wrangler secret put WARM_SECRET
+   */
+  WARM_SECRET?: string;
 }
 
 // ── Constants ────────────────────────────────────────────────────────────────
@@ -246,7 +269,24 @@ export default {
 
     // ── Determine TTL ─────────────────────────────────────────────────────────
 
-    const ttl = chooseTtl(endpoint, url.searchParams);
+    // Authenticated warm requests (cache-warming workflow) force permanent
+    // caching: they only run after a session has finished, so every response
+    // is immutable even when the URL alone doesn't prove it.
+    const isWarmRequest =
+      env.WARM_SECRET !== undefined &&
+      env.WARM_SECRET !== "" &&
+      request.headers.get("X-Warm-Secret") === env.WARM_SECRET;
+
+    const ttl = isWarmRequest
+      ? TTL_PERMANENT
+      : chooseTtl(endpoint, url.searchParams);
+
+    // Authenticated warm requests can additionally force a refetch from
+    // OpenF1 with `X-Warm-Refresh: 1`. This is how the warm workflow keeps
+    // permanently-cached-but-mutable lists (meetings/sessions for the current
+    // year) up to date after every session.
+    const isWarmRefresh =
+      isWarmRequest && request.headers.get("X-Warm-Refresh") === "1";
 
     // ── Cache keys ────────────────────────────────────────────────────────────
 
@@ -276,7 +316,9 @@ export default {
     let edgeCached: Response | undefined;
 
     try {
-      edgeCached = await edgeCache.match(edgeCacheKey);
+      if (!isWarmRefresh) {
+        edgeCached = await edgeCache.match(edgeCacheKey);
+      }
     } catch {
       // Cache API failure should never break the request.
     }
@@ -298,7 +340,9 @@ export default {
     let cached: string | null = null;
 
     try {
-      cached = await env.CACHE.get(kvCacheKey);
+      if (!isWarmRefresh) {
+        cached = await env.CACHE.get(kvCacheKey);
+      }
     } catch {
       // KV unavailable.
       // Fall through to OpenF1.

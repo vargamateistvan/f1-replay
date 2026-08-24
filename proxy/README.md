@@ -31,6 +31,38 @@ api.openf1.org
 
 Empty `[]` responses are **never cached** — live data may not exist yet.
 
+### Cache warming
+
+The GitHub workflow `.github/workflows/warm-cache.yml` runs hourly on race-weekend days (Thu–Sun UTC, plus an early-Monday catch-up), detects sessions that ended 40 min – 3 h ago, and replays every canonical app URL for them through the proxy (`scripts/warm-proxy-cache.mjs`) — static endpoints, 2-min location chunks and 5-min car_data chunks — self-throttled under the OpenF1 rate limits. The first real visitor then gets cache hits everywhere.
+
+Two request headers enhance warm runs when the `WARM_SECRET` Worker secret is set:
+
+| Header | Effect |
+|--------|--------|
+| `X-Warm-Secret: <secret>` | Response is cached **permanently**, even for endpoints whose URL alone can't prove they're historical (`laps`, `position`, `intervals`, `weather`, …) |
+| `X-Warm-Refresh: 1` | Bypasses the cache read and re-fetches from OpenF1 — used to keep the permanently-cached `meetings`/`sessions` lists current mid-season |
+
+Setup:
+
+```bash
+# 1 — create the shared secret on the Worker
+cd proxy
+wrangler secret put WARM_SECRET     # paste a long random string
+
+# 2 — add the same value as a GitHub Actions secret named WARM_SECRET
+```
+
+Without `WARM_SECRET` the workflow still warms location/car_data windows and static endpoints (they cache permanently on their own); the live-feed endpoints just keep their short TTLs and session lists aren't refreshed.
+
+You can also warm a specific session manually:
+
+```bash
+# via GitHub → Actions → "Warm Proxy Cache" → Run workflow → session_key
+# or locally:
+PROXY_BASE=https://proxy.f1replay.app/v1 SESSION_KEY=11353 \
+  node scripts/warm-proxy-cache.mjs
+```
+
 ---
 
 ## One-time setup
