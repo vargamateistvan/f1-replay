@@ -139,6 +139,7 @@ const stats = {
   unauthorized: 0,
   error: 0,
 };
+let firstForbiddenDetail = null;
 
 /**
  * Fetch through the proxy. Pessimistically reserves an origin slot before
@@ -192,7 +193,26 @@ async function warmFetch(url, { refresh = false } = {}) {
 
     if (!res.ok) {
       if (res.status === 401) stats.unauthorized++;
-      if (res.status === 403) stats.forbidden++;
+      if (res.status === 403) {
+        stats.forbidden++;
+        if (firstForbiddenDetail === null) {
+          const contentType = res.headers.get("Content-Type") ?? "";
+          const text = await res.text();
+          const detail =
+            contentType.includes("application/json") && text.trim().startsWith("{")
+              ? (() => {
+                  try {
+                    const parsed = JSON.parse(text);
+                    return JSON.stringify(parsed);
+                  } catch {
+                    return text;
+                  }
+                })()
+              : text;
+          firstForbiddenDetail = detail.slice(0, 500);
+          console.error(`First 403 detail: ${firstForbiddenDetail}`);
+        }
+      }
       stats.error++;
       console.warn(`  ${res.status} ${url}`);
       return "error";
@@ -412,6 +432,16 @@ writeGithubSummary([
     (s) =>
       `| ${s.key} | ${s.name} | ${s.circuit} | ${s.urls} | ${s.stats.hit} | ${s.stats.miss} | ${s.stats.noData} | ${s.stats.forbidden} | ${s.stats.unauthorized} | ${s.stats.error} | ${s.skipped} |`,
   ),
+  ...(firstForbiddenDetail
+    ? [
+        "",
+        "### First 403 detail",
+        "",
+        "```text",
+        firstForbiddenDetail,
+        "```",
+      ]
+    : []),
 ]);
 
 // Empty/no-data responses are never cached by the proxy, so a fully-warmed
