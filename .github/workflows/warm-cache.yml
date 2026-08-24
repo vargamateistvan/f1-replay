@@ -13,7 +13,8 @@ name: Warm Proxy Cache
 # once `date<` is more than 30 minutes in the past.
 #
 # Secrets used (all optional):
-#   VITE_OPENF1_API_BASE — proxy base URL; falls back to the public proxy.
+#   WARM_PROXY_BASE      — proxy base URL (must be your Worker/proxy domain,
+#                          NOT api.openf1.org); falls back to the public proxy.
 #   WARM_SECRET          — must match the Worker secret set with
 #                          `wrangler secret put WARM_SECRET`. Without it the
 #                          run still warms location/car_data/static endpoints,
@@ -51,7 +52,7 @@ jobs:
       - name: Warm proxy cache
         run: node scripts/warm-proxy-cache.mjs
         env:
-          PROXY_BASE: ${{ secrets.VITE_OPENF1_API_BASE || 'https://proxy.f1replay.app/v1' }}
+          PROXY_BASE: ${{ secrets.WARM_PROXY_BASE || 'https://proxy.f1replay.app/v1' }}
           WARM_SECRET: ${{ secrets.WARM_SECRET }}
           SESSION_KEY: ${{ inputs.session_key }}
           LOOKBACK_HOURS: ${{ inputs.lookback_hours || '3' }}

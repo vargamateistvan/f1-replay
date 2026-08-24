@@ -13,7 +13,7 @@
  *
  * Rate limiting: only proxy MISSes (and direct discovery requests) reach
  * OpenF1, which allows 3 req/s and 30 req/min. Origin-bound requests are
- * paced with sliding windows at 2/s and 25/min; cache hits are nearly free
+ * paced with sliding windows at 2/s and 20/min; cache hits are nearly free
  * and only get a courtesy delay.
  *
  * Environment:
@@ -48,6 +48,12 @@ const MAX_ORIGIN_PER_MINUTE = 20;
 
 if (!PROXY_BASE) {
   console.error("PROXY_BASE is required (e.g. https://proxy.f1replay.app/v1)");
+  process.exit(1);
+}
+if (PROXY_BASE.includes("api.openf1.org")) {
+  console.error(
+    "PROXY_BASE points to api.openf1.org. This workflow must target your proxy/Worker base URL (e.g. https://proxy.f1replay.app/v1).",
+  );
   process.exit(1);
 }
 
@@ -94,7 +100,15 @@ async function awaitOriginSlot() {
   }
 }
 
-const stats = { hit: 0, miss: 0, empty: 0, noData: 0, error: 0 };
+const stats = {
+  hit: 0,
+  miss: 0,
+  empty: 0,
+  noData: 0,
+  forbidden: 0,
+  unauthorized: 0,
+  error: 0,
+};
 
 /**
  * Fetch through the proxy. Pessimistically reserves an origin slot before
@@ -147,6 +161,8 @@ async function warmFetch(url, { refresh = false } = {}) {
     }
 
     if (!res.ok) {
+      if (res.status === 401) stats.unauthorized++;
+      if (res.status === 403) stats.forbidden++;
       stats.error++;
       console.warn(`  ${res.status} ${url}`);
       return "error";
@@ -315,8 +331,15 @@ for (const session of sessions) {
 
 console.log(
   `Done. cache hits: ${stats.hit}, misses (warmed): ${stats.miss}, ` +
-    `empty: ${stats.empty}, no-data windows: ${stats.noData}, errors: ${stats.error}`,
+    `empty: ${stats.empty}, no-data windows: ${stats.noData}, ` +
+    `403: ${stats.forbidden}, 401: ${stats.unauthorized}, errors: ${stats.error}`,
 );
+
+if (stats.error > 0 && stats.hit === 0 && stats.forbidden > 0) {
+  console.error(
+    "All requests were forbidden. Check that PROXY_BASE points to your proxy (not api.openf1.org) and verify the Worker's OPENF1_API_KEY secret is valid or unset.",
+  );
+}
 
 // Empty/no-data responses are never cached by the proxy, so a fully-warmed
 // session still reports them as misses on re-runs — expected and harmless.
