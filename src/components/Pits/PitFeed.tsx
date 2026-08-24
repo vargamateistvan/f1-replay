@@ -3,7 +3,7 @@ import type { Driver, Pit } from "@/api/types";
 import { downloadEndpointCsv } from "@/api/client";
 import { useSettings } from "@/stores/settings";
 import { teamColor } from "@/utils/color";
-import { laneDuration, pitStopTime } from "@/utils/pit";
+import { formatPitDuration, laneDuration, pitStopTime } from "@/utils/pit";
 import { upperBoundByValue } from "@/utils/sortedTime";
 import { isPracticeSession } from "@/utils/session";
 
@@ -189,12 +189,12 @@ export function PitFeed({
                       </span>
                       {stop !== null && (
                         <span className="font-mono tabular-nums text-white/90">
-                          Stop {stop.toFixed(1)}s
+                          Stop {formatPitDuration(stop) ?? "--:--:---"}
                         </span>
                       )}
                       {lane !== null && (
                         <span className="font-mono tabular-nums text-white/70">
-                          Lane {lane.toFixed(1)}s
+                          Lane {formatPitDuration(lane) ?? "--:--:---"}
                         </span>
                       )}
                     </div>

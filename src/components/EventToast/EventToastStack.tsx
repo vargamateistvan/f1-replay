@@ -11,6 +11,7 @@ import type {
 } from "@/timeline/events";
 import { teamColor } from "@/utils/color";
 import { useSettings } from "@/stores/settings";
+import { formatPitDuration } from "@/utils/pit";
 import { toSafeExternalUrl } from "@/utils/url";
 
 interface Props {
@@ -517,7 +518,7 @@ function PitToast({
           </span>
           {p.pitDuration !== null && (
             <span className="text-white/70 text-[11px] font-mono tabular-nums">
-              {p.pitDuration.toFixed(1)}s
+              {formatPitDuration(p.pitDuration) ?? "--:--:---"}
             </span>
           )}
         </div>

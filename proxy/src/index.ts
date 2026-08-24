@@ -13,8 +13,8 @@
  *
  * Cache TTL strategy
  * ──────────────────
- * STATIC / RESULT     → 30 days
- * Historical data     → 30 days
+ * STATIC / RESULT     → permanent in KV, 30-day browser cache
+ * Historical data     → permanent in KV, 30-day browser cache
  * Live location/data  → 5 s
  * Live position/laps  → 20 s
  * Other live data     → 60 s
@@ -43,7 +43,9 @@ export interface Env {
 
 const OPENF1_BASE = "https://api.openf1.org/v1";
 
-const TTL_PERMANENT = 60 * 60 * 24 * 30; // 30 days
+const TTL_PERMANENT = 60 * 60 * 24 * 30; // 30-day browser cache TTL.
+// Historical / static KV entries are intentionally written without an
+// expiration so they remain available until we delete them explicitly.
 const TTL_LIVE_FAST = 20; // position / intervals / laps
 const TTL_LIVE_SLOW = 60; // weather / radio / race control
 const TTL_LIVE_WINDOW = 5; // location / car_data
@@ -387,9 +389,10 @@ export default {
         // ── Store in KV ─────────────────────────────────────────────────────
 
         try {
-          await env.CACHE.put(kvCacheKey, body, {
-            expirationTtl: ttl,
-          });
+          const kvWriteOptions =
+            ttl === TTL_PERMANENT ? undefined : { expirationTtl: ttl };
+
+          await env.CACHE.put(kvCacheKey, body, kvWriteOptions);
         } catch {
           // Best effort.
         }

@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import type { Stint, Driver, Lap, Pit } from "@/api/types";
 import { teamColor } from "@/utils/color";
-import { pitStopTime } from "@/utils/pit";
+import { formatPitDuration, pitStopTime } from "@/utils/pit";
 
 const COMPOUND_COLOR: Record<string, string> = {
   SOFT: "#E8002D",
@@ -253,7 +253,7 @@ export function StrategyBar({
                 return (
                   <div
                     key={i}
-                    title={`Pit L${p.lap_number}${stop !== null ? ` (${stop.toFixed(1)}s)` : ""}`}
+                    title={`Pit L${p.lap_number}${stop !== null ? ` (${formatPitDuration(stop) ?? "--:--:---"})` : ""}`}
                     className="absolute top-0 h-full w-px bg-[#636369] z-10"
                     style={{ left: `${left}%` }}
                   />
