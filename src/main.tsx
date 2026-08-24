@@ -16,6 +16,19 @@ const sentryDsn =
   import.meta.env.VITE_SENTRY_DSN ||
   "https://6910191e596b31cc3bc8e8a0eac15f82@o4511602563940352.ingest.de.sentry.io/4511602567151696";
 
+function isLocalhostHost(hostname: string): boolean {
+  return (
+    hostname === "localhost" ||
+    hostname === "127.0.0.1" ||
+    hostname === "[::1]"
+  );
+}
+
+const shouldInitializeSentry =
+  import.meta.env.PROD &&
+  typeof globalThis.location !== "undefined" &&
+  !isLocalhostHost(globalThis.location.hostname);
+
 function isCrossOriginFrameError(value: unknown): boolean {
   const message = value instanceof Error ? value.message : String(value);
   return /blocked a frame with origin|cross-origin frame|secure connection to the server cannot be made|certificate for this server is invalid/i.test(
@@ -23,30 +36,32 @@ function isCrossOriginFrameError(value: unknown): boolean {
   );
 }
 
-Sentry.init({
-  dsn: sentryDsn,
-  environment: import.meta.env.MODE,
-  release: import.meta.env.VITE_APP_VERSION,
-  dataCollection: {
-    // To disable sending user data and HTTP bodies, uncomment the lines below. For more info visit:
-    // https://docs.sentry.io/platforms/javascript/guides/react/configuration/options/#dataCollection
-    // userInfo: false,
-    // httpBodies: []
-  },
-  integrations: [
-    Sentry.browserTracingIntegration(),
-    Sentry.browserProfilingIntegration(),
-    Sentry.replayIntegration(),
-    Sentry.consoleLoggingIntegration({ levels: ["log", "warn", "error"] }),
-  ],
-  enableLogs: true,
-  tracesSampleRate: 1,
-  profileSessionSampleRate: 1,
-  tracePropagationTargets: ["localhost", /^https:\/\/yourserver\.io\/api/],
-  // Session Replay
-  replaysSessionSampleRate: import.meta.env.DEV ? 1 : 0.1,
-  replaysOnErrorSampleRate: 1,
-});
+if (shouldInitializeSentry && sentryDsn) {
+  Sentry.init({
+    dsn: sentryDsn,
+    environment: import.meta.env.MODE,
+    release: import.meta.env.VITE_APP_VERSION,
+    dataCollection: {
+      // To disable sending user data and HTTP bodies, uncomment the lines below. For more info visit:
+      // https://docs.sentry.io/platforms/javascript/guides/react/configuration/options/#dataCollection
+      // userInfo: false,
+      // httpBodies: []
+    },
+    integrations: [
+      Sentry.browserTracingIntegration(),
+      Sentry.browserProfilingIntegration(),
+      Sentry.replayIntegration(),
+      Sentry.consoleLoggingIntegration({ levels: ["log", "warn", "error"] }),
+    ],
+    enableLogs: true,
+    tracesSampleRate: 1,
+    profileSessionSampleRate: 1,
+    tracePropagationTargets: ["localhost", /^https:\/\/yourserver\.io\/api/],
+    // Session Replay
+    replaysSessionSampleRate: import.meta.env.DEV ? 1 : 0.1,
+    replaysOnErrorSampleRate: 1,
+  });
+}
 
 if (typeof globalThis.document !== "undefined") {
   const policy = (
@@ -57,22 +72,28 @@ if (typeof globalThis.document !== "undefined") {
   const allowed = policy?.allowedFeatures?.();
 
   if (Array.isArray(allowed) && !allowed.includes("js-profiling")) {
-    Sentry.logger.warn("Document-Policy js-profiling is not enabled", {
-      log_source: "profiling",
-      mode: import.meta.env.MODE,
-    });
+    if (shouldInitializeSentry) {
+      Sentry.logger.warn("Document-Policy js-profiling is not enabled", {
+        log_source: "profiling",
+        mode: import.meta.env.MODE,
+      });
+    }
   }
 }
 
-Sentry.logger.info("App bootstrap initialized", {
-  log_source: "bootstrap",
-});
+if (shouldInitializeSentry) {
+  Sentry.logger.info("App bootstrap initialized", {
+    log_source: "bootstrap",
+  });
+}
 
 if (typeof globalThis.performance !== "undefined") {
-  Sentry.metrics.gauge(
-    "page_load_time",
-    Math.round(globalThis.performance.now()),
-  );
+  if (shouldInitializeSentry) {
+    Sentry.metrics.gauge(
+      "page_load_time",
+      Math.round(globalThis.performance.now()),
+    );
+  }
 }
 
 // Mobile Safari error prevention and logging
@@ -86,9 +107,11 @@ if (typeof globalThis.window !== "undefined") {
       if (errors.length > 10) errors.shift();
       sessionStorage.setItem("__app_errors", JSON.stringify(errors));
     } catch (e) {
-      Sentry.logger.error("Failed to persist recent app error", {
-        log_source: "bootstrap",
-      });
+      if (shouldInitializeSentry) {
+        Sentry.logger.error("Failed to persist recent app error", {
+          log_source: "bootstrap",
+        });
+      }
       console.error("Failed to store error:", e);
     }
   };
@@ -101,22 +124,26 @@ if (typeof globalThis.window !== "undefined") {
       return true;
     }
     storeError(`Error: ${msg}`);
-    Sentry.logger.error("Unhandled window error", {
-      log_source: "window_error",
-      message: msg,
-      filename: event.filename,
-      lineno: event.lineno,
-      colno: event.colno,
-    });
-    if (event.error instanceof Error) {
-      Sentry.captureException(event.error, {
-        tags: { log_source: "window_error" },
+    if (shouldInitializeSentry) {
+      Sentry.logger.error("Unhandled window error", {
+        log_source: "window_error",
+        message: msg,
+        filename: event.filename,
+        lineno: event.lineno,
+        colno: event.colno,
       });
-    } else {
-      Sentry.captureMessage(msg, {
-        level: "error",
-        tags: { log_source: "window_error" },
-      });
+    }
+    if (shouldInitializeSentry) {
+      if (event.error instanceof Error) {
+        Sentry.captureException(event.error, {
+          tags: { log_source: "window_error" },
+        });
+      } else {
+        Sentry.captureMessage(msg, {
+          level: "error",
+          tags: { log_source: "window_error" },
+        });
+      }
     }
     console.log("GlobalError:", msg);
     event.preventDefault();
@@ -131,19 +158,23 @@ if (typeof globalThis.window !== "undefined") {
       return true;
     }
     storeError(`Rejection: ${msg}`);
-    Sentry.logger.error("Unhandled promise rejection", {
-      log_source: "promise_rejection",
-      message: msg,
-    });
-    if (event.reason instanceof Error) {
-      Sentry.captureException(event.reason, {
-        tags: { log_source: "promise_rejection" },
+    if (shouldInitializeSentry) {
+      Sentry.logger.error("Unhandled promise rejection", {
+        log_source: "promise_rejection",
+        message: msg,
       });
-    } else {
-      Sentry.captureMessage(msg, {
-        level: "error",
-        tags: { log_source: "promise_rejection" },
-      });
+    }
+    if (shouldInitializeSentry) {
+      if (event.reason instanceof Error) {
+        Sentry.captureException(event.reason, {
+          tags: { log_source: "promise_rejection" },
+        });
+      } else {
+        Sentry.captureMessage(msg, {
+          level: "error",
+          tags: { log_source: "promise_rejection" },
+        });
+      }
     }
     console.log("GlobalRejection:", msg);
     event.preventDefault();
@@ -173,10 +204,12 @@ if (root) {
     // Catch any errors during root render
     const msg = e instanceof Error ? e.message : String(e);
     console.error("Critical error during root render:", msg);
-    Sentry.captureException(e, {
-      tags: { log_source: "root_render_error" },
-      level: "fatal",
-    });
+    if (shouldInitializeSentry) {
+      Sentry.captureException(e, {
+        tags: { log_source: "root_render_error" },
+        level: "fatal",
+      });
+    }
     appRoot.render(
       <div className="flex min-h-screen items-center justify-center bg-track px-5 text-center font-mono text-white">
         <div>
@@ -197,12 +230,14 @@ if (root) {
     );
   }
 } else {
-  Sentry.logger.error("Root element not found during app bootstrap", {
-    log_source: "bootstrap",
-  });
-  Sentry.captureMessage("Root element not found", {
-    level: "error",
-    tags: { log_source: "bootstrap" },
-  });
+  if (shouldInitializeSentry) {
+    Sentry.logger.error("Root element not found during app bootstrap", {
+      log_source: "bootstrap",
+    });
+    Sentry.captureMessage("Root element not found", {
+      level: "error",
+      tags: { log_source: "bootstrap" },
+    });
+  }
   console.error("Root element not found");
 }
