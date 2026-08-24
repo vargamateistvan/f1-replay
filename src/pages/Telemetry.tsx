@@ -19,6 +19,7 @@ import { teamColor } from "@/utils/color";
 import { computeDelta, resampleToAxis, smooth } from "@/utils/telemetry";
 import { speedUnitLabel, toDisplaySpeed } from "@/utils/units";
 import { toSafeExternalUrl } from "@/utils/url";
+import { DriverHeadshot } from "@/components/DriverHeadshot";
 import { trackEvent } from "@/lib/analytics";
 
 interface PlotSlot {
@@ -66,13 +67,36 @@ interface SectorWins {
   total: number;
 }
 
+interface TrackMarker {
+  driver: number;
+  sx: number;
+  sy: number;
+  color: string;
+  label: string;
+  speed: number;
+  throttle: number;
+  brake: number;
+  gear: number;
+  drs: number;
+  distM: number;
+  timeS: number;
+  s1: number | null;
+  s2: number | null;
+  s3: number | null;
+  i1: number | null;
+  i2: number | null;
+  st: number | null;
+  seg1: readonly number[] | null;
+  seg2: readonly number[] | null;
+  seg3: readonly number[] | null;
+}
+
+
 interface TrackPreviewPoint {
   sx: number;
   sy: number;
   dist: number;
 }
-
-type SlotKey = "a" | "b" | "c";
 
 const PANEL = "bg-surface border border-panel";
 const PANEL_TITLE =
@@ -170,6 +194,7 @@ export default function Telemetry() {
   const metricSystem = useSettings((s) => s.metricSystem);
   const [activeMode, setActiveMode] = useState<"quali" | "race" | null>(null);
   const [isCardsAccordionOpen, setIsCardsAccordionOpen] = useState(true);
+  const [isTrackDialogOpen, setIsTrackDialogOpen] = useState(false);
   const [searchParams] = useSearchParams();
   const [isNarrowViewport, setIsNarrowViewport] = useState(() =>
     typeof window === "undefined"
@@ -284,14 +309,22 @@ export default function Telemetry() {
     return out;
   }, [laps.data]);
 
-  const acr = (num: number | null, fallback: string) =>
-    (num !== null && driverByNumber.get(num)?.name_acronym) || fallback;
+  const acr = useCallback(
+    (num: number | null, fallback: string) =>
+      (num !== null && driverByNumber.get(num)?.name_acronym) || fallback,
+    [driverByNumber],
+  );
 
-  const colorFor = (num: number | null, i: number) =>
-    teamColor(
-      num !== null ? driverByNumber.get(num)?.team_colour : undefined,
-      SLOT_COLORS[i],
-    );
+  const colorFor = useCallback(
+    (num: number | null, i: number) =>
+      teamColor(
+        num !== null ? driverByNumber.get(num)?.team_colour : undefined,
+        SLOT_COLORS[i],
+      ),
+    [driverByNumber],
+  );
+
+  type SlotKey = "a" | "b" | "c";
 
   const setSlotLap = (slot: SlotKey, value: number | null) => {
     setActiveMode(null);
@@ -478,7 +511,68 @@ export default function Telemetry() {
     };
   }, [trackOutlineA.data]);
 
-  // For a given set of raw (unresampled) samples, binary-search for the timeS
+  // For a given set of raw samples, find the interpolated telemetry at a given timeS
+  const sampleAtTimeS = useCallback(
+    (rawSamples: TelemetrySample[], timeS: number): TelemetrySample | null => {
+      if (rawSamples.length === 0) return null;
+      const last = rawSamples[rawSamples.length - 1]!;
+      if (timeS >= last.timeS) return last;
+      const first = rawSamples[0]!;
+      if (timeS <= first.timeS) return first;
+      let lo = 0;
+      let hi = rawSamples.length - 1;
+      while (lo < hi) {
+        const mid = Math.floor((lo + hi) / 2);
+        if (rawSamples[mid]!.timeS < timeS) lo = mid + 1;
+        else hi = mid;
+      }
+      const right = rawSamples[lo]!;
+      const left = rawSamples[Math.max(0, lo - 1)]!;
+      const span = Math.max(1e-6, right.timeS - left.timeS);
+      const alpha = Math.max(0, Math.min(1, (timeS - left.timeS) / span));
+      const lerp = (a: number, b: number) => a + (b - a) * alpha;
+      return {
+        distM: lerp(left.distM, right.distM),
+        timeS: lerp(left.timeS, right.timeS),
+        speed: lerp(left.speed, right.speed),
+        throttle: lerp(left.throttle, right.throttle),
+        brake: lerp(left.brake, right.brake),
+        rpm: lerp(left.rpm, right.rpm),
+        gear: Math.round(lerp(left.gear, right.gear)),
+        drs: lerp(left.drs, right.drs),
+      };
+    },
+    [],
+  );
+
+  // Dialog-specific hover: driven by mouse position on the large SVG
+  const [dialogHoveredDistM, setDialogHoveredDistM] = useState<number>(0);
+
+  // Returns the distM on the track outline closest to an SVG (x,y) point,
+  // accounting for the rotation transform applied to the track group.
+  const nearestTrackDistM = useCallback(
+    (svgX: number, svgY: number, rotDeg: number, svgW: number, svgH: number, points: TrackPreviewPoint[]): number | null => {
+      if (points.length === 0) return null;
+      // Rotate the mouse point into the track's coordinate space (inverse rotation)
+      const cx = svgW / 2;
+      const cy = svgH / 2;
+      const rad = (-rotDeg * Math.PI) / 180;
+      const dx = svgX - cx;
+      const dy = svgY - cy;
+      const rx = cx + dx * Math.cos(rad) - dy * Math.sin(rad);
+      const ry = cy + dx * Math.sin(rad) + dy * Math.cos(rad);
+      let best = 0;
+      let bestDist2 = Infinity;
+      for (let i = 0; i < points.length; i++) {
+        const p = points[i]!;
+        const d2 = (p.sx - rx) ** 2 + (p.sy - ry) ** 2;
+        if (d2 < bestDist2) { bestDist2 = d2; best = i; }
+      }
+      return points[best]!.dist;
+    },
+    [],
+  );
+
   // that corresponds to hoveredDistM on Driver A's timeline, then return that
   // driver's distM at that moment so their track dot is placed correctly.
   const distMForDriverAtSameTime = useCallback(
@@ -526,82 +620,70 @@ export default function Telemetry() {
     [],
   );
 
-  const hoveredTrackPoints = useMemo(() => {
-    if (!trackPreview || hoveredDistM === null || xDist.length < 2) return [];
-    const chartMaxDist = xDist[xDist.length - 1] ?? 0;
-    if (chartMaxDist <= 0 || trackPreview.totalDist <= 0) return [];
+  // Build markers for a given distM on Driver A's axis, returning full telemetry per driver
+  const buildTrackMarkers = useCallback(
+    (distM: number): TrackMarker[] => {
+      if (!trackPreview || xDist.length < 2) return [];
+      const timeSAtHover = dataA.data
+        ? timeSForDistM(dataA.data, distM)
+        : null;
+      if (timeSAtHover === null) return [];
 
-    // Find Driver A's timeS at the hovered distance
-    const timeSAtHover = dataA.data
-      ? timeSForDistM(dataA.data, hoveredDistM)
-      : null;
-    if (timeSAtHover === null) return [];
+      const markers: TrackMarker[] = [];
+      const driverEntries = [
+        driverA !== null ? { driver: driverA, color: colorFor(driverA, 0), rawData: dataA.data, lapNo: selectedLapA } : null,
+        driverB !== null ? { driver: driverB, color: colorFor(driverB, 1), rawData: dataB.data, lapNo: selectedLapB } : null,
+        driverC !== null ? { driver: driverC, color: colorFor(driverC, 2), rawData: dataC.data, lapNo: selectedLapC } : null,
+      ].filter(Boolean) as Array<{ driver: number; color: string; rawData: TelemetrySample[] | undefined; lapNo: number | null }>;
 
-    const markers = [] as Array<{
-      driver: number;
-      sx: number;
-      sy: number;
-      color: string;
-      label: string;
-    }>;
+      for (const entry of driverEntries) {
+        if (!entry.rawData?.length) continue;
+        const driverDistM = distMForDriverAtSameTime(entry.rawData, timeSAtHover);
+        const driverLapMaxDist = entry.rawData[entry.rawData.length - 1]!.distM;
+        if (driverLapMaxDist <= 0) continue;
+        const progress = Math.max(0, Math.min(1, driverDistM / driverLapMaxDist));
+        const point = interpolateTrackPoint(trackPreview.points, progress * trackPreview.totalDist);
+        if (!point) continue;
+        const sample = sampleAtTimeS(entry.rawData, timeSAtHover);
+        const lap = entry.lapNo !== null ? lapLookup.get(`${entry.driver}:${entry.lapNo}`) : undefined;
+        markers.push({
+          driver: entry.driver,
+          sx: point.sx,
+          sy: point.sy,
+          color: entry.color,
+          label: acr(entry.driver, String(entry.driver).slice(-1) || "D"),
+          speed: sample?.speed ?? 0,
+          throttle: sample?.throttle ?? 0,
+          brake: sample?.brake ?? 0,
+          gear: sample?.gear ?? 0,
+          drs: sample?.drs ?? 0,
+          distM: driverDistM,
+          timeS: timeSAtHover,
+          s1: lap?.duration_sector_1 ?? null,
+          s2: lap?.duration_sector_2 ?? null,
+          s3: lap?.duration_sector_3 ?? null,
+          i1: lap?.i1_speed ?? null,
+          i2: lap?.i2_speed ?? null,
+          st: lap?.st_speed ?? null,
+          seg1: lap?.segments_sector_1 ?? null,
+          seg2: lap?.segments_sector_2 ?? null,
+          seg3: lap?.segments_sector_3 ?? null,
+        });
+      }
+      return markers;
+    },
+    [trackPreview, xDist, dataA.data, dataB.data, dataC.data, driverA, driverB, driverC, colorFor, acr, timeSForDistM, distMForDriverAtSameTime, sampleAtTimeS, selectedLapA, selectedLapB, selectedLapC, lapLookup],
+  );
 
-    const driverEntries = [
-      driverA !== null
-        ? { driver: driverA, color: colorFor(driverA, 0), rawData: dataA.data }
-        : null,
-      driverB !== null
-        ? { driver: driverB, color: colorFor(driverB, 1), rawData: dataB.data }
-        : null,
-      driverC !== null
-        ? { driver: driverC, color: colorFor(driverC, 2), rawData: dataC.data }
-        : null,
-    ].filter(Boolean) as Array<{
-      driver: number;
-      color: string;
-      rawData: TelemetrySample[] | undefined;
-    }>;
+  const hoveredTrackPoints = useMemo(
+    () => (hoveredDistM !== null ? buildTrackMarkers(hoveredDistM) : []),
+    [hoveredDistM, buildTrackMarkers],
+  );
 
-    for (const entry of driverEntries) {
-      if (!entry.rawData?.length) continue;
-
-      // Find this driver's distance at the same elapsed time as Driver A's hover
-      const driverDistM = distMForDriverAtSameTime(entry.rawData, timeSAtHover);
-      const driverLapMaxDist =
-        entry.rawData[entry.rawData.length - 1]!.distM;
-      if (driverLapMaxDist <= 0) continue;
-
-      const progress = Math.max(0, Math.min(1, driverDistM / driverLapMaxDist));
-      const point = interpolateTrackPoint(
-        trackPreview.points,
-        progress * trackPreview.totalDist,
-      );
-      if (!point) continue;
-
-      markers.push({
-        driver: entry.driver,
-        sx: point.sx,
-        sy: point.sy,
-        color: entry.color,
-        label: acr(entry.driver, String(entry.driver).slice(-1) || "D"),
-      });
-    }
-
-    return markers;
-  }, [
-    trackPreview,
-    hoveredDistM,
-    xDist,
-    driverA,
-    driverB,
-    driverC,
-    dataA.data,
-    dataB.data,
-    dataC.data,
-    colorFor,
-    acr,
-    timeSForDistM,
-    distMForDriverAtSameTime,
-  ]);
+  const dialogTrackMarkers = useMemo(
+    () => buildTrackMarkers(dialogHoveredDistM),
+    [dialogHoveredDistM, buildTrackMarkers],
+  );
 
   const handleChartHoverX = useCallback((value: number | null) => {
     setHoveredDistM((prev) => {
@@ -1003,7 +1085,91 @@ export default function Telemetry() {
           </button>
         </div>
 
-        {isCardsAccordionOpen && (
+        {isCardsAccordionOpen && (() => {
+          const TrackSvg = (
+            <svg
+              viewBox={`0 0 ${TRACK_SVG_W} ${TRACK_SVG_H}`}
+              className="relative h-full w-full"
+              role="img"
+              aria-label="Lap track preview"
+            >
+              <g
+                transform={`rotate(${trackPreview?.rotationDeg.toFixed(1) ?? "0"} ${(TRACK_SVG_W / 2).toFixed(1)} ${(TRACK_SVG_H / 2).toFixed(1)})`}
+              >
+                {trackPreview && (
+                  <>
+                    <polyline
+                      points={trackPreview.polyline}
+                      fill="none"
+                      stroke="#3e4a64"
+                      strokeWidth={5.4}
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      opacity={0.7}
+                    />
+                    <polyline
+                      points={trackPreview.polyline}
+                      fill="none"
+                      stroke="#d7deee"
+                      strokeWidth={2}
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    />
+                  </>
+                )}
+                {hoveredTrackPoints.length > 0 && (
+                  <>
+                    {hoveredTrackPoints.length > 1 &&
+                      hoveredTrackPoints.slice(1).map((marker, idx) => {
+                        const prev = hoveredTrackPoints[idx]!;
+                        const dx = marker.sx - prev.sx;
+                        const dy = marker.sy - prev.sy;
+                        const dist = Math.hypot(dx, dy);
+                        if (dist < 3) return null;
+                        return (
+                          <line
+                            key={`connector-${marker.driver}`}
+                            x1={prev.sx}
+                            y1={prev.sy}
+                            x2={marker.sx}
+                            y2={marker.sy}
+                            stroke="rgba(255,255,255,0.25)"
+                            strokeWidth={1}
+                            strokeDasharray="2 2"
+                          />
+                        );
+                      })}
+                    {hoveredTrackPoints.map((marker) => {
+                      const cx = TRACK_SVG_W / 2;
+                      const cy = TRACK_SVG_H / 2;
+                      const dx = marker.sx - cx;
+                      const dy = marker.sy - cy;
+                      const len = Math.hypot(dx, dy) || 1;
+                      const tagX = marker.sx + (dx / len) * 13;
+                      const tagY = marker.sy + (dy / len) * 13;
+                      const textAnchor =
+                        tagX < marker.sx
+                          ? "end"
+                          : tagX > marker.sx
+                            ? "start"
+                            : "middle";
+                      return (
+                        <g key={`hover-${marker.driver}`}>
+                          <circle cx={marker.sx} cy={marker.sy} r={10} fill={marker.color} opacity={0.22} />
+                          <circle cx={marker.sx} cy={marker.sy} r={5} fill={marker.color} stroke="#15151e" strokeWidth={1.5} />
+                          <text x={tagX} y={tagY + 2.5} fill={marker.color} fontSize={6.5} fontWeight={800} letterSpacing={0.4} textAnchor={textAnchor} style={{ paintOrder: "stroke" }} stroke="#15151e" strokeWidth={2.5} strokeLinejoin="round">{marker.label}</text>
+                          <text x={tagX} y={tagY + 2.5} fill={marker.color} fontSize={6.5} fontWeight={800} letterSpacing={0.4} textAnchor={textAnchor}>{marker.label}</text>
+                        </g>
+                      );
+                    })}
+                  </>
+                )}
+              </g>
+            </svg>
+          );
+
+          return (
+          <>
           <div className="grid grid-cols-1 gap-1.5 lg:grid-cols-3">
             <DriverLapCard
               slotLabel="Driver A"
@@ -1156,130 +1322,20 @@ export default function Telemetry() {
                   Track position preview
                 </span>
                 <span className="h-1.5 w-8 rounded-full bg-f1red" />
+                <button
+                  type="button"
+                  onClick={() => setIsTrackDialogOpen((v) => !v)}
+                  className="ml-auto h-5 border border-panel bg-track px-2 text-[9px] font-black uppercase tracking-widest text-muted transition-colors hover:border-f1red hover:text-white"
+                  title={isTrackDialogOpen ? "Close track dialog" : "Expand track"}
+                >
+                  {isTrackDialogOpen ? "✕ Close" : "↗ Expand"}
+                </button>
               </div>
 
               {trackPreview ? (
                 <div className="relative min-h-[112px] flex-1 overflow-hidden rounded border border-panel bg-track">
                   <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_25%_20%,rgba(39,68,158,0.2),transparent_45%),radial-gradient(circle_at_85%_80%,rgba(232,0,45,0.1),transparent_40%)]" />
-                  <svg
-                    viewBox={`0 0 ${TRACK_SVG_W} ${TRACK_SVG_H}`}
-                    className="relative h-full w-full"
-                    role="img"
-                    aria-label="Lap track preview"
-                  >
-                    <g
-                      transform={`rotate(${trackPreview.rotationDeg.toFixed(1)} ${(TRACK_SVG_W / 2).toFixed(1)} ${(TRACK_SVG_H / 2).toFixed(1)})`}
-                    >
-                      <polyline
-                        points={trackPreview.polyline}
-                        fill="none"
-                        stroke="#3e4a64"
-                        strokeWidth={5.4}
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        opacity={0.7}
-                      />
-                      <polyline
-                        points={trackPreview.polyline}
-                        fill="none"
-                        stroke="#d7deee"
-                        strokeWidth={2}
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                      />
-
-                      {hoveredTrackPoints.length > 0 && (
-                        <>
-                          {/* Connector line between markers so close drivers are still visible */}
-                          {hoveredTrackPoints.length > 1 &&
-                            hoveredTrackPoints.slice(1).map((marker, idx) => {
-                              const prev = hoveredTrackPoints[idx]!;
-                              const dx = marker.sx - prev.sx;
-                              const dy = marker.sy - prev.sy;
-                              const dist = Math.hypot(dx, dy);
-                              if (dist < 3) return null;
-                              return (
-                                <line
-                                  key={`connector-${marker.driver}`}
-                                  x1={prev.sx}
-                                  y1={prev.sy}
-                                  x2={marker.sx}
-                                  y2={marker.sy}
-                                  stroke="rgba(255,255,255,0.25)"
-                                  strokeWidth={1}
-                                  strokeDasharray="2 2"
-                                />
-                              );
-                            })}
-                          {hoveredTrackPoints.map((marker) => {
-                            // Label placement: shift tag away from track center
-                            const cx = TRACK_SVG_W / 2;
-                            const cy = TRACK_SVG_H / 2;
-                            const dx = marker.sx - cx;
-                            const dy = marker.sy - cy;
-                            const len = Math.hypot(dx, dy) || 1;
-                            // Outward offset so label doesn't overlap dot
-                            const tagX = marker.sx + (dx / len) * 13;
-                            const tagY = marker.sy + (dy / len) * 13;
-                            const textAnchor =
-                              tagX < marker.sx
-                                ? "end"
-                                : tagX > marker.sx
-                                  ? "start"
-                                  : "middle";
-                            return (
-                              <g key={`hover-${marker.driver}`}>
-                                {/* Glow halo */}
-                                <circle
-                                  cx={marker.sx}
-                                  cy={marker.sy}
-                                  r={10}
-                                  fill={marker.color}
-                                  opacity={0.22}
-                                />
-                                {/* Solid dot */}
-                                <circle
-                                  cx={marker.sx}
-                                  cy={marker.sy}
-                                  r={5}
-                                  fill={marker.color}
-                                  stroke="#15151e"
-                                  strokeWidth={1.5}
-                                />
-                                {/* Driver acronym tag */}
-                                <text
-                                  x={tagX}
-                                  y={tagY + 2.5}
-                                  fill={marker.color}
-                                  fontSize={6.5}
-                                  fontWeight={800}
-                                  letterSpacing={0.4}
-                                  textAnchor={textAnchor}
-                                  style={{ paintOrder: "stroke" }}
-                                  stroke="#15151e"
-                                  strokeWidth={2.5}
-                                  strokeLinejoin="round"
-                                >
-                                  {marker.label}
-                                </text>
-                                <text
-                                  x={tagX}
-                                  y={tagY + 2.5}
-                                  fill={marker.color}
-                                  fontSize={6.5}
-                                  fontWeight={800}
-                                  letterSpacing={0.4}
-                                  textAnchor={textAnchor}
-                                >
-                                  {marker.label}
-                                </text>
-                              </g>
-                            );
-                          })}
-                        </>
-                      )}
-                    </g>
-                  </svg>
+                  {TrackSvg}
                 </div>
               ) : (
                 <div className="flex min-h-[112px] flex-1 items-center justify-center rounded border border-panel bg-track px-3 text-center text-xs text-muted">
@@ -1288,7 +1344,231 @@ export default function Telemetry() {
               )}
             </div>
           </div>
-        )}
+
+          {/* Track dialog — full-screen modal with interactive hover */}
+          {isTrackDialogOpen && trackPreview && (
+            <div
+              className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm"
+              onClick={(e) => { if (e.target === e.currentTarget) setIsTrackDialogOpen(false); }}
+            >
+              <div className="relative flex w-full max-w-5xl flex-col gap-3 rounded border border-panel bg-[#15151e] p-4 shadow-2xl mx-4" style={{ maxHeight: "90vh" }}>
+                {/* Dialog header */}
+                <div className="flex items-center gap-2 shrink-0">
+                  <span className="text-[10px] font-black uppercase tracking-[0.15em] text-muted">
+                    Track position preview
+                  </span>
+                  <span className="h-1.5 w-8 rounded-full bg-f1red" />
+                  {session && (
+                    <span className="ml-2 text-[10px] text-muted">
+                      {session.circuit_short_name} · {session.session_name} · {session.year}
+                    </span>
+                  )}
+                  <button
+                    type="button"
+                    onClick={() => setIsTrackDialogOpen(false)}
+                    className="ml-auto flex h-7 w-7 items-center justify-center border border-panel bg-track text-sm text-muted transition-colors hover:border-f1red hover:text-white"
+                    aria-label="Close dialog"
+                  >
+                    ✕
+                  </button>
+                </div>
+
+                {/* Track SVG — interactive */}
+                <div className="relative overflow-hidden rounded border border-panel bg-track" style={{ height: 440 }}>
+                  <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_25%_20%,rgba(39,68,158,0.2),transparent_45%),radial-gradient(circle_at_85%_80%,rgba(232,0,45,0.1),transparent_40%)]" />
+                  <svg
+                    viewBox={`0 0 ${TRACK_SVG_W} ${TRACK_SVG_H}`}
+                    className="relative h-full w-full cursor-crosshair"
+                    role="img"
+                    aria-label="Interactive lap track preview"
+                    onMouseMove={(e) => {
+                      const svg = e.currentTarget;
+                      const rect = svg.getBoundingClientRect();
+                      const scaleX = TRACK_SVG_W / rect.width;
+                      const scaleY = TRACK_SVG_H / rect.height;
+                      const svgX = (e.clientX - rect.left) * scaleX;
+                      const svgY = (e.clientY - rect.top) * scaleY;
+                      const trackDist = nearestTrackDistM(svgX, svgY, trackPreview.rotationDeg, TRACK_SVG_W, TRACK_SVG_H, trackPreview.points);
+                      if (trackDist === null || !dataA.data?.length) return;
+                      // Convert track outline dist back to Driver A's distM axis
+                      const driverAMaxDist = dataA.data[dataA.data.length - 1]!.distM;
+                      const progress = trackDist / trackPreview.totalDist;
+                      setDialogHoveredDistM(progress * driverAMaxDist);
+                    }}
+                    onMouseLeave={() => { /* keep last position */ }}
+                  >
+                    <g transform={`rotate(${trackPreview.rotationDeg.toFixed(1)} ${(TRACK_SVG_W / 2).toFixed(1)} ${(TRACK_SVG_H / 2).toFixed(1)})`}>
+                      <polyline points={trackPreview.polyline} fill="none" stroke="#3e4a64" strokeWidth={5.4} strokeLinecap="round" strokeLinejoin="round" opacity={0.7} />
+                      <polyline points={trackPreview.polyline} fill="none" stroke="#d7deee" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" />
+                      {dialogTrackMarkers.length > 1 &&
+                        dialogTrackMarkers.slice(1).map((marker, idx) => {
+                          const prev = dialogTrackMarkers[idx]!;
+                          const dx = marker.sx - prev.sx;
+                          const dy = marker.sy - prev.sy;
+                          if (Math.hypot(dx, dy) < 3) return null;
+                          return (
+                            <line key={`dlg-conn-${marker.driver}`} x1={prev.sx} y1={prev.sy} x2={marker.sx} y2={marker.sy} stroke="rgba(255,255,255,0.25)" strokeWidth={1} strokeDasharray="2 2" />
+                          );
+                        })}
+                      {dialogTrackMarkers.map((marker) => {
+                        const cx = TRACK_SVG_W / 2;
+                        const cy = TRACK_SVG_H / 2;
+                        const dx = marker.sx - cx;
+                        const dy = marker.sy - cy;
+                        const len = Math.hypot(dx, dy) || 1;
+                        const tagX = marker.sx + (dx / len) * 14;
+                        const tagY = marker.sy + (dy / len) * 14;
+                        const textAnchor = tagX < marker.sx ? "end" : tagX > marker.sx ? "start" : "middle";
+                        return (
+                          <g key={`dlg-${marker.driver}`}>
+                            <circle cx={marker.sx} cy={marker.sy} r={10} fill={marker.color} opacity={0.22} />
+                            <circle cx={marker.sx} cy={marker.sy} r={5} fill={marker.color} stroke="#15151e" strokeWidth={1.5} />
+                            <text x={tagX} y={tagY + 2.5} fill={marker.color} fontSize={6.5} fontWeight={800} letterSpacing={0.4} textAnchor={textAnchor} stroke="#15151e" strokeWidth={2.5} strokeLinejoin="round" style={{ paintOrder: "stroke" }}>{marker.label}</text>
+                            <text x={tagX} y={tagY + 2.5} fill={marker.color} fontSize={6.5} fontWeight={800} letterSpacing={0.4} textAnchor={textAnchor}>{marker.label}</text>
+                          </g>
+                        );
+                      })}
+                    </g>
+                  </svg>
+                  {dialogTrackMarkers.length === 0 && (
+                    <div className="pointer-events-none absolute inset-0 flex items-end justify-center pb-3">
+                      <span className="text-[10px] text-muted">Move cursor over the track to inspect driver data</span>
+                    </div>
+                  )}
+                </div>
+
+                {/* Driver data cards — shown when hovering the dialog track */}
+                {dialogTrackMarkers.length > 0 && (() => {
+                  const minS1 = dialogTrackMarkers.reduce<number | null>((m, r) => r.s1 !== null && (m === null || r.s1 < m) ? r.s1 : m, null);
+                  const minS2 = dialogTrackMarkers.reduce<number | null>((m, r) => r.s2 !== null && (m === null || r.s2 < m) ? r.s2 : m, null);
+                  const minS3 = dialogTrackMarkers.reduce<number | null>((m, r) => r.s3 !== null && (m === null || r.s3 < m) ? r.s3 : m, null);
+                  const sectorTier = (val: number | null, best: number | null): string => {
+                    if (val === null) return "bg-panel";
+                    if (best !== null && val === best) return "bg-[#9b59f5]";
+                    return "bg-[#39b54a]";
+                  };
+                  const miniClass = (code: number): string => {
+                    if (code >= 2064) return "bg-[#9b59f5]";
+                    if (code === 2051) return "bg-[#f5d400]";
+                    if (code >= 2049) return "bg-[#39b54a]";
+                    if (code > 0) return "bg-white/35";
+                    return "bg-panel";
+                  };
+                  return (
+                    <div className="grid gap-2 shrink-0" style={{ gridTemplateColumns: `repeat(${dialogTrackMarkers.length}, minmax(0,1fr))` }}>
+                      {dialogTrackMarkers.map((marker) => (
+                        <div key={`dlg-data-${marker.driver}`} className="rounded border bg-track p-2.5" style={{ borderColor: `${marker.color}55` }}>
+                          {/* Header: headshot + name + time */}
+                          <div className="mb-2 flex items-center gap-2">
+                            <DriverHeadshot
+                              driver={driverByNumber.get(marker.driver)}
+                              accent={marker.color}
+                              size="xs"
+                            />
+                            <span className="text-[11px] font-black uppercase tracking-widest" style={{ color: marker.color }}>{marker.label}</span>
+                            <span className="ml-auto font-mono text-[10px] text-muted">{formatLapTime(marker.timeS)}</span>
+                          </div>
+
+                          {/* Live telemetry */}
+                          <div className="mb-3 grid grid-cols-2 gap-x-3 gap-y-1.5">
+                            <div>
+                              <div className="text-[9px] uppercase tracking-widest text-muted">Speed</div>
+                              <div className="font-mono text-sm font-bold text-white">{toDisplaySpeed(marker.speed, metricSystem).toFixed(0)} <span className="text-[9px] text-muted">{speedUnitLabel(metricSystem)}</span></div>
+                            </div>
+                            <div>
+                              <div className="text-[9px] uppercase tracking-widest text-muted">Gear</div>
+                              <div className="font-mono text-sm font-bold text-white">{marker.gear}</div>
+                            </div>
+                            <div>
+                              <div className="text-[9px] uppercase tracking-widest text-muted">Throttle</div>
+                              <div className="flex items-center gap-1.5">
+                                <div className="h-1.5 flex-1 rounded-full bg-panel overflow-hidden">
+                                  <div className="h-full rounded-full bg-[#23c552]" style={{ width: `${marker.throttle}%` }} />
+                                </div>
+                                <span className="font-mono text-[10px] text-white w-7 text-right">{Math.round(marker.throttle)}%</span>
+                              </div>
+                            </div>
+                            <div>
+                              <div className="text-[9px] uppercase tracking-widest text-muted">Brake</div>
+                              <div className="flex items-center gap-1.5">
+                                <div className="h-1.5 flex-1 rounded-full bg-panel overflow-hidden">
+                                  <div className="h-full rounded-full bg-[#e8002d]" style={{ width: `${marker.brake}%` }} />
+                                </div>
+                                <span className="font-mono text-[10px] text-white w-7 text-right">{Math.round(marker.brake)}%</span>
+                              </div>
+                            </div>
+                            <div className="col-span-2">
+                              <div className="text-[9px] uppercase tracking-widest text-muted">DRS</div>
+                              <div className={`text-[10px] font-bold ${marker.drs > 10 ? "text-[#23c552]" : "text-muted"}`}>{marker.drs > 10 ? "Active" : "Closed"}</div>
+                            </div>
+                          </div>
+
+                          {/* Sectors inline */}
+                          <div className="border-t border-panel pt-2">
+                            <div className="flex gap-2">
+                              {(["s1", "s2", "s3"] as const).map((sk, si) => {
+                                const dur = marker[sk];
+                                const best = [minS1, minS2, minS3][si]!;
+                                const segs = [marker.seg1, marker.seg2, marker.seg3][si];
+                                const isFastest = dur !== null && best !== null && dur === best;
+                                return (
+                                  <div key={sk} className="flex-1 min-w-0">
+                                    <div className="text-[8px] uppercase tracking-widest text-muted mb-0.5">S{si + 1}</div>
+                                    {/* Sector bar + mini-segments */}
+                                    <div className="flex flex-col gap-[2px] mb-1">
+                                      <div className={`h-[5px] rounded-sm ${sectorTier(dur, best)}`} />
+                                      {segs && segs.length > 0 && (
+                                        <div className="flex h-[3px] gap-px overflow-hidden rounded-sm">
+                                          {segs.map((code, idx) => (
+                                            <div key={idx} className={`h-full flex-1 ${miniClass(code)}`} />
+                                          ))}
+                                        </div>
+                                      )}
+                                    </div>
+                                    <span className={`font-mono text-[9px] leading-none ${isFastest ? "text-[#9b59f5] font-bold" : "text-white"}`}>
+                                      {dur !== null ? formatLapTime(dur) : "—"}
+                                    </span>
+                                  </div>
+                                );
+                              })}
+                            </div>
+
+                            {/* Speed traps */}
+                            {(marker.i1 !== null || marker.i2 !== null || marker.st !== null) && (
+                              <div className="mt-2 flex gap-3">
+                                {marker.i1 !== null && (
+                                  <div>
+                                    <div className="text-[8px] uppercase tracking-widest text-muted">I1</div>
+                                    <div className="font-mono text-[10px] text-white">{toDisplaySpeed(marker.i1, metricSystem).toFixed(0)}</div>
+                                  </div>
+                                )}
+                                {marker.i2 !== null && (
+                                  <div>
+                                    <div className="text-[8px] uppercase tracking-widest text-muted">I2</div>
+                                    <div className="font-mono text-[10px] text-white">{toDisplaySpeed(marker.i2, metricSystem).toFixed(0)}</div>
+                                  </div>
+                                )}
+                                {marker.st !== null && (
+                                  <div>
+                                    <div className="text-[8px] uppercase tracking-widest text-muted">ST</div>
+                                    <div className="font-mono text-[10px] text-white">{toDisplaySpeed(marker.st, metricSystem).toFixed(0)}</div>
+                                  </div>
+                                )}
+                                <div className="self-end text-[8px] text-muted">{speedUnitLabel(metricSystem)}</div>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  );
+                })()}
+              </div>
+            </div>
+          )}
+        </>
+          );
+        })()}
 
         {session && (
           <span className="mt-1 block text-xs text-muted sm:ml-auto">
