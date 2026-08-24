@@ -37,6 +37,9 @@ on:
         description: "How many hours back to look for ended sessions"
         required: false
         default: "3"
+      proxy_base:
+        description: "Optional proxy base override (e.g. https://<worker>.workers.dev/v1)"
+        required: false
 
 jobs:
   warm:
@@ -49,10 +52,54 @@ jobs:
         with:
           node-version: 24
 
+      - name: Resolve proxy base
+        run: |
+          if [ -n "${{ inputs.proxy_base }}" ]; then
+            echo "PROXY_BASE=${{ inputs.proxy_base }}" >> "$GITHUB_ENV"
+          elif [ -n "${{ secrets.WARM_PROXY_BASE }}" ]; then
+            echo "PROXY_BASE=${{ secrets.WARM_PROXY_BASE }}" >> "$GITHUB_ENV"
+          else
+            echo "PROXY_BASE=https://proxy.f1replay.app/v1" >> "$GITHUB_ENV"
+          fi
+
+      - name: Preflight proxy reachability
+        run: |
+          set -euo pipefail
+          url="${PROXY_BASE}/meetings?year=2026"
+          headers_file="$(mktemp)"
+          body_file="$(mktemp)"
+
+          status="$(curl -sS -L --max-time 30 -D "$headers_file" -o "$body_file" -w "%{http_code}" "$url")"
+          x_cache="$(grep -i '^X-Cache:' "$headers_file" | tail -n1 | cut -d':' -f2- | xargs || true)"
+          content_type="$(grep -i '^Content-Type:' "$headers_file" | tail -n1 | cut -d':' -f2- | xargs || true)"
+          body_snippet="$(head -c 400 "$body_file" | tr '\n' ' ')"
+
+          {
+            echo "## Warm Cache Preflight"
+            echo ""
+            echo "- Proxy base: \`${PROXY_BASE}\`"
+            echo "- Probe URL: \`${url}\`"
+            echo "- HTTP status: \`${status}\`"
+            echo "- X-Cache: \`${x_cache:-n/a}\`"
+            echo "- Content-Type: \`${content_type:-n/a}\`"
+            echo ""
+            echo "### Response snippet"
+            echo ""
+            echo '```text'
+            echo "${body_snippet:-<empty>}"
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+          if [ "$status" -ge 400 ]; then
+            echo "Preflight failed with HTTP $status from ${url}" >&2
+            echo "Tip: set WARM_PROXY_BASE to your workers.dev URL to bypass custom-domain WAF/Access." >&2
+            exit 1
+          fi
+
       - name: Warm proxy cache
         run: node scripts/warm-proxy-cache.mjs
         env:
-          PROXY_BASE: ${{ secrets.WARM_PROXY_BASE || 'https://proxy.f1replay.app/v1' }}
+          PROXY_BASE: ${{ env.PROXY_BASE }}
           WARM_SECRET: ${{ secrets.WARM_SECRET }}
           SESSION_KEY: ${{ inputs.session_key }}
           LOOKBACK_HOURS: ${{ inputs.lookback_hours || '3' }}
