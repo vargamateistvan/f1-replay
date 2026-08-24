@@ -15,7 +15,8 @@ declare global {
   }
 }
 
-const GA_MEASUREMENT_ID = import.meta.env.VITE_GA_MEASUREMENT_ID?.trim() ?? "";
+const GA_MEASUREMENT_ID =
+  import.meta.env.VITE_GA_MEASUREMENT_ID?.trim() || "G-TY13ES5T92";
 
 let initialized = false;
 

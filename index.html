@@ -69,7 +69,6 @@
     (function (w, d, s, measurementId) {
       if (
         !measurementId ||
-        measurementId === "%VITE_GA_MEASUREMENT_ID%" ||
         w.location.hostname === "localhost" ||
         w.location.hostname === "127.0.0.1" ||
         w.location.hostname === "[::1]"
@@ -94,7 +93,7 @@
 
       w.gtag("js", new Date());
       w.gtag("config", measurementId, { send_page_view: false });
-    })(window, document, "script", "%VITE_GA_MEASUREMENT_ID%");
+    })(window, document, "script", "G-TY13ES5T92");
   </script>
   <!-- Google Tag Manager -->
   <script>(function (w, d, s, l, i) {
