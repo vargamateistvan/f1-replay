@@ -16,7 +16,7 @@ declare global {
 }
 
 const GA_MEASUREMENT_ID =
-  import.meta.env.VITE_GA_MEASUREMENT_ID?.trim() || "G-TY13ES5T92";
+  import.meta.env.VITE_GA_MEASUREMENT_ID?.trim() || "G-R9T6QJHL5X";
 
 let initialized = false;
 
@@ -52,25 +52,12 @@ function ensureGtagStub(): void {
   }
 }
 
-function appendGtagScript(measurementId: string): void {
-  if (typeof document === "undefined") return;
-  const scriptId = "ga4-gtag-script";
-  if (document.getElementById(scriptId)) return;
-
-  const script = document.createElement("script");
-  script.id = scriptId;
-  script.async = true;
-  script.src = `https://www.googletagmanager.com/gtag/js?id=${encodeURIComponent(measurementId)}`;
-  document.head.appendChild(script);
-}
-
 export function initializeAnalytics(): void {
   if (initialized || !shouldTrackAnalytics()) return;
 
   ensureGtagStub();
-  appendGtagScript(GA_MEASUREMENT_ID);
   window.gtag?.("js", new Date());
-  window.gtag?.("config", GA_MEASUREMENT_ID, { send_page_view: false });
+  window.gtag?.("config", GA_MEASUREMENT_ID);
   initialized = true;
 }
 

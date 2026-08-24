@@ -66,34 +66,25 @@
     }
   </script>
   <script>
-    (function (w, d, s, measurementId) {
-      if (
-        !measurementId ||
-        w.location.hostname === "localhost" ||
-        w.location.hostname === "127.0.0.1" ||
-        w.location.hostname === "[::1]"
-      ) {
-        return;
+    if (
+      window.location.hostname !== "localhost" &&
+      window.location.hostname !== "127.0.0.1" &&
+      window.location.hostname !== "[::1]"
+    ) {
+      window.dataLayer = window.dataLayer || [];
+      function gtag() {
+        dataLayer.push(arguments);
       }
+      window.gtag = gtag;
 
-      w.dataLayer = w.dataLayer || [];
-      w.gtag =
-        w.gtag ||
-        function gtag() {
-          w.dataLayer.push(arguments);
-        };
-
-      var script = d.createElement(s);
-      script.id = "ga4-gtag-script";
+      var script = document.createElement("script");
       script.async = true;
-      script.src =
-        "https://www.googletagmanager.com/gtag/js?id=" +
-        encodeURIComponent(measurementId);
-      d.head.appendChild(script);
+      script.src = "https://www.googletagmanager.com/gtag/js?id=G-R9T6QJHL5X";
+      document.head.appendChild(script);
 
-      w.gtag("js", new Date());
-      w.gtag("config", measurementId, { send_page_view: false });
-    })(window, document, "script", "G-TY13ES5T92");
+      gtag("js", new Date());
+      gtag("config", "G-R9T6QJHL5X");
+    }
   </script>
   <!-- Google Tag Manager -->
   <script>(function (w, d, s, l, i) {
