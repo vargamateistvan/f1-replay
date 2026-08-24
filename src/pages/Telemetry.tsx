@@ -4,6 +4,7 @@ import { ErrorMessage } from "@/components/ErrorMessage";
 import { TelemetryChart } from "@/components/TelemetryChart/TelemetryChart";
 import {
   computeTrackAutoRotationDeg,
+  computeTrackBounds,
   locationToSvg,
   useTrackOutline,
 } from "@/hooks/useTrackMap";
@@ -480,10 +481,25 @@ export default function Telemetry() {
       return null;
     }
 
+    const rotationDeg = computeTrackAutoRotationDeg(outlinePoints, true);
+    const rotationRad = (rotationDeg * Math.PI) / 180;
+    const centerX = (bounds.minX + bounds.maxX) / 2;
+    const centerY = (bounds.minY + bounds.maxY) / 2;
+
+    const rotatedPoints = outlinePoints.map((point) => {
+      const dx = point.x - centerX;
+      const dy = point.y - centerY;
+      return {
+        x: centerX + dx * Math.cos(rotationRad) - dy * Math.sin(rotationRad),
+        y: centerY + dx * Math.sin(rotationRad) + dy * Math.cos(rotationRad),
+      };
+    });
+    const rotatedBounds = computeTrackBounds(rotatedPoints);
+
     let dist = 0;
-    const points: TrackPreviewPoint[] = outlinePoints.map((point, idx) => {
+    const points: TrackPreviewPoint[] = rotatedPoints.map((point, idx) => {
       if (idx > 0) {
-        const prev = outlinePoints[idx - 1]!;
+        const prev = rotatedPoints[idx - 1]!;
         const dx = point.x - prev.x;
         const dy = point.y - prev.y;
         dist += Math.hypot(dx, dy);
@@ -492,7 +508,7 @@ export default function Telemetry() {
       const { sx, sy } = locationToSvg(
         point.x,
         point.y,
-        bounds,
+        rotatedBounds,
         TRACK_SVG_W,
         TRACK_SVG_H,
       );
@@ -507,7 +523,7 @@ export default function Telemetry() {
       points,
       polyline,
       totalDist: points[points.length - 1]!.dist,
-      rotationDeg: computeTrackAutoRotationDeg(outlinePoints, true),
+      rotationDeg: 0,
     };
   }, [trackOutlineA.data]);
 
@@ -551,21 +567,13 @@ export default function Telemetry() {
   // Returns the distM on the track outline closest to an SVG (x,y) point,
   // accounting for the rotation transform applied to the track group.
   const nearestTrackDistM = useCallback(
-    (svgX: number, svgY: number, rotDeg: number, svgW: number, svgH: number, points: TrackPreviewPoint[]): number | null => {
+    (_svgX: number, _svgY: number, _rotDeg: number, _svgW: number, _svgH: number, points: TrackPreviewPoint[]): number | null => {
       if (points.length === 0) return null;
-      // Rotate the mouse point into the track's coordinate space (inverse rotation)
-      const cx = svgW / 2;
-      const cy = svgH / 2;
-      const rad = (-rotDeg * Math.PI) / 180;
-      const dx = svgX - cx;
-      const dy = svgY - cy;
-      const rx = cx + dx * Math.cos(rad) - dy * Math.sin(rad);
-      const ry = cy + dx * Math.sin(rad) + dy * Math.cos(rad);
       let best = 0;
       let bestDist2 = Infinity;
       for (let i = 0; i < points.length; i++) {
         const p = points[i]!;
-        const d2 = (p.sx - rx) ** 2 + (p.sy - ry) ** 2;
+        const d2 = (p.sx - _svgX) ** 2 + (p.sy - _svgY) ** 2;
         if (d2 < bestDist2) { bestDist2 = d2; best = i; }
       }
       return points[best]!.dist;
@@ -1093,9 +1101,7 @@ export default function Telemetry() {
               role="img"
               aria-label="Lap track preview"
             >
-              <g
-                transform={`rotate(${trackPreview?.rotationDeg.toFixed(1) ?? "0"} ${(TRACK_SVG_W / 2).toFixed(1)} ${(TRACK_SVG_H / 2).toFixed(1)})`}
-              >
+              <>
                 {trackPreview && (
                   <>
                     <polyline
@@ -1164,7 +1170,7 @@ export default function Telemetry() {
                     })}
                   </>
                 )}
-              </g>
+              </>
             </svg>
           );
 
@@ -1397,38 +1403,36 @@ export default function Telemetry() {
                     }}
                     onMouseLeave={() => { /* keep last position */ }}
                   >
-                    <g transform={`rotate(${trackPreview.rotationDeg.toFixed(1)} ${(TRACK_SVG_W / 2).toFixed(1)} ${(TRACK_SVG_H / 2).toFixed(1)})`}>
-                      <polyline points={trackPreview.polyline} fill="none" stroke="#3e4a64" strokeWidth={5.4} strokeLinecap="round" strokeLinejoin="round" opacity={0.7} />
-                      <polyline points={trackPreview.polyline} fill="none" stroke="#d7deee" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" />
-                      {dialogTrackMarkers.length > 1 &&
-                        dialogTrackMarkers.slice(1).map((marker, idx) => {
-                          const prev = dialogTrackMarkers[idx]!;
-                          const dx = marker.sx - prev.sx;
-                          const dy = marker.sy - prev.sy;
-                          if (Math.hypot(dx, dy) < 3) return null;
-                          return (
-                            <line key={`dlg-conn-${marker.driver}`} x1={prev.sx} y1={prev.sy} x2={marker.sx} y2={marker.sy} stroke="rgba(255,255,255,0.25)" strokeWidth={1} strokeDasharray="2 2" />
-                          );
-                        })}
-                      {dialogTrackMarkers.map((marker) => {
-                        const cx = TRACK_SVG_W / 2;
-                        const cy = TRACK_SVG_H / 2;
-                        const dx = marker.sx - cx;
-                        const dy = marker.sy - cy;
-                        const len = Math.hypot(dx, dy) || 1;
-                        const tagX = marker.sx + (dx / len) * 14;
-                        const tagY = marker.sy + (dy / len) * 14;
-                        const textAnchor = tagX < marker.sx ? "end" : tagX > marker.sx ? "start" : "middle";
+                    <polyline points={trackPreview.polyline} fill="none" stroke="#3e4a64" strokeWidth={5.4} strokeLinecap="round" strokeLinejoin="round" opacity={0.7} />
+                    <polyline points={trackPreview.polyline} fill="none" stroke="#d7deee" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" />
+                    {dialogTrackMarkers.length > 1 &&
+                      dialogTrackMarkers.slice(1).map((marker, idx) => {
+                        const prev = dialogTrackMarkers[idx]!;
+                        const dx = marker.sx - prev.sx;
+                        const dy = marker.sy - prev.sy;
+                        if (Math.hypot(dx, dy) < 3) return null;
                         return (
-                          <g key={`dlg-${marker.driver}`}>
-                            <circle cx={marker.sx} cy={marker.sy} r={10} fill={marker.color} opacity={0.22} />
-                            <circle cx={marker.sx} cy={marker.sy} r={5} fill={marker.color} stroke="#15151e" strokeWidth={1.5} />
-                            <text x={tagX} y={tagY + 2.5} fill={marker.color} fontSize={6.5} fontWeight={800} letterSpacing={0.4} textAnchor={textAnchor} stroke="#15151e" strokeWidth={2.5} strokeLinejoin="round" style={{ paintOrder: "stroke" }}>{marker.label}</text>
-                            <text x={tagX} y={tagY + 2.5} fill={marker.color} fontSize={6.5} fontWeight={800} letterSpacing={0.4} textAnchor={textAnchor}>{marker.label}</text>
-                          </g>
+                          <line key={`dlg-conn-${marker.driver}`} x1={prev.sx} y1={prev.sy} x2={marker.sx} y2={marker.sy} stroke="rgba(255,255,255,0.25)" strokeWidth={1} strokeDasharray="2 2" />
                         );
                       })}
-                    </g>
+                    {dialogTrackMarkers.map((marker) => {
+                      const cx = TRACK_SVG_W / 2;
+                      const cy = TRACK_SVG_H / 2;
+                      const dx = marker.sx - cx;
+                      const dy = marker.sy - cy;
+                      const len = Math.hypot(dx, dy) || 1;
+                      const tagX = marker.sx + (dx / len) * 14;
+                      const tagY = marker.sy + (dy / len) * 14;
+                      const textAnchor = tagX < marker.sx ? "end" : tagX > marker.sx ? "start" : "middle";
+                      return (
+                        <g key={`dlg-${marker.driver}`}>
+                          <circle cx={marker.sx} cy={marker.sy} r={10} fill={marker.color} opacity={0.22} />
+                          <circle cx={marker.sx} cy={marker.sy} r={5} fill={marker.color} stroke="#15151e" strokeWidth={1.5} />
+                          <text x={tagX} y={tagY + 2.5} fill={marker.color} fontSize={6.5} fontWeight={800} letterSpacing={0.4} textAnchor={textAnchor} stroke="#15151e" strokeWidth={2.5} strokeLinejoin="round" style={{ paintOrder: "stroke" }}>{marker.label}</text>
+                          <text x={tagX} y={tagY + 2.5} fill={marker.color} fontSize={6.5} fontWeight={800} letterSpacing={0.4} textAnchor={textAnchor}>{marker.label}</text>
+                        </g>
+                      );
+                    })}
                   </svg>
                   {dialogTrackMarkers.length === 0 && (
                     <div className="pointer-events-none absolute inset-0 flex items-end justify-center pb-3">
@@ -1459,14 +1463,20 @@ export default function Telemetry() {
                       {dialogTrackMarkers.map((marker) => (
                         <div key={`dlg-data-${marker.driver}`} className="rounded border bg-track p-2.5" style={{ borderColor: `${marker.color}55` }}>
                           {/* Header: headshot + name + time */}
-                          <div className="mb-2 flex items-center gap-2">
+                          <div className="mb-2 grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-2">
                             <DriverHeadshot
                               driver={driverByNumber.get(marker.driver)}
                               accent={marker.color}
                               size="xs"
                             />
-                            <span className="text-[11px] font-black uppercase tracking-widest" style={{ color: marker.color }}>{marker.label}</span>
-                            <span className="ml-auto font-mono text-[10px] text-muted">{formatLapTime(marker.timeS)}</span>
+                            <span
+                              className="min-w-0 overflow-hidden text-ellipsis whitespace-nowrap text-[10px] font-black uppercase tracking-[0.12em]"
+                              style={{ color: marker.color }}
+                              title={driverByNumber.get(marker.driver)?.full_name ?? marker.label}
+                            >
+                              {driverByNumber.get(marker.driver)?.full_name ?? marker.label}
+                            </span>
+                            <span className="font-mono text-[10px] text-muted">{formatLapTime(marker.timeS)}</span>
                           </div>
 
                           {/* Live telemetry */}

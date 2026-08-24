@@ -88,4 +88,36 @@ describe("useTrackMap utilities", () => {
 
     expect(deg).toBeCloseTo(90);
   });
+
+  it("keeps rotated outlines inside the SVG viewport", () => {
+    const points = [
+      { x: 0, y: 0 },
+      { x: 100, y: 0 },
+      { x: 100, y: 40 },
+      { x: 0, y: 40 },
+    ];
+    const rotationDeg = 45;
+    const rotationRad = (rotationDeg * Math.PI) / 180;
+    const centerX = 50;
+    const centerY = 20;
+    const rotated = points.map((point) => {
+      const dx = point.x - centerX;
+      const dy = point.y - centerY;
+      return {
+        x: centerX + dx * Math.cos(rotationRad) - dy * Math.sin(rotationRad),
+        y: centerY + dx * Math.sin(rotationRad) + dy * Math.cos(rotationRad),
+      };
+    });
+    const bounds = computeTrackBounds(rotated);
+    const mapped = rotated.map((p) => locationToSvg(p.x, p.y, bounds, 360, 180));
+    const minX = Math.min(...mapped.map((p) => p.sx));
+    const maxX = Math.max(...mapped.map((p) => p.sx));
+    const minY = Math.min(...mapped.map((p) => p.sy));
+    const maxY = Math.max(...mapped.map((p) => p.sy));
+
+    expect(minX).toBeGreaterThanOrEqual(12);
+    expect(maxX).toBeLessThanOrEqual(348);
+    expect(minY).toBeGreaterThanOrEqual(12);
+    expect(maxY).toBeLessThanOrEqual(168);
+  });
 });

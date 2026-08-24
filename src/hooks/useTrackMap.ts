@@ -107,8 +107,12 @@ export function locationToSvg(
   svgW: number,
   svgH: number,
 ) {
-  // Uniform scale so the real-world aspect ratio is preserved (letterbox if needed).
-  const scale = Math.min(svgW / bounds.width, svgH / bounds.height);
+  // Give the track a small margin so rotated outlines remain fully visible in
+  // compact previews and dialogs, instead of clipping at the view edges.
+  const padding = 12;
+  const safeW = Math.max(1, svgW - padding * 2);
+  const safeH = Math.max(1, svgH - padding * 2);
+  const scale = Math.min(safeW / bounds.width, safeH / bounds.height);
   const mapW = bounds.width * scale;
   const mapH = bounds.height * scale;
   const offX = (svgW - mapW) / 2;
