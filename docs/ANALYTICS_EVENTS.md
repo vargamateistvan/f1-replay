@@ -12,6 +12,10 @@ VITE_GA_MEASUREMENT_ID=G-XXXXXXXXXX
 
 When unset, analytics calls are no-op.
 
+For GitHub Pages deployments, set `VITE_GA_MEASUREMENT_ID` in the deploy
+workflow environment (or repository variable) so the production build can emit
+events.
+
 ## Event Naming Rules
 
 - Use lowercase snake_case.
