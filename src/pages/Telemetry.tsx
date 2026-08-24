@@ -478,17 +478,130 @@ export default function Telemetry() {
     };
   }, [trackOutlineA.data]);
 
-  const hoveredTrackPoint = useMemo(() => {
-    if (!trackPreview || hoveredDistM === null || xDist.length < 2) return null;
-    const chartMaxDist = xDist[xDist.length - 1] ?? 0;
-    if (chartMaxDist <= 0 || trackPreview.totalDist <= 0) return null;
+  // For a given set of raw (unresampled) samples, binary-search for the timeS
+  // that corresponds to hoveredDistM on Driver A's timeline, then return that
+  // driver's distM at that moment so their track dot is placed correctly.
+  const distMForDriverAtSameTime = useCallback(
+    (rawSamples: TelemetrySample[], timeS: number): number => {
+      if (rawSamples.length === 0) return 0;
+      const last = rawSamples[rawSamples.length - 1]!;
+      if (timeS >= last.timeS) return last.distM;
+      if (timeS <= rawSamples[0]!.timeS) return rawSamples[0]!.distM;
+      let lo = 0;
+      let hi = rawSamples.length - 1;
+      while (lo < hi) {
+        const mid = Math.floor((lo + hi) / 2);
+        if (rawSamples[mid]!.timeS < timeS) lo = mid + 1;
+        else hi = mid;
+      }
+      const right = rawSamples[lo]!;
+      const left = rawSamples[Math.max(0, lo - 1)]!;
+      const span = Math.max(1e-6, right.timeS - left.timeS);
+      const alpha = Math.max(0, Math.min(1, (timeS - left.timeS) / span));
+      return left.distM + (right.distM - left.distM) * alpha;
+    },
+    [],
+  );
 
-    const progress = Math.max(0, Math.min(1, hoveredDistM / chartMaxDist));
-    return interpolateTrackPoint(
-      trackPreview.points,
-      progress * trackPreview.totalDist,
-    );
-  }, [trackPreview, hoveredDistM, xDist]);
+  // For a given set of raw samples, find timeS at Driver A's hovered distM.
+  const timeSForDistM = useCallback(
+    (rawSamples: TelemetrySample[], targetDistM: number): number | null => {
+      if (rawSamples.length === 0) return null;
+      const last = rawSamples[rawSamples.length - 1]!;
+      if (targetDistM >= last.distM) return last.timeS;
+      if (targetDistM <= rawSamples[0]!.distM) return rawSamples[0]!.timeS;
+      let lo = 0;
+      let hi = rawSamples.length - 1;
+      while (lo < hi) {
+        const mid = Math.floor((lo + hi) / 2);
+        if (rawSamples[mid]!.distM < targetDistM) lo = mid + 1;
+        else hi = mid;
+      }
+      const right = rawSamples[lo]!;
+      const left = rawSamples[Math.max(0, lo - 1)]!;
+      const span = Math.max(1e-6, right.distM - left.distM);
+      const alpha = Math.max(0, Math.min(1, (targetDistM - left.distM) / span));
+      return left.timeS + (right.timeS - left.timeS) * alpha;
+    },
+    [],
+  );
+
+  const hoveredTrackPoints = useMemo(() => {
+    if (!trackPreview || hoveredDistM === null || xDist.length < 2) return [];
+    const chartMaxDist = xDist[xDist.length - 1] ?? 0;
+    if (chartMaxDist <= 0 || trackPreview.totalDist <= 0) return [];
+
+    // Find Driver A's timeS at the hovered distance
+    const timeSAtHover = dataA.data
+      ? timeSForDistM(dataA.data, hoveredDistM)
+      : null;
+    if (timeSAtHover === null) return [];
+
+    const markers = [] as Array<{
+      driver: number;
+      sx: number;
+      sy: number;
+      color: string;
+      label: string;
+    }>;
+
+    const driverEntries = [
+      driverA !== null
+        ? { driver: driverA, color: colorFor(driverA, 0), rawData: dataA.data }
+        : null,
+      driverB !== null
+        ? { driver: driverB, color: colorFor(driverB, 1), rawData: dataB.data }
+        : null,
+      driverC !== null
+        ? { driver: driverC, color: colorFor(driverC, 2), rawData: dataC.data }
+        : null,
+    ].filter(Boolean) as Array<{
+      driver: number;
+      color: string;
+      rawData: TelemetrySample[] | undefined;
+    }>;
+
+    for (const entry of driverEntries) {
+      if (!entry.rawData?.length) continue;
+
+      // Find this driver's distance at the same elapsed time as Driver A's hover
+      const driverDistM = distMForDriverAtSameTime(entry.rawData, timeSAtHover);
+      const driverLapMaxDist =
+        entry.rawData[entry.rawData.length - 1]!.distM;
+      if (driverLapMaxDist <= 0) continue;
+
+      const progress = Math.max(0, Math.min(1, driverDistM / driverLapMaxDist));
+      const point = interpolateTrackPoint(
+        trackPreview.points,
+        progress * trackPreview.totalDist,
+      );
+      if (!point) continue;
+
+      markers.push({
+        driver: entry.driver,
+        sx: point.sx,
+        sy: point.sy,
+        color: entry.color,
+        label: acr(entry.driver, String(entry.driver).slice(-1) || "D"),
+      });
+    }
+
+    return markers;
+  }, [
+    trackPreview,
+    hoveredDistM,
+    xDist,
+    driverA,
+    driverB,
+    driverC,
+    dataA.data,
+    dataB.data,
+    dataC.data,
+    colorFor,
+    acr,
+    timeSForDistM,
+    distMForDriverAtSameTime,
+  ]);
 
   const handleChartHoverX = useCallback((value: number | null) => {
     setHoveredDistM((prev) => {
@@ -1075,23 +1188,94 @@ export default function Telemetry() {
                         strokeLinejoin="round"
                       />
 
-                      {hoveredTrackPoint && (
+                      {hoveredTrackPoints.length > 0 && (
                         <>
-                          <circle
-                            cx={hoveredTrackPoint.sx}
-                            cy={hoveredTrackPoint.sy}
-                            r={9}
-                            fill="#e8002d"
-                            opacity={0.15}
-                          />
-                          <circle
-                            cx={hoveredTrackPoint.sx}
-                            cy={hoveredTrackPoint.sy}
-                            r={4}
-                            fill="#ff274f"
-                            stroke="#ffffff"
-                            strokeWidth={1.1}
-                          />
+                          {/* Connector line between markers so close drivers are still visible */}
+                          {hoveredTrackPoints.length > 1 &&
+                            hoveredTrackPoints.slice(1).map((marker, idx) => {
+                              const prev = hoveredTrackPoints[idx]!;
+                              const dx = marker.sx - prev.sx;
+                              const dy = marker.sy - prev.sy;
+                              const dist = Math.hypot(dx, dy);
+                              if (dist < 3) return null;
+                              return (
+                                <line
+                                  key={`connector-${marker.driver}`}
+                                  x1={prev.sx}
+                                  y1={prev.sy}
+                                  x2={marker.sx}
+                                  y2={marker.sy}
+                                  stroke="rgba(255,255,255,0.25)"
+                                  strokeWidth={1}
+                                  strokeDasharray="2 2"
+                                />
+                              );
+                            })}
+                          {hoveredTrackPoints.map((marker) => {
+                            // Label placement: shift tag away from track center
+                            const cx = TRACK_SVG_W / 2;
+                            const cy = TRACK_SVG_H / 2;
+                            const dx = marker.sx - cx;
+                            const dy = marker.sy - cy;
+                            const len = Math.hypot(dx, dy) || 1;
+                            // Outward offset so label doesn't overlap dot
+                            const tagX = marker.sx + (dx / len) * 13;
+                            const tagY = marker.sy + (dy / len) * 13;
+                            const textAnchor =
+                              tagX < marker.sx
+                                ? "end"
+                                : tagX > marker.sx
+                                  ? "start"
+                                  : "middle";
+                            return (
+                              <g key={`hover-${marker.driver}`}>
+                                {/* Glow halo */}
+                                <circle
+                                  cx={marker.sx}
+                                  cy={marker.sy}
+                                  r={10}
+                                  fill={marker.color}
+                                  opacity={0.22}
+                                />
+                                {/* Solid dot */}
+                                <circle
+                                  cx={marker.sx}
+                                  cy={marker.sy}
+                                  r={5}
+                                  fill={marker.color}
+                                  stroke="#15151e"
+                                  strokeWidth={1.5}
+                                />
+                                {/* Driver acronym tag */}
+                                <text
+                                  x={tagX}
+                                  y={tagY + 2.5}
+                                  fill={marker.color}
+                                  fontSize={6.5}
+                                  fontWeight={800}
+                                  letterSpacing={0.4}
+                                  textAnchor={textAnchor}
+                                  style={{ paintOrder: "stroke" }}
+                                  stroke="#15151e"
+                                  strokeWidth={2.5}
+                                  strokeLinejoin="round"
+                                >
+                                  {marker.label}
+                                </text>
+                                <text
+                                  x={tagX}
+                                  y={tagY + 2.5}
+                                  fill={marker.color}
+                                  fontSize={6.5}
+                                  fontWeight={800}
+                                  letterSpacing={0.4}
+                                  textAnchor={textAnchor}
+                                >
+                                  {marker.label}
+                                </text>
+                              </g>
+                            );
+                          })}
                         </>
                       )}
                     </g>
