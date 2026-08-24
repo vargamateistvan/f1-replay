@@ -835,7 +835,6 @@ export default function RaceWeekend() {
   }, [intervals.data, sessionStartMs, tSlow, isMapVisible]);
 
   const retiredDrivers = useMemo((): ReadonlySet<number> => {
-    if (!isMapVisible) return new Set<number>();
     return deriveRetiredDrivers({
       positions: positions.data ?? [],
       laps: laps.data ?? [],
@@ -849,7 +848,6 @@ export default function RaceWeekend() {
     raceControl.data,
     sessionStartMs,
     tSlow,
-    isMapVisible,
     isRaceSession,
   ]);
 
@@ -1968,6 +1966,7 @@ export default function RaceWeekend() {
                         currentLap={currentLap}
                         sessionStartMs={sessionStartMs}
                         sessionTimeMs={t}
+                        retiredDrivers={retiredDrivers}
                       />
                     </Suspense>
                   </div>
@@ -2066,6 +2065,7 @@ export default function RaceWeekend() {
                         currentLap={currentLap}
                         sessionStartMs={sessionStartMs}
                         sessionTimeMs={t}
+                        retiredDrivers={retiredDrivers}
                       />
                     </Suspense>
                   )}

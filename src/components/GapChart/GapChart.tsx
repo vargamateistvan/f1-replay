@@ -22,6 +22,7 @@ interface Props {
   readonly sessionStartMs: number;
   readonly lapStarts?: number[];
   readonly currentLap?: number;
+  readonly retiredDrivers?: ReadonlySet<number>;
 }
 
 // Gap-to-leader over session time. Each line is one driver; Y=0 is the leader,
@@ -34,7 +35,15 @@ export function GapChart({
   sessionStartMs,
   lapStarts = [],
   currentLap = 0,
+  retiredDrivers,
 }: Props) {
+  const activeDrivers = useMemo(
+    () =>
+      drivers.filter(
+        (driver) => !retiredDrivers?.has(driver.driver_number),
+      ),
+    [drivers, retiredDrivers],
+  );
   const [showAllLaps, setShowAllLaps] = useState(false);
 
   // Per-driver sorted arrays of {ms, gap}. Strings like "1 LAP" are excluded;
@@ -42,6 +51,7 @@ export function GapChart({
   const byDriver = useMemo(() => {
     const m = new Map<number, Array<{ ms: number; gap: number }>>();
     for (const iv of intervals) {
+      if (retiredDrivers?.has(iv.driver_number)) continue;
       if (typeof iv.gap_to_leader !== "number") continue;
       const ms = new Date(iv.date).getTime() - sessionStartMs;
       if (ms < 0) continue;
@@ -54,20 +64,21 @@ export function GapChart({
     }
     for (const arr of m.values()) arr.sort((a, b) => a.ms - b.ms);
     return m;
-  }, [intervals, sessionStartMs]);
+  }, [intervals, retiredDrivers, sessionStartMs]);
 
   // Shared time axis: bucket all interval timestamps to the nearest 5 s so
   // different drivers' rows align on the same x values.
   const timeBuckets = useMemo(() => {
     const seen = new Set<number>();
     for (const iv of intervals) {
+      if (retiredDrivers?.has(iv.driver_number)) continue;
       const ms =
         Math.round((new Date(iv.date).getTime() - sessionStartMs) / 5_000) *
         5_000;
       if (ms >= 0) seen.add(ms);
     }
     return Array.from(seen).sort((a, b) => a - b);
-  }, [intervals, sessionStartMs]);
+  }, [intervals, retiredDrivers, sessionStartMs]);
 
   // Build one chart row per time bucket up to the current playhead (fallback mode).
   const timeRows = useMemo(() => {
@@ -167,7 +178,7 @@ export function GapChart({
             stroke="#E8002D"
             strokeWidth={1}
           />
-          {drivers.map((d) => (
+          {activeDrivers.map((d) => (
             <Line
               key={d.driver_number}
               type="monotone"

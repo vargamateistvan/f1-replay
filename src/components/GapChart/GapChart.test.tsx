@@ -6,10 +6,13 @@ import type { Driver, Interval } from "@/api/types";
 
 vi.mock("recharts", () => {
   const Box = ({ children }: { children?: ReactNode }) => <div>{children}</div>;
+  const Line = ({ dataKey, name }: { dataKey?: string; name?: string }) => (
+    <div data-testid={dataKey ?? name}>{name ?? dataKey}</div>
+  );
   return {
     ResponsiveContainer: Box,
     LineChart: Box,
-    Line: Box,
+    Line,
     XAxis: Box,
     YAxis: Box,
     CartesianGrid: Box,
@@ -84,6 +87,35 @@ describe("GapChart", () => {
     expect(screen.getByRole("button", { name: "Elapsed" })).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "Elapsed" }));
     expect(screen.getByRole("button", { name: "All" })).toBeInTheDocument();
+  });
+
+  it("hides retired drivers from the rendered gap lines", () => {
+    const sessionStartMs = Date.parse("2024-01-01T00:00:00.000Z");
+    render(
+      <GapChart
+        drivers={drivers}
+        intervals={
+          [
+            {
+              driver_number: 1,
+              date: "2024-01-01T00:00:10.000Z",
+              gap_to_leader: 0,
+            },
+            {
+              driver_number: 16,
+              date: "2024-01-01T00:00:12.000Z",
+              gap_to_leader: 2.5,
+            },
+          ] as unknown as Interval[]
+        }
+        sessionTimeMs={20_000}
+        sessionStartMs={sessionStartMs}
+        retiredDrivers={new Set([16])}
+      />,
+    );
+
+    expect(screen.getByTestId("1")).toBeInTheDocument();
+    expect(screen.queryByTestId("16")).not.toBeInTheDocument();
   });
 
   it("covers time-axis fallback when lap starts are missing", () => {
