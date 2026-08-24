@@ -3,6 +3,8 @@ import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import type { ReactNode } from "react";
 import { Nav } from "@/components/Nav";
 
+const resetTimeline = vi.hoisted(() => vi.fn());
+
 const state = vi.hoisted(() => ({
   searchParams: new URLSearchParams(
     "year=2025&meeting=22&session=202&view=tracker",
@@ -39,6 +41,12 @@ vi.mock("react-router-dom", () => ({
   useSearchParams: () => [state.searchParams, state.setSearchParams],
   useLocation: () => ({ pathname: state.pathname }),
   useNavigate: () => state.navigate,
+}));
+
+vi.mock("@/timeline/clock", () => ({
+  useTimeline: {
+    getState: () => ({ reset: resetTimeline }),
+  },
 }));
 
 vi.mock("@/hooks/useSession", () => ({
@@ -98,6 +106,7 @@ describe("Nav", () => {
     state.meetingKey = 22;
     state.sessionKey = 202;
     state.view = "tracker";
+    resetTimeline.mockReset();
     state.live = true;
     state.showNextRaceWeekendBanner = false;
     state.meetings = {
@@ -175,6 +184,7 @@ describe("Nav", () => {
       target: { value: "101" },
     });
 
+    expect(resetTimeline).toHaveBeenCalledTimes(1);
     expect(state.setSearchParams).toHaveBeenCalledTimes(1);
     const [updater] = state.setSearchParams.mock.calls[0] as [
       (prev: URLSearchParams) => URLSearchParams,

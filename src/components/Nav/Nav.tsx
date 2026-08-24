@@ -11,6 +11,7 @@ import { isSessionLive } from "@/utils/live";
 import { YEARS, DEFAULT_YEAR } from "@/constants";
 import { useNumberParam, useStringParam } from "@/hooks/useSearchParamState";
 import { AppLogo } from "@/components/AppLogo";
+import { useTimeline } from "@/timeline/clock";
 import { useSettings } from "@/stores/settings";
 import {
   toDisplayAltitudeM,
@@ -334,8 +335,13 @@ export function Nav() {
     [nextMeetingSessions.data],
   );
 
+  function resetPlaybackToStart() {
+    useTimeline.getState().reset();
+  }
+
   function onYear(y: number) {
     if (Number.isNaN(y) || !Number.isFinite(y)) return;
+    resetPlaybackToStart();
     trackEvent("nav_year_changed", { year: y });
     setSearchParams(
       (prev) => {
@@ -352,6 +358,7 @@ export function Nav() {
 
   function onMeeting(k: number) {
     if (Number.isNaN(k) || !Number.isFinite(k)) return;
+    resetPlaybackToStart();
     trackEvent("nav_meeting_changed", { meeting_key: k });
     setSearchParams(
       (prev) => {
@@ -383,6 +390,7 @@ export function Nav() {
         });
       }
 
+      resetPlaybackToStart();
       setSearchParams((prev) => {
         const next = new URLSearchParams(prev);
         next.set("year", String(latest.year));
@@ -806,6 +814,7 @@ export function Nav() {
                 onChange={(e) => {
                   const raw = e.target.value;
                   if (raw === "") {
+                    resetPlaybackToStart();
                     setSearchParams(
                       (prev) => {
                         const next = new URLSearchParams(prev);
@@ -887,6 +896,7 @@ export function Nav() {
                 onChange={(e) => {
                   const raw = e.target.value;
                   if (raw === "") {
+                    resetPlaybackToStart();
                     setSearchParams(
                       (prev) => {
                         const next = new URLSearchParams(prev);
@@ -901,6 +911,7 @@ export function Nav() {
 
                   const val = Number(raw);
                   if (!Number.isFinite(val) || val <= 0) return;
+                  resetPlaybackToStart();
                   setSearchParams(
                     (prev) => {
                       const next = new URLSearchParams(prev);

@@ -64,7 +64,7 @@ import { EventToastStack } from "@/components/EventToast/EventToastStack";
 import { CatchupSummary } from "@/components/CatchupSummary/CatchupSummary";
 import { ResizeHandle } from "@/components/ResizeHandle";
 import { isSessionLive } from "@/utils/live";
-import { DEFAULT_SESSION_MS } from "@/constants";
+import { DEFAULT_SESSION_MS, DEFAULT_YEAR } from "@/constants";
 import { useSettings } from "@/stores/settings";
 import { deriveRetiredDrivers } from "@/utils/retirement";
 import { computeBattlingDrivers } from "@/utils/battles";
@@ -220,6 +220,7 @@ export default function RaceWeekend() {
     startWidth: number;
   } | null>(null);
   // Session selection is driven by the URL — Nav writes these, we just read them
+  const [yearParam] = useNumberParam("year", DEFAULT_YEAR);
   const [meetingKey] = useNumberParam("meeting", null);
   const [sessionKey] = useNumberParam("session", null);
 
@@ -280,7 +281,7 @@ export default function RaceWeekend() {
   const [incidentReplayHint, setIncidentReplayHint] = useState<string | null>(
     null,
   );
-  const prevSessionKeyRef = useRef<number | null>(null);
+  const prevSelectionKeyRef = useRef<string | null>(null);
   const hasAutoShownResultsRef = useRef(false);
   const resultsModalAutoOpenedRef = useRef(false);
   const shouldResumeAfterResultsCloseRef = useRef(false);
@@ -539,20 +540,15 @@ export default function RaceWeekend() {
   }, [sessionKey]);
 
   useEffect(() => {
-    if (sessionKey === null) {
-      prevSessionKeyRef.current = null;
-      return;
-    }
-
+    const selectionKey = `${yearParam ?? "unknown"}:${meetingKey ?? "none"}:${sessionKey ?? "none"}`;
     if (
-      prevSessionKeyRef.current !== null &&
-      prevSessionKeyRef.current !== sessionKey
+      prevSelectionKeyRef.current !== null &&
+      prevSelectionKeyRef.current !== selectionKey
     ) {
-      setTimelineT(0);
+      useTimeline.getState().reset();
     }
-
-    prevSessionKeyRef.current = sessionKey;
-  }, [sessionKey, setTimelineT]);
+    prevSelectionKeyRef.current = selectionKey;
+  }, [yearParam, meetingKey, sessionKey]);
 
   useEffect(() => {
     if (!incidentReplayHint) return;
