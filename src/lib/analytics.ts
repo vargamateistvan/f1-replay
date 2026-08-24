@@ -19,6 +19,23 @@ const GA_MEASUREMENT_ID = import.meta.env.VITE_GA_MEASUREMENT_ID?.trim() ?? "";
 
 let initialized = false;
 
+function isLocalhostHost(hostname: string): boolean {
+  return (
+    hostname === "localhost" ||
+    hostname === "127.0.0.1" ||
+    hostname === "[::1]"
+  );
+}
+
+function shouldTrackAnalytics(): boolean {
+  return (
+    GA_MEASUREMENT_ID.length > 0 &&
+    typeof window !== "undefined" &&
+    import.meta.env.PROD &&
+    !isLocalhostHost(window.location.hostname)
+  );
+}
+
 function ensureDataLayer(): void {
   if (typeof window === "undefined") return;
   window.dataLayer = window.dataLayer || [];
@@ -47,8 +64,7 @@ function appendGtagScript(measurementId: string): void {
 }
 
 export function initializeAnalytics(): void {
-  if (initialized || !GA_MEASUREMENT_ID || typeof window === "undefined")
-    return;
+  if (initialized || !shouldTrackAnalytics()) return;
 
   ensureGtagStub();
   appendGtagScript(GA_MEASUREMENT_ID);
@@ -58,7 +74,7 @@ export function initializeAnalytics(): void {
 }
 
 export function trackPageView(path: string): void {
-  if (!GA_MEASUREMENT_ID || typeof window === "undefined") return;
+  if (!shouldTrackAnalytics()) return;
   window.gtag?.("event", "page_view", {
     page_path: path,
     page_location: window.location.href,
@@ -67,10 +83,10 @@ export function trackPageView(path: string): void {
 }
 
 export function trackEvent(eventName: string, params: EventParams = {}): void {
-  if (!GA_MEASUREMENT_ID || typeof window === "undefined") return;
+  if (!shouldTrackAnalytics()) return;
   window.gtag?.("event", eventName, params);
 }
 
 export function analyticsEnabled(): boolean {
-  return GA_MEASUREMENT_ID.length > 0;
+  return shouldTrackAnalytics();
 }
