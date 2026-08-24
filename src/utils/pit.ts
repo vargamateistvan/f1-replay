@@ -9,7 +9,8 @@ export function laneDuration(p: Pit): number | null {
 }
 
 /**
- * Format a pit-stop duration as mm:ss:mmm.
+ * Format a pit-stop duration as mm:ss.m (one decimal digit for tenths of a second).
+ * If minutes are absent, only the seconds are shown.
  */
 export function formatPitDuration(seconds: number | null): string | null {
   if (seconds === null || !Number.isFinite(seconds)) return null;
@@ -21,10 +22,10 @@ export function formatPitDuration(seconds: number | null): string | null {
   const tenths = remainingTenths % 10;
 
   if (minutes === 0) {
-    return `${String(secs)}:${String(tenths)}`;
+    return `${String(secs)}.${String(tenths)}`;
   }
 
-  return `${String(minutes)}:${String(secs)}:${String(tenths)}`;
+  return `${String(minutes)}:${String(secs)}.${String(tenths)}`;
 }
 
 /**

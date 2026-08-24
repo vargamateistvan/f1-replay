@@ -11,6 +11,7 @@ import type {
   ToastKind,
 } from "@/timeline/events";
 import { teamColor } from "@/utils/color";
+import { formatPitDuration } from "@/utils/pit";
 import { useSettings } from "@/stores/settings";
 import { toSafeExternalUrl } from "@/utils/url";
 
@@ -261,7 +262,7 @@ function CatchupEventRow({
           )}
           {typeof p.pitDuration === "number" && (
             <span className="text-[9px] font-mono tabular-nums text-white/70">
-              {p.pitDuration.toFixed(1)}s stop
+              {formatPitDuration(p.pitDuration) ?? "--:--"} stop
             </span>
           )}
         </div>
