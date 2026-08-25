@@ -3,6 +3,7 @@ import type { CSSProperties } from "react";
 import type { RaceControl as RaceControlEntry, Driver } from "@/api/types";
 import { downloadEndpointCsv } from "@/api/client";
 import { useSettings } from "@/stores/settings";
+import { teamColor } from "@/utils/color";
 import {
   normalizeRaceControl,
   toFlagKey,
@@ -109,6 +110,22 @@ const FLAG_CONFIG: Record<
     badgeText: "#fff",
     border: "#888",
   },
+  BLACK_AND_ORANGE: {
+    label: "BLK/ORG",
+    bannerBg: "#f97316",
+    bannerText: "#000",
+    badgeBg: "#f97316",
+    badgeText: "#000",
+    border: "#f97316",
+  },
+  BLACK: {
+    label: "BLACK",
+    bannerBg: "#111",
+    bannerText: "#fff",
+    badgeBg: "#111",
+    badgeText: "#fff",
+    border: "#666",
+  },
   SAFETY_CAR: {
     label: "SAFETY CAR",
     bannerBg: "#f5a623",
@@ -205,7 +222,7 @@ function eventAccentBorderStyle(
   teamColour?: string,
 ): CSSProperties | null {
   if (!flag) {
-    return teamColour ? { backgroundColor: `#${teamColour}` } : null;
+    return teamColour ? { backgroundColor: teamColor(teamColour) } : null;
   }
 
   if (cfg.borderPattern) {
@@ -270,7 +287,7 @@ export function RaceControlFeed({
   const currentFlagEntry = useMemo(() => {
     for (let i = visibleEntries.length - 1; i >= 0; i--) {
       const e = visibleEntries[i]!;
-      if (e.flag && e.flag !== "") return e;
+      if (e.flag) return e;
     }
     return null;
   }, [visibleEntries]);
@@ -278,6 +295,11 @@ export function RaceControlFeed({
   const flagConfig = currentFlagEntry
     ? (FLAG_CONFIG[toFlagKey(currentFlagEntry.flag)] ?? DEFAULT_CONFIG)
     : null;
+  const flagBannerLabel =
+    currentFlagEntry && flagConfig
+      ? flagConfig.label ||
+        toFlagKey(currentFlagEntry.flag).replace(/_/g, " ")
+      : "";
   const currentSector = currentFlagEntry ? sectorBadge(currentFlagEntry) : null;
 
   const driverMap = useMemo(
@@ -294,24 +316,23 @@ export function RaceControlFeed({
     [activeGroups],
   );
 
-  const filteredEntries = useMemo(
-    () =>
-      visibleEntries
-        .filter((e) => enabledKinds.has(e.kind))
-        .filter(
-          (e) =>
-            focusDriver === null ||
-            e.driverNumber === null ||
-            e.driverNumber === focusDriver,
-        )
-        .filter(
-          (e) =>
-            !search ||
-            e.description.toLowerCase().includes(search.toLowerCase()) ||
-            e.title.toLowerCase().includes(search.toLowerCase()),
-        ),
-    [visibleEntries, enabledKinds, focusDriver, search],
-  );
+  const filteredEntries = useMemo(() => {
+    const query = search.trim().toLowerCase();
+    return visibleEntries
+      .filter((e) => enabledKinds.has(e.kind))
+      .filter(
+        (e) =>
+          focusDriver === null ||
+          e.driverNumber === null ||
+          e.driverNumber === focusDriver,
+      )
+      .filter(
+        (e) =>
+          !query ||
+          e.description.toLowerCase().includes(query) ||
+          e.title.toLowerCase().includes(query),
+      );
+  }, [visibleEntries, enabledKinds, focusDriver, search]);
 
   // Lap/phase groups — descending so newest is on top
   const lapGroups = useMemo(() => {
@@ -337,9 +358,11 @@ export function RaceControlFeed({
     return groupEventsByLap(filteredEntries).reverse();
   }, [filteredEntries, sessionType]);
 
+  // Reset pagination only when the user changes what they're looking at —
+  // not on every new event crossing the playhead.
   useEffect(() => {
     setRenderLimit(INITIAL_RENDER_LIMIT);
-  }, [sessionKey, focusDriver, search, activeGroups, filteredEntries.length]);
+  }, [sessionKey, focusDriver, search, activeGroups]);
 
   const totalFilteredEvents = filteredEntries.length;
   const hasMoreEvents = totalFilteredEvents > renderLimit;
@@ -392,7 +415,7 @@ export function RaceControlFeed({
           }}
         >
           <span className="font-black text-[10px] tracking-widest uppercase">
-            {flagConfig.label}
+            {flagBannerLabel}
           </span>
           {currentSector && (
             <span className="rounded bg-black/15 px-1.5 py-0.5 text-[9px] font-black uppercase tracking-widest text-inherit">
@@ -440,6 +463,7 @@ export function RaceControlFeed({
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           placeholder="Search…"
+          aria-label="Search race control events"
           className="ml-auto h-6 w-28 min-w-0 rounded border border-panel bg-surface px-2 text-[10px] text-white placeholder:text-muted outline-none focus:border-muted sm:w-32"
         />
       </div>
@@ -447,14 +471,14 @@ export function RaceControlFeed({
       {/* ── Driver focus banner ────────────────────────────────── */}
       {focusDriver !== null && (
         <div
-          className="rounded border border-panel bg-surface/80 px-2 py-1.5"
+          className="flex items-center gap-2 rounded border border-panel bg-surface/80 px-2 py-1.5"
           style={{
-            borderLeft: `3px solid #${focusedDriver?.team_colour ?? "e8002d"}`,
+            borderLeft: `3px solid ${teamColor(focusedDriver?.team_colour, "#e8002d")}`,
           }}
         >
           <span
             className="text-[10px] font-black uppercase tracking-widest"
-            style={{ color: `#${focusedDriver?.team_colour ?? "ffffff"}` }}
+            style={{ color: teamColor(focusedDriver?.team_colour, "#ffffff") }}
           >
             {focusedDriver?.name_acronym ?? `#${focusDriver}`}
           </span>
@@ -506,22 +530,23 @@ export function RaceControlFeed({
               <div className={COMMENTARY_GROUP_ITEMS_CLASS}>
                 {[...group.events].reverse().map((e) => {
                   const cfg = FLAG_CONFIG[toFlagKey(e.flag)] ?? DEFAULT_CONFIG;
+                  const hasFlagConfig =
+                    Boolean(e.flag) && cfg !== DEFAULT_CONFIG;
                   const severity = SEVERITY_BADGE[e.severity];
                   const isPenaltyEntry = e.kind === "penalty";
                   const eventDriver =
                     e.driverNumber !== null
                       ? driverMap.get(e.driverNumber)
                       : null;
-                  const sessionMs = new Date(e.date).getTime() - sessionStartMs;
                   const eventTime = formatSessionElapsedTime(
-                    Math.max(0, sessionMs),
+                    Math.max(0, e.ms),
                   );
                   const badgeLabel = e.flag
                     ? cfg.label || e.flag
                     : isPenaltyEntry
                       ? "Penalty"
-                    : severity.label;
-                  const badgeStyle = e.flag
+                      : severity.label;
+                  const badgeStyle = hasFlagConfig
                     ? {
                         backgroundColor: cfg.badgeBg,
                         color: cfg.badgeText,
@@ -559,11 +584,11 @@ export function RaceControlFeed({
                         <div className={COMMENTARY_META_CLASS}>
                           <span
                             className={`${COMMENTARY_BADGE_CLASS} ${
-                              e.flag
+                              hasFlagConfig
                                 ? ""
                                 : isPenaltyEntry
                                   ? "bg-red-500/25 text-red-200"
-                                : severity.cls
+                                  : severity.cls
                             }`}
                             style={badgeStyle}
                           >
@@ -572,7 +597,9 @@ export function RaceControlFeed({
                           {eventDriver && (
                             <span
                               className="font-black uppercase tracking-widest"
-                              style={{ color: `#${eventDriver.team_colour}` }}
+                              style={{
+                                color: teamColor(eventDriver.team_colour),
+                              }}
                             >
                               {eventDriver.name_acronym}
                             </span>
