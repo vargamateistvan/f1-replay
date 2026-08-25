@@ -5,7 +5,7 @@ import {
   useNavigate,
 } from "react-router-dom";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { useMeetings, useSessions } from "@/hooks/useSession";
+import { useLatestMeeting, useMeetings, useSessions } from "@/hooks/useSession";
 import { isAuthError } from "@/api/client";
 import { isSessionLive } from "@/utils/live";
 import { YEARS, DEFAULT_YEAR } from "@/constants";
@@ -137,6 +137,7 @@ export function Nav() {
   const [view] = useStringParam<MainView>("view", "tracker");
 
   const meetings = useMeetings(year);
+  const latestMeetingQuery = useLatestMeeting();
   // Fetch the current calendar year only when the next-race banner needs it
   // and the user is browsing a different year.
   const currentCalendarYear = new Date().getFullYear();
@@ -146,7 +147,11 @@ export function Nav() {
     enabled: needsCurrentYearMeetings,
   });
   const sessions = useSessions(meetingKey);
-  const authFailed = isAuthError(meetings.error) || isAuthError(sessions.error);
+  const authFailed =
+    isAuthError(meetings.error) ||
+    isAuthError(sessions.error) ||
+    isAuthError(latestMeetingQuery.error);
+  const latestMeeting = latestMeetingQuery.data ?? null;
 
   const selectedMeeting = meetings.data?.find(
     (m) => m.meeting_key === meetingKey,
@@ -375,12 +380,19 @@ export function Nav() {
 
   const selectLatestEvent = useCallback(
     (source: "auto" | "manual" = "auto") => {
-      const latest = startedMeetings
-        ?.slice()
-        .sort(
-          (a, b) =>
-            new Date(b.date_start).getTime() - new Date(a.date_start).getTime(),
-        )[0];
+      const latestFromAlias = latestMeeting
+        ? {
+            year: latestMeeting.year,
+            meeting_key: latestMeeting.meeting_key,
+          }
+        : null;
+      const latest = latestFromAlias ??
+        startedMeetings
+          ?.slice()
+          .sort(
+            (a, b) =>
+              new Date(b.date_start).getTime() - new Date(a.date_start).getTime(),
+          )[0];
       if (!latest) return;
 
       if (source === "manual") {
@@ -401,20 +413,20 @@ export function Nav() {
       });
       setSelectLatestSessionOnLoad(true);
     },
-    [startedMeetings, setSearchParams],
+    [latestMeeting, startedMeetings, setSearchParams],
   );
 
   // First app load behavior: mimic pressing "Latest" automatically when
   // no explicit meeting/session is selected in the URL/state.
   useEffect(() => {
     if (autoLatestBootstrappedRef.current) return;
-    if (meetings.isPending) return;
+    if (meetings.isPending && !latestMeetingQuery.isSuccess) return;
 
     autoLatestBootstrappedRef.current = true;
     if (meetingKey !== null || sessionKey !== null) return;
 
     selectLatestEvent("auto");
-  }, [meetings.isPending, meetingKey, sessionKey, selectLatestEvent]);
+  }, [meetings.isPending, latestMeetingQuery.isSuccess, meetingKey, sessionKey, selectLatestEvent]);
 
   const eventLabel = selectedMeeting
     ? `${selectedMeeting.country_name.toUpperCase()} ${selectedMeeting.year}`

@@ -29,6 +29,7 @@ const state = vi.hoisted(() => ({
     isError: false,
     error: null as { status?: number } | null,
   },
+  latestMeeting: null as Record<string, unknown> | null,
   live: false,
   openModal: vi.fn(),
   openHelp: vi.fn(),
@@ -52,6 +53,12 @@ vi.mock("@/timeline/clock", () => ({
 vi.mock("@/hooks/useSession", () => ({
   useMeetings: () => state.meetings,
   useSessions: () => state.sessions,
+  useLatestMeeting: () => ({
+    data: state.latestMeeting,
+    isPending: false,
+    isError: false,
+    error: null,
+  }),
 }));
 
 vi.mock("@/api/client", () => ({
@@ -109,6 +116,15 @@ describe("Nav", () => {
     resetTimeline.mockReset();
     state.live = true;
     state.showNextRaceWeekendBanner = false;
+    state.latestMeeting = {
+      year: 2025,
+      meeting_key: 22,
+      meeting_name: "Australian Grand Prix",
+      meeting_official_name: "FORMULA 1 AUSTRALIAN GRAND PRIX 2025",
+      date_start: "2025-03-15T00:00:00.000Z",
+      date_end: "2025-03-17T00:00:00.000Z",
+      is_cancelled: false,
+    };
     state.meetings = {
       data: [
         {

@@ -1,5 +1,6 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { api, type QueryFilters } from "@/api/endpoints";
+import type { Interval, Position } from "@/api/types";
 import {
   CURRENT_SEASON_STALE_MS,
   LIVE_POLL_FAST_MS,
@@ -41,6 +42,24 @@ export function useMeetings(
   });
 }
 
+export function useLatestMeeting() {
+  return useQuery({
+    queryKey: ["latestMeeting"],
+    queryFn: () => api.latestMeeting(),
+    staleTime: CURRENT_SEASON_STALE_MS,
+    select: (rows) => rows[0] ?? null,
+  });
+}
+
+export function useLatestSession() {
+  return useQuery({
+    queryKey: ["latestSession"],
+    queryFn: () => api.latestSession(),
+    staleTime: CURRENT_SEASON_STALE_MS,
+    select: (rows) => rows[0] ?? null,
+  });
+}
+
 export function useSessions(meetingKey: number | null) {
   return useQuery({
     queryKey: ["sessions", meetingKey],
@@ -66,10 +85,10 @@ export function usePositions(sessionKey: number | null, isLive = false) {
     queryKey: ["positions", sessionKey],
     queryFn: async () => {
       if (sessionKey === null) return [];
-      const cached = (queryClient.getQueryData<[{ date?: string; driver_number?: number }]>([
+      const cached = (queryClient.getQueryData<Position[]>([
         "positions",
         sessionKey,
-      ]) ?? []) as { date?: string; driver_number?: number }[];
+      ]) ?? []) as Position[];
 
       if (!isLive) return api.positions(sessionKey);
       const latestRow = [...cached].sort((a, b) => {
@@ -95,10 +114,10 @@ export function useIntervals(sessionKey: number | null, isLive = false) {
     queryKey: ["intervals", sessionKey],
     queryFn: async () => {
       if (sessionKey === null) return [];
-      const cached = (queryClient.getQueryData<[{ date?: string; driver_number?: number }]>([
+      const cached = (queryClient.getQueryData<Interval[]>([
         "intervals",
         sessionKey,
-      ]) ?? []) as { date?: string; driver_number?: number }[];
+      ]) ?? []) as Interval[];
 
       if (!isLive) return api.intervals(sessionKey);
       const latestRow = [...cached].sort((a, b) => {

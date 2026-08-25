@@ -56,6 +56,18 @@ vi.mock("@/hooks/useSession", () => ({
     isError: false,
     error: null,
   })),
+  useLatestMeeting: vi.fn(() => ({
+    data: null,
+    isPending: false,
+    isError: false,
+    error: null,
+  })),
+  useLatestSession: vi.fn(() => ({
+    data: null,
+    isPending: false,
+    isError: false,
+    error: null,
+  })),
 }));
 
 vi.mock("@/api/client", () => ({

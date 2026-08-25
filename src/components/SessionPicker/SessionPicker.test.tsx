@@ -17,12 +17,19 @@ const state = vi.hoisted(() => ({
     isError: false,
     error: null as { status?: number } | null,
   },
+  latestSession: null as Record<string, unknown> | null,
   live: false,
 }));
 
 vi.mock("@/hooks/useSession", () => ({
   useMeetings: () => state.meetings,
   useSessions: () => state.sessions,
+  useLatestSession: () => ({
+    data: state.latestSession,
+    isPending: false,
+    isError: false,
+    error: null,
+  }),
 }));
 
 vi.mock("@/api/client", () => ({
@@ -56,6 +63,12 @@ describe("SessionPicker", () => {
       isPending: false,
       isError: false,
       error: null,
+    };
+    state.latestSession = {
+      year: 2025,
+      meeting_key: 22,
+      session_key: 202,
+      date_start: "2025-03-16T04:00:00.000Z",
     };
     state.live = false;
   });

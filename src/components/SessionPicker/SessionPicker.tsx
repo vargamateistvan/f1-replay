@@ -1,4 +1,4 @@
-import { useMeetings, useSessions } from "@/hooks/useSession";
+import { useLatestSession, useMeetings, useSessions } from "@/hooks/useSession";
 import { isAuthError } from "@/api/client";
 import { isSessionLive } from "@/utils/live";
 import { YEARS } from "@/constants";
@@ -40,6 +40,7 @@ export function SessionPicker({
 }: Props) {
   const [, setSearchParams] = useSearchParams();
   const meetings = useMeetings(year);
+  const latestSessionQuery = useLatestSession();
   const sessions = useSessions(meetingKey);
   const [selectLatestSessionOnLoad, setSelectLatestSessionOnLoad] =
     useState(false);
@@ -60,7 +61,11 @@ export function SessionPicker({
     selectedMeeting?.country_flag,
   );
   const live = isSessionLive(selectedSession);
-  const authFailed = isAuthError(meetings.error) || isAuthError(sessions.error);
+  const authFailed =
+    isAuthError(meetings.error) ||
+    isAuthError(sessions.error) ||
+    isAuthError(latestSessionQuery.error);
+  const latestSession = latestSessionQuery.data ?? null;
 
   // Automatically select the latest session once sessions load
   useEffect(() => {
@@ -93,12 +98,24 @@ export function SessionPicker({
 
   const selectLatestEvent = useCallback(
     (source: "auto" | "manual" = "auto") => {
-      const latest = meetings.data
+      const latestMeetingFallback = meetings.data
         ?.slice()
         .sort(
           (a, b) =>
             new Date(b.date_start).getTime() - new Date(a.date_start).getTime(),
         )[0];
+      const latest = latestSession?.meeting_key
+        ? {
+            year: latestSession.year,
+            meeting_key: latestSession.meeting_key,
+          }
+        : latestMeetingFallback
+          ? {
+              year: latestMeetingFallback.year,
+              meeting_key: latestMeetingFallback.meeting_key,
+            }
+          : null;
+
       if (!latest) return;
       onYear(latest.year);
       onMeeting(latest.meeting_key);
@@ -110,19 +127,19 @@ export function SessionPicker({
       }
       setSelectLatestSessionOnLoad(true);
     },
-    [meetings.data, onYear, onMeeting],
+    [latestSession, meetings.data, onYear, onMeeting],
   );
 
   // First mount behavior: if nothing is selected yet, auto-run Latest Event.
   useEffect(() => {
     if (autoLatestBootstrappedRef.current) return;
-    if (meetings.isPending) return;
+    if (meetings.isPending && !latestSessionQuery.isSuccess) return;
 
     autoLatestBootstrappedRef.current = true;
     if (meetingKey !== null || sessionKey !== null) return;
 
     selectLatestEvent("auto");
-  }, [meetings.isPending, meetingKey, sessionKey, selectLatestEvent]);
+  }, [meetings.isPending, latestSessionQuery.isSuccess, meetingKey, sessionKey, selectLatestEvent]);
 
   return (
     <div>

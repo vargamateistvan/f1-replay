@@ -26,8 +26,12 @@ export type QueryFilters = Record<string, QueryValue>;
 export const api = {
   meetings: (year: number) => fetchEndpoint<Meeting>("meetings", { year }),
 
+  latestMeeting: () => fetchEndpoint<Meeting>("meetings", { meeting_key: "latest" }),
+
   sessions: (meetingKey: number) =>
     fetchEndpoint<Session>("sessions", { meeting_key: meetingKey }),
+
+  latestSession: () => fetchEndpoint<Session>("sessions", { session_key: "latest" }),
 
   sessionsByYear: (year: number) =>
     fetchEndpoint<Session>("sessions", { year }),

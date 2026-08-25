@@ -66,6 +66,18 @@ const mockState = vi.hoisted(() => ({
 vi.mock("@/hooks/useSession", () => ({
   useMeetings: () => mockState.meetings,
   useSessions: () => mockState.sessions,
+  useLatestMeeting: () => ({
+    data: null,
+    isPending: false,
+    isError: false,
+    error: null,
+  }),
+  useLatestSession: () => ({
+    data: null,
+    isPending: false,
+    isError: false,
+    error: null,
+  }),
 }));
 
 vi.mock("@/api/client", () => ({
