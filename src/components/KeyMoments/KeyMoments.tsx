@@ -131,8 +131,8 @@ export function KeyMoments({
               <button
                 key={`${m.kind}-${m.ms}-${i}`}
                 onClick={() => onJump(m.ms)}
-                className="mb-0.5 w-full flex items-start gap-3 border-b border-panel px-2 py-2.5 text-left transition-colors hover:bg-white/[0.04]"
-                style={{ borderLeft: `2px solid ${cfg.badgeBg}` }}
+                className="mb-0.5 w-full flex items-start gap-3 px-2 py-2.5 text-left transition-colors hover:bg-white/[0.04]"
+                style={{ borderLeft: `6px solid ${cfg.badgeBg}` }}
               >
                 <span className="text-[10px] font-mono tabular-nums text-muted w-10 shrink-0">
                   {fmtMs(m.ms)}

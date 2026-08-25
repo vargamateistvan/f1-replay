@@ -281,21 +281,56 @@ describe("RaceControl", () => {
     const eventRow = screen
       .getByText("WAVED BLUE FLAG FOR CAR 1 (VER)")
       .parentElement?.parentElement;
-    const badge = eventRow?.children[1]?.children[1]?.children[0];
+    const borderStrip = eventRow?.children[0] as HTMLElement | undefined;
+    const badge = eventRow?.children[2]?.children[1]?.children[0];
 
-    expect(eventRow).toHaveStyle({
-      borderLeft: "2px solid #4da6ff",
+    expect(borderStrip).toHaveStyle({
+      backgroundColor: "rgb(77, 166, 255)",
     });
     expect(badge).toHaveStyle({
       backgroundColor: "rgb(77, 166, 255)",
       color: "rgb(0, 0, 0)",
     });
 
-    const metaLine = eventRow?.children[1]?.children[1];
+    const metaLine = eventRow?.children[2]?.children[1];
     expect(metaLine).toBeDefined();
     expect(metaLine).toHaveTextContent("BLUE");
     expect(metaLine).toHaveTextContent("VER");
     expect(metaLine).not.toHaveTextContent("Sector");
     expect(metaLine).not.toHaveTextContent("flag");
+  });
+
+  it("renders chequered flag rows with a striped border", () => {
+    render(
+      <RaceControlFeed
+        entries={
+          [
+            {
+              category: "Flag",
+              date: "2024-01-01T00:00:10.000Z",
+              driver_number: null,
+              flag: "CHEQUERED",
+              lap_number: 57,
+              meeting_key: 1,
+              message: "CHEQUERED FLAG",
+              qualifying_phase: null,
+              scope: "Track",
+              sector: null,
+              session_key: 99,
+            },
+          ] as RaceControl[]
+        }
+        sessionTimeMs={60_000}
+        sessionStartMs={Date.parse("2024-01-01T00:00:00.000Z")}
+        drivers={drivers}
+      />,
+    );
+
+    const eventRow = screen.getByText("CHEQUERED FLAG").parentElement?.parentElement;
+    const borderStrip = eventRow?.children[0] as HTMLElement | undefined;
+
+    expect(borderStrip).toHaveClass("w-[6px]");
+    expect(borderStrip?.getAttribute("style")).toContain("data:image/svg+xml");
+    expect(borderStrip?.getAttribute("style")).toContain("background-size: 12px 12px");
   });
 });

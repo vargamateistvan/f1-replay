@@ -174,8 +174,8 @@ export function OvertakeFeed({
               return (
                 <div
                   key={`${e.overtaking_driver_number}-${e.overtaken_driver_number}-${e.date}-${e.position ?? "na"}`}
-                  className="mb-0.5 flex items-start gap-3 border-b border-panel px-2 py-2.5 text-xs transition-colors hover:bg-white/[0.04]"
-                  style={{ borderLeft: `2px solid ${overColor}` }}
+                  className="mb-0.5 flex items-start gap-3 px-2 py-2.5 text-xs transition-colors hover:bg-white/[0.04]"
+                  style={{ borderLeft: `6px solid ${overColor}` }}
                 >
                   <span className="w-10 shrink-0 text-[10px] font-mono tabular-nums text-muted">
                     {fmtSessionTime(ms)}

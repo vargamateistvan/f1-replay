@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import type { CSSProperties } from "react";
 import type { RaceControl as RaceControlEntry, Driver } from "@/api/types";
 import { downloadEndpointCsv } from "@/api/client";
 import { useSettings } from "@/stores/settings";
@@ -15,6 +16,17 @@ import { isPracticeSession } from "@/utils/session";
 
 // ─── Visual config ───────────────────────────────────────────────────────────
 
+const CHEQUERED_BORDER_IMAGE = (() => {
+  const svg =
+    "<svg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'>" +
+    "<rect width='6' height='6' fill='#111'/>" +
+    "<rect x='6' y='6' width='6' height='6' fill='#111'/>" +
+    "<rect x='6' width='6' height='6' fill='#fff'/>" +
+    "<rect y='6' width='6' height='6' fill='#fff'/>" +
+    "</svg>";
+  return `url("data:image/svg+xml,${encodeURIComponent(svg)}")`;
+})();
+
 const FLAG_CONFIG: Record<
   string,
   {
@@ -24,6 +36,7 @@ const FLAG_CONFIG: Record<
     badgeBg: string;
     badgeText: string;
     border: string;
+    borderPattern?: string;
   }
 > = {
   GREEN: {
@@ -65,6 +78,7 @@ const FLAG_CONFIG: Record<
     badgeBg: "#fff",
     badgeText: "#000",
     border: "#e8e8e8",
+    borderPattern: CHEQUERED_BORDER_IMAGE,
   },
   BLUE: {
     label: "BLUE",
@@ -182,14 +196,24 @@ function sectorBadge(entry: {
   return null;
 }
 
-function eventAccentBorderColor(
+function eventAccentBorderStyle(
   flag: string | null,
-  flagBorder: string,
+  cfg: (typeof FLAG_CONFIG)[keyof typeof FLAG_CONFIG],
   teamColour?: string,
-): string | null {
-  if (flag) return flagBorder;
-  if (teamColour) return `#${teamColour}`;
-  return null;
+): CSSProperties | null {
+  if (!flag) {
+    return teamColour ? { backgroundColor: `#${teamColour}` } : null;
+  }
+
+  if (cfg.borderPattern) {
+    return {
+      backgroundImage: cfg.borderPattern,
+      backgroundSize: "12px 12px",
+      backgroundRepeat: "repeat",
+    };
+  }
+
+  return { backgroundColor: cfg.border };
 }
 
 // ─── Props ────────────────────────────────────────────────────────────────────
@@ -370,9 +394,7 @@ export function RaceControlFeed({
             color: flagConfig.bannerText,
           }}
         >
-          <span
-            className="font-black text-[10px] tracking-widest uppercase"
-          >
+          <span className="font-black text-[10px] tracking-widest uppercase">
             {flagConfig.label}
           </span>
           {currentSector && (
@@ -585,24 +607,26 @@ export function RaceControlFeed({
                         color: cfg.badgeText,
                       }
                     : undefined;
-                  const accentBorder = eventAccentBorderColor(
+                  const accentBorderStyle = eventAccentBorderStyle(
                     e.flag,
-                    cfg.border,
+                    cfg,
                     eventDriver?.team_colour,
                   );
                   return (
                     <div
                       key={e.id}
-                      className={`mb-0.5 flex items-start gap-3 px-2 py-2.5 transition-colors hover:bg-white/[0.04] ${
+                      className={`relative mb-0.5 flex items-start gap-3 px-2 py-2.5 transition-colors hover:bg-white/[0.04] ${
                         eventDriver ? "bg-track/50" : ""
                       }`}
-                      style={
-                        accentBorder
-                          ? { borderLeft: `2px solid ${accentBorder}` }
-                          : undefined
-                      }
                     >
-                      <span className="w-10 shrink-0 text-[10px] font-mono tabular-nums text-muted">
+                      {accentBorderStyle && (
+                        <span
+                          aria-hidden="true"
+                          className="absolute inset-y-0 left-0 w-[6px]"
+                          style={accentBorderStyle}
+                        />
+                      )}
+                      <span className="w-10 shrink-0 pl-2 text-[10px] font-mono tabular-nums text-muted">
                         {eventTime}
                       </span>
                       <div className="min-w-0 flex-1">

@@ -215,7 +215,7 @@ function ChapterRow({
   return (
     <div className="mb-0.5 overflow-hidden rounded border border-panel bg-surface/80">
       <div
-        className={`w-full flex items-start gap-3 px-2 py-2.5 text-left transition-colors hover:bg-white/[0.04] border-l-2 ${cfg.trackCls} ${isCurrent ? "bg-track/50" : ""}`}
+        className={`w-full flex items-start gap-3 px-2 py-2.5 text-left transition-colors hover:bg-white/[0.04] border-l-[6px] ${cfg.trackCls} ${isCurrent ? "bg-track/50" : ""}`}
       >
         <span className="w-10 shrink-0 text-[10px] font-mono tabular-nums text-muted">
           {fmtMs(chapter.startMs)}

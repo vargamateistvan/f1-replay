@@ -193,8 +193,8 @@ export function TeamRadioFeed({
               return (
                 <div
                   key={`${e.driver_number}-${e.date}-${e.recording_url}`}
-                  className="mb-0.5 flex items-start gap-3 border-b border-panel px-2 py-2.5 transition-colors hover:bg-white/[0.04]"
-                  style={{ borderLeft: `2px solid ${color}` }}
+                  className="mb-0.5 flex items-start gap-3 px-2 py-2.5 transition-colors hover:bg-white/[0.04]"
+                  style={{ borderLeft: `6px solid ${color}` }}
                 >
                   <span className="w-10 shrink-0 text-[10px] font-mono tabular-nums text-muted">
                     {fmtSessionTime(entryMs, sessionStartMs)}
