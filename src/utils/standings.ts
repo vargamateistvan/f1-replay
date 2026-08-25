@@ -1,5 +1,6 @@
 import type { SessionResult } from "@/api/types";
 import { RACE_POINTS, SPRINT_POINTS } from "@/constants";
+import { isSprintSession } from "@/utils/session";
 
 export interface DriverStanding {
   position: number;
@@ -38,7 +39,8 @@ export interface DriverInfo {
 }
 
 interface SessionLike {
-  session_type: string;
+  session_type?: string;
+  session_name?: string;
 }
 
 // Aggregate a season's race/sprint results into driver + constructor tables.
@@ -63,7 +65,8 @@ export function computeStandings(
     const result = results[i];
     if (!result || result.length === 0) return;
 
-    const isSprint = session.session_type === "Sprint";
+    const isSprint =
+      session.session_type === "Sprint" || isSprintSession(session.session_name);
     const fallbackPts = isSprint ? SPRINT_POINTS : RACE_POINTS;
 
     for (const r of result) {

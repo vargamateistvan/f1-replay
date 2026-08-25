@@ -53,7 +53,7 @@ export interface Driver {
   last_name: string;
   headshot_url: string | null;
   /** @deprecated OpenF1 marks this field for removal after the 2026 season. */
-  country_code: string;
+  country_code: string | null;
   session_key: number;
   meeting_key: number;
 }
@@ -72,7 +72,7 @@ export interface CarData {
   brake: number;
   date: string;
   driver_number: number;
-  drs: number;
+  drs: number | null;
   meeting_key: number;
   n_gear: number;
   rpm: number;

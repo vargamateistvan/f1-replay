@@ -3,6 +3,7 @@ import { useQuery, useQueries } from "@tanstack/react-query";
 import { api } from "@/api/endpoints";
 import { teamColor } from "@/utils/color";
 import { canonicalTeamName } from "@/utils/identity";
+import { isSprintSession } from "@/utils/session";
 import { computeStandings, type DriverInfo } from "@/utils/standings";
 import {
   useChampionshipDrivers,
@@ -26,7 +27,12 @@ export function useStandings(year: number) {
   const raceSessions = useMemo(
     () =>
       (sessionsQ.data ?? [])
-        .filter((s) => s.session_type === "Race" || s.session_type === "Sprint")
+        .filter(
+          (s) =>
+            s.session_type === "Race" ||
+            s.session_type === "Sprint" ||
+            isSprintSession(s.session_name),
+        )
         .sort(
           (a, b) =>
             new Date(a.date_start).getTime() - new Date(b.date_start).getTime(),

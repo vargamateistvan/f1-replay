@@ -1334,7 +1334,8 @@ export function LiveTiming({
               const gearDisplay = car
                 ? String(car.n_gear === 0 ? "N" : car.n_gear)
                 : "-";
-              const drsDisplay = car ? (car.drs >= 10 ? "ON" : "OFF") : "--";
+              const drsValue = car?.drs ?? 0;
+              const drsDisplay = car ? (drsValue >= 10 ? "ON" : "OFF") : "--";
               const pb = personalBestMap.get(num) ?? {
                 s1: null,
                 s2: null,
@@ -1572,7 +1573,7 @@ export function LiveTiming({
                               )}
                               {showDrs && columns.drs && (
                                 <span
-                                  className={`inline-flex min-w-0 items-center gap-1 ${car && car.drs >= 10 ? "text-[#39d743]" : "text-[#9ca3af]"}`}
+                                  className={`inline-flex min-w-0 items-center gap-1 ${car && (car.drs ?? 0) >= 10 ? "text-[#39d743]" : "text-[#9ca3af]"}`}
                                 >
                                   <span className="text-[#9ba1a8]">DRS</span>
                                   <span className="w-[3ch] text-right">
@@ -1841,13 +1842,13 @@ export function LiveTiming({
                           {car ? (
                             <span
                               className={`mx-auto flex min-w-[2rem] items-center justify-center px-1 py-0.5 text-center leading-none text-[9px] font-black uppercase tracking-[0.08em] ${
-                                car.drs >= 10
+                                (car.drs ?? 0) >= 10
                                   ? "bg-[#39d743] text-black"
                                   : "bg-panel text-muted"
                               }`}
-                              title={`DRS raw value ${car.drs}`}
+                              title={`DRS raw value ${car.drs ?? 0}`}
                             >
-                              {car.drs >= 10 ? "ON" : "OFF"}
+                              {(car.drs ?? 0) >= 10 ? "ON" : "OFF"}
                             </span>
                           ) : (
                             <span className="text-muted">—</span>

@@ -137,11 +137,23 @@ export const api = {
       ...filters,
     }),
 
-  startingGrid: (sessionKey: number, filters: QueryFilters = {}) =>
-    fetchEndpoint<StartingGrid>("starting_grid", {
+  startingGrid: async (
+    sessionKey: number,
+    meetingKey?: number,
+    filters: QueryFilters = {},
+  ) => {
+    const direct = await fetchEndpoint<StartingGrid>("starting_grid", {
       session_key: sessionKey,
       ...filters,
-    }),
+    });
+    if (direct.length > 0 || meetingKey == null) return direct;
+
+    const byMeeting = await fetchEndpoint<StartingGrid>("starting_grid", {
+      meeting_key: meetingKey,
+      ...filters,
+    });
+    return byMeeting.filter((row) => row.session_key === sessionKey);
+  },
 
   overtakes: (sessionKey: number, filters: QueryFilters = {}) =>
     fetchEndpoint<Overtake>("overtakes", {

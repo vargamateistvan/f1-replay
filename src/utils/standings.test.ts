@@ -49,10 +49,10 @@ const info: DriverInfo = {
 };
 
 const sessions = [
-  { session_type: "Race" }, // positional fallback points
-  { session_type: "Race" }, // API-provided points
-  { session_type: "Sprint" }, // positional fallback (sprint table)
-  { session_type: "Race" }, // results not loaded
+  { session_type: "Race", session_name: "Race" }, // positional fallback points
+  { session_type: "Race", session_name: "Race" }, // API-provided points
+  { session_type: "Race", session_name: "Sprint" }, // positional fallback (sprint table)
+  { session_type: "Race", session_name: "Race" }, // results not loaded
 ];
 
 const results: (SessionResult[] | undefined)[] = [

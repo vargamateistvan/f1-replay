@@ -80,10 +80,41 @@ export function useStints(sessionKey: number | null) {
   });
 }
 
-export function useStartingGrid(sessionKey: number | null) {
+export function useStartingGrid(
+  sessionKey: number | null,
+  meetingKey: number | null = null,
+) {
   return useQuery({
-    queryKey: ["startingGrid", sessionKey],
-    queryFn: () => api.startingGrid(sessionKey!),
+    queryKey: ["startingGrid", sessionKey, meetingKey],
+    queryFn: async () => {
+      if (sessionKey === null) return [];
+
+      const directRows = await api.startingGrid(sessionKey, meetingKey ?? undefined);
+      if (directRows.length > 0 || meetingKey === null) return directRows;
+
+      const meetingSessions = await api.sessions(meetingKey);
+      const raceSession = meetingSessions.find((session) => session.session_key === sessionKey);
+      if (!raceSession) return directRows;
+
+      const qualifyingSession = [...meetingSessions]
+        .filter(
+          (session) =>
+            session.meeting_key === meetingKey &&
+            /qualifying|sprint qualifying/i.test(session.session_name),
+        )
+        .filter(
+          (session) =>
+            new Date(session.date_start).getTime() <=
+            new Date(raceSession.date_start).getTime(),
+        )
+        .sort(
+          (a, b) =>
+            new Date(b.date_start).getTime() - new Date(a.date_start).getTime(),
+        )[0];
+
+      if (!qualifyingSession) return directRows;
+      return api.startingGrid(qualifyingSession.session_key, meetingKey);
+    },
     enabled: sessionKey !== null,
     staleTime: Infinity,
   });

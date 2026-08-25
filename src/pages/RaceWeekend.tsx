@@ -395,7 +395,7 @@ export default function RaceWeekend() {
   const stints = useStints(sessionKey);
   const laps = useLaps(sessionKey, undefined, live);
   const pits = usePits(sessionKey);
-  const grid = useStartingGrid(sessionKey);
+  const grid = useStartingGrid(sessionKey, session?.meeting_key ?? null);
   const sessionResult = useSessionResult(sessionKey);
   const overtakes = useOvertakes(sessionKey, live);
   const raceControl = useRaceControl(sessionKey, live);

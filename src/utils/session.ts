@@ -10,6 +10,11 @@ export function isQualiSession(name: string): boolean {
   return /qualifying/i.test(name);
 }
 
+export function isSprintSession(name: string | undefined): boolean {
+  if (!name) return false;
+  return /(^|\s)sprint(\s|$)/i.test(name) && !/qualifying/i.test(name);
+}
+
 export function isTimedSession(name: string): boolean {
   return isPracticeSession(name) || isQualiSession(name);
 }

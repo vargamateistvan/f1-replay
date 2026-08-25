@@ -53,7 +53,7 @@ export function toTelemetrySamples(
       brake: row.brake,
       rpm: row.rpm,
       gear: row.n_gear,
-      drs: row.drs,
+      drs: row.drs ?? 0,
     });
   }
 
