@@ -251,4 +251,40 @@ describe("RaceControl", () => {
       .map((node) => node.textContent);
     expect(headers.slice(0, 3)).toEqual(["Q3", "Q2", "Q1"]);
   });
+
+  it("uses the flag color as the event accent border for waved flags", () => {
+    render(
+      <RaceControlFeed
+        entries={
+          [
+            {
+              category: "Flag",
+              date: "2024-01-01T00:00:10.000Z",
+              driver_number: 1,
+              flag: "BLUE",
+              lap_number: 1,
+              meeting_key: 1,
+              message: "WAVED BLUE FLAG FOR CAR 1 (VER)",
+              qualifying_phase: null,
+              scope: "Track",
+              sector: null,
+              session_key: 99,
+            },
+          ] as RaceControl[]
+        }
+        sessionTimeMs={60_000}
+        sessionStartMs={Date.parse("2024-01-01T00:00:00.000Z")}
+        drivers={drivers}
+      />,
+    );
+
+    const eventRow =
+      screen
+        .getByText("WAVED BLUE FLAG FOR CAR 1 (VER)")
+        .parentElement?.parentElement;
+
+    expect(eventRow).toHaveStyle({
+      borderLeft: "2px solid #3d78ff",
+    });
+  });
 });

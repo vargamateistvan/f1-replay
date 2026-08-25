@@ -17,32 +17,82 @@ import { isPracticeSession } from "@/utils/session";
 
 const FLAG_CONFIG: Record<
   string,
-  { label: string; bar: string; text: string }
+  { label: string; bar: string; text: string; border: string }
 > = {
-  GREEN: { label: "GREEN", bar: "bg-green-600", text: "text-green-300" },
-  YELLOW: { label: "YELLOW", bar: "bg-yellow-500", text: "text-yellow-300" },
+  GREEN: {
+    label: "GREEN",
+    bar: "bg-green-600",
+    text: "text-green-300",
+    border: "#16a34a",
+  },
+  YELLOW: {
+    label: "YELLOW",
+    bar: "bg-yellow-500",
+    text: "text-yellow-300",
+    border: "#eab308",
+  },
   DOUBLE_YELLOW: {
     label: "DBL YELLOW",
     bar: "bg-yellow-400",
     text: "text-yellow-200",
+    border: "#f5d400",
   },
-  RED: { label: "RED FLAG", bar: "bg-red-600", text: "text-red-300" },
-  CHEQUERED: { label: "CHEQUERED", bar: "bg-white", text: "text-gray-900" },
-  BLUE: { label: "BLUE", bar: "bg-blue-500", text: "text-blue-300" },
+  RED: {
+    label: "RED FLAG",
+    bar: "bg-red-600",
+    text: "text-red-300",
+    border: "#dc2626",
+  },
+  CHEQUERED: {
+    label: "CHEQUERED",
+    bar: "bg-white",
+    text: "text-gray-900",
+    border: "#e8e8e8",
+  },
+  BLUE: {
+    label: "BLUE",
+    bar: "bg-blue-500",
+    text: "text-blue-300",
+    border: "#3d78ff",
+  },
   BLACK_AND_WHITE: {
     label: "BLK/WHT",
     bar: "bg-gray-400",
     text: "text-gray-200",
+    border: "#9ca3af",
+  },
+  SAFETY_CAR: {
+    label: "SAFETY CAR",
+    bar: "bg-yellow-600",
+    text: "text-yellow-300",
+    border: "#f5a623",
   },
   VIRTUAL_SC: {
     label: "VIRTUAL SC",
     bar: "bg-yellow-600",
     text: "text-yellow-300",
+    border: "#f5a623",
   },
-  CLEAR: { label: "CLEAR", bar: "bg-green-600", text: "text-green-300" },
+  VIRTUAL_SAFETY_CAR: {
+    label: "VIRTUAL SC",
+    bar: "bg-yellow-600",
+    text: "text-yellow-300",
+    border: "#f5a623",
+  },
+  CLEAR: {
+    label: "CLEAR",
+    bar: "bg-green-600",
+    text: "text-green-300",
+    border: "#16a34a",
+  },
 };
 
-const DEFAULT_CONFIG = { label: "", bar: "bg-track", text: "text-muted" };
+const DEFAULT_CONFIG = {
+  label: "",
+  bar: "bg-track",
+  text: "text-muted",
+  border: "transparent",
+};
 
 const SEVERITY_BADGE: Record<
   RaceControlSeverity,
@@ -98,6 +148,16 @@ function sectorBadge(entry: {
     entry.scope.toLowerCase() !== "track"
   )
     return entry.scope;
+  return null;
+}
+
+function eventAccentBorderColor(
+  flag: string | null,
+  flagBorder: string,
+  teamColour?: string,
+): string | null {
+  if (flag) return flagBorder;
+  if (teamColour) return `#${teamColour}`;
   return null;
 }
 
@@ -486,6 +546,11 @@ export function RaceControlFeed({
                   const badgeLabel = e.flag
                     ? cfg.label || e.flag
                     : severity.label;
+                  const accentBorder = eventAccentBorderColor(
+                    e.flag,
+                    cfg.border,
+                    eventDriver?.team_colour,
+                  );
                   return (
                     <div
                       key={e.id}
@@ -493,10 +558,8 @@ export function RaceControlFeed({
                         eventDriver ? "bg-track/50" : ""
                       }`}
                       style={
-                        eventDriver
-                          ? {
-                              borderLeft: `2px solid #${eventDriver.team_colour}`,
-                            }
+                        accentBorder
+                          ? { borderLeft: `2px solid ${accentBorder}` }
                           : undefined
                       }
                     >
