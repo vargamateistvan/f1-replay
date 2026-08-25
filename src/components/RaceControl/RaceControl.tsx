@@ -569,10 +569,12 @@ export function RaceControlFeed({
                         color: cfg.badgeText,
                       }
                     : undefined;
+                  // `!` keeps the row tone from being overridden by the
+                  // shared even: zebra-stripe background.
                   const rowToneClass = isPenaltyEntry
-                    ? "bg-red-500/10 ring-1 ring-inset ring-red-500/25 hover:bg-red-500/15"
+                    ? "!bg-red-500/10 ring-1 ring-inset ring-red-500/25 hover:!bg-red-500/15"
                     : eventDriver
-                      ? "bg-track/50"
+                      ? "!bg-track/50 hover:!bg-white/[0.04]"
                       : "";
                   const accentBorderStyle = eventAccentBorderStyle(
                     e.flag,

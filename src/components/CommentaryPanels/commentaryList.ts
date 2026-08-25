@@ -9,7 +9,7 @@ export const COMMENTARY_GROUP_HEADER_CLASS =
 export const COMMENTARY_GROUP_ITEMS_CLASS = "divide-y divide-panel";
 
 export const COMMENTARY_ROW_CLASS =
-  "relative flex items-start gap-3 px-2 py-2.5 text-left transition-colors hover:bg-white/[0.04]";
+  "relative flex items-start gap-3 px-2 py-2.5 text-left transition-colors even:bg-white/[0.03] hover:bg-white/[0.04]";
 
 export const COMMENTARY_TIME_CLASS =
   "w-14 shrink-0 self-center whitespace-nowrap pl-2 pr-2 text-[10px] font-mono tabular-nums text-muted";
