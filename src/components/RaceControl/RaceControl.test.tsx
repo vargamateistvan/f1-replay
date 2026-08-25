@@ -278,13 +278,19 @@ describe("RaceControl", () => {
       />,
     );
 
-    const eventRow =
-      screen
-        .getByText("WAVED BLUE FLAG FOR CAR 1 (VER)")
-        .parentElement?.parentElement;
+    const eventRow = screen
+      .getByText("WAVED BLUE FLAG FOR CAR 1 (VER)")
+      .parentElement?.parentElement;
 
     expect(eventRow).toHaveStyle({
       borderLeft: "2px solid #3d78ff",
     });
+
+    const metaLine = eventRow?.children[1]?.children[1];
+    expect(metaLine).toBeDefined();
+    expect(metaLine).toHaveTextContent("BLUE");
+    expect(metaLine).toHaveTextContent("VER");
+    expect(metaLine).not.toHaveTextContent("Sector");
+    expect(metaLine).not.toHaveTextContent("flag");
   });
 });

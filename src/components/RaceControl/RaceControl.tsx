@@ -525,9 +525,7 @@ export function RaceControlFeed({
               <div className="divide-y divide-panel">
                 {[...group.events].reverse().map((e) => {
                   const cfg = FLAG_CONFIG[toFlagKey(e.flag)] ?? DEFAULT_CONFIG;
-                  const sector = sectorBadge(e);
                   const severity = SEVERITY_BADGE[e.severity];
-                  const typeLabel = e.kind.replace(/_/g, " ");
                   const eventDriver =
                     e.driverNumber !== null
                       ? driverMap.get(e.driverNumber)
@@ -584,11 +582,6 @@ export function RaceControlFeed({
                               {eventDriver.name_acronym}
                             </span>
                           )}
-                          {e.flag && <span>{cfg.label || e.flag}</span>}
-                          {sector && <span>{sector}</span>}
-                          <span className="font-mono tabular-nums text-white/70">
-                            {typeLabel}
-                          </span>
                         </div>
                       </div>
                       <span className="shrink-0 text-[10px] text-muted">›</span>
