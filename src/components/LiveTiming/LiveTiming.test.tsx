@@ -367,6 +367,56 @@ describe("LiveTiming", () => {
     expect(onSelectDriver).toHaveBeenCalledWith(16);
   });
 
+  it("clears the pit badge after a session start or restart", () => {
+    const sessionStartMs = Date.parse("2024-01-01T00:00:00.000Z");
+
+    render(
+      <LiveTiming
+        drivers={drivers}
+        positions={[
+          {
+            driver_number: 1,
+            position: 1,
+            date: "2024-01-01T00:00:10.000Z",
+          },
+        ] as Position[]}
+        intervals={[]}
+        pits={[
+          {
+            date: "2024-01-01T00:00:20.000Z",
+            driver_number: 1,
+            lap_number: 1,
+            meeting_key: 1,
+            stop_duration: null,
+            lane_duration: 30,
+            pit_duration: null,
+            session_key: 1,
+          },
+        ] as Pit[]}
+        laps={[]}
+        raceControl={[
+          {
+            category: "Session",
+            date: "2024-01-01T00:00:47.000Z",
+            driver_number: null,
+            flag: null,
+            lap_number: null,
+            meeting_key: 1,
+            message: "STANDING START",
+            qualifying_phase: null,
+            scope: "Track",
+            sector: null,
+            session_key: 1,
+          },
+        ] as RaceControl[]}
+        sessionTimeMs={60_000}
+        sessionStartMs={sessionStartMs}
+      />,
+    );
+
+    expect(screen.queryByText("PIT")).not.toBeInTheDocument();
+  });
+
   it("shows mph and converted speed in imperial mode", () => {
     useSettings.setState({ metricSystem: "imperial" });
 

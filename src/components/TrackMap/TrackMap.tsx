@@ -336,6 +336,7 @@ export function TrackMap({
     cameraViewRef.current = { x: 0, y: 0, w: SVG_W, h: SVG_H };
   }, [sessionKey]);
   const finishPatternId = `finish-checker-${sessionKey ?? "na"}`;
+  const trackSurfaceGradientId = `track-surface-gradient-${sessionKey ?? "na"}`;
   const rotationStorageKey = useMemo(
     () =>
       `f1-replay:track-rotation:${sessionKey ?? "none"}:${circuitKey ?? "none"}`,
@@ -1791,6 +1792,26 @@ export function TrackMap({
         style={{ background: mapBackground }}
       >
         <defs>
+          <linearGradient
+            id={trackSurfaceGradientId}
+            x1="0%"
+            y1="0%"
+            x2="100%"
+            y2="100%"
+          >
+            <stop
+              offset="0%"
+              stopColor={lightMode ? "#eaf1ff" : "#303949"}
+            />
+            <stop
+              offset="52%"
+              stopColor={lightMode ? "#cdd8ed" : "#202835"}
+            />
+            <stop
+              offset="100%"
+              stopColor={lightMode ? "#aebad0" : "#141922"}
+            />
+          </linearGradient>
           <pattern
             id={finishPatternId}
             width="4"
@@ -1852,50 +1873,60 @@ export function TrackMap({
               />
             ))}
 
-          {/* Track surface: thick grey base + thin white highlight */}
+          {/* Track surface: layered asphalt body with highlighted edges to read
+              clearly at a glance while staying subtle enough not to overpower the cars. */}
+          <path
+            d={pathData}
+            strokeWidth={20}
+            fill="none"
+            stroke={lightMode ? "rgba(89,101,126,0.22)" : "rgba(0,0,0,0.38)"}
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
           <path
             d={pathData}
             strokeWidth={16}
             fill="none"
-            stroke={lightMode ? "#d5dbea" : "#1f2028"}
+            stroke={`url(#${trackSurfaceGradientId})`}
             strokeLinecap="round"
             strokeLinejoin="round"
-            strokeOpacity={lightMode ? 0.95 : 0.55}
+            strokeOpacity={lightMode ? 0.98 : 0.96}
           />
           <path
             d={pathData}
             strokeWidth={11}
             fill="none"
-            stroke={lightMode ? "#bcc6d9" : "rgb(var(--color-panel) / 1)"}
+            stroke={lightMode ? "#bec9dc" : "#313947"}
             strokeLinecap="round"
             strokeLinejoin="round"
+            opacity={lightMode ? 0.88 : 0.9}
           />
           <path
             d={pathData}
             fill="none"
-            stroke={lightMode ? "#aab5cb" : "#4a4a55"}
-            strokeWidth={7}
+            stroke={lightMode ? "#93a2bd" : "#5b6475"}
+            strokeWidth={0.9}
             strokeLinecap="round"
             strokeLinejoin="round"
+            opacity={0.8}
           />
           <path
             d={pathData}
             fill="none"
-            stroke={lightMode ? "#ffffff" : "#ffffff"}
+            stroke={lightMode ? "rgba(255,255,255,0.8)" : "rgba(255,255,255,0.18)"}
             strokeWidth={1.5}
             strokeLinecap="round"
             strokeLinejoin="round"
-            strokeOpacity={lightMode ? 0.32 : 0.15}
           />
           <path
             d={pathData}
             fill="none"
-            stroke={lightMode ? "#eef2fb" : "#d7d7e0"}
-            strokeWidth={0.75}
+            stroke={lightMode ? "rgba(255,255,255,0.7)" : "rgba(214,219,232,0.4)"}
+            strokeWidth={0.8}
             strokeLinecap="round"
             strokeLinejoin="round"
-            strokeDasharray="1.2 5"
-            strokeOpacity={lightMode ? 0.5 : 0.2}
+            strokeDasharray="1.6 7.5"
+            opacity={0.7}
           />
 
           {/* Sector flag colors on track line */}

@@ -39,7 +39,22 @@ export function isTrackClearSignal(entry: RaceControlLike): boolean {
   if (flagKey === "GREEN" || flagKey === "CLEAR") return true;
 
   const msg = normalizeMessage(entry.message);
-  return includesAny(msg, ["TRACK CLEAR", "GREEN FLAG", "RESTART"]);
+  return includesAny(msg, [
+    "TRACK CLEAR",
+    "CLEAR IN TRACK",
+    "CLEAR IN SECTOR",
+    "SECTOR CLEAR",
+    "GREEN FLAG",
+    "YELLOW FLAG CLEARED",
+    "FLAG CLEARED",
+    "RESTART",
+    "END OF SAFETY CAR",
+    "END OF VSC",
+    "SAFETY CAR ENDING",
+    "SAFETY CAR IN THIS LAP",
+    "VSC ENDING",
+    "VSC IN THIS LAP",
+  ]);
 }
 
 export function isGlobalTrackClearSignal(entry: RaceControlLike): boolean {

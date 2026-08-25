@@ -96,7 +96,7 @@ function resolveFlagKeyFromRaceControlEntry(entry: RaceControl): string | null {
 
   const safetyPhase = getSafetyControlPhase(entry);
   if (safetyPhase === "safety_car_end" || safetyPhase === "vsc_end") {
-    return null;
+    return "GREEN";
   }
   if (safetyPhase === "safety_car_start") return "SAFETY_CAR";
   if (safetyPhase === "vsc_start") return "VIRTUAL_SC";
@@ -104,8 +104,16 @@ function resolveFlagKeyFromRaceControlEntry(entry: RaceControl): string | null {
   // OpenF1 can leave `flag` empty while still sending a structured flag message.
   const message = (entry.message ?? "").toUpperCase();
 
+  const isYellowFlagPenaltyMessage =
+    message.includes("YELLOW FLAG INFRINGEMENT") ||
+    message.includes("YELLOW FLAG") &&
+      (message.includes("PENALTY") || message.includes("INFRINGEMENT"));
+
   if (message.includes("DOUBLE YELLOW")) return "DOUBLE_YELLOW";
-  if (message.includes("YELLOW FLAG") || message.includes("YELLOW IN")) {
+  if (
+    (message.includes("YELLOW FLAG") || message.includes("YELLOW IN")) &&
+    !isYellowFlagPenaltyMessage
+  ) {
     return "YELLOW";
   }
   if (message.includes("RED FLAG")) return "RED";
@@ -118,7 +126,22 @@ function resolveFlagKeyFromRaceControlEntry(entry: RaceControl): string | null {
   if (message.includes("SAFETY CAR DEPLOYED")) {
     return "SAFETY_CAR";
   }
-  if (message.includes("GREEN FLAG") || message.includes("TRACK CLEAR")) {
+  if (
+    message.includes("GREEN FLAG") ||
+    message.includes("TRACK CLEAR") ||
+    message.includes("CLEAR IN TRACK") ||
+    message.includes("CLEAR IN SECTOR") ||
+    message.includes("SECTOR CLEAR") ||
+    message.includes("YELLOW FLAG CLEARED") ||
+    message.includes("FLAG CLEARED") ||
+    message.includes("END OF SAFETY CAR") ||
+    message.includes("END OF VSC") ||
+    message.includes("SAFETY CAR ENDING") ||
+    message.includes("SAFETY CAR IN THIS LAP") ||
+    message.includes("VSC ENDING") ||
+    message.includes("VSC IN THIS LAP") ||
+    message.includes("RESTART")
+  ) {
     return "GREEN";
   }
 

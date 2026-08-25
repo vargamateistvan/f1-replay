@@ -480,16 +480,48 @@ export function LiveTiming({
     return m;
   }, [intervals, currentT]);
 
+  const latestSessionStartMs = useMemo(() => {
+    if (!raceControl.length) return null;
+
+    let latest: number | null = null;
+    for (const entry of [...raceControl].sort(
+      (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime(),
+    )) {
+      const relMs = new Date(entry.date).getTime() - sessionStartMs;
+      if (relMs > sessionTimeMs) break;
+
+      const message = (entry.message ?? "").toUpperCase();
+      if (
+        /(STANDING START|SESSION STARTED|RACE START|WILL START|STARTED)/.test(
+          message,
+        ) &&
+        !/END OF/.test(message)
+      ) {
+        latest = relMs;
+      }
+    }
+    return latest;
+  }, [raceControl, sessionStartMs, sessionTimeMs]);
+
   const pittingNow = useMemo(() => {
     const s = new Set<number>();
     for (const p of pits) {
       const entry = new Date(p.date).getTime();
       const lane = laneDuration(p);
       const exitMs = lane ? entry + lane * 1000 : entry + 30_000;
-      if (entry <= currentT && currentT <= exitMs) s.add(p.driver_number);
+      if (entry <= currentT && currentT <= exitMs) {
+        if (
+          latestSessionStartMs !== null &&
+          entry < sessionStartMs + latestSessionStartMs &&
+          currentT >= sessionStartMs + latestSessionStartMs
+        ) {
+          continue;
+        }
+        s.add(p.driver_number);
+      }
     }
     return s;
-  }, [pits, currentT]);
+  }, [pits, currentT, latestSessionStartMs, sessionStartMs]);
 
   const penaltyStatusByDriver = useMemo(() => {
     if (!sessionStartMs || raceControl.length === 0)

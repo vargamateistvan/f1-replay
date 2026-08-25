@@ -193,6 +193,53 @@ describe("deriveTrackFlagState", () => {
     expect(state).toBeNull();
   });
 
+  it("clears stale safety-car state on end-of-safety-car message without a flag value", () => {
+    const state = deriveTrackFlagState(
+      [
+        rc({ date: iso(8), flag: "SAFETY_CAR", scope: "Track" }),
+        rc({ date: iso(12), message: "SAFETY CAR IN THIS LAP" }),
+      ],
+      START,
+      START + 30_000,
+    );
+
+    expect(state).toBeNull();
+  });
+
+  it("clears stale yellow state from sector clear message without a flag value", () => {
+    const state = deriveTrackFlagState(
+      [
+        rc({ date: iso(8), flag: "YELLOW", scope: "Sector", sector: 2 }),
+        rc({
+          date: iso(12),
+          scope: "Sector",
+          sector: 2,
+          message: "CLEAR IN TRACK SECTOR 2",
+        }),
+      ],
+      START,
+      START + 30_000,
+    );
+
+    expect(state).toBeNull();
+  });
+
+  it("ignores yellow-flag infringement penalties as track-yellow state", () => {
+    const state = deriveTrackFlagState(
+      [
+        rc({
+          date: iso(10),
+          message:
+            "FIA STEWARDS: DRIVE THROUGH PENALTY FOR CAR 41 (LIN) - YELLOW FLAG INFRINGEMENT (15:04:49)",
+        }),
+      ],
+      START,
+      START + 30_000,
+    );
+
+    expect(state).toBeNull();
+  });
+
   it("captures RED flag as globalFlag", () => {
     const state = deriveTrackFlagState(
       [
