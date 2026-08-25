@@ -224,6 +224,19 @@ describe("deriveTrackFlagState", () => {
     expect(state).toBeNull();
   });
 
+  it("clears stale safety-car state on safety-car lights out", () => {
+    const state = deriveTrackFlagState(
+      [
+        rc({ date: iso(8), flag: "SAFETY_CAR", scope: "Track" }),
+        rc({ date: iso(12), message: "SAFETY CAR LIGHTS OUT" }),
+      ],
+      START,
+      START + 30_000,
+    );
+
+    expect(state).toBeNull();
+  });
+
   it("ignores yellow-flag infringement penalties as track-yellow state", () => {
     const state = deriveTrackFlagState(
       [

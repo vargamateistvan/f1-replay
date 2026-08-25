@@ -51,8 +51,10 @@ export function isTrackClearSignal(entry: RaceControlLike): boolean {
     "END OF SAFETY CAR",
     "END OF VSC",
     "SAFETY CAR ENDING",
+    "SAFETY CAR LIGHTS OUT",
     "SAFETY CAR IN THIS LAP",
     "VSC ENDING",
+    "VSC LIGHTS OUT",
     "VSC IN THIS LAP",
   ]);
 }
@@ -77,12 +79,13 @@ export function getSafetyControlPhase(
         "RETURN",
         "WITHDRAW",
         "RESTART",
+        "LIGHTS OUT",
       ])) ||
     msg.includes("SAFETY CAR IN");
 
   const vscEnding =
     (msg.includes("VSC") || msg.includes("VIRTUAL SAFETY CAR")) &&
-    includesAny(msg, ["ENDING", "HAS ENDED", "END OF", "RESTART"]);
+    includesAny(msg, ["ENDING", "HAS ENDED", "END OF", "RESTART", "LIGHTS OUT"]);
 
   if (vscEnding) return "vsc_end";
   if (safetyCarEnding) return "safety_car_end";
@@ -95,7 +98,9 @@ export function getSafetyControlPhase(
   ]);
 
   const safetyCarStartByMessage =
-    msg.includes("SAFETY CAR") && !msg.includes("VIRTUAL");
+    msg.includes("SAFETY CAR") &&
+    !msg.includes("VIRTUAL") &&
+    !msg.includes("LIGHTS OUT");
 
   if (VSC_FLAGS.has(flagKey) || vscStartByMessage) return "vsc_start";
   if (flagKey === "SAFETY_CAR" || safetyCarStartByMessage)

@@ -137,8 +137,10 @@ function resolveFlagKeyFromRaceControlEntry(entry: RaceControl): string | null {
     message.includes("END OF SAFETY CAR") ||
     message.includes("END OF VSC") ||
     message.includes("SAFETY CAR ENDING") ||
+    message.includes("SAFETY CAR LIGHTS OUT") ||
     message.includes("SAFETY CAR IN THIS LAP") ||
     message.includes("VSC ENDING") ||
+    message.includes("VSC LIGHTS OUT") ||
     message.includes("VSC IN THIS LAP") ||
     message.includes("RESTART")
   ) {
