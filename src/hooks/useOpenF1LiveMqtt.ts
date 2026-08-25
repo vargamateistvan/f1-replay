@@ -33,8 +33,9 @@ type TopicConfig = {
 
 function parseTimestampOrMin(date: string | undefined): number {
   const ms = Date.parse(date ?? "");
-  // Invalid dates sort to the front so they are first to be evicted when
-  // maxRows trimming is applied (we keep the latest rows at the end).
+  // Invalid dates sort to the front so they remain oldest in the merge order.
+  // REST-backed query data is kept intact, and MQTT-only streams are only trimmed
+  // when the cache is still empty.
   return Number.isFinite(ms) ? ms : Number.NEGATIVE_INFINITY;
 }
 
@@ -114,8 +115,11 @@ export function mergeRow(
   });
 
   const maxRows = config.maxRows ?? LIVE_MQTT_MAX_ROWS;
-  if (next.length <= maxRows) return next;
-  return next.slice(next.length - maxRows);
+  if (existing.length === 0 && next.length > maxRows) {
+    return next.slice(next.length - maxRows);
+  }
+
+  return next;
 }
 
 function getLiveMqttToken(): string | null {

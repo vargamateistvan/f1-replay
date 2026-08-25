@@ -1,7 +1,31 @@
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { api, type QueryFilters } from "@/api/endpoints";
-import { LIVE_POLL_FAST_MS, LIVE_POLL_SLOW_MS } from "@/utils/live";
+import {
+  CURRENT_SEASON_STALE_MS,
+  LIVE_POLL_FAST_MS,
+  LIVE_POLL_SLOW_MS,
+} from "@/utils/live";
 import { lapsQueryKey } from "./queryKeys";
+
+function dedupeByDateAndDriver<T extends { date?: string; driver_number?: number }>(
+  rows: T[],
+): T[] {
+  const deduped = new Map<string, T>();
+  for (const row of rows) {
+    const key = `${row.date ?? ""}_${row.driver_number ?? ""}`;
+    deduped.set(key, row);
+  }
+  return [...deduped.values()].sort((a, b) => {
+    const aDate = Date.parse(a.date ?? "");
+    const bDate = Date.parse(b.date ?? "");
+    if (Number.isFinite(aDate) && Number.isFinite(bDate)) {
+      return aDate - bDate;
+    }
+    if (Number.isFinite(aDate)) return -1;
+    if (Number.isFinite(bDate)) return 1;
+    return 0;
+  });
+}
 
 export function useMeetings(
   year: number,
@@ -13,7 +37,7 @@ export function useMeetings(
     queryKey: ["meetings", year],
     queryFn: () => api.meetings(year),
     enabled: (options?.enabled ?? true) && Number.isFinite(year),
-    staleTime: Infinity,
+    staleTime: year === new Date().getFullYear() ? CURRENT_SEASON_STALE_MS : Infinity,
   });
 }
 
@@ -22,7 +46,7 @@ export function useSessions(meetingKey: number | null) {
     queryKey: ["sessions", meetingKey],
     queryFn: () => api.sessions(meetingKey!),
     enabled: meetingKey !== null,
-    staleTime: Infinity,
+    staleTime: CURRENT_SEASON_STALE_MS,
   });
 }
 
@@ -36,9 +60,28 @@ export function useDrivers(sessionKey: number | null) {
 }
 
 export function usePositions(sessionKey: number | null, isLive = false) {
+  const queryClient = useQueryClient();
+
   return useQuery({
     queryKey: ["positions", sessionKey],
-    queryFn: () => api.positions(sessionKey!),
+    queryFn: async () => {
+      if (sessionKey === null) return [];
+      const cached = (queryClient.getQueryData<[{ date?: string; driver_number?: number }]>([
+        "positions",
+        sessionKey,
+      ]) ?? []) as { date?: string; driver_number?: number }[];
+
+      if (!isLive) return api.positions(sessionKey);
+      const latestRow = [...cached].sort((a, b) => {
+        const aDate = Date.parse(a.date ?? "");
+        const bDate = Date.parse(b.date ?? "");
+        return (Number.isFinite(bDate) ? bDate : 0) - (Number.isFinite(aDate) ? aDate : 0);
+      })[0];
+
+      const rows = await api.positions(sessionKey, latestRow ? { "date>": latestRow.date! } : undefined);
+      if (rows.length === 0) return cached;
+      return dedupeByDateAndDriver([...cached, ...rows]);
+    },
     enabled: sessionKey !== null,
     staleTime: isLive ? 0 : Infinity,
     refetchInterval: isLive ? LIVE_POLL_FAST_MS : false,
@@ -46,9 +89,28 @@ export function usePositions(sessionKey: number | null, isLive = false) {
 }
 
 export function useIntervals(sessionKey: number | null, isLive = false) {
+  const queryClient = useQueryClient();
+
   return useQuery({
     queryKey: ["intervals", sessionKey],
-    queryFn: () => api.intervals(sessionKey!),
+    queryFn: async () => {
+      if (sessionKey === null) return [];
+      const cached = (queryClient.getQueryData<[{ date?: string; driver_number?: number }]>([
+        "intervals",
+        sessionKey,
+      ]) ?? []) as { date?: string; driver_number?: number }[];
+
+      if (!isLive) return api.intervals(sessionKey);
+      const latestRow = [...cached].sort((a, b) => {
+        const aDate = Date.parse(a.date ?? "");
+        const bDate = Date.parse(b.date ?? "");
+        return (Number.isFinite(bDate) ? bDate : 0) - (Number.isFinite(aDate) ? aDate : 0);
+      })[0];
+
+      const rows = await api.intervals(sessionKey, latestRow ? { "date>": latestRow.date! } : undefined);
+      if (rows.length === 0) return cached;
+      return dedupeByDateAndDriver([...cached, ...rows]);
+    },
     enabled: sessionKey !== null,
     staleTime: isLive ? 0 : Infinity,
     refetchInterval: isLive ? LIVE_POLL_FAST_MS : false,
@@ -71,12 +133,13 @@ export function useLaps(
   });
 }
 
-export function useStints(sessionKey: number | null) {
+export function useStints(sessionKey: number | null, isLive = false) {
   return useQuery({
     queryKey: ["stints", sessionKey],
     queryFn: () => api.stints(sessionKey!),
     enabled: sessionKey !== null,
-    staleTime: Infinity,
+    staleTime: isLive ? 0 : Infinity,
+    refetchInterval: isLive ? LIVE_POLL_SLOW_MS : false,
   });
 }
 
@@ -120,12 +183,13 @@ export function useStartingGrid(
   });
 }
 
-export function usePits(sessionKey: number | null) {
+export function usePits(sessionKey: number | null, isLive = false) {
   return useQuery({
     queryKey: ["pits", sessionKey],
     queryFn: () => api.pits(sessionKey!),
     enabled: sessionKey !== null,
-    staleTime: Infinity,
+    staleTime: isLive ? 0 : Infinity,
+    refetchInterval: isLive ? LIVE_POLL_SLOW_MS : false,
   });
 }
 

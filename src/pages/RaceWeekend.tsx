@@ -392,9 +392,9 @@ export default function RaceWeekend() {
   const drivers = useDrivers(sessionKey);
   const positions = usePositions(sessionKey, live);
   const intervals = useIntervals(sessionKey, live);
-  const stints = useStints(sessionKey);
+  const stints = useStints(sessionKey, live);
   const laps = useLaps(sessionKey, undefined, live);
-  const pits = usePits(sessionKey);
+  const pits = usePits(sessionKey, live);
   const grid = useStartingGrid(sessionKey, session?.meeting_key ?? null);
   const sessionResult = useSessionResult(sessionKey);
   const overtakes = useOvertakes(sessionKey, live);

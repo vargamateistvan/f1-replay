@@ -1,6 +1,7 @@
 import { useMemo } from "react";
 import { useQuery, useQueries } from "@tanstack/react-query";
 import { api } from "@/api/endpoints";
+import { CURRENT_SEASON_STALE_MS } from "@/utils/live";
 import { teamColor } from "@/utils/color";
 import { canonicalTeamName } from "@/utils/identity";
 import { isSprintSession } from "@/utils/session";
@@ -20,7 +21,8 @@ export function useStandings(year: number) {
   const sessionsQ = useQuery({
     queryKey: ["sessions-year", year],
     queryFn: () => api.sessionsByYear(year),
-    staleTime: Infinity,
+    staleTime:
+      year === new Date().getFullYear() ? CURRENT_SEASON_STALE_MS : Infinity,
   });
 
   // Only Race and Sprint sessions, in chronological order

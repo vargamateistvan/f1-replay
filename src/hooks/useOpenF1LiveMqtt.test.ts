@@ -58,7 +58,7 @@ describe("mergeRow", () => {
     expect(out.map((r) => r.driver_number)).toEqual([99, 1, 2]);
   });
 
-  it("evicts oldest rows when maxRows is exceeded", () => {
+  it("keeps historical rows when an existing REST-backed cache is present", () => {
     const prev: MqttPayload[] = [
       { date: "bad-date", driver_number: 9 },
       { date: "2024-01-01T00:00:00Z", driver_number: 1 },
@@ -75,7 +75,22 @@ describe("mergeRow", () => {
       maxRows: 3,
     });
 
-    expect(out.map((r) => r.driver_number)).toEqual([1, 2, 3]);
+    expect(out.map((r) => r.driver_number)).toEqual([9, 1, 2, 3]);
+  });
+
+  it("trims a brand-new MQTT stream when it exceeds the maxRows cap", () => {
+    const incoming: MqttPayload = {
+      date: "2024-01-01T00:00:02Z",
+      driver_number: 3,
+    };
+
+    const out = mergeRow(undefined, incoming, {
+      buildKey: byDateKey,
+      buildSortKey: byDateSort,
+      maxRows: 1,
+    });
+
+    expect(out.map((r) => r.driver_number)).toEqual([3]);
   });
 });
 
