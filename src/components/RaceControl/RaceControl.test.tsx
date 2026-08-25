@@ -281,9 +281,14 @@ describe("RaceControl", () => {
     const eventRow = screen
       .getByText("WAVED BLUE FLAG FOR CAR 1 (VER)")
       .parentElement?.parentElement;
+    const badge = eventRow?.children[1]?.children[1]?.children[0];
 
     expect(eventRow).toHaveStyle({
-      borderLeft: "2px solid #3d78ff",
+      borderLeft: "2px solid #4da6ff",
+    });
+    expect(badge).toHaveStyle({
+      backgroundColor: "rgb(77, 166, 255)",
+      color: "rgb(0, 0, 0)",
     });
 
     const metaLine = eventRow?.children[1]?.children[1];
