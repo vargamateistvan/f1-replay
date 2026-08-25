@@ -8,6 +8,20 @@ import { buildLapLookup, lapNumberAtMs } from "@/utils/lapLookup";
 import { upperBoundByValue } from "@/utils/sortedTime";
 import { isPracticeSession } from "@/utils/session";
 import { toSafeExternalUrl } from "@/utils/url";
+import {
+  COMMENTARY_BADGE_CLASS,
+  COMMENTARY_CHEVRON_CLASS,
+  COMMENTARY_FEED_SCROLL_CLASS,
+  COMMENTARY_GROUP_CLASS,
+  COMMENTARY_GROUP_HEADER_CLASS,
+  COMMENTARY_GROUP_ITEMS_CLASS,
+  COMMENTARY_META_CLASS,
+  COMMENTARY_ROW_CLASS,
+  COMMENTARY_TIME_CLASS,
+  COMMENTARY_TITLE_CLASS,
+  commentaryGroupLabel,
+  formatSessionElapsedTime,
+} from "@/components/CommentaryPanels/commentaryList";
 
 interface Props {
   readonly entries: TeamRadioEntry[];
@@ -34,14 +48,7 @@ type LapGroup = {
 };
 
 function fmtSessionTime(entryDateMs: number, sessionStartMs: number) {
-  const elapsed = Math.max(0, entryDateMs - sessionStartMs);
-  const s = Math.floor(elapsed / 1000);
-  const m = Math.floor(s / 60);
-  const h = Math.floor(m / 60);
-  const pad = (n: number) => String(n).padStart(2, "0");
-  return h > 0
-    ? `${h}:${pad(m % 60)}:${pad(s % 60)}`
-    : `${pad(m)}:${pad(s % 60)}`;
+  return formatSessionElapsedTime(Math.max(0, entryDateMs - sessionStartMs));
 }
 
 export function TeamRadioFeed({
@@ -148,7 +155,7 @@ export function TeamRadioFeed({
   }
 
   return (
-    <div className="panel-scroll px-2 pb-2 space-y-1">
+    <div className={COMMENTARY_FEED_SCROLL_CLASS}>
       {sessionKey !== null && showCsvExportButtons && (
         <div className="flex justify-end pb-1">
           <button
@@ -167,23 +174,16 @@ export function TeamRadioFeed({
           </button>
         </div>
       )}
-      {lapGroups.map((group, groupIndex) => {
-        const isQualifying = sessionType?.toLowerCase().includes("qualifying");
-        const headerText =
-          isQualifying && group.lapNumber !== null
-            ? `Q${group.lapNumber}`
-            : group.lapNumber !== null
-              ? `Lap ${group.lapNumber}`
-              : "Session";
-        return (
-          <div
-            key={`${group.lapNumber ?? "session"}-${groupIndex}`}
-            className="mb-0.5"
-          >
-            <div className="sticky top-0 z-10 border-b border-panel bg-surface px-2 py-0.5 text-[9px] font-black uppercase tracking-widest text-muted select-none">
-              {headerText}
-            </div>
-            {group.entries.map(({ entry: e, dateMs: entryMs, lapNumber }) => {
+      {lapGroups.map((group, groupIndex) => (
+        <div
+          key={`${group.lapNumber ?? "session"}-${groupIndex}`}
+          className={COMMENTARY_GROUP_CLASS}
+        >
+          <div className={COMMENTARY_GROUP_HEADER_CLASS}>
+            {commentaryGroupLabel(sessionType, group.lapNumber)}
+          </div>
+          <div className={COMMENTARY_GROUP_ITEMS_CLASS}>
+            {group.entries.map(({ entry: e, dateMs: entryMs }) => {
               const driver = driverByNumber.get(e.driver_number);
               const color = teamColor(driver?.team_colour);
               const recordingUrl = toSafeExternalUrl(e.recording_url);
@@ -193,26 +193,24 @@ export function TeamRadioFeed({
               return (
                 <div
                   key={`${e.driver_number}-${e.date}-${e.recording_url}`}
-                  className="mb-0.5 flex items-start gap-3 px-2 py-2.5 transition-colors hover:bg-white/[0.04]"
+                  className={COMMENTARY_ROW_CLASS}
                   style={{ borderLeft: `6px solid ${color}` }}
                 >
-                  <span className="w-10 shrink-0 text-[10px] font-mono tabular-nums text-muted">
+                  <span className={COMMENTARY_TIME_CLASS}>
                     {fmtSessionTime(entryMs, sessionStartMs)}
                   </span>
                   <div className="flex-1 min-w-0">
-                    <div className="truncate text-[11px] font-bold text-white/90">
+                    <div className={COMMENTARY_TITLE_CLASS}>
                       Team radio for{" "}
                       <span style={{ color }}>
                         {driver?.name_acronym ?? e.driver_number}
                       </span>
                     </div>
-                    <div className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-[10px] text-muted">
-                      <span className="inline-flex h-5 w-fit max-w-full shrink-0 items-center justify-center rounded px-1.5 whitespace-nowrap text-center text-[8px] font-black uppercase tracking-widest leading-none bg-[#4da6ff] text-black">
+                    <div className={COMMENTARY_META_CLASS}>
+                      <span
+                        className={`${COMMENTARY_BADGE_CLASS} bg-[#4da6ff] text-black`}
+                      >
                         Radio
-                      </span>
-                      {lapNumber !== null && <span>Lap {lapNumber}</span>}
-                      <span className="font-mono tabular-nums text-white/70">
-                        clip
                       </span>
                     </div>
                   </div>
@@ -247,7 +245,7 @@ export function TeamRadioFeed({
                         </>
                       )}
                     </button>
-                    <span className="shrink-0 text-[10px] text-muted">›</span>
+                    <span className={COMMENTARY_CHEVRON_CLASS}>›</span>
                     {isPlaying && recordingUrl && (
                       <audio
                         key={recordingUrl}
@@ -265,8 +263,8 @@ export function TeamRadioFeed({
               );
             })}
           </div>
-        );
-      })}
+        </div>
+      ))}
       {hasMore && (
         <div className="flex justify-center pt-1">
           <button

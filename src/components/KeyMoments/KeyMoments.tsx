@@ -3,6 +3,20 @@ import type { Lap } from "@/api/types";
 import type { KeyMoment } from "@/components/KeyMoments/types";
 import { buildLapLookup, lapNumberAtMs } from "@/utils/lapLookup";
 import { isPracticeSession } from "@/utils/session";
+import {
+  COMMENTARY_BADGE_CLASS,
+  COMMENTARY_CHEVRON_CLASS,
+  COMMENTARY_FEED_SCROLL_CLASS,
+  COMMENTARY_GROUP_CLASS,
+  COMMENTARY_GROUP_HEADER_CLASS,
+  COMMENTARY_GROUP_ITEMS_CLASS,
+  COMMENTARY_META_CLASS,
+  COMMENTARY_ROW_CLASS,
+  COMMENTARY_TIME_CLASS,
+  COMMENTARY_TITLE_CLASS,
+  commentaryGroupLabel,
+  formatSessionElapsedTime,
+} from "@/components/CommentaryPanels/commentaryList";
 
 interface Props {
   moments: KeyMoment[];
@@ -34,16 +48,6 @@ const KIND_CONFIG: Record<
   vsc: { badge: "VSC", badgeBg: "#f5a623", badgeText: "#000" },
   red_flag: { badge: "RED", badgeBg: "#e8002d", badgeText: "#fff" },
 };
-
-function fmtMs(ms: number): string {
-  const s = Math.floor(ms / 1000);
-  const m = Math.floor(s / 60);
-  const h = Math.floor(m / 60);
-  const pad = (n: number) => String(n).padStart(2, "0");
-  return h > 0
-    ? `${h}:${pad(m % 60)}:${pad(s % 60)}`
-    : `${pad(m)}:${pad(s % 60)}`;
-}
 
 export function KeyMoments({
   moments,
@@ -107,39 +111,31 @@ export function KeyMoments({
   }
 
   return (
-    <div className="panel-scroll px-2 pb-2 space-y-1">
+    <div className={COMMENTARY_FEED_SCROLL_CLASS}>
       {momentGroups.map((group, groupIndex) => (
         <div
           key={`${group.lapNumber ?? "session"}-${groupIndex}`}
-          className="mb-0.5"
+          className={COMMENTARY_GROUP_CLASS}
         >
-          <div className="sticky top-0 z-10 border-b border-panel bg-surface px-2 py-0.5 text-[9px] font-black uppercase tracking-widest text-muted select-none">
-            {(() => {
-              const isQualifying = sessionType
-                ?.toLowerCase()
-                .includes("qualifying");
-              return isQualifying && group.lapNumber !== null
-                ? `Q${group.lapNumber}`
-                : group.lapNumber !== null
-                  ? `Lap ${group.lapNumber}`
-                  : "Session";
-            })()}
+          <div className={COMMENTARY_GROUP_HEADER_CLASS}>
+            {commentaryGroupLabel(sessionType, group.lapNumber)}
           </div>
-          {group.moments.map((m, i) => {
+          <div className={COMMENTARY_GROUP_ITEMS_CLASS}>
+            {group.moments.map((m, i) => {
             const cfg = KIND_CONFIG[m.kind];
             return (
               <button
                 key={`${m.kind}-${m.ms}-${i}`}
                 onClick={() => onJump(m.ms)}
-                className="mb-0.5 w-full flex items-start gap-3 px-2 py-2.5 text-left transition-colors hover:bg-white/[0.04]"
+                className={`w-full ${COMMENTARY_ROW_CLASS}`}
                 style={{ borderLeft: `6px solid ${cfg.badgeBg}` }}
               >
-                <span className="text-[10px] font-mono tabular-nums text-muted w-10 shrink-0">
-                  {fmtMs(m.ms)}
+                <span className={COMMENTARY_TIME_CLASS}>
+                  {formatSessionElapsedTime(m.ms)}
                 </span>
                 <span className="flex-1 min-w-0">
                   <span
-                    className="text-[11px] font-bold block truncate text-white/90"
+                    className={`${COMMENTARY_TITLE_CLASS} block`}
                     style={{
                       color:
                         m.kind === "lead_change"
@@ -149,9 +145,9 @@ export function KeyMoments({
                   >
                     {m.label}
                   </span>
-                  <span className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-[10px] text-muted">
+                  <span className={COMMENTARY_META_CLASS}>
                     <span
-                      className="inline-flex h-5 w-fit max-w-full shrink-0 items-center justify-center rounded px-1.5 whitespace-nowrap text-center text-[8px] font-black uppercase tracking-widest leading-none"
+                      className={COMMENTARY_BADGE_CLASS}
                       style={{
                         backgroundColor: cfg.badgeBg,
                         color: cfg.badgeText,
@@ -167,15 +163,13 @@ export function KeyMoments({
                         {m.sublabel}
                       </span>
                     )}
-                    <span className="font-mono tabular-nums text-white/70">
-                      chapter
-                    </span>
                   </span>
                 </span>
-                <span className="text-muted text-[10px] shrink-0">›</span>
+                <span className={COMMENTARY_CHEVRON_CLASS}>›</span>
               </button>
             );
           })}
+          </div>
         </div>
       ))}
     </div>

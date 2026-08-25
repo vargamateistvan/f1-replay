@@ -7,18 +7,22 @@ import type {
 } from "@/timeline/raceControl";
 import { buildLapLookup, lapNumberAtMs } from "@/utils/lapLookup";
 import { isPracticeSession } from "@/utils/session";
+import {
+  COMMENTARY_BADGE_CLASS,
+  COMMENTARY_CHEVRON_CLASS,
+  COMMENTARY_FEED_SCROLL_CLASS,
+  COMMENTARY_GROUP_CLASS,
+  COMMENTARY_GROUP_HEADER_CLASS,
+  COMMENTARY_GROUP_ITEMS_CLASS,
+  COMMENTARY_META_CLASS,
+  COMMENTARY_ROW_CLASS,
+  COMMENTARY_TIME_CLASS,
+  COMMENTARY_TITLE_CLASS,
+  commentaryGroupLabel,
+  formatSessionElapsedTime,
+} from "@/components/CommentaryPanels/commentaryList";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
-
-function fmtMs(ms: number): string {
-  const s = Math.floor(ms / 1000);
-  const m = Math.floor(s / 60);
-  const h = Math.floor(m / 60);
-  const pad = (n: number) => String(n).padStart(2, "0");
-  return h > 0
-    ? `${h}:${pad(m % 60)}:${pad(s % 60)}`
-    : `${pad(m)}:${pad(s % 60)}`;
-}
 
 function fmtDuration(ms: number): string {
   const s = Math.round(ms / 1000);
@@ -213,21 +217,23 @@ function ChapterRow({
   const canReplayWindow = onPlayWindow && chapter.endMs !== null;
 
   return (
-    <div className="mb-0.5 overflow-hidden rounded border border-panel bg-surface/80">
+    <div>
       <div
-        className={`w-full flex items-start gap-3 px-2 py-2.5 text-left transition-colors hover:bg-white/[0.04] border-l-[6px] ${cfg.trackCls} ${isCurrent ? "bg-track/50" : ""}`}
+        className={`w-full ${COMMENTARY_ROW_CLASS} border-l-[6px] ${cfg.trackCls} ${
+          isCurrent ? "bg-track/50" : ""
+        }`}
       >
-        <span className="w-10 shrink-0 text-[10px] font-mono tabular-nums text-muted">
-          {fmtMs(chapter.startMs)}
+        <span className={COMMENTARY_TIME_CLASS}>
+          {formatSessionElapsedTime(chapter.startMs)}
         </span>
 
         <span className="min-w-0 flex-1">
-          <span className="block truncate text-[11px] font-bold text-white/90">
+          <span className={`${COMMENTARY_TITLE_CLASS} block`}>
             {chapter.label}
           </span>
-          <span className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-[10px] text-muted">
+          <span className={COMMENTARY_META_CLASS}>
             <span
-              className="inline-flex h-5 w-fit max-w-full shrink-0 items-center justify-center rounded px-1.5 whitespace-nowrap text-center text-[8px] font-black uppercase tracking-widest leading-none"
+              className={COMMENTARY_BADGE_CLASS}
               style={{
                 background: cfg.bg,
                 color: cfg.text,
@@ -238,9 +244,6 @@ function ChapterRow({
             {chapter.durationMs !== null && (
               <span>{fmtDuration(chapter.durationMs)}</span>
             )}
-            <span className="font-mono tabular-nums text-white/70">
-              chapter
-            </span>
             {isCurrent && (
               <span className="font-black uppercase tracking-widest text-f1red">
                 NOW
@@ -269,7 +272,7 @@ function ChapterRow({
               Replay
             </button>
           )}
-          <span className="shrink-0 text-[10px] text-muted">›</span>
+          <span className={COMMENTARY_CHEVRON_CLASS}>›</span>
         </div>
       </div>
 
@@ -380,7 +383,7 @@ export function RaceChapters({
   }
 
   return (
-    <div className="panel-scroll px-2 pb-2 space-y-1">
+    <div className={COMMENTARY_FEED_SCROLL_CLASS}>
       <div className="sticky top-0 z-20 flex items-center gap-2 rounded border border-panel bg-track/95 px-2 py-1.5 backdrop-blur">
         <button
           type="button"
@@ -402,37 +405,30 @@ export function RaceChapters({
         {chapterGroups.map((group, groupIndex) => (
           <div
             key={`${group.lapNumber ?? "session"}-${groupIndex}`}
-            className="overflow-hidden rounded border border-panel bg-surface/80"
+            className={COMMENTARY_GROUP_CLASS}
           >
-            <div className="sticky top-0 z-10 border-b border-panel bg-track px-2 py-0.5 text-[9px] font-black uppercase tracking-widest text-muted select-none">
-              {(() => {
-                const isQualifying = sessionType
-                  ?.toLowerCase()
-                  .includes("qualifying");
-                return isQualifying && group.lapNumber !== null
-                  ? `Q${group.lapNumber}`
-                  : group.lapNumber !== null
-                    ? `Lap ${group.lapNumber}`
-                    : "Session";
-              })()}
+            <div className={COMMENTARY_GROUP_HEADER_CLASS}>
+              {commentaryGroupLabel(sessionType, group.lapNumber)}
             </div>
-            {group.chapters.map((ch) => {
-              const snapshot =
-                ch.incidentWindowId !== null
-                  ? (snapshotByWindowId.get(ch.incidentWindowId) ?? null)
-                  : null;
-              return (
-                <ChapterRow
-                  key={ch.id}
-                  chapter={ch}
-                  isCurrent={ch.id === currentChapterId}
-                  snapshot={snapshot}
-                  drivers={drivers}
-                  onJump={onJump}
-                  onPlayWindow={onPlayWindow}
-                />
-              );
-            })}
+            <div className={COMMENTARY_GROUP_ITEMS_CLASS}>
+              {group.chapters.map((ch) => {
+                const snapshot =
+                  ch.incidentWindowId !== null
+                    ? (snapshotByWindowId.get(ch.incidentWindowId) ?? null)
+                    : null;
+                return (
+                  <ChapterRow
+                    key={ch.id}
+                    chapter={ch}
+                    isCurrent={ch.id === currentChapterId}
+                    snapshot={snapshot}
+                    drivers={drivers}
+                    onJump={onJump}
+                    onPlayWindow={onPlayWindow}
+                  />
+                );
+              })}
+            </div>
           </div>
         ))}
       </div>

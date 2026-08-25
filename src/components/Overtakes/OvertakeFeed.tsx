@@ -6,6 +6,20 @@ import { teamColor } from "@/utils/color";
 import { buildLapLookup, lapNumberAtMs } from "@/utils/lapLookup";
 import { upperBoundByValue } from "@/utils/sortedTime";
 import { isPracticeSession } from "@/utils/session";
+import {
+  COMMENTARY_BADGE_CLASS,
+  COMMENTARY_CHEVRON_CLASS,
+  COMMENTARY_FEED_SCROLL_CLASS,
+  COMMENTARY_GROUP_CLASS,
+  COMMENTARY_GROUP_HEADER_CLASS,
+  COMMENTARY_GROUP_ITEMS_CLASS,
+  COMMENTARY_META_CLASS,
+  COMMENTARY_ROW_CLASS,
+  COMMENTARY_TIME_CLASS,
+  COMMENTARY_TITLE_CLASS,
+  commentaryGroupLabel,
+  formatSessionElapsedTime,
+} from "@/components/CommentaryPanels/commentaryList";
 
 interface Props {
   readonly entries: Overtake[];
@@ -29,16 +43,6 @@ type LapGroup = {
   lapNumber: number | null;
   entries: VisibleOvertakeEntry[];
 };
-
-function fmtSessionTime(ms: number) {
-  const s = Math.floor(ms / 1000);
-  const m = Math.floor(s / 60);
-  const h = Math.floor(m / 60);
-  const pad = (n: number) => String(n).padStart(2, "0");
-  return h > 0
-    ? `${h}:${pad(m % 60)}:${pad(s % 60)}`
-    : `${pad(m)}:${pad(s % 60)}`;
-}
 
 export function OvertakeFeed({
   entries,
@@ -130,7 +134,7 @@ export function OvertakeFeed({
   }
 
   return (
-    <div className="panel-scroll px-2 pb-2 space-y-1">
+    <div className={COMMENTARY_FEED_SCROLL_CLASS}>
       {sessionKey !== null && showCsvExportButtons && (
         <div className="flex justify-end pb-1">
           <button
@@ -149,23 +153,16 @@ export function OvertakeFeed({
           </button>
         </div>
       )}
-      {lapGroups.map((group, groupIndex) => {
-        const isQualifying = sessionType?.toLowerCase().includes("qualifying");
-        const headerText =
-          isQualifying && group.lapNumber !== null
-            ? `Q${group.lapNumber}`
-            : group.lapNumber !== null
-              ? `Lap ${group.lapNumber}`
-              : "Session";
-        return (
-          <div
-            key={`${group.lapNumber ?? "session"}-${groupIndex}`}
-            className="mb-0.5"
-          >
-            <div className="sticky top-0 z-10 border-b border-panel bg-surface px-2 py-0.5 text-[9px] font-black uppercase tracking-widest text-muted select-none">
-              {headerText}
-            </div>
-            {group.entries.map(({ entry: e, dateMs, lapNumber }) => {
+      {lapGroups.map((group, groupIndex) => (
+        <div
+          key={`${group.lapNumber ?? "session"}-${groupIndex}`}
+          className={COMMENTARY_GROUP_CLASS}
+        >
+          <div className={COMMENTARY_GROUP_HEADER_CLASS}>
+            {commentaryGroupLabel(sessionType, group.lapNumber)}
+          </div>
+          <div className={COMMENTARY_GROUP_ITEMS_CLASS}>
+            {group.entries.map(({ entry: e, dateMs }) => {
               const over = driverByNumber.get(e.overtaking_driver_number);
               const under = driverByNumber.get(e.overtaken_driver_number);
               const overColor = teamColor(over?.team_colour);
@@ -174,14 +171,14 @@ export function OvertakeFeed({
               return (
                 <div
                   key={`${e.overtaking_driver_number}-${e.overtaken_driver_number}-${e.date}-${e.position ?? "na"}`}
-                  className="mb-0.5 flex items-start gap-3 px-2 py-2.5 text-xs transition-colors hover:bg-white/[0.04]"
+                  className={COMMENTARY_ROW_CLASS}
                   style={{ borderLeft: `6px solid ${overColor}` }}
                 >
-                  <span className="w-10 shrink-0 text-[10px] font-mono tabular-nums text-muted">
-                    {fmtSessionTime(ms)}
+                  <span className={COMMENTARY_TIME_CLASS}>
+                    {formatSessionElapsedTime(ms)}
                   </span>
                   <div className="min-w-0 flex-1">
-                    <div className="truncate text-[11px] font-bold text-white/90">
+                    <div className={COMMENTARY_TITLE_CLASS}>
                       <span style={{ color: overColor }}>
                         {over?.name_acronym ?? e.overtaking_driver_number}
                       </span>{" "}
@@ -190,25 +187,22 @@ export function OvertakeFeed({
                         {under?.name_acronym ?? e.overtaken_driver_number}
                       </span>
                     </div>
-                    <div className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-[10px] text-muted">
-                      <span className="inline-flex h-5 w-fit max-w-full shrink-0 items-center justify-center rounded px-1.5 whitespace-nowrap text-center text-[8px] font-black uppercase tracking-widest leading-none bg-[#39b54a] text-white">
+                    <div className={COMMENTARY_META_CLASS}>
+                      <span
+                        className={`${COMMENTARY_BADGE_CLASS} bg-[#39b54a] text-white`}
+                      >
                         Pass
                       </span>
                       {e.position !== null && <span>for P{e.position}</span>}
-                      {lapNumber !== null && <span>Lap {lapNumber}</span>}
-                      <span className="font-black uppercase tracking-widest text-white/80">
-                        {over?.name_acronym ?? e.overtaking_driver_number} vs{" "}
-                        {under?.name_acronym ?? e.overtaken_driver_number}
-                      </span>
                     </div>
                   </div>
-                  <span className="shrink-0 text-muted text-[10px]">›</span>
+                  <span className={COMMENTARY_CHEVRON_CLASS}>›</span>
                 </div>
               );
             })}
           </div>
-        );
-      })}
+        </div>
+      ))}
       {hasMore && (
         <div className="flex justify-center pt-1">
           <button

@@ -13,6 +13,20 @@ import {
   type RaceControlKind,
 } from "@/timeline/raceControl";
 import { isPracticeSession } from "@/utils/session";
+import {
+  COMMENTARY_BADGE_CLASS,
+  COMMENTARY_CHEVRON_CLASS,
+  COMMENTARY_FEED_SCROLL_CLASS,
+  COMMENTARY_GROUP_CLASS,
+  COMMENTARY_GROUP_HEADER_CLASS,
+  COMMENTARY_GROUP_ITEMS_CLASS,
+  COMMENTARY_META_CLASS,
+  COMMENTARY_ROW_CLASS,
+  COMMENTARY_TIME_CLASS,
+  COMMENTARY_TITLE_CLASS,
+  commentaryGroupLabel,
+  formatSessionElapsedTime,
+} from "@/components/CommentaryPanels/commentaryList";
 
 // ─── Visual config ───────────────────────────────────────────────────────────
 
@@ -384,7 +398,7 @@ export function RaceControlFeed({
     focusDriver !== null ? driverMap.get(focusDriver) : null;
 
   return (
-    <div className="panel-scroll px-2 pb-2 space-y-1">
+    <div className={COMMENTARY_FEED_SCROLL_CLASS}>
       {/* ── Active flag banner ─────────────────────────────────── */}
       {flagConfig && (
         <div
@@ -558,28 +572,17 @@ export function RaceControlFeed({
           </div>
         )}
         {visibleLapGroups.map((group, groupIndex) => {
-          const isQualifying = sessionType
-            ?.toLowerCase()
-            .includes("qualifying");
-          const headerText = isQualifying
-            ? group.lapNumber !== null
-              ? `Q${group.lapNumber}`
-              : "Session"
-            : group.lapNumber !== null
-              ? `Lap ${group.lapNumber}`
-              : "Session";
-
           return (
             <div
               key={`${group.lapNumber ?? "session"}-${groupIndex}`}
-              className="overflow-hidden rounded border border-panel bg-surface/80"
+              className={COMMENTARY_GROUP_CLASS}
             >
               {/* Lap/phase header */}
-              <div className="sticky top-0 z-10 border-b border-panel bg-track px-2 py-0.5 text-[9px] font-black uppercase tracking-widest text-muted select-none">
-                {headerText}
+              <div className={COMMENTARY_GROUP_HEADER_CLASS}>
+                {commentaryGroupLabel(sessionType, group.lapNumber)}
               </div>
               {/* Events in this lap/phase — reverse so newest is first within the group */}
-              <div className="divide-y divide-panel">
+              <div className={COMMENTARY_GROUP_ITEMS_CLASS}>
                 {[...group.events].reverse().map((e) => {
                   const cfg = FLAG_CONFIG[toFlagKey(e.flag)] ?? DEFAULT_CONFIG;
                   const severity = SEVERITY_BADGE[e.severity];
@@ -588,16 +591,9 @@ export function RaceControlFeed({
                       ? driverMap.get(e.driverNumber)
                       : null;
                   const sessionMs = new Date(e.date).getTime() - sessionStartMs;
-                  const pad = (n: number) => String(n).padStart(2, "0");
-                  const eventTime = (() => {
-                    const ms = Math.max(0, sessionMs);
-                    const s = Math.floor(ms / 1000);
-                    const m = Math.floor(s / 60);
-                    const h = Math.floor(m / 60);
-                    return h > 0
-                      ? `${h}:${pad(m % 60)}:${pad(s % 60)}`
-                      : `${pad(m)}:${pad(s % 60)}`;
-                  })();
+                  const eventTime = formatSessionElapsedTime(
+                    Math.max(0, sessionMs),
+                  );
                   const badgeLabel = e.flag
                     ? cfg.label || e.flag
                     : severity.label;
@@ -615,7 +611,7 @@ export function RaceControlFeed({
                   return (
                     <div
                       key={e.id}
-                      className={`relative mb-0.5 flex items-start gap-3 px-2 py-2.5 transition-colors hover:bg-white/[0.04] ${
+                      className={`${COMMENTARY_ROW_CLASS} ${
                         eventDriver ? "bg-track/50" : ""
                       }`}
                     >
@@ -626,16 +622,16 @@ export function RaceControlFeed({
                           style={accentBorderStyle}
                         />
                       )}
-                      <span className="w-10 shrink-0 pl-2 text-[10px] font-mono tabular-nums text-muted">
+                      <span className={COMMENTARY_TIME_CLASS}>
                         {eventTime}
                       </span>
                       <div className="min-w-0 flex-1">
-                        <div className="truncate text-[11px] font-bold text-white/90">
+                        <div className={COMMENTARY_TITLE_CLASS}>
                           {e.description}
                         </div>
-                        <div className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-[10px] text-muted">
+                        <div className={COMMENTARY_META_CLASS}>
                           <span
-                            className={`inline-flex h-5 w-fit max-w-full shrink-0 items-center justify-center rounded px-1.5 whitespace-nowrap text-center text-[8px] font-black uppercase tracking-widest leading-none ${
+                            className={`${COMMENTARY_BADGE_CLASS} ${
                               e.flag ? "" : severity.cls
                             }`}
                             style={badgeStyle}
@@ -652,7 +648,7 @@ export function RaceControlFeed({
                           )}
                         </div>
                       </div>
-                      <span className="shrink-0 text-[10px] text-muted">›</span>
+                      <span className={COMMENTARY_CHEVRON_CLASS}>›</span>
                     </div>
                   );
                 })}
