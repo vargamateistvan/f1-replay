@@ -6,7 +6,6 @@ import { useSettings } from "@/stores/settings";
 import {
   normalizeRaceControl,
   toFlagKey,
-  buildPenaltyStates,
   groupEventsByLap,
   groupEventsByPhase,
   type RaceControlSeverity,
@@ -162,16 +161,6 @@ const SEVERITY_BADGE: Record<
   critical: { label: "Critical", cls: "bg-red-500/20 text-red-300" },
 };
 
-const PENALTY_STATUS_CONFIG = {
-  noted: { label: "Noted", cls: "bg-slate-500/20 text-slate-300" },
-  investigating: {
-    label: "Investigating",
-    cls: "bg-amber-500/20 text-amber-300",
-  },
-  penalty: { label: "Penalty", cls: "bg-red-500/20 text-red-300" },
-  cleared: { label: "Cleared", cls: "bg-green-500/20 text-green-300" },
-};
-
 // ─── Kind filter groups ───────────────────────────────────────────────────────
 
 type KindGroup = { key: string; label: string; kinds: RaceControlKind[] };
@@ -262,7 +251,6 @@ export function RaceControlFeed({
     () => new Set(ALL_GROUP_KEYS),
   );
   const [search, setSearch] = useState("");
-  const [showPenalties, setShowPenalties] = useState(false);
   const [renderLimit, setRenderLimit] = useState(INITIAL_RENDER_LIMIT);
 
   const normalized = useMemo(
@@ -377,11 +365,6 @@ export function RaceControlFeed({
     return groups;
   }, [lapGroups, renderLimit]);
 
-  const penaltyStates = useMemo(
-    () => (showPenalties ? buildPenaltyStates(visibleEntries) : []),
-    [visibleEntries, showPenalties],
-  );
-
   const toggleGroup = (key: string) => {
     setActiveGroups((prev) => {
       const next = new Set(prev);
@@ -436,18 +419,6 @@ export function RaceControlFeed({
             {g.label}
           </button>
         ))}
-        <button
-          type="button"
-          onClick={() => setShowPenalties((v) => !v)}
-          aria-pressed={showPenalties}
-          className={`h-6 rounded px-2 text-[9px] font-black uppercase tracking-widest transition-colors ${
-            showPenalties
-              ? "border border-amber-500/40 bg-amber-500/20 text-amber-300"
-              : "bg-track text-muted hover:text-white hover:bg-panel"
-          }`}
-        >
-          Tracker
-        </button>
         {sessionKey !== null && showCsvExportButtons && (
           <button
             type="button"
@@ -503,56 +474,6 @@ export function RaceControlFeed({
         </div>
       )}
 
-      {/* ── Penalty / investigation tracker ───────────────────── */}
-      {showPenalties && (
-        <div className="overflow-hidden rounded border border-panel bg-surface/80">
-          <div className="border-b border-panel bg-track px-2 py-1 text-[9px] font-black uppercase tracking-widest text-muted">
-            Penalty Tracker
-          </div>
-          {penaltyStates.length === 0 ? (
-            <div className="px-2 py-2 text-[10px] text-muted">
-              No incidents in view
-            </div>
-          ) : (
-            <div className="divide-y divide-panel">
-              {penaltyStates.map((ps) => {
-                const d = driverMap.get(ps.driverNumber);
-                const cfg = PENALTY_STATUS_CONFIG[ps.status];
-                return (
-                  <div
-                    key={ps.driverNumber}
-                    className="flex items-center gap-2 px-2 py-2 transition-colors hover:bg-white/[0.04]"
-                    style={{
-                      borderLeft: `3px solid #${d?.team_colour ?? "636369"}`,
-                    }}
-                  >
-                    <span
-                      className="w-10 shrink-0 text-[10px] font-black uppercase tracking-widest"
-                      style={{ color: `#${d?.team_colour ?? "ffffff"}` }}
-                    >
-                      {d?.name_acronym ?? `#${ps.driverNumber}`}
-                    </span>
-                    <span
-                      className={`shrink-0 rounded px-1.5 py-0.5 text-[9px] font-black uppercase tracking-widest ${cfg.cls}`}
-                    >
-                      {cfg.label}
-                    </span>
-                    <span className="min-w-0 flex-1 truncate text-[10px] text-white/90">
-                      {ps.latestDescription}
-                    </span>
-                    {ps.lapNumber !== null && (
-                      <span className="shrink-0 font-mono text-[9px] tabular-nums text-muted">
-                        L{ps.lapNumber}
-                      </span>
-                    )}
-                  </div>
-                );
-              })}
-            </div>
-          )}
-        </div>
-      )}
-
       {/* ── Lap-grouped feed ───────────────────────────────────── */}
       <div className="space-y-1">
         {visibleLapGroups.length === 0 && (
@@ -586,6 +507,7 @@ export function RaceControlFeed({
                 {[...group.events].reverse().map((e) => {
                   const cfg = FLAG_CONFIG[toFlagKey(e.flag)] ?? DEFAULT_CONFIG;
                   const severity = SEVERITY_BADGE[e.severity];
+                  const isPenaltyEntry = e.kind === "penalty";
                   const eventDriver =
                     e.driverNumber !== null
                       ? driverMap.get(e.driverNumber)
@@ -596,6 +518,8 @@ export function RaceControlFeed({
                   );
                   const badgeLabel = e.flag
                     ? cfg.label || e.flag
+                    : isPenaltyEntry
+                      ? "Penalty"
                     : severity.label;
                   const badgeStyle = e.flag
                     ? {
@@ -603,6 +527,11 @@ export function RaceControlFeed({
                         color: cfg.badgeText,
                       }
                     : undefined;
+                  const rowToneClass = isPenaltyEntry
+                    ? "bg-red-500/10 ring-1 ring-inset ring-red-500/25 hover:bg-red-500/15"
+                    : eventDriver
+                      ? "bg-track/50"
+                      : "";
                   const accentBorderStyle = eventAccentBorderStyle(
                     e.flag,
                     cfg,
@@ -611,9 +540,7 @@ export function RaceControlFeed({
                   return (
                     <div
                       key={e.id}
-                      className={`${COMMENTARY_ROW_CLASS} ${
-                        eventDriver ? "bg-track/50" : ""
-                      }`}
+                      className={`${COMMENTARY_ROW_CLASS} ${rowToneClass}`}
                     >
                       {accentBorderStyle && (
                         <span
@@ -632,7 +559,11 @@ export function RaceControlFeed({
                         <div className={COMMENTARY_META_CLASS}>
                           <span
                             className={`${COMMENTARY_BADGE_CLASS} ${
-                              e.flag ? "" : severity.cls
+                              e.flag
+                                ? ""
+                                : isPenaltyEntry
+                                  ? "bg-red-500/25 text-red-200"
+                                : severity.cls
                             }`}
                             style={badgeStyle}
                           >
