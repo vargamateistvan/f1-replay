@@ -9,6 +9,7 @@ import {
   toFlagKey,
   groupEventsByLap,
   groupEventsByPhase,
+  deriveTrackFlagState,
   type RaceControlSeverity,
   type RaceControlKind,
 } from "@/timeline/raceControl";
@@ -200,20 +201,24 @@ const RENDER_STEP = 120;
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
-function sectorBadge(entry: {
-  sector: number | null;
-  scope: string | null;
-}): string | null {
-  if (entry.sector !== null && entry.sector >= 1 && entry.sector <= 3) {
-    return `S${entry.sector}`;
-  }
-  if (
-    entry.scope &&
-    entry.scope.trim() !== "" &&
-    entry.scope.toLowerCase() !== "track"
-  )
-    return entry.scope;
-  return null;
+// Banner priority when multiple sector flags are active (lower index wins).
+const FLAG_BANNER_PRIORITY = [
+  "RED",
+  "SAFETY_CAR",
+  "VIRTUAL_SC",
+  "VIRTUAL_SAFETY_CAR",
+  "DOUBLE_YELLOW",
+  "YELLOW",
+  "CHEQUERED",
+  "BLACK",
+  "BLACK_AND_ORANGE",
+  "BLACK_AND_WHITE",
+  "BLUE",
+];
+
+function flagBannerPriority(flagKey: string): number {
+  const index = FLAG_BANNER_PRIORITY.indexOf(flagKey);
+  return index === -1 ? FLAG_BANNER_PRIORITY.length : index;
 }
 
 function eventAccentBorderStyle(
@@ -283,24 +288,44 @@ export function RaceControlFeed({
     [normalized, sessionTimeMs, showAllItems],
   );
 
-  // Active flag banner
-  const currentFlagEntry = useMemo(() => {
-    for (let i = visibleEntries.length - 1; i >= 0; i--) {
-      const e = visibleEntries[i]!;
-      if (e.flag) return e;
-    }
-    return null;
-  }, [visibleEntries]);
+  // Active flag banner — driven by the flag-state machine so clear signals,
+  // restarts and sector-scoped yellows are reflected correctly at the playhead.
+  const flagState = useMemo(() => {
+    if (!sessionStartMs) return null;
+    return deriveTrackFlagState(
+      entries,
+      sessionStartMs,
+      sessionStartMs + sessionTimeMs,
+    );
+  }, [entries, sessionStartMs, sessionTimeMs]);
 
-  const flagConfig = currentFlagEntry
-    ? (FLAG_CONFIG[toFlagKey(currentFlagEntry.flag)] ?? DEFAULT_CONFIG)
+  const activeBannerFlag = useMemo(() => {
+    if (!flagState) return null;
+    if (flagState.globalFlag) {
+      return { flagKey: flagState.globalFlag, sectors: [] as number[] };
+    }
+    const flaggedSectors = ([1, 2, 3] as const).filter(
+      (s) => flagState.sectorFlags[s] !== null,
+    );
+    if (flaggedSectors.length === 0) return null;
+    let best: string | null = null;
+    for (const s of flaggedSectors) {
+      const flag = flagState.sectorFlags[s]!;
+      if (best === null || flagBannerPriority(flag) < flagBannerPriority(best))
+        best = flag;
+    }
+    return {
+      flagKey: best!,
+      sectors: flaggedSectors.filter((s) => flagState.sectorFlags[s] === best),
+    };
+  }, [flagState]);
+
+  const flagConfig = activeBannerFlag
+    ? (FLAG_CONFIG[activeBannerFlag.flagKey] ?? DEFAULT_CONFIG)
     : null;
-  const flagBannerLabel =
-    currentFlagEntry && flagConfig
-      ? flagConfig.label ||
-        toFlagKey(currentFlagEntry.flag).replace(/_/g, " ")
-      : "";
-  const currentSector = currentFlagEntry ? sectorBadge(currentFlagEntry) : null;
+  const flagBannerLabel = activeBannerFlag
+    ? flagConfig!.label || activeBannerFlag.flagKey.replace(/_/g, " ")
+    : "";
 
   const driverMap = useMemo(
     () => new Map(drivers.map((d) => [d.driver_number, d])),
@@ -417,11 +442,14 @@ export function RaceControlFeed({
           <span className="font-black text-[10px] tracking-widest uppercase">
             {flagBannerLabel}
           </span>
-          {currentSector && (
-            <span className="rounded bg-black/15 px-1.5 py-0.5 text-[9px] font-black uppercase tracking-widest text-inherit">
-              {currentSector}
+          {activeBannerFlag?.sectors.map((s) => (
+            <span
+              key={s}
+              className="rounded bg-black/15 px-1.5 py-0.5 text-[9px] font-black uppercase tracking-widest text-inherit"
+            >
+              S{s}
             </span>
-          )}
+          ))}
         </div>
       )}
 
@@ -503,17 +531,6 @@ export function RaceControlFeed({
         {visibleLapGroups.length === 0 && (
           <div className="rounded border border-panel bg-surface/80 p-3 text-xs text-muted">
             {sessionStartMs ? "No events match filters" : "Select a session"}
-          </div>
-        )}
-        {hasMoreEvents && (
-          <div className="sticky top-0 z-10 rounded border border-panel bg-surface/80 px-2 py-1.5">
-            <button
-              type="button"
-              onClick={() => setRenderLimit((prev) => prev + RENDER_STEP)}
-              className="h-6 rounded px-2 text-[9px] font-black uppercase tracking-widest transition-colors bg-track text-muted hover:text-white hover:bg-panel"
-            >
-              Load older ({totalFilteredEvents - renderLimit} hidden)
-            </button>
           </div>
         )}
         {visibleLapGroups.map((group, groupIndex) => {
@@ -614,6 +631,18 @@ export function RaceControlFeed({
             </div>
           );
         })}
+        {/* Feed is newest-first, so older items load at the bottom */}
+        {hasMoreEvents && (
+          <div className="rounded border border-panel bg-surface/80 px-2 py-1.5">
+            <button
+              type="button"
+              onClick={() => setRenderLimit((prev) => prev + RENDER_STEP)}
+              className="h-6 rounded px-2 text-[9px] font-black uppercase tracking-widest transition-colors bg-track text-muted hover:text-white hover:bg-panel"
+            >
+              Load older ({totalFilteredEvents - renderLimit} hidden)
+            </button>
+          </div>
+        )}
       </div>
     </div>
   );
