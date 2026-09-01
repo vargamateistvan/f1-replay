@@ -14,6 +14,14 @@ describe("analytics", () => {
     vi.stubEnv("VITE_GA_MEASUREMENT_ID", "G-TEST123");
     vi.stubEnv("VITE_APP_VERSION", "1.2.3");
     vi.stubGlobal("window", globalThis.window);
+    Object.defineProperty(window, "innerWidth", {
+      configurable: true,
+      value: 1440,
+    });
+    Object.defineProperty(window, "innerHeight", {
+      configurable: true,
+      value: 900,
+    });
     Object.defineProperty(globalThis, "location", {
       configurable: true,
       value: new URL("https://f1replay.app/"),
@@ -38,12 +46,19 @@ describe("analytics", () => {
 
     trackPageView("/telemetry");
 
-    expect(gtag).toHaveBeenCalledWith("event", "page_view", {
-      app_version: "1.2.3",
-      page_location: "https://f1replay.app/",
-      page_path: "/telemetry",
-      page_title: "F1 Replay",
-    });
+    expect(gtag).toHaveBeenCalledWith(
+      "event",
+      "page_view",
+      expect.objectContaining({
+        app_version: "1.2.3",
+        page_location: "https://f1replay.app/",
+        page_path: "/telemetry",
+        page_title: "F1 Replay",
+        screen_class: "desktop",
+        viewport_height: 900,
+        viewport_width: 1440,
+      }),
+    );
   });
 
   it("adds app_version to custom events without overwriting explicit params", async () => {
@@ -56,10 +71,39 @@ describe("analytics", () => {
       destination: "/settings",
     });
 
-    expect(gtag).toHaveBeenCalledWith("event", "nav_click", {
-      app_version: "custom",
-      destination: "/settings",
+    expect(gtag).toHaveBeenCalledWith(
+      "event",
+      "nav_click",
+      expect.objectContaining({
+        app_version: "custom",
+        destination: "/settings",
+        page_path: "/",
+        screen_class: "desktop",
+        viewport_height: 900,
+        viewport_width: 1440,
+      }),
+    );
+  });
+
+  it("classifies smaller viewports for event context", async () => {
+    Object.defineProperty(window, "innerWidth", {
+      configurable: true,
+      value: 390,
     });
+    const gtag = vi.fn();
+    window.gtag = gtag;
+    const { trackEvent } = await importFreshAnalytics();
+
+    trackEvent("mobile_nav_opened");
+
+    expect(gtag).toHaveBeenCalledWith(
+      "event",
+      "mobile_nav_opened",
+      expect.objectContaining({
+        screen_class: "mobile",
+        viewport_width: 390,
+      }),
+    );
   });
 
   it("skips tracking outside production", async () => {

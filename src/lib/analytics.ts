@@ -1,6 +1,6 @@
-type EventParams = Record<string, string | number | boolean | undefined>;
 import { appVersion } from "@/lib/appVersion";
 
+type EventParams = Record<string, string | number | boolean | undefined>;
 type GtagCommand = "js" | "config" | "event";
 
 type Gtag = (
@@ -38,6 +38,29 @@ function shouldTrackAnalytics(): boolean {
   );
 }
 
+function screenClassForWidth(width: number): "mobile" | "tablet" | "desktop" {
+  if (width < 768) return "mobile";
+  if (width < 1024) return "tablet";
+  return "desktop";
+}
+
+function buildCommonEventParams(): EventParams {
+  if (typeof window === "undefined") {
+    return {
+      app_version: appVersion ?? undefined,
+    };
+  }
+
+  return {
+    app_version: appVersion ?? undefined,
+    language: globalThis.navigator?.language,
+    page_path: `${window.location.pathname}${window.location.search}${window.location.hash}`,
+    screen_class: screenClassForWidth(window.innerWidth),
+    viewport_height: window.innerHeight,
+    viewport_width: window.innerWidth,
+  };
+}
+
 export function initializeAnalytics(): void {
   if (initialized || !shouldTrackAnalytics() || typeof window === "undefined")
     return;
@@ -47,9 +70,9 @@ export function initializeAnalytics(): void {
 export function trackPageView(path: string): void {
   if (!shouldTrackAnalytics()) return;
   window.gtag?.("event", "page_view", {
-    app_version: appVersion ?? undefined,
-    page_path: path,
+    ...buildCommonEventParams(),
     page_location: window.location.href,
+    page_path: path,
     page_title: document.title,
   });
 }
@@ -57,7 +80,7 @@ export function trackPageView(path: string): void {
 export function trackEvent(eventName: string, params: EventParams = {}): void {
   if (!shouldTrackAnalytics()) return;
   window.gtag?.("event", eventName, {
-    app_version: appVersion ?? undefined,
+    ...buildCommonEventParams(),
     ...params,
   });
 }
