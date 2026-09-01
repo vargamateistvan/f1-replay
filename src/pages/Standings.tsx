@@ -128,11 +128,11 @@ function DriverTable({ standings }: { standings: DriverStanding[] }) {
             <th className="text-right py-2 px-3 text-[10px] font-bold uppercase tracking-widest text-muted w-16">
               Pts
             </th>
-            <th className="text-right py-2 px-3 text-[10px] font-bold uppercase tracking-widest text-muted w-12 hidden sm:table-cell">
-              Wins
+            <th className="text-right py-2 px-2 text-[10px] font-bold uppercase tracking-widest text-muted w-10 hidden sm:table-cell">
+              W
             </th>
-            <th className="text-right py-2 px-3 text-[10px] font-bold uppercase tracking-widest text-muted w-16 hidden sm:table-cell">
-              Podiums
+            <th className="text-right py-2 px-2 text-[10px] font-bold uppercase tracking-widest text-muted w-12 hidden sm:table-cell">
+              Pds
             </th>
           </tr>
         </thead>
@@ -157,7 +157,7 @@ function DriverTable({ standings }: { standings: DriverStanding[] }) {
                   <DriverHeadshot
                     driver={s.driver}
                     accent={s.color}
-                    size="sm"
+                    size="xxs"
                   />
                   <span
                     className="w-[3px] h-4 shrink-0"
@@ -457,13 +457,13 @@ export default function Standings() {
           <ErrorMessage message="Failed to load championship data" />
         </div>
       ) : (
-        <div className="flex flex-col sm:flex-row gap-0 md:flex-1 md:overflow-hidden">
+        <div className="grid w-full gap-0 md:grid-cols-[minmax(300px,420px)_minmax(0,1fr)] md:flex-1 md:overflow-hidden">
           {tab === "drivers" ? (
             <>
-              <div className="sm:w-[420px] shrink-0 sm:border-r border-b sm:border-b-0 border-panel md:overflow-auto md:max-h-full">
+              <div className="w-full shrink-0 border-b border-panel md:border-r md:border-b-0 md:overflow-auto md:max-h-full">
                 <DriverTable standings={driverStandings} />
               </div>
-              <div className="md:flex-1 md:overflow-auto p-4 bg-track min-h-[18rem]">
+              <div className="min-w-0 md:overflow-auto p-4 bg-track min-h-[18rem]">
                 <div className="text-[10px] text-muted font-bold mb-3 uppercase tracking-[0.12em]">
                   Points — {year} Driver Championship
                 </div>
@@ -472,10 +472,10 @@ export default function Standings() {
             </>
           ) : (
             <>
-              <div className="sm:w-[360px] shrink-0 sm:border-r border-b sm:border-b-0 border-panel md:overflow-auto md:max-h-full">
+              <div className="w-full shrink-0 border-b border-panel md:border-r md:border-b-0 md:overflow-auto md:max-h-full">
                 <ConstructorTable standings={constructorStandings} />
               </div>
-              <div className="md:flex-1 md:overflow-auto p-4 bg-track min-h-[18rem]">
+              <div className="min-w-0 md:overflow-auto p-4 bg-track min-h-[18rem]">
                 <div className="text-[10px] text-muted font-bold mb-3 uppercase tracking-[0.12em]">
                   Points — {year} Constructor Championship
                 </div>
