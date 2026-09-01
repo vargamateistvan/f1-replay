@@ -19,6 +19,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - uses: actions/setup-node@v4
         with:
@@ -40,16 +42,20 @@ jobs:
       - name: Test
         run: yarn test
 
+      - name: Resolve release version
+        id: resolve-version
+        run: echo "version=$(node scripts/resolve-release-version.mjs)" >> "$GITHUB_OUTPUT"
+
       - name: Create Sentry build env file
         run: |
           cat > .env.sentry-build-plugin <<'EOF'
           SENTRY_AUTH_TOKEN=${{ secrets.SENTRY_AUTH_TOKEN }}
-          SENTRY_RELEASE=${{ github.sha }}
+          SENTRY_RELEASE=${{ steps.resolve-version.outputs.version }}
           EOF
 
       - name: Build
         env:
-          VITE_APP_VERSION: ${{ github.sha }}
+          VITE_APP_VERSION: ${{ steps.resolve-version.outputs.version }}
           VITE_OPENF1_API_BASE: ${{ secrets.VITE_OPENF1_API_BASE }}
           VITE_GA_MEASUREMENT_ID: ${{ vars.VITE_GA_MEASUREMENT_ID || secrets.VITE_GA_MEASUREMENT_ID }}
         run: yarn build

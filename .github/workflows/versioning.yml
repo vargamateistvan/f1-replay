@@ -30,49 +30,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-
-          default_version="1.0.0"
-          semver_regex='^[0-9]+\.[0-9]+\.[0-9]+$'
-          latest_tag="$(git tag --sort=-v:refname | grep -E "$semver_regex" | head -n 1 || true)"
-
-          if [ -z "$latest_tag" ]; then
-            new_version="$default_version"
-            echo "No previous semantic version tag found. Using default version $new_version"
-          else
-            commit_subjects="$(git log --pretty='%s' "$latest_tag..HEAD" || true)"
-            commit_bodies="$(git log --pretty='%b' "$latest_tag..HEAD" || true)"
-
-            bump="patch"
-
-            if printf '%s\n%s\n' "$commit_subjects" "$commit_bodies" | grep -Eiq 'BREAKING[ -]CHANGE:'; then
-              bump="major"
-            elif printf '%s\n' "$commit_subjects" | grep -Eq '^[a-z]+(\([^)]+\))?!:'; then
-              bump="major"
-            elif printf '%s\n' "$commit_subjects" | grep -Eq '^feat(\([^)]+\))?:'; then
-              bump="minor"
-            else
-              bump="patch"
-            fi
-
-            IFS='.' read -r major minor patch <<< "$latest_tag"
-            case "$bump" in
-              major)
-                major=$((major + 1))
-                minor=0
-                patch=0
-                ;;
-              minor)
-                minor=$((minor + 1))
-                patch=0
-                ;;
-              patch)
-                patch=$((patch + 1))
-                ;;
-            esac
-
-            new_version="$major.$minor.$patch"
-            echo "Resolved next semantic version: $latest_tag -> $new_version ($bump bump)"
-          fi
+          new_version="$(node scripts/resolve-release-version.mjs)"
 
           echo "new-version=$new_version" >> "$GITHUB_OUTPUT"
 

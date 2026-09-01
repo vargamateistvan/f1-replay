@@ -1,4 +1,5 @@
 type EventParams = Record<string, string | number | boolean | undefined>;
+import { appVersion } from "@/lib/appVersion";
 
 type GtagCommand = "js" | "config" | "event";
 
@@ -46,6 +47,7 @@ export function initializeAnalytics(): void {
 export function trackPageView(path: string): void {
   if (!shouldTrackAnalytics()) return;
   window.gtag?.("event", "page_view", {
+    app_version: appVersion ?? undefined,
     page_path: path,
     page_location: window.location.href,
     page_title: document.title,
@@ -54,7 +56,10 @@ export function trackPageView(path: string): void {
 
 export function trackEvent(eventName: string, params: EventParams = {}): void {
   if (!shouldTrackAnalytics()) return;
-  window.gtag?.("event", eventName, params);
+  window.gtag?.("event", eventName, {
+    app_version: appVersion ?? undefined,
+    ...params,
+  });
 }
 
 export function analyticsEnabled(): boolean {

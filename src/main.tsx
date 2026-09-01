@@ -11,6 +11,7 @@ import "@fontsource/jetbrains-mono/latin-600.css";
 import "@fontsource/jetbrains-mono/latin-700.css";
 import "./index.css";
 import App from "./App.tsx";
+import { appVersion } from "@/lib/appVersion";
 
 const sentryDsn =
   import.meta.env.VITE_SENTRY_DSN ||
@@ -40,7 +41,7 @@ if (shouldInitializeSentry && sentryDsn) {
   Sentry.init({
     dsn: sentryDsn,
     environment: import.meta.env.MODE,
-    release: import.meta.env.VITE_APP_VERSION,
+    release: appVersion ?? undefined,
     dataCollection: {
       // To disable sending user data and HTTP bodies, uncomment the lines below. For more info visit:
       // https://docs.sentry.io/platforms/javascript/guides/react/configuration/options/#dataCollection

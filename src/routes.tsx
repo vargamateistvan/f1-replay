@@ -12,6 +12,7 @@ import { SettingsModal } from "@/components/SettingsModal/SettingsModal";
 import { HowItWorksModal } from "@/components/HowItWorksModal/HowItWorksModal";
 import { RouteSeo } from "@/components/Seo/RouteSeo";
 import { analyticsEnabled, trackPageView } from "@/lib/analytics";
+import { appVersionLabel } from "@/lib/appVersion";
 const RaceWeekend = lazy(() => import("@/pages/RaceWeekend"));
 const Telemetry = lazy(() => import("@/pages/Telemetry"));
 const Standings = lazy(() => import("@/pages/Standings"));
@@ -60,31 +61,36 @@ export function AppRouter() {
           </Suspense>
         </main>
         <footer className="border-t border-panel bg-track/90 px-3 py-1 text-[10px] text-muted">
-          <div className="mx-auto flex w-full items-center justify-end gap-2.5">
-            <Link
-              to="/privacy"
-              className="text-f1red/85 transition-colors hover:text-f1red"
-            >
-              Privacy
-            </Link>
-            <span aria-hidden="true" className="text-muted">
-              |
+          <div className="mx-auto flex w-full items-center justify-between gap-2.5">
+            <span className="font-mono uppercase tracking-[0.12em] text-muted/85">
+              Version {appVersionLabel}
             </span>
-            <Link
-              to="/terms"
-              className="text-f1red/85 transition-colors hover:text-f1red"
-            >
-              Terms
-            </Link>
-            <span aria-hidden="true" className="text-muted">
-              |
-            </span>
-            <a
-              href="/.well-known/security.txt"
-              className="text-f1red/85 transition-colors hover:text-f1red"
-            >
-              Security
-            </a>
+            <div className="flex items-center gap-2.5">
+              <Link
+                to="/privacy"
+                className="text-f1red/85 transition-colors hover:text-f1red"
+              >
+                Privacy
+              </Link>
+              <span aria-hidden="true" className="text-muted">
+                |
+              </span>
+              <Link
+                to="/terms"
+                className="text-f1red/85 transition-colors hover:text-f1red"
+              >
+                Terms
+              </Link>
+              <span aria-hidden="true" className="text-muted">
+                |
+              </span>
+              <a
+                href="/.well-known/security.txt"
+                className="text-f1red/85 transition-colors hover:text-f1red"
+              >
+                Security
+              </a>
+            </div>
           </div>
         </footer>
         <MobileNav />

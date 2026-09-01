@@ -13,7 +13,7 @@ interface ImportMetaEnv {
   readonly VITE_SENTRY_DSN?: string;
   /** Optional Google Analytics 4 Measurement ID (for example G-XXXXXXXXXX). */
   readonly VITE_GA_MEASUREMENT_ID?: string;
-  /** Optional release identifier for Sentry events (e.g. git SHA). */
+  /** Optional release identifier injected at build time (for example 1.4.2). */
   readonly VITE_APP_VERSION?: string;
 }
 
