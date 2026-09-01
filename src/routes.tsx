@@ -5,13 +5,17 @@ import {
   Link,
   useLocation,
 } from "react-router-dom";
-import { lazy, Suspense, useEffect } from "react";
+import { lazy, Suspense, useCallback, useEffect, useRef } from "react";
 import { Nav } from "@/components/Nav";
 import { MobileNav } from "@/components/MobileNav";
 import { SettingsModal } from "@/components/SettingsModal/SettingsModal";
 import { HowItWorksModal } from "@/components/HowItWorksModal/HowItWorksModal";
 import { RouteSeo } from "@/components/Seo/RouteSeo";
-import { analyticsEnabled, trackPageView } from "@/lib/analytics";
+import {
+  analyticsEnabled,
+  trackPageEngagement,
+  trackPageView,
+} from "@/lib/analytics";
 import { appVersionLabel } from "@/lib/appVersion";
 const RaceWeekend = lazy(() => import("@/pages/RaceWeekend"));
 const Telemetry = lazy(() => import("@/pages/Telemetry"));
@@ -31,11 +35,55 @@ function RouteFallback() {
 
 function RouteAnalyticsTracker() {
   const location = useLocation();
+  const currentPath = `${location.pathname}${location.search}${location.hash}`;
+  const activePathRef = useRef(currentPath);
+  const activeSinceMsRef = useRef(Date.now());
+
+  const flushEngagement = useCallback(
+    (reason: "navigate" | "hidden" | "pagehide" | "unmount") => {
+      if (!analyticsEnabled()) return;
+      const now = Date.now();
+      const durationMs = now - activeSinceMsRef.current;
+      trackPageEngagement(activePathRef.current, durationMs, reason);
+      activeSinceMsRef.current = now;
+    },
+    [],
+  );
 
   useEffect(() => {
     if (!analyticsEnabled()) return;
-    trackPageView(`${location.pathname}${location.search}${location.hash}`);
-  }, [location.pathname, location.search, location.hash]);
+    if (activePathRef.current !== currentPath) {
+      flushEngagement("navigate");
+      activePathRef.current = currentPath;
+    }
+    activeSinceMsRef.current = Date.now();
+    trackPageView(currentPath);
+  }, [currentPath, flushEngagement]);
+
+  useEffect(() => {
+    if (!analyticsEnabled()) return;
+
+    function onVisibilityChange() {
+      if (document.visibilityState === "hidden") {
+        flushEngagement("hidden");
+        return;
+      }
+      activeSinceMsRef.current = Date.now();
+    }
+
+    function onPageHide() {
+      flushEngagement("pagehide");
+    }
+
+    document.addEventListener("visibilitychange", onVisibilityChange);
+    window.addEventListener("pagehide", onPageHide);
+
+    return () => {
+      document.removeEventListener("visibilitychange", onVisibilityChange);
+      window.removeEventListener("pagehide", onPageHide);
+      flushEngagement("unmount");
+    };
+  }, [flushEngagement]);
 
   return null;
 }

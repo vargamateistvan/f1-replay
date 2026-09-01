@@ -7,6 +7,7 @@ async function importFreshAnalytics() {
 
 describe("analytics", () => {
   const originalLocation = globalThis.location;
+  const originalReferrer = document.referrer;
 
   beforeEach(() => {
     vi.unstubAllEnvs();
@@ -36,6 +37,10 @@ describe("analytics", () => {
       configurable: true,
       value: originalLocation,
     });
+    Object.defineProperty(document, "referrer", {
+      configurable: true,
+      value: originalReferrer,
+    });
     delete window.gtag;
   });
 
@@ -51,9 +56,12 @@ describe("analytics", () => {
       "page_view",
       expect.objectContaining({
         app_version: "1.2.3",
+        language: expect.any(String),
+        route_name: "raceweekend",
         page_location: "https://f1replay.app/",
         page_path: "/telemetry",
         page_title: "F1 Replay",
+        selected_view: undefined,
         screen_class: "desktop",
         viewport_height: 900,
         viewport_width: 1440,
@@ -62,6 +70,12 @@ describe("analytics", () => {
   });
 
   it("adds app_version to custom events without overwriting explicit params", async () => {
+    Object.defineProperty(globalThis, "location", {
+      configurable: true,
+      value: new URL(
+        "https://f1replay.app/?year=2025&meeting=22&session=202&view=tracker",
+      ),
+    });
     const gtag = vi.fn();
     window.gtag = gtag;
     const { trackEvent } = await importFreshAnalytics();
@@ -77,10 +91,37 @@ describe("analytics", () => {
       expect.objectContaining({
         app_version: "custom",
         destination: "/settings",
-        page_path: "/",
+        meeting_key: 22,
+        page_path: "/?year=2025&meeting=22&session=202&view=tracker",
+        route_name: "raceweekend",
         screen_class: "desktop",
+        season_year: 2025,
+        selected_view: "tracker",
+        session_key: 202,
         viewport_height: 900,
         viewport_width: 1440,
+      }),
+    );
+  });
+
+  it("tracks app session start with landing and referrer context", async () => {
+    Object.defineProperty(document, "referrer", {
+      configurable: true,
+      value: "https://www.google.com/search?q=f1+replay",
+    });
+    const gtag = vi.fn();
+    window.gtag = gtag;
+    const { initializeAnalytics } = await importFreshAnalytics();
+
+    initializeAnalytics();
+
+    expect(gtag).toHaveBeenCalledWith(
+      "event",
+      "app_session_started",
+      expect.objectContaining({
+        landing_path: "/",
+        referrer_host: "www.google.com",
+        route_name: "raceweekend",
       }),
     );
   });
@@ -104,6 +145,34 @@ describe("analytics", () => {
         viewport_width: 390,
       }),
     );
+  });
+
+  it("tracks page engagement for meaningful dwell time", async () => {
+    const gtag = vi.fn();
+    window.gtag = gtag;
+    const { trackPageEngagement } = await importFreshAnalytics();
+
+    trackPageEngagement("/telemetry", 12_345, "navigate");
+
+    expect(gtag).toHaveBeenCalledWith(
+      "event",
+      "page_engagement",
+      expect.objectContaining({
+        engagement_time_msec: 12345,
+        exit_reason: "navigate",
+        page_path: "/telemetry",
+      }),
+    );
+  });
+
+  it("skips page engagement when dwell time is too short", async () => {
+    const gtag = vi.fn();
+    window.gtag = gtag;
+    const { trackPageEngagement } = await importFreshAnalytics();
+
+    trackPageEngagement("/telemetry", 250, "hidden");
+
+    expect(gtag).not.toHaveBeenCalled();
   });
 
   it("skips tracking outside production", async () => {
