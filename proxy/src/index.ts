@@ -95,6 +95,9 @@ const STATIC_ENDPOINTS = new Set([
   "sessions",
   "drivers",
   "starting_grid",
+]);
+
+const CURRENT_SEASON_MUTABLE_ENDPOINTS = new Set([
   "championship_drivers",
   "championship_teams",
 ]);
@@ -134,6 +137,10 @@ function isWindowHistorical(params: URLSearchParams): boolean {
  * Determines the cache TTL for an endpoint.
  */
 function chooseTtl(endpoint: string, params: URLSearchParams): number {
+  if (CURRENT_SEASON_MUTABLE_ENDPOINTS.has(endpoint)) {
+    return TTL_LIVE_SLOW;
+  }
+
   if (STATIC_ENDPOINTS.has(endpoint) || RESULT_ENDPOINTS.has(endpoint)) {
     return TTL_PERMANENT;
   }
