@@ -261,20 +261,30 @@ export function useOvertakes(sessionKey: number | null, isLive = false) {
   });
 }
 
-export function useChampionshipDrivers(sessionKey: number | null) {
+export function useChampionshipDrivers(
+  sessionKey: number | null,
+  invalidateCurrentYear = false,
+) {
   return useQuery({
     queryKey: ["championshipDrivers", sessionKey],
     queryFn: () => api.championshipDrivers(sessionKey!),
     enabled: sessionKey !== null,
-    staleTime: Infinity,
+    staleTime: invalidateCurrentYear ? 0 : Infinity,
+    refetchOnMount: invalidateCurrentYear ? "always" : false,
+    refetchOnWindowFocus: invalidateCurrentYear,
   });
 }
 
-export function useChampionshipTeams(sessionKey: number | null) {
+export function useChampionshipTeams(
+  sessionKey: number | null,
+  invalidateCurrentYear = false,
+) {
   return useQuery({
     queryKey: ["championshipTeams", sessionKey],
     queryFn: () => api.championshipTeams(sessionKey!),
     enabled: sessionKey !== null,
-    staleTime: Infinity,
+    staleTime: invalidateCurrentYear ? 0 : Infinity,
+    refetchOnMount: invalidateCurrentYear ? "always" : false,
+    refetchOnWindowFocus: invalidateCurrentYear,
   });
 }

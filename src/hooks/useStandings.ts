@@ -59,8 +59,15 @@ export function useStandings(
     staleTime: Infinity,
   });
 
-  const championshipDriversQ = useChampionshipDrivers(selectedKey);
-  const championshipTeamsQ = useChampionshipTeams(selectedKey);
+  const invalidateCurrentYear = year === new Date().getFullYear();
+  const championshipDriversQ = useChampionshipDrivers(
+    selectedKey,
+    invalidateCurrentYear,
+  );
+  const championshipTeamsQ = useChampionshipTeams(
+    selectedKey,
+    invalidateCurrentYear,
+  );
 
   const loadedRaces = selectedKey !== null && championshipDriversQ.data ? 1 : 0;
   const totalRaces = selectedKey !== null ? 1 : 0;
