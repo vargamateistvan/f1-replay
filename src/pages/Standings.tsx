@@ -14,6 +14,7 @@ import {
   type ConstructorStanding,
 } from "@/hooks/useStandings";
 import { ErrorMessage } from "@/components/ErrorMessage";
+import { DriverHeadshot } from "@/components/DriverHeadshot";
 import { useNumberParam, useStringParam } from "@/hooks/useSearchParamState";
 import { YEARS, DEFAULT_YEAR } from "@/constants";
 
@@ -153,6 +154,11 @@ function DriverTable({ standings }: { standings: DriverStanding[] }) {
               </td>
               <td className="py-3 px-3">
                 <span className="flex items-center gap-2">
+                  <DriverHeadshot
+                    driver={s.driver}
+                    accent={s.color}
+                    size="sm"
+                  />
                   <span
                     className="w-[3px] h-4 shrink-0"
                     style={{ background: s.color }}

@@ -113,6 +113,10 @@ export function useStandings(
       .map((d) => ({
         position: d.position_current,
         driverNumber: d.driver_number,
+        driver:
+          (driversQ.data ?? []).find(
+            (driver) => driver.driver_number === d.driver_number,
+          ) ?? undefined,
         acronym: driverInfo.acronym.get(d.driver_number) ?? `#${d.driver_number}`,
         fullName:
           driverInfo.fullName.get(d.driver_number) ?? `Driver ${d.driver_number}`,
@@ -124,7 +128,7 @@ export function useStandings(
         pointsDelta: d.points_current - d.points_start,
         positionChange: d.position_start - d.position_current,
       }));
-  }, [championshipDriversQ.data, driverInfo]);
+  }, [championshipDriversQ.data, driverInfo, driversQ.data]);
 
   const constructorStandings = useMemo(() => {
     const apiStandings = championshipTeamsQ.data ?? [];

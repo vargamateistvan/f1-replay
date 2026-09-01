@@ -1,10 +1,11 @@
-import type { SessionResult } from "@/api/types";
+import type { Driver, SessionResult } from "@/api/types";
 import { RACE_POINTS, SPRINT_POINTS } from "@/constants";
 import { isSprintSession } from "@/utils/session";
 
 export interface DriverStanding {
   position: number;
   driverNumber: number;
+  driver?: Driver;
   acronym: string;
   fullName: string;
   team: string;
