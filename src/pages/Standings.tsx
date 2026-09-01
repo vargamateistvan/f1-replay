@@ -26,7 +26,7 @@ function LoadingBar({ loaded, total }: { loaded: number; total: number }) {
   return (
     <div className="flex items-center gap-3 text-xs text-muted font-mono px-4 py-1 bg-surface border-b border-panel">
       <span>
-        Loading race results… {loaded}/{total}
+        Loading championship data… {loaded}/{total}
       </span>
       <div className="flex-1 h-1 bg-panel rounded overflow-hidden">
         <div
@@ -381,6 +381,8 @@ function ConstructorChart({ standings }: { standings: ConstructorStanding[] }) {
 export default function Standings() {
   const [yearParam, setYear] = useNumberParam("year", DEFAULT_YEAR);
   const year = yearParam ?? DEFAULT_YEAR;
+  const [meetingKey] = useNumberParam("meeting", null);
+  const [sessionKey] = useNumberParam("session", null);
   const [tab, setTab] = useStringParam<Tab>("tab", "drivers");
 
   const {
@@ -391,7 +393,7 @@ export default function Standings() {
     isLoading,
     isFetching,
     isError,
-  } = useStandings(year);
+  } = useStandings(year, sessionKey, meetingKey);
 
   return (
     <div className="flex flex-col md:h-full md:overflow-hidden bg-track">
