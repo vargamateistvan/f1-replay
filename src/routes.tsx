@@ -137,7 +137,7 @@ export function AppRouter() {
             </Suspense>
           </RouteMotionShell>
         </main>
-        <footer className="border-t border-panel bg-track/90 px-3 py-1 text-[10px] text-muted">
+        <footer className="hidden border-t border-panel bg-track/90 px-3 py-1 text-[10px] text-muted md:block">
           <div className="mx-auto flex w-full items-center justify-between gap-2.5">
             <a
               href="https://github.com/vargamateistvan/f1-replay/releases"

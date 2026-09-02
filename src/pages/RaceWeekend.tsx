@@ -1623,7 +1623,8 @@ export default function RaceWeekend() {
     setFocusSelection(null, null, "clear_focus");
   };
 
-  const showTrackerInlinePlayback = false;
+  const showTrackerInlinePlayback =
+    isCompactViewport && currentView === "tracker" && activeTrackerTab === "map";
 
   // ── Shared sub-components ────────────────────────────────────────────────────
 
@@ -1937,35 +1938,6 @@ export default function RaceWeekend() {
                 ))}
               </div>
 
-              {showTrackerInlinePlayback && (
-                <PlaybackBar
-                  durationMs={playbackDurationMs}
-                  lapStarts={lapMarks}
-                  pitTimes={pitMarks}
-                  flagTimes={flagMarks}
-                  safetyCarTimes={safetyCarMarks}
-                  overtakeTimes={overtakeMarks}
-                  radioTimes={radioMarks}
-                  raceControlMarkers={raceControlMarkers}
-                  markerSummary={markerSummary}
-                  canReplayCurrentIncident={currentReplayIncident !== undefined}
-                  onReplayCurrentIncident={replayCurrentIncident}
-                  canReplayNextIncident={
-                    nextReplayIncident !== undefined ||
-                    firstReplayIncident !== undefined
-                  }
-                  onReplayNextIncident={replayNextIncident}
-                  incidentReplayHint={incidentReplayHint}
-                  countdownMs={countdownMs}
-                  qualiPhase={qualiPhase}
-                  q2StartMs={qualiPhaseStartTimes.q2StartMs}
-                  q3StartMs={qualiPhaseStartTimes.q3StartMs}
-                  mobileInline
-                  showSpeedControls={showPlaybackSpeedControls}
-                  showEventChips={showPlaybackEventChips}
-                />
-              )}
-
               {/* Tab content */}
               <div
                 data-motion-tab-panel
@@ -2058,6 +2030,36 @@ export default function RaceWeekend() {
                         </span>
                       )}
                     </div>
+                    {showTrackerInlinePlayback && (
+                      <PlaybackBar
+                        durationMs={playbackDurationMs}
+                        lapStarts={lapMarks}
+                        pitTimes={pitMarks}
+                        flagTimes={flagMarks}
+                        safetyCarTimes={safetyCarMarks}
+                        overtakeTimes={overtakeMarks}
+                        radioTimes={radioMarks}
+                        raceControlMarkers={raceControlMarkers}
+                        markerSummary={markerSummary}
+                        canReplayCurrentIncident={
+                          currentReplayIncident !== undefined
+                        }
+                        onReplayCurrentIncident={replayCurrentIncident}
+                        canReplayNextIncident={
+                          nextReplayIncident !== undefined ||
+                          firstReplayIncident !== undefined
+                        }
+                        onReplayNextIncident={replayNextIncident}
+                        incidentReplayHint={incidentReplayHint}
+                        countdownMs={countdownMs}
+                        qualiPhase={qualiPhase}
+                        q2StartMs={qualiPhaseStartTimes.q2StartMs}
+                        q3StartMs={qualiPhaseStartTimes.q3StartMs}
+                        mobileInline
+                        showSpeedControls={showPlaybackSpeedControls}
+                        showEventChips={showPlaybackEventChips}
+                      />
+                    )}
                   </div>
                 )}
 
