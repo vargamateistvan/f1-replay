@@ -1,5 +1,5 @@
 import { memo, useEffect, useMemo, useRef, useState } from "react";
-import type { ReactNode } from "react";
+import type { CSSProperties, ReactNode } from "react";
 import { createPortal } from "react-dom";
 import type {
   Driver,
@@ -118,9 +118,11 @@ interface SortedRow {
 }
 
 type TimingDisplayValue = number | string | null;
+type TimingHighlightField = "bestLap" | "lastLap" | "gap" | "interval";
 
 const Q3_GRID_SIZE = 10;
 const LAP_SET_FLASH_MS = 4_000;
+const TIMING_CELL_FLASH_MS = 1_400;
 
 function fmtGap(val: TimingDisplayValue) {
   if (val === null) return "—";
@@ -353,6 +355,8 @@ interface PenaltyMarkerState {
   detail: string;
 }
 
+type TimingCellTrend = "green" | "red";
+
 function extractInvolvedDriverNumbers(description: string): number[] {
   const sections = [...description.matchAll(/\bCARS?\b([^\-.]*)/gi)];
   if (sections.length === 0) return [];
@@ -411,6 +415,16 @@ export function LiveTiming({
 }: Props) {
   const metricSystem = useSettings((s) => s.metricSystem);
   const lightMode = useSettings((s) => s.lightMode);
+  const [timingCellHighlights, setTimingCellHighlights] = useState<
+    Record<string, number>
+  >({});
+  const [timingCellTones, setTimingCellTones] = useState<
+    Record<string, TimingCellTrend>
+  >({});
+  const timingCellTimersRef = useRef<Map<string, number>>(new Map());
+  const timingCellSnapshotRef = useRef<
+    Record<string, string | number | null> | null
+  >(null);
   const tableRef = useRef<HTMLTableElement | null>(null);
   const prevSelectedDriverRef = useRef(selectedDriver);
   const speedUnitShort = speedUnitLabel(metricSystem);
@@ -972,6 +986,199 @@ export function LiveTiming({
     if (!leader) return null;
     return bestLapMap.get(leader.driverNumber)?.lap_duration ?? null;
   }, [sorted, bestLapMap]);
+
+  const timingCellSnapshots = useMemo(
+    () =>
+      sorted.map((row, idx) => {
+        const num = row.driverNumber;
+        const lastLap = lastLapMap.get(num) ?? null;
+        const bestLap = bestLapMap.get(num) ?? null;
+        const pos = row.displayPosition;
+        const timedGap =
+          leaderBestLap !== null && bestLap?.lap_duration !== undefined
+            ? Math.max(0, bestLap.lap_duration - leaderBestLap)
+            : null;
+        let gapValue: TimingDisplayValue = intMap.get(num)?.gap_to_leader ?? null;
+        if (isTimedSession(sessionName ?? "")) {
+          gapValue = pos === 1 ? 0 : timedGap;
+        }
+        const previousDriverNumber = sorted[idx - 1]?.driverNumber ?? null;
+        const previousBestLap =
+          previousDriverNumber !== null
+            ? (bestLapMap.get(previousDriverNumber)?.lap_duration ?? null)
+            : null;
+        let intervalValue: TimingDisplayValue = intMap.get(num)?.interval ?? null;
+        if (isTimedSession(sessionName ?? "")) {
+          intervalValue =
+            previousBestLap !== null && bestLap?.lap_duration !== undefined
+              ? Math.max(0, bestLap.lap_duration - previousBestLap)
+              : null;
+        }
+
+        return {
+          driverNumber: num,
+          bestLapDisplay: fmtTime(bestLap?.lap_duration ?? null),
+          lastLapDisplay: fmtTime(lastLap?.lap_duration ?? null),
+          gapDisplay: fmtGap(gapValue),
+          intervalDisplay: fmtInterval(intervalValue),
+          gapValue: typeof gapValue === "number" ? gapValue : null,
+          intervalValue: typeof intervalValue === "number" ? intervalValue : null,
+        };
+      }),
+    [
+      bestLapMap,
+      intMap,
+      lastLapMap,
+      leaderBestLap,
+      sessionName,
+      sorted,
+    ],
+  );
+
+  useEffect(() => {
+    const prev = timingCellSnapshotRef.current;
+    const nextSnapshot: Record<string, string | number | null> = {};
+    const activeKeys = new Set<string>();
+
+    if (prev === null) {
+      for (const snapshot of timingCellSnapshots) {
+        const driverKey = String(snapshot.driverNumber);
+        nextSnapshot[`${driverKey}:bestLap`] = snapshot.bestLapDisplay;
+        nextSnapshot[`${driverKey}:lastLap`] = snapshot.lastLapDisplay;
+        nextSnapshot[`${driverKey}:gap`] = snapshot.gapValue;
+        nextSnapshot[`${driverKey}:interval`] = snapshot.intervalValue;
+      }
+      timingCellSnapshotRef.current = nextSnapshot;
+      return;
+    }
+
+    for (const snapshot of timingCellSnapshots) {
+      const driverKey = String(snapshot.driverNumber);
+      for (const field of ["bestLap", "lastLap", "gap", "interval"] as const) {
+        const key = `${driverKey}:${field}`;
+        activeKeys.add(key);
+        const nextValue =
+          field === "bestLap"
+            ? snapshot.bestLapDisplay
+            : field === "lastLap"
+              ? snapshot.lastLapDisplay
+              : field === "gap"
+                ? snapshot.gapValue
+                : snapshot.intervalValue;
+        nextSnapshot[key] = nextValue;
+
+        if (prev?.[key] === nextValue) continue;
+
+        if (field === "gap" || field === "interval") {
+          const previousValue = prev?.[key];
+          if (
+            typeof previousValue === "number" &&
+            typeof nextValue === "number"
+          ) {
+            const tone: TimingCellTrend | null =
+              nextValue < previousValue
+               ? "green"
+               : nextValue > previousValue
+                 ? "red"
+                 : null;
+            if (tone !== null) {
+              setTimingCellTones((current) => {
+               if (current[key] === tone) return current;
+               return { ...current, [key]: tone };
+              });
+            }
+          }
+          continue;
+        }
+
+        const existingTimer = timingCellTimersRef.current.get(key);
+        if (existingTimer !== undefined) {
+          window.clearTimeout(existingTimer);
+        }
+
+        setTimingCellHighlights((current) => ({
+          ...current,
+          [key]: Date.now(),
+        }));
+
+        const timerId = window.setTimeout(() => {
+          setTimingCellHighlights((current) => {
+            if (!(key in current)) return current;
+            const next = { ...current };
+            delete next[key];
+            return next;
+          });
+          timingCellTimersRef.current.delete(key);
+        }, TIMING_CELL_FLASH_MS);
+
+        timingCellTimersRef.current.set(key, timerId);
+      }
+    }
+
+    if (prev) {
+      for (const key of Object.keys(prev)) {
+        if (activeKeys.has(key)) continue;
+        const timerId = timingCellTimersRef.current.get(key);
+        if (timerId !== undefined) {
+          window.clearTimeout(timerId);
+          timingCellTimersRef.current.delete(key);
+        }
+        setTimingCellHighlights((current) => {
+          if (!(key in current)) return current;
+          const next = { ...current };
+          delete next[key];
+          return next;
+        });
+        setTimingCellTones((current) => {
+          if (!(key in current)) return current;
+          const next = { ...current };
+          delete next[key];
+          return next;
+        });
+      }
+    }
+
+    timingCellSnapshotRef.current = nextSnapshot;
+  }, [timingCellSnapshots]);
+
+  useEffect(
+    () => () => {
+      for (const timerId of timingCellTimersRef.current.values()) {
+        window.clearTimeout(timerId);
+      }
+      timingCellTimersRef.current.clear();
+    },
+    [],
+  );
+
+  const timingCellFlashClass = (
+    driverNumber: number,
+    field: TimingHighlightField,
+  ) => {
+    return timingCellHighlights[`${driverNumber}:${field}`]
+      ? "bg-white/[0.035]"
+      : "";
+  };
+
+  const timingCellToneClass = (
+    driverNumber: number,
+    field: Exclude<TimingHighlightField, "bestLap" | "lastLap">,
+  ) => {
+    const tone = timingCellTones[`${driverNumber}:${field}`];
+    if (tone === "green") return "text-[#39d743]";
+    if (tone === "red") return "text-[#ff5252]";
+    return "text-muted";
+  };
+
+  const timingCellToneStyle = (
+    driverNumber: number,
+    field: Exclude<TimingHighlightField, "bestLap" | "lastLap">,
+  ): CSSProperties | undefined => {
+    const tone = timingCellTones[`${driverNumber}:${field}`];
+    if (tone === "green") return { color: "#39d743", fontWeight: 700 };
+    if (tone === "red") return { color: "#ff5252", fontWeight: 700 };
+    return undefined;
+  };
 
   const hasSectorReference = Boolean(
     sessionBestOwners.s1 || sessionBestOwners.s2 || sessionBestOwners.s3,
@@ -1701,7 +1908,7 @@ export function LiveTiming({
                   {/* Best lap time */}
                   {columns.bestLap && (
                     <td
-                      className={`${mobileBestLapColumnClass} ${rowCellPad} align-middle px-1 text-right font-mono ${dense ? "text-[9px] min-[390px]:text-[10px]" : "text-[10px] min-[390px]:text-[11px]"} tabular-nums sm:px-1.5 ${LAP_TIME_COLOUR[lapTier]}`}
+                      className={`${mobileBestLapColumnClass} ${rowCellPad} align-middle px-1 text-right font-mono transition-colors duration-300 ${dense ? "text-[9px] min-[390px]:text-[10px]" : "text-[10px] min-[390px]:text-[11px]"} tabular-nums sm:px-1.5 ${LAP_TIME_COLOUR[lapTier]} ${timingCellFlashClass(num, "bestLap")}`}
                     >
                       {fmtTime(bestLap?.lap_duration ?? null)}
                     </td>
@@ -1709,7 +1916,7 @@ export function LiveTiming({
 
                   {columns.lastLap && (
                     <td
-                      className={`${mobileLastLapColumnClass} ${rowCellPad} align-middle px-1 text-right font-mono ${dense ? "text-[9px] min-[390px]:text-[10px]" : "text-[10px] min-[390px]:text-[11px]"} tabular-nums sm:px-1.5 ${LAP_TIME_COLOUR[lapTimeTier(lastLap?.lap_duration ?? null, sessionBest.lap)]}`}
+                      className={`${mobileLastLapColumnClass} ${rowCellPad} align-middle px-1 text-right font-mono transition-colors duration-300 ${dense ? "text-[9px] min-[390px]:text-[10px]" : "text-[10px] min-[390px]:text-[11px]"} tabular-nums sm:px-1.5 ${LAP_TIME_COLOUR[lapTimeTier(lastLap?.lap_duration ?? null, sessionBest.lap)]} ${timingCellFlashClass(num, "lastLap")}`}
                     >
                       {fmtTime(lastLap?.lap_duration ?? null)}
                     </td>
@@ -1718,7 +1925,8 @@ export function LiveTiming({
                   {/* Gap to leader */}
                   {columns.gap && (
                     <td
-                      className={`${mobileGapColumnClass} ${rowCellPad} align-middle px-1 text-right font-mono ${dense ? "text-[9px] min-[390px]:text-[10px]" : "text-[10px] min-[390px]:text-[11px]"} tabular-nums text-muted sm:px-2`}
+                      className={`${mobileGapColumnClass} ${rowCellPad} align-middle px-1 text-right font-mono transition-colors duration-300 ${dense ? "text-[9px] min-[390px]:text-[10px]" : "text-[10px] min-[390px]:text-[11px]"} tabular-nums text-muted sm:px-2 ${timingCellToneClass(num, "gap")}`}
+                      style={timingCellToneStyle(num, "gap")}
                     >
                       {fmtGap(gapValue)}
                     </td>
@@ -1727,7 +1935,8 @@ export function LiveTiming({
                   {/* Interval to car ahead */}
                   {showIntervalColumn && columns.interval && (
                     <td
-                      className={`${mobileIntervalColumnClass} ${rowCellPad} align-middle px-1 text-right font-mono ${dense ? "text-[9px] min-[390px]:text-[10px]" : "text-[10px] min-[390px]:text-[11px]"} tabular-nums text-muted sm:px-2`}
+                      className={`${mobileIntervalColumnClass} ${rowCellPad} align-middle px-1 text-right font-mono transition-colors duration-300 ${dense ? "text-[9px] min-[390px]:text-[10px]" : "text-[10px] min-[390px]:text-[11px]"} tabular-nums text-muted sm:px-2 ${timingCellToneClass(num, "interval")}`}
+                      style={timingCellToneStyle(num, "interval")}
                     >
                       {fmtInterval(intervalValue)}
                     </td>
