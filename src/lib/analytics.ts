@@ -102,6 +102,10 @@ export function initializeAnalytics(): void {
   if (initialized || !shouldTrackAnalytics() || typeof window === "undefined")
     return;
   initialized = true;
+  window.gtag?.("config", GA_MEASUREMENT_ID, {
+    app_version: appVersion ?? undefined,
+    send_page_view: false,
+  });
   window.gtag?.("event", "app_session_started", {
     ...buildCommonEventParams(),
     landing_path: `${window.location.pathname}${window.location.search}${window.location.hash}`,

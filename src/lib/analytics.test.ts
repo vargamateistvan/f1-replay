@@ -116,6 +116,14 @@ describe("analytics", () => {
     initializeAnalytics();
 
     expect(gtag).toHaveBeenCalledWith(
+      "config",
+      "G-TEST123",
+      expect.objectContaining({
+        app_version: "1.2.3",
+        send_page_view: false,
+      }),
+    );
+    expect(gtag).toHaveBeenCalledWith(
       "event",
       "app_session_started",
       expect.objectContaining({
