@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState, type ReactNode } from "react";
 import { Play, Square } from "lucide-react";
 import type { ActiveToast } from "@/hooks/useEventToasts";
 import type { Driver } from "@/api/types";
+import { animateMotion, fadeUpMotion } from "@/lib/motion";
 import type {
   RadioPayload,
   FlagPayload,
@@ -128,24 +129,6 @@ export function EventToastStack({
 
   return (
     <>
-      <style>{`
-        @keyframes toast-slide-desktop {
-          from { opacity: 0; transform: translateX(24px) scale(0.98); }
-          to   { opacity: 1; transform: translateX(0) scale(1); }
-        }
-        @keyframes toast-slide-mobile {
-          from { opacity: 0; transform: translateY(16px) scale(0.98); }
-          to   { opacity: 1; transform: translateY(0) scale(1); }
-        }
-        .toast-in { animation: toast-slide-mobile 0.2s ease-out both; }
-        @media (max-width: 767px) {
-          .toast-in { animation: toast-slide-mobile 0.2s ease-out both; }
-        }
-        @media (min-width: 768px) {
-          .toast-in { animation: toast-slide-desktop 0.2s ease-out both; }
-        }
-      `}</style>
-
       <div
         className={[
           "pointer-events-none flex flex-col gap-1.5",
@@ -178,15 +161,35 @@ export function EventToastStack({
 function SwipeCard({
   id,
   onDismiss,
+  kind,
   children,
 }: {
   id: string;
   onDismiss: (id: string) => void;
+  kind: ActiveToast["event"]["kind"];
   children: ReactNode;
 }) {
   const startXRef = useRef<number | null>(null);
+  const cardRef = useRef<HTMLDivElement | null>(null);
   const [offset, setOffset] = useState(0);
   const [leaving, setLeaving] = useState(false);
+
+  useEffect(() => {
+    const animation = animateMotion(
+      cardRef.current,
+      fadeUpMotion({
+        opacity: [0, 1],
+        translateY: [12, 0],
+        translateX: [kind === "radio" ? 20 : 14, 0],
+        scale: [0.98, 1],
+        duration: 220,
+      }),
+    );
+
+    return () => {
+      animation?.revert();
+    };
+  }, [kind]);
 
   function onTouchStart(e: React.TouchEvent) {
     startXRef.current = e.touches[0]!.clientX;
@@ -210,6 +213,8 @@ function SwipeCard({
 
   return (
     <div
+      ref={cardRef}
+      className="toast-card"
       onTouchStart={onTouchStart}
       onTouchMove={onTouchMove}
       onTouchEnd={onTouchEnd}
@@ -275,8 +280,8 @@ function ToastCard({
   if (!inner) return null;
 
   return (
-    <SwipeCard id={at.event.id} onDismiss={onDismiss}>
-      <div className="toast-in w-full">{inner}</div>
+    <SwipeCard id={at.event.id} onDismiss={onDismiss} kind={at.event.kind}>
+      {inner}
     </SwipeCard>
   );
 }

@@ -983,7 +983,7 @@ export default function Telemetry() {
       {isLoadingEventSession && (
         <div className="absolute inset-0 z-40 flex items-center justify-center bg-black/80 backdrop-blur-sm">
           <div className="mx-4 w-full max-w-sm rounded border border-panel bg-surface px-4 py-4 text-center shadow-2xl">
-            <div className="text-f1red text-[11px] font-black uppercase tracking-[0.16em] animate-pulse">
+            <div className="text-f1red text-[11px] font-black uppercase tracking-[0.16em]">
               Loading Event
             </div>
             <div className="mt-2 text-xs text-muted">
@@ -1588,7 +1588,7 @@ export default function Telemetry() {
         )}
 
         {isLoading && (
-          <span className="mt-1 block text-xs text-f1red animate-pulse">
+          <span className="mt-1 block text-xs text-f1red">
             Loading telemetry...
           </span>
         )}

@@ -1081,7 +1081,7 @@ export function LiveTiming({
     return (
       <div className="p-3 sm:p-4">
         <div className="rounded-sm border border-panel bg-surface px-3 py-3 sm:px-4">
-          <div className="text-[10px] font-black uppercase tracking-[0.14em] text-f1red animate-pulse">
+          <div className="text-[10px] font-black uppercase tracking-[0.14em] text-f1red">
             Loading timing data
           </div>
           <div className="mt-1 text-xs text-muted">
@@ -1490,7 +1490,7 @@ export function LiveTiming({
               } else if (inPit) {
                 statusContent = (
                   <span
-                    className={`bg-[#f5a623] text-black font-black uppercase tracking-widest animate-pulse ${statusBadgeClass}`}
+                    className={`bg-[#f5a623] text-black font-black uppercase tracking-widest ${statusBadgeClass}`}
                   >
                     PIT
                   </span>

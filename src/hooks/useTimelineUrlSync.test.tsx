@@ -1,28 +1,37 @@
 import React from "react";
-import { describe, expect, it, beforeEach, afterEach } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { renderHook } from "@testing-library/react";
-import { MemoryRouter } from "react-router-dom";
 import { useTimeline } from "@/timeline/clock";
 import { useTimelineUrlSync } from "./useTimelineUrlSync";
 
-function wrapper({ children }: { children: React.ReactNode }) {
-  return (
-    <MemoryRouter
-      initialEntries={["/race"]}
-      future={{
-        v7_startTransition: true,
-        v7_relativeSplatPath: true,
-      }}
-    >
-      {children}
-    </MemoryRouter>
+const searchParamsState = {
+  searchParams: new URLSearchParams(),
+  setSearchParams: vi.fn(),
+};
+
+vi.mock("react-router-dom", async () => {
+  const actual = await vi.importActual<typeof import("react-router-dom")>(
+    "react-router-dom",
   );
+  return {
+    ...actual,
+    useSearchParams: () => [
+      searchParamsState.searchParams,
+      searchParamsState.setSearchParams,
+    ],
+  };
+});
+
+function wrapper({ children }: { children: React.ReactNode }) {
+  return <>{children}</>;
 }
 
 describe("useTimelineUrlSync", () => {
   beforeEach(() => {
     useTimeline.getState().reset();
     useTimeline.getState().setSpeed(1);
+    searchParamsState.searchParams = new URLSearchParams();
+    searchParamsState.setSearchParams.mockReset();
   });
 
   afterEach(() => {
@@ -106,5 +115,25 @@ describe("useTimelineUrlSync", () => {
     renderHook(() => useTimelineUrlSync(1, true), { wrapper });
 
     expect(useTimeline.getState().t).toBe(9_000);
+  });
+
+  it("persists playhead changes while playback is running", () => {
+    renderHook(() => useTimelineUrlSync(1, true), { wrapper });
+
+    useTimeline.getState().setPlaying(true);
+    useTimeline.getState().setT(5_000);
+
+    expect(searchParamsState.setSearchParams).toHaveBeenCalled();
+  });
+
+  it("persists the playhead after playback stops", () => {
+    renderHook(() => useTimelineUrlSync(1, true), { wrapper });
+
+    useTimeline.getState().setPlaying(true);
+    useTimeline.getState().setT(5_000);
+    useTimeline.getState().setPlaying(false);
+    useTimeline.getState().setT(6_000);
+
+    expect(searchParamsState.setSearchParams).toHaveBeenCalled();
   });
 });

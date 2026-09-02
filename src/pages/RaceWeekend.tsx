@@ -86,6 +86,12 @@ import {
   windowBoundsByValue,
 } from "@/utils/sortedTime";
 import { trackEvent } from "@/lib/analytics";
+import {
+  animateMotion,
+  fadeUpMotion,
+  motionEnabled,
+  staggerFadeUpMotion,
+} from "@/lib/motion";
 import type { MainView } from "@/components/Nav";
 import type {
   Stint,
@@ -207,13 +213,16 @@ const CommentaryPanels = lazy(() =>
 
 function PanelFallback() {
   return (
-    <div className="flex h-full min-h-[120px] items-center justify-center text-[10px] font-bold uppercase tracking-[0.12em] text-muted animate-pulse">
+    <div className="flex h-full min-h-[120px] items-center justify-center text-[10px] font-bold uppercase tracking-[0.12em] text-muted">
       Loading Panel
     </div>
   );
 }
 
 export default function RaceWeekend() {
+  const leaderboardViewRef = useRef<HTMLDivElement | null>(null);
+  const trackerViewRef = useRef<HTMLDivElement | null>(null);
+  const commentaryViewRef = useRef<HTMLDivElement | null>(null);
   const trackerDesktopSplitRef = useRef<HTMLDivElement | null>(null);
   const trackerDesktopDragRef = useRef<{
     startX: number;
@@ -557,6 +566,47 @@ export default function RaceWeekend() {
   }, [incidentReplayHint]);
 
   useTimelineUrlSync(sessionKey, sessionStartMs > 0);
+
+  useEffect(() => {
+    if (!motionEnabled()) return;
+    const root =
+      currentView === "leaderboard"
+        ? leaderboardViewRef.current
+        : currentView === "tracker"
+          ? trackerViewRef.current
+          : commentaryViewRef.current;
+    if (!root) return;
+
+    const animations = [
+      animateMotion(
+        root,
+        fadeUpMotion({
+          opacity: [0, 1],
+          translateY: [26, 0],
+          duration: 520,
+        }),
+      ),
+    ].filter(
+      (animation): animation is NonNullable<typeof animation> => animation !== null,
+    );
+
+    const cards = root.querySelectorAll("[data-motion-card]");
+    if (cards.length > 0) {
+      const cardsAnimation = animateMotion(
+        cards,
+        staggerFadeUpMotion({
+          opacity: [0, 1],
+          translateY: [18, 0],
+          duration: 420,
+        }),
+      );
+      if (cardsAnimation) animations.push(cardsAnimation);
+    }
+
+    return () => {
+      animations.forEach((animation) => animation.revert());
+    };
+  }, [currentView, activeTrackerTab, activeCommentaryTab, sessionKey]);
 
   const isLoadingSessionData =
     sessionKey !== null &&
@@ -1658,7 +1708,7 @@ export default function RaceWeekend() {
       {isLoadingEventSession && (
         <div className="absolute inset-0 z-40 flex items-center justify-center bg-[#0b0c12]/86 backdrop-blur-sm">
           <div className="mx-4 w-full max-w-sm rounded border border-panel bg-surface px-4 py-4 text-center shadow-2xl">
-            <div className="text-f1red text-[11px] font-black uppercase tracking-[0.16em] animate-pulse">
+            <div className="text-f1red text-[11px] font-black uppercase tracking-[0.16em]">
               Loading Event
             </div>
             <div className="mt-2 text-xs text-muted">
@@ -1675,7 +1725,10 @@ export default function RaceWeekend() {
 
       {/* ── LEADERBOARD VIEW ──────────────────────────────────────────── */}
       {currentView === "leaderboard" && (
-        <div className="flex flex-col md:flex-1 md:min-h-0 md:overflow-hidden">
+        <div
+          ref={leaderboardViewRef}
+          className="flex flex-col md:flex-1 md:min-h-0 md:overflow-hidden"
+        >
           <SessionInfoBar
             laps={laps.data ?? []}
             raceControl={raceControl.data ?? []}
@@ -1705,7 +1758,7 @@ export default function RaceWeekend() {
           {isLoadingSessionData && (
             <div className="border-b border-panel bg-track px-3 py-2 sm:px-4">
               <div className="rounded-sm border border-panel bg-surface px-3 py-2">
-                <div className="text-f1red text-[10px] font-black uppercase tracking-[0.14em] animate-pulse">
+                <div className="text-f1red text-[10px] font-black uppercase tracking-[0.14em]">
                   Loading session data
                 </div>
                 <div className="mt-1 text-xs text-muted">
@@ -1715,7 +1768,10 @@ export default function RaceWeekend() {
             </div>
           )}
 
-          <div className="flex flex-col md:flex-1 md:min-h-0 md:overflow-hidden">
+          <div
+            data-motion-card
+            className="flex flex-col md:flex-1 md:min-h-0 md:overflow-hidden"
+          >
             {positions.isError ? (
               <ErrorMessage message="Failed to load timing data" />
             ) : (
@@ -1727,7 +1783,10 @@ export default function RaceWeekend() {
 
       {/* ── DRIVER TRACKER VIEW ───────────────────────────────────────── */}
       {currentView === "tracker" && (
-        <div className="flex flex-col md:flex-1 md:min-h-0 md:overflow-hidden">
+        <div
+          ref={trackerViewRef}
+          className="flex flex-col md:flex-1 md:min-h-0 md:overflow-hidden"
+        >
           <SessionInfoBar
             laps={laps.data ?? []}
             raceControl={raceControl.data ?? []}
@@ -1752,7 +1811,10 @@ export default function RaceWeekend() {
             }
             onJumpToSessionTime={(sessionTimeMs) => setTimelineT(sessionTimeMs)}
           />
-          <div className="flex flex-col md:flex-1 md:min-h-0 md:overflow-hidden relative">
+          <div
+            data-motion-card
+            className="flex flex-col md:flex-1 md:min-h-0 md:overflow-hidden relative"
+          >
             {/* Toast overlay — covers both mobile and desktop tracker content */}
             {activeTrackerTab !== "map" && (
               <EventToastStack
@@ -1829,7 +1891,10 @@ export default function RaceWeekend() {
               )}
 
               {/* Tab content */}
-              <div className="flex flex-col md:flex-1 md:min-h-0 md:overflow-hidden">
+              <div
+                data-motion-card
+                className="flex flex-col md:flex-1 md:min-h-0 md:overflow-hidden"
+              >
                 {activeTrackerTab === "timing" && (
                   <>
                     {/* Timing tower */}
@@ -1872,7 +1937,10 @@ export default function RaceWeekend() {
                 )}
 
                 {activeTrackerTab === "map" && (
-                  <div className="min-h-[80vw] bg-[#10101a] flex flex-col md:flex-1 md:min-w-0">
+                  <div
+                    data-motion-card
+                    className="min-h-[80vw] bg-[#10101a] flex flex-col md:flex-1 md:min-w-0"
+                  >
                     {mapShowWeather && (
                       <div className="shrink-0 border-b border-panel">
                         {weather.isError ? (
@@ -1908,7 +1976,7 @@ export default function RaceWeekend() {
                         </Suspense>
                       )}
                       {isLoadingSessionData && (
-                        <span className="absolute top-2 right-2 text-f1red text-[10px] animate-pulse">
+                        <span className="absolute top-2 right-2 text-f1red text-[10px]">
                           Loading…
                         </span>
                       )}
@@ -1918,6 +1986,7 @@ export default function RaceWeekend() {
 
                 {activeTrackerTab === "strategy" && (
                   <div
+                    data-motion-card
                     className={`${PANEL} flex-1 flex flex-col overflow-hidden border-0`}
                   >
                     <div className={`${PANEL_TITLE} shrink-0`}>
@@ -1940,7 +2009,10 @@ export default function RaceWeekend() {
                 )}
 
                 {activeTrackerTab === "chart" && (
-                  <div className="h-[52vh] min-h-[280px] bg-[#10101a]">
+                  <div
+                    data-motion-card
+                    className="h-[52vh] min-h-[280px] bg-[#10101a]"
+                  >
                     <Suspense fallback={<PanelFallback />}>
                       <LapChart
                         drivers={drivers.data ?? []}
@@ -1955,7 +2027,10 @@ export default function RaceWeekend() {
                 )}
 
                 {activeTrackerTab === "gap" && (
-                  <div className="h-[52vh] min-h-[280px] bg-[#10101a]">
+                  <div
+                    data-motion-card
+                    className="h-[52vh] min-h-[280px] bg-[#10101a]"
+                  >
                     <Suspense fallback={<PanelFallback />}>
                       <GapChart
                         drivers={drivers.data ?? []}
@@ -1974,6 +2049,7 @@ export default function RaceWeekend() {
 
             {/* Desktop layout: split panel (hidden md:flex) */}
             <div
+              data-motion-card
               ref={trackerDesktopSplitRef}
               className="hidden md:flex flex-1 min-h-0 overflow-hidden"
             >
@@ -2108,7 +2184,8 @@ export default function RaceWeekend() {
               />
 
               {/* Track map — fills remaining width */}
-              <div className="flex-1 min-w-0 bg-[#10101a] flex flex-col">
+              <div               data-motion-card
+              className="flex-1 min-w-0 bg-[#10101a] flex flex-col">
                 <div className="relative flex-1 min-h-0">
                   {drivers.isError ? (
                     <ErrorMessage message="Failed to load driver data" />
@@ -2116,7 +2193,7 @@ export default function RaceWeekend() {
                     <Suspense fallback={<PanelFallback />}>{trackMap}</Suspense>
                   )}
                   {isLoadingSessionData && (
-                    <span className="absolute top-2 right-2 text-f1red text-[10px] animate-pulse">
+                    <span className="absolute top-2 right-2 text-f1red text-[10px]">
                       Loading…
                     </span>
                   )}
@@ -2129,7 +2206,10 @@ export default function RaceWeekend() {
 
       {/* ── COMMENTARY VIEW ───────────────────────────────────────────── */}
       {currentView === "commentary" && (
-        <div className="flex flex-col md:flex-1 md:min-h-0 md:overflow-hidden">
+        <div
+          ref={commentaryViewRef}
+          className="flex flex-col md:flex-1 md:min-h-0 md:overflow-hidden"
+        >
           <SessionInfoBar
             laps={laps.data ?? []}
             raceControl={raceControl.data ?? []}
@@ -2156,7 +2236,10 @@ export default function RaceWeekend() {
           />
 
           {/* Sub-tabs */}
-          <div className="grid grid-cols-6 w-full border-b border-panel shrink-0 bg-track sm:flex sm:overflow-x-auto">
+          <div
+            data-motion-card
+            className="grid grid-cols-6 w-full border-b border-panel shrink-0 bg-track sm:flex sm:overflow-x-auto"
+          >
             {commentaryTabs.map(
               ([tab, label, shortLabel, count, metaLabel]) => (
                 <button
@@ -2191,7 +2274,10 @@ export default function RaceWeekend() {
           </div>
 
           {/* Live lap status */}
-          <div className="shrink-0 border-b border-panel bg-surface/70 px-3 py-1.5">
+          <div
+            data-motion-card
+            className="shrink-0 border-b border-panel bg-surface/70 px-3 py-1.5"
+          >
             <div className="flex items-center gap-3">
               <span className="text-[10px] font-black uppercase tracking-[0.12em] text-muted">
                 <span className="text-white tabular-nums">
@@ -2229,7 +2315,10 @@ export default function RaceWeekend() {
           </div>
 
           {/* Content */}
-          <div className="flex flex-col md:flex-1 md:min-h-0 md:overflow-hidden">
+          <div
+            data-motion-card
+            className="flex flex-col md:flex-1 md:min-h-0 md:overflow-hidden"
+          >
             <Suspense fallback={<PanelFallback />}>
               <CommentaryPanels
                 commentaryTab={activeCommentaryTab}

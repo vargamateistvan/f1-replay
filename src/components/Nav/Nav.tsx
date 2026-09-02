@@ -483,7 +483,7 @@ export function Nav() {
         <span className="text-white/80 text-[11px] font-bold tracking-widest uppercase mr-auto truncate hidden sm:flex items-center gap-2">
           {live && (
             <span
-              className="w-1.5 h-1.5 rounded-full bg-white/75 animate-pulse shrink-0"
+              className="w-1.5 h-1.5 rounded-full bg-white/75 shrink-0"
               aria-hidden="true"
             />
           )}
@@ -738,7 +738,7 @@ export function Nav() {
               </div>
 
               {nextMeetingSessions.isPending ? (
-                <div className="text-[11px] text-f1red animate-pulse">
+                <div className="text-[11px] text-f1red">
                   Loading agenda...
                 </div>
               ) : nextAgendaSessions.length === 0 ? (
@@ -791,7 +791,7 @@ export function Nav() {
           >
             {live && (
               <span className="flex items-center gap-1 bg-f1red text-white text-[9px] font-black uppercase tracking-widest px-2 py-0.5 shrink-0">
-                <span className="w-1.5 h-1.5 rounded-full bg-white animate-pulse" />
+                <span className="w-1.5 h-1.5 rounded-full bg-white" />
                 Live
               </span>
             )}
@@ -948,7 +948,7 @@ export function Nav() {
             )}
 
             {(meetings.isPending || sessions.isPending) && (
-              <span className="text-muted text-[9px] animate-pulse shrink-0 ml-auto sm:ml-0">
+              <span className="text-muted text-[9px] shrink-0 ml-auto sm:ml-0">
                 Loading…
               </span>
             )}
@@ -1099,7 +1099,7 @@ export function Nav() {
 
               <div className="mt-3 border-t border-panel/70 pt-2">
                 {apiFactsLoading && (
-                  <div className="mb-1 text-[10px] text-f1red animate-pulse">
+                  <div className="mb-1 text-[10px] text-f1red">
                     Fetching facts from API...
                   </div>
                 )}

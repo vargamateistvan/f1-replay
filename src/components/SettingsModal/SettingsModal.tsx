@@ -2,10 +2,18 @@ import { useCallback, useEffect, useRef, type MouseEvent } from "react";
 import { useSettings } from "@/stores/settings";
 import { SettingsBody } from "./SettingsControls";
 import { trackEvent } from "@/lib/analytics";
+import {
+  animateMotion,
+  modalBackdropMotion,
+  modalPanelMotion,
+  pressMotion,
+  motionEnabled,
+} from "@/lib/motion";
 
 export function SettingsModal() {
   const { isOpen, closeModal } = useSettings();
   const backdropRef = useRef<HTMLDivElement>(null);
+  const panelRef = useRef<HTMLDivElement>(null);
 
   const closeWithReason = useCallback(
     (reason: "escape" | "backdrop" | "button") => {
@@ -19,6 +27,20 @@ export function SettingsModal() {
     if (isOpen) {
       trackEvent("settings_modal_opened");
     }
+  }, [isOpen]);
+
+  useEffect(() => {
+    if (!isOpen || !motionEnabled()) return;
+    const backdropAnimation = animateMotion(
+      backdropRef.current,
+      modalBackdropMotion(),
+    );
+    const panelAnimation = animateMotion(panelRef.current, modalPanelMotion());
+
+    return () => {
+      backdropAnimation?.revert();
+      panelAnimation?.revert();
+    };
   }, [isOpen]);
 
   useEffect(() => {
@@ -42,7 +64,10 @@ export function SettingsModal() {
       onClick={handleBackdropClick}
       className="fixed inset-0 z-[200] flex items-center justify-center bg-black/70 backdrop-blur-sm"
     >
-      <div className="relative w-full max-w-sm mx-4 max-h-[90dvh] flex flex-col bg-surface border border-panel rounded-lg shadow-2xl overflow-hidden">
+      <div
+        ref={panelRef}
+        className="relative w-full max-w-sm mx-4 max-h-[90dvh] flex flex-col bg-surface border border-panel rounded-lg shadow-2xl overflow-hidden"
+      >
         {/* Header */}
         <div className="flex items-center justify-between px-5 py-3.5 border-b border-panel shrink-0">
           <div className="flex items-center gap-2">
@@ -87,7 +112,10 @@ export function SettingsModal() {
             </span>
           </div>
           <button
-            onClick={() => closeWithReason("button")}
+            onClick={(e) => {
+              animateMotion(e.currentTarget, pressMotion());
+              closeWithReason("button");
+            }}
             aria-label="Close settings"
             className="w-7 h-7 flex items-center justify-center rounded text-muted hover:text-white hover:bg-panel transition-colors text-base"
           >

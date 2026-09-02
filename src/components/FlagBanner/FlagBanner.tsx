@@ -89,7 +89,7 @@ export function FlagBanner({
 
   return (
     <div
-      className="w-full px-4 py-1 flex items-center justify-center gap-2 animate-pulse-slow"
+      className="w-full px-4 py-1 flex items-center justify-center gap-2"
       style={{ backgroundColor: banner.bg, color: banner.text }}
     >
       <span className="text-[12px] sm:text-[11px] font-black uppercase tracking-[0.25em]">

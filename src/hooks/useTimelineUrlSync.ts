@@ -3,10 +3,6 @@ import { useSearchParams } from "react-router-dom";
 import { useTimeline } from "@/timeline/clock";
 import { SPEEDS } from "@/constants";
 
-// Throttle URL writes so scrubbing/playback doesn't spam history (we use replace,
-// so this only bounds churn, not back-stack growth).
-const PERSIST_THROTTLE_MS = 2000;
-
 // Keeps the playhead (`t`, in whole seconds) and `speed` in the URL so a Race
 // Weekend view is shareable/reloadable. Restores once from a deep link, then
 // resets the clock whenever the user manually switches sessions.
@@ -50,16 +46,12 @@ export function useTimelineUrlSync(sessionKey: number | null, ready: boolean) {
   // (no React re-render per frame).
   useEffect(() => {
     if (sessionKey === null) return;
-    let last = 0;
     let lastT = -1;
     let lastSpeed = -1;
 
     const unsub = useTimeline.subscribe((s) => {
-      const now = Date.now();
-      if (now - last < PERSIST_THROTTLE_MS) return;
       const tSec = Math.round(s.t / 1000);
       if (tSec === lastT && s.speed === lastSpeed) return;
-      last = now;
       lastT = tSec;
       lastSpeed = s.speed;
 

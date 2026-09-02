@@ -39,6 +39,7 @@ import {
   windSpeedUnitLabel,
 } from "@/utils/units";
 import { trackEvent } from "@/lib/analytics";
+import { animateMotion, pressMotion } from "@/lib/motion";
 import type { CarData, Driver, Location, Stint, Weather } from "@/api/types";
 import {
   TRACK_SVG_W as SVG_W,
@@ -1579,7 +1580,7 @@ export function TrackMap({
 
   if (isPending && !outline) {
     return (
-      <div className="flex items-center justify-center w-full h-full text-muted text-sm animate-pulse">
+      <div className="flex items-center justify-center w-full h-full text-muted text-sm">
         Loading track outline…
       </div>
     );
@@ -2405,7 +2406,8 @@ export function TrackMap({
           <div className="flex items-center gap-1">
             <button
               type="button"
-              onClick={() => {
+              onClick={(e) => {
+                animateMotion(e.currentTarget, pressMotion());
                 setZoomLevel((z) => {
                   const next = Math.max(0.6, z - 0.2);
                   persistZoomLevel(next);
@@ -2420,7 +2422,8 @@ export function TrackMap({
             </button>
             <button
               type="button"
-              onClick={() => {
+              onClick={(e) => {
+                animateMotion(e.currentTarget, pressMotion());
                 setZoomLevel((z) => {
                   const next = Math.min(3, z + 0.2);
                   persistZoomLevel(next);
@@ -2435,7 +2438,8 @@ export function TrackMap({
             </button>
             <button
               type="button"
-              onClick={() => {
+              onClick={(e) => {
+                animateMotion(e.currentTarget, pressMotion());
                 trackEvent("trackmap_zoom_reset");
                 setZoomLevel(1);
                 persistZoomLevel(1);
@@ -2449,7 +2453,8 @@ export function TrackMap({
           <div className="flex items-center gap-1">
             <button
               type="button"
-              onClick={() => {
+              onClick={(e) => {
+                animateMotion(e.currentTarget, pressMotion());
                 trackEvent("trackmap_rotation_changed", {
                   direction: "left",
                 });
@@ -2462,7 +2467,8 @@ export function TrackMap({
             </button>
             <button
               type="button"
-              onClick={() => {
+              onClick={(e) => {
+                animateMotion(e.currentTarget, pressMotion());
                 trackEvent("trackmap_rotation_changed", {
                   direction: "right",
                 });
@@ -2475,7 +2481,8 @@ export function TrackMap({
             </button>
             <button
               type="button"
-              onClick={() => {
+              onClick={(e) => {
+                animateMotion(e.currentTarget, pressMotion());
                 trackEvent("trackmap_rotation_reset", {
                   rotation: defaultRotationDeg,
                 });

@@ -3,6 +3,7 @@ import { useSettings, type AppSettings } from "@/stores/settings";
 import { useMediaQuery } from "@/hooks/useMediaQuery";
 import { trackEvent } from "@/lib/analytics";
 import { SPEEDS } from "@/constants";
+import { animateMotion, pressMotion } from "@/lib/motion";
 
 function toAnalyticsValue(
   value: AppSettings[keyof AppSettings],
@@ -32,7 +33,11 @@ export function Toggle({
     <button
       role="switch"
       aria-checked={checked}
-      onClick={() => !disabled && onChange(!checked)}
+      onClick={(e) => {
+        if (disabled) return;
+        animateMotion(e.currentTarget, pressMotion());
+        onChange(!checked);
+      }}
       className={`relative w-9 h-5 rounded-full shrink-0 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-f1red ${
         disabled ? "opacity-30 cursor-not-allowed" : "cursor-pointer"
       } ${checked ? "bg-f1red" : "bg-panel"}`}
@@ -134,7 +139,10 @@ export function SpeedSelector({
         {SPEEDS.map((s) => (
           <button
             key={s}
-            onClick={() => onChange(s)}
+            onClick={(e) => {
+              animateMotion(e.currentTarget, pressMotion());
+              onChange(s);
+            }}
             className={`w-9 h-8 text-[11px] font-bold rounded transition-colors ${
               value === s
                 ? "bg-f1red text-white"
@@ -174,7 +182,11 @@ export function NotificationLimitSelector({
         {NOTIFICATION_LIMIT_OPTIONS.map((n) => (
           <button
             key={n}
-            onClick={() => !disabled && onChange(n)}
+            onClick={(e) => {
+              if (disabled) return;
+              animateMotion(e.currentTarget, pressMotion());
+              onChange(n);
+            }}
             disabled={disabled}
             className={`w-9 h-8 text-[11px] font-bold rounded transition-colors ${
               value === n
@@ -210,7 +222,10 @@ export function UnitSelector({
         {(["metric", "imperial"] as const).map((unit) => (
           <button
             key={unit}
-            onClick={() => onChange(unit)}
+            onClick={(e) => {
+              animateMotion(e.currentTarget, pressMotion());
+              onChange(unit);
+            }}
             className={`px-3 h-8 text-[11px] font-bold rounded transition-colors ${
               value === unit
                 ? "bg-f1red text-white"
@@ -543,7 +558,8 @@ export function SettingsBody() {
               return (
                 <button
                   key={kind}
-                  onClick={() => {
+                  onClick={(e) => {
+                    animateMotion(e.currentTarget, pressMotion());
                     const current = settings.catchupSummaryDefaultFilters;
                     const next = active
                       ? current.filter((k) => k !== kind)
@@ -611,9 +627,10 @@ export function SettingsBody() {
             return (
               <button
                 key={key}
-                onClick={() =>
-                  updateSetting(key, !active as AppSettings[typeof key])
-                }
+              onClick={(e) => {
+                animateMotion(e.currentTarget, pressMotion());
+                updateSetting(key, !active as AppSettings[typeof key]);
+              }}
                 disabled={disabled}
                 className={[
                   "text-[10px] font-bold px-2 py-0.5 rounded-sm border transition-all",
@@ -669,7 +686,10 @@ export function SettingsBody() {
             {trackerTimingColumns.map(({ label, active, onToggle }) => (
               <button
                 key={label}
-                onClick={onToggle}
+                onClick={(e) => {
+                  animateMotion(e.currentTarget, pressMotion());
+                  onToggle();
+                }}
                 className={[
                   "text-[10px] font-bold px-2 py-0.5 rounded-sm border transition-all",
                   "focus:outline-none focus-visible:ring-1 focus-visible:ring-white/40",
@@ -704,7 +724,10 @@ export function SettingsBody() {
               {mobileTimingColumns.map(({ label, active, onToggle }) => (
                 <button
                   key={label}
-                  onClick={onToggle}
+                  onClick={(e) => {
+                    animateMotion(e.currentTarget, pressMotion());
+                    onToggle();
+                  }}
                   className={[
                     "text-[10px] font-bold px-2 py-0.5 rounded-sm border transition-all",
                     "focus:outline-none focus-visible:ring-1 focus-visible:ring-white/40",
@@ -844,7 +867,8 @@ export function SettingsBody() {
 
       <div className="pt-6 pb-2 flex justify-end">
         <button
-          onClick={() => {
+          onClick={(e) => {
+            animateMotion(e.currentTarget, pressMotion());
             reset();
             trackEvent("settings_reset_defaults");
           }}

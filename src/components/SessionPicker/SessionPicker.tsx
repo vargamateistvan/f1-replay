@@ -320,13 +320,13 @@ export function SessionPicker({
 
           {live && (
             <span className="flex items-center gap-1.5 bg-f1red text-white text-[10px] font-black uppercase tracking-widest px-2 py-1">
-              <span className="w-1.5 h-1.5 rounded-full bg-white animate-pulse" />
+              <span className="w-1.5 h-1.5 rounded-full bg-white" />
               Live
             </span>
           )}
 
           {(meetings.isPending || sessions.isPending) && (
-            <span className="text-muted text-[10px] animate-pulse">
+            <span className="text-muted text-[10px]">
               Loading…
             </span>
           )}

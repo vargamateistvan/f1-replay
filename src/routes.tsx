@@ -5,12 +5,20 @@ import {
   Link,
   useLocation,
 } from "react-router-dom";
-import { lazy, Suspense, useCallback, useEffect, useRef } from "react";
+import {
+  lazy,
+  Suspense,
+  useCallback,
+  useEffect,
+  useRef,
+  type ReactNode,
+} from "react";
 import { Nav } from "@/components/Nav";
 import { MobileNav } from "@/components/MobileNav";
 import { SettingsModal } from "@/components/SettingsModal/SettingsModal";
 import { HowItWorksModal } from "@/components/HowItWorksModal/HowItWorksModal";
 import { RouteSeo } from "@/components/Seo/RouteSeo";
+import { animateMotion, motionEnabled, routeEnterMotion } from "@/lib/motion";
 import {
   analyticsEnabled,
   trackPageEngagement,
@@ -27,7 +35,7 @@ const NotFound = lazy(() => import("@/pages/NotFound"));
 
 function RouteFallback() {
   return (
-    <div className="flex min-h-[40vh] items-center justify-center text-xs uppercase tracking-[0.12em] text-muted animate-pulse">
+    <div className="flex min-h-[40vh] items-center justify-center text-xs uppercase tracking-[0.12em] text-muted">
       Loading View
     </div>
   );
@@ -88,6 +96,25 @@ function RouteAnalyticsTracker() {
   return null;
 }
 
+function RouteMotionShell({ children }: { children: ReactNode }) {
+  const location = useLocation();
+  const shellRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!motionEnabled()) return;
+    const animation = animateMotion(shellRef.current, routeEnterMotion());
+    return () => {
+      animation?.revert();
+    };
+  }, [location.pathname]);
+
+  return (
+    <div ref={shellRef} className="flex flex-col flex-1 min-h-0">
+      {children}
+    </div>
+  );
+}
+
 export function AppRouter() {
   return (
     <BrowserRouter>
@@ -96,23 +123,30 @@ export function AppRouter() {
       <div className="flex flex-col md:h-[100dvh] md:min-h-[100dvh] md:overflow-hidden">
         <Nav />
         <main className="flex flex-col flex-1 pb-[calc(3rem+env(safe-area-inset-bottom))] md:min-h-0 md:overflow-hidden md:pb-0">
-          <Suspense fallback={<RouteFallback />}>
-            <Routes>
-              <Route path="/" element={<RaceWeekend />} />
-              <Route path="/telemetry" element={<Telemetry />} />
-              <Route path="/standings" element={<Standings />} />
-              <Route path="/settings" element={<Settings />} />
-              <Route path="/privacy" element={<Privacy />} />
-              <Route path="/terms" element={<Terms />} />
-              <Route path="*" element={<NotFound />} />
-            </Routes>
-          </Suspense>
+          <RouteMotionShell>
+            <Suspense fallback={<RouteFallback />}>
+              <Routes>
+                <Route path="/" element={<RaceWeekend />} />
+                <Route path="/telemetry" element={<Telemetry />} />
+                <Route path="/standings" element={<Standings />} />
+                <Route path="/settings" element={<Settings />} />
+                <Route path="/privacy" element={<Privacy />} />
+                <Route path="/terms" element={<Terms />} />
+                <Route path="*" element={<NotFound />} />
+              </Routes>
+            </Suspense>
+          </RouteMotionShell>
         </main>
         <footer className="border-t border-panel bg-track/90 px-3 py-1 text-[10px] text-muted">
           <div className="mx-auto flex w-full items-center justify-between gap-2.5">
-            <span className="font-mono uppercase tracking-[0.12em] text-muted/85">
+            <a
+              href="https://github.com/vargamateistvan/f1-replay/releases"
+              target="_blank"
+              rel="noreferrer"
+              className="font-mono uppercase tracking-[0.12em] text-muted/85 transition-colors hover:text-f1red"
+            >
               Version {appVersionLabel}
-            </span>
+            </a>
             <div className="flex items-center gap-2.5">
               <Link
                 to="/privacy"
