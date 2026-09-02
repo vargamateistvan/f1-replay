@@ -22,6 +22,7 @@ import {
   pulseMotion,
   pressMotion,
   routeEnterMotion,
+  tabSwapMotion,
   stagger,
   staggerFadeUpMotion,
 } from "./motion";
@@ -35,19 +36,19 @@ describe("motion", () => {
   });
 
   it("exposes stable motion presets", () => {
-    expect(MOTION.duration.medium).toBe(340);
-    expect(MOTION.duration.route).toBe(420);
+    expect(MOTION.duration.medium).toBe(360);
+    expect(MOTION.duration.route).toBe(480);
     expect(fadeUpMotion()).toMatchObject({
       opacity: [0, 1],
-      translateY: [18, 0],
+      translateY: [22, 0],
     });
     expect(staggerFadeUpMotion()).toMatchObject({
       opacity: [0, 1],
-      translateY: [16, 0],
+      translateY: [18, 0],
     });
     expect(pulseMotion()).toMatchObject({
       opacity: [0.45, 1],
-      scale: [0.88, 1],
+      scale: [0.86, 1],
     });
     expect(pressMotion()).toMatchObject({
       scale: [1, 0.96, 1],
@@ -58,15 +59,20 @@ describe("motion", () => {
     });
     expect(routeEnterMotion()).toMatchObject({
       opacity: [0, 1],
-      translateY: [18, 0],
+      translateY: [22, 0],
     });
     expect(modalBackdropMotion()).toMatchObject({
       opacity: [0, 1],
     });
     expect(modalPanelMotion()).toMatchObject({
       opacity: [0, 1],
-      translateY: [22, 0],
+      translateY: [26, 0],
       scale: [0.96, 1],
+    });
+    expect(tabSwapMotion()).toMatchObject({
+      opacity: [0, 1],
+      translateY: [22, 0],
+      scale: [0.98, 1],
     });
   });
 

@@ -15,7 +15,12 @@ import { nextAfter, prevBefore } from "@/timeline/events";
 import type { RaceControlMarker, MarkerSummary } from "@/timeline/raceControl";
 import { useSettings } from "@/stores/settings";
 import { trackEvent } from "@/lib/analytics";
-import { animateMotion, pressMotion } from "@/lib/motion";
+import {
+  animateMotion,
+  motionEnabled,
+  pressMotion,
+  tabSwapMotion,
+} from "@/lib/motion";
 
 interface Props {
   durationMs: number;
@@ -95,8 +100,31 @@ const SpeedButtons = memo(function SpeedButtons({
 }) {
   const speed = useTimeline((s) => s.speed);
   const setSpeed = useTimeline((s) => s.setSpeed);
+  const buttonsRef = useRef<HTMLDivElement | null>(null);
+  const prevSpeedRef = useRef(speed);
+
+  useEffect(() => {
+    if (prevSpeedRef.current === speed) return;
+    prevSpeedRef.current = speed;
+    if (!motionEnabled()) return;
+    const activeButton = buttonsRef.current?.querySelector(
+      '[aria-pressed="true"]',
+    );
+    const animation = animateMotion(
+      activeButton,
+      tabSwapMotion({
+        scale: [1, 1.08, 1],
+        translateY: [0, -1, 0],
+        duration: 240,
+      }),
+    );
+    return () => {
+      animation?.revert();
+    };
+  }, [speed]);
+
   return (
-    <div className={className}>
+    <div ref={buttonsRef} className={className}>
       {SPEEDS.map((s) => (
         <button
           key={s}
@@ -153,10 +181,12 @@ export function PlaybackBar({
   const [showMarkers, setShowMarkers] = useState(true);
   const [timeInput, setTimeInput] = useState(() => fmtTime(t));
   const [isEditingTime, setIsEditingTime] = useState(false);
+  const playPauseButtonRef = useRef<HTMLButtonElement | null>(null);
   const isCompactViewport = useMediaQuery("(max-width: 639px)");
   const hasClampedRef = useRef(false);
   const skipTimeCommitOnBlurRef = useRef(false);
   const lightMode = useSettings((s) => s.lightMode);
+  const prevPlayingRef = useRef(playing);
 
   useEffect(() => {
     if (!isEditingTime) {
@@ -178,6 +208,23 @@ export function PlaybackBar({
       hasClampedRef.current = false;
     }
   }, [durationMs, t, playing, setT, setPlaying]);
+
+  useEffect(() => {
+    if (prevPlayingRef.current === playing) return;
+    prevPlayingRef.current = playing;
+    if (!motionEnabled()) return;
+    const animation = animateMotion(
+      playPauseButtonRef.current,
+      tabSwapMotion({
+        scale: [1, 1.12, 1],
+        translateY: [0, -2, 0],
+        duration: 280,
+      }),
+    );
+    return () => {
+      animation?.revert();
+    };
+  }, [playing]);
 
   const clamp = useCallback(
     (v: number) => Math.max(0, durationMs > 0 ? Math.min(v, durationMs) : v),
@@ -284,6 +331,7 @@ export function PlaybackBar({
 
         {/* Play / pause */}
         <button
+          ref={playPauseButtonRef}
           onClick={(e) => {
             animateMotion(e.currentTarget, pressMotion());
             trackEvent("playback_toggle", {

@@ -90,6 +90,7 @@ import {
   animateMotion,
   fadeUpMotion,
   motionEnabled,
+  tabSwapMotion,
   staggerFadeUpMotion,
 } from "@/lib/motion";
 import type { MainView } from "@/components/Nav";
@@ -601,6 +602,33 @@ export default function RaceWeekend() {
         }),
       );
       if (cardsAnimation) animations.push(cardsAnimation);
+    }
+
+    const tabStrips = root.querySelectorAll("[data-motion-tab-strip]");
+    if (tabStrips.length > 0) {
+      const tabStripAnimation = animateMotion(
+        tabStrips,
+        fadeUpMotion({
+          opacity: [0.4, 1],
+          translateY: [12, 0],
+          duration: 300,
+        }),
+      );
+      if (tabStripAnimation) animations.push(tabStripAnimation);
+    }
+
+    const tabPanels = root.querySelectorAll("[data-motion-tab-panel]");
+    if (tabPanels.length > 0) {
+      const tabPanelAnimation = animateMotion(
+        tabPanels,
+        tabSwapMotion({
+          opacity: [0, 1],
+          translateY: [24, 0],
+          scale: [0.985, 1],
+          duration: 460,
+        }),
+      );
+      if (tabPanelAnimation) animations.push(tabPanelAnimation);
     }
 
     return () => {
@@ -1831,7 +1859,10 @@ export default function RaceWeekend() {
             {/* Phone layout: tab-switched (md:hidden) */}
             <div className="md:hidden flex flex-col w-full">
               {/* Tab chips */}
-              <div className="sticky top-0 z-20 grid grid-cols-5 w-full border-b border-panel shrink-0 bg-track/95 backdrop-blur">
+              <div
+                data-motion-tab-strip
+                className="sticky top-0 z-20 grid grid-cols-5 w-full border-b border-panel shrink-0 bg-track/95 backdrop-blur"
+              >
                 {(
                   [
                     ["timing", "Timing"],
@@ -1892,6 +1923,7 @@ export default function RaceWeekend() {
 
               {/* Tab content */}
               <div
+                data-motion-tab-panel
                 data-motion-card
                 className="flex flex-col md:flex-1 md:min-h-0 md:overflow-hidden"
               >
@@ -2059,7 +2091,10 @@ export default function RaceWeekend() {
                 style={{ width: `${trackerDesktopPanelWidth}px` }}
               >
                 {/* Sub-tabs */}
-                <div className="flex border-b border-panel shrink-0">
+                <div
+                  data-motion-tab-strip
+                  className="flex border-b border-panel shrink-0"
+                >
                   {(
                     [
                       ["timing", "Timing"],
@@ -2089,7 +2124,10 @@ export default function RaceWeekend() {
                 </div>
 
                 {/* Panel content */}
-                <div className="flex-1 min-h-0 flex flex-col overflow-hidden">
+                <div
+                  data-motion-tab-panel
+                  className="flex-1 min-h-0 flex flex-col overflow-hidden"
+                >
                   {activeTrackerTab === "timing" &&
                     (positions.isError ? (
                       <ErrorMessage message="Failed to load timing data" />
@@ -2238,6 +2276,7 @@ export default function RaceWeekend() {
           {/* Sub-tabs */}
           <div
             data-motion-card
+            data-motion-tab-strip
             className="grid grid-cols-6 w-full border-b border-panel shrink-0 bg-track sm:flex sm:overflow-x-auto"
           >
             {commentaryTabs.map(
@@ -2275,6 +2314,7 @@ export default function RaceWeekend() {
 
           {/* Live lap status */}
           <div
+            data-motion-tab-panel
             data-motion-card
             className="shrink-0 border-b border-panel bg-surface/70 px-3 py-1.5"
           >
@@ -2316,6 +2356,7 @@ export default function RaceWeekend() {
 
           {/* Content */}
           <div
+            data-motion-tab-panel
             data-motion-card
             className="flex flex-col md:flex-1 md:min-h-0 md:overflow-hidden"
           >

@@ -17,6 +17,7 @@ import { laneDuration } from "@/utils/pit";
 import { deriveRetiredDrivers } from "@/utils/retirement";
 import { SECTOR_GREEN_S } from "@/constants";
 import { useSettings } from "@/stores/settings";
+import { animateMotion, motionEnabled, tabSwapMotion } from "@/lib/motion";
 import {
   toDisplaySpeed,
   speedUnitLabel,
@@ -410,6 +411,8 @@ export function LiveTiming({
 }: Props) {
   const metricSystem = useSettings((s) => s.metricSystem);
   const lightMode = useSettings((s) => s.lightMode);
+  const tableRef = useRef<HTMLTableElement | null>(null);
+  const prevSelectedDriverRef = useRef(selectedDriver);
   const speedUnitShort = speedUnitLabel(metricSystem);
   const speedUnitCompact = speedUnitCompactLabel(metricSystem);
   const columns: TimingColumnVisibility = {
@@ -1077,6 +1080,28 @@ export function LiveTiming({
       ? ""
       : "hidden sm:table-cell";
 
+  useEffect(() => {
+    if (prevSelectedDriverRef.current === selectedDriver) return;
+    prevSelectedDriverRef.current = selectedDriver;
+    if (!motionEnabled()) return;
+    if (selectedDriver === null) return;
+
+    const row = tableRef.current?.querySelector<HTMLTableRowElement>(
+      `[data-driver-row="${selectedDriver}"]`,
+    );
+    const animation = animateMotion(
+      row,
+      tabSwapMotion({
+        scale: [1, 1.015, 1],
+        translateY: [0, -1, 0],
+        duration: 260,
+      }),
+    );
+    return () => {
+      animation?.revert();
+    };
+  }, [selectedDriver]);
+
   if (isLoading) {
     return (
       <div className="p-3 sm:p-4">
@@ -1181,6 +1206,7 @@ export function LiveTiming({
       )}
       <div className="overflow-x-auto">
         <table
+          ref={tableRef}
           className={`${fullWidthTable ? "w-full" : "w-max min-w-full"} ${tableMinWidthClass} border-collapse table-auto`}
         >
           <thead>
@@ -1524,6 +1550,7 @@ export function LiveTiming({
               return (
                 <tr
                   key={num}
+                  data-driver-row={num}
                   onClick={() => onSelectDriver?.(num)}
                   className={`${timingRowBaseClass} ${rowHeightClass} ${onSelectDriver ? "cursor-pointer" : ""} ${rowBg} ${lapFlashClass}`}
                 >

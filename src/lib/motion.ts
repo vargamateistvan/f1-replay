@@ -3,10 +3,10 @@ import * as animejs from "animejs";
 export const MOTION = {
   duration: {
     fast: 180,
-    medium: 340,
-    slow: 420,
-    panel: 520,
-    route: 420,
+    medium: 360,
+    slow: 460,
+    panel: 580,
+    route: 480,
   },
   stagger: {
     row: 22,
@@ -14,14 +14,14 @@ export const MOTION = {
     bar: 16,
   },
   translate: {
-    enter: 18,
-    row: 16,
+    enter: 22,
+    row: 18,
   },
   scale: {
-    badge: 0.88,
+    badge: 0.86,
   },
   easing: {
-    strong: "out(4)",
+    strong: "out(5)",
     soft: "out(2)",
   },
 } as const;
@@ -147,6 +147,19 @@ export function modalPanelMotion(overrides: Partial<MotionParams> = {}) {
       opacity: [0, 1],
       translateY: [MOTION.translate.enter + 4, 0],
       scale: [0.96, 1],
+      duration: MOTION.duration.panel,
+      ease: MOTION.easing.strong,
+    },
+    overrides,
+  );
+}
+
+export function tabSwapMotion(overrides: Partial<MotionParams> = {}) {
+  return mergeMotion(
+    {
+      opacity: [0, 1],
+      translateY: [MOTION.translate.enter, 0],
+      scale: [0.98, 1],
       duration: MOTION.duration.panel,
       ease: MOTION.easing.strong,
     },
