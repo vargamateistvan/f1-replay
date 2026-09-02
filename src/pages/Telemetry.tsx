@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { Lap } from "@/api/types";
 import { ErrorMessage } from "@/components/ErrorMessage";
 import { TelemetryChart } from "@/components/TelemetryChart/TelemetryChart";
@@ -22,6 +22,12 @@ import { speedUnitLabel, toDisplaySpeed } from "@/utils/units";
 import { toSafeExternalUrl } from "@/utils/url";
 import { DriverHeadshot } from "@/components/DriverHeadshot";
 import { trackEvent } from "@/lib/analytics";
+import {
+  animateMotion,
+  fadeUpMotion,
+  motionEnabled,
+  tabSwapMotion,
+} from "@/lib/motion";
 
 interface PlotSlot {
   num: number;
@@ -193,6 +199,10 @@ function formatDeltaHint(deltaSeconds: number | null): DeltaHint {
 export default function Telemetry() {
   const lightMode = useSettings((s) => s.lightMode);
   const metricSystem = useSettings((s) => s.metricSystem);
+  const cardDeckRef = useRef<HTMLDivElement | null>(null);
+  const trackPreviewRef = useRef<HTMLDivElement | null>(null);
+  const chartsRef = useRef<HTMLDivElement | null>(null);
+  const prevSelectionRef = useRef<string>("");
   const [activeMode, setActiveMode] = useState<"quali" | "race" | null>(null);
   const [isCardsAccordionOpen, setIsCardsAccordionOpen] = useState(true);
   const [isTrackDialogOpen, setIsTrackDialogOpen] = useState(false);
@@ -242,6 +252,56 @@ export default function Telemetry() {
   const [hoveredDistM, setHoveredDistM] = useState<number | null>(null);
 
   const session = sessions.data?.find((s) => s.session_key === sessionKey);
+
+  useEffect(() => {
+    const selectionKey = [
+      activeMode ?? "none",
+      driverA ?? "na",
+      selectedLapA ?? "na",
+      driverB ?? "nb",
+      selectedLapB ?? "nb",
+      driverC ?? "nc",
+      selectedLapC ?? "nc",
+      smoothing ? "smooth" : "raw",
+    ].join(":");
+
+    if (prevSelectionRef.current === selectionKey) return;
+    prevSelectionRef.current = selectionKey;
+    if (!motionEnabled()) return;
+
+    const animations = [
+      animateMotion(
+        cardDeckRef.current,
+        tabSwapMotion({
+          opacity: [0.45, 1],
+          translateY: [16, 0],
+          scale: [0.985, 1],
+          duration: 320,
+        }),
+      ),
+      animateMotion(
+        trackPreviewRef.current,
+        fadeUpMotion({
+          opacity: [0.35, 1],
+          translateY: [10, 0],
+          duration: 260,
+        }),
+      ),
+      animateMotion(
+        chartsRef.current,
+        tabSwapMotion({
+          opacity: [0.45, 1],
+          translateY: [18, 0],
+          scale: [0.99, 1],
+          duration: 300,
+        }),
+      ),
+    ].filter((animation): animation is NonNullable<typeof animation> => animation !== null);
+
+    return () => {
+      animations.forEach((animation) => animation.revert());
+    };
+  }, [activeMode, driverA, selectedLapA, driverB, selectedLapB, driverC, selectedLapC, smoothing]);
 
   const driverByNumber = useMemo(
     () => new Map((drivers.data ?? []).map((d) => [d.driver_number, d])),
@@ -1176,7 +1236,10 @@ export default function Telemetry() {
 
           return (
           <>
-          <div className="grid grid-cols-1 gap-1.5 lg:grid-cols-3">
+          <div
+            ref={cardDeckRef}
+            className="grid grid-cols-1 gap-1.5 lg:grid-cols-3"
+          >
             <DriverLapCard
               slotLabel="Driver A"
               accent={colorFor(driverA, 0)}
@@ -1322,7 +1385,10 @@ export default function Telemetry() {
               disabled={!sessionKey}
             />
 
-            <div className="h-full lg:h-[248px] rounded border border-panel bg-track p-1.5 flex flex-col">
+            <div
+              ref={trackPreviewRef}
+              className="h-full lg:h-[248px] rounded border border-panel bg-track p-1.5 flex flex-col"
+            >
               <div className="mb-1 flex items-center gap-1.5">
                 <span className="text-[10px] font-black uppercase tracking-[0.15em] text-muted">
                   Track position preview
@@ -1623,7 +1689,7 @@ export default function Telemetry() {
           }
 
           return (
-            <>
+            <div ref={chartsRef} className="flex flex-col gap-3">
               <div className="mb-1 flex flex-wrap gap-5 text-xs">
                 {plotSlots.map((s) => {
                   const lapForSlot =
@@ -1740,7 +1806,7 @@ export default function Telemetry() {
                   />
                 </div>
               )}
-            </>
+            </div>
           );
         })()}
       </div>

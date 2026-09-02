@@ -19,6 +19,7 @@ import {
   barRevealMotion,
   fadeUpMotion,
   motionEnabled,
+  tabSwapMotion,
   staggerFadeUpMotion,
   MOTION,
 } from "@/lib/motion";
@@ -449,6 +450,7 @@ export default function Standings() {
   const driverChartRef = useRef<HTMLDivElement>(null);
   const constructorTableRef = useRef<HTMLDivElement>(null);
   const constructorChartRef = useRef<HTMLDivElement>(null);
+  const contentGridRef = useRef<HTMLDivElement>(null);
   const tabBarRef = useRef<HTMLDivElement>(null);
   const tabIndicatorRef = useRef<HTMLSpanElement>(null);
   const tabButtonRefs = useRef<Record<Tab, HTMLButtonElement | null>>({
@@ -494,6 +496,22 @@ export default function Standings() {
       animations.forEach((animation) => animation.revert());
     };
   }, [isError, isFetching, tab, year, driverStandings, constructorStandings]);
+
+  useEffect(() => {
+    if (!motionEnabled()) return;
+    const animation = animateMotion(
+      contentGridRef.current,
+      tabSwapMotion({
+        opacity: [0.45, 1],
+        translateY: [18, 0],
+        scale: [0.992, 1],
+        duration: MOTION.duration.panel,
+      }),
+    );
+    return () => {
+      animation?.revert();
+    };
+  }, [tab, year]);
 
   useEffect(() => {
     if (!motionEnabled()) return;
@@ -591,7 +609,10 @@ export default function Standings() {
           <ErrorMessage message="Failed to load championship data" />
         </div>
       ) : (
-        <div className="grid w-full gap-0 md:grid-cols-[minmax(300px,420px)_minmax(0,1fr)] md:flex-1 md:overflow-hidden">
+        <div
+          ref={contentGridRef}
+          className="grid w-full gap-0 md:grid-cols-[minmax(300px,420px)_minmax(0,1fr)] md:flex-1 md:overflow-hidden"
+        >
           {tab === "drivers" ? (
             <>
               <div

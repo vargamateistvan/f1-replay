@@ -39,7 +39,12 @@ import {
   windSpeedUnitLabel,
 } from "@/utils/units";
 import { trackEvent } from "@/lib/analytics";
-import { animateMotion, pressMotion } from "@/lib/motion";
+import {
+  animateMotion,
+  motionEnabled,
+  pressMotion,
+  tabSwapMotion,
+} from "@/lib/motion";
 import type { CarData, Driver, Location, Stint, Weather } from "@/api/types";
 import {
   TRACK_SVG_W as SVG_W,
@@ -331,11 +336,33 @@ export function TrackMap({
   const isCompactViewport = useMediaQuery("(max-width: 767px)");
   const [zoomLevel, setZoomLevel] = useState(1);
   const [rotationDeg, setRotationDeg] = useState(0);
+  const prevFocusDriverRef = useRef<number | null>(focusDriver);
   const cameraViewRef = useRef<CameraView>({ x: 0, y: 0, w: SVG_W, h: SVG_H });
 
   useEffect(() => {
     cameraViewRef.current = { x: 0, y: 0, w: SVG_W, h: SVG_H };
   }, [sessionKey]);
+
+  useEffect(() => {
+    if (prevFocusDriverRef.current === focusDriver) return;
+    prevFocusDriverRef.current = focusDriver;
+    if (!motionEnabled()) return;
+
+    const animation = animateMotion(
+      svgRef.current,
+      tabSwapMotion({
+        opacity: [0.65, 1],
+        translateY: [8, 0],
+        scale: [0.992, 1],
+        duration: 260,
+      }),
+    );
+
+    return () => {
+      animation?.revert();
+    };
+  }, [focusDriver]);
+
   const finishPatternId = `finish-checker-${sessionKey ?? "na"}`;
   const trackSurfaceGradientId = `track-surface-gradient-${sessionKey ?? "na"}`;
   const rotationStorageKey = useMemo(

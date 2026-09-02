@@ -634,6 +634,51 @@ export default function RaceWeekend() {
     return () => {
       animations.forEach((animation) => animation.revert());
     };
+  }, [currentView, sessionKey]);
+
+  useEffect(() => {
+    if (!motionEnabled()) return;
+    const root =
+      currentView === "leaderboard"
+        ? leaderboardViewRef.current
+        : currentView === "tracker"
+          ? trackerViewRef.current
+          : commentaryViewRef.current;
+    if (!root) return;
+
+    const animations: Array<NonNullable<ReturnType<typeof animateMotion>>> = [];
+
+    const tabStrips = root.querySelectorAll("[data-motion-tab-strip]");
+    if (tabStrips.length > 0) {
+      const tabStripAnimation = animateMotion(
+        tabStrips,
+        fadeUpMotion({
+          opacity: [0.7, 1],
+          translateY: [6, 0],
+          duration: 220,
+        }),
+      );
+      if (tabStripAnimation) animations.push(tabStripAnimation);
+    }
+
+    const tabPanels = root.querySelectorAll("[data-motion-tab-panel]");
+    if (tabPanels.length > 0) {
+      const tabPanelAnimation = animateMotion(
+        tabPanels,
+        tabSwapMotion({
+          opacity: [0.75, 1],
+          translateY: [8, 0],
+          scale: [0.995, 1],
+          duration: 260,
+        }),
+      );
+      if (tabPanelAnimation) animations.push(tabPanelAnimation);
+    }
+
+    if (animations.length === 0) return;
+    return () => {
+      animations.forEach((animation) => animation.revert());
+    };
   }, [currentView, activeTrackerTab, activeCommentaryTab, sessionKey]);
 
   const isLoadingSessionData =
