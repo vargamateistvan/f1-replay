@@ -109,6 +109,7 @@ describe("SettingsControls", () => {
     fireEvent.click(screen.getAllByRole("switch")[0]!);
     expect(state.setSetting).toHaveBeenCalledWith("lightMode", true);
 
+    fireEvent.click(screen.getByRole("tab", { name: "Playback" }));
     fireEvent.click(screen.getByRole("button", { name: "2×" }));
     expect(state.setSetting).toHaveBeenCalledWith("defaultSpeed", 2);
 
@@ -121,6 +122,7 @@ describe("SettingsControls", () => {
 
   it("updates mobile timing column visibility settings", () => {
     render(<SettingsBody />);
+    fireEvent.click(screen.getByRole("tab", { name: "Timing" }));
 
     expect(
       screen.queryByText("Driver tracker columns"),
@@ -178,5 +180,25 @@ describe("SettingsControls", () => {
       "timingMobileShowBestLap",
       false,
     );
+  });
+
+  it("shows one labelled settings category at a time", () => {
+    render(<SettingsBody />);
+
+    expect(screen.getByRole("tabpanel")).toHaveAttribute(
+      "aria-labelledby",
+      "general-settings-tab",
+    );
+    expect(screen.getByText("Light mode")).toBeInTheDocument();
+    expect(screen.queryByText("Enable notifications")).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("tab", { name: "Alerts" }));
+
+    expect(screen.getByRole("tabpanel")).toHaveAttribute(
+      "aria-labelledby",
+      "notifications-settings-tab",
+    );
+    expect(screen.getByText("Enable notifications")).toBeInTheDocument();
+    expect(screen.queryByText("Light mode")).not.toBeInTheDocument();
   });
 });

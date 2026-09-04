@@ -1,4 +1,4 @@
-import type { ReactNode } from "react";
+import { useState, type ReactNode } from "react";
 import { useSettings, type AppSettings } from "@/stores/settings";
 import { useMediaQuery } from "@/hooks/useMediaQuery";
 import { trackEvent } from "@/lib/analytics";
@@ -117,6 +117,17 @@ const NOTIFICATION_EVENT_TYPE_OPTIONS = [
   { key: "toastInvestigation", label: "Investigations", color: "#f5a623" },
   { key: "toastRadio", label: "Radio", color: "#6b6b7a" },
 ] as const;
+
+const SETTINGS_TABS = [
+  { id: "general", label: "General" },
+  { id: "playback", label: "Playback" },
+  { id: "notifications", label: "Alerts" },
+  { id: "timing", label: "Timing" },
+  { id: "track", label: "Track map" },
+  { id: "interface", label: "Interface" },
+] as const;
+
+type SettingsTab = (typeof SETTINGS_TABS)[number]["id"];
 
 export function SpeedSelector({
   value,
@@ -245,6 +256,7 @@ export function UnitSelector({
 export function SettingsBody() {
   const { setSetting, reset, ...settings } = useSettings();
   const isMobileViewport = useMediaQuery("(max-width: 767px)");
+  const [activeTab, setActiveTab] = useState<SettingsTab>("general");
 
   function updateSetting<K extends keyof AppSettings>(
     key: K,
@@ -511,18 +523,60 @@ export function SettingsBody() {
 
   return (
     <>
-      <SectionHeader>Appearance</SectionHeader>
-      <SettingRow
-        label="Light mode"
-        description="Switch to a light colour scheme"
-        checked={settings.lightMode}
-        onChange={toggle("lightMode")}
-      />
-      <UnitSelector
-        value={settings.metricSystem}
-        onChange={(v) => updateSetting("metricSystem", v)}
-      />
+      <div
+        role="tablist"
+        aria-label="Settings categories"
+        className="flex gap-1 overflow-x-auto border-b border-panel py-2 -mx-1 px-1"
+      >
+        {SETTINGS_TABS.map((tab) => {
+          const isActive = activeTab === tab.id;
+          return (
+            <button
+              key={tab.id}
+              id={`${tab.id}-settings-tab`}
+              role="tab"
+              type="button"
+              aria-selected={isActive}
+              aria-controls={`${tab.id}-settings-panel`}
+              onClick={() => setActiveTab(tab.id)}
+              className={`shrink-0 rounded px-2.5 py-1.5 text-[10px] font-bold transition-colors focus:outline-none focus-visible:ring-1 focus-visible:ring-f1red ${
+                isActive
+                  ? "bg-f1red text-white"
+                  : "text-muted hover:bg-panel hover:text-white"
+              }`}
+            >
+              {tab.label}
+            </button>
+          );
+        })}
+      </div>
 
+      {activeTab === "general" && (
+        <div
+          id="general-settings-panel"
+          role="tabpanel"
+          aria-labelledby="general-settings-tab"
+        >
+          <SectionHeader>Appearance</SectionHeader>
+          <SettingRow
+            label="Light mode"
+            description="Switch to a light colour scheme"
+            checked={settings.lightMode}
+            onChange={toggle("lightMode")}
+          />
+          <UnitSelector
+            value={settings.metricSystem}
+            onChange={(v) => updateSetting("metricSystem", v)}
+          />
+        </div>
+      )}
+
+      {activeTab === "playback" && (
+        <div
+          id="playback-settings-panel"
+          role="tabpanel"
+          aria-labelledby="playback-settings-tab"
+        >
       <SectionHeader>Playback</SectionHeader>
       <SpeedSelector
         value={settings.defaultSpeed}
@@ -586,7 +640,15 @@ export function SettingsBody() {
           </div>
         </div>
       )}
+        </div>
+      )}
 
+      {activeTab === "notifications" && (
+        <div
+          id="notifications-settings-panel"
+          role="tabpanel"
+          aria-labelledby="notifications-settings-tab"
+        >
       <SectionHeader>Notifications</SectionHeader>
       <SettingRow
         label="Enable notifications"
@@ -651,7 +713,15 @@ export function SettingsBody() {
           })}
         </div>
       </div>
+        </div>
+      )}
 
+      {activeTab === "timing" && (
+        <div
+          id="timing-settings-panel"
+          role="tabpanel"
+          aria-labelledby="timing-settings-tab"
+        >
       <SectionHeader>Race Views</SectionHeader>
       <SettingRow
         label="Live car telemetry"
@@ -744,7 +814,15 @@ export function SettingsBody() {
           </div>
         </div>
       )}
+        </div>
+      )}
 
+      {activeTab === "track" && (
+        <div
+          id="track-settings-panel"
+          role="tabpanel"
+          aria-labelledby="track-settings-tab"
+        >
       <SectionHeader>Track Map</SectionHeader>
       <SettingRow
         label="Tyre compound badges"
@@ -842,7 +920,15 @@ export function SettingsBody() {
         checked={settings.trackScreenshotPngEnabled}
         onChange={toggle("trackScreenshotPngEnabled")}
       />
+        </div>
+      )}
 
+      {activeTab === "interface" && (
+        <div
+          id="interface-settings-panel"
+          role="tabpanel"
+          aria-labelledby="interface-settings-tab"
+        >
       <SectionHeader>Data & Interface</SectionHeader>
       <SettingRow
         label="CSV export buttons"
@@ -864,6 +950,8 @@ export function SettingsBody() {
         checked={settings.showCoffeeWidget}
         onChange={toggle("showCoffeeWidget")}
       />
+        </div>
+      )}
 
       <div className="pt-6 pb-2 flex justify-end">
         <button
