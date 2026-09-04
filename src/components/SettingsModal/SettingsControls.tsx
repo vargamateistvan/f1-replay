@@ -248,7 +248,9 @@ function TrackMapPreview() {
               settings.mapShowBattleRings ? battlingDrivers : undefined
             }
             activeTrackFlagState={
-              settings.mapShowSectorFlags ? previewTrackFlagState : null
+              settings.mapShowSectorFlags || settings.mapShowSectorBox
+                ? previewTrackFlagState
+                : null
             }
             activeMarshalSectorFlagState={
               settings.mapShowSectorFlags ? previewMarshalFlagState : null
@@ -258,7 +260,7 @@ function TrackMapPreview() {
             showTrackControls={settings.mapShowTrackControls}
             showCompass={settings.mapShowCompass}
             showFocusedHud={settings.mapShowDriverHud}
-            showTrackScreenshot={false}
+            showTrackScreenshot={settings.trackScreenshotPngEnabled}
             showEnhancedVisuals={settings.mapShowEnhancedVisuals}
           />
         ) : (

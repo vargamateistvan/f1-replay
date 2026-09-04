@@ -133,16 +133,22 @@ vi.mock("@/components/TrackMap/TrackMap", () => ({
     circuitShortName,
     activeTrackFlagState,
     weatherOverlay,
+    showSectorBox,
+    showTrackScreenshot,
   }: {
     circuitShortName: string;
     activeTrackFlagState: { sectorFlags: { 1: string | null } } | null;
     weatherOverlay: unknown;
+    showSectorBox?: boolean;
+    showTrackScreenshot?: boolean;
   }) => (
     <div
       role="img"
       aria-label={`${circuitShortName} production track map`}
       data-flag={activeTrackFlagState?.sectorFlags[1] ?? "none"}
       data-weather={weatherOverlay ? "visible" : "hidden"}
+      data-sector-box={showSectorBox ? "visible" : "hidden"}
+      data-png={showTrackScreenshot ? "visible" : "hidden"}
     />
   ),
 }));
@@ -263,5 +269,14 @@ describe("SettingsControls", () => {
     expect(
       screen.getByRole("img", { name: "Monza production track map" }),
     ).toHaveAttribute("data-weather", "visible");
+  });
+
+  it("mirrors the sector status box and PNG snapshot settings in the preview", () => {
+    render(<SettingsBody />);
+    fireEvent.click(screen.getByRole("tab", { name: "Track map" }));
+
+    const map = screen.getByRole("img", { name: "Monza production track map" });
+    expect(map).toHaveAttribute("data-sector-box", "visible");
+    expect(map).toHaveAttribute("data-png", "visible");
   });
 });
