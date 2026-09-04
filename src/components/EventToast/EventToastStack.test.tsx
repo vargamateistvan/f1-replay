@@ -53,7 +53,7 @@ describe("EventToastStack", () => {
     expect(onDismiss).toHaveBeenCalledWith("flag-1");
   });
 
-  it("places overlay notifications below the header area", () => {
+  it("places overlay notifications directly below the header area", () => {
     render(
       <EventToastStack
         toasts={
@@ -82,7 +82,7 @@ describe("EventToastStack", () => {
 
     expect(
       screen.getByRole("region", { name: "Live race notifications" }),
-    ).toHaveClass("top-[calc(4.5rem+env(safe-area-inset-top)+20px)]");
+    ).toHaveClass("top-[calc(4.5rem+env(safe-area-inset-top))]");
   });
 
   it("renders radio toast and toggles play/stop", () => {
