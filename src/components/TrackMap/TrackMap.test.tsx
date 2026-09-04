@@ -378,25 +378,24 @@ describe("TrackMap sector flag state rendering", () => {
     );
 
     expect(
-      container.querySelector('g[transform^="rotate(92.0 300.0 200.0)"]'),
+      container.querySelector('g[transform^="rotate(-92.0 300.0 200.0)"]'),
     ).toBeInTheDocument();
     expect(
       container.querySelector('g[transform*="scale(1.15)"]'),
     ).toBeInTheDocument();
   });
 
-  it("resets to the new circuit default when changing sessions", () => {
+  it("converts the Cartesian circuit rotation for the SVG coordinate system", () => {
     vi.mocked(useTrackOutline).mockReturnValue(
       mockTrackOutlineQueryResult(mockOutline),
     );
-    let rotation = 92;
     vi.mocked(getCircuitGeometry).mockImplementation(
       () =>
         ({
           circuitKey: 123,
           circuitName: "Test Circuit",
           year: 2026,
-          rotation,
+          rotation: 92,
           x: [],
           y: [],
           corners: [],
@@ -406,7 +405,7 @@ describe("TrackMap sector flag state rendering", () => {
     );
     window.localStorage.setItem("f1-replay:track-rotation:2:123", "150");
 
-    const { container, rerender } = render(
+    const { container } = render(
       <TrackMap
         sessionKey={1}
         drivers={[mockDriver]}
@@ -417,20 +416,8 @@ describe("TrackMap sector flag state rendering", () => {
       />,
     );
 
-    rotation = 40;
-    rerender(
-      <TrackMap
-        sessionKey={2}
-        drivers={[mockDriver]}
-        locationData={mockLocationData}
-        sessionStartMs={0}
-        circuitKey={123}
-        year={2026}
-      />,
-    );
-
     expect(
-      container.querySelector('g[transform^="rotate(40.0 300.0 200.0)"]'),
+      container.querySelector('g[transform^="rotate(-92.0 300.0 200.0)"]'),
     ).toBeInTheDocument();
   });
 });

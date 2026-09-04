@@ -338,8 +338,6 @@ export function TrackMap({
   const [zoomLevel, setZoomLevel] = useState(TRACK_FIT_ZOOM);
   const [rotationDeg, setRotationDeg] = useState(0);
   const prevFocusDriverRef = useRef<number | null>(focusDriver);
-  const previousSessionKeyRef = useRef<number | null>(sessionKey);
-  const resetRotationForSessionRef = useRef(false);
   const cameraViewRef = useRef<CameraView>({ x: 0, y: 0, w: SVG_W, h: SVG_H });
 
   useEffect(() => {
@@ -368,11 +366,6 @@ export function TrackMap({
 
   const finishPatternId = `finish-checker-${sessionKey ?? "na"}`;
   const trackSurfaceGradientId = `track-surface-gradient-${sessionKey ?? "na"}`;
-  const rotationStorageKey = useMemo(
-    () =>
-      `f1-replay:track-rotation:${sessionKey ?? "none"}:${circuitKey ?? "none"}`,
-    [sessionKey, circuitKey],
-  );
   const zoomStorageKey = useMemo(
     () =>
       `f1-replay:track-zoom:v2:${sessionKey ?? "none"}:${circuitKey ?? "none"}`,
@@ -391,19 +384,9 @@ export function TrackMap({
     [zoomStorageKey],
   );
 
-  const setAndPersistRotation = useCallback(
-    (next: number) => {
-      const normalized = normalizeDeg(next);
-      setRotationDeg(normalized);
-      if (typeof window === "undefined") return;
-      try {
-        window.localStorage.setItem(rotationStorageKey, String(normalized));
-      } catch {
-        // Ignore storage errors (private mode / quota).
-      }
-    },
-    [rotationStorageKey],
-  );
+  const setRotation = useCallback((next: number) => {
+    setRotationDeg(normalizeDeg(next));
+  }, []);
 
   const mapBackground = lightMode ? "#f7f9fe" : "#15151e";
   const overlayBackground = lightMode
@@ -600,26 +583,22 @@ export function TrackMap({
   const defaultRotationDeg = useMemo(
     () =>
       circuitGeom && Number.isFinite(circuitGeom.rotation)
-        ? normalizeDeg(circuitGeom.rotation)
+        // The circuit geometry is Cartesian (Y-up), while SVG is Y-down.
+        // The Y-axis reflection reverses the supplied rotation direction.
+        ? normalizeDeg(-circuitGeom.rotation)
         : computeTrackAutoRotationDeg(outline?.points ?? [], true),
     [circuitGeom, outline],
   );
 
   const rotateLeft = useCallback(() => {
-    setAndPersistRotation(rotationDeg - ROTATION_STEP_DEG);
-  }, [rotationDeg, setAndPersistRotation]);
+    setRotation(rotationDeg - ROTATION_STEP_DEG);
+  }, [rotationDeg, setRotation]);
 
   const rotateRight = useCallback(() => {
-    setAndPersistRotation(rotationDeg + ROTATION_STEP_DEG);
-  }, [rotationDeg, setAndPersistRotation]);
+    setRotation(rotationDeg + ROTATION_STEP_DEG);
+  }, [rotationDeg, setRotation]);
 
   useEffect(() => {
-    const sessionChanged = previousSessionKeyRef.current !== sessionKey;
-    if (sessionChanged) {
-      previousSessionKeyRef.current = sessionKey;
-      resetRotationForSessionRef.current = true;
-    }
-
     if (isCompactViewport) {
       // Mobile always starts in fit-to-track mode to avoid cropped views
       // from previously persisted desktop zoom/rotation values.
@@ -627,7 +606,7 @@ export function TrackMap({
       setRotationDeg(defaultRotationDeg);
       return;
     }
-    if (typeof window === "undefined" || resetRotationForSessionRef.current) {
+    if (typeof window === "undefined") {
       setZoomLevel(TRACK_FIT_ZOOM);
       setRotationDeg(defaultRotationDeg);
       return;
@@ -641,11 +620,7 @@ export function TrackMap({
           : TRACK_FIT_ZOOM,
       );
 
-      const saved = window.localStorage.getItem(rotationStorageKey);
-      const parsed = saved === null ? Number.NaN : Number(saved);
-      setRotationDeg(
-        Number.isFinite(parsed) ? normalizeDeg(parsed) : defaultRotationDeg,
-      );
+      setRotationDeg(defaultRotationDeg);
     } catch {
       setZoomLevel(TRACK_FIT_ZOOM);
       setRotationDeg(defaultRotationDeg);
@@ -653,7 +628,6 @@ export function TrackMap({
   }, [
     isCompactViewport,
     zoomStorageKey,
-    rotationStorageKey,
     defaultRotationDeg,
   ]);
 
@@ -2525,7 +2499,7 @@ export function TrackMap({
                 trackEvent("trackmap_rotation_reset", {
                   rotation: defaultRotationDeg,
                 });
-                setAndPersistRotation(defaultRotationDeg);
+                setRotation(defaultRotationDeg);
               }}
               className="w-7 h-7 flex items-center justify-center border border-panel text-white/85 hover:text-white hover:border-white/50 transition-colors"
               title="Reset rotation"
