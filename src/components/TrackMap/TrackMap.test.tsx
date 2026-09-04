@@ -349,4 +349,36 @@ describe("TrackMap sector flag state rendering", () => {
     expect(screen.getByTestId("marshal-flag-segment-17")).toBeInTheDocument();
     expect(screen.getByTestId("marshal-flag-segment-19")).toBeInTheDocument();
   });
+
+  it("uses baked circuit rotation as the default track heading", () => {
+    vi.mocked(useTrackOutline).mockReturnValue(
+      mockTrackOutlineQueryResult(mockOutline),
+    );
+    vi.mocked(getCircuitGeometry).mockReturnValue({
+      circuitKey: 123,
+      circuitName: "Test Circuit",
+      year: 2026,
+      rotation: 92,
+      x: [],
+      y: [],
+      corners: [],
+      marshalSectors: [],
+      marshalLights: [],
+    });
+
+    const { container } = render(
+      <TrackMap
+        sessionKey={1}
+        drivers={[mockDriver]}
+        locationData={mockLocationData}
+        sessionStartMs={0}
+        circuitKey={123}
+        year={2026}
+      />,
+    );
+
+    expect(
+      container.querySelector('g[transform^="rotate(92.0 300.0 200.0)"]'),
+    ).toBeInTheDocument();
+  });
 });

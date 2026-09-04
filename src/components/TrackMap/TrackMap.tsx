@@ -595,8 +595,11 @@ export function TrackMap({
   }, [outline]);
 
   const defaultRotationDeg = useMemo(
-    () => computeTrackAutoRotationDeg(outline?.points ?? [], true),
-    [outline],
+    () =>
+      circuitGeom && Number.isFinite(circuitGeom.rotation)
+        ? normalizeDeg(circuitGeom.rotation)
+        : computeTrackAutoRotationDeg(outline?.points ?? [], true),
+    [circuitGeom, outline],
   );
 
   const rotateLeft = useCallback(() => {
