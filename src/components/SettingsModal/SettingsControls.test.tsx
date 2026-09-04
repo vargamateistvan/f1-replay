@@ -279,4 +279,18 @@ describe("SettingsControls", () => {
     expect(map).toHaveAttribute("data-sector-box", "visible");
     expect(map).toHaveAttribute("data-png", "visible");
   });
+
+  it("groups the track map settings into subgroups", () => {
+    render(<SettingsBody />);
+    fireEvent.click(screen.getByRole("tab", { name: "Track map" }));
+
+    for (const group of [
+      "Drivers",
+      "Flags & Sectors",
+      "Circuit Detail",
+      "Overlays & Controls",
+    ]) {
+      expect(screen.getByText(group)).toBeInTheDocument();
+    }
+  });
 });

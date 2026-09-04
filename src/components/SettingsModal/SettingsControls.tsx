@@ -980,102 +980,106 @@ export function SettingsBody() {
         <TrackMapPreview />
       </div>
       <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain pr-1">
-      <SettingRow
-        label="Tyre compound badges"
-        description="Compound icons on each driver dot"
-        checked={settings.mapShowCompoundBadges}
-        onChange={toggle("mapShowCompoundBadges")}
-      />
-      <SettingRow
-        label="DRS battle rings"
-        description="Highlight drivers within 1s"
-        checked={settings.mapShowBattleRings}
-        onChange={toggle("mapShowBattleRings")}
-      />
-      <SettingRow
-        label="Focused driver HUD"
-        description="Speed, gear and throttle for selected driver"
-        checked={settings.mapShowDriverHud}
-        onChange={toggle("mapShowDriverHud")}
-      />
-      <SettingRow
-        label="Sector flag colouring"
-        description="Tint track sectors on yellow/red flags"
-        checked={settings.mapShowSectorFlags}
-        onChange={toggle("mapShowSectorFlags")}
-      />
-      <SettingRow
-        label="Sector status box"
-        description="Show S1/S2/S3 flag chips near compass"
-        checked={settings.mapShowSectorBox}
-        onChange={toggle("mapShowSectorBox")}
-      />
-      <SettingRow
-        label="Track controls"
-        description="Show zoom and rotate controls on map"
-        checked={settings.mapShowTrackControls}
-        onChange={toggle("mapShowTrackControls")}
-      />
-      <SettingRow
-        label="Compass overlay"
-        description="Show north indicator in track controls"
-        checked={settings.mapShowCompass}
-        onChange={toggle("mapShowCompass")}
-      />
-      <SettingRow
-        label="Track weather"
-        description="Show weather panel/overlay in track map view"
-        checked={settings.mapShowWeather}
-        onChange={toggle("mapShowWeather")}
-      />
-      <SettingRow
-        label="Track time clock"
-        description="Show session wall-clock time in track map view"
-        checked={settings.mapShowClock}
-        onChange={toggle("mapShowClock")}
-      />
-      <SettingRow
-        label="Driver acronym labels"
-        description="Show 3-letter driver labels next to car dots"
-        checked={settings.mapShowDriverAcronym}
-        onChange={toggle("mapShowDriverAcronym")}
-      />
-      <SettingRow
-        label="Driver number inside dot"
-        description="Show driver number centered in each car dot"
-        checked={settings.mapShowDriverNumberInside}
-        onChange={toggle("mapShowDriverNumberInside")}
-      />
-      <SettingRow
-        label="Enhanced track visuals"
-        description="Show finish line, sector markers, ghost delta map, braking hotspots, overtake arcs, condition ribbon, marshal lights and elevation contours"
-        checked={settings.mapShowEnhancedVisuals}
-        onChange={toggle("mapShowEnhancedVisuals")}
-      />
-      <SettingRow
-        label="Marshal sector heatmap"
-        description="Paint all ~15-22 individual marshal posts as coloured arc segments on the track (S1 red / S2 yellow / S3 blue)"
-        checked={settings.mapShowMarshalHeatmap}
-        onChange={toggle("mapShowMarshalHeatmap")}
-      />
-      <SettingRow
-        label="Corner numbers"
-        description="Show corner numbers next to the track from baked circuit geometry"
-        checked={settings.mapShowCornerNumbers}
-        onChange={toggle("mapShowCornerNumbers")}
-      />
-      <SettingRow
-        label="Elevation heatmap"
-        description="Colour the track ribbon by altitude (blue = low, yellow = high)"
-        checked={settings.mapShowElevation}
-        onChange={toggle("mapShowElevation")}
-      />
-      <SettingRow
-        label="PNG track snapshot"
-        description="Show download button for track screenshots"
-        checked={settings.trackScreenshotPngEnabled}
-        onChange={toggle("trackScreenshotPngEnabled")}
-      />
+        <SectionHeader>Drivers</SectionHeader>
+        <SettingRow
+          label="Driver acronym labels"
+          description="Show 3-letter driver labels next to car dots"
+          checked={settings.mapShowDriverAcronym}
+          onChange={toggle("mapShowDriverAcronym")}
+        />
+        <SettingRow
+          label="Driver number inside dot"
+          description="Show driver number centered in each car dot"
+          checked={settings.mapShowDriverNumberInside}
+          onChange={toggle("mapShowDriverNumberInside")}
+        />
+        <SettingRow
+          label="Tyre compound badges"
+          description="Compound icons on each driver dot"
+          checked={settings.mapShowCompoundBadges}
+          onChange={toggle("mapShowCompoundBadges")}
+        />
+        <SettingRow
+          label="DRS battle rings"
+          description="Highlight drivers within 1s"
+          checked={settings.mapShowBattleRings}
+          onChange={toggle("mapShowBattleRings")}
+        />
+        <SettingRow
+          label="Focused driver HUD"
+          description="Speed, gear and throttle for selected driver"
+          checked={settings.mapShowDriverHud}
+          onChange={toggle("mapShowDriverHud")}
+        />
+        <SectionHeader>Flags & Sectors</SectionHeader>
+        <SettingRow
+          label="Sector flag colouring"
+          description="Tint track sectors on yellow/red flags"
+          checked={settings.mapShowSectorFlags}
+          onChange={toggle("mapShowSectorFlags")}
+        />
+        <SettingRow
+          label="Sector status box"
+          description="Show S1/S2/S3 flag chips near compass"
+          checked={settings.mapShowSectorBox}
+          onChange={toggle("mapShowSectorBox")}
+        />
+        <SettingRow
+          label="Marshal sector heatmap"
+          description="Paint all ~15-22 individual marshal posts as coloured arc segments on the track (S1 red / S2 yellow / S3 blue)"
+          checked={settings.mapShowMarshalHeatmap}
+          onChange={toggle("mapShowMarshalHeatmap")}
+        />
+        <SectionHeader>Circuit Detail</SectionHeader>
+        <SettingRow
+          label="Enhanced track visuals"
+          description="Show finish line, sector markers, ghost delta map, braking hotspots, overtake arcs, condition ribbon, marshal lights and elevation contours"
+          checked={settings.mapShowEnhancedVisuals}
+          onChange={toggle("mapShowEnhancedVisuals")}
+        />
+        <SettingRow
+          label="Corner numbers"
+          description="Show corner numbers next to the track from baked circuit geometry"
+          checked={settings.mapShowCornerNumbers}
+          onChange={toggle("mapShowCornerNumbers")}
+        />
+        <SettingRow
+          label="Elevation heatmap"
+          description="Colour the track ribbon by altitude (blue = low, yellow = high)"
+          checked={settings.mapShowElevation}
+          onChange={toggle("mapShowElevation")}
+        />
+        <SectionHeader>Overlays & Controls</SectionHeader>
+        <SettingRow
+          label="Track controls"
+          description="Show zoom and rotate controls on map"
+          checked={settings.mapShowTrackControls}
+          onChange={toggle("mapShowTrackControls")}
+        />
+        <SettingRow
+          label="Compass overlay"
+          description="Show north indicator in track controls"
+          checked={settings.mapShowCompass}
+          onChange={toggle("mapShowCompass")}
+        />
+        <SettingRow
+          label="Track weather"
+          description="Show weather panel/overlay in track map view"
+          checked={settings.mapShowWeather}
+          onChange={toggle("mapShowWeather")}
+        />
+        <SettingRow
+          label="Track time clock"
+          description="Show session wall-clock time in track map view"
+          checked={settings.mapShowClock}
+          onChange={toggle("mapShowClock")}
+        />
+        <SettingRow
+          label="PNG track snapshot"
+          description="Show download button for track screenshots"
+          checked={settings.trackScreenshotPngEnabled}
+          onChange={toggle("trackScreenshotPngEnabled")}
+        />
       </div>
         </div>
       )}
