@@ -101,7 +101,7 @@ export function SettingRow({
 
 export function SectionHeader({ children }: { children: ReactNode }) {
   return (
-    <div className="text-[9px] font-black uppercase tracking-[0.18em] text-muted pt-5 pb-1 first:pt-0">
+    <div className="text-[9px] font-black uppercase tracking-[0.18em] text-muted pt-5 pb-1 first:pt-3">
       {children}
     </div>
   );
