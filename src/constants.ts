@@ -46,6 +46,9 @@ export const LIVE_MQTT_MAX_ROWS = 4_000;
 export const TRACK_SVG_W = 600;
 export const TRACK_SVG_H = 400;
 export const TRACK_SVG_PAD = 24;
+// Slightly enlarge the fit so the track uses the available map area while
+// leaving enough room for the ribbon, markers, and labels.
+export const TRACK_FIT_ZOOM = 1.15;
 // Lap used to derive the track outline (a clean early lap; falls back to lap 3, then any).
 export const TRACK_OUTLINE_LAP = 2;
 

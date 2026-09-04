@@ -50,6 +50,7 @@ import {
   TRACK_SVG_W as SVG_W,
   TRACK_SVG_H as SVG_H,
   TRACK_SVG_PAD as PAD,
+  TRACK_FIT_ZOOM,
   SECTOR_COLORS,
   COMPOUND_COLORS,
   FOLLOW_ZOOM_W,
@@ -334,9 +335,11 @@ export function TrackMap({
   const mapShowElevation = useSettings((s) => s.mapShowElevation);
   const mapShowClock = useSettings((s) => s.mapShowClock);
   const isCompactViewport = useMediaQuery("(max-width: 767px)");
-  const [zoomLevel, setZoomLevel] = useState(1);
+  const [zoomLevel, setZoomLevel] = useState(TRACK_FIT_ZOOM);
   const [rotationDeg, setRotationDeg] = useState(0);
   const prevFocusDriverRef = useRef<number | null>(focusDriver);
+  const previousSessionKeyRef = useRef<number | null>(sessionKey);
+  const resetRotationForSessionRef = useRef(false);
   const cameraViewRef = useRef<CameraView>({ x: 0, y: 0, w: SVG_W, h: SVG_H });
 
   useEffect(() => {
@@ -372,7 +375,7 @@ export function TrackMap({
   );
   const zoomStorageKey = useMemo(
     () =>
-      `f1-replay:track-zoom:${sessionKey ?? "none"}:${circuitKey ?? "none"}`,
+      `f1-replay:track-zoom:v2:${sessionKey ?? "none"}:${circuitKey ?? "none"}`,
     [sessionKey, circuitKey],
   );
 
@@ -611,15 +614,21 @@ export function TrackMap({
   }, [rotationDeg, setAndPersistRotation]);
 
   useEffect(() => {
+    const sessionChanged = previousSessionKeyRef.current !== sessionKey;
+    if (sessionChanged) {
+      previousSessionKeyRef.current = sessionKey;
+      resetRotationForSessionRef.current = true;
+    }
+
     if (isCompactViewport) {
       // Mobile always starts in fit-to-track mode to avoid cropped views
       // from previously persisted desktop zoom/rotation values.
-      setZoomLevel(1);
+      setZoomLevel(TRACK_FIT_ZOOM);
       setRotationDeg(defaultRotationDeg);
       return;
     }
-    if (typeof window === "undefined") {
-      setZoomLevel(1);
+    if (typeof window === "undefined" || resetRotationForSessionRef.current) {
+      setZoomLevel(TRACK_FIT_ZOOM);
       setRotationDeg(defaultRotationDeg);
       return;
     }
@@ -629,7 +638,7 @@ export function TrackMap({
       setZoomLevel(
         Number.isFinite(parsedZoom)
           ? Math.min(3, Math.max(0.6, parsedZoom))
-          : 1,
+          : TRACK_FIT_ZOOM,
       );
 
       const saved = window.localStorage.getItem(rotationStorageKey);
@@ -638,7 +647,7 @@ export function TrackMap({
         Number.isFinite(parsed) ? normalizeDeg(parsed) : defaultRotationDeg,
       );
     } catch {
-      setZoomLevel(1);
+      setZoomLevel(TRACK_FIT_ZOOM);
       setRotationDeg(defaultRotationDeg);
     }
   }, [
@@ -2471,8 +2480,8 @@ export function TrackMap({
               onClick={(e) => {
                 animateMotion(e.currentTarget, pressMotion());
                 trackEvent("trackmap_zoom_reset");
-                setZoomLevel(1);
-                persistZoomLevel(1);
+                setZoomLevel(TRACK_FIT_ZOOM);
+                persistZoomLevel(TRACK_FIT_ZOOM);
               }}
               className="w-7 h-7 flex items-center justify-center border border-panel text-white/85 hover:text-white hover:border-white/50 transition-colors"
               title="Reset zoom"
