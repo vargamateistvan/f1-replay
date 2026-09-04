@@ -574,7 +574,15 @@ export default function Telemetry() {
       return null;
     }
 
-    const rotationDeg = computeTrackAutoRotationDeg(outlinePoints, true);
+    const circuitGeom = session?.circuit_key
+      ? getCircuitGeometry(session.circuit_key, session.year ?? null)
+      : null;
+    // Points are rotated in Cartesian Y-up coordinates before locationToSvg
+    // mirrors Y for SVG, yielding the same visible orientation as TrackMap.
+    const rotationDeg =
+      circuitGeom && Number.isFinite(circuitGeom.rotation)
+        ? circuitGeom.rotation
+        : computeTrackAutoRotationDeg(outlinePoints, true);
     const rotationRad = (rotationDeg * Math.PI) / 180;
     const centerX = (bounds.minX + bounds.maxX) / 2;
     const centerY = (bounds.minY + bounds.maxY) / 2;
@@ -682,9 +690,6 @@ export default function Telemetry() {
     // Corner number labels from baked official geometry (if available for
     // this circuit/year), offset outside the track ribbon.
     const cornerLabels: TrackCornerLabel[] = (() => {
-      const circuitGeom = session?.circuit_key
-        ? getCircuitGeometry(session.circuit_key, session.year ?? null)
-        : null;
       if (!circuitGeom?.corners.length) return [];
       const OFFSET = 9;
       return circuitGeom.corners.map((corner) => {
@@ -722,7 +727,7 @@ export default function Telemetry() {
       points,
       polyline,
       totalDist,
-      rotationDeg: 0,
+      rotationDeg,
       finishLine,
       sectorMarkers,
       cornerLabels,
