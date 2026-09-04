@@ -42,10 +42,11 @@ export function useMeetings(
   });
 }
 
-export function useLatestMeeting() {
+export function useLatestMeeting(options?: { enabled?: boolean }) {
   return useQuery({
     queryKey: ["latestMeeting"],
     queryFn: () => api.latestMeeting(),
+    enabled: options?.enabled ?? true,
     staleTime: CURRENT_SEASON_STALE_MS,
     select: (rows) => rows[0] ?? null,
   });

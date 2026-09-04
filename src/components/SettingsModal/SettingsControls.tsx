@@ -1,9 +1,21 @@
-import { useState, type ReactNode } from "react";
+import { useMemo, useState, type ReactNode } from "react";
 import { useSettings, type AppSettings } from "@/stores/settings";
 import { useMediaQuery } from "@/hooks/useMediaQuery";
+import {
+  useDrivers,
+  useLatestMeeting,
+  useSessions,
+} from "@/hooks/useSession";
+import { useLocationChunks } from "@/hooks/useLocationChunks";
 import { trackEvent } from "@/lib/analytics";
 import { SPEEDS } from "@/constants";
 import { animateMotion, pressMotion } from "@/lib/motion";
+import {
+  TrackMap,
+  type ActiveMarshalSectorFlagState,
+  type ActiveTrackFlagState,
+} from "@/components/TrackMap/TrackMap";
+import type { Stint, Weather } from "@/api/types";
 
 function toAnalyticsValue(
   value: AppSettings[keyof AppSettings],
@@ -128,6 +140,136 @@ const SETTINGS_TABS = [
 ] as const;
 
 type SettingsTab = (typeof SETTINGS_TABS)[number]["id"];
+
+function TrackMapPreview() {
+  const latestMeeting = useLatestMeeting();
+  const settings = useSettings();
+  const meeting = latestMeeting.data;
+  const sessions = useSessions(meeting?.meeting_key ?? null);
+  const session = useMemo(() => {
+    const rows = sessions.data ?? [];
+    return (
+      rows.find((row) => row.session_type === "Race") ??
+      [...rows].sort(
+        (a, b) => Date.parse(b.date_start) - Date.parse(a.date_start),
+      )[0] ??
+      null
+    );
+  }, [sessions.data]);
+  const sessionStartMs = session ? Date.parse(session.date_start) : 0;
+  const drivers = useDrivers(session?.session_key ?? null);
+  const location = useLocationChunks(
+    session?.session_key ?? null,
+    Number.isFinite(sessionStartMs) ? sessionStartMs : null,
+    0,
+    0,
+    { includeNextChunk: false, prefetchChunks: false },
+  );
+  const previewDrivers = useMemo(
+    () => drivers.data?.slice(0, 3) ?? [],
+    [drivers.data],
+  );
+  const activeCompounds = useMemo(
+    () =>
+      new Map(
+        previewDrivers.map((driver, index) => [
+          driver.driver_number,
+          {
+            compound: (["SOFT", "MEDIUM", "HARD"][
+              index
+            ] ?? "UNKNOWN") as Stint["compound"],
+            age: 12 + index * 5,
+          },
+        ]),
+      ),
+    [previewDrivers],
+  );
+  const battlingDrivers = useMemo(
+    () => new Set(previewDrivers.slice(0, 2).map((driver) => driver.driver_number)),
+    [previewDrivers],
+  );
+  const previewWeather: Weather | null = session
+    ? {
+        air_temperature: 22,
+        date: session.date_start,
+        humidity: 58,
+        meeting_key: session.meeting_key,
+        pressure: 1015,
+        rainfall: 0,
+        session_key: session.session_key,
+        track_temperature: 31,
+        wind_direction: 225,
+        wind_speed: 2.8,
+      }
+    : null;
+  const previewTrackFlagState: ActiveTrackFlagState = {
+    globalFlag: null,
+    sectorFlags: { 1: "YELLOW", 2: null, 3: null },
+    updatedAtMs: sessionStartMs,
+  };
+  const previewMarshalFlagState: ActiveMarshalSectorFlagState = {
+    globalFlag: null,
+    sectorFlags: { 1: "YELLOW" },
+    updatedAtMs: sessionStartMs,
+  };
+
+  return (
+    <div className="mt-3 overflow-hidden rounded border border-panel bg-track">
+      <div className="flex items-center justify-between border-b border-panel px-3 py-2">
+        <div>
+          <div className="text-[10px] font-bold text-white">Live preview</div>
+          <div className="text-[9px] text-muted">
+            {meeting ? `${meeting.meeting_name} track map` : "Loading latest race weekend"}
+          </div>
+        </div>
+        {(latestMeeting.isError || sessions.isError) && (
+          <span className="text-[9px] text-muted">Preview unavailable</span>
+        )}
+      </div>
+      <div className="relative aspect-[16/9] max-h-[38dvh] min-h-40">
+        {session ? (
+          <TrackMap
+            sessionKey={session.session_key}
+            drivers={drivers.data ?? []}
+            locationData={location.data}
+            sessionStartMs={sessionStartMs}
+            sessionGmtOffset={session.gmt_offset}
+            circuitShortName={session.circuit_short_name}
+            circuitKey={session.circuit_key}
+            year={session.year}
+            focusDriver={null}
+            pulseDrivers={previewDrivers
+              .slice(0, 1)
+              .map((driver) => driver.driver_number)}
+            activeCompounds={
+              settings.mapShowCompoundBadges ? activeCompounds : undefined
+            }
+            battlingDrivers={
+              settings.mapShowBattleRings ? battlingDrivers : undefined
+            }
+            activeTrackFlagState={
+              settings.mapShowSectorFlags ? previewTrackFlagState : null
+            }
+            activeMarshalSectorFlagState={
+              settings.mapShowSectorFlags ? previewMarshalFlagState : null
+            }
+            weatherOverlay={settings.mapShowWeather ? previewWeather : null}
+            showSectorBox={settings.mapShowSectorBox}
+            showTrackControls={settings.mapShowTrackControls}
+            showCompass={settings.mapShowCompass}
+            showFocusedHud={settings.mapShowDriverHud}
+            showTrackScreenshot={false}
+            showEnhancedVisuals={settings.mapShowEnhancedVisuals}
+          />
+        ) : (
+          <div className="flex h-full items-center justify-center text-[10px] text-muted">
+            Loading latest track…
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
 
 export function SpeedSelector({
   value,
@@ -523,10 +665,12 @@ export function SettingsBody() {
 
   return (
     <>
+      <div className="flex min-h-0 flex-1 gap-4">
       <div
         role="tablist"
         aria-label="Settings categories"
-        className="flex gap-1 overflow-x-auto border-b border-panel py-2 -mx-1 px-1"
+        aria-orientation="vertical"
+        className="flex w-24 shrink-0 flex-col gap-1 self-start border-r border-panel py-3 pr-3 sm:w-28"
       >
         {SETTINGS_TABS.map((tab) => {
           const isActive = activeTab === tab.id;
@@ -539,7 +683,7 @@ export function SettingsBody() {
               aria-selected={isActive}
               aria-controls={`${tab.id}-settings-panel`}
               onClick={() => setActiveTab(tab.id)}
-              className={`shrink-0 rounded px-2.5 py-1.5 text-[10px] font-bold transition-colors focus:outline-none focus-visible:ring-1 focus-visible:ring-f1red ${
+              className={`w-full rounded px-2.5 py-2 text-left text-[10px] font-bold transition-colors focus:outline-none focus-visible:ring-1 focus-visible:ring-f1red ${
                 isActive
                   ? "bg-f1red text-white"
                   : "text-muted hover:bg-panel hover:text-white"
@@ -551,11 +695,13 @@ export function SettingsBody() {
         })}
       </div>
 
+      <div className="flex min-h-0 min-w-0 flex-1 flex-col">
       {activeTab === "general" && (
         <div
           id="general-settings-panel"
           role="tabpanel"
           aria-labelledby="general-settings-tab"
+          className="min-h-0 flex-1 overflow-y-auto overscroll-contain pr-1"
         >
           <SectionHeader>Appearance</SectionHeader>
           <SettingRow
@@ -576,6 +722,7 @@ export function SettingsBody() {
           id="playback-settings-panel"
           role="tabpanel"
           aria-labelledby="playback-settings-tab"
+          className="min-h-0 flex-1 overflow-y-auto overscroll-contain pr-1"
         >
       <SectionHeader>Playback</SectionHeader>
       <SpeedSelector
@@ -648,6 +795,7 @@ export function SettingsBody() {
           id="notifications-settings-panel"
           role="tabpanel"
           aria-labelledby="notifications-settings-tab"
+          className="min-h-0 flex-1 overflow-y-auto overscroll-contain pr-1"
         >
       <SectionHeader>Notifications</SectionHeader>
       <SettingRow
@@ -721,6 +869,7 @@ export function SettingsBody() {
           id="timing-settings-panel"
           role="tabpanel"
           aria-labelledby="timing-settings-tab"
+          className="min-h-0 flex-1 overflow-y-auto overscroll-contain pr-1"
         >
       <SectionHeader>Race Views</SectionHeader>
       <SettingRow
@@ -822,8 +971,13 @@ export function SettingsBody() {
           id="track-settings-panel"
           role="tabpanel"
           aria-labelledby="track-settings-tab"
+          className="flex min-h-0 flex-1 flex-col"
         >
-      <SectionHeader>Track Map</SectionHeader>
+      <div className="shrink-0">
+        <SectionHeader>Track Map</SectionHeader>
+        <TrackMapPreview />
+      </div>
+      <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain pr-1">
       <SettingRow
         label="Tyre compound badges"
         description="Compound icons on each driver dot"
@@ -920,6 +1074,7 @@ export function SettingsBody() {
         checked={settings.trackScreenshotPngEnabled}
         onChange={toggle("trackScreenshotPngEnabled")}
       />
+      </div>
         </div>
       )}
 
@@ -928,6 +1083,7 @@ export function SettingsBody() {
           id="interface-settings-panel"
           role="tabpanel"
           aria-labelledby="interface-settings-tab"
+          className="min-h-0 flex-1 overflow-y-auto overscroll-contain pr-1"
         >
       <SectionHeader>Data & Interface</SectionHeader>
       <SettingRow
@@ -952,8 +1108,10 @@ export function SettingsBody() {
       />
         </div>
       )}
+      </div>
+      </div>
 
-      <div className="pt-6 pb-2 flex justify-end">
+      <div className="shrink-0 pt-4 pb-1 flex justify-end">
         <button
           onClick={(e) => {
             animateMotion(e.currentTarget, pressMotion());

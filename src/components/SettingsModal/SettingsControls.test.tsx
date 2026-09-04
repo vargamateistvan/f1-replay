@@ -97,6 +97,56 @@ vi.mock("@/hooks/useMediaQuery", () => ({
   useMediaQuery: () => true,
 }));
 
+vi.mock("@/hooks/useSession", () => ({
+  useLatestMeeting: () => ({
+    data: {
+      circuit_key: 1,
+      meeting_name: "Italian Grand Prix",
+      year: 2026,
+    },
+    isError: false,
+    isPending: false,
+  }),
+  useSessions: () => ({
+    data: [
+      {
+        session_key: 1,
+        session_type: "Race",
+        date_start: "2026-09-01T12:00:00Z",
+        gmt_offset: "+00:00",
+        circuit_short_name: "Monza",
+        circuit_key: 1,
+        year: 2026,
+      },
+    ],
+    isError: false,
+  }),
+  useDrivers: () => ({ data: [] }),
+}));
+
+vi.mock("@/hooks/useLocationChunks", () => ({
+  useLocationChunks: () => ({ data: [] }),
+}));
+
+vi.mock("@/components/TrackMap/TrackMap", () => ({
+  TrackMap: ({
+    circuitShortName,
+    activeTrackFlagState,
+    weatherOverlay,
+  }: {
+    circuitShortName: string;
+    activeTrackFlagState: { sectorFlags: { 1: string | null } } | null;
+    weatherOverlay: unknown;
+  }) => (
+    <div
+      role="img"
+      aria-label={`${circuitShortName} production track map`}
+      data-flag={activeTrackFlagState?.sectorFlags[1] ?? "none"}
+      data-weather={weatherOverlay ? "visible" : "hidden"}
+    />
+  ),
+}));
+
 describe("SettingsControls", () => {
   beforeEach(() => {
     state.setSetting.mockReset();
@@ -200,5 +250,18 @@ describe("SettingsControls", () => {
     );
     expect(screen.getByText("Enable notifications")).toBeInTheDocument();
     expect(screen.queryByText("Light mode")).not.toBeInTheDocument();
+  });
+
+  it("shows the latest race weekend track in the track map preview", () => {
+    render(<SettingsBody />);
+    fireEvent.click(screen.getByRole("tab", { name: "Track map" }));
+
+    expect(screen.getByText("Italian Grand Prix track map")).toBeInTheDocument();
+    expect(
+      screen.getByRole("img", { name: "Monza production track map" }),
+    ).toHaveAttribute("data-flag", "YELLOW");
+    expect(
+      screen.getByRole("img", { name: "Monza production track map" }),
+    ).toHaveAttribute("data-weather", "visible");
   });
 });

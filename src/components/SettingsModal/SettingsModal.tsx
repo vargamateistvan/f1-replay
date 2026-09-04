@@ -66,7 +66,7 @@ export function SettingsModal() {
     >
       <div
         ref={panelRef}
-        className="relative w-full max-w-2xl mx-4 max-h-[90dvh] flex flex-col bg-surface border border-panel rounded-lg shadow-2xl overflow-hidden"
+        className="relative w-full max-w-2xl mx-4 h-[85dvh] max-h-[90dvh] flex flex-col bg-surface border border-panel rounded-lg shadow-2xl overflow-hidden"
       >
         {/* Header */}
         <div className="flex items-center justify-between px-5 py-3.5 border-b border-panel shrink-0">
@@ -125,7 +125,7 @@ export function SettingsModal() {
 
         {/* Scrollable body */}
         <div
-          className="flex-1 min-h-0 overflow-y-auto overscroll-contain px-5 pb-4"
+          className="flex flex-1 min-h-0 flex-col overscroll-contain px-5 pb-4"
           style={{ WebkitOverflowScrolling: "touch" }}
         >
           <SettingsBody />
