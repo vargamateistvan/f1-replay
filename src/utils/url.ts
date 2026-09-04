@@ -21,3 +21,11 @@ export function toSafeExternalUrl(
     return null;
   }
 }
+
+export function replaceHistorySearchParams(next: URLSearchParams) {
+  if (typeof window === "undefined") return;
+
+  const search = next.toString();
+  const target = `${window.location.pathname}${search ? `?${search}` : ""}${window.location.hash}`;
+  window.history.replaceState(window.history.state, "", target);
+}

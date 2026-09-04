@@ -23,7 +23,7 @@ import {
   fetchCircuitFactsFromApi,
   type CircuitFacts,
 } from "@/api/circuitFactsLookup";
-import { toSafeExternalUrl } from "@/utils/url";
+import { replaceHistorySearchParams, toSafeExternalUrl } from "@/utils/url";
 import { trackEvent } from "@/lib/analytics";
 
 export type MainView = "leaderboard" | "tracker" | "commentary";
@@ -247,6 +247,7 @@ export function Nav() {
           const next = new URLSearchParams(prev);
           next.set("session", String(latestSession.session_key));
           clearReplayTimeParam(next);
+          replaceHistorySearchParams(next);
           return next;
         });
         setSelectLatestSessionOnLoad(false);
@@ -355,6 +356,7 @@ export function Nav() {
         next.delete("meeting");
         next.delete("session");
         clearReplayTimeParam(next);
+        replaceHistorySearchParams(next);
         return next;
       },
       { replace: true },
@@ -371,6 +373,7 @@ export function Nav() {
         next.set("meeting", String(k));
         next.delete("session");
         clearReplayTimeParam(next);
+        replaceHistorySearchParams(next);
         return next;
       },
       { replace: true },
@@ -409,6 +412,7 @@ export function Nav() {
         next.set("meeting", String(latest.meeting_key));
         next.delete("session");
         clearReplayTimeParam(next);
+        replaceHistorySearchParams(next);
         return next;
       });
       setSelectLatestSessionOnLoad(true);

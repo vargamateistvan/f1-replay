@@ -2,6 +2,7 @@ import { useEffect, useRef } from "react";
 import { useSearchParams } from "react-router-dom";
 import { useTimeline } from "@/timeline/clock";
 import { SPEEDS } from "@/constants";
+import { replaceHistorySearchParams } from "@/utils/url";
 
 // Keeps the playhead (`t`, in whole seconds) and `speed` in the URL so a Race
 // Weekend view is shareable/reloadable. Restores once from a deep link, then
@@ -62,6 +63,7 @@ export function useTimelineUrlSync(sessionKey: number | null, ready: boolean) {
           else p.delete("t");
           if (s.speed !== 1) p.set("speed", String(s.speed));
           else p.delete("speed");
+          replaceHistorySearchParams(p);
           return p;
         },
         { replace: true },

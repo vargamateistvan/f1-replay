@@ -1,5 +1,6 @@
 import { useCallback } from "react";
 import { useSearchParams } from "react-router-dom";
+import { replaceHistorySearchParams } from "@/utils/url";
 
 // State backed by a URL search param, e.g. `/telemetry?session=9472&lap=10`.
 // Updates use `replace` so we
@@ -23,6 +24,7 @@ export function useNumberParam(
           const p = new URLSearchParams(prev);
           if (next === null || !Number.isFinite(next)) p.delete(key);
           else p.set(key, String(next));
+          replaceHistorySearchParams(p);
           return p;
         },
         { replace: true },
@@ -48,6 +50,7 @@ export function useStringParam<T extends string>(
           const p = new URLSearchParams(prev);
           if (next === fallback) p.delete(key);
           else p.set(key, next);
+          replaceHistorySearchParams(p);
           return p;
         },
         { replace: true },

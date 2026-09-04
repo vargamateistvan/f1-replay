@@ -4,7 +4,7 @@ import { isSessionLive } from "@/utils/live";
 import { YEARS } from "@/constants";
 import { useCallback, useEffect, useState, useRef } from "react";
 import { useSearchParams } from "react-router-dom";
-import { toSafeExternalUrl } from "@/utils/url";
+import { replaceHistorySearchParams, toSafeExternalUrl } from "@/utils/url";
 import { trackEvent } from "@/lib/analytics";
 
 interface Props {
@@ -87,7 +87,11 @@ export function SessionPicker({
         )[0];
       if (latestSession) {
         setSearchParams(
-          (prev) => clearReplayTimeParam(new URLSearchParams(prev)),
+          (prev) => {
+            const next = clearReplayTimeParam(new URLSearchParams(prev));
+            replaceHistorySearchParams(next);
+            return next;
+          },
           { replace: true },
         );
         onSession(latestSession.session_key);
@@ -171,7 +175,11 @@ export function SessionPicker({
                 const val = Number(e.target.value);
                 console.log("[SessionPicker] Year value parsed:", val);
                 setSearchParams(
-                  (prev) => clearReplayTimeParam(new URLSearchParams(prev)),
+                  (prev) => {
+                    const next = clearReplayTimeParam(new URLSearchParams(prev));
+                    replaceHistorySearchParams(next);
+                    return next;
+                  },
                   { replace: true },
                 );
                 onYear(val);
@@ -212,7 +220,11 @@ export function SessionPicker({
                 try {
                   if (e.target.value === "") {
                     setSearchParams(
-                      (prev) => clearReplayTimeParam(new URLSearchParams(prev)),
+                      (prev) => {
+                        const next = clearReplayTimeParam(new URLSearchParams(prev));
+                        replaceHistorySearchParams(next);
+                        return next;
+                      },
                       { replace: true },
                     );
                     onMeeting(null);
@@ -227,7 +239,11 @@ export function SessionPicker({
                   if (!Number.isNaN(val) && val !== 0) {
                     console.log("[SessionPicker] Calling onMeeting:", val);
                     setSearchParams(
-                      (prev) => clearReplayTimeParam(new URLSearchParams(prev)),
+                      (prev) => {
+                        const next = clearReplayTimeParam(new URLSearchParams(prev));
+                        replaceHistorySearchParams(next);
+                        return next;
+                      },
                       { replace: true },
                     );
                     onMeeting(val);
@@ -275,7 +291,11 @@ export function SessionPicker({
                 try {
                   if (e.target.value === "") {
                     setSearchParams(
-                      (prev) => clearReplayTimeParam(new URLSearchParams(prev)),
+                      (prev) => {
+                        const next = clearReplayTimeParam(new URLSearchParams(prev));
+                        replaceHistorySearchParams(next);
+                        return next;
+                      },
                       { replace: true },
                     );
                     onSession(null);
@@ -289,7 +309,11 @@ export function SessionPicker({
                   if (!Number.isNaN(val) && val !== 0) {
                     console.log("[SessionPicker] Calling onSession:", val);
                     setSearchParams(
-                      (prev) => clearReplayTimeParam(new URLSearchParams(prev)),
+                      (prev) => {
+                        const next = clearReplayTimeParam(new URLSearchParams(prev));
+                        replaceHistorySearchParams(next);
+                        return next;
+                      },
                       { replace: true },
                     );
                     onSession(val);
