@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, type MouseEvent } from "react";
+import { createPortal } from "react-dom";
 import type { Driver, SessionResult } from "@/api/types";
 import { teamColor } from "@/utils/color";
 import { DriverHeadshot } from "@/components/DriverHeadshot";
@@ -130,13 +131,13 @@ export function FinalClassificationDialog({
     if (event.target === backdropRef.current) onClose();
   }
 
-  return (
+  const dialog = (
     <div
       ref={backdropRef}
       onClick={handleBackdropClick}
-      className="fixed inset-0 z-[220] flex touch-pan-y items-start justify-center overflow-y-auto bg-black/75 px-3 py-4 backdrop-blur-sm sm:items-center sm:px-6 sm:py-6"
+      className="fixed inset-0 z-[220] flex touch-pan-y items-center justify-center bg-black/75 px-3 py-4 backdrop-blur-sm sm:px-6 sm:py-6"
     >
-      <div className="my-auto flex max-h-[calc(100dvh-2rem)] w-full max-w-5xl flex-col overflow-hidden border border-panel bg-track shadow-2xl sm:max-h-[90dvh]">
+      <div className="flex max-h-full w-full max-w-5xl flex-col overflow-hidden border border-panel bg-track shadow-2xl">
         <div className="flex items-center justify-between border-b border-panel px-4 py-3 sm:px-5">
           <div>
             <div className="text-[10px] font-black uppercase tracking-[0.2em] text-f1red">
@@ -166,6 +167,10 @@ export function FinalClassificationDialog({
       </div>
     </div>
   );
+
+  return typeof document === "undefined"
+    ? dialog
+    : createPortal(dialog, document.body);
 }
 
 interface ContentProps extends Props {

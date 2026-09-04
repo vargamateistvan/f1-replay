@@ -678,8 +678,8 @@ describe("LiveTiming", () => {
       .getAllByRole("row")
       .find((candidate) => candidate.textContent?.includes("VER"));
     expect(row).toBeDefined();
-    expect(row).toHaveClass("ring-1");
-    expect(row).toHaveClass("ring-inset");
+    expect(row).toHaveClass("bg-[#173726]/45");
+    expect(row).not.toHaveClass("ring-1");
   });
 
   it("derives timed-session intervals from the car ahead", () => {

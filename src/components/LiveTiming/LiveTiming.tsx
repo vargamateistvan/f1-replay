@@ -1691,8 +1691,8 @@ export function LiveTiming({
               let lapFlashClass = "";
               if (justSetLap) {
                 lapFlashClass = lastLapIsBest
-                  ? "ring-1 ring-inset ring-[#39d743]/60 bg-[#173726]/45"
-                  : "ring-1 ring-inset ring-[#3ea6ff]/55 bg-[#11263a]/45";
+                  ? "bg-[#173726]/45"
+                  : "bg-[#11263a]/45";
               }
 
               let statusContent: ReactNode = null;
