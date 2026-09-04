@@ -21,9 +21,13 @@ import { computeDelta, resampleToAxis, smooth } from "@/utils/telemetry";
 import { speedUnitLabel, toDisplaySpeed } from "@/utils/units";
 import { toSafeExternalUrl } from "@/utils/url";
 import { DriverHeadshot } from "@/components/DriverHeadshot";
+import { getCircuitGeometry } from "@/data/circuitGeometry";
+import { SECTOR_COLORS } from "@/constants";
 import { trackEvent } from "@/lib/analytics";
 import {
   animateMotion,
+  createDrawable,
+  drawLineMotion,
   fadeUpMotion,
   motionEnabled,
   tabSwapMotion,
@@ -103,6 +107,25 @@ interface TrackPreviewPoint {
   sx: number;
   sy: number;
   dist: number;
+}
+
+interface TrackSectorMarker {
+  label: "S1" | "S2";
+  x1: number;
+  y1: number;
+  x2: number;
+  y2: number;
+  cx: number;
+  cy: number;
+  lx: number;
+  ly: number;
+}
+
+interface TrackCornerLabel {
+  key: string;
+  label: string;
+  x: number;
+  y: number;
 }
 
 const PANEL = "bg-surface border border-panel";
@@ -202,6 +225,8 @@ export default function Telemetry() {
   const cardDeckRef = useRef<HTMLDivElement | null>(null);
   const trackPreviewRef = useRef<HTMLDivElement | null>(null);
   const chartsRef = useRef<HTMLDivElement | null>(null);
+  const trackRouteRef = useRef<SVGPolylineElement | null>(null);
+  const trackRouteDialogRef = useRef<SVGPolylineElement | null>(null);
   const prevSelectionRef = useRef<string>("");
   const [activeMode, setActiveMode] = useState<"quali" | "race" | null>(null);
   const [isCardsAccordionOpen, setIsCardsAccordionOpen] = useState(true);
@@ -297,6 +322,14 @@ export default function Telemetry() {
         }),
       ),
     ].filter((animation): animation is NonNullable<typeof animation> => animation !== null);
+
+    // Trace the track outline like a pen drawing the lap, using anime.js's
+    // SVG line-drawing helper (https://animejs.com/documentation/svg).
+    const drawables = [trackRouteRef.current, trackRouteDialogRef.current]
+      .filter((el): el is SVGPolylineElement => el !== null)
+      .flatMap((el) => createDrawable(el));
+    const drawAnimation = drawLineMotion(drawables, { duration: 620 });
+    if (drawAnimation) animations.push(drawAnimation);
 
     return () => {
       animations.forEach((animation) => animation.revert());
@@ -546,15 +579,26 @@ export default function Telemetry() {
     const centerX = (bounds.minX + bounds.maxX) / 2;
     const centerY = (bounds.minY + bounds.maxY) / 2;
 
-    const rotatedPoints = outlinePoints.map((point) => {
+    const rotatePoint = (point: { x: number; y: number }) => {
       const dx = point.x - centerX;
       const dy = point.y - centerY;
       return {
         x: centerX + dx * Math.cos(rotationRad) - dy * Math.sin(rotationRad),
         y: centerY + dx * Math.sin(rotationRad) + dy * Math.cos(rotationRad),
       };
-    });
+    };
+
+    const rotatedPoints = outlinePoints.map(rotatePoint);
     const rotatedBounds = computeTrackBounds(rotatedPoints);
+
+    const projectToSvg = (point: { x: number; y: number }) =>
+      locationToSvg(
+        rotatePoint(point).x,
+        rotatePoint(point).y,
+        rotatedBounds,
+        TRACK_SVG_W,
+        TRACK_SVG_H,
+      );
 
     let dist = 0;
     const points: TrackPreviewPoint[] = rotatedPoints.map((point, idx) => {
@@ -579,13 +623,111 @@ export default function Telemetry() {
     const polyline = points
       .map((p) => `${p.sx.toFixed(1)},${p.sy.toFixed(1)}`)
       .join(" ");
+    const totalDist = points[points.length - 1]!.dist;
+
+    // Start/finish marker anchored to the first outline segment, matching the
+    // main TrackMap's checkered-flag treatment.
+    const finishLine = (() => {
+      const p0 = points[0]!;
+      const p1 = points[1]!;
+      const dx = p1.sx - p0.sx;
+      const dy = p1.sy - p0.sy;
+      const len = Math.hypot(dx, dy) || 1;
+      const nx = -dy / len;
+      const ny = dx / len;
+      const half = 4.5;
+      return {
+        x1: p0.sx + nx * half,
+        y1: p0.sy + ny * half,
+        x2: p0.sx - nx * half,
+        y2: p0.sy - ny * half,
+      };
+    })();
+
+    // Sector-1/2 boundary ticks, positioned at 1/3 and 2/3 of the lap arc
+    // length — mirrors the sectorBoundaryOverlays logic in TrackMap.tsx.
+    const sectorMarkers: TrackSectorMarker[] = (() => {
+      const markerFor = (target: number, label: "S1" | "S2") => {
+        const targetDist = target * totalDist;
+        const idx = Math.max(
+          1,
+          points.findIndex((p) => p.dist >= targetDist),
+        );
+        if (idx <= 0) return null;
+        const point = points[idx]!;
+        const prev = points[idx - 1]!;
+        const dx = point.sx - prev.sx;
+        const dy = point.sy - prev.sy;
+        const len = Math.hypot(dx, dy) || 1;
+        const nx = -dy / len;
+        const ny = dx / len;
+        const half = 4;
+        return {
+          label,
+          x1: point.sx + nx * half,
+          y1: point.sy + ny * half,
+          x2: point.sx - nx * half,
+          y2: point.sy - ny * half,
+          cx: point.sx,
+          cy: point.sy,
+          lx: point.sx + nx * 8,
+          ly: point.sy + ny * 8,
+        };
+      };
+      return [markerFor(1 / 3, "S1"), markerFor(2 / 3, "S2")].filter(
+        (marker): marker is TrackSectorMarker => marker !== null,
+      );
+    })();
+
+    // Corner number labels from baked official geometry (if available for
+    // this circuit/year), offset outside the track ribbon.
+    const cornerLabels: TrackCornerLabel[] = (() => {
+      const circuitGeom = session?.circuit_key
+        ? getCircuitGeometry(session.circuit_key, session.year ?? null)
+        : null;
+      if (!circuitGeom?.corners.length) return [];
+      const OFFSET = 9;
+      return circuitGeom.corners.map((corner) => {
+        const { sx: apexSx, sy: apexSy } = projectToSvg(corner.trackPosition);
+
+        let bestIdx = 0;
+        let bestDist2 = Infinity;
+        for (let j = 0; j < points.length; j++) {
+          const dx = points[j]!.sx - apexSx;
+          const dy = points[j]!.sy - apexSy;
+          const d2 = dx * dx + dy * dy;
+          if (d2 < bestDist2) {
+            bestDist2 = d2;
+            bestIdx = j;
+          }
+        }
+        const prev = points[Math.max(0, bestIdx - 1)]!;
+        const next = points[Math.min(points.length - 1, bestIdx + 1)]!;
+        const tdx = next.sx - prev.sx;
+        const tdy = next.sy - prev.sy;
+        const tlen = Math.hypot(tdx, tdy) || 1;
+        const nx = -tdy / tlen;
+        const ny = tdx / tlen;
+
+        return {
+          key: `corner-${corner.number}${corner.letter}`,
+          label: `${corner.number}${corner.letter}`,
+          x: apexSx + nx * OFFSET,
+          y: apexSy + ny * OFFSET,
+        };
+      });
+    })();
+
     return {
       points,
       polyline,
-      totalDist: points[points.length - 1]!.dist,
+      totalDist,
       rotationDeg: 0,
+      finishLine,
+      sectorMarkers,
+      cornerLabels,
     };
-  }, [trackOutlineA.data]);
+  }, [trackOutlineA.data, session?.circuit_key, session?.year]);
 
   // For a given set of raw samples, find the interpolated telemetry at a given timeS
   const sampleAtTimeS = useCallback(
@@ -1174,6 +1316,7 @@ export default function Telemetry() {
                       opacity={0.7}
                     />
                     <polyline
+                      ref={trackRouteRef}
                       points={trackPreview.polyline}
                       fill="none"
                       stroke="#d7deee"
@@ -1470,7 +1613,45 @@ export default function Telemetry() {
                     onMouseLeave={() => { /* keep last position */ }}
                   >
                     <polyline points={trackPreview.polyline} fill="none" stroke="#3e4a64" strokeWidth={5.4} strokeLinecap="round" strokeLinejoin="round" opacity={0.7} />
-                    <polyline points={trackPreview.polyline} fill="none" stroke="#d7deee" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" />
+                    <polyline ref={trackRouteDialogRef} points={trackPreview.polyline} fill="none" stroke="#d7deee" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" />
+                    {trackPreview.finishLine && (
+                      <line
+                        x1={trackPreview.finishLine.x1}
+                        y1={trackPreview.finishLine.y1}
+                        x2={trackPreview.finishLine.x2}
+                        y2={trackPreview.finishLine.y2}
+                        stroke="#ffffff"
+                        strokeWidth={2.5}
+                        strokeDasharray="1.4 1.4"
+                        opacity={0.95}
+                      />
+                    )}
+                    {trackPreview.sectorMarkers.map((marker) => {
+                      const color = marker.label === "S1" ? SECTOR_COLORS[1] : SECTOR_COLORS[2];
+                      return (
+                        <g key={`sector-${marker.label}`}>
+                          <line x1={marker.x1} y1={marker.y1} x2={marker.x2} y2={marker.y2} stroke={color} strokeWidth={2} opacity={0.9} />
+                          <text x={marker.lx} y={marker.ly} fill={color} fontSize={6} fontWeight={800} textAnchor="middle" stroke="#15151e" strokeWidth={2} style={{ paintOrder: "stroke" }}>{marker.label}</text>
+                        </g>
+                      );
+                    })}
+                    {trackPreview.cornerLabels.map((corner) => (
+                      <text
+                        key={corner.key}
+                        x={corner.x}
+                        y={corner.y}
+                        fill="#9aa5c0"
+                        fontSize={5}
+                        fontWeight={600}
+                        textAnchor="middle"
+                        dominantBaseline="middle"
+                        stroke="#15151e"
+                        strokeWidth={1.6}
+                        style={{ paintOrder: "stroke" }}
+                      >
+                        {corner.label}
+                      </text>
+                    ))}
                     {dialogTrackMarkers.length > 1 &&
                       dialogTrackMarkers.slice(1).map((marker, idx) => {
                         const prev = dialogTrackMarkers[idx]!;
@@ -2122,27 +2303,43 @@ function SpeedSparkline({
   color: string;
   driverTag: string;
 }) {
-  if (values.length < 2) {
+  const traceRef = useRef<SVGPolylineElement | null>(null);
+
+  const width = 320;
+  const height = 34;
+  const hasTrace = values.length >= 2;
+  const min = hasTrace ? Math.min(...values) : 0;
+  const max = hasTrace ? Math.max(...values) : 0;
+  const span = Math.max(1, max - min);
+
+  const points = hasTrace
+    ? values
+        .map((value, index) => {
+          const x = (index / (values.length - 1)) * width;
+          const y = height - ((value - min) / span) * height;
+          return `${x.toFixed(2)},${y.toFixed(2)}`;
+        })
+        .join(" ")
+    : "";
+
+  useEffect(() => {
+    if (!hasTrace || !traceRef.current) return;
+    // Trace the speed line like a pen drawing the lap
+    // (https://animejs.com/documentation/svg).
+    const drawable = createDrawable(traceRef.current);
+    const animation = drawLineMotion(drawable, { duration: 520 });
+    return () => {
+      animation?.revert();
+    };
+  }, [hasTrace, points]);
+
+  if (!hasTrace) {
     return (
       <div className="flex h-10 items-center justify-center text-[10px] font-semibold uppercase tracking-[0.12em] text-muted">
         No trace
       </div>
     );
   }
-
-  const width = 320;
-  const height = 34;
-  const min = Math.min(...values);
-  const max = Math.max(...values);
-  const span = Math.max(1, max - min);
-
-  const points = values
-    .map((value, index) => {
-      const x = (index / (values.length - 1)) * width;
-      const y = height - ((value - min) / span) * height;
-      return `${x.toFixed(2)},${y.toFixed(2)}`;
-    })
-    .join(" ");
 
   const areaPoints = `0,${height} ${points} ${width},${height}`;
   const startY = height - ((values[0]! - min) / span) * height;
@@ -2159,6 +2356,7 @@ function SpeedSparkline({
     >
       <polyline points={areaPoints} fill={`${color}22`} stroke="none" />
       <polyline
+        ref={traceRef}
         points={points}
         fill="none"
         stroke={color}

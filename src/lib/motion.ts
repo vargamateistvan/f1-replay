@@ -168,3 +168,39 @@ export function tabSwapMotion(overrides: Partial<MotionParams> = {}) {
 }
 
 export const stagger = animejs.stagger;
+
+/**
+ * Creates an animejs SVG "drawable" proxy for the given geometry element(s)
+ * (e.g. a `<polyline>` or `<path>`), which exposes a `draw` property that can
+ * be animated to reveal the stroke like a pen tracing the line.
+ * See https://animejs.com/documentation/svg/create-drawable
+ */
+export function createDrawable(
+  selector: Parameters<typeof animejs.svg.createDrawable>[0],
+) {
+  return animejs.svg.createDrawable(selector);
+}
+
+/**
+ * Animates one or more SVG drawables from fully hidden to fully drawn,
+ * mimicking a line being traced. Returns null when motion is disabled or
+ * no targets are provided.
+ */
+export function drawLineMotion(
+  targets: ReturnType<typeof animejs.svg.createDrawable> | null | undefined,
+  overrides: Partial<MotionParams> = {},
+) {
+  if (!motionEnabled()) return null;
+  if (!targets || (Array.isArray(targets) && targets.length === 0)) return null;
+  return animejs.animate(
+    targets,
+    mergeMotion(
+      {
+        draw: ["0 0", "0 1"],
+        duration: MOTION.duration.panel,
+        ease: MOTION.easing.strong,
+      },
+      overrides,
+    ),
+  );
+}
