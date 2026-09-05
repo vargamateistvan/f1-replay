@@ -740,6 +740,27 @@ export function LiveTiming({
     return m;
   }, [completedLaps]);
 
+  // Each driver's best lap time set before their most recent completed lap,
+  // used to classify a freshly-set lap as an improvement, regression, or
+  // new session/personal best.
+  const priorBestLapMap = useMemo(() => {
+    const lastLapNumberByDriver = new Map<number, number>();
+    for (const l of completedLaps) {
+      const prev = lastLapNumberByDriver.get(l.driver_number) ?? -1;
+      if (l.lap_number > prev) lastLapNumberByDriver.set(l.driver_number, l.lap_number);
+    }
+    const priorByDriver = new Map<number, number>();
+    for (const l of completedLaps) {
+      if (l.lap_duration === null) continue;
+      if (l.lap_number === lastLapNumberByDriver.get(l.driver_number)) continue;
+      const prev = priorByDriver.get(l.driver_number);
+      if (prev === undefined || l.lap_duration < prev) {
+        priorByDriver.set(l.driver_number, l.lap_duration);
+      }
+    }
+    return priorByDriver;
+  }, [completedLaps]);
+
   const retiredDrivers = useMemo(() => {
     return deriveRetiredDrivers({
       positions,
@@ -1689,11 +1710,23 @@ export function LiveTiming({
                 lastLapEndMs !== null &&
                 currentT >= lastLapEndMs &&
                 currentT - lastLapEndMs <= LAP_SET_FLASH_MS;
-              const lastLapIsBest =
-                justSetLap &&
-                bestLap !== null &&
-                lastLap !== null &&
-                bestLap.lap_number === lastLap.lap_number;
+              const justSetLapDuration =
+                justSetLap && lastLap?.lap_duration != null
+                  ? lastLap.lap_duration
+                  : null;
+              const lastLapIsSessionBest =
+                justSetLapDuration !== null &&
+                sessionBest.lap !== null &&
+                justSetLapDuration <= sessionBest.lap + 0.001;
+              const priorBestLap = priorBestLapMap.get(num) ?? null;
+              const lastLapIsPersonalImprovement =
+                justSetLapDuration !== null &&
+                priorBestLap !== null &&
+                justSetLapDuration < priorBestLap;
+              const lastLapIsPersonalRegression =
+                justSetLapDuration !== null &&
+                priorBestLap !== null &&
+                justSetLapDuration >= priorBestLap;
 
               let rowBg = "hover:bg-white/[0.06]";
               if (selected) rowBg = "bg-panel";
@@ -1704,9 +1737,13 @@ export function LiveTiming({
 
               let lapFlashClass = "";
               if (justSetLap) {
-                lapFlashClass = lastLapIsBest
-                  ? "bg-[#173726]/45"
-                  : "bg-[#11263a]/45";
+                lapFlashClass = lastLapIsSessionBest
+                  ? "bg-[#2c1a45]/55"
+                  : lastLapIsPersonalRegression
+                    ? "bg-[#3a2f08]/50"
+                    : lastLapIsPersonalImprovement
+                      ? "bg-[#173726]/45"
+                      : "bg-[#11263a]/45";
               }
 
               let statusContent: ReactNode = null;

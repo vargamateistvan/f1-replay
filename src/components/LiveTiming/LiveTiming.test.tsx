@@ -678,8 +678,132 @@ describe("LiveTiming", () => {
       .getAllByRole("row")
       .find((candidate) => candidate.textContent?.includes("VER"));
     expect(row).toBeDefined();
-    expect(row).toHaveClass("bg-[#173726]/45");
+    expect(row).toHaveClass("bg-[#2c1a45]/55");
     expect(row).not.toHaveClass("ring-1");
+  });
+
+  it("highlights a personal-best (non-session-best) lap in green", () => {
+    const sessionStartMs = Date.parse("2024-01-01T00:00:00.000Z");
+    const baseLap = {
+      driver_number: 1,
+      duration_sector_1: 10,
+      duration_sector_2: 10,
+      duration_sector_3: 10,
+      i1_speed: null,
+      i2_speed: null,
+      is_pit_out_lap: false,
+      meeting_key: 1,
+      segments_sector_1: [2049],
+      segments_sector_2: [2049],
+      segments_sector_3: [2049],
+      session_key: 1,
+      st_speed: null,
+    };
+
+    render(
+      <LiveTiming
+        drivers={drivers}
+        positions={
+          [
+            { driver_number: 1, position: 1, date: "2024-01-01T00:00:41.000Z" },
+            { driver_number: 16, position: 2, date: "2024-01-01T00:00:41.000Z" },
+          ] as Position[]
+        }
+        intervals={[]}
+        pits={[]}
+        laps={
+          [
+            // LEC sets the session-best lap first so VER's later improvement
+            // is not also the fastest lap of the session.
+            {
+              ...baseLap,
+              driver_number: 16,
+              date_start: "2024-01-01T00:00:00.000Z",
+              lap_duration: 9,
+              lap_number: 1,
+            },
+            {
+              ...baseLap,
+              date_start: "2024-01-01T00:00:00.000Z",
+              lap_duration: 12,
+              lap_number: 1,
+            },
+            {
+              ...baseLap,
+              date_start: "2024-01-01T00:00:20.000Z",
+              lap_duration: 10,
+              lap_number: 2,
+            },
+          ] as Lap[]
+        }
+        sessionName="Practice 1"
+        sessionTimeMs={30_100}
+        sessionStartMs={sessionStartMs}
+      />,
+    );
+
+    const row = screen
+      .getAllByRole("row")
+      .find((candidate) => candidate.textContent?.includes("VER"));
+    expect(row).toBeDefined();
+    expect(row).toHaveClass("bg-[#173726]/45");
+  });
+
+  it("highlights a lap slower than the driver's personal best in yellow", () => {
+    const sessionStartMs = Date.parse("2024-01-01T00:00:00.000Z");
+    const baseLap = {
+      driver_number: 1,
+      duration_sector_1: 10,
+      duration_sector_2: 10,
+      duration_sector_3: 10,
+      i1_speed: null,
+      i2_speed: null,
+      is_pit_out_lap: false,
+      meeting_key: 1,
+      segments_sector_1: [2049],
+      segments_sector_2: [2049],
+      segments_sector_3: [2049],
+      session_key: 1,
+      st_speed: null,
+    };
+
+    render(
+      <LiveTiming
+        drivers={drivers}
+        positions={
+          [
+            { driver_number: 1, position: 1, date: "2024-01-01T00:00:41.000Z" },
+          ] as Position[]
+        }
+        intervals={[]}
+        pits={[]}
+        laps={
+          [
+            {
+              ...baseLap,
+              date_start: "2024-01-01T00:00:00.000Z",
+              lap_duration: 10,
+              lap_number: 1,
+            },
+            {
+              ...baseLap,
+              date_start: "2024-01-01T00:00:20.000Z",
+              lap_duration: 12,
+              lap_number: 2,
+            },
+          ] as Lap[]
+        }
+        sessionName="Practice 1"
+        sessionTimeMs={32_100}
+        sessionStartMs={sessionStartMs}
+      />,
+    );
+
+    const row = screen
+      .getAllByRole("row")
+      .find((candidate) => candidate.textContent?.includes("VER"));
+    expect(row).toBeDefined();
+    expect(row).toHaveClass("bg-[#3a2f08]/50");
   });
 
   it("derives timed-session intervals from the car ahead", () => {
