@@ -3,6 +3,7 @@ import { Play, Square } from "lucide-react";
 import type { TeamRadio as TeamRadioEntry, Driver, Lap } from "@/api/types";
 import { downloadEndpointCsv } from "@/api/client";
 import { useSettings } from "@/stores/settings";
+import { useAudioProgress } from "@/hooks/useAudioProgress";
 import { teamColor } from "@/utils/color";
 import { buildLapLookup, lapNumberAtMs } from "@/utils/lapLookup";
 import { upperBoundByValue } from "@/utils/sortedTime";
@@ -183,85 +184,18 @@ export function TeamRadioFeed({
             {commentaryGroupLabel(sessionType, group.lapNumber)}
           </div>
           <div className={COMMENTARY_GROUP_ITEMS_CLASS}>
-            {group.entries.map(({ entry: e, dateMs: entryMs }) => {
-              const driver = driverByNumber.get(e.driver_number);
-              const color = teamColor(driver?.team_colour);
-              const recordingUrl = toSafeExternalUrl(e.recording_url);
-              const hasAudio = Boolean(recordingUrl);
-              const isPlaying =
-                recordingUrl !== null && playing === recordingUrl;
-              return (
-                <div
-                  key={`${e.driver_number}-${e.date}-${e.recording_url}`}
-                  className={COMMENTARY_ROW_CLASS}
-                  style={{ borderLeft: `6px solid ${color}` }}
-                >
-                  <span className={COMMENTARY_TIME_CLASS}>
-                    {fmtSessionTime(entryMs, sessionStartMs)}
-                  </span>
-                  <div className="flex-1 min-w-0">
-                    <div className={COMMENTARY_TITLE_CLASS}>
-                      Team radio for{" "}
-                      <span style={{ color }}>
-                        {driver?.name_acronym ?? e.driver_number}
-                      </span>
-                    </div>
-                    <div className={COMMENTARY_META_CLASS}>
-                      <span
-                        className={`${COMMENTARY_BADGE_CLASS} bg-[#4da6ff] text-black`}
-                      >
-                        Radio
-                      </span>
-                    </div>
-                  </div>
-                  <div className="shrink-0 flex items-center gap-1.5">
-                    <button
-                      onClick={() => recordingUrl && play(recordingUrl)}
-                      disabled={!hasAudio}
-                      aria-label={isPlaying ? "Stop" : "Play"}
-                      className={`flex h-6 items-center gap-1.5 rounded px-2 text-[9px] font-black uppercase tracking-widest transition-colors ${
-                        isPlaying
-                          ? "bg-f1red text-white"
-                          : "bg-panel text-muted hover:text-white hover:bg-track"
-                      }`}
-                    >
-                      {isPlaying ? (
-                        <>
-                          <Square
-                            size={11}
-                            strokeWidth={2.4}
-                            aria-hidden="true"
-                          />{" "}
-                          Stop
-                        </>
-                      ) : (
-                        <>
-                          <Play
-                            size={11}
-                            strokeWidth={2.4}
-                            aria-hidden="true"
-                          />{" "}
-                          Play
-                        </>
-                      )}
-                    </button>
-                    <span className={COMMENTARY_CHEVRON_CLASS}>›</span>
-                    {isPlaying && recordingUrl && (
-                      <audio
-                        key={recordingUrl}
-                        src={recordingUrl}
-                        autoPlay
-                        onEnded={() => setPlaying(null)}
-                        onError={() => setPlaying(null)}
-                        className="hidden"
-                      >
-                        <track kind="captions" />
-                      </audio>
-                    )}
-                  </div>
-                </div>
-              );
-            })}
+            {group.entries.map(({ entry: e, dateMs: entryMs }) => (
+              <RadioRow
+                key={`${e.driver_number}-${e.date}-${e.recording_url}`}
+                entry={e}
+                entryMs={entryMs}
+                sessionStartMs={sessionStartMs}
+                driver={driverByNumber.get(e.driver_number)}
+                playing={playing}
+                onPlay={play}
+                onEnded={() => setPlaying(null)}
+              />
+            ))}
           </div>
         </div>
       ))}
@@ -276,6 +210,101 @@ export function TeamRadioFeed({
           </button>
         </div>
       )}
+    </div>
+  );
+}
+
+function RadioRow({
+  entry: e,
+  entryMs,
+  sessionStartMs,
+  driver,
+  playing,
+  onPlay,
+  onEnded,
+}: {
+  entry: TeamRadioEntry;
+  entryMs: number;
+  sessionStartMs: number;
+  driver: Driver | undefined;
+  playing: string | null;
+  onPlay: (url: string) => void;
+  onEnded: () => void;
+}) {
+  const color = teamColor(driver?.team_colour);
+  const recordingUrl = toSafeExternalUrl(e.recording_url);
+  const hasAudio = Boolean(recordingUrl);
+  const isPlaying = recordingUrl !== null && playing === recordingUrl;
+  const { progress, audioRef, onTimeUpdate } = useAudioProgress(isPlaying);
+
+  return (
+    <div
+      className={COMMENTARY_ROW_CLASS}
+      style={{ borderLeft: `6px solid ${color}` }}
+    >
+      <span className={COMMENTARY_TIME_CLASS}>
+        {fmtSessionTime(entryMs, sessionStartMs)}
+      </span>
+      <div className="flex-1 min-w-0">
+        <div className={COMMENTARY_TITLE_CLASS}>
+          Team radio for{" "}
+          <span style={{ color }}>
+            {driver?.name_acronym ?? e.driver_number}
+          </span>
+        </div>
+        <div className={COMMENTARY_META_CLASS}>
+          <span className={`${COMMENTARY_BADGE_CLASS} bg-[#4da6ff] text-black`}>
+            Radio
+          </span>
+        </div>
+      </div>
+      <div className="shrink-0 flex items-center gap-1.5">
+        <button
+          onClick={() => recordingUrl && onPlay(recordingUrl)}
+          disabled={!hasAudio}
+          aria-label={isPlaying ? "Stop" : "Play"}
+          className={`relative flex h-6 w-[64px] items-center justify-center gap-1.5 overflow-hidden rounded px-2 text-[9px] font-black uppercase tracking-widest transition-colors ${
+            isPlaying
+              ? "bg-track text-white"
+              : "bg-panel text-muted hover:text-white hover:bg-track"
+          }`}
+        >
+          {isPlaying && (
+            <span
+              aria-hidden="true"
+              className="absolute inset-y-0 left-0 bg-f1red transition-[width] duration-150 ease-linear"
+              style={{ width: `${progress * 100}%` }}
+              data-progress={Math.round(progress * 100)}
+            />
+          )}
+          <span className="relative flex items-center gap-1.5">
+            {isPlaying ? (
+              <>
+                <Square size={11} strokeWidth={2.4} aria-hidden="true" /> Stop
+              </>
+            ) : (
+              <>
+                <Play size={11} strokeWidth={2.4} aria-hidden="true" /> Play
+              </>
+            )}
+          </span>
+        </button>
+        <span className={COMMENTARY_CHEVRON_CLASS}>›</span>
+        {isPlaying && recordingUrl && (
+          <audio
+            key={recordingUrl}
+            ref={audioRef}
+            src={recordingUrl}
+            autoPlay
+            onTimeUpdate={onTimeUpdate}
+            onEnded={onEnded}
+            onError={onEnded}
+            className="hidden"
+          >
+            <track kind="captions" />
+          </audio>
+        )}
+      </div>
     </div>
   );
 }

@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState, type ReactNode } from "react";
+import React, { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
 import { Play, Square } from "lucide-react";
 import type { ActiveToast } from "@/hooks/useEventToasts";
 import type { Driver } from "@/api/types";
@@ -14,6 +14,7 @@ import { teamColor } from "@/utils/color";
 import { useSettings } from "@/stores/settings";
 import { formatPitDuration } from "@/utils/pit";
 import { toSafeExternalUrl } from "@/utils/url";
+import { useAudioProgress } from "@/hooks/useAudioProgress";
 
 interface Props {
   toasts: ActiveToast[];
@@ -23,6 +24,8 @@ interface Props {
   radioAutoplay?: boolean;
   soundsEnabled?: boolean;
   maxVisible?: 2 | 4 | 6 | 8;
+  /** Called whenever the set of toast ids currently playing radio audio changes. */
+  onPlayingIdsChange?: (playingIds: Set<string>) => void;
 }
 
 let audioCtx: AudioContext | null = null;
@@ -95,10 +98,35 @@ export function EventToastStack({
   radioAutoplay = false,
   soundsEnabled = false,
   maxVisible = 4,
+  onPlayingIdsChange,
 }: Props) {
   const driverMap = new Map(drivers.map((d) => [d.driver_number, d]));
   const visibleToasts = toasts.slice(0, maxVisible);
   const playedRef = useRef(new Set<string>());
+  const [playingIds, setPlayingIds] = useState<Set<string>>(new Set());
+
+  const handlePlayingChange = useCallback((id: string, playing: boolean) => {
+    setPlayingIds((prev) => {
+      const isPlaying = prev.has(id);
+      if (playing === isPlaying) return prev;
+      const next = new Set(prev);
+      if (playing) next.add(id);
+      else next.delete(id);
+      return next;
+    });
+  }, []);
+
+  useEffect(() => {
+    onPlayingIdsChange?.(playingIds);
+  }, [playingIds, onPlayingIdsChange]);
+
+  const guardedDismiss = useCallback(
+    (id: string) => {
+      if (playingIds.has(id)) return;
+      onDismiss(id);
+    },
+    [playingIds, onDismiss],
+  );
 
   useEffect(() => {
     if (!soundsEnabled) return;
@@ -145,8 +173,10 @@ export function EventToastStack({
               key={at.event.id}
               at={at}
               driverMap={driverMap}
-              onDismiss={onDismiss}
+              onDismiss={guardedDismiss}
               radioAutoplay={radioAutoplay}
+              onPlayingChange={handlePlayingChange}
+              playingIds={playingIds}
             />
           ))}
         </div>
@@ -162,11 +192,13 @@ function SwipeCard({
   id,
   onDismiss,
   kind,
+  disabled = false,
   children,
 }: {
   id: string;
   onDismiss: (id: string) => void;
   kind: ActiveToast["event"]["kind"];
+  disabled?: boolean;
   children: ReactNode;
 }) {
   const startXRef = useRef<number | null>(null);
@@ -192,16 +224,21 @@ function SwipeCard({
   }, [kind]);
 
   function onTouchStart(e: React.TouchEvent) {
+    if (disabled) return;
     startXRef.current = e.touches[0]!.clientX;
   }
 
   function onTouchMove(e: React.TouchEvent) {
-    if (startXRef.current === null) return;
+    if (disabled || startXRef.current === null) return;
     const dx = e.touches[0]!.clientX - startXRef.current;
     setOffset(dx);
   }
 
   function onTouchEnd() {
+    if (disabled) {
+      startXRef.current = null;
+      return;
+    }
     if (Math.abs(offset) > 80) {
       setLeaving(true);
       setTimeout(() => onDismiss(id), 180);
@@ -242,11 +279,15 @@ function ToastCard({
   driverMap,
   onDismiss,
   radioAutoplay,
+  onPlayingChange,
+  playingIds,
 }: {
   at: ActiveToast;
   driverMap: Map<number, Driver>;
   onDismiss: (id: string) => void;
   radioAutoplay: boolean;
+  onPlayingChange?: (id: string, playing: boolean) => void;
+  playingIds: Set<string>;
 }) {
   const inner = (() => {
     if (at.event.kind === "radio")
@@ -256,6 +297,7 @@ function ToastCard({
           driverMap={driverMap}
           onDismiss={onDismiss}
           radioAutoplay={radioAutoplay}
+          onPlayingChange={onPlayingChange}
         />
       );
     if (
@@ -280,7 +322,12 @@ function ToastCard({
   if (!inner) return null;
 
   return (
-    <SwipeCard id={at.event.id} onDismiss={onDismiss} kind={at.event.kind}>
+    <SwipeCard
+      id={at.event.id}
+      onDismiss={onDismiss}
+      kind={at.event.kind}
+      disabled={playingIds.has(at.event.id)}
+    >
       {inner}
     </SwipeCard>
   );
@@ -292,17 +339,20 @@ function ToastCard({
 function DismissBtn({
   id,
   onDismiss,
+  disabled = false,
 }: {
   id: string;
   onDismiss: (id: string) => void;
+  disabled?: boolean;
 }) {
   return (
     <button
       onClick={() => onDismiss(id)}
+      disabled={disabled}
       className="absolute top-1 right-1 z-10 flex items-center justify-center pointer-events-auto
-                 w-6 h-6 text-muted hover:text-white transition-colors text-xs"
+                 w-6 h-6 text-muted hover:text-white transition-colors text-xs disabled:opacity-30 disabled:cursor-not-allowed"
       style={{ touchAction: "manipulation" }}
-      aria-label="Dismiss"
+      aria-label={disabled ? "Playing — dismiss disabled" : "Dismiss"}
     >
       ×
     </button>
@@ -316,11 +366,13 @@ function RadioToast({
   driverMap,
   onDismiss,
   radioAutoplay,
+  onPlayingChange,
 }: {
   at: ActiveToast;
   driverMap: Map<number, Driver>;
   onDismiss: (id: string) => void;
   radioAutoplay: boolean;
+  onPlayingChange?: (id: string, playing: boolean) => void;
 }) {
   const [playing, setPlaying] = useState(radioAutoplay);
   const p = at.event.payload as RadioPayload;
@@ -328,10 +380,16 @@ function RadioToast({
   const color = teamColor(driver?.team_colour);
   const recordingUrl = toSafeExternalUrl(p.recordingUrl);
   const hasAudio = Boolean(recordingUrl);
+  const { progress, audioRef, onTimeUpdate } = useAudioProgress(playing);
 
   useEffect(() => {
     if (!hasAudio && playing) setPlaying(false);
   }, [hasAudio, playing]);
+
+  useEffect(() => {
+    onPlayingChange?.(at.event.id, playing && hasAudio);
+    return () => onPlayingChange?.(at.event.id, false);
+  }, [playing, hasAudio, at.event.id, onPlayingChange]);
 
   return (
     <div className="relative pointer-events-auto rounded-lg bg-surface border border-panel shadow-xl flex overflow-hidden w-full">
@@ -351,32 +409,48 @@ function RadioToast({
             onClick={() => hasAudio && setPlaying((v) => !v)}
             disabled={!hasAudio}
             style={{ touchAction: "manipulation" }}
-            className={`text-[9px] font-black uppercase tracking-widest px-2 py-1 rounded-md transition-colors flex items-center gap-1 ${playing ? "bg-f1red text-white" : "bg-panel text-muted hover:text-white"}`}
+            className={`relative overflow-hidden text-[9px] font-black uppercase tracking-widest px-2 py-1 rounded-md transition-colors flex items-center gap-1 min-w-[64px] justify-center ${playing ? "bg-track text-white" : "bg-panel text-muted hover:text-white"}`}
           >
-            {!hasAudio ? (
-              <>N/A</>
-            ) : playing ? (
-              <>
-                <Square size={11} strokeWidth={2.4} aria-hidden="true" /> Stop
-              </>
-            ) : (
-              <>
-                <Play size={11} strokeWidth={2.4} aria-hidden="true" /> Play
-              </>
+            {playing && (
+              <span
+                aria-hidden="true"
+                className="absolute inset-y-0 left-0 bg-f1red transition-[width] duration-150 ease-linear"
+                style={{ width: `${progress * 100}%` }}
+              />
             )}
+            <span className="relative flex items-center gap-1">
+              {!hasAudio ? (
+                <>N/A</>
+              ) : playing ? (
+                <>
+                  <Square size={11} strokeWidth={2.4} aria-hidden="true" />{" "}
+                  Stop
+                </>
+              ) : (
+                <>
+                  <Play size={11} strokeWidth={2.4} aria-hidden="true" /> Play
+                </>
+              )}
+            </span>
           </button>
           {playing && recordingUrl && (
             <audio
               key={recordingUrl}
+              ref={audioRef}
               src={recordingUrl}
               autoPlay
+              onTimeUpdate={onTimeUpdate}
               onEnded={() => setPlaying(false)}
               className="hidden"
             />
           )}
         </div>
       </div>
-      <DismissBtn id={at.event.id} onDismiss={onDismiss} />
+      <DismissBtn
+        id={at.event.id}
+        onDismiss={onDismiss}
+        disabled={playing}
+      />
     </div>
   );
 }

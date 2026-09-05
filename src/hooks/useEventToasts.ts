@@ -3,6 +3,7 @@ import type { ToastEvent } from "@/timeline/events";
 
 const JUMP_THRESHOLD_MS = 5_000;
 const AUTO_DISMISS_MS = 8_000;
+const EMPTY_SET = new Set<string>();
 
 export interface ActiveToast {
   event: ToastEvent;
@@ -13,6 +14,7 @@ export function useEventToasts(
   events: ToastEvent[],
   t: number,
   maxVisible = 4,
+  pinnedIds: Set<string> = EMPTY_SET,
 ) {
   const prevTRef = useRef(t);
   const seenRef = useRef(new Set<string>());
@@ -27,7 +29,7 @@ export function useEventToasts(
 
     if (delta < 0 || delta > JUMP_THRESHOLD_MS) {
       seenRef.current.clear();
-      setToasts([]);
+      setToasts((prev) => prev.filter((at) => pinnedIds.has(at.event.id)));
       return;
     }
 
@@ -41,15 +43,20 @@ export function useEventToasts(
     }
 
     setToasts((prev) => {
-      const pruned = prev.filter((at) => now - at.addedAt < AUTO_DISMISS_MS);
+      const pruned = prev.filter(
+        (at) =>
+          pinnedIds.has(at.event.id) || now - at.addedAt < AUTO_DISMISS_MS,
+      );
       if (fresh.length === 0) return pruned;
       const incoming = fresh.map((ev) => ({ event: ev, addedAt: now }));
       return [...incoming, ...pruned].slice(0, maxVisible);
     });
-  }, [t, events, maxVisible]);
+  }, [t, events, maxVisible, pinnedIds]);
 
-  const dismiss = (id: string) =>
+  const dismiss = (id: string) => {
+    if (pinnedIds.has(id)) return;
     setToasts((prev) => prev.filter((at) => at.event.id !== id));
+  };
 
   return { toasts, dismiss };
 }

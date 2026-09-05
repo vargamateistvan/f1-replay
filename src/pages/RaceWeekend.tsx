@@ -1251,10 +1251,14 @@ export default function RaceWeekend() {
     settingToastFastestLap,
   ]);
 
+  const [playingToastIds, setPlayingToastIds] = useState<Set<string>>(
+    () => new Set(),
+  );
   const { toasts, dismiss } = useEventToasts(
     filteredToastEvents,
     t,
     notificationMaxVisible,
+    playingToastIds,
   );
   const { summary: catchupSummary, dismiss: dismissCatchup } =
     useCatchupSummary(filteredToastEvents, t);
@@ -1899,6 +1903,7 @@ export default function RaceWeekend() {
                 soundsEnabled={toastSoundsEnabled}
                 maxVisible={notificationMaxVisible}
                 layout="overlay"
+                onPlayingIdsChange={setPlayingToastIds}
               />
             )}
 
@@ -2016,6 +2021,7 @@ export default function RaceWeekend() {
                         soundsEnabled={toastSoundsEnabled}
                         maxVisible={notificationMaxVisible}
                         layout="overlay"
+                        onPlayingIdsChange={setPlayingToastIds}
                       />
                       {drivers.isError ? (
                         <ErrorMessage message="Failed to load driver data" />
