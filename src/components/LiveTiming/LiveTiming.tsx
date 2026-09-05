@@ -53,6 +53,9 @@ interface Props {
   readonly carData?: ReadonlyMap<number, CarData>;
   readonly showMinisectors?: boolean;
   readonly compactDriverColumn?: boolean;
+  /** Render RPM/gear/throttle/brake/DRS as one combined column instead of
+   *  separate speed/gear/RPM/throttle-brake/DRS columns. */
+  readonly combinedTelemetryColumn?: boolean;
   readonly wideSectors?: boolean;
   readonly dense?: boolean;
   readonly showDenseMobileTelemetry?: boolean;
@@ -383,6 +386,7 @@ export function LiveTiming({
   carData,
   showMinisectors = true,
   compactDriverColumn = false,
+  combinedTelemetryColumn = false,
   wideSectors = false,
   dense = false,
   showDenseMobileTelemetry = false,
@@ -1514,7 +1518,17 @@ export function LiveTiming({
                   Lap
                 </th>
               )}
-              {showTelemetry && (
+              {showTelemetry && combinedTelemetryColumn && (
+                <th
+                  className={`${headerCellClass} text-left w-[8rem]`}
+                >
+                  <span className="block leading-none">Telemetry</span>
+                  <span className="block text-[8px] normal-case tracking-normal text-muted leading-none mt-0.5">
+                    RPM · Gear · Thr/Brk{showDrs ? " · DRS" : ""}
+                  </span>
+                </th>
+              )}
+              {showTelemetry && !combinedTelemetryColumn && (
                 <>
                   {columns.speed && (
                     <th
@@ -2056,8 +2070,45 @@ export function LiveTiming({
                     </td>
                   )}
 
-                  {/* Live car telemetry */}
-                  {showTelemetry && (
+                  {/* Live car telemetry — combined single column */}
+                  {showTelemetry && combinedTelemetryColumn && (
+                    <td
+                      className={`${rowCellPad} align-middle px-2`}
+                    >
+                      {car ? (
+                        <span className="flex flex-col gap-0.5 font-mono tabular-nums leading-tight">
+                          <span className="flex items-center gap-1.5 text-[10px]">
+                            <span className="w-6 text-center font-bold text-white/90">
+                              {car.n_gear === 0 ? "N" : car.n_gear}
+                            </span>
+                            <span className="text-muted">
+                              {Math.round(car.rpm)} rpm
+                            </span>
+                            {showDrs && (
+                              <span
+                                className={`ml-auto px-1 py-0.5 text-[8px] font-black uppercase tracking-[0.08em] ${
+                                  (car.drs ?? 0) >= 10
+                                    ? "bg-[#39d743] text-black"
+                                    : "bg-panel text-muted"
+                                }`}
+                                title={`DRS raw value ${car.drs ?? 0}`}
+                              >
+                                DRS
+                              </span>
+                            )}
+                          </span>
+                          <span className="flex flex-col gap-0.5 w-full">
+                            <MiniBar value={car.throttle} color="#39d743" />
+                            <MiniBar value={car.brake} color="#ff5252" />
+                          </span>
+                        </span>
+                      ) : (
+                        <span className="block text-center text-muted">—</span>
+                      )}
+                    </td>
+                  )}
+                  {/* Live car telemetry — separate columns */}
+                  {showTelemetry && !combinedTelemetryColumn && (
                     <>
                       {/* Speed */}
                       {columns.speed && (

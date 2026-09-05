@@ -39,6 +39,7 @@ vi.mock("@/stores/settings", () => ({
     leaderboardTelemetry: true,
     timingShowMinisectors: true,
     trackerTimingTelemetry: true,
+    trackerTimingCompactColumn: false,
     trackerTimingMobileCarData: true,
     trackerTimingShowPosition: true,
     trackerTimingShowDriver: true,

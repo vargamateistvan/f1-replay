@@ -895,6 +895,15 @@ export function SettingsBody() {
         />
       )}
       {!isMobileViewport && (
+        <SettingRow
+          label="Compact telemetry column"
+          description="Show RPM, gear, throttle, brake and DRS in a single tracker column"
+          checked={settings.trackerTimingCompactColumn}
+          onChange={toggle("trackerTimingCompactColumn")}
+          disabled={!settings.trackerTimingTelemetry}
+        />
+      )}
+      {!isMobileViewport && (
         <div className="py-2.5 border-b border-panel">
           <div className="text-[13px] text-white/90 leading-tight">
             Driver tracker columns

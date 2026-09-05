@@ -36,6 +36,7 @@ export interface AppSettings {
   timingShowMinisectors: boolean;
   // Driver Tracker
   trackerTimingTelemetry: boolean;
+  trackerTimingCompactColumn: boolean;
   trackerTimingMobileCarData: boolean;
   trackerTimingShowPosition: boolean;
   trackerTimingShowDriver: boolean;
@@ -131,6 +132,7 @@ export const SETTINGS_DEFAULTS: AppSettings = {
   leaderboardTelemetry: true,
   timingShowMinisectors: true,
   trackerTimingTelemetry: false,
+  trackerTimingCompactColumn: false,
   trackerTimingMobileCarData: false,
   trackerTimingShowPosition: true,
   trackerTimingShowDriver: true,

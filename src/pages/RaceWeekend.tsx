@@ -1094,6 +1094,7 @@ export default function RaceWeekend() {
     leaderboardTelemetry,
     timingShowMinisectors,
     trackerTimingTelemetry,
+    trackerTimingCompactColumn,
     trackerTimingMobileCarData,
     trackerTimingShowPosition,
     trackerTimingShowDriver,
@@ -1693,6 +1694,7 @@ export default function RaceWeekend() {
         drs: trackerTimingShowDrs,
       }}
       compactDriverColumn
+      combinedTelemetryColumn={trackerTimingCompactColumn}
       dense
       chequeredMs={chequeredMs}
     />
