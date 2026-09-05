@@ -1541,11 +1541,12 @@ export function LiveTiming({
               )}
               {showTelemetry && combinedTelemetryColumn && (
                 <th
-                  className={`${headerCellClass} text-left w-[8rem]`}
+                  className={`${headerCellClass} text-left w-[9rem]`}
                 >
                   <span className="block leading-none">Telemetry</span>
                   <span className="block text-[8px] normal-case tracking-normal text-muted leading-none mt-0.5">
-                    RPM · Gear · Thr/Brk{showDrs ? " · DRS" : ""}
+                    {speedUnitShort} · RPM · Gear · Thr/Brk
+                    {showDrs ? " · DRS" : ""}
                   </span>
                 </th>
               )}
@@ -2115,6 +2116,13 @@ export function LiveTiming({
                       {car ? (
                         <span className="flex flex-col gap-0.5 font-mono tabular-nums leading-tight">
                           <span className="flex items-center gap-1.5 text-[10px]">
+                            <span className="text-white/90">
+                              {speedDisplay}
+                              <span className="text-muted">
+                                {" "}
+                                {speedUnitCompact}
+                              </span>
+                            </span>
                             <span className="w-6 text-center font-bold text-white/90">
                               {car.n_gear === 0 ? "N" : car.n_gear}
                             </span>
