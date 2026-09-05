@@ -25,6 +25,7 @@ import {
 } from "@/api/circuitFactsLookup";
 import { replaceHistorySearchParams, toSafeExternalUrl } from "@/utils/url";
 import { trackEvent } from "@/lib/analytics";
+import { Settings as SettingsIcon, Maximize, Minimize } from "lucide-react";
 
 export type MainView = "leaderboard" | "tracker" | "commentary";
 
@@ -128,6 +129,26 @@ export function Nav() {
   >({});
   const [selectLatestSessionOnLoad, setSelectLatestSessionOnLoad] =
     useState(false);
+  const [isFullscreen, setIsFullscreen] = useState(
+    () => typeof document !== "undefined" && document.fullscreenElement != null,
+  );
+
+  useEffect(() => {
+    function onFullscreenChange() {
+      setIsFullscreen(document.fullscreenElement != null);
+    }
+    document.addEventListener("fullscreenchange", onFullscreenChange);
+    return () =>
+      document.removeEventListener("fullscreenchange", onFullscreenChange);
+  }, []);
+
+  const toggleFullscreen = useCallback(() => {
+    if (document.fullscreenElement) {
+      void document.exitFullscreen();
+    } else {
+      void document.documentElement.requestFullscreen();
+    }
+  }, []);
   const autoLatestBootstrappedRef = useRef(false);
 
   const [yearParam] = useNumberParam("year", DEFAULT_YEAR);
@@ -550,44 +571,27 @@ export function Nav() {
           aria-label="Settings"
           title="Settings"
         >
-          <svg
-            width="16"
-            height="16"
-            viewBox="0 0 16 16"
-            fill="none"
-            strokeLinecap="round"
-          >
-            {/* Top slider — high */}
-            <line
-              x1="2"
-              y1="4"
-              x2="14"
-              y2="4"
-              stroke="currentColor"
-              strokeWidth="1.5"
-            />
-            <circle cx="10" cy="4" r="2" fill="currentColor" />
-            {/* Middle slider — low */}
-            <line
-              x1="2"
-              y1="8"
-              x2="14"
-              y2="8"
-              stroke="currentColor"
-              strokeWidth="1.5"
-            />
-            <circle cx="5" cy="8" r="2" fill="currentColor" />
-            {/* Bottom slider — mid */}
-            <line
-              x1="2"
-              y1="12"
-              x2="14"
-              y2="12"
-              stroke="currentColor"
-              strokeWidth="1.5"
-            />
-            <circle cx="11" cy="12" r="2" fill="currentColor" />
-          </svg>
+          <SettingsIcon width={16} height={16} />
+        </button>
+
+        {/* Fullscreen toggle — desktop only */}
+        <button
+          onClick={() => {
+            trackEvent("nav_fullscreen_toggled", {
+              source: "desktop",
+              next: !isFullscreen,
+            });
+            toggleFullscreen();
+          }}
+          className="hidden md:flex w-8 h-10 items-center justify-center text-white/70 hover:text-white hover:opacity-80 transition-opacity ml-1"
+          aria-label={isFullscreen ? "Exit full screen" : "Enter full screen"}
+          title={isFullscreen ? "Exit full screen" : "Enter full screen"}
+        >
+          {isFullscreen ? (
+            <Minimize width={16} height={16} />
+          ) : (
+            <Maximize width={16} height={16} />
+          )}
         </button>
 
         {/* Help button — desktop only */}
