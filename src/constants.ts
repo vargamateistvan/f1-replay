@@ -33,6 +33,11 @@ export const LIVE_BUFFER_MS = 30 * 60 * 1000;
 // that change less often (weather/race control/team radio/overtakes).
 export const LIVE_POLL_FAST_MS = 20_000;
 export const LIVE_POLL_SLOW_MS = 60_000;
+// Minimum real-world gap between URL `history.replaceState()` calls from the
+// playhead sync. At high playback speeds `t` can cross a new whole second
+// many times per real second, so this is throttled by wall-clock time (not
+// playhead time) to stay well under the browser's ~100-calls/10s limit.
+export const URL_SYNC_THROTTLE_MS = 1_000;
 export const CURRENT_SEASON_STALE_MS = 6 * 60 * 60 * 1000;
 // OpenF1 MQTT-over-WebSocket endpoint for browser clients.
 export const OPENF1_MQTT_WSS_URL = "wss://mqtt.openf1.org:8084/mqtt";

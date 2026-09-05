@@ -1,7 +1,7 @@
 import { useEffect, useRef } from "react";
 import { useSearchParams } from "react-router-dom";
 import { useTimeline } from "@/timeline/clock";
-import { SPEEDS } from "@/constants";
+import { SPEEDS, URL_SYNC_THROTTLE_MS } from "@/constants";
 import { replaceHistorySearchParams } from "@/utils/url";
 
 // Keeps the playhead (`t`, in whole seconds) and `speed` in the URL so a Race
@@ -43,12 +43,35 @@ export function useTimelineUrlSync(sessionKey: number | null, ready: boolean) {
     }
   }, [ready, sessionKey]);
 
-  // Persist t + speed back to the URL, throttled, via a vanilla store subscription
-  // (no React re-render per frame).
+  // Persist t + speed back to the URL via a vanilla store subscription (no
+  // React re-render per frame). Writes are throttled by *wall-clock* time
+  // (not playhead time) because at high playback speeds `t` can cross a new
+  // whole second many times per real second — writing on every crossing can
+  // exceed the browser's ~100-calls/10s limit on history.replaceState() and
+  // trigger a GlobalError. A trailing write ensures the final value (e.g. on
+  // pause/seek) is never dropped.
   useEffect(() => {
     if (sessionKey === null) return;
     let lastT = -1;
     let lastSpeed = -1;
+    let lastWriteAt = 0;
+    let trailingTimer: ReturnType<typeof setTimeout> | null = null;
+
+    const write = (tSec: number, speed: number) => {
+      lastWriteAt = Date.now();
+      setParams(
+        (prev) => {
+          const p = new URLSearchParams(prev);
+          if (tSec > 0) p.set("t", String(tSec));
+          else p.delete("t");
+          if (speed !== 1) p.set("speed", String(speed));
+          else p.delete("speed");
+          replaceHistorySearchParams(p);
+          return p;
+        },
+        { replace: true },
+      );
+    };
 
     const unsub = useTimeline.subscribe((s) => {
       const tSec = Math.round(s.t / 1000);
@@ -56,19 +79,24 @@ export function useTimelineUrlSync(sessionKey: number | null, ready: boolean) {
       lastT = tSec;
       lastSpeed = s.speed;
 
-      setParams(
-        (prev) => {
-          const p = new URLSearchParams(prev);
-          if (tSec > 0) p.set("t", String(tSec));
-          else p.delete("t");
-          if (s.speed !== 1) p.set("speed", String(s.speed));
-          else p.delete("speed");
-          replaceHistorySearchParams(p);
-          return p;
-        },
-        { replace: true },
-      );
+      if (trailingTimer !== null) {
+        clearTimeout(trailingTimer);
+        trailingTimer = null;
+      }
+
+      const elapsed = Date.now() - lastWriteAt;
+      if (elapsed >= URL_SYNC_THROTTLE_MS) {
+        write(tSec, s.speed);
+      } else {
+        trailingTimer = setTimeout(() => {
+          trailingTimer = null;
+          write(lastT, lastSpeed);
+        }, URL_SYNC_THROTTLE_MS - elapsed);
+      }
     });
-    return unsub;
+    return () => {
+      if (trailingTimer !== null) clearTimeout(trailingTimer);
+      unsub();
+    };
   }, [sessionKey, setParams]);
 }
