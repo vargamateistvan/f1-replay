@@ -36,7 +36,7 @@ on:
       lookback_hours:
         description: "How many hours back to look for ended sessions"
         required: false
-        default: "6"
+        default: "12"
       proxy_base:
         description: "Optional proxy base override (e.g. https://<worker>.workers.dev/v1)"
         required: false
@@ -102,4 +102,4 @@ jobs:
           PROXY_BASE: ${{ env.PROXY_BASE }}
           WARM_SECRET: ${{ secrets.WARM_SECRET }}
           SESSION_KEY: ${{ inputs.session_key }}
-          LOOKBACK_HOURS: ${{ inputs.lookback_hours || '6' }}
+          LOOKBACK_HOURS: ${{ inputs.lookback_hours || '12' }}
