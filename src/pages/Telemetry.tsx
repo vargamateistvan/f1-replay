@@ -175,6 +175,14 @@ function interpolateTrackPoint(
   };
 }
 
+function minisectorPriority(code: number): number {
+  if (code >= 2064) return 4;
+  if (code === 2051) return 3;
+  if (code >= 2049) return 2;
+  if (code > 0) return 1;
+  return 0;
+}
+
 function formatLapTime(seconds: number | null): string {
   if (seconds === null || !Number.isFinite(seconds)) return "--:--.---";
   const minutes = Math.floor(seconds / 60);
@@ -895,6 +903,139 @@ export default function Telemetry() {
     [hoveredDistM, buildTrackMarkers],
   );
 
+  const miniSectorWinnerSegments = useMemo<Array<{ color: string; d: string }>>(() => {
+    if (!trackPreview || trackPreview.points.length < 2) return [];
+
+    const candidates = [
+      { driver: driverA, lapNo: selectedLapA, color: colorFor(driverA, 0) },
+      { driver: driverB, lapNo: selectedLapB, color: colorFor(driverB, 1) },
+      { driver: driverC, lapNo: selectedLapC, color: colorFor(driverC, 2) },
+    ].filter(
+      (entry): entry is { driver: number; lapNo: number; color: string } =>
+        entry.driver !== null && entry.lapNo !== null,
+    );
+
+    if (candidates.length === 0) return [];
+
+    const points = trackPreview.points;
+    const totalDist = trackPreview.totalDist;
+    if (totalDist <= 0) return [];
+
+    const getSegmentColor = (dist: number): string => {
+      const progress = Math.max(0, Math.min(0.999999, dist / totalDist));
+      const sectorIndex = Math.min(2, Math.floor(progress * 3));
+      const sectorStart = (sectorIndex / 3) * totalDist;
+      const sectorEnd = ((sectorIndex + 1) / 3) * totalDist;
+      const sectorSpan = Math.max(1e-6, sectorEnd - sectorStart);
+      const sectorFrac = Math.max(0, Math.min(0.999999, (dist - sectorStart) / sectorSpan));
+
+      let winner: { driver: number; color: string; priority: number } | null = null;
+
+      for (const entry of candidates) {
+        const lap = lapLookup.get(`${entry.driver}:${entry.lapNo}`);
+        if (!lap) continue;
+        const sectorValues =
+          sectorIndex === 0
+            ? lap.segments_sector_1
+            : sectorIndex === 1
+              ? lap.segments_sector_2
+              : lap.segments_sector_3;
+        if (!sectorValues || sectorValues.length === 0) continue;
+        const miniIdx = Math.min(
+          sectorValues.length - 1,
+          Math.floor(sectorFrac * sectorValues.length),
+        );
+        const code = sectorValues[miniIdx] ?? 0;
+        const priority = minisectorPriority(code);
+        if (priority === 0) continue;
+
+        if (winner === null || priority > winner.priority) {
+          winner = { driver: entry.driver, color: entry.color, priority };
+        } else if (priority === winner.priority) {
+          // Speed telemetry tiebreaker when available
+          let winEntry = false;
+          if (entry.driver === driverB && dataBResampled && dataA.data?.length) {
+            const idxA = Math.min(
+              dataA.data.length - 1,
+              Math.floor(progress * (dataA.data.length - 1)),
+            );
+            const idxB = Math.min(
+              dataBResampled.length - 1,
+              Math.floor(progress * (dataBResampled.length - 1)),
+            );
+            const speedA = dataA.data[idxA]?.speed ?? 0;
+            const speedB = dataBResampled[idxB]?.speed ?? 0;
+            if (speedB > speedA + 1.0) winEntry = true;
+          } else if (entry.driver === driverC && dataCResampled && dataA.data?.length) {
+            const idxA = Math.min(
+              dataA.data.length - 1,
+              Math.floor(progress * (dataA.data.length - 1)),
+            );
+            const idxC = Math.min(
+              dataCResampled.length - 1,
+              Math.floor(progress * (dataCResampled.length - 1)),
+            );
+            const speedA = dataA.data[idxA]?.speed ?? 0;
+            const speedC = dataCResampled[idxC]?.speed ?? 0;
+            if (speedC > speedA + 1.0) winEntry = true;
+          }
+          if (winEntry) {
+            winner = { driver: entry.driver, color: entry.color, priority };
+          }
+        }
+      }
+
+      return winner?.color ?? candidates[0]!.color;
+    };
+
+    const pathSegments: Array<{ color: string; d: string }> = [];
+    let currentPath: { color: string; pts: Array<{ sx: number; sy: number }> } | null = null;
+
+    for (let i = 0; i < points.length - 1; i++) {
+      const p0 = points[i]!;
+      const p1 = points[i + 1]!;
+      const midDist = (p0.dist + p1.dist) / 2;
+      const color = getSegmentColor(midDist);
+
+      if (!currentPath || currentPath.color !== color) {
+        if (currentPath) {
+          const d = currentPath.pts
+            .map((p, idx) => `${idx === 0 ? "M" : "L"}${p.sx.toFixed(1)},${p.sy.toFixed(1)}`)
+            .join(" ");
+          pathSegments.push({ color: currentPath.color, d });
+        }
+        currentPath = {
+          color,
+          pts: [p0, p1],
+        };
+      } else {
+        currentPath.pts.push(p1);
+      }
+    }
+
+    if (currentPath) {
+      const d = currentPath.pts
+        .map((p, idx) => `${idx === 0 ? "M" : "L"}${p.sx.toFixed(1)},${p.sy.toFixed(1)}`)
+        .join(" ");
+      pathSegments.push({ color: currentPath.color, d });
+    }
+
+    return pathSegments;
+  }, [
+    trackPreview,
+    driverA,
+    driverB,
+    driverC,
+    selectedLapA,
+    selectedLapB,
+    selectedLapC,
+    lapLookup,
+    colorFor,
+    dataA.data,
+    dataBResampled,
+    dataCResampled,
+  ]);
+
   const dialogTrackMarkers = useMemo(
     () => buildTrackMarkers(dialogHoveredDistM),
     [dialogHoveredDistM, buildTrackMarkers],
@@ -1314,21 +1455,36 @@ export default function Telemetry() {
                     <polyline
                       points={trackPreview.polyline}
                       fill="none"
-                      stroke="#3e4a64"
-                      strokeWidth={5.4}
+                      stroke={lightMode ? "#b0bdd2" : "#222a3a"}
+                      strokeWidth={5.6}
                       strokeLinecap="round"
                       strokeLinejoin="round"
-                      opacity={0.7}
+                      opacity={0.85}
                     />
-                    <polyline
-                      ref={trackRouteRef}
-                      points={trackPreview.polyline}
-                      fill="none"
-                      stroke="#d7deee"
-                      strokeWidth={2}
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    />
+                    {miniSectorWinnerSegments.length > 0 ? (
+                      miniSectorWinnerSegments.map((segment, idx) => (
+                        <path
+                          key={`mini-sector-${idx}`}
+                          d={segment.d}
+                          fill="none"
+                          stroke={segment.color}
+                          strokeWidth={3.6}
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          opacity={0.96}
+                        />
+                      ))
+                    ) : (
+                      <polyline
+                        ref={trackRouteRef}
+                        points={trackPreview.polyline}
+                        fill="none"
+                        stroke="#d7deee"
+                        strokeWidth={2.4}
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      />
+                    )}
                   </>
                 )}
                 {hoveredTrackPoints.length > 0 && (
@@ -1617,8 +1773,23 @@ export default function Telemetry() {
                     }}
                     onMouseLeave={() => { /* keep last position */ }}
                   >
-                    <polyline points={trackPreview.polyline} fill="none" stroke="#3e4a64" strokeWidth={5.4} strokeLinecap="round" strokeLinejoin="round" opacity={0.7} />
-                    <polyline ref={trackRouteDialogRef} points={trackPreview.polyline} fill="none" stroke="#d7deee" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" />
+                    <polyline points={trackPreview.polyline} fill="none" stroke={lightMode ? "#b0bdd2" : "#222a3a"} strokeWidth={6.0} strokeLinecap="round" strokeLinejoin="round" opacity={0.85} />
+                    {miniSectorWinnerSegments.length > 0 ? (
+                      miniSectorWinnerSegments.map((segment, idx) => (
+                        <path
+                          key={`mini-sector-dialog-${idx}`}
+                          d={segment.d}
+                          fill="none"
+                          stroke={segment.color}
+                          strokeWidth={3.8}
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          opacity={0.96}
+                        />
+                      ))
+                    ) : (
+                      <polyline ref={trackRouteDialogRef} points={trackPreview.polyline} fill="none" stroke="#d7deee" strokeWidth={2.4} strokeLinecap="round" strokeLinejoin="round" />
+                    )}
                     {trackPreview.finishLine && (
                       <line
                         x1={trackPreview.finishLine.x1}
