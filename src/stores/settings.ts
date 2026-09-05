@@ -132,7 +132,7 @@ export const SETTINGS_DEFAULTS: AppSettings = {
   leaderboardTelemetry: true,
   timingShowMinisectors: true,
   trackerTimingTelemetry: false,
-  trackerTimingCompactColumn: false,
+  trackerTimingCompactColumn: true,
   trackerTimingMobileCarData: false,
   trackerTimingShowPosition: true,
   trackerTimingShowDriver: true,
