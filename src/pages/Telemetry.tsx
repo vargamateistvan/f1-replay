@@ -777,21 +777,40 @@ export default function Telemetry() {
   );
 
   // Dialog-specific hover: driven by mouse position on the large SVG
-  const [dialogHoveredDistM, setDialogHoveredDistM] = useState<number>(0);
+  const [dialogHoveredDistM, setDialogHoveredDistM] = useState<number | null>(null);
 
-  // Returns the distM on the track outline closest to an SVG (x,y) point,
-  // accounting for the rotation transform applied to the track group.
+  // Returns the distM on the track outline closest to an SVG (x,y) point by projecting onto line segments
   const nearestTrackDistM = useCallback(
-    (_svgX: number, _svgY: number, _rotDeg: number, _svgW: number, _svgH: number, points: TrackPreviewPoint[]): number | null => {
+    (svgX: number, svgY: number, points: TrackPreviewPoint[]): number | null => {
       if (points.length === 0) return null;
-      let best = 0;
-      let bestDist2 = Infinity;
-      for (let i = 0; i < points.length; i++) {
-        const p = points[i]!;
-        const d2 = (p.sx - _svgX) ** 2 + (p.sy - _svgY) ** 2;
-        if (d2 < bestDist2) { bestDist2 = d2; best = i; }
+      if (points.length === 1) return points[0]!.dist;
+
+      let bestDistM = points[0]!.dist;
+      let bestDistSq = Infinity;
+
+      for (let i = 0; i < points.length - 1; i++) {
+        const p0 = points[i]!;
+        const p1 = points[i + 1]!;
+        const vx = p1.sx - p0.sx;
+        const vy = p1.sy - p0.sy;
+        const segLenSq = vx * vx + vy * vy;
+
+        let projT = 0;
+        if (segLenSq > 1e-6) {
+          projT = Math.max(0, Math.min(1, ((svgX - p0.sx) * vx + (svgY - p0.sy) * vy) / segLenSq));
+        }
+
+        const projX = p0.sx + projT * vx;
+        const projY = p0.sy + projT * vy;
+        const distSq = (svgX - projX) ** 2 + (svgY - projY) ** 2;
+
+        if (distSq < bestDistSq) {
+          bestDistSq = distSq;
+          bestDistM = p0.dist + projT * (p1.dist - p0.dist);
+        }
       }
-      return points[best]!.dist;
+
+      return bestDistM;
     },
     [],
   );
@@ -845,8 +864,8 @@ export default function Telemetry() {
 
   // Build markers for a given distM on Driver A's axis, returning full telemetry per driver
   const buildTrackMarkers = useCallback(
-    (distM: number): TrackMarker[] => {
-      if (!trackPreview || xDist.length < 2) return [];
+    (distM: number | null): TrackMarker[] => {
+      if (distM === null || !trackPreview || xDist.length < 2) return [];
       const timeSAtHover = dataA.data
         ? timeSForDistM(dataA.data, distM)
         : null;
@@ -1759,12 +1778,26 @@ export default function Telemetry() {
                     aria-label="Interactive lap track preview"
                     onMouseMove={(e) => {
                       const svg = e.currentTarget;
-                      const rect = svg.getBoundingClientRect();
-                      const scaleX = TRACK_SVG_W / rect.width;
-                      const scaleY = TRACK_SVG_H / rect.height;
-                      const svgX = (e.clientX - rect.left) * scaleX;
-                      const svgY = (e.clientY - rect.top) * scaleY;
-                      const trackDist = nearestTrackDistM(svgX, svgY, trackPreview.rotationDeg, TRACK_SVG_W, TRACK_SVG_H, trackPreview.points);
+                      let svgX: number;
+                      let svgY: number;
+
+                      const ctm = svg.getScreenCTM();
+                      if (ctm) {
+                        const pt = svg.createSVGPoint();
+                        pt.x = e.clientX;
+                        pt.y = e.clientY;
+                        const transformed = pt.matrixTransform(ctm.inverse());
+                        svgX = transformed.x;
+                        svgY = transformed.y;
+                      } else {
+                        const rect = svg.getBoundingClientRect();
+                        const scaleX = TRACK_SVG_W / rect.width;
+                        const scaleY = TRACK_SVG_H / rect.height;
+                        svgX = (e.clientX - rect.left) * scaleX;
+                        svgY = (e.clientY - rect.top) * scaleY;
+                      }
+
+                      const trackDist = nearestTrackDistM(svgX, svgY, trackPreview.points);
                       if (trackDist === null || !dataA.data?.length) return;
                       // Convert track outline dist back to Driver A's distM axis
                       const driverAMaxDist = dataA.data[dataA.data.length - 1]!.distM;
