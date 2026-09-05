@@ -8,7 +8,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useLatestMeeting, useMeetings, useSessions } from "@/hooks/useSession";
 import { isAuthError } from "@/api/client";
 import { isSessionLive } from "@/utils/live";
-import { YEARS, DEFAULT_YEAR } from "@/constants";
+import { LIVE_BUFFER_MS, YEARS, DEFAULT_YEAR } from "@/constants";
 import { useNumberParam, useStringParam } from "@/hooks/useSearchParamState";
 import { AppLogo } from "@/components/AppLogo";
 import { useTimeline } from "@/timeline/clock";
@@ -257,12 +257,15 @@ export function Nav() {
         (s) => new Date(s.date_start).getTime() <= nowMs,
       );
       const pool = startedSessions.length > 0 ? startedSessions : sessions.data;
-      const latestSession = pool
-        .slice()
-        .sort(
-          (a, b) =>
-            new Date(b.date_start).getTime() - new Date(a.date_start).getTime(),
-        )[0];
+      const liveSession = pool.find((s) => isSessionLive(s));
+      const latestSession =
+        liveSession ??
+        pool
+          .slice()
+          .sort(
+            (a, b) =>
+              new Date(b.date_start).getTime() - new Date(a.date_start).getTime(),
+          )[0];
       if (latestSession) {
         setSearchParams((prev) => {
           const next = new URLSearchParams(prev);
@@ -282,6 +285,14 @@ export function Nav() {
         (m) => !m.is_cancelled && new Date(m.date_start).getTime() <= nowMs,
       ),
     [meetings.data, nowMs],
+  );
+
+  const startedSessions = useMemo(
+    () =>
+      (sessions.data ?? []).filter(
+        (s) => new Date(s.date_start).getTime() <= nowMs,
+      ),
+    [sessions.data, nowMs],
   );
 
   const calendarYearMeetings = useMemo(
@@ -404,19 +415,52 @@ export function Nav() {
 
   const selectLatestEvent = useCallback(
     (source: "auto" | "manual" = "auto") => {
-      const latestFromAlias = latestMeeting
-        ? {
-            year: latestMeeting.year,
-            meeting_key: latestMeeting.meeting_key,
-          }
-        : null;
-      const latest = latestFromAlias ??
-        startedMeetings
-          ?.slice()
-          .sort(
-            (a, b) =>
-              new Date(b.date_start).getTime() - new Date(a.date_start).getTime(),
-          )[0];
+      const isOngoing = (m: { date_start: string; date_end: string }) =>
+        new Date(m.date_start).getTime() <= nowMs &&
+        nowMs <= new Date(m.date_end).getTime() + LIVE_BUFFER_MS;
+
+      const latestFromAlias =
+        latestMeeting &&
+        !latestMeeting.is_cancelled &&
+        isRaceWeekend(
+          latestMeeting.meeting_name,
+          latestMeeting.meeting_official_name,
+        ) &&
+        new Date(latestMeeting.date_start).getTime() <= nowMs
+          ? {
+              year: latestMeeting.year,
+              meeting_key: latestMeeting.meeting_key,
+              ongoing: isOngoing(latestMeeting),
+            }
+          : null;
+
+      const raceWeekends = (startedMeetings ?? []).filter((m) =>
+        isRaceWeekend(m.meeting_name, m.meeting_official_name),
+      );
+      const byRecency = (a: { date_start: string }, b: { date_start: string }) =>
+        new Date(b.date_start).getTime() - new Date(a.date_start).getTime();
+
+      // Prefer an ongoing race weekend (a session is currently live), then
+      // fall back to the most recently started race weekend, then any
+      // ongoing meeting, then any started meeting.
+      const ongoingRaceWeekend = raceWeekends
+        .filter(isOngoing)
+        .sort(byRecency)[0];
+      const latestRaceWeekend = raceWeekends.slice().sort(byRecency)[0];
+      const ongoingMeeting = (startedMeetings ?? [])
+        .filter(isOngoing)
+        .sort(byRecency)[0];
+      const latestMeetingFallback = (startedMeetings ?? [])
+        .slice()
+        .sort(byRecency)[0];
+
+      const latest =
+        (latestFromAlias?.ongoing ? latestFromAlias : null) ??
+        ongoingRaceWeekend ??
+        latestFromAlias ??
+        latestRaceWeekend ??
+        ongoingMeeting ??
+        latestMeetingFallback;
       if (!latest) return;
 
       if (source === "manual") {
@@ -438,7 +482,7 @@ export function Nav() {
       });
       setSelectLatestSessionOnLoad(true);
     },
-    [latestMeeting, startedMeetings, setSearchParams],
+    [latestMeeting, startedMeetings, nowMs, setSearchParams],
   );
 
   // First app load behavior: mimic pressing "Latest" automatically when
@@ -947,7 +991,7 @@ export function Nav() {
                 className={`${SELECT} min-w-0 flex-[1_1_108px] sm:flex-none`}
               >
                 <option value="">— session —</option>
-                {sessions.data?.map((s) => (
+                {startedSessions.map((s) => (
                   <option key={s.session_key} value={s.session_key}>
                     {s.session_name}
                   </option>
