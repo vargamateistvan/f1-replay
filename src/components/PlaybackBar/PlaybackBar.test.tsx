@@ -144,6 +144,32 @@ describe("PlaybackBar marker interactions", () => {
     expect(timelineState.setT).toHaveBeenCalledWith(83_000);
   });
 
+  it("prefetches the clamped destination before a seek", () => {
+    const onSeek = vi.fn();
+    render(<PlaybackBar durationMs={60_000} onSeek={onSeek} />);
+
+    fireEvent.click(screen.getByRole("button", { name: "Jump to end" }));
+
+    expect(onSeek).toHaveBeenCalledWith(60_000);
+    expect(onSeek.mock.invocationCallOrder[0]).toBeLessThan(
+      timelineState.setT.mock.invocationCallOrder[0]!,
+    );
+  });
+
+  it("prefetches scrubber destinations using the same seek path", () => {
+    const onSeek = vi.fn();
+    const { getByRole } = render(
+      <PlaybackBar durationMs={120_000} onSeek={onSeek} />,
+    );
+
+    fireEvent.change(getByRole("slider", { name: "Seek" }), {
+      target: { value: "45000" },
+    });
+
+    expect(onSeek).toHaveBeenCalledWith(45_000);
+    expect(timelineState.setT).toHaveBeenCalledWith(45_000);
+  });
+
   it("supports typing HH:MM:SS time", () => {
     render(<PlaybackBar durationMs={4_000_000} />);
 

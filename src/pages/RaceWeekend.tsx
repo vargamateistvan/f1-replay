@@ -1,4 +1,13 @@
-import { lazy, Suspense, useEffect, useMemo, useRef, useState } from "react";
+import {
+  lazy,
+  Suspense,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { PlaybackBar } from "@/components/PlaybackBar";
 import type {
   ActiveTrackFlagState,
@@ -34,10 +43,14 @@ import { useMediaQuery } from "@/hooks/useMediaQuery";
 import { useOpenF1LiveMqtt } from "@/hooks/useOpenF1LiveMqtt";
 import {
   chunkIndexFor,
+  locationChunkQueryOptions,
   useLocationChunks,
   locationChunkIndexFor,
 } from "@/hooks/useLocationChunks";
-import { useAllCarDataWindow } from "@/hooks/useAllCarDataWindow";
+import {
+  allCarDataWindowQueryOptions,
+  useAllCarDataWindow,
+} from "@/hooks/useAllCarDataWindow";
 import { useNumberParam, useStringParam } from "@/hooks/useSearchParamState";
 import { useTimelineUrlSync } from "@/hooks/useTimelineUrlSync";
 import { useKeyboardShortcuts } from "@/hooks/useKeyboardShortcuts";
@@ -706,6 +719,7 @@ export default function RaceWeekend() {
   const isLoadingEventSession =
     meetingKey !== null &&
     (sessions.isPending || isLoadingSessionData);
+  const queryClient = useQueryClient();
 
   const locationChunkIdx = locationChunkIndexFor(t);
   const telemetryChunkIdx = chunkIndexFor(t);
@@ -853,6 +867,7 @@ export default function RaceWeekend() {
     const chosen = currentReplayIncident;
     if (!chosen || chosen.endMs === null) return;
     setIncidentReplayHint("Replaying current incident");
+    prefetchPlaybackWindows(chosen.startMs);
     setTimelineT(chosen.startMs);
     setIncidentReplayEndMs(chosen.endMs);
     setTimelinePlaying(true);
@@ -864,6 +879,7 @@ export default function RaceWeekend() {
     if (!nextReplayIncident && firstReplayIncident) {
       setIncidentReplayHint("Wrapped to first incident");
     }
+    prefetchPlaybackWindows(chosen.startMs);
     setTimelineT(chosen.startMs);
     setIncidentReplayEndMs(chosen.endMs);
     setTimelinePlaying(true);
@@ -1232,6 +1248,47 @@ export default function RaceWeekend() {
       includePreviousChunk: false,
       includeNextChunk: false,
     },
+  );
+
+  // PlaybackBar seeks can skip directly to distant laps or incidents. Start the
+  // exact session-aligned requests the destination view will subscribe to, so
+  // warmed proxy entries are reused rather than requesting arbitrary ranges.
+  const prefetchPlaybackWindows = useCallback(
+    (targetMs: number) => {
+      if (sessionKey === null || sessionStartMs <= 0) return;
+
+      if (isMapVisible) {
+        const locationIdx = locationChunkIndexFor(targetMs);
+        const locationChunks = [
+          ...(locationIdx > 0 ? [locationIdx - 1] : []),
+          locationIdx,
+          ...(!isCompactViewport ? [locationIdx + 1] : []),
+        ];
+        for (const idx of locationChunks) {
+          void queryClient.prefetchQuery(
+            locationChunkQueryOptions(sessionKey, sessionStartMs, idx),
+          );
+        }
+      }
+
+      if (telemetryEnabled) {
+        void queryClient.prefetchQuery(
+          allCarDataWindowQueryOptions(
+            sessionKey,
+            sessionStartMs,
+            chunkIndexFor(targetMs),
+          ),
+        );
+      }
+    },
+    [
+      isCompactViewport,
+      isMapVisible,
+      queryClient,
+      sessionKey,
+      sessionStartMs,
+      telemetryEnabled,
+    ],
   );
 
   // Group samples per driver, sorted by session-relative ms. Rebuilds only when
@@ -2182,6 +2239,7 @@ export default function RaceWeekend() {
                         qualiPhase={qualiPhase}
                         q2StartMs={qualiPhaseStartTimes.q2StartMs}
                         q3StartMs={qualiPhaseStartTimes.q3StartMs}
+                        onSeek={prefetchPlaybackWindows}
                         mobileInline
                         showSpeedControls={showPlaybackSpeedControls}
                         showEventChips={showPlaybackEventChips}
@@ -2639,6 +2697,7 @@ export default function RaceWeekend() {
           qualiPhase={qualiPhase}
           q2StartMs={qualiPhaseStartTimes.q2StartMs}
           q3StartMs={qualiPhaseStartTimes.q3StartMs}
+          onSeek={prefetchPlaybackWindows}
           showSpeedControls={showPlaybackSpeedControls}
           showEventChips={showPlaybackEventChips}
         />

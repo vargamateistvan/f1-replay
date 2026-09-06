@@ -44,6 +44,8 @@ interface Props {
   /** Session-relative start times for qualifying phase jumps. */
   q2StartMs?: number | null;
   q3StartMs?: number | null;
+  /** Starts loading the target's session-aligned replay windows before seeking. */
+  onSeek?: (targetMs: number) => void;
   mobileInline?: boolean;
   showSpeedControls?: boolean;
   showEventChips?: boolean;
@@ -167,6 +169,7 @@ export function PlaybackBar({
   qualiPhase = null,
   q2StartMs = null,
   q3StartMs = null,
+  onSeek,
   mobileInline = false,
   showSpeedControls = true,
   showEventChips = true,
@@ -233,9 +236,13 @@ export function PlaybackBar({
 
   const jump = useCallback(
     (target: number | null) => {
-      if (target !== null) setT(clamp(target));
+      if (target !== null) {
+        const targetMs = clamp(target);
+        onSeek?.(targetMs);
+        setT(targetMs);
+      }
     },
-    [clamp, setT],
+    [clamp, onSeek, setT],
   );
 
   const commitTimeInput = useCallback(() => {
@@ -250,9 +257,10 @@ export function PlaybackBar({
       target_ms: Math.round(targetMs),
       raw_input: timeInput,
     });
+    onSeek?.(targetMs);
     setT(targetMs);
     setTimeInput(fmtTime(targetMs));
-  }, [clamp, setT, t, timeInput]);
+  }, [clamp, onSeek, setT, t, timeInput]);
 
   const trackJump = useCallback(
     (action: string, target: number | null) => {
@@ -420,7 +428,7 @@ export function PlaybackBar({
             min={0}
             max={durationMs}
             value={Math.max(0, Math.min(t, durationMs))}
-            onChange={(e) => setT(Number(e.target.value))}
+            onChange={(e) => jump(Number(e.target.value))}
             className="w-full h-1 cursor-pointer"
             style={{ touchAction: "none" }}
             aria-label="Seek"

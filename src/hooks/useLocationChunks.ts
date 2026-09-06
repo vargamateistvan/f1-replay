@@ -23,6 +23,19 @@ function fetchChunk(sessionKey: number, sessionStartMs: number, idx: number) {
   return api.locationWindow(sessionKey, start, end);
 }
 
+export function locationChunkQueryOptions(
+  sessionKey: number,
+  sessionStartMs: number,
+  idx: number,
+) {
+  return {
+    queryKey: chunkKey(sessionKey, idx),
+    queryFn: () => fetchChunk(sessionKey, sessionStartMs, idx),
+    staleTime: Infinity,
+    gcTime: Infinity,
+  };
+}
+
 export function mergeLocationChunkData(
   previous: Location[] | undefined,
   current: Location[] | undefined,
@@ -89,27 +102,22 @@ export function useLocationChunks(
   const keepRadius = Math.max(EVICT_RADIUS, furthestPrefetchOffset);
 
   const current = useQuery<Location[]>({
-    queryKey: chunkKey(sessionKey!, chunkIdx),
-    queryFn: () => fetchChunk(sessionKey!, sessionStartMs!, chunkIdx),
+    ...locationChunkQueryOptions(sessionKey!, sessionStartMs!, chunkIdx),
     enabled,
-    staleTime: Infinity,
-    gcTime: Infinity,
   });
 
   const previous = useQuery<Location[]>({
-    queryKey: chunkKey(sessionKey!, Math.max(0, chunkIdx - 1)),
-    queryFn: () => fetchChunk(sessionKey!, sessionStartMs!, chunkIdx - 1),
+    ...locationChunkQueryOptions(
+      sessionKey!,
+      sessionStartMs!,
+      Math.max(0, chunkIdx - 1),
+    ),
     enabled: enabled && chunkIdx > 0,
-    staleTime: Infinity,
-    gcTime: Infinity,
   });
 
   const next = useQuery<Location[]>({
-    queryKey: chunkKey(sessionKey!, chunkIdx + 1),
-    queryFn: () => fetchChunk(sessionKey!, sessionStartMs!, chunkIdx + 1),
+    ...locationChunkQueryOptions(sessionKey!, sessionStartMs!, chunkIdx + 1),
     enabled: enabled && includeNextChunk,
-    staleTime: Infinity,
-    gcTime: Infinity,
   });
 
   // Prefetch farther ahead at high playback speeds so fast-forward does not outrun
@@ -120,10 +128,11 @@ export function useLocationChunks(
     // parallel request fan-out on play.
     const targetOffset = prefetchOffsets[prefetchOffsets.length - 1]!;
     qc.prefetchQuery({
-      queryKey: chunkKey(sessionKey!, chunkIdx + targetOffset),
-      queryFn: () =>
-        fetchChunk(sessionKey!, sessionStartMs!, chunkIdx + targetOffset),
-      staleTime: Infinity,
+      ...locationChunkQueryOptions(
+        sessionKey!,
+        sessionStartMs!,
+        chunkIdx + targetOffset,
+      ),
     });
   }, [
     qc,
@@ -143,14 +152,11 @@ export function useLocationChunks(
   useEffect(() => {
     if (!enabled || !nearBoundary || !prefetchChunks) return;
     qc.prefetchQuery({
-      queryKey: chunkKey(sessionKey!, chunkIdx + furthestPrefetchOffset),
-      queryFn: () =>
-        fetchChunk(
-          sessionKey!,
-          sessionStartMs!,
-          chunkIdx + furthestPrefetchOffset,
-        ),
-      staleTime: Infinity,
+      ...locationChunkQueryOptions(
+        sessionKey!,
+        sessionStartMs!,
+        chunkIdx + furthestPrefetchOffset,
+      ),
     });
   }, [
     qc,
