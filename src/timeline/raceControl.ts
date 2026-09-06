@@ -58,6 +58,11 @@ const FLAG_TITLE: Record<string, string> = {
 };
 
 const LOW_PRIORITY_FLAGS = new Set(["GREEN", "CLEAR", "BLUE", "CHEQUERED"]);
+const SAFETY_CONTROL_FLAGS = new Set([
+  "SAFETY_CAR",
+  "VIRTUAL_SC",
+  "VIRTUAL_SAFETY_CAR",
+]);
 
 export function toFlagKey(flag: string | null): string {
   return (flag ?? "").trim().toUpperCase().replace(/\s+/g, "_");
@@ -88,6 +93,13 @@ const TRACK_FLAG_STATE_EMPTY: TrackFlagState = {
 function toTimingSectorNumber(sector: number | null): 1 | 2 | 3 | null {
   if (sector === 1 || sector === 2 || sector === 3) return sector;
   return null;
+}
+
+function shouldPreserveRedFlag(
+  currentFlag: string | null,
+  nextFlag: string,
+): boolean {
+  return currentFlag === "RED" && SAFETY_CONTROL_FLAGS.has(nextFlag);
 }
 
 function resolveFlagKeyFromRaceControlEntry(entry: RaceControl): string | null {
@@ -215,6 +227,7 @@ export function deriveTrackFlagState(
       if (timingSector !== null)
         state.sectorFlags[timingSector] = resolvedFlagKey;
     } else {
+      if (shouldPreserveRedFlag(state.globalFlag, resolvedFlagKey)) continue;
       state.globalFlag = resolvedFlagKey;
     }
   }
@@ -291,6 +304,7 @@ export function deriveMarshalSectorFlagState(
       if (entry.sector !== null)
         state.sectorFlags[entry.sector] = resolvedFlagKey;
     } else {
+      if (shouldPreserveRedFlag(state.globalFlag, resolvedFlagKey)) continue;
       state.globalFlag = resolvedFlagKey;
     }
   }

@@ -196,6 +196,19 @@ describe("deriveTrackFlagState", () => {
     expect(state).toBeNull();
   });
 
+  it("keeps red flag active when a later safety-car event is received", () => {
+    const state = deriveTrackFlagState(
+      [
+        rc({ date: iso(8), flag: "RED", scope: "Track" }),
+        rc({ date: iso(12), flag: "SAFETY_CAR", scope: "Track" }),
+      ],
+      START,
+      START + 30_000,
+    );
+
+    expect(state?.globalFlag).toBe("RED");
+  });
+
   it("clears stale safety-car state on end-of-safety-car message without a flag value", () => {
     const state = deriveTrackFlagState(
       [

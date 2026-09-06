@@ -95,4 +95,32 @@ describe("FlagBanner", () => {
     );
     expect(screen.queryByText("⚑ YELLOW FLAG")).not.toBeInTheDocument();
   });
+
+  it("keeps the red flag banner above a later safety-car event", () => {
+    const sessionStartMs = Date.parse("2024-01-01T00:00:00.000Z");
+    const entries = [
+      {
+        date: "2024-01-01T00:01:00.000Z",
+        flag: "RED",
+        lap_number: 2,
+        message: "Red flag",
+      },
+      {
+        date: "2024-01-01T00:02:00.000Z",
+        flag: "SAFETY_CAR",
+        lap_number: 3,
+        message: "Safety car",
+      },
+    ] as RaceControl[];
+
+    render(
+      <FlagBanner
+        entries={entries}
+        sessionTimeMs={180_000}
+        sessionStartMs={sessionStartMs}
+      />,
+    );
+
+    expect(screen.getByText("⚑ RED FLAG")).toBeInTheDocument();
+  });
 });

@@ -44,6 +44,14 @@ function deriveStatus(entries: RaceControl[], currentT: number): TrackStatus {
   for (const e of entries) {
     if (e.flag === null) continue;
     if (new Date(e.date).getTime() > currentT) break;
+    if (
+      last?.flag === "RED" &&
+      (e.flag === "SAFETY_CAR" ||
+        e.flag === "VIRTUAL_SC" ||
+        e.flag === "VIRTUAL_SAFETY_CAR")
+    ) {
+      continue;
+    }
     last = e;
   }
   const flag = last?.flag ?? "GREEN";
