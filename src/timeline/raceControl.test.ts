@@ -110,7 +110,7 @@ describe("buildIncidentWindows safety control phases", () => {
 });
 
 describe("clusterRaceControlMarkers", () => {
-  it("keeps representative timestamp so marker jump matches shown event", () => {
+  it("jumps to the earliest event in the cluster even when a later event is more severe", () => {
     const clustered = clusterRaceControlMarkers(
       [
         { id: "a", ms: 10_000, severity: "warning", label: "Yellow Flag" },
@@ -127,7 +127,10 @@ describe("clusterRaceControlMarkers", () => {
     expect(clustered).toEqual([
       {
         id: "b",
-        ms: 15_000,
+        // Jump target must be the earliest event's ms (10_000), not the
+        // higher-severity representative's ms (15_000) — otherwise clicking
+        // the marker would skip past the actual start of the incident.
+        ms: 10_000,
         severity: "critical",
         label: "Safety Car (+1 more)",
       },

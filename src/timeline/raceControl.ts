@@ -451,8 +451,11 @@ export function buildRaceControlMarkers(
 
 /**
  * Collapse markers that are closer than `windowMs` (default 20 s) into a
- * single representative marker. The representative keeps the highest severity
- * of the group and its ms is the earliest in the cluster.
+ * single representative marker. The label/severity shown come from the
+ * highest-severity event in the group, but the jump target (`ms`) is always
+ * the earliest event in the cluster so clicking the marker lands at the
+ * actual start of the incident rather than skipping ahead to a later,
+ * more-severe follow-up message.
  *
  * This prevents the scrubber from turning into a solid bar of markers during
  * heavy incident windows (e.g. VSC → yellow → investigation in quick succession).
@@ -484,15 +487,21 @@ export function clusterRaceControlMarkers(
     }
 
     const group = sorted.slice(groupStart, groupEnd);
-    // Pick the item with the highest severity; break ties by earliest ms.
+    // Pick the item with the highest severity for the label; break ties by
+    // earliest ms.
     const rep = group.reduce((best, cur) =>
       SEV_RANK[cur.severity] > SEV_RANK[best.severity] ? cur : best,
     );
+    // The jump target must always be the earliest event in the cluster
+    // (`group` is sorted by ms, so that's `group[0]`) — otherwise clicking the
+    // marker skips past the start of the incident to whichever later event
+    // happened to be classified as most severe (e.g. a follow-up
+    // investigation message a few seconds after the initial flag).
+    const earliestMs = group[0]!.ms;
 
     clusters.push({
       id: rep.id,
-      // Keep jump target aligned with the displayed representative label.
-      ms: rep.ms,
+      ms: earliestMs,
       severity: rep.severity,
       label:
         group.length > 1
