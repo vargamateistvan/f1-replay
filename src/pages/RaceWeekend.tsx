@@ -1266,6 +1266,45 @@ export default function RaceWeekend() {
 
   const effectiveDuration = durationMs || DEFAULT_SESSION_MS;
 
+  // Latest session-relative timestamp across all telemetry/timing feeds —
+  // used so non-race sessions (qualifying, practice) play back for as long
+  // as there is actual data, instead of stopping at the nominal scheduled
+  // session duration.
+  const latestDataMs = useMemo(() => {
+    if (!sessionStartMs) return null;
+    let latest: number | null = null;
+    const consider = (dateStr: string | null | undefined) => {
+      if (!dateStr) return;
+      const ms = new Date(dateStr).getTime() - sessionStartMs;
+      if (Number.isFinite(ms)) latest = latest === null ? ms : Math.max(latest, ms);
+    };
+    for (const { row: lap, relMs: lapStartMs } of timedLaps) {
+      if (lap.date_start && lap.lap_duration && lap.lap_duration > 0) {
+        latest = Math.max(latest ?? 0, lapStartMs + lap.lap_duration * 1000);
+      } else {
+        latest = latest === null ? lapStartMs : Math.max(latest, lapStartMs);
+      }
+    }
+    for (const entry of positions.data ?? []) consider(entry.date);
+    for (const entry of intervals.data ?? []) consider(entry.date);
+    for (const entry of weather.data ?? []) consider(entry.date);
+    for (const entry of teamRadio.data ?? []) consider(entry.date);
+    for (const entry of raceControl.data ?? []) consider(entry.date);
+    for (const entry of overtakes.data ?? []) consider(entry.date);
+    for (const entry of pits.data ?? []) consider(entry.date);
+    return latest;
+  }, [
+    sessionStartMs,
+    timedLaps,
+    positions.data,
+    intervals.data,
+    weather.data,
+    teamRadio.data,
+    raceControl.data,
+    overtakes.data,
+    pits.data,
+  ]);
+
   // Calculate extended duration to include post-race laps and radios (outlap + post-race comms)
   const postRaceDurationMs = useMemo(() => {
     if (!isRaceSession || chequeredMs === null || !sessionStartMs) return null;
@@ -1301,14 +1340,24 @@ export default function RaceWeekend() {
       ? postRaceDurationMs
       : isRaceSession && chequeredMs !== null
         ? chequeredMs
-        : effectiveDuration;
-  const finalClassificationTriggerMs: number | null =
-    chequeredMs ?? (durationMs > 0 ? durationMs : null);
+        : !isRaceSession && latestDataMs !== null
+          ? Math.max(latestDataMs, effectiveDuration)
+          : effectiveDuration;
+  // The "show results" button becomes available as soon as the chequered
+  // flag falls (races) — no need to wait for post-race outlaps/radio. Non-race
+  // sessions have no chequered flag, so they use the same "all data played
+  // back" trigger as before.
+  const resultsAvailableMs: number | null =
+    chequeredMs ??
+    (!isRaceSession ? latestDataMs : null) ??
+    (durationMs > 0 ? durationMs : null);
+  const canShowResultsButton =
+    resultsAvailableMs !== null && t >= resultsAvailableMs;
+  // The dialog itself only auto-opens once the session has actually ended
+  // (including any post-race outlaps/radio for races, or all available data
+  // for non-race sessions) — see playbackDurationMs above.
   const showFinalClassification =
-    finalClassificationTriggerMs === null
-      ? false
-      : t >= finalClassificationTriggerMs &&
-        (sessionResult.data?.length ?? 0) > 0;
+    t >= playbackDurationMs && (sessionResult.data?.length ?? 0) > 0;
   const totalLapCount = useMemo(() => {
     if (!isRaceSession) return null;
 
@@ -1827,7 +1876,7 @@ export default function RaceWeekend() {
                 : undefined
             }
             onShowResults={
-              showFinalClassification && !sessionResult.isError
+              canShowResultsButton && !sessionResult.isError
                 ? openResultsDialog
                 : undefined
             }
@@ -1885,7 +1934,7 @@ export default function RaceWeekend() {
                 : undefined
             }
             onShowResults={
-              showFinalClassification && !sessionResult.isError
+              canShowResultsButton && !sessionResult.isError
                 ? openResultsDialog
                 : undefined
             }
@@ -2321,7 +2370,7 @@ export default function RaceWeekend() {
                 : undefined
             }
             onShowResults={
-              showFinalClassification && !sessionResult.isError
+              canShowResultsButton && !sessionResult.isError
                 ? openResultsDialog
                 : undefined
             }
@@ -2463,7 +2512,7 @@ export default function RaceWeekend() {
         />
       )}
 
-      {showFinalClassification && sessionResult.isError && (
+      {canShowResultsButton && sessionResult.isError && (
         <div className="shrink-0 border-t border-panel">
           <ErrorMessage message="Failed to load final classification" compact />
         </div>
@@ -2486,7 +2535,7 @@ export default function RaceWeekend() {
           />
         )}
 
-      {showFinalClassification &&
+      {canShowResultsButton &&
         !sessionResult.isError &&
         isResultsDialogOpen && (
           <FinalClassificationDialog

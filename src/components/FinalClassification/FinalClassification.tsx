@@ -2,6 +2,8 @@ import { useEffect, useMemo, useRef, type MouseEvent } from "react";
 import { createPortal } from "react-dom";
 import type { Driver, SessionResult } from "@/api/types";
 import { teamColor } from "@/utils/color";
+import { isQualiSession } from "@/utils/session";
+import { Q3_GRID_SIZE } from "@/constants";
 import { DriverHeadshot } from "@/components/DriverHeadshot";
 
 interface Props {
@@ -20,6 +22,7 @@ interface DecoratedResult {
   color: string;
   status: string;
   detail: string;
+  isEliminated: boolean;
 }
 
 function normalizeValue(
@@ -193,6 +196,7 @@ function FinalClassificationContent({
   );
 
   const decorated = useMemo<DecoratedResult[]>(() => {
+    const outOfQuali = isQualiSession(sessionName ?? "");
     return sortResults(results).map((result) => {
       const driver = driverByNumber.get(result.driver_number);
       return {
@@ -201,9 +205,12 @@ function FinalClassificationContent({
         color: teamColor(driver?.team_colour),
         status: resultStatus(result),
         detail: resultDetail(result),
+        isEliminated:
+          outOfQuali &&
+          (result.position === null || result.position > Q3_GRID_SIZE),
       };
     });
-  }, [results, driverByNumber]);
+  }, [results, driverByNumber, sessionName]);
 
   const podium = decorated.filter(
     (entry) => entry.result.position && entry.result.position <= 3,
@@ -298,7 +305,9 @@ function FinalClassificationContent({
             {decorated.map((entry) => (
               <tr
                 key={entry.result.driver_number}
-                className="border-b border-panel text-xs text-white/90"
+                className={`border-b border-panel text-xs ${
+                  entry.isEliminated ? "text-muted/70 opacity-60" : "text-white/90"
+                }`}
               >
                 <td className="px-4 py-2.5 font-black tabular-nums sm:px-5">
                   {entry.result.position ?? "—"}
@@ -307,14 +316,21 @@ function FinalClassificationContent({
                   <div className="flex items-center gap-2">
                     <DriverHeadshot
                       driver={entry.driver}
-                      accent={entry.color}
+                      accent={entry.isEliminated ? "#6b7280" : entry.color}
                       size="sm"
                     />
                     <span
                       className="h-4 w-[3px] shrink-0"
-                      style={{ background: entry.color }}
+                      style={{
+                        background: entry.isEliminated ? "#6b7280" : entry.color,
+                      }}
                     />
-                    <span className="font-black" style={{ color: entry.color }}>
+                    <span
+                      className="font-black"
+                      style={{
+                        color: entry.isEliminated ? "#9ca3af" : entry.color,
+                      }}
+                    >
                       {entry.driver?.name_acronym ?? entry.result.driver_number}
                     </span>
                     <span className="hidden text-muted sm:inline">
@@ -325,10 +341,14 @@ function FinalClassificationContent({
                 <td className="hidden px-4 py-2.5 text-muted md:table-cell">
                   {entry.driver?.team_name ?? "—"}
                 </td>
-                <td className="px-4 py-2.5 text-right font-mono tabular-nums text-white">
+                <td
+                  className={`px-4 py-2.5 text-right font-mono tabular-nums ${entry.isEliminated ? "text-muted" : "text-white"}`}
+                >
                   {entry.result.number_of_laps ?? "—"}
                 </td>
-                <td className="px-4 py-2.5 text-right font-mono tabular-nums text-white sm:px-5">
+                <td
+                  className={`px-4 py-2.5 text-right font-mono tabular-nums sm:px-5 ${entry.isEliminated ? "text-muted" : "text-white"}`}
+                >
                   {entry.detail}
                 </td>
               </tr>

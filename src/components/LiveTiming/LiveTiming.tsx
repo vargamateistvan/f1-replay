@@ -1600,7 +1600,12 @@ export function LiveTiming({
               const pos = row.displayPosition;
               const driver = driverByNumber.get(num);
               const intData = intMap.get(num);
-              const color = teamColor(driver?.team_colour);
+              const eliminated = row.eliminatedPhase !== null;
+              const isRetired = retiredDrivers.has(num);
+              const disabledColor = eliminated || isRetired;
+              const color = disabledColor
+                ? "#6b7280"
+                : teamColor(driver?.team_colour);
               const inPit = pittingNow.has(num);
               const penaltyMarker = penaltyStatusByDriver.get(num) ?? null;
               const penaltyStatus = penaltyMarker?.status ?? null;
@@ -1665,8 +1670,7 @@ export function LiveTiming({
 
               const startPos = gridMap.get(num) ?? startPosMap.get(num) ?? null;
               const gained = startPos !== null ? startPos - pos : null;
-              const retired = retiredDrivers.has(num);
-              const eliminated = row.eliminatedPhase !== null;
+              const retired = isRetired;
               const selected = selectedDriver === num;
 
               const timedGap =
@@ -1731,8 +1735,9 @@ export function LiveTiming({
 
               let rowBg = "hover:bg-white/[0.06]";
               if (selected) rowBg = "bg-panel";
-              else if (eliminated) rowBg = "bg-[#22162e]/70";
-              else if (retired) rowBg = "opacity-50";
+              else if (eliminated)
+                rowBg = "bg-[#22162e]/70 grayscale opacity-60";
+              else if (retired) rowBg = "grayscale opacity-50";
               else if (idx % 2 === 1)
                 rowBg = "bg-white/[0.02] hover:bg-white/[0.06]";
 
@@ -1841,7 +1846,7 @@ export function LiveTiming({
                           />
                           {/* Surname in CAPS */}
                           <span
-                            className={`min-w-0 truncate font-bold ${dense ? "text-[9px] min-[390px]:text-[10px]" : "text-[10px] min-[390px]:text-[11px]"} tracking-[0.03em] min-[390px]:tracking-[0.05em] uppercase text-white`}
+                            className={`min-w-0 truncate font-bold ${dense ? "text-[9px] min-[390px]:text-[10px]" : "text-[10px] min-[390px]:text-[11px]"} tracking-[0.03em] min-[390px]:tracking-[0.05em] uppercase ${disabledColor ? "text-white/50" : "text-white"}`}
                           >
                             {showFullLastName ? (
                               <>

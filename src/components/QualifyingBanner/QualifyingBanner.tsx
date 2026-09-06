@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import type { Driver, Position } from "@/api/types";
 import type { QualiPhase } from "@/utils/session";
 import { teamColor } from "@/utils/color";
+import { Q3_GRID_SIZE } from "@/constants";
 
 interface Props {
   readonly phase: QualiPhase | null;
@@ -25,8 +26,6 @@ interface EliminationGroup {
   subtitle: string;
   range: [number, number] | null;
 }
-
-const Q3_GRID_SIZE = 10;
 
 function fmtCountdown(ms: number): string {
   const total = Math.max(0, Math.floor(ms / 1000));

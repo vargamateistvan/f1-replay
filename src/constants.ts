@@ -98,3 +98,6 @@ export const SPRINT_POINTS = [8, 7, 6, 5, 4, 3, 2, 1] as const;
 export const RATE_MAX_PER_SECOND = 2;
 export const RATE_MAX_PER_MINUTE = 25;
 export const RATE_MAX_RETRIES = 6;
+
+// Standard F1 qualifying: only the top 10 drivers progress to Q3.
+export const Q3_GRID_SIZE = 10;
