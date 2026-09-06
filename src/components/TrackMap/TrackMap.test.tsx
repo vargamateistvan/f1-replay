@@ -72,6 +72,7 @@ vi.mock("@/stores/settings", () => ({
       metricSystem: "metric",
       mapShowDriverAcronym: true,
       mapShowDriverNumberInside: false,
+      mapShowRaceLeader: true,
       mapShowMarshalHeatmap: false,
       mapShowCornerNumbers: false,
       mapShowElevation: false,
@@ -419,5 +420,33 @@ describe("TrackMap sector flag state rendering", () => {
     expect(
       container.querySelector('g[transform^="rotate(-92.0 300.0 200.0)"]'),
     ).toBeInTheDocument();
+  });
+
+  it("renders the race leader notification badge with driver profile picture", () => {
+    vi.mocked(useTrackOutline).mockReturnValue(
+      mockTrackOutlineQueryResult(mockOutline),
+    );
+    const leaderDriver = {
+      ...mockDriver,
+      full_name: "Max Verstappen",
+      name_acronym: "VER",
+      headshot_url: "https://example.com/ver.jpg",
+    };
+    const startMs = Date.parse("2024-01-01T00:00:00.000Z");
+
+    render(
+      <TrackMap
+        sessionKey={1}
+        drivers={[leaderDriver]}
+        locationData={mockLocationData}
+        sessionStartMs={startMs}
+        raceLeader={leaderDriver}
+      />,
+    );
+
+    expect(screen.getByText("RACE LEADER: VER")).toBeTruthy();
+    const img = screen.getByAltText("Max Verstappen");
+    expect(img).toBeTruthy();
+    expect(img.getAttribute("src")).toBe("https://example.com/ver.jpg");
   });
 });

@@ -27,6 +27,7 @@ export interface AppSettings {
   mapShowClock: boolean;
   mapShowDriverAcronym: boolean;
   mapShowDriverNumberInside: boolean;
+  mapShowRaceLeader: boolean;
   mapShowEnhancedVisuals: boolean;
   mapShowMarshalHeatmap: boolean;
   mapShowCornerNumbers: boolean;
@@ -125,6 +126,7 @@ export const SETTINGS_DEFAULTS: AppSettings = {
   mapShowClock: true,
   mapShowDriverAcronym: true,
   mapShowDriverNumberInside: false,
+  mapShowRaceLeader: true,
   mapShowEnhancedVisuals: true,
   mapShowMarshalHeatmap: false,
   mapShowCornerNumbers: false,

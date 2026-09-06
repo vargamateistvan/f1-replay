@@ -66,7 +66,7 @@ import { CatchupSummary } from "@/components/CatchupSummary/CatchupSummary";
 import { ResizeHandle } from "@/components/ResizeHandle";
 import { isSessionLive } from "@/utils/live";
 import { isAuthError } from "@/api/client";
-import { DEFAULT_SESSION_MS, DEFAULT_YEAR } from "@/constants";
+import { DEFAULT_SESSION_MS, DEFAULT_YEAR, RACE_LEADER_NOTIFICATION_MS } from "@/constants";
 import { useSettings } from "@/stores/settings";
 import { deriveRetiredDrivers } from "@/utils/retirement";
 import { computeBattlingDrivers } from "@/utils/battles";
@@ -989,6 +989,53 @@ export default function RaceWeekend() {
     isRaceSession,
   ]);
 
+  // Track all race leader (P1) transition events.
+  const raceLeaderEvents = useMemo(() => {
+    if (!sessionStartMs || !positions.data?.length) return [];
+    const sorted = [...positions.data]
+      .map((p) => ({
+        ms: new Date(p.date).getTime() - sessionStartMs,
+        driverNumber: p.driver_number,
+        position: p.position,
+      }))
+      .filter((p) => p.ms >= 0 && p.position === 1)
+      .sort((a, b) => a.ms - b.ms);
+
+    const events: Array<{ ms: number; driverNumber: number }> = [];
+    let lastLeader: number | null = null;
+    for (const p of sorted) {
+      if (p.driverNumber !== lastLeader) {
+        events.push({ ms: p.ms, driverNumber: p.driverNumber });
+        lastLeader = p.driverNumber;
+      }
+    }
+    return events;
+  }, [positions.data, sessionStartMs]);
+
+  const raceLeaderDriver = useMemo(() => {
+    if (
+      !isMapVisible ||
+      !sessionStartMs ||
+      !raceLeaderEvents.length ||
+      !drivers.data?.length
+    ) {
+      return null;
+    }
+    const currentT = tSlow;
+    let activeLeaderNum: number | null = null;
+    for (const ev of raceLeaderEvents) {
+      if (ev.ms > currentT) break;
+      if (
+        currentT >= ev.ms &&
+        currentT < ev.ms + RACE_LEADER_NOTIFICATION_MS
+      ) {
+        activeLeaderNum = ev.driverNumber;
+      }
+    }
+    if (activeLeaderNum === null) return null;
+    return drivers.data.find((d) => d.driver_number === activeLeaderNum) ?? null;
+  }, [raceLeaderEvents, drivers.data, sessionStartMs, tSlow, isMapVisible]);
+
   // Current session global/sector track flag state at playhead.
   const activeTrackFlagState = useMemo<ActiveTrackFlagState | null>(() => {
     if (!isMapVisible) return null;
@@ -1105,6 +1152,7 @@ export default function RaceWeekend() {
     mapShowBattleRings,
     mapShowDriverHud,
     mapShowSectorFlags,
+    mapShowRaceLeader,
     mapShowSectorBox,
     mapShowTrackControls,
     mapShowCompass,
@@ -1845,6 +1893,7 @@ export default function RaceWeekend() {
       activeTrackVehicles={activeTrackVehicles}
       safetyCarSirenOn={safetyCarSirenOn}
       retiredDrivers={retiredDrivers}
+      raceLeader={mapShowRaceLeader ? raceLeaderDriver : null}
       onSelectDriver={toggleFocus}
     />
   );

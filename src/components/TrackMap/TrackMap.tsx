@@ -13,6 +13,7 @@ import {
   ZoomIn,
   ZoomOut,
 } from "lucide-react";
+import { DriverHeadshot } from "@/components/DriverHeadshot";
 import {
   useCarDataForLap,
   type TelemetrySample,
@@ -259,6 +260,7 @@ interface Props {
    * (leaderboard telemetry columns) — reuse it for the HUD instead of
    * per-driver requests. */
   readonly sharedAllDriverWindow?: boolean;
+  readonly raceLeader?: Driver | null;
   readonly showTrackScreenshot?: boolean;
   readonly showEnhancedVisuals?: boolean;
   readonly onSelectDriver?: (driverNumber: number) => void;
@@ -318,6 +320,7 @@ export function TrackMap({
   showTrackControls = true,
   showCompass = true,
   showFocusedHud = true,
+  raceLeader = null,
   sharedAllDriverWindow = false,
   showTrackScreenshot = true,
   showEnhancedVisuals = true,
@@ -333,6 +336,7 @@ export function TrackMap({
   const mapShowMarshalHeatmap = useSettings((s) => s.mapShowMarshalHeatmap);
   const mapShowCornerNumbers = useSettings((s) => s.mapShowCornerNumbers);
   const mapShowElevation = useSettings((s) => s.mapShowElevation);
+  const mapShowRaceLeader = useSettings((s) => s.mapShowRaceLeader);
   const mapShowClock = useSettings((s) => s.mapShowClock);
   const isCompactViewport = useMediaQuery("(max-width: 767px)");
   const [zoomLevel, setZoomLevel] = useState(TRACK_FIT_ZOOM);
@@ -1704,6 +1708,7 @@ export function TrackMap({
       bg: string;
       border: string;
       text: string;
+      driver?: Driver;
     }> = [];
     const seen = new Set<string>();
 
@@ -1713,10 +1718,11 @@ export function TrackMap({
       bg: string,
       border: string,
       text: string,
+      driver?: Driver,
     ) => {
       if (seen.has(key)) return;
       seen.add(key);
-      badges.push({ key, label, bg, border, text });
+      badges.push({ key, label, bg, border, text, driver });
     };
 
     if (activeTrackVehicles?.formationLap) {
@@ -1776,6 +1782,22 @@ export function TrackMap({
       });
     }
 
+    if (raceLeader && mapShowRaceLeader) {
+      const acronym =
+        raceLeader.name_acronym ||
+        raceLeader.last_name ||
+        `#${raceLeader.driver_number}`;
+      const teamCol = teamColor(raceLeader.team_colour, "#ffd700");
+      push(
+        "race_leader",
+        `RACE LEADER: ${acronym}`,
+        lightMode ? "#eaf1ff" : "#131520",
+        teamCol,
+        lightMode ? "#101010" : "#ffffff",
+        raceLeader,
+      );
+    }
+
     return badges;
   })();
 
@@ -1784,17 +1806,24 @@ export function TrackMap({
       {topStatusBadges.length > 0 && (
         <div className="pointer-events-none absolute top-2 left-1/2 z-20 -translate-x-1/2 flex flex-col items-center gap-1">
           {topStatusBadges.map((badge) => (
-            <span
+            <div
               key={badge.key}
-              className="border px-2 py-0.5 text-[9px] font-black uppercase tracking-[0.16em]"
+              className="border px-2 py-0.5 text-[9px] font-black uppercase tracking-[0.16em] flex items-center gap-1.5 shadow-md rounded-sm"
               style={{
                 background: badge.bg,
                 borderColor: badge.border,
                 color: badge.text,
               }}
             >
-              {badge.label}
-            </span>
+              {badge.driver && (
+                <DriverHeadshot
+                  driver={badge.driver}
+                  accent={teamColor(badge.driver.team_colour)}
+                  size="xs"
+                />
+              )}
+              <span>{badge.label}</span>
+            </div>
           ))}
         </div>
       )}

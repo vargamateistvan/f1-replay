@@ -54,6 +54,8 @@ export const TRACK_SVG_PAD = 24;
 // Slightly enlarge the fit so the track uses the available map area while
 // leaving enough room for the ribbon, markers, and labels.
 export const TRACK_FIT_ZOOM = 1.15;
+// Duration (ms) to show the race leader notification badge on the track map after a lead change.
+export const RACE_LEADER_NOTIFICATION_MS = 5_000;
 // Lap used to derive the track outline (a clean early lap; falls back to lap 3, then any).
 export const TRACK_OUTLINE_LAP = 2;
 

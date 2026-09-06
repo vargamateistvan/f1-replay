@@ -172,6 +172,7 @@ vi.mock("@/stores/settings", () => {
     mapShowBattleRings: true,
     mapShowDriverHud: true,
     mapShowSectorFlags: true,
+    mapShowRaceLeader: true,
     mapShowWeather: true,
     leaderboardTelemetry: true,
     trackerTimingTelemetry: false,

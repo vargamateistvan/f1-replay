@@ -262,6 +262,9 @@ function TrackMapPreview() {
             showFocusedHud={settings.mapShowDriverHud}
             showTrackScreenshot={settings.trackScreenshotPngEnabled}
             showEnhancedVisuals={settings.mapShowEnhancedVisuals}
+            raceLeader={
+              settings.mapShowRaceLeader ? (previewDrivers[0] ?? null) : null
+            }
           />
         ) : (
           <div className="flex h-full items-center justify-center text-[10px] text-muted">
@@ -1001,6 +1004,12 @@ export function SettingsBody() {
           description="Show driver number centered in each car dot"
           checked={settings.mapShowDriverNumberInside}
           onChange={toggle("mapShowDriverNumberInside")}
+        />
+        <SettingRow
+          label="Race leader badge"
+          description="Show P1 race leader notification and headshot"
+          checked={settings.mapShowRaceLeader}
+          onChange={toggle("mapShowRaceLeader")}
         />
         <SettingRow
           label="Tyre compound badges"
