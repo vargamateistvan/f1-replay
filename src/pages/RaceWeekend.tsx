@@ -10,6 +10,7 @@ import { QualifyingBanner } from "@/components/QualifyingBanner";
 import { StartingLights } from "@/components/StartingLights";
 import { SessionInfoBar } from "@/components/SessionInfoBar";
 import { ErrorMessage } from "@/components/ErrorMessage";
+import { LiveDataNotice } from "@/components/LiveDataNotice";
 import { FinalClassificationDialog } from "@/components/FinalClassification";
 import {
   useDrivers,
@@ -64,6 +65,7 @@ import { EventToastStack } from "@/components/EventToast/EventToastStack";
 import { CatchupSummary } from "@/components/CatchupSummary/CatchupSummary";
 import { ResizeHandle } from "@/components/ResizeHandle";
 import { isSessionLive } from "@/utils/live";
+import { isAuthError } from "@/api/client";
 import { DEFAULT_SESSION_MS, DEFAULT_YEAR } from "@/constants";
 import { useSettings } from "@/stores/settings";
 import { deriveRetiredDrivers } from "@/utils/retirement";
@@ -411,6 +413,23 @@ export default function RaceWeekend() {
   const raceControl = useRaceControl(sessionKey, live);
   const teamRadio = useTeamRadio(sessionKey, live);
   const weather = useWeather(sessionKey, live);
+  const liveDataError =
+    live
+      ? [
+          drivers.error,
+          positions.error,
+          intervals.error,
+          stints.error,
+          laps.error,
+          pits.error,
+          grid.error,
+          sessionResult.error,
+          overtakes.error,
+          raceControl.error,
+          teamRadio.error,
+          weather.error,
+        ].find(isAuthError)
+      : null;
 
   // Stable selector — won't re-render on every t tick.
   const setSessionStart = useTimeline((s) => s.setSessionStart);
@@ -1846,6 +1865,8 @@ export default function RaceWeekend() {
           </div>
         </div>
       )}
+
+      <LiveDataNotice error={liveDataError} />
 
       {/* Starting lights — absolute overlay, race sessions only */}
       {sessionStartMs > 0 && isRaceSession && lightsOutMs != null && (
