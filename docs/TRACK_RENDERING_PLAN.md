@@ -46,6 +46,11 @@ that OpenF1 `location` is derived from:
 - `marshalSectors[]`, `marshalLights[]` — `{ number, trackPosition: {x, y} }`
 - `rotation` — orient the map to broadcast convention
 - `candidateLap` — session/lap metadata
+- `pitLoss` — normal, safety-car, and virtual-safety-car pit-loss estimates
+
+The response does **not** contain DRS zones. The app therefore retains the
+locally curated DRS zones in [circuits.ts](../src/data/circuits.ts); MultiViewer
+is used for the circuit geometry and operational metadata only.
 
 OpenF1 `Session.circuit_key` is the **same key** MultiViewer uses, so a baked file
 keyed by `circuit_key` (+ year for layout changes) maps 1:1.

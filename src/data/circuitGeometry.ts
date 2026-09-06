@@ -75,4 +75,5 @@ export type {
   CornerInfo,
   MarshalSector,
   MarshalLight,
+  PitLoss,
 } from "./circuitGeometryTypes";

@@ -14,7 +14,7 @@
  * /location endpoint, so car positions overlay directly without any transform.
  */
 
-import { writeFileSync, mkdirSync } from "fs";
+import { readdirSync, writeFileSync, mkdirSync } from "fs";
 import { join, dirname } from "path";
 import { fileURLToPath } from "url";
 
@@ -47,7 +47,12 @@ async function main() {
   // 1. Collect all unique {circuit_key, year} pairs across 2023–present
   // We keep EVERY year so that circuits with layout changes (e.g. Yas Marina 2021,
   // Albert Park 2022) are stored per-year and the app can pick the correct version.
-  const years = [2023, 2024, 2025, 2026];
+  const firstYear = 2023;
+  const currentYear = new Date().getFullYear();
+  const years = Array.from(
+    { length: currentYear - firstYear + 1 },
+    (_, index) => firstYear + index,
+  );
   const circuitYearPairs = new Set(); // "circuit_key-year" strings
 
   for (const year of years) {
@@ -64,6 +69,19 @@ async function main() {
       circuitYearPairs.add(`${s.circuit_key}-${s.year}`);
     }
     await new Promise((r) => setTimeout(r, 400)); // be gentle on the rate limit
+  }
+
+  // OpenF1 can require authentication while live coverage is active. Retain the
+  // existing tracked pairs in that case so the public MultiViewer geometry can
+  // still be refreshed without losing the circuit inventory.
+  if (circuitYearPairs.size === 0) {
+    for (const fileName of readdirSync(OUT_DIR)) {
+      const match = /^(\d+)-(\d+)\.json$/.exec(fileName);
+      if (match) circuitYearPairs.add(`${match[1]}-${match[2]}`);
+    }
+    console.warn(
+      `OpenF1 returned no circuit pairs; reusing ${circuitYearPairs.size} existing baked pairs.`,
+    );
   }
 
   // Sort so output is deterministic
@@ -96,7 +114,9 @@ async function main() {
       }
     }
 
-    // Keep only the fields we use; drop any proprietary/undocumented keys
+    // Keep the public geometry and operational metadata that the app can use.
+    // DRS zones are not present in MultiViewer's circuit response; those remain
+    // in src/data/circuits.ts until a reliable source is available.
     const slim = {
       circuitKey: data.circuitKey ?? circuitKey,
       circuitName: data.circuitName ?? "",
@@ -116,6 +136,8 @@ async function main() {
       })),
       marshalSectors: (data.marshalSectors ?? []).map((m) => ({
         number: m.number,
+        angle: m.angle ?? 0,
+        length: m.length ?? 0,
         trackPosition: {
           x: m.trackPosition?.x ?? 0,
           y: m.trackPosition?.y ?? 0,
@@ -123,11 +145,20 @@ async function main() {
       })),
       marshalLights: (data.marshalLights ?? []).map((m) => ({
         number: m.number,
+        angle: m.angle ?? 0,
+        length: m.length ?? 0,
         trackPosition: {
           x: m.trackPosition?.x ?? 0,
           y: m.trackPosition?.y ?? 0,
         },
       })),
+      pitLoss: data.pitLoss
+        ? {
+            normal: data.pitLoss.normal,
+            sc: data.pitLoss.sc,
+            vsc: data.pitLoss.vsc,
+          }
+        : undefined,
     };
 
     const outPath = join(OUT_DIR, `${circuitKey}-${year}.json`);
