@@ -62,6 +62,7 @@ describe("TelemetryChart", () => {
         ]}
         interactiveControls
         onHoverX={onHoverX}
+        cornerMarkers={[{ label: "1", distance: 50 }]}
       />,
     );
 
@@ -78,6 +79,7 @@ describe("TelemetryChart", () => {
 
     expect(onHoverX).toHaveBeenCalled();
     expect(onHoverX).toHaveBeenLastCalledWith(null);
+    expect(screen.getByText("1")).toBeInTheDocument();
     expect(uPlotState.instances.length).toBeGreaterThan(0);
     expect(uPlotState.instances[0]!.setScaleCalls.length).toBeGreaterThan(0);
 

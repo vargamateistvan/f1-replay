@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import uPlot from "uplot";
 import "uplot/dist/uPlot.min.css";
 import { ErrorMessage } from "@/components/ErrorMessage";
@@ -8,6 +8,14 @@ const X_SYNC_GROUP = "telemetry";
 
 let nextChartInstanceId = 1;
 
+function readPlotBounds(plot: uPlot): { left: number; width: number } {
+  const bbox = (plot as { bbox?: { left?: number; width?: number } }).bbox;
+  return {
+    left: Number.isFinite(bbox?.left) ? bbox!.left! : 0,
+    width: Number.isFinite(bbox?.width) ? bbox!.width! : 0,
+  };
+}
+
 export interface ChartSeries {
   label: string;
   color: string;
@@ -16,6 +24,11 @@ export interface ChartSeries {
   width?: number;
   fill?: string;
   points?: boolean;
+}
+
+export interface ChartCornerMarker {
+  label: string;
+  distance: number;
 }
 
 interface Props {
@@ -29,6 +42,7 @@ interface Props {
   readonly legendDecimals?: number;
   readonly distanceUnit?: string;
   readonly distanceScale?: number;
+  readonly cornerMarkers?: readonly ChartCornerMarker[];
   readonly height?: number;
   readonly interactiveControls?: boolean;
   readonly onHoverX?: (x: number | null) => void;
@@ -119,14 +133,21 @@ export function TelemetryChart({
   legendDecimals,
   distanceUnit = "m",
   distanceScale = 1,
+  cornerMarkers = [],
 }: Props) {
   const theme = themeForTitle(title);
   const chartInstanceIdRef = useRef(nextChartInstanceId++);
   const suppressBroadcastRef = useRef(false);
   const containerRef = useRef<HTMLDivElement>(null);
+  const chartAreaRef = useRef<HTMLDivElement>(null);
   const plotRef = useRef<uPlot | null>(null);
   const fullRangeRef = useRef<{ min: number; max: number } | null>(null);
   const currentRangeRef = useRef<{ min: number; max: number } | null>(null);
+  const [visibleRange, setVisibleRange] = useState<{
+    min: number;
+    max: number;
+  } | null>(null);
+  const [plotBounds, setPlotBounds] = useState({ left: 0, width: 0 });
   const showSeriesChips = series.length > 0;
 
   const broadcastScale = (min: number, max: number) => {
@@ -304,13 +325,16 @@ export function TelemetryChart({
       setXScale(currentRangeRef.current.min, currentRangeRef.current.max);
     } else {
       currentRangeRef.current = full;
+      setVisibleRange(full);
     }
+    setPlotBounds(readPlotBounds(nextPlot));
 
     const onSetScale = () => {
       const range = readXScale();
       if (!range) return;
 
       currentRangeRef.current = range;
+      setVisibleRange(range);
       if (!suppressBroadcastRef.current) {
         broadcastScale(range.min, range.max);
       }
@@ -393,7 +417,7 @@ export function TelemetryChart({
   // Fallback hover tracking for test environments that do not emit uPlot
   // cursor hooks from synthetic pointer events.
   useEffect(() => {
-    const el = containerRef.current;
+    const el = chartAreaRef.current;
     if (!el || !onHoverX) return;
 
     const onMouseMove = (event: MouseEvent) => {
@@ -401,11 +425,10 @@ export function TelemetryChart({
       const range = readXScale();
       if (!plot || !range) return;
 
-      const plotLeft = plot.bbox.left;
-      const plotWidth = plot.bbox.width;
+      const { left: plotLeft, width: plotWidth } = readPlotBounds(plot);
       if (!Number.isFinite(plotWidth) || plotWidth <= 0) return;
 
-      const rect = el.getBoundingClientRect();
+      const rect = (containerRef.current ?? el).getBoundingClientRect();
       const localX = event.clientX - rect.left;
       const relX = localX - plotLeft;
       const clampedRelX = Math.max(0, Math.min(plotWidth, relX));
@@ -433,6 +456,7 @@ export function TelemetryChart({
     const ro = new ResizeObserver(([entry]) => {
       if (entry && plotRef.current) {
         plotRef.current.setSize({ width: entry.contentRect.width, height });
+        setPlotBounds(readPlotBounds(plotRef.current));
       }
     });
     ro.observe(containerRef.current);
@@ -441,7 +465,7 @@ export function TelemetryChart({
 
   // Double-click resets the current zoom window.
   useEffect(() => {
-    const el = containerRef.current;
+    const el = chartAreaRef.current;
     if (!el) return;
 
     const onDoubleClick = () => {
@@ -578,7 +602,41 @@ export function TelemetryChart({
         </div>
       )}
 
-      <div ref={containerRef} style={{ background: theme.bg }} />
+      <div ref={chartAreaRef} className="relative">
+        <div ref={containerRef} style={{ background: theme.bg }} />
+      </div>
+
+      {visibleRange && cornerMarkers.length > 0 && (
+        <div className="relative h-5 border-t border-panel/80 bg-black/20">
+          {cornerMarkers.map((corner) => {
+            const span = visibleRange.max - visibleRange.min;
+            if (
+              span <= 0 ||
+              corner.distance < visibleRange.min ||
+              corner.distance > visibleRange.max
+            ) {
+              return null;
+            }
+
+            const ratio = (corner.distance - visibleRange.min) / span;
+            const hasPlotBounds = plotBounds.width > 0;
+            const left = hasPlotBounds
+              ? `${plotBounds.left + ratio * plotBounds.width}px`
+              : `${ratio * 100}%`;
+
+            return (
+              <span
+                key={`${corner.label}-${corner.distance}`}
+                className="pointer-events-none absolute top-0 -translate-x-1/2 text-[9px] font-bold leading-5 text-white/90"
+                style={{ left }}
+              >
+                <span className="absolute bottom-4 left-1/2 h-1.5 w-px -translate-x-1/2 bg-white/50" />
+                {corner.label}
+              </span>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 }

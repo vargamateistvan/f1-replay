@@ -1,7 +1,10 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { Lap } from "@/api/types";
 import { ErrorMessage } from "@/components/ErrorMessage";
-import { TelemetryChart } from "@/components/TelemetryChart/TelemetryChart";
+import {
+  TelemetryChart,
+  type ChartCornerMarker,
+} from "@/components/TelemetryChart/TelemetryChart";
 import {
   computeTrackAutoRotationDeg,
   computeTrackBounds,
@@ -39,6 +42,8 @@ interface PlotSlot {
   color: string;
   data: TelemetrySample[];
 }
+
+type TrackCornerMarker = ChartCornerMarker;
 
 interface SplitRow {
   num: number;
@@ -697,6 +702,7 @@ export default function Telemetry() {
 
     // Corner number labels from baked official geometry (if available for
     // this circuit/year), offset outside the track ribbon.
+    const cornerMarkers: TrackCornerMarker[] = [];
     const cornerLabels: TrackCornerLabel[] = (() => {
       if (!circuitGeom?.corners.length) return [];
       const OFFSET = 9;
@@ -721,6 +727,10 @@ export default function Telemetry() {
         const tlen = Math.hypot(tdx, tdy) || 1;
         const nx = -tdy / tlen;
         const ny = tdx / tlen;
+        cornerMarkers.push({
+          label: `${corner.number}${corner.letter}`,
+          distance: points[bestIdx]!.dist,
+        });
 
         return {
           key: `corner-${corner.number}${corner.letter}`,
@@ -739,8 +749,21 @@ export default function Telemetry() {
       finishLine,
       sectorMarkers,
       cornerLabels,
+      cornerMarkers,
     };
   }, [trackOutlineA.data, session?.circuit_key, session?.year]);
+
+  const telemetryCornerMarkers = useMemo<ChartCornerMarker[]>(() => {
+    const lapDistance = xDist[xDist.length - 1];
+    if (!trackPreview || !Number.isFinite(lapDistance) || lapDistance <= 0) {
+      return [];
+    }
+
+    return trackPreview.cornerMarkers.map((corner) => ({
+      label: corner.label,
+      distance: (corner.distance / trackPreview.totalDist) * lapDistance,
+    }));
+  }, [trackPreview, xDist]);
 
   // For a given set of raw samples, find the interpolated telemetry at a given timeS
   const sampleAtTimeS = useCallback(
@@ -2111,6 +2134,7 @@ export default function Telemetry() {
               <TelemetryChart
                 title={`Speed (${speedUnit})`}
                 xData={xDist}
+                cornerMarkers={telemetryCornerMarkers}
                 yMin={0}
                 yMax={speedChartMax}
                 height={280}
@@ -2124,6 +2148,7 @@ export default function Telemetry() {
               <TelemetryChart
                 title="Throttle (%)"
                 xData={xDist}
+                cornerMarkers={telemetryCornerMarkers}
                 yMin={0}
                 yMax={100}
                 height={210}
@@ -2137,6 +2162,7 @@ export default function Telemetry() {
               <TelemetryChart
                 title="Brake"
                 xData={xDist}
+                cornerMarkers={telemetryCornerMarkers}
                 yMin={0}
                 yMax={100}
                 height={200}
@@ -2150,6 +2176,7 @@ export default function Telemetry() {
               <TelemetryChart
                 title="Gear"
                 xData={xDist}
+                cornerMarkers={telemetryCornerMarkers}
                 yMin={0}
                 yMax={9}
                 height={210}
@@ -2164,6 +2191,7 @@ export default function Telemetry() {
               <TelemetryChart
                 title="RPM"
                 xData={xDist}
+                cornerMarkers={telemetryCornerMarkers}
                 yMin={0}
                 yMax={15000}
                 height={220}
@@ -2186,6 +2214,7 @@ export default function Telemetry() {
                   <TelemetryChart
                     title=""
                     xData={xDist}
+                    cornerMarkers={telemetryCornerMarkers}
                     height={220}
                     interactiveControls
                     onHoverX={handleChartHoverX}
