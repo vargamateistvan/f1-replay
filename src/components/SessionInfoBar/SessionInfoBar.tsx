@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import type { Lap, RaceControl } from "@/api/types";
 import { useSettings } from "@/stores/settings";
 import { toDisplayTemperature, temperatureUnitLabel } from "@/utils/units";
+import { deriveTrackFlagState } from "@/timeline/raceControl";
 
 interface Props {
   laps: Lap[];
@@ -39,23 +40,28 @@ const FLAG_STATUS: Record<string, TrackStatus> = {
   BLACK_AND_WHITE: { label: "B&W FLAG", bg: "#888", color: "#fff" },
 };
 
-function deriveStatus(entries: RaceControl[], currentT: number): TrackStatus {
-  let last: RaceControl | null = null;
-  for (const e of entries) {
-    if (e.flag === null) continue;
-    if (new Date(e.date).getTime() > currentT) break;
-    if (
-      last?.flag === "RED" &&
-      (e.flag === "SAFETY_CAR" ||
-        e.flag === "VIRTUAL_SC" ||
-        e.flag === "VIRTUAL_SAFETY_CAR")
-    ) {
-      continue;
-    }
-    last = e;
+function deriveStatus(
+  entries: RaceControl[],
+  sessionStartMs: number,
+  currentT: number,
+): TrackStatus {
+  if (!sessionStartMs) return FLAG_STATUS.GREEN;
+  const state = deriveTrackFlagState(entries, sessionStartMs, currentT);
+  if (!state) return FLAG_STATUS.GREEN;
+
+  const flag = state.globalFlag;
+  if (flag && FLAG_STATUS[flag]) {
+    return FLAG_STATUS[flag];
   }
-  const flag = last?.flag ?? "GREEN";
-  return FLAG_STATUS[flag] ?? FLAG_STATUS.GREEN;
+
+  const hasSectorYellow = Object.values(state.sectorFlags).some(
+    (f) => f === "YELLOW" || f === "DOUBLE_YELLOW",
+  );
+  if (hasSectorYellow) {
+    return FLAG_STATUS.YELLOW;
+  }
+
+  return FLAG_STATUS.GREEN;
 }
 
 function deriveLatestMessage(
@@ -160,8 +166,8 @@ export function SessionInfoBar({
 
   const status = useMemo(() => {
     if (isFormationLap) return formationStatus;
-    return deriveStatus(raceControl, currentT);
-  }, [formationStatus, isFormationLap, raceControl, currentT]);
+    return deriveStatus(raceControl, sessionStartMs, currentT);
+  }, [formationStatus, isFormationLap, raceControl, sessionStartMs, currentT]);
   const latestMsg = useMemo(
     () => deriveLatestMessage(raceControl, currentT),
     [raceControl, currentT],

@@ -1,5 +1,6 @@
 import type { RaceControl } from "@/api/types";
 import { useSettings } from "@/stores/settings";
+import { deriveTrackFlagState } from "@/timeline/raceControl";
 
 interface Props {
   entries: RaceControl[];
@@ -33,28 +34,29 @@ const FLAG_STYLES: Record<string, BannerStyle> = {
   BLACK_AND_WHITE: { bg: "#888", text: "#fff", label: "◩ BLACK & WHITE FLAG" },
 };
 
-// The most recent flag-type race control message at or before the current time.
+// The active track flag state at or before the current time.
 function activeFlag(
   entries: RaceControl[],
+  sessionStartMs: number,
   currentT: number,
 ): BannerStyle | null {
-  let last: RaceControl | null = null;
-  for (const e of entries) {
-    if (e.flag === null) continue;
-    if (new Date(e.date).getTime() > currentT) break;
-    if (
-      last?.flag === "RED" &&
-      (e.flag === "SAFETY_CAR" ||
-        e.flag === "VIRTUAL_SC" ||
-        e.flag === "VIRTUAL_SAFETY_CAR")
-    ) {
-      continue;
-    }
-    last = e;
+  if (!sessionStartMs) return null;
+  const state = deriveTrackFlagState(entries, sessionStartMs, currentT);
+  if (!state) return null;
+
+  const flag = state.globalFlag;
+  if (flag && FLAG_STYLES[flag] && flag !== "GREEN" && flag !== "CLEAR") {
+    return FLAG_STYLES[flag];
   }
-  if (!last || !last.flag) return null;
-  if (last.flag === "CLEAR" || last.flag === "GREEN") return null;
-  return FLAG_STYLES[last.flag] ?? null;
+
+  const hasSectorYellow = Object.values(state.sectorFlags).some(
+    (f) => f === "YELLOW" || f === "DOUBLE_YELLOW",
+  );
+  if (hasSectorYellow) {
+    return FLAG_STYLES.YELLOW;
+  }
+
+  return null;
 }
 
 const LIGHTS_OUT_DURATION_MS = 3_500;
@@ -91,7 +93,7 @@ export function FlagBanner({
     }
     // lightsOutMs - LIGHTS_SEQUENCE_MS ≤ t < lightsOutMs → no banner (StartingLights shown)
   }
-  if (!banner) banner = activeFlag(entries, currentT);
+  if (!banner) banner = activeFlag(entries, sessionStartMs, currentT);
 
   if (!banner) return null;
 

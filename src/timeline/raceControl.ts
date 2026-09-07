@@ -103,6 +103,9 @@ function shouldPreserveRedFlag(
 }
 
 function resolveFlagKeyFromRaceControlEntry(entry: RaceControl): string | null {
+  const message = (entry.message ?? "").toUpperCase();
+  if (message.includes("LIGHTS ON")) return null;
+
   const flagKey = toFlagKey(entry.flag);
   if (flagKey) return flagKey;
 
@@ -114,8 +117,6 @@ function resolveFlagKeyFromRaceControlEntry(entry: RaceControl): string | null {
   if (safetyPhase === "vsc_start") return "VIRTUAL_SC";
 
   // OpenF1 can leave `flag` empty while still sending a structured flag message.
-  const message = (entry.message ?? "").toUpperCase();
-
   const isYellowFlagPenaltyMessage =
     message.includes("YELLOW FLAG INFRINGEMENT") ||
     message.includes("YELLOW FLAG") &&
@@ -193,10 +194,14 @@ export function deriveTrackFlagState(
     const timingSector = toTimingSectorNumber(entry.sector);
     const sectorScoped = isSectorScopedRaceControl(entry);
     const clearSignal = isTrackClearSignal(entry);
+    const globalClear = isGlobalTrackClearSignal(entry);
 
     if (clearSignal) {
       state.updatedAtMs = eventMs;
-      if (sectorScoped) {
+      if (globalClear) {
+        state.globalFlag = null;
+        state.sectorFlags = { 1: null, 2: null, 3: null };
+      } else if (sectorScoped) {
         // Marshal sectors can be >3 in OpenF1; only timing sectors 1/2/3 are tracked.
         if (timingSector !== null) state.sectorFlags[timingSector] = null;
       } else {
@@ -211,9 +216,7 @@ export function deriveTrackFlagState(
     const resolvedFlagKey =
       flagKey ||
       (msg.includes("RED FLAG") ? "RED" : null) ||
-      (msg.includes("SAFETY CAR DEPLOYED") || msg.includes("SAFETY CAR IN")
-        ? "SAFETY_CAR"
-        : null) ||
+      (msg.includes("SAFETY CAR DEPLOYED") ? "SAFETY_CAR" : null) ||
       (msg.includes("VIRTUAL SAFETY CAR DEPLOYED") ||
       msg.includes("VSC DEPLOYED")
         ? "VIRTUAL_SC"
@@ -272,10 +275,14 @@ export function deriveMarshalSectorFlagState(
     const flagKey = resolveFlagKeyFromRaceControlEntry(entry) ?? "";
     const sectorScoped = isSectorScopedRaceControl(entry);
     const clearSignal = isTrackClearSignal(entry);
+    const globalClear = isGlobalTrackClearSignal(entry);
 
     if (clearSignal) {
       state.updatedAtMs = eventMs;
-      if (sectorScoped) {
+      if (globalClear) {
+        state.globalFlag = null;
+        state.sectorFlags = {};
+      } else if (sectorScoped) {
         if (entry.sector !== null) delete state.sectorFlags[entry.sector];
       } else {
         state.globalFlag = null;
@@ -289,9 +296,7 @@ export function deriveMarshalSectorFlagState(
     const resolvedFlagKey =
       flagKey ||
       (msg.includes("RED FLAG") ? "RED" : null) ||
-      (msg.includes("SAFETY CAR DEPLOYED") || msg.includes("SAFETY CAR IN")
-        ? "SAFETY_CAR"
-        : null) ||
+      (msg.includes("SAFETY CAR DEPLOYED") ? "SAFETY_CAR" : null) ||
       (msg.includes("VIRTUAL SAFETY CAR DEPLOYED") ||
       msg.includes("VSC DEPLOYED")
         ? "VIRTUAL_SC"

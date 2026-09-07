@@ -80,6 +80,35 @@ describe("buildIncidentWindows safety control phases", () => {
     ]);
   });
 
+  it("does not start a safety-car window or track flag on SAFETY CAR LIGHTS ON message", () => {
+    const events = normalizeRaceControl(
+      [
+        rc({ date: iso(5), message: "SAFETY CAR LIGHTS ON", lap_number: 10 }),
+        rc({ date: iso(10), message: "SAFETY CAR DEPLOYED", lap_number: 10 }),
+        rc({ date: iso(30), message: "SAFETY CAR IN THIS LAP", lap_number: 12 }),
+      ],
+      START,
+    );
+
+    expect(buildIncidentWindows(events)).toEqual([
+      {
+        id: "safety_car-10000",
+        kind: "safety_car",
+        label: "Safety Car",
+        startMs: 10_000,
+        endMs: 30_000,
+        startLap: 10,
+      },
+    ]);
+
+    const stateAt5s = deriveTrackFlagState(
+      [rc({ date: iso(5), message: "SAFETY CAR LIGHTS ON" })],
+      START,
+      START + 5_000,
+    );
+    expect(stateAt5s).toBeNull();
+  });
+
   it("does not end safety-car window on sector clear with marshal sector numbers", () => {
     const events = normalizeRaceControl(
       [
@@ -248,6 +277,31 @@ describe("deriveTrackFlagState", () => {
       ],
       START,
       START + 30_000,
+    );
+
+    expect(state).toBeNull();
+  });
+
+  it("clears global SAFETY_CAR flag on GREEN FLAG even when sector is set", () => {
+    const state = deriveTrackFlagState(
+      [
+        rc({
+          date: iso(10),
+          message: "SAFETY CAR DEPLOYED",
+          flag: "SAFETY_CAR",
+          scope: "Track",
+        }),
+        rc({ date: iso(25), message: "SAFETY CAR IN THIS LAP" }),
+        rc({
+          date: iso(30),
+          message: "GREEN FLAG",
+          flag: "GREEN",
+          scope: "Sector",
+          sector: 1,
+        }),
+      ],
+      START,
+      START + 40_000,
     );
 
     expect(state).toBeNull();
