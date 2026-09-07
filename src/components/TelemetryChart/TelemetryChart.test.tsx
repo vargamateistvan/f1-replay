@@ -63,6 +63,7 @@ describe("TelemetryChart", () => {
         interactiveControls
         onHoverX={onHoverX}
         cornerMarkers={[{ label: "1", distance: 50 }]}
+        showCornerAxis
       />,
     );
 

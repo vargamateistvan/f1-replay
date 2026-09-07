@@ -103,3 +103,20 @@ export const RATE_MAX_RETRIES = 6;
 
 // Standard F1 qualifying: only the top 10 drivers progress to Q3.
 export const Q3_GRID_SIZE = 10;
+
+// ── Telemetry corner zones ──────────────────────────────────────────────────--
+// Apex-speed thresholds (km/h) used to classify a corner as low/medium/high
+// speed on the telemetry charts, mirroring F1 broadcast lap-time analysis.
+export const CORNER_LOW_SPEED_KMH = 140;
+export const CORNER_HIGH_SPEED_KMH = 220;
+
+// A corner zone extends outward from the apex until speed recovers to this
+// fraction of the surrounding straight-line speed.
+export const CORNER_ZONE_RECOVERY = 0.93;
+
+// Fill/stroke tints for each corner speed class.
+export const CORNER_ZONE_COLORS = {
+  low: "rgba(232, 0, 45, 0.13)",
+  medium: "rgba(245, 202, 95, 0.12)",
+  high: "rgba(65, 217, 122, 0.12)",
+} as const;

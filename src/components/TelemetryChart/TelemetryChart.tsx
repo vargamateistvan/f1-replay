@@ -2,6 +2,8 @@ import { useEffect, useRef, useState } from "react";
 import uPlot from "uplot";
 import "uplot/dist/uPlot.min.css";
 import { ErrorMessage } from "@/components/ErrorMessage";
+import { CORNER_ZONE_COLORS } from "@/constants";
+import { cornerSpeedLabel, type CornerZone } from "@/utils/corners";
 
 const X_SYNC_EVENT = "telemetrychart:x-sync";
 const X_SYNC_GROUP = "telemetry";
@@ -31,6 +33,58 @@ export interface ChartCornerMarker {
   distance: number;
 }
 
+interface Placement {
+  left: string;
+  width?: string;
+}
+
+/**
+ * Maps a distance range onto the plot area, clipped to the visible x window.
+ * Returns null when the range is entirely outside the current zoom window.
+ */
+function placeRange(
+  from: number,
+  to: number,
+  range: { min: number; max: number },
+  bounds: { left: number; width: number },
+): Placement | null {
+  const span = range.max - range.min;
+  if (span <= 0) return null;
+
+  const clampedFrom = Math.max(from, range.min);
+  const clampedTo = Math.min(to, range.max);
+  if (clampedTo <= clampedFrom) return null;
+
+  const startRatio = (clampedFrom - range.min) / span;
+  const endRatio = (clampedTo - range.min) / span;
+
+  if (bounds.width > 0) {
+    return {
+      left: `${bounds.left + startRatio * bounds.width}px`,
+      width: `${(endRatio - startRatio) * bounds.width}px`,
+    };
+  }
+
+  return {
+    left: `${startRatio * 100}%`,
+    width: `${(endRatio - startRatio) * 100}%`,
+  };
+}
+
+function placePoint(
+  distance: number,
+  range: { min: number; max: number },
+  bounds: { left: number; width: number },
+): Placement | null {
+  const span = range.max - range.min;
+  if (span <= 0 || distance < range.min || distance > range.max) return null;
+
+  const ratio = (distance - range.min) / span;
+  return bounds.width > 0
+    ? { left: `${bounds.left + ratio * bounds.width}px` }
+    : { left: `${ratio * 100}%` };
+}
+
 interface Props {
   readonly title: string;
   readonly xData: number[]; // shared x axis (distance in metres)
@@ -43,6 +97,11 @@ interface Props {
   readonly distanceUnit?: string;
   readonly distanceScale?: number;
   readonly cornerMarkers?: readonly ChartCornerMarker[];
+  readonly cornerZones?: readonly CornerZone[];
+  /** Renders the labelled "Turns" axis strip beneath the plot. */
+  readonly showCornerAxis?: boolean;
+  /** Renders the bracketed speed-class labels above the plot. */
+  readonly showCornerZoneLabels?: boolean;
   readonly height?: number;
   readonly interactiveControls?: boolean;
   readonly onHoverX?: (x: number | null) => void;
@@ -134,6 +193,9 @@ export function TelemetryChart({
   distanceUnit = "m",
   distanceScale = 1,
   cornerMarkers = [],
+  cornerZones = [],
+  showCornerAxis = false,
+  showCornerZoneLabels = false,
 }: Props) {
   const theme = themeForTitle(title);
   const chartInstanceIdRef = useRef(nextChartInstanceId++);
@@ -602,35 +664,84 @@ export function TelemetryChart({
         </div>
       )}
 
+      {visibleRange && showCornerZoneLabels && cornerZones.length > 0 && (
+        <div className="relative h-4 bg-black/25">
+          {cornerZones.map((zone) => {
+            const placement = placeRange(
+              zone.startDistance,
+              zone.endDistance,
+              visibleRange,
+              plotBounds,
+            );
+            if (!placement) return null;
+
+            return (
+              <div
+                key={`${zone.key}-label`}
+                className="pointer-events-none absolute bottom-0 top-0 flex items-end justify-center overflow-hidden border-l border-r border-t border-white/25"
+                style={placement}
+              >
+                <span className="truncate px-1 text-[8px] font-bold uppercase leading-3 tracking-[0.1em] text-white/70">
+                  {cornerSpeedLabel(zone.speedClass)}
+                </span>
+              </div>
+            );
+          })}
+        </div>
+      )}
+
       <div ref={chartAreaRef} className="relative">
-        <div ref={containerRef} style={{ background: theme.bg }} />
+        {visibleRange && cornerZones.length > 0 && (
+          <div className="pointer-events-none absolute inset-0 z-0 overflow-hidden">
+            {cornerZones.map((zone) => {
+              const placement = placeRange(
+                zone.startDistance,
+                zone.endDistance,
+                visibleRange,
+                plotBounds,
+              );
+              if (!placement) return null;
+
+              return (
+                <div
+                  key={zone.key}
+                  className="absolute bottom-0 top-0"
+                  style={{
+                    ...placement,
+                    background: CORNER_ZONE_COLORS[zone.speedClass],
+                  }}
+                />
+              );
+            })}
+          </div>
+        )}
+        <div
+          className="relative z-[1]"
+          ref={containerRef}
+          style={{ background: theme.bg }}
+        />
       </div>
 
-      {visibleRange && cornerMarkers.length > 0 && (
-        <div className="relative h-5 border-t border-panel/80 bg-black/20">
+      {visibleRange && showCornerAxis && cornerMarkers.length > 0 && (
+        <div className="relative h-6 border-t border-panel/80 bg-black/30">
+          <span className="pointer-events-none absolute left-2 top-0 text-[8px] font-bold uppercase leading-6 tracking-[0.14em] text-muted">
+            Turns
+          </span>
           {cornerMarkers.map((corner) => {
-            const span = visibleRange.max - visibleRange.min;
-            if (
-              span <= 0 ||
-              corner.distance < visibleRange.min ||
-              corner.distance > visibleRange.max
-            ) {
-              return null;
-            }
-
-            const ratio = (corner.distance - visibleRange.min) / span;
-            const hasPlotBounds = plotBounds.width > 0;
-            const left = hasPlotBounds
-              ? `${plotBounds.left + ratio * plotBounds.width}px`
-              : `${ratio * 100}%`;
+            const placement = placePoint(
+              corner.distance,
+              visibleRange,
+              plotBounds,
+            );
+            if (!placement) return null;
 
             return (
               <span
                 key={`${corner.label}-${corner.distance}`}
-                className="pointer-events-none absolute top-0 -translate-x-1/2 text-[9px] font-bold leading-5 text-white/90"
-                style={{ left }}
+                className="pointer-events-none absolute top-0 -translate-x-1/2 text-[9px] font-bold leading-6 text-white/85"
+                style={placement}
               >
-                <span className="absolute bottom-4 left-1/2 h-1.5 w-px -translate-x-1/2 bg-white/50" />
+                <span className="absolute left-1/2 top-1 h-1 w-1 -translate-x-1/2 rounded-full bg-white/70" />
                 {corner.label}
               </span>
             );

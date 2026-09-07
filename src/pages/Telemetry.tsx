@@ -5,6 +5,7 @@ import {
   TelemetryChart,
   type ChartCornerMarker,
 } from "@/components/TelemetryChart/TelemetryChart";
+import { buildCornerZones, type CornerZone } from "@/utils/corners";
 import {
   computeTrackAutoRotationDeg,
   computeTrackBounds,
@@ -764,6 +765,15 @@ export default function Telemetry() {
       distance: (corner.distance / trackPreview.totalDist) * lapDistance,
     }));
   }, [trackPreview, xDist]);
+
+  const telemetryCornerZones = useMemo<CornerZone[]>(() => {
+    if (telemetryCornerMarkers.length === 0 || !dataA.data?.length) return [];
+    return buildCornerZones(
+      telemetryCornerMarkers,
+      xDist,
+      dataA.data.map((sample) => sample.speed),
+    );
+  }, [telemetryCornerMarkers, xDist, dataA.data]);
 
   // For a given set of raw samples, find the interpolated telemetry at a given timeS
   const sampleAtTimeS = useCallback(
@@ -2135,6 +2145,8 @@ export default function Telemetry() {
                 title={`Speed (${speedUnit})`}
                 xData={xDist}
                 cornerMarkers={telemetryCornerMarkers}
+                cornerZones={telemetryCornerZones}
+                showCornerZoneLabels
                 yMin={0}
                 yMax={speedChartMax}
                 height={280}
@@ -2149,6 +2161,7 @@ export default function Telemetry() {
                 title="Throttle (%)"
                 xData={xDist}
                 cornerMarkers={telemetryCornerMarkers}
+                cornerZones={telemetryCornerZones}
                 yMin={0}
                 yMax={100}
                 height={210}
@@ -2163,6 +2176,7 @@ export default function Telemetry() {
                 title="Brake"
                 xData={xDist}
                 cornerMarkers={telemetryCornerMarkers}
+                cornerZones={telemetryCornerZones}
                 yMin={0}
                 yMax={100}
                 height={200}
@@ -2177,6 +2191,7 @@ export default function Telemetry() {
                 title="Gear"
                 xData={xDist}
                 cornerMarkers={telemetryCornerMarkers}
+                cornerZones={telemetryCornerZones}
                 yMin={0}
                 yMax={9}
                 height={210}
@@ -2192,6 +2207,8 @@ export default function Telemetry() {
                 title="RPM"
                 xData={xDist}
                 cornerMarkers={telemetryCornerMarkers}
+                cornerZones={telemetryCornerZones}
+                showCornerAxis={deltaSeries.length === 0}
                 yMin={0}
                 yMax={15000}
                 height={220}
@@ -2215,7 +2232,9 @@ export default function Telemetry() {
                     title=""
                     xData={xDist}
                     cornerMarkers={telemetryCornerMarkers}
-                    height={220}
+                cornerZones={telemetryCornerZones}
+                showCornerAxis
+                height={220}
                     interactiveControls
                     onHoverX={handleChartHoverX}
                     legendUnit="s"
