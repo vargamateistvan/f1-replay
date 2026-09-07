@@ -242,7 +242,6 @@ export default function Telemetry() {
   const trackRouteRef = useRef<SVGPolylineElement | null>(null);
   const trackRouteDialogRef = useRef<SVGPolylineElement | null>(null);
   const prevSelectionRef = useRef<string>("");
-  const [activeMode, setActiveMode] = useState<"quali" | "race" | null>(null);
   const [isCardsAccordionOpen, setIsCardsAccordionOpen] = useState(true);
   const [isTrackDialogOpen, setIsTrackDialogOpen] = useState(false);
   const [searchParams] = useSearchParams();
@@ -273,7 +272,7 @@ export default function Telemetry() {
   // Backward-compatible shared lap. Individual lap selectors can override this.
   const [sharedLap, setSharedLap] = useNumberParam("lap", null);
 
-  const [smoothParam, setSmooth] = useStringParam<"0" | "1">("smooth", "0");
+  const [smoothParam] = useStringParam<"0" | "1">("smooth", "0");
   const smoothing = smoothParam === "1";
 
   const sessions = useSessions(meetingKey);
@@ -294,7 +293,6 @@ export default function Telemetry() {
 
   useEffect(() => {
     const selectionKey = [
-      activeMode ?? "none",
       driverA ?? "na",
       selectedLapA ?? "na",
       driverB ?? "nb",
@@ -348,19 +346,12 @@ export default function Telemetry() {
     return () => {
       animations.forEach((animation) => animation.revert());
     };
-  }, [activeMode, driverA, selectedLapA, driverB, selectedLapB, driverC, selectedLapC, smoothing]);
+  }, [driverA, selectedLapA, driverB, selectedLapB, driverC, selectedLapC, smoothing]);
 
   const driverByNumber = useMemo(
     () => new Map((drivers.data ?? []).map((d) => [d.driver_number, d])),
     [drivers.data],
   );
-
-  const availableLaps = useMemo(() => {
-    if (!laps.data) return [];
-    return [...new Set(laps.data.map((l) => l.lap_number))]
-      .sort((a, b) => a - b)
-      .filter((lapNo) => lapNo > 0);
-  }, [laps.data]);
 
   const lapsByDriver = useMemo(() => {
     const out = new Map<number, number[]>();
@@ -435,7 +426,6 @@ export default function Telemetry() {
   type SlotKey = "a" | "b" | "c";
 
   const setSlotLap = (slot: SlotKey, value: number | null) => {
-    setActiveMode(null);
     if (slot === "a") setLapA(value);
     if (slot === "b") setLapB(value);
     if (slot === "c") setLapC(value);
@@ -452,60 +442,6 @@ export default function Telemetry() {
         : latestLapByDriver.get(selectedDriver);
 
     if (candidate !== undefined) setSlotLap(slot, candidate);
-  };
-
-  const applyBestToAll = () => {
-    trackEvent("telemetry_mode_best_all");
-    setActiveMode(null);
-    if (driverA !== null) {
-      const best = bestLapByDriver.get(driverA);
-      if (best !== undefined) setLapA(best);
-    }
-    if (driverB !== null) {
-      const best = bestLapByDriver.get(driverB);
-      if (best !== undefined) setLapB(best);
-    }
-    if (driverC !== null) {
-      const best = bestLapByDriver.get(driverC);
-      if (best !== undefined) setLapC(best);
-    }
-  };
-
-  const syncOtherLapsToA = () => {
-    trackEvent("telemetry_mode_sync_to_a", {
-      source_lap: selectedLapA ?? -1,
-    });
-    setActiveMode(null);
-    if (selectedLapA === null) return;
-    if (driverB !== null) setLapB(selectedLapA);
-    if (driverC !== null) setLapC(selectedLapA);
-  };
-
-  const applyQualiMode = () => {
-    trackEvent("telemetry_mode_quali");
-    setActiveMode("quali");
-    setSharedLap(null);
-    setSmooth("1");
-    applyBestToAll();
-  };
-
-  const applyRaceMode = () => {
-    trackEvent("telemetry_mode_race");
-    setActiveMode("race");
-    setSharedLap(null);
-    setSmooth("0");
-    if (driverA !== null) {
-      const latest = latestLapByDriver.get(driverA);
-      if (latest !== undefined) setLapA(latest);
-    }
-    if (driverB !== null) {
-      const latest = latestLapByDriver.get(driverB);
-      if (latest !== undefined) setLapB(latest);
-    }
-    if (driverC !== null) {
-      const latest = latestLapByDriver.get(driverC);
-      if (latest !== undefined) setLapC(latest);
-    }
   };
 
   const getLapMeta = useCallback(
@@ -1358,7 +1294,6 @@ export default function Telemetry() {
 
   // When the session changes (driven by the global Nav picker), clear local state.
   useEffect(() => {
-    setActiveMode(null);
     setDriverA(null);
     setDriverB(null);
     setDriverC(null);
@@ -1400,72 +1335,6 @@ export default function Telemetry() {
             : "bg-[radial-gradient(circle_at_top_left,#2a2136_0%,#1b1d28_40%,#16161f_100%)]"
         }`}
       >
-        <div className="mb-3 flex flex-wrap items-center gap-2">
-          <button
-            onClick={applyBestToAll}
-            className="h-[34px] border border-panel bg-track px-3 text-[10px] font-black uppercase tracking-widest text-white transition-colors hover:border-f1red"
-            title="Pick each selected driver's best recorded lap"
-          >
-            Best all
-          </button>
-
-          <button
-            onClick={syncOtherLapsToA}
-            className="h-[34px] border border-panel bg-track px-3 text-[10px] font-black uppercase tracking-widest text-white transition-colors hover:border-f1red"
-            title="Use Driver A lap number for Driver B and Driver C"
-          >
-            Sync to A
-          </button>
-
-          <button
-            onClick={applyQualiMode}
-            className={`h-[34px] border px-3 text-[10px] font-black uppercase tracking-widest transition-colors ${
-              activeMode === "quali"
-                ? "border-[#cb9dff] bg-[#3b2350] text-white shadow-[0_0_0_1px_rgba(203,157,255,0.35),0_0_24px_rgba(155,89,245,0.35)]"
-                : "border-[#63407a] bg-[#23152d] text-[#dcc3ff] hover:border-[#a569d8]"
-            }`}
-            title="Quali mode: best laps + smoothing"
-          >
-            Quali mode
-          </button>
-
-          <button
-            onClick={applyRaceMode}
-            className={`h-[34px] border px-3 text-[10px] font-black uppercase tracking-widest transition-colors ${
-              activeMode === "race"
-                ? "border-[#9bc9ff] bg-[#1a2639] text-white shadow-[0_0_0_1px_rgba(155,201,255,0.35),0_0_24px_rgba(0,103,255,0.3)]"
-                : "border-panel bg-track text-white hover:border-[#95b7ff]"
-            }`}
-            title="Race mode: latest laps + raw traces"
-          >
-            Race mode
-          </button>
-
-          <div className="ml-auto flex items-center gap-2">
-            <span className={LABEL}>Shared lap</span>
-            <select
-              value={sharedLap ?? ""}
-              onChange={(e) => {
-                const nextSharedLap = Number(e.target.value) || null;
-                setActiveMode(null);
-                setSharedLap(nextSharedLap);
-                trackEvent("telemetry_shared_lap_changed", {
-                  lap_number: nextSharedLap ?? -1,
-                });
-              }}
-              disabled={!driverA}
-              className={`${SELECT} min-w-[120px]`}
-            >
-              <option value="">None</option>
-              {availableLaps.map((n) => (
-                <option key={n} value={n}>
-                  Lap {n}
-                </option>
-              ))}
-            </select>
-          </div>
-        </div>
-
         <div className="mb-2 flex items-center justify-between">
           <span className="text-[10px] font-bold uppercase tracking-[0.12em] text-muted">
             Driver & track preview
