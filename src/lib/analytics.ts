@@ -1,7 +1,7 @@
 import { appVersion } from "@/lib/appVersion";
 
 type EventParams = Record<string, string | number | boolean | undefined>;
-type GtagCommand = "js" | "config" | "event";
+type GtagCommand = "js" | "config" | "event" | "set";
 type EngagementEndReason = "navigate" | "hidden" | "pagehide" | "unmount";
 
 type Gtag = (
@@ -77,14 +77,14 @@ function referrerHost(): string | undefined {
 function buildCommonEventParams(): EventParams {
   if (typeof window === "undefined") {
     return {
-      app_version: appVersion ?? undefined,
+      ...buildAppVersionParams(),
     };
   }
 
   const searchParams = new URLSearchParams(window.location.search);
 
   return {
-    app_version: appVersion ?? undefined,
+    ...buildAppVersionParams(),
     language: globalThis.navigator?.language,
     page_path: `${window.location.pathname}${window.location.search}${window.location.hash}`,
     route_name: routeNameForPath(window.location.pathname),
@@ -98,12 +98,21 @@ function buildCommonEventParams(): EventParams {
   };
 }
 
+function buildAppVersionParams(): EventParams {
+  return appVersion ? { app_version: appVersion } : {};
+}
+
 export function initializeAnalytics(): void {
   if (initialized || !shouldTrackAnalytics() || typeof window === "undefined")
     return;
   initialized = true;
+  if (appVersion) {
+    window.gtag?.("set", "user_properties", {
+      app_version: appVersion,
+    });
+  }
   window.gtag?.("config", GA_MEASUREMENT_ID, {
-    app_version: appVersion ?? undefined,
+    ...buildAppVersionParams(),
     send_page_view: false,
   });
   window.gtag?.("event", "app_session_started", {

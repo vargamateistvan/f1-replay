@@ -8,6 +8,7 @@ Enable GA4 by setting this in `.env.local`:
 
 ```dotenv
 VITE_GA_MEASUREMENT_ID=G-XXXXXXXXXX
+VITE_APP_VERSION=1.2.3
 ```
 
 When unset, analytics calls are no-op.
@@ -15,6 +16,10 @@ When unset, analytics calls are no-op.
 For GitHub Pages deployments, set `VITE_GA_MEASUREMENT_ID` in the deploy
 workflow environment (or repository variable) so the production build can emit
 events.
+
+`VITE_APP_VERSION` is sent as both the `app_version` event parameter and the
+`app_version` user property. Register `app_version` in GA4 custom definitions if
+you want it available in standard reports.
 
 ## Event Naming Rules
 

@@ -115,6 +115,9 @@ describe("analytics", () => {
 
     initializeAnalytics();
 
+    expect(gtag).toHaveBeenCalledWith("set", "user_properties", {
+      app_version: "1.2.3",
+    });
     expect(gtag).toHaveBeenCalledWith(
       "config",
       "G-TEST123",

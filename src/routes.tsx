@@ -11,6 +11,7 @@ import {
   useCallback,
   useEffect,
   useRef,
+  useState,
   type ReactNode,
 } from "react";
 import { Nav } from "@/components/Nav";
@@ -115,6 +116,72 @@ function RouteMotionShell({ children }: { children: ReactNode }) {
   );
 }
 
+function ReleaseVersionLabel() {
+  const [releaseDate, setReleaseDate] = useState<string | null>(null);
+
+  useEffect(() => {
+    let isMounted = true;
+    const controller = new AbortController();
+
+    void fetch(
+      "https://api.github.com/repos/vargamateistvan/f1-replay/releases/latest",
+      {
+        headers: {
+          Accept: "application/vnd.github+json",
+          "X-GitHub-Api-Version": "2022-11-28",
+        },
+        signal: controller.signal,
+      },
+    )
+      .then((response) => {
+        if (!response.ok) {
+          throw new Error(`GitHub releases request failed: ${response.status}`);
+        }
+        return response.json() as Promise<{ published_at?: string; created_at?: string }>;
+      })
+      .then((data) => {
+        if (!isMounted) return;
+
+        const publishedAt = data.published_at ?? data.created_at;
+        if (!publishedAt) return;
+
+        setReleaseDate(
+          new Intl.DateTimeFormat(undefined, {
+            month: "short",
+            day: "numeric",
+            year: "numeric",
+          }).format(new Date(publishedAt)),
+        );
+      })
+      .catch(() => {
+        if (isMounted) {
+          setReleaseDate(null);
+        }
+      });
+
+    return () => {
+      isMounted = false;
+      controller.abort();
+    };
+  }, []);
+
+  return (
+    <span className="inline-flex items-center gap-2">
+      <a
+        href="https://github.com/vargamateistvan/f1-replay/releases"
+        target="_blank"
+        rel="noreferrer"
+        className="font-mono uppercase tracking-[0.12em] text-muted/85 transition-colors hover:text-f1red"
+      >
+        Version {appVersionLabel}
+      </a>
+      {releaseDate ? (
+        <span className="font-mono text-[10px] text-muted/70">({releaseDate})</span>
+      ) : null}
+    </span>
+  );
+}
+
 export function AppRouter() {
   return (
     <BrowserRouter>
@@ -139,14 +206,7 @@ export function AppRouter() {
         </main>
         <footer className="hidden border-t border-panel bg-track/90 px-3 py-1 text-[10px] text-muted md:block">
           <div className="mx-auto flex w-full items-center justify-between gap-2.5">
-            <a
-              href="https://github.com/vargamateistvan/f1-replay/releases"
-              target="_blank"
-              rel="noreferrer"
-              className="font-mono uppercase tracking-[0.12em] text-muted/85 transition-colors hover:text-f1red"
-            >
-              Version {appVersionLabel}
-            </a>
+            <ReleaseVersionLabel />
             <div className="flex items-center gap-2.5">
               <Link
                 to="/privacy"
