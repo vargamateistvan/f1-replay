@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import type { Lap } from "@/api/types";
 import { ErrorMessage } from "@/components/ErrorMessage";
 import {
@@ -26,7 +27,12 @@ import { speedUnitLabel, toDisplaySpeed } from "@/utils/units";
 import { toSafeExternalUrl } from "@/utils/url";
 import { DriverHeadshot } from "@/components/DriverHeadshot";
 import { getCircuitGeometry } from "@/data/circuitGeometry";
-import { SECTOR_COLORS } from "@/constants";
+import {
+  CORNER_HIGH_SPEED_KMH,
+  CORNER_LOW_SPEED_KMH,
+  CORNER_ZONE_COLORS,
+  SECTOR_COLORS,
+} from "@/constants";
 import { trackEvent } from "@/lib/analytics";
 import {
   animateMotion,
@@ -45,6 +51,24 @@ interface PlotSlot {
 }
 
 type TrackCornerMarker = ChartCornerMarker;
+
+const CORNER_SPEED_LEGEND = [
+  {
+    label: "Low",
+    range: `< ${CORNER_LOW_SPEED_KMH}`,
+    color: CORNER_ZONE_COLORS.low,
+  },
+  {
+    label: "Medium",
+    range: `${CORNER_LOW_SPEED_KMH}-${CORNER_HIGH_SPEED_KMH - 1}`,
+    color: CORNER_ZONE_COLORS.medium,
+  },
+  {
+    label: "High",
+    range: `${CORNER_HIGH_SPEED_KMH}+`,
+    color: CORNER_ZONE_COLORS.high,
+  },
+] as const;
 
 interface SplitRow {
   num: number;
@@ -1643,14 +1667,18 @@ export default function Telemetry() {
           </div>
 
           {/* Track dialog — full-screen modal with interactive hover */}
-          {isTrackDialogOpen && trackPreview && (
+          {isTrackDialogOpen &&
+            trackPreview &&
+            typeof document !== "undefined" &&
+            createPortal(
+              (
             <div
-              className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm"
+              className="fixed inset-0 z-50 flex items-stretch justify-center bg-black/75 p-2 backdrop-blur-sm sm:items-center sm:p-4"
               onClick={(e) => { if (e.target === e.currentTarget) setIsTrackDialogOpen(false); }}
             >
-              <div className="relative flex w-full max-w-5xl flex-col gap-3 rounded border border-panel bg-[#15151e] p-4 shadow-2xl mx-4" style={{ maxHeight: "90vh" }}>
+              <div className="relative flex h-full w-full max-w-[calc(100vw-1rem)] min-h-0 flex-col gap-2 overflow-hidden rounded border border-panel bg-[#15151e] p-2 shadow-2xl sm:h-[92dvh] sm:max-w-6xl sm:gap-3 sm:p-4 lg:max-w-7xl">
                 {/* Dialog header */}
-                <div className="flex items-center gap-2 shrink-0">
+                <div className="flex shrink-0 flex-wrap items-center gap-2">
                   <span className="text-[10px] font-black uppercase tracking-[0.15em] text-muted">
                     Track position preview
                   </span>
@@ -1671,7 +1699,7 @@ export default function Telemetry() {
                 </div>
 
                 {/* Track SVG — interactive */}
-                <div className="relative overflow-hidden rounded border border-panel bg-track" style={{ height: 440 }}>
+                <div className="relative min-h-[20rem] flex-1 overflow-hidden rounded border border-panel bg-track sm:min-h-[28rem]">
                   <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_25%_20%,rgba(39,68,158,0.2),transparent_45%),radial-gradient(circle_at_85%_80%,rgba(232,0,45,0.1),transparent_40%)]" />
                   <svg
                     viewBox={`0 0 ${TRACK_SVG_W} ${TRACK_SVG_H}`}
@@ -1817,7 +1845,12 @@ export default function Telemetry() {
                     return "bg-panel";
                   };
                   return (
-                    <div className="grid gap-2 shrink-0" style={{ gridTemplateColumns: `repeat(${dialogTrackMarkers.length}, minmax(0,1fr))` }}>
+                    <div
+                      className="grid shrink-0 gap-2 overflow-x-auto pb-1"
+                      style={{
+                        gridTemplateColumns: `repeat(${dialogTrackMarkers.length}, minmax(14rem, 1fr))`,
+                      }}
+                    >
                       {dialogTrackMarkers.map((marker) => (
                         <div key={`dlg-data-${marker.driver}`} className="rounded border bg-track p-2.5" style={{ borderColor: `${marker.color}55` }}>
                           {/* Header: headshot + name + time */}
@@ -1933,7 +1966,9 @@ export default function Telemetry() {
                 })()}
               </div>
             </div>
-          )}
+              ),
+              document.body,
+            )}
         </>
           );
         })()}
@@ -1982,7 +2017,7 @@ export default function Telemetry() {
 
           return (
             <div ref={chartsRef} className="flex flex-col gap-3">
-              <div className="mb-1 flex flex-wrap gap-5 text-xs">
+              <div className="mb-1 flex flex-wrap items-center gap-3 text-xs sm:gap-5">
                 {plotSlots.map((s) => {
                   const lapForSlot =
                     s.num === driverA
@@ -2006,6 +2041,27 @@ export default function Telemetry() {
                     </span>
                   );
                 })}
+                <div className="flex flex-wrap items-center gap-1.5 text-[9px] uppercase tracking-[0.12em] text-muted">
+                  <span className="font-black">Corner speed</span>
+                  {CORNER_SPEED_LEGEND.map((item) => (
+                    <span
+                      key={item.label}
+                      className="inline-flex items-center gap-1 rounded-sm border border-panel bg-surface px-1.5 py-1"
+                      title={`${item.label} speed corner: ${item.range} km/h apex speed`}
+                    >
+                      <span
+                        className="h-2 w-2 rounded-sm border border-white/20"
+                        style={{ background: item.color }}
+                      />
+                      <span className="font-black text-white/85">
+                        {item.label}
+                      </span>
+                      <span className="font-mono normal-case text-muted">
+                        {item.range} km/h
+                      </span>
+                    </span>
+                  ))}
+                </div>
               </div>
 
               <SplitsTable rows={splitRows} fastest={fastest} />

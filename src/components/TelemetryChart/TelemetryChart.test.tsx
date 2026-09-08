@@ -127,4 +127,33 @@ describe("TelemetryChart", () => {
     expect(dstLast.min).toBe(srcLast.min);
     expect(dstLast.max).toBe(srcLast.max);
   });
+
+  it("renders every corner speed class in the chart key", () => {
+    render(
+      <TelemetryChart
+        title="Speed"
+        xData={[0, 50, 100, 150]}
+        series={[
+          { label: "VER", color: "#e8002d", data: [100, 150, 140, 130] },
+        ]}
+        cornerZones={[
+          {
+            key: "turn-1",
+            labels: ["1"],
+            apexes: [50],
+            startDistance: 25,
+            endDistance: 75,
+            speedClass: "low",
+            minSpeed: 100,
+          },
+        ]}
+        showCornerZoneLabels
+      />,
+    );
+
+    expect(screen.getByText("Low speed")).toBeInTheDocument();
+    expect(screen.getByText("Medium speed")).toBeInTheDocument();
+    expect(screen.getByText("High speed")).toBeInTheDocument();
+    expect(screen.getByText("Low")).toBeInTheDocument();
+  });
 });

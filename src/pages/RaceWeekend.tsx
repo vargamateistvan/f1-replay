@@ -1801,9 +1801,6 @@ export default function RaceWeekend() {
     setFocusSelection(null, null, "clear_focus");
   };
 
-  const showTrackerInlinePlayback =
-    isCompactViewport && currentView === "tracker" && activeTrackerTab === "map";
-
   // ── Shared sub-components ────────────────────────────────────────────────────
 
   const timingTower = (
@@ -2214,37 +2211,6 @@ export default function RaceWeekend() {
                         </span>
                       )}
                     </div>
-                    {showTrackerInlinePlayback && (
-                      <PlaybackBar
-                        durationMs={playbackDurationMs}
-                        lapStarts={lapMarks}
-                        pitTimes={pitMarks}
-                        flagTimes={flagMarks}
-                        safetyCarTimes={safetyCarMarks}
-                        overtakeTimes={overtakeMarks}
-                        radioTimes={radioMarks}
-                        raceControlMarkers={raceControlMarkers}
-                        markerSummary={markerSummary}
-                        canReplayCurrentIncident={
-                          currentReplayIncident !== undefined
-                        }
-                        onReplayCurrentIncident={replayCurrentIncident}
-                        canReplayNextIncident={
-                          nextReplayIncident !== undefined ||
-                          firstReplayIncident !== undefined
-                        }
-                        onReplayNextIncident={replayNextIncident}
-                        incidentReplayHint={incidentReplayHint}
-                        countdownMs={countdownMs}
-                        qualiPhase={qualiPhase}
-                        q2StartMs={qualiPhaseStartTimes.q2StartMs}
-                        q3StartMs={qualiPhaseStartTimes.q3StartMs}
-                        onSeek={prefetchPlaybackWindows}
-                        mobileInline
-                        showSpeedControls={showPlaybackSpeedControls}
-                        showEventChips={showPlaybackEventChips}
-                      />
-                    )}
                   </div>
                 )}
 
@@ -2674,34 +2640,31 @@ export default function RaceWeekend() {
           />
         )}
 
-      {!showTrackerInlinePlayback && (
-        <PlaybackBar
-          durationMs={playbackDurationMs}
-          lapStarts={lapMarks}
-          pitTimes={pitMarks}
-          flagTimes={flagMarks}
-          safetyCarTimes={safetyCarMarks}
-          overtakeTimes={overtakeMarks}
-          radioTimes={radioMarks}
-          raceControlMarkers={raceControlMarkers}
-          markerSummary={markerSummary}
-          canReplayCurrentIncident={currentReplayIncident !== undefined}
-          onReplayCurrentIncident={replayCurrentIncident}
-          canReplayNextIncident={
-            nextReplayIncident !== undefined ||
-            firstReplayIncident !== undefined
-          }
-          onReplayNextIncident={replayNextIncident}
-          incidentReplayHint={incidentReplayHint}
-          countdownMs={countdownMs}
-          qualiPhase={qualiPhase}
-          q2StartMs={qualiPhaseStartTimes.q2StartMs}
-          q3StartMs={qualiPhaseStartTimes.q3StartMs}
-          onSeek={prefetchPlaybackWindows}
-          showSpeedControls={showPlaybackSpeedControls}
-          showEventChips={showPlaybackEventChips}
-        />
-      )}
+      <PlaybackBar
+        durationMs={playbackDurationMs}
+        lapStarts={lapMarks}
+        pitTimes={pitMarks}
+        flagTimes={flagMarks}
+        safetyCarTimes={safetyCarMarks}
+        overtakeTimes={overtakeMarks}
+        radioTimes={radioMarks}
+        raceControlMarkers={raceControlMarkers}
+        markerSummary={markerSummary}
+        canReplayCurrentIncident={currentReplayIncident !== undefined}
+        onReplayCurrentIncident={replayCurrentIncident}
+        canReplayNextIncident={
+          nextReplayIncident !== undefined || firstReplayIncident !== undefined
+        }
+        onReplayNextIncident={replayNextIncident}
+        incidentReplayHint={incidentReplayHint}
+        countdownMs={countdownMs}
+        qualiPhase={qualiPhase}
+        q2StartMs={qualiPhaseStartTimes.q2StartMs}
+        q3StartMs={qualiPhaseStartTimes.q3StartMs}
+        onSeek={prefetchPlaybackWindows}
+        showSpeedControls={showPlaybackSpeedControls}
+        showEventChips={showPlaybackEventChips}
+      />
     </div>
   );
 }

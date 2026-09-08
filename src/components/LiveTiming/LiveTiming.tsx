@@ -997,14 +997,30 @@ export function LiveTiming({
       });
     }
 
-    return [...posMap.entries()]
-      .sort((a, b) => a[1] - b[1])
-      .map(([driverNumber, displayPosition]) => ({
+    const activeDriverNumbers = new Set<number>();
+    drivers.forEach((driver) => activeDriverNumbers.add(driver.driver_number));
+    posMap.forEach((_, driverNumber) => activeDriverNumbers.add(driverNumber));
+    startPosMap.forEach((_, driverNumber) =>
+      activeDriverNumbers.add(driverNumber),
+    );
+    gridMap.forEach((_, driverNumber) => activeDriverNumbers.add(driverNumber));
+
+    return [...activeDriverNumbers]
+      .sort(
+        (a, b) =>
+          (posMap.get(a) ?? referenceOrderMap.get(a) ?? Number.MAX_SAFE_INTEGER) -
+          (posMap.get(b) ?? referenceOrderMap.get(b) ?? Number.MAX_SAFE_INTEGER),
+      )
+      .map((driverNumber, idx) => ({
         driverNumber,
-        displayPosition,
+        displayPosition:
+          posMap.get(driverNumber) ??
+          startPosMap.get(driverNumber) ??
+          gridMap.get(driverNumber) ??
+          idx + 1,
         eliminatedPhase: null,
       }));
-  }, [posMap, sessionName, timedOrder]);
+  }, [drivers, gridMap, posMap, referenceOrderMap, sessionName, startPosMap, timedOrder]);
 
   const leaderBestLap = useMemo(() => {
     const leader = sorted[0];

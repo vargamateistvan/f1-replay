@@ -1099,7 +1099,7 @@ describe("component coverage boost", () => {
 
   it("covers LiveTiming loading and empty states", () => {
     const baseProps = {
-      drivers,
+      drivers: [] as Driver[],
       positions: [] as Position[],
       intervals: [] as Interval[],
       pits: [] as Pit[],

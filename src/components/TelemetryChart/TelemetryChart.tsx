@@ -3,7 +3,11 @@ import uPlot from "uplot";
 import "uplot/dist/uPlot.min.css";
 import { ErrorMessage } from "@/components/ErrorMessage";
 import { CORNER_ZONE_COLORS } from "@/constants";
-import { cornerSpeedLabel, type CornerZone } from "@/utils/corners";
+import {
+  cornerSpeedLabel,
+  type CornerSpeedClass,
+  type CornerZone,
+} from "@/utils/corners";
 
 const X_SYNC_EVENT = "telemetrychart:x-sync";
 const X_SYNC_GROUP = "telemetry";
@@ -105,6 +109,13 @@ interface Props {
   readonly height?: number;
   readonly interactiveControls?: boolean;
   readonly onHoverX?: (x: number | null) => void;
+}
+
+const CORNER_SPEED_CLASS_ORDER: CornerSpeedClass[] = ["low", "medium", "high"];
+
+function cornerSpeedShortLabel(speedClass: CornerSpeedClass): string {
+  if (speedClass === "medium") return "Med";
+  return speedClass[0]!.toUpperCase() + speedClass.slice(1);
 }
 
 interface ChartTheme {
@@ -665,28 +676,45 @@ export function TelemetryChart({
       )}
 
       {visibleRange && showCornerZoneLabels && cornerZones.length > 0 && (
-        <div className="relative h-4 bg-black/25">
-          {cornerZones.map((zone) => {
-            const placement = placeRange(
-              zone.startDistance,
-              zone.endDistance,
-              visibleRange,
-              plotBounds,
-            );
-            if (!placement) return null;
-
-            return (
-              <div
-                key={`${zone.key}-label`}
-                className="pointer-events-none absolute bottom-0 top-0 flex items-end justify-center overflow-hidden border-l border-r border-t border-white/25"
-                style={placement}
+        <div className="border-t border-panel/70 bg-black/25">
+          <div className="flex flex-wrap items-center gap-1 px-2 py-1">
+            {CORNER_SPEED_CLASS_ORDER.map((speedClass) => (
+              <span
+                key={speedClass}
+                className="inline-flex items-center gap-1 rounded-sm border border-panel/80 bg-track/80 px-1.5 py-0.5 text-[8px] font-black uppercase tracking-[0.1em] text-white/80"
+                title={cornerSpeedLabel(speedClass)}
               >
-                <span className="truncate px-1 text-[8px] font-bold uppercase leading-3 tracking-[0.1em] text-white/70">
-                  {cornerSpeedLabel(zone.speedClass)}
-                </span>
-              </div>
-            );
-          })}
+                <span
+                  className="h-2 w-2 rounded-sm border border-white/15"
+                  style={{ background: CORNER_ZONE_COLORS[speedClass] }}
+                />
+                {cornerSpeedLabel(speedClass)}
+              </span>
+            ))}
+          </div>
+          <div className="relative h-4">
+            {cornerZones.map((zone) => {
+              const placement = placeRange(
+                zone.startDistance,
+                zone.endDistance,
+                visibleRange,
+                plotBounds,
+              );
+              if (!placement) return null;
+
+              return (
+                <div
+                  key={`${zone.key}-label`}
+                  className="pointer-events-none absolute bottom-0 top-0 flex items-end justify-center overflow-visible border-l border-r border-t border-white/25"
+                  style={placement}
+                >
+                  <span className="whitespace-nowrap px-1 text-[8px] font-bold uppercase leading-3 tracking-[0.1em] text-white/70">
+                    {cornerSpeedShortLabel(zone.speedClass)}
+                  </span>
+                </div>
+              );
+            })}
+          </div>
         </div>
       )}
 

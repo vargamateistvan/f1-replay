@@ -1,4 +1,5 @@
 import { memo, useCallback, useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import {
   FastForward,
   Pause,
@@ -186,6 +187,7 @@ export function PlaybackBar({
   const [isEditingTime, setIsEditingTime] = useState(false);
   const playPauseButtonRef = useRef<HTMLButtonElement | null>(null);
   const isCompactViewport = useMediaQuery("(max-width: 639px)");
+  const isMobileNavViewport = useMediaQuery("(max-width: 767px)");
   const hasClampedRef = useRef(false);
   const skipTimeCommitOnBlurRef = useRef(false);
   const lightMode = useSettings((s) => s.lightMode);
@@ -287,7 +289,7 @@ export function PlaybackBar({
   const hasReplayNextAction =
     canReplayNextIncident && onReplayNextIncident !== undefined;
 
-  return (
+  const playbackBar = (
     <div
       className={`flex flex-col gap-1.5 py-2 bg-track border-t border-panel sm:gap-2 sm:py-2.5 ${
         mobileInline
@@ -681,4 +683,14 @@ export function PlaybackBar({
       )}
     </div>
   );
+
+  if (
+    !mobileInline &&
+    isMobileNavViewport &&
+    typeof document !== "undefined"
+  ) {
+    return createPortal(playbackBar, document.body);
+  }
+
+  return playbackBar;
 }

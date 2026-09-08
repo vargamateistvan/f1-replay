@@ -35,7 +35,7 @@ describe("LiveTiming", () => {
 
   it("covers loading and empty states", () => {
     const baseProps = {
-      drivers,
+      drivers: [] as Driver[],
       positions: [] as Position[],
       intervals: [] as Interval[],
       pits: [] as Pit[],
@@ -52,6 +52,23 @@ describe("LiveTiming", () => {
 
     rerender(<LiveTiming {...baseProps} sessionStartMs={1} />);
     expect(screen.getByText("Waiting for timing")).toBeInTheDocument();
+  });
+
+  it("renders known drivers before position samples arrive", () => {
+    render(
+      <LiveTiming
+        drivers={drivers}
+        positions={[]}
+        intervals={[]}
+        pits={[]}
+        laps={[]}
+        sessionTimeMs={0}
+        sessionStartMs={Date.parse("2024-01-01T00:00:00.000Z")}
+      />,
+    );
+
+    expect(screen.getAllByText("VER").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("LEC").length).toBeGreaterThan(0);
   });
 
   it("covers no-sector-reference and dense hint paths", () => {
