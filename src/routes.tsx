@@ -154,6 +154,7 @@ function ReleaseVersionLabel() {
             minute: "2-digit",
             second: "2-digit",
             hour12: false,
+            timeZoneName: "short",
             timeZone: "UTC",
           }).format(new Date(publishedAt)),
         );
