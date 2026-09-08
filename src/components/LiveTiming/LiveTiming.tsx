@@ -1557,7 +1557,7 @@ export function LiveTiming({
               )}
               {showTelemetry && combinedTelemetryColumn && (
                 <th
-                  className={`${headerCellClass} text-left w-[9rem]`}
+                  className={`${headerCellClass} hidden sm:table-cell text-left w-[9rem]`}
                 >
                   <span className="block leading-none">Telemetry</span>
                   <span className="block text-[8px] normal-case tracking-normal text-muted leading-none mt-0.5">
@@ -2132,7 +2132,7 @@ export function LiveTiming({
                   {/* Live car telemetry — combined single column */}
                   {showTelemetry && combinedTelemetryColumn && (
                     <td
-                      className={`${rowCellPad} align-middle px-2`}
+                      className={`${rowCellPad} align-middle px-2 hidden sm:table-cell`}
                     >
                       {car ? (
                         <span className="flex flex-col gap-0.5 font-mono tabular-nums leading-tight">
