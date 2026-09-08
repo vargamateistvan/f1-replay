@@ -2071,6 +2071,7 @@ export default function Telemetry() {
                 xData={xDist}
                 cornerMarkers={telemetryCornerMarkers}
                 cornerZones={telemetryCornerZones}
+                showCornerAxis
                 showCornerZoneLabels
                 yMin={0}
                 yMax={speedChartMax}
@@ -2087,6 +2088,7 @@ export default function Telemetry() {
                 xData={xDist}
                 cornerMarkers={telemetryCornerMarkers}
                 cornerZones={telemetryCornerZones}
+                showCornerAxis
                 yMin={0}
                 yMax={100}
                 height={210}
@@ -2102,6 +2104,7 @@ export default function Telemetry() {
                 xData={xDist}
                 cornerMarkers={telemetryCornerMarkers}
                 cornerZones={telemetryCornerZones}
+                showCornerAxis
                 yMin={0}
                 yMax={100}
                 height={200}
@@ -2117,6 +2120,7 @@ export default function Telemetry() {
                 xData={xDist}
                 cornerMarkers={telemetryCornerMarkers}
                 cornerZones={telemetryCornerZones}
+                showCornerAxis
                 yMin={0}
                 yMax={9}
                 height={210}
@@ -2133,7 +2137,7 @@ export default function Telemetry() {
                 xData={xDist}
                 cornerMarkers={telemetryCornerMarkers}
                 cornerZones={telemetryCornerZones}
-                showCornerAxis={deltaSeries.length === 0}
+                showCornerAxis
                 yMin={0}
                 yMax={15000}
                 height={220}
@@ -2157,9 +2161,9 @@ export default function Telemetry() {
                     title=""
                     xData={xDist}
                     cornerMarkers={telemetryCornerMarkers}
-                cornerZones={telemetryCornerZones}
-                showCornerAxis
-                height={220}
+                    cornerZones={telemetryCornerZones}
+                    showCornerAxis
+                    height={220}
                     interactiveControls
                     onHoverX={handleChartHoverX}
                     legendUnit="s"
