@@ -18,8 +18,30 @@ workflow environment (or repository variable) so the production build can emit
 events.
 
 `VITE_APP_VERSION` is sent as both the `app_version` event parameter and the
-`app_version` user property. Register `app_version` in GA4 custom definitions if
-you want it available in standard reports.
+`app_version` user property.
+
+### Important: viewing app_version in GA4
+
+GA4's built-in **App version** dimension (`appVersion`, shown under
+User → Tech details / User Technology reports) is populated **only** from
+Firebase-linked mobile app data streams. It will always show `(not set)` for
+a web (`gtag.js`) property like this one, no matter what we send from the
+client — this is a GA4 platform limitation, not a bug in this app's code.
+
+To see the release version for this web app in GA4, register a **custom
+dimension** instead of relying on the built-in App version report:
+
+1. In GA4, go to **Admin → Custom definitions → Create custom dimension**.
+2. Set:
+   - Dimension name: `App version` (or similar)
+   - Scope: `Event`
+   - Event parameter: `app_version`
+3. Save. It can take a few hours for new events to populate the custom
+   dimension after it's created (retroactive backfill is not supported).
+4. To report on it, build a new **Explore** report (not the User Technology
+   report) and add your custom dimension (e.g. "App version") as the
+   dimension — the built-in "App version" field under User Technology will
+   remain `(not set)` regardless.
 
 ## Event Naming Rules
 
