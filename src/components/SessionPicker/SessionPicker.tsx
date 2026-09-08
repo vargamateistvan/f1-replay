@@ -102,23 +102,33 @@ export function SessionPicker({
 
   const selectLatestEvent = useCallback(
     (source: "auto" | "manual" = "auto") => {
+      if (latestSession) {
+        onYear(latestSession.year);
+        onMeeting(latestSession.meeting_key);
+        onSession(latestSession.session_key);
+        if (source === "manual") {
+          trackEvent("sessionpicker_latest_event", {
+            year: latestSession.year,
+            meeting_key: latestSession.meeting_key,
+            session_key: latestSession.session_key,
+          });
+        }
+        setSelectLatestSessionOnLoad(false);
+        return;
+      }
+
       const latestMeetingFallback = meetings.data
         ?.slice()
         .sort(
           (a, b) =>
             new Date(b.date_start).getTime() - new Date(a.date_start).getTime(),
         )[0];
-      const latest = latestSession?.meeting_key
+      const latest = latestMeetingFallback
         ? {
-            year: latestSession.year,
-            meeting_key: latestSession.meeting_key,
+            year: latestMeetingFallback.year,
+            meeting_key: latestMeetingFallback.meeting_key,
           }
-        : latestMeetingFallback
-          ? {
-              year: latestMeetingFallback.year,
-              meeting_key: latestMeetingFallback.meeting_key,
-            }
-          : null;
+        : null;
 
       if (!latest) return;
       onYear(latest.year);
@@ -131,7 +141,7 @@ export function SessionPicker({
       }
       setSelectLatestSessionOnLoad(true);
     },
-    [latestSession, meetings.data, onYear, onMeeting],
+    [latestSession, meetings.data, onYear, onMeeting, onSession],
   );
 
   // First mount behavior: if nothing is selected yet, auto-run Latest Event.
@@ -358,7 +368,10 @@ export function SessionPicker({
           <button
             type="button"
             onClick={() => selectLatestEvent("manual")}
-            disabled={meetings.isPending || !meetings.data?.length}
+            disabled={
+              latestSessionQuery.isPending ||
+              (!latestSession && (meetings.isPending || !meetings.data?.length))
+            }
             className="h-7 px-2 text-[10px] font-black uppercase tracking-widest rounded bg-track text-muted hover:text-white hover:bg-panel disabled:opacity-40 disabled:cursor-not-allowed light:bg-white light:text-slate-600 light:border light:border-slate-300 light:hover:text-slate-900 light:hover:bg-slate-100"
           >
             Latest Event

@@ -5,7 +5,12 @@ import {
   useNavigate,
 } from "react-router-dom";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { useLatestMeeting, useMeetings, useSessions } from "@/hooks/useSession";
+import {
+  useLatestMeeting,
+  useLatestSession,
+  useMeetings,
+  useSessions,
+} from "@/hooks/useSession";
 import { isAuthError } from "@/api/client";
 import { isSessionLive } from "@/utils/live";
 import { LIVE_BUFFER_MS, YEARS, DEFAULT_YEAR } from "@/constants";
@@ -159,6 +164,7 @@ export function Nav() {
 
   const meetings = useMeetings(year);
   const latestMeetingQuery = useLatestMeeting();
+  const latestSessionQuery = useLatestSession();
   // Fetch the current calendar year only when the next-race banner needs it
   // and the user is browsing a different year.
   const currentCalendarYear = new Date().getFullYear();
@@ -171,8 +177,10 @@ export function Nav() {
   const authFailed =
     isAuthError(meetings.error) ||
     isAuthError(sessions.error) ||
-    isAuthError(latestMeetingQuery.error);
+    isAuthError(latestMeetingQuery.error) ||
+    isAuthError(latestSessionQuery.error);
   const latestMeeting = latestMeetingQuery.data ?? null;
+  const latestSession = latestSessionQuery.data ?? null;
 
   const selectedMeeting = meetings.data?.find(
     (m) => m.meeting_key === meetingKey,
@@ -415,6 +423,29 @@ export function Nav() {
 
   const selectLatestEvent = useCallback(
     (source: "auto" | "manual" = "auto") => {
+      if (latestSession) {
+        if (source === "manual") {
+          trackEvent("nav_latest_event", {
+            year: latestSession.year,
+            meeting_key: latestSession.meeting_key,
+            session_key: latestSession.session_key,
+          });
+        }
+
+        resetPlaybackToStart();
+        setSearchParams((prev) => {
+          const next = new URLSearchParams(prev);
+          next.set("year", String(latestSession.year));
+          next.set("meeting", String(latestSession.meeting_key));
+          next.set("session", String(latestSession.session_key));
+          clearReplayTimeParam(next);
+          replaceHistorySearchParams(next);
+          return next;
+        });
+        setSelectLatestSessionOnLoad(false);
+        return;
+      }
+
       const isOngoing = (m: { date_start: string; date_end: string }) =>
         new Date(m.date_start).getTime() <= nowMs &&
         nowMs <= new Date(m.date_end).getTime() + LIVE_BUFFER_MS;
@@ -482,7 +513,7 @@ export function Nav() {
       });
       setSelectLatestSessionOnLoad(true);
     },
-    [latestMeeting, startedMeetings, nowMs, setSearchParams],
+    [latestMeeting, latestSession, startedMeetings, nowMs, setSearchParams],
   );
 
   // First app load behavior: mimic pressing "Latest" automatically when
@@ -1008,7 +1039,10 @@ export function Nav() {
             <button
               type="button"
               onClick={() => selectLatestEvent("manual")}
-              disabled={meetings.isPending || !meetings.data?.length}
+              disabled={
+                latestSessionQuery.isPending ||
+                (!latestSession && (meetings.isPending || !meetings.data?.length))
+              }
               className="h-6 px-2 text-[9px] font-black uppercase tracking-widest rounded transition-colors bg-panel text-muted hover:text-white hover:bg-track disabled:opacity-40 disabled:cursor-not-allowed light:bg-white light:text-slate-600 light:border light:border-slate-300 light:hover:text-slate-900 light:hover:bg-slate-100"
             >
               Latest
