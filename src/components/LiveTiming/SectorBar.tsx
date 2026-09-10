@@ -1,6 +1,6 @@
 import { useSettings } from "@/stores/settings";
 
-export type SectorTier = "fastest" | "personal" | "fast" | "normal" | "none";
+export type SectorTier = "fastest" | "personal" | "normal" | "none";
 
 interface Props {
   tier: SectorTier;
@@ -12,9 +12,8 @@ interface Props {
 
 // Coloured rectangle matching F1.com sector-status encoding:
 //   fastest  = purple (session best)
-//   personal = yellow (driver personal best)
-//   fast     = green  (within threshold of best but not best)
-//   normal   = dim    (set but unimpressive)
+//   personal = green (driver personal best)
+//   normal   = yellow (slower than the driver's personal best)
 //   none     = empty  (not yet set)
 function minisectorClass(code: number, lightMode: boolean): string {
   // OpenF1 minisector state IDs can vary by session feed. Map common families
@@ -42,9 +41,8 @@ export function SectorBar({
   const lightMode = useSettings((s) => s.lightMode);
   const colour: Record<SectorTier, string> = {
     fastest: "bg-[#9b59f5]",
-    personal: "bg-[#f5d400]",
-    fast: "bg-[#39b54a]",
-    normal: lightMode ? "bg-slate-500/55" : "bg-white/30",
+    personal: "bg-[#39b54a]",
+    normal: "bg-[#f5d400]",
     none: lightMode ? "bg-slate-300/95" : "bg-panel",
   };
 

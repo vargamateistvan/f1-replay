@@ -59,11 +59,6 @@ export const RACE_LEADER_NOTIFICATION_MS = 5_000;
 // Lap used to derive the track outline (a clean early lap; falls back to lap 3, then any).
 export const TRACK_OUTLINE_LAP = 2;
 
-// ── Live timing sector colours ──────────────────────────────────────────────--
-// Delta (s) of a sector vs the session best that still counts as that colour.
-export const SECTOR_PURPLE_S = 0.05; // within 50 ms of best → personal/overall best
-export const SECTOR_GREEN_S = 0.5; // within 0.5 s → green
-
 // Fallback session duration when date_end is missing (2 hours).
 export const DEFAULT_SESSION_MS = 7_200_000;
 

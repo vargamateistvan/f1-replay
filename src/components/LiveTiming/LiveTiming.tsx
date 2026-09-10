@@ -15,7 +15,6 @@ import type {
 import { teamColor } from "@/utils/color";
 import { laneDuration } from "@/utils/pit";
 import { deriveRetiredDrivers } from "@/utils/retirement";
-import { SECTOR_GREEN_S } from "@/constants";
 import { useSettings } from "@/stores/settings";
 import { animateMotion, motionEnabled, tabSwapMotion } from "@/lib/motion";
 import {
@@ -154,20 +153,19 @@ function sectorTier(
   personalBest: number | null,
 ): SectorTier {
   if (t === null) return "none";
-  if (best !== null && t <= best + 0.001) return "fastest";
-  if (personalBest !== null && t <= personalBest + 0.001) return "personal";
-  if (best !== null && t - best <= SECTOR_GREEN_S) return "fast";
-  if (t !== null) return "normal";
-  return "none";
+  if (best !== null && t <= best) return "fastest";
+  if (personalBest !== null && t <= personalBest) return "personal";
+  return "normal";
 }
 
 function lapTimeTier(
   lapTime: number | null,
   sessionBest: number | null,
-): "fastest" | "fast" | "normal" | "none" {
-  if (lapTime === null || sessionBest === null) return "none";
-  if (lapTime <= sessionBest + 0.001) return "fastest";
-  if (lapTime - sessionBest <= SECTOR_GREEN_S) return "fast";
+  personalBest: number | null,
+): SectorTier {
+  if (lapTime === null) return "none";
+  if (sessionBest !== null && lapTime <= sessionBest) return "fastest";
+  if (personalBest !== null && lapTime <= personalBest) return "personal";
   return "normal";
 }
 
@@ -250,8 +248,8 @@ function StatusBadgeTooltip({
 
 const LAP_TIME_COLOUR: Record<string, string> = {
   fastest: "text-[#9b59f5]",
-  fast: "text-[#39b54a]",
-  normal: "text-white",
+  personal: "text-[#39b54a]",
+  normal: "text-[#f5d400]",
   none: "text-muted",
 };
 
@@ -1682,6 +1680,7 @@ export function LiveTiming({
               const lapTier = lapTimeTier(
                 bestLap?.lap_duration ?? null,
                 sessionBest.lap,
+                bestLap?.lap_duration ?? null,
               );
 
               const startPos = gridMap.get(num) ?? startPosMap.get(num) ?? null;
@@ -1989,7 +1988,7 @@ export function LiveTiming({
 
                   {columns.lastLap && (
                     <td
-                      className={`${mobileLastLapColumnClass} ${rowCellPad} align-middle px-1 text-right font-mono transition-colors duration-300 ${dense ? "text-[9px] min-[390px]:text-[10px]" : "text-[10px] min-[390px]:text-[11px]"} tabular-nums sm:px-1.5 ${LAP_TIME_COLOUR[lapTimeTier(lastLap?.lap_duration ?? null, sessionBest.lap)]} ${timingCellFlashClass(num, "lastLap")}`}
+                      className={`${mobileLastLapColumnClass} ${rowCellPad} align-middle px-1 text-right font-mono transition-colors duration-300 ${dense ? "text-[9px] min-[390px]:text-[10px]" : "text-[10px] min-[390px]:text-[11px]"} tabular-nums sm:px-1.5 ${LAP_TIME_COLOUR[lapTimeTier(lastLap?.lap_duration ?? null, sessionBest.lap, bestLap?.lap_duration ?? null)]} ${timingCellFlashClass(num, "lastLap")}`}
                     >
                       {fmtTime(lastLap?.lap_duration ?? null)}
                     </td>
