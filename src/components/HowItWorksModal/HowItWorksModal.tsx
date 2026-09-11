@@ -254,6 +254,102 @@ export function HowItWorksModal() {
               </ul>
             </section>
 
+            {/* Timing colours */}
+            <section>
+              <h3 className="text-[13px] font-bold text-white uppercase tracking-widest mb-2">
+                🎨 Timing Colours
+              </h3>
+              <ul className="text-[12px] leading-relaxed space-y-1.5 ml-3">
+                <li className="flex items-start gap-2">
+                  <span
+                    aria-hidden="true"
+                    className="mt-1 h-2.5 w-2.5 shrink-0 rounded-sm bg-[#9b59f5]"
+                  />
+                  <span>
+                    <strong className="text-[#b982ff]">Purple:</strong> The
+                    absolute fastest time recorded by any driver in that
+                    specific sector or lap during the current session.
+                  </span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <span
+                    aria-hidden="true"
+                    className="mt-1 h-2.5 w-2.5 shrink-0 rounded-sm bg-[#39b54a]"
+                  />
+                  <span>
+                    <strong className="text-[#39d743]">Green:</strong> A
+                    personal best time for that specific driver in that sector
+                    or lap during the session, but not fast enough to beat the
+                    overall session leader.
+                  </span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <span
+                    aria-hidden="true"
+                    className="mt-1 h-2.5 w-2.5 shrink-0 rounded-sm bg-[#f5d400]"
+                  />
+                  <span>
+                    <strong className="text-[#f5d400]">Yellow:</strong> A time
+                    that is slower than that specific driver&apos;s personal
+                    best for that sector or lap.
+                  </span>
+                </li>
+              </ul>
+            </section>
+
+            {/* Track flags */}
+            <section>
+              <h3 className="text-[13px] font-bold text-white uppercase tracking-widest mb-2">
+                🚩 Track Flags & Status
+              </h3>
+              <ul className="text-[12px] leading-relaxed space-y-1.5 ml-3">
+                <li>
+                  <strong className="text-[#00c851]">Green flag:</strong>{" "}
+                  Track is clear and racing can continue normally.
+                </li>
+                <li>
+                  <strong className="text-[#f5d400]">Yellow flag:</strong>{" "}
+                  Hazard on track; slow down and no overtaking in the affected
+                  sector.
+                </li>
+                <li>
+                  <strong className="text-[#f5d400]">
+                    Double yellow flags:
+                  </strong>{" "}
+                  Major hazard; be prepared to stop and no overtaking.
+                </li>
+                <li>
+                  <strong className="text-[#e8002d]">Red flag:</strong> Session
+                  is stopped because conditions are unsafe.
+                </li>
+                <li>
+                  <strong className="text-[#f5a623]">Safety Car (SC):</strong>{" "}
+                  The safety car is deployed and the field must follow it at a
+                  controlled speed.
+                </li>
+                <li>
+                  <strong className="text-[#f5a623]">
+                    Virtual Safety Car (VSC):
+                  </strong>{" "}
+                  Drivers must follow a regulated delta time without a physical
+                  safety car on track.
+                </li>
+                <li>
+                  <strong className="text-white">Chequered flag:</strong>{" "}
+                  Session or race is complete.
+                </li>
+                <li>
+                  <strong className="text-[#aaa]">Black and white flag:</strong>{" "}
+                  Official warning for unsportsmanlike conduct or a rule
+                  violation.
+                </li>
+                <li>
+                  <strong className="text-[#00c851]">Lights out:</strong> The
+                  race has started.
+                </li>
+              </ul>
+            </section>
+
             {/* Views */}
             <section>
               <h3 className="text-[13px] font-bold text-white uppercase tracking-widest mb-2">

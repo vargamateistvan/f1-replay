@@ -35,4 +35,38 @@ describe("HowItWorksModal", () => {
     fireEvent.keyDown(window, { key: "Escape" });
     expect(state.closeHelp).toHaveBeenCalledTimes(2);
   });
+
+  it("explains live timing colors", () => {
+    state.isHelpOpen = true;
+    render(<HowItWorksModal />);
+
+    expect(screen.getByText("🎨 Timing Colours")).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        /absolute fastest time recorded by any driver/i,
+      ),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(/personal best time for that specific driver/i),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(/slower than that specific driver's personal best/i),
+    ).toBeInTheDocument();
+  });
+
+  it("explains track flags and status indicators", () => {
+    state.isHelpOpen = true;
+    render(<HowItWorksModal />);
+
+    expect(screen.getByText("🚩 Track Flags & Status")).toBeInTheDocument();
+    expect(
+      screen.getByText(/hazard on track; slow down and no overtaking/i),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(/drivers must follow a regulated delta time/i),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(/session or race is complete/i),
+    ).toBeInTheDocument();
+  });
 });
