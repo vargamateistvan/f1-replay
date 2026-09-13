@@ -1947,7 +1947,7 @@ export default function RaceWeekend() {
       activeTrackVehicles={activeTrackVehicles}
       safetyCarSirenOn={safetyCarSirenOn}
       retiredDrivers={retiredDrivers}
-      raceLeader={mapShowRaceLeader ? raceLeaderDriver : null}
+      raceLeader={isRaceSession && mapShowRaceLeader ? raceLeaderDriver : null}
       onSelectDriver={toggleFocus}
     />
   );
