@@ -174,6 +174,9 @@ export function Nav() {
     enabled: needsCurrentYearMeetings,
   });
   const sessions = useSessions(meetingKey);
+  const latestMeetingSessions = useSessions(
+    latestMeetingQuery.data?.meeting_key ?? null,
+  );
   const authFailed =
     isAuthError(meetings.error) ||
     isAuthError(sessions.error) ||
@@ -422,7 +425,63 @@ export function Nav() {
   }
 
   const selectLatestEvent = useCallback(
-    (source: "auto" | "manual" = "auto") => {
+    async (source: "auto" | "manual" = "auto") => {
+      let resolvedMeeting = latestMeeting;
+      let resolvedSessions = latestMeetingSessions.data;
+
+      if (source === "manual") {
+        const latestMeetingResult = await latestMeetingQuery.refetch();
+        resolvedMeeting = latestMeetingResult.data ?? resolvedMeeting;
+
+        if (
+          resolvedMeeting &&
+          resolvedMeeting.meeting_key === latestMeeting?.meeting_key
+        ) {
+          const latestMeetingSessionsResult =
+            await latestMeetingSessions.refetch();
+          resolvedSessions =
+            latestMeetingSessionsResult.data ?? resolvedSessions;
+        } else {
+          resolvedSessions = undefined;
+        }
+      }
+
+      if (resolvedMeeting && latestMeetingSessions.isPending) {
+        return;
+      }
+
+      const latestMeetingSession =
+        resolvedSessions
+          ?.filter((s) => new Date(s.date_start).getTime() <= nowMs)
+          .sort(
+            (a, b) =>
+              new Date(b.date_start).getTime() -
+              new Date(a.date_start).getTime(),
+          )[0] ?? null;
+
+      if (resolvedMeeting && latestMeetingSession) {
+        if (source === "manual") {
+          trackEvent("nav_latest_event", {
+            year: resolvedMeeting.year,
+            meeting_key: resolvedMeeting.meeting_key,
+            session_key: latestMeetingSession.session_key,
+          });
+        }
+
+        resetPlaybackToStart();
+        setSearchParams((prev) => {
+          const next = new URLSearchParams(prev);
+          next.set("year", String(resolvedMeeting.year));
+          next.set("meeting", String(resolvedMeeting.meeting_key));
+          next.set("session", String(latestMeetingSession.session_key));
+          clearReplayTimeParam(next);
+          replaceHistorySearchParams(next);
+          return next;
+        });
+        setSelectLatestSessionOnLoad(false);
+        return;
+      }
+
       if (latestSession) {
         if (source === "manual") {
           trackEvent("nav_latest_event", {
@@ -513,7 +572,15 @@ export function Nav() {
       });
       setSelectLatestSessionOnLoad(true);
     },
-    [latestMeeting, latestSession, startedMeetings, nowMs, setSearchParams],
+    [
+      latestMeeting,
+      latestMeetingSessions,
+      latestMeetingQuery,
+      latestSession,
+      startedMeetings,
+      nowMs,
+      setSearchParams,
+    ],
   );
 
   // First app load behavior: mimic pressing "Latest" automatically when
@@ -1038,9 +1105,12 @@ export function Nav() {
 
             <button
               type="button"
-              onClick={() => selectLatestEvent("manual")}
+              onClick={() => {
+                void selectLatestEvent("manual");
+              }}
               disabled={
                 latestSessionQuery.isPending ||
+                latestMeetingSessions.isPending ||
                 (!latestSession && (meetings.isPending || !meetings.data?.length))
               }
               className="h-6 px-2 text-[9px] font-black uppercase tracking-widest rounded transition-colors bg-panel text-muted hover:text-white hover:bg-track disabled:opacity-40 disabled:cursor-not-allowed light:bg-white light:text-slate-600 light:border light:border-slate-300 light:hover:text-slate-900 light:hover:bg-slate-100"

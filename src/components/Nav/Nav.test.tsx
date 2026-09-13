@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { fireEvent, render, screen } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import type { ReactNode } from "react";
 import { Nav } from "@/components/Nav";
 
@@ -53,18 +53,23 @@ vi.mock("@/timeline/clock", () => ({
 
 vi.mock("@/hooks/useSession", () => ({
   useMeetings: () => state.meetings,
-  useSessions: () => state.sessions,
+  useSessions: () => ({
+    ...state.sessions,
+    refetch: async () => ({ data: state.sessions.data }),
+  }),
   useLatestMeeting: () => ({
     data: state.latestMeeting,
     isPending: false,
     isError: false,
     error: null,
+    refetch: async () => ({ data: state.latestMeeting }),
   }),
   useLatestSession: () => ({
     data: state.latestSession,
     isPending: false,
     isError: false,
     error: null,
+    refetch: async () => ({ data: state.latestSession }),
   }),
 }));
 
@@ -193,15 +198,17 @@ describe("Nav", () => {
     expect(screen.getAllByText("Live").length).toBeGreaterThan(0);
 
     fireEvent.click(screen.getByRole("button", { name: "Latest" }));
-    expect(state.setSearchParams).toHaveBeenCalled();
+    await waitFor(() => expect(state.setSearchParams).toHaveBeenCalled());
     const [updater] = state.setSearchParams.mock.calls[0] as [
       (params: URLSearchParams) => URLSearchParams,
     ];
-    const next = updater(state.searchParams);
-    expect(next.get("year")).toBe("2025");
-    expect(next.get("meeting")).toBe("22");
-    expect(next.get("session")).toBe("202");
-    expect(next.has("t")).toBe(false);
+    await waitFor(() => {
+      const next = updater(state.searchParams);
+      expect(next.get("year")).toBe("2025");
+      expect(next.get("meeting")).toBe("22");
+      expect(next.get("session")).toBe("202");
+      expect(next.has("t")).toBe(false);
+    });
 
     fireEvent.click(screen.getByRole("button", { name: "Settings" }));
     expect(state.openModal).toHaveBeenCalled();
