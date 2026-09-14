@@ -453,8 +453,8 @@ export function TrackMap({
 
     const sector = activeSectorFlag.sector;
     const isSector =
-      (sector === 1 || sector === 2 || sector === 3) &&
-      !(activeSectorFlag.scope?.toLowerCase().includes("track") ?? false);
+      activeSectorFlag.scope?.toLowerCase().includes("sector") === true &&
+      (sector === 1 || sector === 2 || sector === 3);
 
     if (isSector) {
       state.globalFlag = null;

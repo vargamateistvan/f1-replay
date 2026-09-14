@@ -29,9 +29,13 @@ export type SafetyControlPhase =
 
 export function isSectorScopedRaceControl(entry: RaceControlLike): boolean {
   const scopeKey = (entry.scope ?? "").toLowerCase();
-  if (scopeKey.includes("track")) return false;
+  const sectorNumber = entry.sector;
+  const hasExplicitSectorNumber =
+    sectorNumber !== null && sectorNumber !== undefined && sectorNumber !== 0;
+
   if (scopeKey.includes("sector")) return true;
-  return entry.sector !== null && entry.sector !== undefined;
+  if (scopeKey.includes("track")) return false;
+  return hasExplicitSectorNumber;
 }
 
 export function isTrackClearSignal(entry: RaceControlLike): boolean {
@@ -64,6 +68,12 @@ export function isGlobalTrackClearSignal(entry: RaceControlLike): boolean {
 
   const msg = normalizeMessage(entry.message);
   const phase = getSafetyControlPhase(entry);
+  const scopeKey = (entry.scope ?? "").toLowerCase();
+
+  // Scope is authoritative when OpenF1 supplies it: a sector green/clear must
+  // not clear a track-wide flag, even when its message includes "GREEN FLAG".
+  if (scopeKey.includes("sector")) return false;
+  if (scopeKey.includes("track")) return true;
 
   if (phase === "safety_car_end" || phase === "vsc_end") return true;
 

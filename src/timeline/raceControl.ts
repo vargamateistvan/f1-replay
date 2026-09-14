@@ -407,6 +407,8 @@ function dedupeKey(entry: RaceControl): string {
     String(entry.driver_number ?? ""),
     String(entry.flag ?? ""),
     String(entry.lap_number ?? ""),
+    String(entry.scope ?? ""),
+    String(entry.sector ?? ""),
   ].join("|");
 }
 

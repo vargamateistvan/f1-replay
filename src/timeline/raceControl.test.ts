@@ -212,9 +212,11 @@ describe("deriveTrackFlagState", () => {
     });
   });
 
-  it("returns null when no active flags remain after full clear", () => {
+  it("clears the whole track on a track-scoped green flag", () => {
     const state = deriveTrackFlagState(
       [
+        rc({ date: iso(6), flag: "YELLOW", scope: "Sector", sector: 1 }),
+        rc({ date: iso(7), flag: "YELLOW", scope: "Sector", sector: 3 }),
         rc({ date: iso(8), flag: "YELLOW", scope: "Track" }),
         rc({ date: iso(12), flag: "GREEN", scope: "Track" }),
       ],
@@ -282,7 +284,7 @@ describe("deriveTrackFlagState", () => {
     expect(state).toBeNull();
   });
 
-  it("clears global SAFETY_CAR flag on GREEN FLAG even when sector is set", () => {
+  it("clears only the sector on a sector-scoped green flag", () => {
     const state = deriveTrackFlagState(
       [
         rc({
@@ -291,7 +293,7 @@ describe("deriveTrackFlagState", () => {
           flag: "SAFETY_CAR",
           scope: "Track",
         }),
-        rc({ date: iso(25), message: "SAFETY CAR IN THIS LAP" }),
+        rc({ date: iso(15), flag: "YELLOW", scope: "Sector", sector: 2 }),
         rc({
           date: iso(30),
           message: "GREEN FLAG",
@@ -304,7 +306,15 @@ describe("deriveTrackFlagState", () => {
       START + 40_000,
     );
 
-    expect(state).toBeNull();
+    expect(state).toEqual({
+      globalFlag: "SAFETY_CAR",
+      sectorFlags: {
+        1: null,
+        2: "YELLOW",
+        3: null,
+      },
+      updatedAtMs: START + 30_000,
+    });
   });
 
   it("ignores yellow-flag infringement penalties as track-yellow state", () => {
@@ -367,6 +377,60 @@ describe("deriveTrackFlagState", () => {
     );
 
     expect(state?.globalFlag).toBe("RED");
+  });
+
+  it("treats a track-scoped yellow as a whole-track flag even when a sector is set", () => {
+    const state = deriveTrackFlagState(
+      [
+        rc({
+          date: iso(10),
+          flag: "YELLOW",
+          scope: "Track",
+          sector: 1,
+          message: "YELLOW IN TRACK SECTOR 1",
+        }),
+        rc({
+          date: iso(10),
+          flag: "YELLOW",
+          scope: "Track",
+          sector: 2,
+          message: "YELLOW IN TRACK SECTOR 2",
+        }),
+      ],
+      START,
+      START + 30_000,
+    );
+
+    expect(state).toEqual({
+      globalFlag: "YELLOW",
+      sectorFlags: {
+        1: null,
+        2: null,
+        3: null,
+      },
+      updatedAtMs: START + 10_000,
+    });
+  });
+
+  it("clears the whole track on a track-scoped clear even when a sector is set", () => {
+    const state = deriveTrackFlagState(
+      [
+        rc({ date: iso(10), flag: "YELLOW", scope: "Sector", sector: 19 }),
+        rc({ date: iso(12), flag: "YELLOW", scope: "Sector", sector: 17 }),
+        rc({ date: iso(20), flag: "YELLOW", scope: "Track", message: "YELLOW FLAG" }),
+        rc({
+          date: iso(22),
+          flag: "CLEAR",
+          scope: "Track",
+          sector: 19,
+          message: "CLEAR IN TRACK SECTOR 19",
+        }),
+      ],
+      START,
+      START + 30_000,
+    );
+
+    expect(state).toBeNull();
   });
 
   it("sorts unsorted entries by date before processing", () => {

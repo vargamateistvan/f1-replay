@@ -275,6 +275,29 @@ describe("TrackMap sector flag state rendering", () => {
     expect(container).toBeTruthy();
   });
 
+  it("renders a track-scoped yellow across the whole track even when a sector is set", () => {
+    vi.mocked(useTrackOutline).mockReturnValue(
+      mockTrackOutlineQueryResult(mockOutline),
+    );
+
+    render(
+      <TrackMap
+        sessionKey={1}
+        drivers={[mockDriver]}
+        locationData={mockLocationData}
+        sessionStartMs={0}
+        activeSectorFlag={{
+          flag: "YELLOW",
+          scope: "Track",
+          sector: 1,
+        }}
+      />,
+    );
+
+    expect(screen.getByText("Yellow Flag")).toBeTruthy();
+    expect(screen.queryByText("Yellow Flag S1")).toBeNull();
+  });
+
   it("prioritizes activeTrackFlagState over legacy activeSectorFlag when both present", () => {
     const newState: ActiveTrackFlagState = {
       globalFlag: "RED",
