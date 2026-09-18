@@ -2,11 +2,10 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { render, screen } from "@testing-library/react";
 import {
   TrackMap,
-  type ActiveMarshalSectorFlagState,
-  type ActiveTrackFlagState,
 } from "./TrackMap";
 import type { Location } from "@/api/types";
 import { useTrackOutline } from "@/hooks/useTrackMap";
+import type { TrackFlagState } from "@/timeline/raceControl";
 import { getCircuitGeometry } from "@/data/circuitGeometry";
 
 let timelineT = 0;
@@ -203,10 +202,11 @@ describe("TrackMap sector flag state rendering", () => {
     expect(label.getAttribute("x")).toBe("10");
   });
 
-  it("renders without crashing when activeTrackFlagState has independent sectors", () => {
-    const trackFlagState: ActiveTrackFlagState = {
+  it("renders without crashing when marshal posts carry independent flags", () => {
+    const trackFlagState: TrackFlagState = {
       globalFlag: null,
-      sectorFlags: { 1: "YELLOW", 2: null, 3: "RED" },
+      marshalFlags: { 1: "YELLOW", 3: "RED" },
+      maxMarshalSector: 3,
       updatedAtMs: 0,
     };
 
@@ -216,7 +216,7 @@ describe("TrackMap sector flag state rendering", () => {
         drivers={[mockDriver]}
         locationData={mockLocationData}
         sessionStartMs={0}
-        activeTrackFlagState={trackFlagState}
+        trackFlagState={trackFlagState}
       />,
     );
 
@@ -224,9 +224,10 @@ describe("TrackMap sector flag state rendering", () => {
   });
 
   it("renders without crashing when globalFlag is set to SAFETY_CAR", () => {
-    const trackFlagState: ActiveTrackFlagState = {
+    const trackFlagState: TrackFlagState = {
       globalFlag: "SAFETY_CAR",
-      sectorFlags: { 1: null, 2: null, 3: null },
+      marshalFlags: {},
+      maxMarshalSector: 0,
       updatedAtMs: 0,
     };
 
@@ -236,46 +237,28 @@ describe("TrackMap sector flag state rendering", () => {
         drivers={[mockDriver]}
         locationData={mockLocationData}
         sessionStartMs={0}
-        activeTrackFlagState={trackFlagState}
+        trackFlagState={trackFlagState}
       />,
     );
 
     expect(container).toBeTruthy();
   });
 
-  it("renders without crashing when activeTrackFlagState is null", () => {
+  it("renders without crashing when trackFlagState is null", () => {
     const { container } = render(
       <TrackMap
         sessionKey={1}
         drivers={[mockDriver]}
         locationData={mockLocationData}
         sessionStartMs={0}
-        activeTrackFlagState={null}
+        trackFlagState={null}
       />,
     );
 
     expect(container).toBeTruthy();
   });
 
-  it("preserves backward compatibility with legacy activeSectorFlag prop", () => {
-    const { container } = render(
-      <TrackMap
-        sessionKey={1}
-        drivers={[mockDriver]}
-        locationData={mockLocationData}
-        sessionStartMs={0}
-        activeSectorFlag={{
-          flag: "YELLOW",
-          scope: "Sector",
-          sector: 2,
-        }}
-      />,
-    );
-
-    expect(container).toBeTruthy();
-  });
-
-  it("renders a track-scoped yellow across the whole track even when a sector is set", () => {
+  it("badges a track-wide yellow once, not per sector", () => {
     vi.mocked(useTrackOutline).mockReturnValue(
       mockTrackOutlineQueryResult(mockOutline),
     );
@@ -286,10 +269,11 @@ describe("TrackMap sector flag state rendering", () => {
         drivers={[mockDriver]}
         locationData={mockLocationData}
         sessionStartMs={0}
-        activeSectorFlag={{
-          flag: "YELLOW",
-          scope: "Track",
-          sector: 1,
+        trackFlagState={{
+          globalFlag: "YELLOW",
+          marshalFlags: {},
+          maxMarshalSector: 0,
+          updatedAtMs: 0,
         }}
       />,
     );
@@ -298,29 +282,29 @@ describe("TrackMap sector flag state rendering", () => {
     expect(screen.queryByText("Yellow Flag S1")).toBeNull();
   });
 
-  it("prioritizes activeTrackFlagState over legacy activeSectorFlag when both present", () => {
-    const newState: ActiveTrackFlagState = {
-      globalFlag: "RED",
-      sectorFlags: { 1: null, 2: null, 3: null },
-      updatedAtMs: 0,
-    };
+  it("badges the projected timing sector for a marshal-post yellow", () => {
+    vi.mocked(useTrackOutline).mockReturnValue(
+      mockTrackOutlineQueryResult(mockOutline),
+    );
 
-    const { container } = render(
+    render(
       <TrackMap
         sessionKey={1}
         drivers={[mockDriver]}
         locationData={mockLocationData}
         sessionStartMs={0}
-        activeTrackFlagState={newState}
-        activeSectorFlag={{
-          flag: "YELLOW",
-          scope: "Sector",
-          sector: 2,
+        trackFlagState={{
+          globalFlag: null,
+          // Post 22 of 23 sits in the final third of the lap.
+          marshalFlags: { 22: "YELLOW" },
+          maxMarshalSector: 23,
+          updatedAtMs: 0,
         }}
       />,
     );
 
-    expect(container).toBeTruthy();
+    expect(screen.getByText("Yellow Flag S3")).toBeTruthy();
+    expect(screen.queryByText("Yellow Flag S1")).toBeNull();
   });
 
   it("renders marshal-sector track overlays using raw sector numbers", () => {
@@ -349,14 +333,38 @@ describe("TrackMap sector flag state rendering", () => {
       },
     } as never);
 
-    const marshalState: ActiveMarshalSectorFlagState = {
-      globalFlag: null,
-      sectorFlags: {
-        17: "YELLOW",
-        19: "RED",
-      },
-      updatedAtMs: 0,
-    };
+    render(
+      <TrackMap
+        sessionKey={1}
+        drivers={[mockDriver]}
+        locationData={mockLocationData}
+        sessionStartMs={0}
+        circuitKey={123}
+        year={2026}
+        trackFlagState={{
+          globalFlag: null,
+          marshalFlags: { 17: "YELLOW", 19: "RED" },
+          maxMarshalSector: 19,
+          updatedAtMs: 0,
+        }}
+      />,
+    );
+
+    expect(screen.getByTestId("marshal-flag-segment-17")).toBeInTheDocument();
+    expect(screen.getByTestId("marshal-flag-segment-19")).toBeInTheDocument();
+  });
+
+  it("keeps painting marshal-post flags under an inactive global flag", () => {
+    vi.mocked(useTrackOutline).mockReturnValue(
+      mockTrackOutlineQueryResult(mockOutline),
+    );
+    vi.mocked(getCircuitGeometry).mockReturnValue({
+      marshalSectors: [
+        { number: 17, trackPosition: { x: 10, y: 10 } },
+        { number: 18, trackPosition: { x: 45, y: 45 } },
+      ],
+      corners: [],
+    } as never);
 
     render(
       <TrackMap
@@ -366,12 +374,18 @@ describe("TrackMap sector flag state rendering", () => {
         sessionStartMs={0}
         circuitKey={123}
         year={2026}
-        activeMarshalSectorFlagState={marshalState}
+        trackFlagState={{
+          // The chequered flag must not swallow a yellow raised on the
+          // cool-down lap, which is what an unrecognised global flag used to do.
+          globalFlag: "CHEQUERED",
+          marshalFlags: { 17: "YELLOW" },
+          maxMarshalSector: 18,
+          updatedAtMs: 0,
+        }}
       />,
     );
 
     expect(screen.getByTestId("marshal-flag-segment-17")).toBeInTheDocument();
-    expect(screen.getByTestId("marshal-flag-segment-19")).toBeInTheDocument();
   });
 
   it("uses baked circuit rotation as the default track heading", () => {

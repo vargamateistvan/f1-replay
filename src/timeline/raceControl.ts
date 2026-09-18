@@ -2,8 +2,6 @@ import type { RaceControl, Position, Pit } from "@/api/types";
 import {
   getSafetyControlPhase,
   isGlobalTrackClearSignal,
-  isTrackClearSignal,
-  isSectorScopedRaceControl,
 } from "@/utils/raceControlFlags";
 
 export type RaceControlSeverity = "info" | "warning" | "critical";
@@ -68,31 +66,91 @@ export function toFlagKey(flag: string | null): string {
   return (flag ?? "").trim().toUpperCase().replace(/\s+/g, "_");
 }
 
+/**
+ * Current flag state at a playhead, modelled the way OpenF1 actually reports it.
+ *
+ * The `scope` field on a race-control row is authoritative and is only ever
+ * "Track", "Sector", "Driver" or absent. Critically, the `sector` number on a
+ * sector-scoped row is a *marshal post* (circuits run roughly 15-23 of them),
+ * NOT a timing sector. Storing only timing sectors 1/2/3 silently discards
+ * almost every yellow flag, so raw marshal numbers are the source of truth here
+ * and the three-sector view is a projection on top (see
+ * `projectToTimingSectors`).
+ */
 export interface TrackFlagState {
+  /** Track-wide flag: RED, SAFETY_CAR, VIRTUAL_SC, CHEQUERED, … */
   globalFlag: string | null;
-  sectorFlags: {
-    1: string | null;
-    2: string | null;
-    3: string | null;
-  };
+  /** Keyed by the raw OpenF1 sector number, i.e. marshal post number. */
+  marshalFlags: Record<number, string>;
+  /**
+   * Highest marshal post number seen anywhere in the feed, including after the
+   * cutoff. Used as the denominator when projecting posts onto timing sectors
+   * so the projection doesn't shift as the playhead moves.
+   */
+  maxMarshalSector: number;
   updatedAtMs: number;
 }
 
-export interface MarshalSectorFlagState {
-  globalFlag: string | null;
-  sectorFlags: Record<number, string>;
-  updatedAtMs: number;
+/** Flags for timing sectors 1/2/3, projected from marshal posts. */
+export type TimingSectorFlags = Record<1 | 2 | 3, string | null>;
+
+/**
+ * Flags that change how the track is being driven, so they are worth painting.
+ *
+ * Deliberately excludes CHEQUERED (the session is simply over; sector yellows
+ * during the cool-down lap must still show) and GREEN/CLEAR (nothing to draw).
+ * BLUE and BLACK_AND_WHITE are shown to a single car and never describe the
+ * track, so they are excluded too.
+ */
+const ACTIVE_TRACK_FLAGS = new Set([
+  "YELLOW",
+  "DOUBLE_YELLOW",
+  "RED",
+  "SAFETY_CAR",
+  "VIRTUAL_SC",
+  "VIRTUAL_SAFETY_CAR",
+]);
+
+export function isActiveTrackFlag(
+  flag: string | null | undefined,
+): flag is string {
+  return flag != null && ACTIVE_TRACK_FLAGS.has(flag);
 }
 
-const TRACK_FLAG_STATE_EMPTY: TrackFlagState = {
-  globalFlag: null,
-  sectorFlags: { 1: null, 2: null, 3: null },
-  updatedAtMs: 0,
+/** Higher wins when two marshal posts in the same timing sector disagree. */
+const FLAG_SEVERITY: Record<string, number> = {
+  RED: 5,
+  SAFETY_CAR: 4,
+  VIRTUAL_SC: 4,
+  VIRTUAL_SAFETY_CAR: 4,
+  DOUBLE_YELLOW: 3,
+  YELLOW: 2,
 };
 
-function toTimingSectorNumber(sector: number | null): 1 | 2 | 3 | null {
-  if (sector === 1 || sector === 2 || sector === 3) return sector;
-  return null;
+function flagSeverity(flag: string | null): number {
+  return flag === null ? -1 : (FLAG_SEVERITY[flag] ?? 0);
+}
+
+export type RaceControlFlagScope = "sector" | "track" | "driver" | "unscoped";
+
+/**
+ * Classifies which part of the session a race-control row describes.
+ *
+ * Scope is trusted when present. "Driver" rows (waved blue, black-and-white)
+ * are addressed to one car and must never become track state.
+ */
+export function flagScopeOf(entry: {
+  scope?: string | null;
+  sector?: number | null;
+}): RaceControlFlagScope {
+  const scope = (entry.scope ?? "").toLowerCase();
+  if (scope.includes("sector")) return "sector";
+  if (scope.includes("track")) return "track";
+  if (scope.includes("driver")) return "driver";
+  // Defensive: a feed that omits scope but carries a marshal post number.
+  if (entry.sector !== null && entry.sector !== undefined && entry.sector !== 0)
+    return "sector";
+  return "unscoped";
 }
 
 function shouldPreserveRedFlag(
@@ -100,6 +158,68 @@ function shouldPreserveRedFlag(
   nextFlag: string,
 ): boolean {
   return currentFlag === "RED" && SAFETY_CONTROL_FLAGS.has(nextFlag);
+}
+
+/**
+ * "GREEN LIGHT - PIT EXIT OPEN" reopens the pit lane. It is track-scoped and
+ * carries a GREEN flag, but it does not restart the session, so it must not
+ * clear a red flag or a safety car.
+ */
+function isPitLaneOnlyMessage(message: string): boolean {
+  return /\bPIT (?:EXIT|LANE)\b/.test(message);
+}
+
+/**
+ * Whether a row clears flag state.
+ *
+ * Note what is deliberately absent: "SAFETY CAR IN THIS LAP" and "VSC ENDING"
+ * are advance notice, not a restart, so they no longer clear. Every one of the
+ * 17 such messages sampled across 2023, 2025 and 2026 was followed by a
+ * track-scoped clear 12-113 s later, so the state always resolves.
+ *
+ * This is intentionally separate from `isGlobalTrackClearSignal`, which governs
+ * incident windows and race chapters. When an incident *window* closes and when
+ * the flags go green are different questions.
+ */
+function isFlagStateClear(entry: RaceControl): boolean {
+  const message = (entry.message ?? "").toUpperCase();
+  const flagKey = toFlagKey(entry.flag);
+
+  if (flagKey === "CLEAR" || flagKey === "GREEN") {
+    return !isPitLaneOnlyMessage(message);
+  }
+  if (flagKey) return false;
+
+  return /\bTRACK CLEAR\b|\bCLEAR IN TRACK\b|\bSECTOR CLEAR\b|\bFLAG CLEARED\b|\bRESTART\b/.test(
+    message,
+  );
+}
+
+/**
+ * The flag a row asserts, for state purposes.
+ *
+ * Message matching is anchored on word boundaries: "CHEQUERED FLAG" contains
+ * the substring "RED FLAG", so a plain `includes` check turns the end of every
+ * session into a red flag.
+ */
+function stateFlagKeyFor(entry: RaceControl): string | null {
+  const message = (entry.message ?? "").toUpperCase();
+  // "SAFETY CAR LIGHTS ON" is the car arming its lights, not a deployment.
+  if (/\bLIGHTS ON\b/.test(message)) return null;
+
+  const flagKey = toFlagKey(entry.flag);
+  if (flagKey) return flagKey;
+
+  // Only reached when OpenF1 leaves the flag field empty, which it does for
+  // SafetyCar-category rows and some older seasons.
+  if (/\bDOUBLE YELLOW\b/.test(message)) return "DOUBLE_YELLOW";
+  if (/\bYELLOW IN TRACK SECTOR\b/.test(message)) return "YELLOW";
+  if (/\bRED FLAG\b/.test(message)) return "RED";
+  if (/\bCHEQUERED FLAG\b/.test(message)) return "CHEQUERED";
+  if (/\bVIRTUAL SAFETY CAR DEPLOYED\b|\bVSC DEPLOYED\b/.test(message))
+    return "VIRTUAL_SC";
+  if (/\bSAFETY CAR DEPLOYED\b/.test(message)) return "SAFETY_CAR";
+  return null;
 }
 
 function resolveFlagKeyFromRaceControlEntry(entry: RaceControl): string | null {
@@ -119,8 +239,8 @@ function resolveFlagKeyFromRaceControlEntry(entry: RaceControl): string | null {
   // OpenF1 can leave `flag` empty while still sending a structured flag message.
   const isYellowFlagPenaltyMessage =
     message.includes("YELLOW FLAG INFRINGEMENT") ||
-    message.includes("YELLOW FLAG") &&
-      (message.includes("PENALTY") || message.includes("INFRINGEMENT"));
+    (message.includes("YELLOW FLAG") &&
+      (message.includes("PENALTY") || message.includes("INFRINGEMENT")));
 
   if (message.includes("DOUBLE YELLOW")) return "DOUBLE_YELLOW";
   if (
@@ -129,7 +249,8 @@ function resolveFlagKeyFromRaceControlEntry(entry: RaceControl): string | null {
   ) {
     return "YELLOW";
   }
-  if (message.includes("RED FLAG")) return "RED";
+  // Word-boundary anchored: "CHEQUERED FLAG" contains "RED FLAG".
+  if (/\bRED FLAG\b/.test(message)) return "RED";
   if (
     message.includes("VIRTUAL SAFETY CAR") ||
     message.includes("VSC DEPLOYED")
@@ -164,10 +285,11 @@ function resolveFlagKeyFromRaceControlEntry(entry: RaceControl): string | null {
 }
 
 /**
- * Derive current global + sector flag state up to a playhead time.
+ * Derive the global + per-marshal-post flag state up to a playhead time.
  *
- * This enables independent sector coloring (S1/S2/S3) while preserving
- * global states such as Red Flag / Safety Car / VSC.
+ * Driver-scoped rows (waved blue, black-and-white) are skipped entirely: they
+ * describe one car, and letting them through was painting the whole track with
+ * a flag colour and hiding every real sector yellow underneath.
  */
 export function deriveTrackFlagState(
   entries: RaceControl[],
@@ -176,9 +298,18 @@ export function deriveTrackFlagState(
 ): TrackFlagState | null {
   if (!sessionStartMs || entries.length === 0) return null;
 
+  let maxMarshalSector = 0;
+  for (const entry of entries) {
+    const sector = entry.sector;
+    if (sector !== null && sector !== undefined && sector > maxMarshalSector) {
+      maxMarshalSector = sector;
+    }
+  }
+
   const state: TrackFlagState = {
     globalFlag: null,
-    sectorFlags: { 1: null, 2: null, 3: null },
+    marshalFlags: {},
+    maxMarshalSector,
     updatedAtMs: 0,
   };
 
@@ -190,56 +321,44 @@ export function deriveTrackFlagState(
     const eventMs = new Date(entry.date).getTime();
     if (eventMs > cutoffMs) break;
 
-    const flagKey = resolveFlagKeyFromRaceControlEntry(entry) ?? "";
-    const timingSector = toTimingSectorNumber(entry.sector);
-    const sectorScoped = isSectorScopedRaceControl(entry);
-    const clearSignal = isTrackClearSignal(entry);
-    const globalClear = isGlobalTrackClearSignal(entry);
+    const scope = flagScopeOf(entry);
+    // Addressed to a single car; never track state.
+    if (scope === "driver") continue;
 
-    if (clearSignal) {
+    if (isFlagStateClear(entry)) {
       state.updatedAtMs = eventMs;
-      if (globalClear) {
-        state.globalFlag = null;
-        state.sectorFlags = { 1: null, 2: null, 3: null };
-      } else if (sectorScoped) {
-        // Marshal sectors can be >3 in OpenF1; only timing sectors 1/2/3 are tracked.
-        if (timingSector !== null) state.sectorFlags[timingSector] = null;
+      if (scope === "sector") {
+        if (entry.sector !== null && entry.sector !== undefined) {
+          delete state.marshalFlags[entry.sector];
+        }
       } else {
         state.globalFlag = null;
-        state.sectorFlags = { 1: null, 2: null, 3: null };
+        state.marshalFlags = {};
       }
       continue;
     }
 
-    // Infer flag from message when flag field is null (OpenF1 sometimes omits it)
-    const msg = (entry.message ?? "").toUpperCase();
-    const resolvedFlagKey =
-      flagKey ||
-      (msg.includes("RED FLAG") ? "RED" : null) ||
-      (msg.includes("SAFETY CAR DEPLOYED") ? "SAFETY_CAR" : null) ||
-      (msg.includes("VIRTUAL SAFETY CAR DEPLOYED") ||
-      msg.includes("VSC DEPLOYED")
-        ? "VIRTUAL_SC"
-        : null);
-
-    if (!resolvedFlagKey) continue;
+    const flagKey = stateFlagKeyFor(entry);
+    if (!flagKey) continue;
+    // GREEN and CLEAR only ever act as clears, handled above. Reaching here
+    // means the row did not qualify as one ("GREEN LIGHT - PIT EXIT OPEN"), so
+    // it is a no-op rather than a flag to store.
+    if (flagKey === "GREEN" || flagKey === "CLEAR") continue;
 
     state.updatedAtMs = eventMs;
-    if (sectorScoped) {
-      // Ignore non-timing sector numbers to avoid corrupting global state.
-      if (timingSector !== null)
-        state.sectorFlags[timingSector] = resolvedFlagKey;
+    if (scope === "sector") {
+      if (entry.sector !== null && entry.sector !== undefined) {
+        state.marshalFlags[entry.sector] = flagKey;
+      }
     } else {
-      if (shouldPreserveRedFlag(state.globalFlag, resolvedFlagKey)) continue;
-      state.globalFlag = resolvedFlagKey;
+      if (shouldPreserveRedFlag(state.globalFlag, flagKey)) continue;
+      state.globalFlag = flagKey;
     }
   }
 
   if (
-    state.globalFlag === TRACK_FLAG_STATE_EMPTY.globalFlag &&
-    state.sectorFlags[1] === TRACK_FLAG_STATE_EMPTY.sectorFlags[1] &&
-    state.sectorFlags[2] === TRACK_FLAG_STATE_EMPTY.sectorFlags[2] &&
-    state.sectorFlags[3] === TRACK_FLAG_STATE_EMPTY.sectorFlags[3]
+    state.globalFlag === null &&
+    Object.keys(state.marshalFlags).length === 0
   ) {
     return null;
   }
@@ -248,80 +367,76 @@ export function deriveTrackFlagState(
 }
 
 /**
- * Derive active marshal-sector flags using raw sector numbers from race control
- * (for example 17, 19), plus global track-level state.
+ * Maps a marshal post onto a timing sector by splitting the posts into thirds.
+ *
+ * Posts are numbered in track order and spaced roughly evenly, so thirds are a
+ * good approximation. It is an approximation either way, because real timing
+ * sector boundaries do not fall at exact thirds of a lap.
  */
-export function deriveMarshalSectorFlagState(
-  entries: RaceControl[],
-  sessionStartMs: number,
-  cutoffMs: number,
-): MarshalSectorFlagState | null {
-  if (!sessionStartMs || entries.length === 0) return null;
+export function timingSectorForMarshalPost(
+  post: number,
+  totalPosts: number,
+): 1 | 2 | 3 {
+  if (totalPosts <= 0) return 1;
+  const clamped = Math.min(Math.max(post, 1), totalPosts);
+  const third = totalPosts / 3;
+  if (clamped <= third) return 1;
+  if (clamped <= third * 2) return 2;
+  return 3;
+}
 
-  const state: MarshalSectorFlagState = {
-    globalFlag: null,
-    sectorFlags: {},
-    updatedAtMs: 0,
-  };
+/**
+ * Projects marshal-post flags onto timing sectors 1/2/3, for the consumers that
+ * display three sectors. An active track-wide flag covers all three.
+ *
+ * `totalPosts` should be the circuit's real marshal post count. Callers with
+ * baked geometry should pass the larger of the baked count and
+ * `state.maxMarshalSector`, because the two disagree on some circuits.
+ */
+export function projectToTimingSectors(
+  state: TrackFlagState | null,
+  totalPosts: number,
+): TimingSectorFlags {
+  const out: TimingSectorFlags = { 1: null, 2: null, 3: null };
+  if (!state) return out;
 
-  const sorted = [...entries].sort(
-    (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime(),
+  if (isActiveTrackFlag(state.globalFlag)) {
+    out[1] = state.globalFlag;
+    out[2] = state.globalFlag;
+    out[3] = state.globalFlag;
+    return out;
+  }
+
+  const denominator = Math.max(totalPosts, state.maxMarshalSector, 1);
+  for (const [postKey, flag] of Object.entries(state.marshalFlags)) {
+    const sector = timingSectorForMarshalPost(Number(postKey), denominator);
+    if (flagSeverity(flag) > flagSeverity(out[sector])) out[sector] = flag;
+  }
+  return out;
+}
+
+/**
+ * The flag in force at one marshal post: an active track-wide flag if there is
+ * one, otherwise that post's own flag.
+ *
+ * An inactive global flag such as CHEQUERED falls through rather than
+ * suppressing the post's flag.
+ */
+export function resolveFlagForMarshalPost(
+  state: TrackFlagState | null,
+  post: number,
+): string | null {
+  if (!state) return null;
+  if (isActiveTrackFlag(state.globalFlag)) return state.globalFlag;
+  return state.marshalFlags[post] ?? null;
+}
+
+/** True when any marshal post is showing a yellow or double yellow. */
+export function hasAnyMarshalYellow(state: TrackFlagState | null): boolean {
+  if (!state) return false;
+  return Object.values(state.marshalFlags).some(
+    (flag) => flag === "YELLOW" || flag === "DOUBLE_YELLOW",
   );
-
-  for (const entry of sorted) {
-    const eventMs = new Date(entry.date).getTime();
-    if (eventMs > cutoffMs) break;
-
-    const flagKey = resolveFlagKeyFromRaceControlEntry(entry) ?? "";
-    const sectorScoped = isSectorScopedRaceControl(entry);
-    const clearSignal = isTrackClearSignal(entry);
-    const globalClear = isGlobalTrackClearSignal(entry);
-
-    if (clearSignal) {
-      state.updatedAtMs = eventMs;
-      if (globalClear) {
-        state.globalFlag = null;
-        state.sectorFlags = {};
-      } else if (sectorScoped) {
-        if (entry.sector !== null) delete state.sectorFlags[entry.sector];
-      } else {
-        state.globalFlag = null;
-        state.sectorFlags = {};
-      }
-      continue;
-    }
-
-    // Infer missing flag from message when OpenF1 omits flag field.
-    const msg = (entry.message ?? "").toUpperCase();
-    const resolvedFlagKey =
-      flagKey ||
-      (msg.includes("RED FLAG") ? "RED" : null) ||
-      (msg.includes("SAFETY CAR DEPLOYED") ? "SAFETY_CAR" : null) ||
-      (msg.includes("VIRTUAL SAFETY CAR DEPLOYED") ||
-      msg.includes("VSC DEPLOYED")
-        ? "VIRTUAL_SC"
-        : null);
-
-    if (!resolvedFlagKey) continue;
-
-    state.updatedAtMs = eventMs;
-    if (sectorScoped) {
-      if (entry.sector !== null)
-        state.sectorFlags[entry.sector] = resolvedFlagKey;
-    } else {
-      if (shouldPreserveRedFlag(state.globalFlag, resolvedFlagKey)) continue;
-      state.globalFlag = resolvedFlagKey;
-    }
-  }
-
-  if (
-    state.globalFlag === null &&
-    Object.keys(state.sectorFlags).length === 0
-  ) {
-    return null;
-  }
-
-  return state;
 }
 
 function classifyKind(entry: RaceControl, flagKey: string): RaceControlKind {

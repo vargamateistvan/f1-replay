@@ -1,6 +1,9 @@
 import type { RaceControl } from "@/api/types";
 import { useSettings } from "@/stores/settings";
-import { deriveTrackFlagState } from "@/timeline/raceControl";
+import {
+  deriveTrackFlagState,
+  hasAnyMarshalYellow,
+} from "@/timeline/raceControl";
 
 interface Props {
   entries: RaceControl[];
@@ -49,10 +52,9 @@ function activeFlag(
     return FLAG_STYLES[flag];
   }
 
-  const hasSectorYellow = Object.values(state.sectorFlags).some(
-    (f) => f === "YELLOW" || f === "DOUBLE_YELLOW",
-  );
-  if (hasSectorYellow) {
+  // Flags arrive per marshal post, so ask across all of them rather than the
+  // three timing sectors, which used to hide most yellows.
+  if (hasAnyMarshalYellow(state)) {
     return FLAG_STYLES.YELLOW;
   }
 

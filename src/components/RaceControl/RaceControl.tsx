@@ -304,19 +304,22 @@ export function RaceControlFeed({
     if (flagState.globalFlag) {
       return { flagKey: flagState.globalFlag, sectors: [] as number[] };
     }
-    const flaggedSectors = ([1, 2, 3] as const).filter(
-      (s) => flagState.sectorFlags[s] !== null,
+    // Marshal post numbers, which is what the message itself says
+    // ("YELLOW IN TRACK SECTOR 23"), rather than a timing sector.
+    const flagged = Object.entries(flagState.marshalFlags).map(
+      ([post, flag]) => ({ post: Number(post), flag }),
     );
-    if (flaggedSectors.length === 0) return null;
-    let best: string | null = null;
-    for (const s of flaggedSectors) {
-      const flag = flagState.sectorFlags[s]!;
-      if (best === null || flagBannerPriority(flag) < flagBannerPriority(best))
-        best = flag;
+    if (flagged.length === 0) return null;
+    let best = flagged[0]!.flag;
+    for (const { flag } of flagged) {
+      if (flagBannerPriority(flag) < flagBannerPriority(best)) best = flag;
     }
     return {
-      flagKey: best!,
-      sectors: flaggedSectors.filter((s) => flagState.sectorFlags[s] === best),
+      flagKey: best,
+      sectors: flagged
+        .filter((entry) => entry.flag === best)
+        .map((entry) => entry.post)
+        .sort((a, b) => a - b),
     };
   }, [flagState]);
 

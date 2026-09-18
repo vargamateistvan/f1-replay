@@ -10,11 +10,8 @@ import { useLocationChunks } from "@/hooks/useLocationChunks";
 import { trackEvent } from "@/lib/analytics";
 import { SPEEDS } from "@/constants";
 import { animateMotion, pressMotion } from "@/lib/motion";
-import {
-  TrackMap,
-  type ActiveMarshalSectorFlagState,
-  type ActiveTrackFlagState,
-} from "@/components/TrackMap/TrackMap";
+import { TrackMap } from "@/components/TrackMap/TrackMap";
+import type { TrackFlagState } from "@/timeline/raceControl";
 import type { Stint, Weather } from "@/api/types";
 
 function toAnalyticsValue(
@@ -202,14 +199,10 @@ function TrackMapPreview() {
         wind_speed: 2.8,
       }
     : null;
-  const previewTrackFlagState: ActiveTrackFlagState = {
+  const previewTrackFlagState: TrackFlagState = {
     globalFlag: null,
-    sectorFlags: { 1: "YELLOW", 2: null, 3: null },
-    updatedAtMs: sessionStartMs,
-  };
-  const previewMarshalFlagState: ActiveMarshalSectorFlagState = {
-    globalFlag: null,
-    sectorFlags: { 1: "YELLOW" },
+    marshalFlags: { 1: "YELLOW" },
+    maxMarshalSector: 3,
     updatedAtMs: sessionStartMs,
   };
 
@@ -247,13 +240,10 @@ function TrackMapPreview() {
             battlingDrivers={
               settings.mapShowBattleRings ? battlingDrivers : undefined
             }
-            activeTrackFlagState={
+            trackFlagState={
               settings.mapShowSectorFlags || settings.mapShowSectorBox
                 ? previewTrackFlagState
                 : null
-            }
-            activeMarshalSectorFlagState={
-              settings.mapShowSectorFlags ? previewMarshalFlagState : null
             }
             weatherOverlay={settings.mapShowWeather ? previewWeather : null}
             showSectorBox={settings.mapShowSectorBox}

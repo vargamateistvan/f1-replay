@@ -62,6 +62,21 @@ export const TRACK_OUTLINE_LAP = 2;
 // Fallback session duration when date_end is missing (2 hours).
 export const DEFAULT_SESSION_MS = 7_200_000;
 
+// ── Track flag colours ──────────────────────────────────────────────────────--
+// Single source of truth for every flag painter on the track map. Keyed by the
+// normalized flag key from `toFlagKey`. A flag absent from this map is not
+// painted, which is why CHEQUERED, BLUE and BLACK_AND_WHITE are omitted.
+export const FLAG_COLORS: Record<string, string> = {
+  YELLOW: "#f5d400",
+  DOUBLE_YELLOW: "#f5d400",
+  RED: "#e8002d",
+  SAFETY_CAR: "#f5a623",
+  VIRTUAL_SC: "#f5a623",
+  VIRTUAL_SAFETY_CAR: "#f5a623",
+  GREEN: "#39b54a",
+  CLEAR: "#39b54a",
+};
+
 // ── Track map sector colours ────────────────────────────────────────────────--
 export const SECTOR_COLORS: Record<1 | 2 | 3, string> = {
   1: "#f5a623",

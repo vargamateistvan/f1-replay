@@ -3,8 +3,12 @@ import type { RaceControl } from "@/api/types";
 import {
   buildIncidentWindows,
   clusterRaceControlMarkers,
-  deriveMarshalSectorFlagState,
   deriveTrackFlagState,
+  hasAnyMarshalYellow,
+  isActiveTrackFlag,
+  projectToTimingSectors,
+  resolveFlagForMarshalPost,
+  timingSectorForMarshalPost,
   normalizeRaceControl,
 } from "./raceControl";
 
@@ -181,11 +185,8 @@ describe("deriveTrackFlagState", () => {
 
     expect(state).toEqual({
       globalFlag: "SAFETY_CAR",
-      sectorFlags: {
-        1: null,
-        2: "YELLOW",
-        3: "YELLOW",
-      },
+      marshalFlags: { 2: "YELLOW", 3: "YELLOW" },
+      maxMarshalSector: 3,
       updatedAtMs: START + 20_000,
     });
   });
@@ -203,11 +204,8 @@ describe("deriveTrackFlagState", () => {
 
     expect(state).toEqual({
       globalFlag: "SAFETY_CAR",
-      sectorFlags: {
-        1: null,
-        2: null,
-        3: null,
-      },
+      marshalFlags: {},
+      maxMarshalSector: 2,
       updatedAtMs: START + 18_000,
     });
   });
@@ -240,8 +238,10 @@ describe("deriveTrackFlagState", () => {
     expect(state?.globalFlag).toBe("RED");
   });
 
-  it("clears stale safety-car state on end-of-safety-car message without a flag value", () => {
-    const state = deriveTrackFlagState(
+  it("keeps the safety car shown until the track is actually cleared", () => {
+    // "IN THIS LAP" is advance notice: the safety car still leads the field for
+    // most of a lap after it, so the track must not go green yet.
+    const pending = deriveTrackFlagState(
       [
         rc({ date: iso(8), flag: "SAFETY_CAR", scope: "Track" }),
         rc({ date: iso(12), message: "SAFETY CAR IN THIS LAP" }),
@@ -250,7 +250,24 @@ describe("deriveTrackFlagState", () => {
       START + 30_000,
     );
 
-    expect(state).toBeNull();
+    expect(pending?.globalFlag).toBe("SAFETY_CAR");
+
+    const cleared = deriveTrackFlagState(
+      [
+        rc({ date: iso(8), flag: "SAFETY_CAR", scope: "Track" }),
+        rc({ date: iso(12), message: "SAFETY CAR IN THIS LAP" }),
+        rc({
+          date: iso(80),
+          flag: "CLEAR",
+          scope: "Track",
+          message: "TRACK CLEAR",
+        }),
+      ],
+      START,
+      START + 90_000,
+    );
+
+    expect(cleared).toBeNull();
   });
 
   it("clears stale yellow state from sector clear message without a flag value", () => {
@@ -271,7 +288,7 @@ describe("deriveTrackFlagState", () => {
     expect(state).toBeNull();
   });
 
-  it("clears stale safety-car state on safety-car lights out", () => {
+  it("does not clear the safety car on a lights-out notice alone", () => {
     const state = deriveTrackFlagState(
       [
         rc({ date: iso(8), flag: "SAFETY_CAR", scope: "Track" }),
@@ -281,7 +298,7 @@ describe("deriveTrackFlagState", () => {
       START + 30_000,
     );
 
-    expect(state).toBeNull();
+    expect(state?.globalFlag).toBe("SAFETY_CAR");
   });
 
   it("clears only the sector on a sector-scoped green flag", () => {
@@ -308,11 +325,8 @@ describe("deriveTrackFlagState", () => {
 
     expect(state).toEqual({
       globalFlag: "SAFETY_CAR",
-      sectorFlags: {
-        1: null,
-        2: "YELLOW",
-        3: null,
-      },
+      marshalFlags: { 2: "YELLOW" },
+      maxMarshalSector: 2,
       updatedAtMs: START + 30_000,
     });
   });
@@ -403,11 +417,8 @@ describe("deriveTrackFlagState", () => {
 
     expect(state).toEqual({
       globalFlag: "YELLOW",
-      sectorFlags: {
-        1: null,
-        2: null,
-        3: null,
-      },
+      marshalFlags: {},
+      maxMarshalSector: 2,
       updatedAtMs: START + 10_000,
     });
   });
@@ -448,7 +459,7 @@ describe("deriveTrackFlagState", () => {
   });
 
   it("tracks raw marshal sector flags (e.g. 17/19) independently", () => {
-    const state = deriveMarshalSectorFlagState(
+    const state = deriveTrackFlagState(
       [
         rc({ date: iso(10), flag: "YELLOW", scope: "Sector", sector: 19 }),
         rc({ date: iso(11), flag: "YELLOW", scope: "Sector", sector: 17 }),
@@ -459,12 +470,12 @@ describe("deriveTrackFlagState", () => {
     );
 
     expect(state?.globalFlag).toBeNull();
-    expect(state?.sectorFlags[19]).toBe("YELLOW");
-    expect(state?.sectorFlags[17]).toBeUndefined();
+    expect(state?.marshalFlags[19]).toBe("YELLOW");
+    expect(state?.marshalFlags[17]).toBeUndefined();
   });
 
   it("applies global red over marshal sector flags", () => {
-    const state = deriveMarshalSectorFlagState(
+    const state = deriveTrackFlagState(
       [
         rc({ date: iso(10), flag: "YELLOW", scope: "Sector", sector: 19 }),
         rc({ date: iso(12), flag: "RED", scope: "Track", message: "RED FLAG" }),
@@ -474,7 +485,7 @@ describe("deriveTrackFlagState", () => {
     );
 
     expect(state?.globalFlag).toBe("RED");
-    expect(state?.sectorFlags[19]).toBe("YELLOW");
+    expect(state?.marshalFlags[19]).toBe("YELLOW");
   });
 
   it("normalizes missing flag values from message text", () => {
@@ -495,5 +506,277 @@ describe("deriveTrackFlagState", () => {
     expect(events[0]?.flag).toBe("YELLOW");
     expect(events[0]?.kind).toBe("flag");
     expect(events[0]?.title).toBe("Yellow Flag");
+  });
+});
+
+describe("flag scope routing", () => {
+  it("never lets a waved blue flag become track state", () => {
+    // Blue flags are scope "Driver" and are shown to one car. Treating them as
+    // track-wide painted the whole map and hid every real sector yellow; a race
+    // can carry hundreds of them.
+    const state = deriveTrackFlagState(
+      [
+        rc({
+          date: iso(10),
+          flag: "YELLOW",
+          scope: "Sector",
+          sector: 22,
+          message: "YELLOW IN TRACK SECTOR 22",
+        }),
+        rc({
+          date: iso(20),
+          flag: "BLUE",
+          scope: "Driver",
+          driver_number: 14,
+          message: "WAVED BLUE FLAG FOR CAR 14 (ALO) TIMED AT 15:42:56",
+        }),
+      ],
+      START,
+      START + 30_000,
+    );
+
+    expect(state?.globalFlag).toBeNull();
+    expect(state?.marshalFlags[22]).toBe("YELLOW");
+  });
+
+  it("never lets a black-and-white flag displace a safety car", () => {
+    const state = deriveTrackFlagState(
+      [
+        rc({ date: iso(10), flag: "SAFETY_CAR", scope: "Track" }),
+        rc({
+          date: iso(20),
+          flag: "BLACK AND WHITE",
+          scope: "Driver",
+          driver_number: 44,
+          message: "BLACK AND WHITE FLAG FOR CAR 44 (HAM) - TRACK LIMITS",
+        }),
+      ],
+      START,
+      START + 30_000,
+    );
+
+    expect(state?.globalFlag).toBe("SAFETY_CAR");
+  });
+
+  it("retains marshal post numbers well above the three timing sectors", () => {
+    // OpenF1's `sector` is a marshal post; circuits run 15-23 of them. Keeping
+    // only 1/2/3 discarded almost every yellow flag.
+    const state = deriveTrackFlagState(
+      [
+        rc({
+          date: iso(10),
+          flag: "YELLOW",
+          scope: "Sector",
+          sector: 23,
+          message: "YELLOW IN TRACK SECTOR 23",
+        }),
+        rc({
+          date: iso(11),
+          flag: "DOUBLE YELLOW",
+          scope: "Sector",
+          sector: 10,
+          message: "DOUBLE YELLOW IN TRACK SECTOR 10",
+        }),
+      ],
+      START,
+      START + 30_000,
+    );
+
+    expect(state?.marshalFlags).toEqual({
+      10: "DOUBLE_YELLOW",
+      23: "YELLOW",
+    });
+    expect(state?.maxMarshalSector).toBe(23);
+  });
+
+  it("reports the highest marshal post in the feed even beyond the cutoff", () => {
+    // The projection denominator must not shift as the playhead advances.
+    const state = deriveTrackFlagState(
+      [
+        rc({ date: iso(10), flag: "YELLOW", scope: "Sector", sector: 2 }),
+        rc({ date: iso(900), flag: "YELLOW", scope: "Sector", sector: 21 }),
+      ],
+      START,
+      START + 30_000,
+    );
+
+    expect(state?.maxMarshalSector).toBe(21);
+    expect(state?.marshalFlags).toEqual({ 2: "YELLOW" });
+  });
+
+  it("does not let a pit-exit green clear a red flag", () => {
+    const state = deriveTrackFlagState(
+      [
+        rc({ date: iso(10), flag: "RED", scope: "Track", message: "RED FLAG" }),
+        rc({
+          date: iso(20),
+          flag: "GREEN",
+          scope: "Track",
+          message: "GREEN LIGHT - PIT EXIT OPEN",
+        }),
+      ],
+      START,
+      START + 30_000,
+    );
+
+    expect(state?.globalFlag).toBe("RED");
+  });
+
+  it("does not read a chequered flag as a red flag", () => {
+    // "CHEQUERED FLAG" contains the substring "RED FLAG".
+    const state = deriveTrackFlagState(
+      [rc({ date: iso(10), flag: null, scope: "Track", message: "CHEQUERED FLAG" })],
+      START,
+      START + 30_000,
+    );
+
+    expect(state?.globalFlag).toBe("CHEQUERED");
+  });
+});
+
+describe("timing sector projection", () => {
+  it("splits marshal posts into thirds of the lap", () => {
+    expect(timingSectorForMarshalPost(1, 23)).toBe(1);
+    expect(timingSectorForMarshalPost(7, 23)).toBe(1);
+    expect(timingSectorForMarshalPost(8, 23)).toBe(2);
+    expect(timingSectorForMarshalPost(15, 23)).toBe(2);
+    expect(timingSectorForMarshalPost(16, 23)).toBe(3);
+    expect(timingSectorForMarshalPost(23, 23)).toBe(3);
+  });
+
+  it("clamps out-of-range posts and tolerates a zero total", () => {
+    expect(timingSectorForMarshalPost(99, 23)).toBe(3);
+    expect(timingSectorForMarshalPost(0, 23)).toBe(1);
+    expect(timingSectorForMarshalPost(5, 0)).toBe(1);
+  });
+
+  it("projects each marshal post onto its timing sector", () => {
+    const state = deriveTrackFlagState(
+      [
+        rc({ date: iso(10), flag: "YELLOW", scope: "Sector", sector: 2 }),
+        rc({ date: iso(11), flag: "YELLOW", scope: "Sector", sector: 10 }),
+        rc({ date: iso(12), flag: "DOUBLE YELLOW", scope: "Sector", sector: 22 }),
+      ],
+      START,
+      START + 30_000,
+    );
+
+    expect(projectToTimingSectors(state, 23)).toEqual({
+      1: "YELLOW",
+      2: "YELLOW",
+      3: "DOUBLE_YELLOW",
+    });
+  });
+
+  it("keeps the more severe flag when two posts share a timing sector", () => {
+    const state = deriveTrackFlagState(
+      [
+        rc({ date: iso(10), flag: "YELLOW", scope: "Sector", sector: 1 }),
+        rc({ date: iso(11), flag: "DOUBLE YELLOW", scope: "Sector", sector: 2 }),
+      ],
+      START,
+      START + 30_000,
+    );
+
+    expect(projectToTimingSectors(state, 12)[1]).toBe("DOUBLE_YELLOW");
+  });
+
+  it("spreads an active track-wide flag over all three sectors", () => {
+    const state = deriveTrackFlagState(
+      [
+        rc({ date: iso(10), flag: "YELLOW", scope: "Sector", sector: 2 }),
+        rc({ date: iso(20), flag: "RED", scope: "Track", message: "RED FLAG" }),
+      ],
+      START,
+      START + 30_000,
+    );
+
+    expect(projectToTimingSectors(state, 23)).toEqual({
+      1: "RED",
+      2: "RED",
+      3: "RED",
+    });
+  });
+
+  it("uses the feed's own post count when the caller passes none", () => {
+    const state = deriveTrackFlagState(
+      [rc({ date: iso(10), flag: "YELLOW", scope: "Sector", sector: 22 })],
+      START,
+      START + 30_000,
+    );
+
+    expect(projectToTimingSectors(state, 0)[3]).toBe("YELLOW");
+  });
+
+  it("returns empty sectors for a null state", () => {
+    expect(projectToTimingSectors(null, 23)).toEqual({
+      1: null,
+      2: null,
+      3: null,
+    });
+  });
+});
+
+describe("flag resolution for painting", () => {
+  it("treats only track-condition flags as paintable", () => {
+    expect(isActiveTrackFlag("YELLOW")).toBe(true);
+    expect(isActiveTrackFlag("RED")).toBe(true);
+    expect(isActiveTrackFlag("VIRTUAL_SC")).toBe(true);
+    expect(isActiveTrackFlag("CHEQUERED")).toBe(false);
+    expect(isActiveTrackFlag("BLUE")).toBe(false);
+    expect(isActiveTrackFlag("GREEN")).toBe(false);
+    expect(isActiveTrackFlag(null)).toBe(false);
+  });
+
+  it("lets an inactive global flag fall through to the post's own flag", () => {
+    const state = deriveTrackFlagState(
+      [
+        rc({ date: iso(10), flag: "CHEQUERED", scope: "Track", message: "CHEQUERED FLAG" }),
+        rc({
+          date: iso(20),
+          flag: "YELLOW",
+          scope: "Sector",
+          sector: 17,
+          message: "YELLOW IN TRACK SECTOR 17",
+        }),
+      ],
+      START,
+      START + 30_000,
+    );
+
+    expect(resolveFlagForMarshalPost(state, 17)).toBe("YELLOW");
+    expect(resolveFlagForMarshalPost(state, 18)).toBeNull();
+  });
+
+  it("lets an active global flag win over every post", () => {
+    const state = deriveTrackFlagState(
+      [
+        rc({ date: iso(10), flag: "YELLOW", scope: "Sector", sector: 17 }),
+        rc({ date: iso(20), flag: "RED", scope: "Track", message: "RED FLAG" }),
+      ],
+      START,
+      START + 30_000,
+    );
+
+    expect(resolveFlagForMarshalPost(state, 17)).toBe("RED");
+    expect(resolveFlagForMarshalPost(state, 4)).toBe("RED");
+    expect(resolveFlagForMarshalPost(null, 4)).toBeNull();
+  });
+
+  it("detects a yellow at any marshal post", () => {
+    const yellow = deriveTrackFlagState(
+      [rc({ date: iso(10), flag: "DOUBLE YELLOW", scope: "Sector", sector: 23 })],
+      START,
+      START + 30_000,
+    );
+    const red = deriveTrackFlagState(
+      [rc({ date: iso(10), flag: "RED", scope: "Track", message: "RED FLAG" })],
+      START,
+      START + 30_000,
+    );
+
+    expect(hasAnyMarshalYellow(yellow)).toBe(true);
+    expect(hasAnyMarshalYellow(red)).toBe(false);
+    expect(hasAnyMarshalYellow(null)).toBe(false);
   });
 });

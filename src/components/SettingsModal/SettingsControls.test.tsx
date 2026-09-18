@@ -133,13 +133,13 @@ vi.mock("@/hooks/useLocationChunks", () => ({
 vi.mock("@/components/TrackMap/TrackMap", () => ({
   TrackMap: ({
     circuitShortName,
-    activeTrackFlagState,
+    trackFlagState,
     weatherOverlay,
     showSectorBox,
     showTrackScreenshot,
   }: {
     circuitShortName: string;
-    activeTrackFlagState: { sectorFlags: { 1: string | null } } | null;
+    trackFlagState: { marshalFlags: Record<number, string> } | null;
     weatherOverlay: unknown;
     showSectorBox?: boolean;
     showTrackScreenshot?: boolean;
@@ -147,7 +147,7 @@ vi.mock("@/components/TrackMap/TrackMap", () => ({
     <div
       role="img"
       aria-label={`${circuitShortName} production track map`}
-      data-flag={activeTrackFlagState?.sectorFlags[1] ?? "none"}
+      data-flag={trackFlagState?.marshalFlags[1] ?? "none"}
       data-weather={weatherOverlay ? "visible" : "hidden"}
       data-sector-box={showSectorBox ? "visible" : "hidden"}
       data-png={showTrackScreenshot ? "visible" : "hidden"}

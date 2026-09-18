@@ -9,10 +9,7 @@ import {
 } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { PlaybackBar } from "@/components/PlaybackBar";
-import type {
-  ActiveTrackFlagState,
-  ActiveTrackVehicles,
-} from "@/components/TrackMap/TrackMap";
+import type { ActiveTrackVehicles } from "@/components/TrackMap/TrackMap";
 import LiveTiming from "@/components/LiveTiming/LiveTiming";
 import { WeatherPanel } from "@/components/Weather/WeatherPanel";
 import { QualifyingBanner } from "@/components/QualifyingBanner";
@@ -64,13 +61,13 @@ import {
   buildToastEvents,
 } from "@/timeline/events";
 import {
-  deriveMarshalSectorFlagState,
   buildRaceControlMarkers,
   buildIncidentWindows,
   clusterRaceControlMarkers,
   deriveTrackFlagState,
   normalizeRaceControl,
   summarizeMarkers,
+  type TrackFlagState,
 } from "@/timeline/raceControl";
 import { useEventToasts } from "@/hooks/useEventToasts";
 import { useCatchupSummary } from "@/hooks/useCatchupSummary";
@@ -1053,20 +1050,10 @@ export default function RaceWeekend() {
   }, [raceLeaderEvents, drivers.data, sessionStartMs, tSlow, isMapVisible]);
 
   // Current session global/sector track flag state at playhead.
-  const activeTrackFlagState = useMemo<ActiveTrackFlagState | null>(() => {
+  const trackFlagState = useMemo<TrackFlagState | null>(() => {
     if (!isMapVisible) return null;
     if (!sessionStartMs) return null;
     return deriveTrackFlagState(
-      raceControl.data ?? [],
-      sessionStartMs,
-      sessionStartMs + tSlow,
-    );
-  }, [raceControl.data, sessionStartMs, tSlow, isMapVisible]);
-
-  const activeMarshalSectorFlagState = useMemo(() => {
-    if (!isMapVisible) return null;
-    if (!sessionStartMs) return null;
-    return deriveMarshalSectorFlagState(
       raceControl.data ?? [],
       sessionStartMs,
       sessionStartMs + tSlow,
@@ -1934,10 +1921,7 @@ export default function RaceWeekend() {
       focusDriverLap={focusDriverLap}
       showFocusedHud={mapShowDriverHud}
       sharedAllDriverWindow={telemetryEnabled}
-      activeTrackFlagState={mapShowSectorFlags ? activeTrackFlagState : null}
-      activeMarshalSectorFlagState={
-        mapShowSectorFlags ? activeMarshalSectorFlagState : null
-      }
+      trackFlagState={mapShowSectorFlags ? trackFlagState : null}
       showSectorBox={mapShowSectorBox}
       showTrackControls={mapShowTrackControls}
       showCompass={mapShowCompass}

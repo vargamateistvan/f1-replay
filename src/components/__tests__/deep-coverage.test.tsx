@@ -408,7 +408,12 @@ describe("deep component coverage", () => {
         pulseDrivers={[16]}
         activeCompounds={new Map([[1, { compound: "SOFT", age: 2 }]])}
         battlingDrivers={new Set([16])}
-        activeSectorFlag={{ flag: "YELLOW", scope: "sector", sector: 2 }}
+        trackFlagState={{
+          globalFlag: null,
+          marshalFlags: { 2: "YELLOW" },
+          maxMarshalSector: 3,
+          updatedAtMs: 0,
+        }}
         activeTrackVehicles={{ safetyCar: true, vsc: false, medicalCar: true }}
         onSelectDriver={onSelectDriver}
       />,

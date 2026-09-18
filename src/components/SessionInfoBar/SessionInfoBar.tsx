@@ -2,7 +2,10 @@ import { useEffect, useMemo, useState } from "react";
 import type { Lap, RaceControl } from "@/api/types";
 import { useSettings } from "@/stores/settings";
 import { toDisplayTemperature, temperatureUnitLabel } from "@/utils/units";
-import { deriveTrackFlagState } from "@/timeline/raceControl";
+import {
+  deriveTrackFlagState,
+  hasAnyMarshalYellow,
+} from "@/timeline/raceControl";
 
 interface Props {
   laps: Lap[];
@@ -54,10 +57,7 @@ function deriveStatus(
     return FLAG_STATUS[flag];
   }
 
-  const hasSectorYellow = Object.values(state.sectorFlags).some(
-    (f) => f === "YELLOW" || f === "DOUBLE_YELLOW",
-  );
-  if (hasSectorYellow) {
+  if (hasAnyMarshalYellow(state)) {
     return FLAG_STATUS.YELLOW;
   }
 

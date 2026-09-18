@@ -28,6 +28,13 @@ import {
 } from "@/hooks/useTrackMap";
 import { useMediaQuery } from "@/hooks/useMediaQuery";
 import { buildIndex, interpolateXY } from "@/timeline/interpolate";
+import {
+  isActiveTrackFlag,
+  projectToTimingSectors,
+  resolveFlagForMarshalPost,
+  timingSectorForMarshalPost,
+  type TrackFlagState,
+} from "@/timeline/raceControl";
 import { teamColor } from "@/utils/color";
 import { useSettings } from "@/stores/settings";
 import { resampleToAxis } from "@/utils/telemetry";
@@ -54,6 +61,7 @@ import {
   TRACK_FIT_ZOOM,
   SECTOR_COLORS,
   COMPOUND_COLORS,
+  FLAG_COLORS,
   FOLLOW_ZOOM_W,
   FOLLOW_ZOOM_H,
 } from "@/constants";
@@ -199,28 +207,6 @@ function exportTrackSnapshot(svgEl: SVGSVGElement): void {
   img.src = url;
 }
 
-export interface ActiveTrackFlag {
-  flag: string;
-  scope: string | null;
-  sector: number | null;
-}
-
-export interface ActiveTrackFlagState {
-  globalFlag: string | null;
-  sectorFlags: {
-    1: string | null;
-    2: string | null;
-    3: string | null;
-  };
-  updatedAtMs: number;
-}
-
-export interface ActiveMarshalSectorFlagState {
-  globalFlag: string | null;
-  sectorFlags: Record<number, string>;
-  updatedAtMs: number;
-}
-
 export interface ActiveTrackVehicles {
   safetyCar: boolean;
   vsc: boolean;
@@ -247,9 +233,7 @@ interface Props {
   readonly retiredDrivers?: ReadonlySet<number>;
   readonly focusDriverLap?: number | null;
   readonly weatherOverlay?: Weather | null;
-  readonly activeSectorFlag?: ActiveTrackFlag | null;
-  readonly activeTrackFlagState?: ActiveTrackFlagState | null;
-  readonly activeMarshalSectorFlagState?: ActiveMarshalSectorFlagState | null;
+  readonly trackFlagState?: TrackFlagState | null;
   readonly activeTrackVehicles?: ActiveTrackVehicles | null;
   readonly safetyCarSirenOn?: boolean;
   readonly showSectorBox?: boolean;
@@ -311,9 +295,7 @@ export function TrackMap({
   retiredDrivers,
   focusDriverLap = null,
   weatherOverlay = null,
-  activeSectorFlag = null,
-  activeTrackFlagState = null,
-  activeMarshalSectorFlagState = null,
+  trackFlagState = null,
   activeTrackVehicles = null,
   safetyCarSirenOn = false,
   showSectorBox = true,
@@ -436,34 +418,6 @@ export function TrackMap({
     [browserTimeZone, sessionStartMs, t],
   );
 
-  const normalizedTrackFlagState = useMemo<ActiveTrackFlagState | null>(() => {
-    if (activeTrackFlagState) return activeTrackFlagState;
-    if (!activeSectorFlag?.flag) return null;
-
-    const flagKey = activeSectorFlag.flag
-      .trim()
-      .toUpperCase()
-      .replace(/\s+/g, "_");
-
-    const state: ActiveTrackFlagState = {
-      globalFlag: flagKey,
-      sectorFlags: { 1: null, 2: null, 3: null },
-      updatedAtMs: 0,
-    };
-
-    const sector = activeSectorFlag.sector;
-    const isSector =
-      activeSectorFlag.scope?.toLowerCase().includes("sector") === true &&
-      (sector === 1 || sector === 2 || sector === 3);
-
-    if (isSector) {
-      state.globalFlag = null;
-      state.sectorFlags[sector] = flagKey;
-    }
-
-    return state;
-  }, [activeTrackFlagState, activeSectorFlag]);
-
   // Rolling 5-min car_data window for the focused driver — drives the live HUD overlay.
   const chunkIdx = chunkIndexFor(t);
   const { data: hudRawData } = useCarDataWindow(
@@ -478,6 +432,22 @@ export function TrackMap({
   const circuitGeom =
     circuitKey != null ? getCircuitGeometry(circuitKey, year) : null;
   const hasBaked = circuitGeom != null;
+
+  // OpenF1 reports flags per marshal post, so the three-sector view shown in the
+  // chips, the ribbon and the no-geometry fallback is a projection. The
+  // denominator takes the largest count available: baked marshal sectors and
+  // marshal lights disagree on some circuits (Silverstone bakes 16 sectors but
+  // 17 lights, and its feed uses 17), and circuits with no baked geometry at all
+  // rely purely on what the feed mentions.
+  const totalMarshalPosts = Math.max(
+    circuitGeom?.marshalSectors?.length ?? 0,
+    circuitGeom?.marshalLights?.length ?? 0,
+    trackFlagState?.maxMarshalSector ?? 0,
+  );
+  const timingSectorFlags = useMemo(
+    () => projectToTimingSectors(trackFlagState, totalMarshalPosts),
+    [trackFlagState, totalMarshalPosts],
+  );
 
   // GPS fallback (no baked data): hand the hook the ordered driver list and
   // let it try a bounded number of drivers inside one query. Iterating here
@@ -1094,7 +1064,7 @@ export function TrackMap({
     const total = circuitGeom.marshalSectors.length;
     return (
       <>
-        {circuitGeom.marshalSectors.map((ms, i) => {
+        {circuitGeom.marshalSectors.map((ms) => {
           const { sx, sy } = locationToSvg(
             ms.trackPosition.x,
             ms.trackPosition.y,
@@ -1104,10 +1074,7 @@ export function TrackMap({
           );
           const cx = sx + PAD,
             cy = sy + PAD;
-          const sector = (i < total / 3 ? 1 : i < (2 * total) / 3 ? 2 : 3) as
-            | 1
-            | 2
-            | 3;
+          const sector = timingSectorForMarshalPost(ms.number, total);
           const color = SECTOR_COLORS[sector];
           return (
             <circle
@@ -1156,10 +1123,7 @@ export function TrackMap({
           bestIdx = j;
         }
       }
-      const sector = (i < total / 3 ? 1 : i < (2 * total) / 3 ? 2 : 3) as
-        | 1
-        | 2
-        | 3;
+      const sector = timingSectorForMarshalPost(ms.number, total);
       return {
         arc: normArc[bestIdx]!,
         sector,
@@ -1283,30 +1247,11 @@ export function TrackMap({
   // With baked geometry: precise colored dots at each marshal sector position.
   // Fallback: rectangle tints over legacy sector boxes.
   const sectorFlagTints = useMemo(() => {
-    if (!trackGeometry || !normalizedTrackFlagState) return null;
-
-    const TINT: Record<string, string> = {
-      YELLOW: "#f5d400",
-      DOUBLE_YELLOW: "#f5d400",
-      RED: "#e8002d",
-      SAFETY_CAR: "#f5a623",
-      VIRTUAL_SC: "#f5a623",
-      VIRTUAL_SAFETY_CAR: "#f5a623",
-      GREEN: "#39b54a",
-      CLEAR: "#39b54a",
-    };
-
-    const effectiveFlagForSector = (sector: 1 | 2 | 3): string | null => {
-      if (normalizedTrackFlagState.globalFlag === "RED") return "RED";
-      return (
-        normalizedTrackFlagState.sectorFlags[sector] ??
-        normalizedTrackFlagState.globalFlag
-      );
-    };
+    if (!trackGeometry || !trackFlagState) return null;
 
     const tintForSector = (sector: 1 | 2 | 3): string | null => {
-      const flagKey = effectiveFlagForSector(sector);
-      return flagKey ? (TINT[flagKey] ?? null) : null;
+      const flagKey = timingSectorFlags[sector];
+      return flagKey ? (FLAG_COLORS[flagKey] ?? null) : null;
     };
 
     const { bounds, innerW, innerH } = trackGeometry;
@@ -1314,13 +1259,10 @@ export function TrackMap({
     if (hasBaked && circuitGeom && circuitGeom.marshalSectors.length) {
       return (
         <>
-          {circuitGeom.marshalSectors.map((ms, i) => {
-            const total = circuitGeom.marshalSectors.length;
-            const sector = (i < total / 3 ? 1 : i < (2 * total) / 3 ? 2 : 3) as
-              | 1
-              | 2
-              | 3;
-            const tint = tintForSector(sector);
+          {circuitGeom.marshalSectors.map((ms) => {
+            // Paint the post the feed actually flagged, not a third of the lap.
+            const flagKey = resolveFlagForMarshalPost(trackFlagState, ms.number);
+            const tint = flagKey ? (FLAG_COLORS[flagKey] ?? null) : null;
             if (!tint) return null;
             const { sx, sy } = locationToSvg(
               ms.trackPosition.x,
@@ -1388,7 +1330,8 @@ export function TrackMap({
     circuitLayout,
     circuitGeom,
     hasBaked,
-    normalizedTrackFlagState,
+    trackFlagState,
+    timingSectorFlags,
   ]);
 
   // Current-moment car telemetry for the focused driver — binary search on the rolling
@@ -1411,26 +1354,8 @@ export function TrackMap({
   const trackConditionRibbonOverlay = useMemo(() => {
     if (!showEnhancedVisuals || !trackGeometry) return null;
 
-    const ribbonColors: Record<string, string> = {
-      YELLOW: "#f5d400",
-      DOUBLE_YELLOW: "#f5d400",
-      RED: "#e8002d",
-      SAFETY_CAR: "#f5a623",
-      VIRTUAL_SC: "#f5a623",
-      VIRTUAL_SAFETY_CAR: "#f5a623",
-      GREEN: "#39b54a",
-      CLEAR: "#39b54a",
-    };
-
-    const flagForSector = (sector: 1 | 2 | 3): string => {
-      if (!normalizedTrackFlagState) return "CLEAR";
-      if (normalizedTrackFlagState.globalFlag === "RED") return "RED";
-      return (
-        normalizedTrackFlagState.sectorFlags[sector] ??
-        normalizedTrackFlagState.globalFlag ??
-        "CLEAR"
-      );
-    };
+    const flagForSector = (sector: 1 | 2 | 3): string =>
+      timingSectorFlags[sector] ?? "CLEAR";
 
     const { pathData } = trackGeometry;
     return (
@@ -1446,7 +1371,7 @@ export function TrackMap({
         />
         {([1, 2, 3] as const).map((sectorNum) => {
           const flag = flagForSector(sectorNum);
-          const color = ribbonColors[flag] ?? ribbonColors.CLEAR;
+          const color = FLAG_COLORS[flag] ?? FLAG_COLORS.CLEAR;
           const clipPath = circuitLayout?.sectors.some(
             (sector) => sector.number === sectorNum,
           )
@@ -1478,7 +1403,7 @@ export function TrackMap({
   }, [
     showEnhancedVisuals,
     trackGeometry,
-    normalizedTrackFlagState,
+    timingSectorFlags,
     circuitLayout,
     lightMode,
   ]);
@@ -1486,39 +1411,19 @@ export function TrackMap({
   const marshalSectorFlagOverlays = useMemo(() => {
     if (!trackGeometry || !marshalHeatmapSegments.length) return null;
 
-    const FLAG_COLORS: Record<string, string> = {
-      YELLOW: "#f5d400",
-      DOUBLE_YELLOW: "#f5d400",
-      RED: "#e8002d",
-      SAFETY_CAR: "#f5a623",
-      VIRTUAL_SC: "#f5a623",
-      VIRTUAL_SAFETY_CAR: "#f5a623",
-      GREEN: "#39b54a",
-      CLEAR: "#39b54a",
-    };
-
-    const fallbackSectorFlag = (sector: 1 | 2 | 3): string | null => {
-      if (!normalizedTrackFlagState) return null;
-      if (normalizedTrackFlagState.globalFlag === "RED") return "RED";
-      return (
-        normalizedTrackFlagState.sectorFlags[sector] ??
-        normalizedTrackFlagState.globalFlag
-      );
-    };
-
     return (
       <>
         {marshalHeatmapSegments.map((seg) => {
-          const marshalFlag =
-            activeMarshalSectorFlagState?.sectorFlags?.[seg.marshalNumber];
-          const flag =
-            activeMarshalSectorFlagState?.globalFlag === "RED"
-              ? "RED"
-              : (activeMarshalSectorFlagState?.globalFlag ??
-                marshalFlag ??
-                fallbackSectorFlag(seg.sector));
+          // Exactly the posts the feed flagged, plus any active track-wide
+          // flag. Deliberately no timing-sector fallback: that would paint
+          // every post in the same third and imply flags that were never
+          // raised. Sector-level state is conveyed by the ribbon and badges.
+          const flag = resolveFlagForMarshalPost(
+            trackFlagState,
+            seg.marshalNumber,
+          );
 
-          if (!flag || flag === "GREEN" || flag === "CLEAR") return null;
+          if (!isActiveTrackFlag(flag)) return null;
           const color = FLAG_COLORS[flag] ?? null;
           if (!color) return null;
 
@@ -1565,12 +1470,7 @@ export function TrackMap({
         })}
       </>
     );
-  }, [
-    trackGeometry,
-    marshalHeatmapSegments,
-    activeMarshalSectorFlagState,
-    normalizedTrackFlagState,
-  ]);
+  }, [trackGeometry, marshalHeatmapSegments, trackFlagState]);
 
   const svgRef = useRef<SVGSVGElement>(null);
 
@@ -1673,20 +1573,11 @@ export function TrackMap({
     CLEAR: { color: "#39b54a", label: "Clear" },
   };
 
-  const effectiveFlagForSector = (sector: 1 | 2 | 3): string | null => {
-    if (!normalizedTrackFlagState) return null;
-    if (normalizedTrackFlagState.globalFlag === "RED") return "RED";
-    return (
-      normalizedTrackFlagState.sectorFlags[sector] ??
-      normalizedTrackFlagState.globalFlag
-    );
-  };
-
   const hasTrackConditionDisplay =
-    normalizedTrackFlagState?.globalFlag != null ||
-    effectiveFlagForSector(1) != null ||
-    effectiveFlagForSector(2) != null ||
-    effectiveFlagForSector(3) != null;
+    isActiveTrackFlag(trackFlagState?.globalFlag) ||
+    timingSectorFlags[1] != null ||
+    timingSectorFlags[2] != null ||
+    timingSectorFlags[3] != null;
 
   const topStatusBadges = (() => {
     const badges: Array<{
@@ -1759,11 +1650,12 @@ export function TrackMap({
       );
     };
 
-    if (normalizedTrackFlagState?.globalFlag) {
-      addFlagBadge(normalizedTrackFlagState.globalFlag);
+    const globalTrackFlag = trackFlagState?.globalFlag ?? null;
+    if (isActiveTrackFlag(globalTrackFlag)) {
+      addFlagBadge(globalTrackFlag);
     } else {
       ([1, 2, 3] as const).forEach((sector) => {
-        const flag = normalizedTrackFlagState?.sectorFlags[sector];
+        const flag = timingSectorFlags[sector];
         if (!flag) return;
         addFlagBadge(flag, ` S${sector}`);
       });
@@ -1960,23 +1852,14 @@ export function TrackMap({
           />
 
           {/* Sector flag colors on track line */}
-          {normalizedTrackFlagState &&
+          {trackFlagState &&
             (() => {
-              const FLAG_COLORS: Record<string, string> = {
-                YELLOW: "#f5d400",
-                DOUBLE_YELLOW: "#f5d400",
-                RED: "#e8002d",
-                SAFETY_CAR: "#f5a623",
-                VIRTUAL_SC: "#f5a623",
-                VIRTUAL_SAFETY_CAR: "#f5a623",
-                GREEN: "#39b54a",
-                CLEAR: "#39b54a",
-              };
+              const globalFlag = trackFlagState.globalFlag;
 
-              const globalFlag = normalizedTrackFlagState.globalFlag;
-
-              // Global flags (RED, SC, VSC) paint the entire track — no sector splitting needed
-              if (globalFlag) {
+              // An active track-wide flag paints the whole track. An inactive
+              // one such as CHEQUERED falls through, so sector flags raised
+              // during the cool-down lap are still drawn.
+              if (isActiveTrackFlag(globalFlag)) {
                 const color = FLAG_COLORS[globalFlag] ?? null;
                 if (!color) return null;
                 return (
@@ -2016,8 +1899,7 @@ export function TrackMap({
               return (
                 <>
                   {([1, 2, 3] as const).map((sectorNum) => {
-                    const flag =
-                      normalizedTrackFlagState.sectorFlags[sectorNum];
+                    const flag = timingSectorFlags[sectorNum];
                     if (!flag) return null;
                     const color = FLAG_COLORS[flag] ?? null;
                     if (!color) return null;
@@ -2794,7 +2676,7 @@ export function TrackMap({
               </div>
               <div className="flex gap-px">
                 {([1, 2, 3] as const).map((sectorNum) => {
-                  const flag = effectiveFlagForSector(sectorNum);
+                  const flag = timingSectorFlags[sectorNum];
                   const color = flag
                     ? (flagPalette[flag]?.color ?? "#6b6b7a")
                     : "#2e2e3a";
