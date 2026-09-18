@@ -23,6 +23,7 @@ api.openf1.org
 | Bucket | Endpoints | TTL |
 |--------|-----------|-----|
 | Static metadata | `meetings`, `sessions`, `drivers`, `starting_grid` | permanent in KV; 30-day browser cache |
+| `latest` aliases | any request with `meeting_key=latest` / `session_key=latest` | 5 min |
 | Current-season standings | `championship_drivers`, `championship_teams` | 60 s TTL; they change after each race |
 | Session results | `session_result` | permanent in KV; 30-day browser cache |
 | Historical date-window | `location`, `car_data` where `date<` is in the past | permanent in KV; 30-day browser cache |

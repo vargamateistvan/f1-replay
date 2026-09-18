@@ -587,13 +587,28 @@ export function Nav() {
   // no explicit meeting/session is selected in the URL/state.
   useEffect(() => {
     if (autoLatestBootstrappedRef.current) return;
+    if (meetingKey !== null || sessionKey !== null) {
+      autoLatestBootstrappedRef.current = true;
+      return;
+    }
     if (meetings.isPending && !latestMeetingQuery.isSuccess) return;
+    // selectLatestEvent() bails out while the latest meeting's sessions are
+    // still loading. On a cold cache that is exactly the moment this effect
+    // first fires, so wait for them here instead of consuming the one-shot
+    // bootstrap and leaving the page with no session selected.
+    if (latestMeeting && latestMeetingSessions.isPending) return;
 
     autoLatestBootstrappedRef.current = true;
-    if (meetingKey !== null || sessionKey !== null) return;
-
     selectLatestEvent("auto");
-  }, [meetings.isPending, latestMeetingQuery.isSuccess, meetingKey, sessionKey, selectLatestEvent]);
+  }, [
+    meetings.isPending,
+    latestMeetingQuery.isSuccess,
+    latestMeeting,
+    latestMeetingSessions.isPending,
+    meetingKey,
+    sessionKey,
+    selectLatestEvent,
+  ]);
 
   const eventLabel = selectedMeeting
     ? `${selectedMeeting.country_name.toUpperCase()} ${selectedMeeting.year}`

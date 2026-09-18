@@ -1,8 +1,14 @@
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { api } from "@/api/endpoints";
+import type { Lap } from "@/api/types";
 import { TRACK_OUTLINE_LAP } from "@/constants";
 import { getCircuitGeometry } from "@/data/circuitGeometry";
 import { getCircuitLayout } from "@/data/circuits";
+import { lapsQueryKey } from "@/hooks/queryKeys";
+
+// How many drivers the GPS fallback will try before giving up. Each attempt
+// costs one /location request, so keep this small to protect the rate budget.
+export const MAX_GPS_OUTLINE_ATTEMPTS = 3;
 
 export interface TrackBounds {
   minX: number;
@@ -199,6 +205,39 @@ export function computeTrackAutoRotationDeg(
   return normalizeHorizontalLevelDeg(-headingDeg);
 }
 
+function bakedOutline(circuitKey: number | null, year: number | null) {
+  if (circuitKey === null) return null;
+  const geom = getCircuitGeometry(circuitKey, year);
+  if (!geom || geom.x.length === 0) return null;
+  const points = geom.x.map((x, i) => ({ x, y: geom.y[i]! }));
+  const bounds = computeTrackBounds(points);
+  return { points, bounds, source: "baked" as const };
+}
+
+/**
+ * Picks the lap used to trace one driver's outline: a clean early lap
+ * (`preferredLap`), else lap 3, else the first lap with a plausible duration.
+ */
+export function pickOutlineLap(
+  laps: readonly Lap[],
+  driverNumber: number,
+  preferredLap = TRACK_OUTLINE_LAP,
+): Lap | null {
+  const valid = laps.filter(
+    (l) =>
+      l.driver_number === driverNumber &&
+      Boolean(l.date_start) &&
+      l.lap_duration !== null &&
+      l.lap_duration > 30,
+  );
+  return (
+    valid.find((l) => l.lap_number === preferredLap) ??
+    valid.find((l) => l.lap_number === 3) ??
+    valid[0] ??
+    null
+  );
+}
+
 /**
  * Returns a clean track outline as `{ points, bounds }`.
  *
@@ -206,22 +245,44 @@ export function computeTrackAutoRotationDeg(
  * `node scripts/fetch-circuits.mjs`), returns it immediately from cache —
  * no API calls, no GPS processing.
  *
- * Fallback: fetches one clean lap of location data from OpenF1 and uses the
- * raw GPS points. Less accurate but works for any circuit without baked data.
+ * Fallback: uses the session's lap list (shared with the rest of the app via
+ * the `laps` query) to find a clean lap for one of the candidate drivers, then
+ * fetches that single lap of location data from OpenF1 and uses the raw GPS
+ * points. If a driver's lap has no location rows, the next candidate is tried,
+ * up to `MAX_GPS_OUTLINE_ATTEMPTS` drivers. Less accurate than baked geometry
+ * but works for any circuit.
+ *
+ * `driverNumbers` may be a single driver or an ordered list of candidates.
+ * With an empty candidate list and no baked geometry the query stays pending
+ * (so callers show a loading state, not "no data") until drivers arrive.
  */
 export function useTrackOutline(
   sessionKey: number | null,
-  driverNumber: number | null,
+  driverNumbers: number | readonly number[] | null,
   circuitKey: number | null = null,
   circuitShortName: string | null = null,
   preferredLap = TRACK_OUTLINE_LAP,
   year: number | null = null,
 ) {
+  const queryClient = useQueryClient();
+  const candidates: number[] =
+    driverNumbers === null
+      ? []
+      : typeof driverNumbers === "number"
+        ? [driverNumbers]
+        : [...driverNumbers];
+  const candidatesKey = candidates.join(",");
+
+  // Baked data is available synchronously, so seed the cache with it and
+  // never wait on the network.
+  const baked = bakedOutline(circuitKey, year);
+  const canDeriveGps = sessionKey !== null && candidates.length > 0;
+
   return useQuery({
     queryKey: [
       "trackOutline",
       sessionKey,
-      driverNumber,
+      candidatesKey,
       circuitKey,
       circuitShortName,
       preferredLap,
@@ -229,65 +290,65 @@ export function useTrackOutline(
     ],
     queryFn: async () => {
       // ── Fast path: official baked geometry ─────────────────────────────────
-      if (circuitKey !== null) {
-        const geom = getCircuitGeometry(circuitKey, year);
-        if (geom && geom.x.length > 0) {
-          const points = geom.x.map((x, i) => ({ x, y: geom.y[i]! }));
-          const bounds = computeTrackBounds(points);
-          return { points, bounds, source: "baked" as const };
-        }
-      }
+      if (baked) return baked;
 
       // ── Fallback: GPS single-lap derivation ─────────────────────────────────
-      if (sessionKey === null || driverNumber === null) {
+      if (sessionKey === null || candidates.length === 0) {
         return deriveLayoutOutline(circuitShortName);
       }
 
-      const laps = await api.laps(sessionKey, driverNumber);
-      const validLaps = laps.filter(
-        (l) => l.date_start && l.lap_duration !== null && l.lap_duration! > 30,
-      );
-      const lap =
-        validLaps.find((l) => l.lap_number === preferredLap) ??
-        validLaps.find((l) => l.lap_number === 3) ??
-        validLaps[0];
+      // One request for the whole session, shared with useLaps() callers.
+      const laps = await queryClient.fetchQuery({
+        queryKey: lapsQueryKey(sessionKey),
+        queryFn: () => api.laps(sessionKey),
+        staleTime: Infinity,
+      });
 
-      if (!lap?.date_start || !lap.lap_duration) return null;
+      let attempts = 0;
+      for (const driverNumber of candidates) {
+        if (attempts >= MAX_GPS_OUTLINE_ATTEMPTS) break;
+        const lap = pickOutlineLap(laps, driverNumber, preferredLap);
+        if (!lap?.date_start || !lap.lap_duration) continue;
+        attempts++;
 
-      const startDate = lap.date_start;
-      const endMs =
-        new Date(lap.date_start).getTime() + (lap.lap_duration + 2) * 1000;
-      const endDate = new Date(endMs).toISOString();
+        const startDate = lap.date_start;
+        const endMs =
+          new Date(lap.date_start).getTime() + (lap.lap_duration + 2) * 1000;
+        const endDate = new Date(endMs).toISOString();
 
-      const data = await api.locationForDriver(
-        sessionKey,
-        driverNumber,
-        startDate,
-        endDate,
-      );
-      if (!data.length) return deriveLayoutOutline(circuitShortName);
-      const bounds = computeTrackBounds(data);
-      return {
-        points: data as { x: number; y: number }[],
-        bounds,
-        source: "gps" as const,
-      };
+        const data = await api.locationForDriver(
+          sessionKey,
+          driverNumber,
+          startDate,
+          endDate,
+        );
+        if (!data.length) continue;
+        const bounds = computeTrackBounds(data);
+        return {
+          points: data as { x: number; y: number }[],
+          bounds,
+          source: "gps" as const,
+        };
+      }
+
+      return deriveLayoutOutline(circuitShortName);
     },
     // When baked data is available, seed the cache immediately so there is no
     // loading spinner on first render.
-    initialData: (() => {
-      if (circuitKey === null) return undefined;
-      const geom = getCircuitGeometry(circuitKey, year);
-      if (!geom || geom.x.length === 0) return undefined;
-      const points = geom.x.map((x, i) => ({ x, y: geom.y[i]! }));
-      const bounds = computeTrackBounds(points);
-      return { points, bounds, source: "baked" as const };
-    })(),
-    // Show an immediate coarse outline while GPS data is loading.
-    // Unlike initialData, placeholderData still allows queryFn to run.
+    initialData: baked ?? undefined,
+    // Show an immediate coarse outline while GPS data is loading. Unlike
+    // initialData, placeholderData still allows queryFn to run. Must resolve to
+    // `undefined` (not `null`) when no layout exists: a `null` placeholder makes
+    // react-query report success with `data === null`, which callers read as
+    // "no location data" while the fetch is still in flight.
     placeholderData: (previousData) =>
-      previousData ?? deriveLayoutOutline(circuitShortName),
-    enabled: sessionKey !== null || circuitKey !== null,
+      previousData ?? deriveLayoutOutline(circuitShortName) ?? undefined,
+    // Without baked geometry, wait for the driver list before fetching so a
+    // `null` result is never produced just because drivers haven't loaded yet.
+    enabled:
+      baked !== null ||
+      canDeriveGps ||
+      (sessionKey === null && circuitKey !== null),
     staleTime: Infinity,
   });
 }

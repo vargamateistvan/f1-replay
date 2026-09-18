@@ -479,34 +479,21 @@ export function TrackMap({
     circuitKey != null ? getCircuitGeometry(circuitKey, year) : null;
   const hasBaked = circuitGeom != null;
 
-  // Driver fallback loop: only needed for the GPS path (no baked data).
-  const [driverFallbackIdx, setDriverFallbackIdx] = useState(0);
-  useEffect(() => {
-    setDriverFallbackIdx(0);
-  }, [sessionKey]);
-
-  const candidateDriver = hasBaked
-    ? null
-    : (drivers[driverFallbackIdx] ?? drivers[0] ?? null);
+  // GPS fallback (no baked data): hand the hook the ordered driver list and
+  // let it try a bounded number of drivers inside one query. Iterating here
+  // with a per-driver query would fire a laps request for every driver.
+  const candidateDrivers = useMemo(
+    () => (hasBaked ? null : drivers.map((d) => d.driver_number)),
+    [drivers, hasBaked],
+  );
   const { data: outline, isPending } = useTrackOutline(
     sessionKey,
-    candidateDriver?.driver_number ?? null,
+    candidateDrivers,
     circuitKey,
     circuitShortName ?? null,
     undefined,
     year,
   );
-
-  useEffect(() => {
-    if (
-      !hasBaked &&
-      !isPending &&
-      outline === null &&
-      driverFallbackIdx < drivers.length - 1
-    ) {
-      setDriverFallbackIdx((i) => i + 1);
-    }
-  }, [outline, isPending, driverFallbackIdx, drivers.length, hasBaked]);
 
   const driverByNumber = useMemo(
     () => new Map(drivers.map((d) => [d.driver_number, d])),

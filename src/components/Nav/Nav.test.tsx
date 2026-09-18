@@ -13,8 +13,8 @@ const state = vi.hoisted(() => ({
   navigate: vi.fn(),
   pathname: "/",
   year: 2025,
-  meetingKey: 22,
-  sessionKey: 202,
+  meetingKey: 22 as number | null,
+  sessionKey: 202 as number | null,
   view: "tracker",
   setSessionKey: vi.fn(),
   meetings: {
@@ -215,6 +215,30 @@ describe("Nav", () => {
 
     fireEvent.click(screen.getByRole("button", { name: "How it works" }));
     expect(state.openHelp).toHaveBeenCalled();
+  });
+
+  it("waits for the latest meeting's sessions before auto-selecting on a cold load", async () => {
+    // Fresh visit: no meeting/session in the URL, latest meeting known, but its
+    // sessions list is still loading (nothing persisted in incognito).
+    state.searchParams = new URLSearchParams("");
+    state.meetingKey = null;
+    state.sessionKey = null;
+    state.sessions = { ...state.sessions, isPending: true };
+
+    const { rerender } = render(<Nav />);
+    expect(state.setSearchParams).not.toHaveBeenCalled();
+
+    state.sessions = { ...state.sessions, isPending: false };
+    rerender(<Nav />);
+
+    await waitFor(() => expect(state.setSearchParams).toHaveBeenCalled());
+    const [updater] = state.setSearchParams.mock.calls[0] as [
+      (params: URLSearchParams) => URLSearchParams,
+    ];
+    const next = updater(state.searchParams);
+    expect(next.get("year")).toBe("2025");
+    expect(next.get("meeting")).toBe("22");
+    expect(next.get("session")).toBe("202");
   });
 
   it("clears the replay time when selecting a different session", () => {

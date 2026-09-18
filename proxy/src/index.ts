@@ -69,6 +69,10 @@ const OPENF1_BASE = "https://api.openf1.org/v1";
 const TTL_PERMANENT = 60 * 60 * 24 * 30; // 30-day browser cache TTL.
 // Historical / static KV entries are intentionally written without an
 // expiration so they remain available until we delete them explicitly.
+// `meeting_key=latest` / `session_key=latest` resolve to a different row every
+// race weekend, so they must never be cached permanently: a stale alias makes
+// the app open the previous event on first load.
+const TTL_LATEST_ALIAS = 5 * 60;
 const TTL_LIVE_FAST = 20; // position / intervals / laps
 const TTL_LIVE_SLOW = 60; // weather / radio / race control
 const TTL_LIVE_WINDOW = 5; // location / car_data
@@ -136,7 +140,21 @@ function isWindowHistorical(params: URLSearchParams): boolean {
 /**
  * Determines the cache TTL for an endpoint.
  */
+function usesLatestAlias(params: URLSearchParams): boolean {
+  for (const value of params.values()) {
+    if (value === "latest") {
+      return true;
+    }
+  }
+
+  return false;
+}
+
 function chooseTtl(endpoint: string, params: URLSearchParams): number {
+  if (usesLatestAlias(params)) {
+    return TTL_LATEST_ALIAS;
+  }
+
   if (CURRENT_SEASON_MUTABLE_ENDPOINTS.has(endpoint)) {
     return TTL_LIVE_SLOW;
   }
