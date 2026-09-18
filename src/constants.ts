@@ -62,6 +62,14 @@ export const TRACK_OUTLINE_LAP = 2;
 // Fallback session duration when date_end is missing (2 hours).
 export const DEFAULT_SESSION_MS = 7_200_000;
 
+// ── Special track vehicles ──────────────────────────────────────────────────--
+// OpenF1 reports the safety cars and the medical car through the `location`
+// feed using reserved driver numbers. F1 runs two safety cars that alternate
+// between events, so both numbers must be recognised; only the deployed one
+// reports real coordinates.
+export const SAFETY_CAR_NUMBERS: ReadonlySet<number> = new Set([241, 242]);
+export const MEDICAL_CAR_NUMBER = 243;
+
 // ── Track flag colours ──────────────────────────────────────────────────────--
 // Single source of truth for every flag painter on the track map. Keyed by the
 // normalized flag key from `toFlagKey`. A flag absent from this map is not

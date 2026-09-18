@@ -28,6 +28,7 @@ import {
 } from "@/hooks/useTrackMap";
 import { useMediaQuery } from "@/hooks/useMediaQuery";
 import { buildIndex, interpolateXY } from "@/timeline/interpolate";
+import { isOffTrackPlaceholder } from "@/hooks/useTrackMap";
 import {
   isActiveTrackFlag,
   projectToTimingSectors,
@@ -62,6 +63,7 @@ import {
   SECTOR_COLORS,
   COMPOUND_COLORS,
   FLAG_COLORS,
+  SAFETY_CAR_NUMBERS,
   FOLLOW_ZOOM_W,
   FOLLOW_ZOOM_H,
 } from "@/constants";
@@ -261,6 +263,16 @@ const SPECIAL_TRACK_VEHICLES: Record<
     halo: string;
   }
 > = {
+  // Both safety cars share one presentation; whichever is deployed for the
+  // event is the one that reports real coordinates.
+  241: {
+    shortLabel: "SC",
+    fullLabel: "SAFETY CAR",
+    fill: "#f5a623",
+    stroke: "#7a5400",
+    text: "#101010",
+    halo: "rgba(245,166,35,0.55)",
+  },
   242: {
     shortLabel: "SC",
     fullLabel: "SAFETY CAR",
@@ -1507,7 +1519,13 @@ export function TrackMap({
   for (const [num, idx] of locationIndexes) {
     if (retiredDrivers?.has(num)) continue;
     const pos = interpolateXY(idx, t);
-    if (pos) carPositions.push({ num, ...pos });
+    if (!pos) continue;
+    // OpenF1 reports x = y = 0 for a vehicle that is not on track: the safety
+    // car that is not deployed for this event, the medical car in its bay, a
+    // car sitting in the garage. Drawing those puts a stack of markers on the
+    // circuit's coordinate origin.
+    if (isOffTrackPlaceholder(pos)) continue;
+    carPositions.push({ num, ...pos });
   }
 
   const pulseSet = new Set(pulseDrivers ?? []);
@@ -2085,7 +2103,7 @@ export function TrackMap({
             .map(({ num, x, y }) => {
               const driver = driverByNumber.get(num);
               const specialVehicle = SPECIAL_TRACK_VEHICLES[num];
-              const isSafetyCar = num === 242;
+              const isSafetyCar = SAFETY_CAR_NUMBERS.has(num);
               const sirenOn = isSafetyCar && safetyCarSirenOn;
               const color = specialVehicle
                 ? specialVehicle.fill
@@ -2110,7 +2128,7 @@ export function TrackMap({
                 ? specialVehicle.stroke
                 : "#ffffff";
               const markerTextColor = specialVehicle
-                ? num === 242 && !lightMode
+                ? isSafetyCar && !lightMode
                   ? "#ffffff"
                   : specialVehicle.text
                 : "#ffffff";

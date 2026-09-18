@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   computeTrackAutoRotationDeg,
   computeTrackBounds,
+  isOffTrackPlaceholder,
   locationToSvg,
 } from "./useTrackMap";
 
@@ -21,6 +22,12 @@ describe("useTrackMap utilities", () => {
       width: 12,
       height: 11,
     });
+  });
+
+  it("treats the coordinate origin as an off-track sentinel", () => {
+    expect(isOffTrackPlaceholder({ x: 0, y: 0 })).toBe(true);
+    expect(isOffTrackPlaceholder({ x: 0, y: 12 })).toBe(false);
+    expect(isOffTrackPlaceholder({ x: -3, y: 0 })).toBe(false);
   });
 
   it("maps world coordinates into svg space preserving aspect ratio", () => {

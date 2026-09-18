@@ -6,6 +6,7 @@ import {
 import type { Location } from "@/api/types";
 import { useTrackOutline } from "@/hooks/useTrackMap";
 import type { TrackFlagState } from "@/timeline/raceControl";
+import { TRACK_SVG_PAD } from "@/constants";
 import { getCircuitGeometry } from "@/data/circuitGeometry";
 
 let timelineT = 0;
@@ -54,6 +55,8 @@ vi.mock("@/hooks/useTrackMap", () => ({
   locationToSvg: vi.fn((x: number, y: number) => ({ sx: x, sy: y })),
   computeTrackAutoRotationDeg: vi.fn(() => 0),
   computeTrackBounds: vi.fn(() => ({ minX: 0, minY: 0, maxX: 1, maxY: 1 })),
+  isOffTrackPlaceholder: (pos: { x: number; y: number }) =>
+    pos.x === 0 && pos.y === 0,
 }));
 
 vi.mock("@/data/circuits", () => ({
@@ -386,6 +389,49 @@ describe("TrackMap sector flag state rendering", () => {
     );
 
     expect(screen.getByTestId("marshal-flag-segment-17")).toBeInTheDocument();
+  });
+
+  it("labels both safety car numbers and hides the one that is parked", () => {
+    vi.mocked(useTrackOutline).mockReturnValue(
+      mockTrackOutlineQueryResult(mockOutline),
+    );
+
+    // 241 and 242 are both safety cars. Only the car deployed for the event
+    // reports real coordinates; the other sits at the sentinel origin.
+    const vehicles: Location[] = [241, 242, 243].flatMap((num) =>
+      [10, 11].map((sec) => ({
+        date: `2024-01-01T00:00:${sec}.000Z`,
+        driver_number: num,
+        meeting_key: 1,
+        session_key: 1,
+        x: num === 241 ? 40 + sec : 0,
+        y: num === 241 ? 40 + sec : 0,
+        z: 0,
+      })),
+    );
+
+    render(
+      <TrackMap
+        sessionKey={1}
+        drivers={[mockDriver]}
+        locationData={[...mockLocationData, ...vehicles]}
+        sessionStartMs={0}
+      />,
+    );
+
+    // Exactly one safety car marker: 241 is on track, 242 and the medical car
+    // are parked at the origin sentinel and must not be drawn at all.
+    const safetyCarMarkers = screen.getAllByText("SC");
+    expect(safetyCarMarkers).toHaveLength(1);
+    expect(screen.queryByText("MC")).toBeNull();
+
+    // And it is the deployed car's position, not the origin. The mocked
+    // locationToSvg is the identity, so a parked car would land on the pad
+    // offset alone.
+    const marker = safetyCarMarkers[0]!.closest("g");
+    expect(marker?.getAttribute("transform")).not.toContain(
+      `translate(${TRACK_SVG_PAD.toFixed(1)},${TRACK_SVG_PAD.toFixed(1)})`,
+    );
   });
 
   it("uses baked circuit rotation as the default track heading", () => {

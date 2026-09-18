@@ -106,6 +106,19 @@ function deriveLayoutOutline(circuitShortName: string | null) {
   return { points: hull, bounds, source: "layout" as const };
 }
 
+/**
+ * True for the sentinel position OpenF1 uses when a vehicle is not on track:
+ * a safety car not deployed for this event, the medical car in its bay, or a
+ * car sitting in the garage. It applies to every number, not just the
+ * reserved vehicle ones.
+ */
+export function isOffTrackPlaceholder(pos: {
+  x: number;
+  y: number;
+}): boolean {
+  return pos.x === 0 && pos.y === 0;
+}
+
 export function locationToSvg(
   x: number,
   y: number,

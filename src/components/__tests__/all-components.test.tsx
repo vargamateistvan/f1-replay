@@ -118,6 +118,8 @@ vi.mock("@/hooks/useTrackMap", () => ({
   useTrackOutline: vi.fn(() => ({ data: null, isPending: false })),
   locationToSvg: vi.fn((v: number) => v),
   computeTrackAutoRotationDeg: vi.fn(() => 0),
+  isOffTrackPlaceholder: (pos: { x: number; y: number }) =>
+    pos.x === 0 && pos.y === 0,
 }));
 
 vi.mock("@/data/circuits", () => ({

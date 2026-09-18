@@ -76,6 +76,8 @@ vi.mock("@/hooks/useTrackMap", () => ({
   }),
   locationToSvg: (x: number, y: number) => ({ sx: x * 5, sy: y * 3 }),
   computeTrackAutoRotationDeg: () => 0,
+  isOffTrackPlaceholder: (pos: { x: number; y: number }) =>
+    pos.x === 0 && pos.y === 0,
 }));
 
 vi.mock("@/data/circuits", () => ({
