@@ -73,6 +73,8 @@ const TTL_PERMANENT = 60 * 60 * 24 * 30; // 30-day browser cache TTL.
 // race weekend, so they must never be cached permanently: a stale alias makes
 // the app open the previous event on first load.
 const TTL_LATEST_ALIAS = 5 * 60;
+// Bump when the alias caching rules change so stale entries are bypassed.
+const ALIAS_CACHE_VERSION = "alias-v2";
 const TTL_LIVE_FAST = 20; // position / intervals / laps
 const TTL_LIVE_SLOW = 60; // weather / radio / race control
 const TTL_LIVE_WINDOW = 5; // location / car_data
@@ -321,7 +323,15 @@ export default {
     //
     // This lets Cloudflare treat each public URL as a distinct cache entry.
     //
-    const edgeCacheKey = new Request(url.toString(), {
+    // `latest` aliases were once cached permanently. Version their cache keys
+    // so those old entries are never read again (they'd otherwise linger in
+    // KV without expiry and at the edge for up to 30 days).
+    const isAliasRequest = usesLatestAlias(url.searchParams);
+    const edgeUrl = new URL(url.toString());
+    if (isAliasRequest) {
+      edgeUrl.searchParams.set("__cache", ALIAS_CACHE_VERSION);
+    }
+    const edgeCacheKey = new Request(edgeUrl.toString(), {
       method: "GET",
     });
 
@@ -332,7 +342,12 @@ export default {
     //
     const normalizedSearch = normalizeSearchParams(url.searchParams);
 
-    const kvCacheKey = makeCacheKey(`/${pathname}`, normalizedSearch);
+    const kvCacheKey = makeCacheKey(
+      `/${pathname}`,
+      isAliasRequest
+        ? `${normalizedSearch}#${ALIAS_CACHE_VERSION}`
+        : normalizedSearch,
+    );
 
     // ── LEVEL 1: Cloudflare Cache API ─────────────────────────────────────────
     // eslint-disable-next-line no-undef

@@ -1,6 +1,7 @@
 import { describe, it, expect, vi } from "vitest";
 import { render } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import type { ReactElement, ReactNode } from "react";
 import type { Driver, TeamRadio } from "@/api/types";
 import type { CatchupSummary as CatchupSummaryData } from "@/hooks/useCatchupSummary";
@@ -212,16 +213,24 @@ vi.mock("@/stores/settings", () => {
   };
 });
 
+// Data hooks are mocked, so this client only satisfies components that read
+// the QueryClient from context (e.g. Nav's Latest-event resolver).
+const smokeQueryClient = new QueryClient({
+  defaultOptions: { queries: { retry: false, enabled: false } },
+});
+
 function wrap(ui: ReactElement) {
   return render(
-    <MemoryRouter
-      future={{
-        v7_startTransition: true,
-        v7_relativeSplatPath: true,
-      }}
-    >
-      {ui}
-    </MemoryRouter>,
+    <QueryClientProvider client={smokeQueryClient}>
+      <MemoryRouter
+        future={{
+          v7_startTransition: true,
+          v7_relativeSplatPath: true,
+        }}
+      >
+        {ui}
+      </MemoryRouter>
+    </QueryClientProvider>,
   );
 }
 

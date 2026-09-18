@@ -5,15 +5,18 @@ import {
   useNavigate,
 } from "react-router-dom";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import {
   useLatestMeeting,
   useLatestSession,
   useMeetings,
   useSessions,
 } from "@/hooks/useSession";
+import { api } from "@/api/endpoints";
+import type { Meeting, Session } from "@/api/types";
 import { isAuthError } from "@/api/client";
 import { isSessionLive } from "@/utils/live";
-import { LIVE_BUFFER_MS, YEARS, DEFAULT_YEAR } from "@/constants";
+import { YEARS, DEFAULT_YEAR, CURRENT_SEASON_STALE_MS } from "@/constants";
 import { useNumberParam, useStringParam } from "@/hooks/useSearchParamState";
 import { AppLogo } from "@/components/AppLogo";
 import { useTimeline } from "@/timeline/clock";
@@ -51,6 +54,8 @@ const CIRCUIT_TYPE_LABEL: Record<string, string> = {
 };
 
 const TRACK_FACTS_ENABLED = false;
+// How old cached calendar/alias data may be before the Latest button refetches.
+const LATEST_MANUAL_STALE_MS = 5 * 60 * 1000;
 
 function isRaceWeekend(meetingName: string, officialName: string) {
   return /grand prix/i.test(meetingName) || /grand prix/i.test(officialName);
@@ -174,16 +179,13 @@ export function Nav() {
     enabled: needsCurrentYearMeetings,
   });
   const sessions = useSessions(meetingKey);
-  const latestMeetingSessions = useSessions(
-    latestMeetingQuery.data?.meeting_key ?? null,
-  );
   const authFailed =
     isAuthError(meetings.error) ||
     isAuthError(sessions.error) ||
     isAuthError(latestMeetingQuery.error) ||
     isAuthError(latestSessionQuery.error);
-  const latestMeeting = latestMeetingQuery.data ?? null;
-  const latestSession = latestSessionQuery.data ?? null;
+  const queryClient = useQueryClient();
+  const [isSelectingLatest, setIsSelectingLatest] = useState(false);
 
   const selectedMeeting = meetings.data?.find(
     (m) => m.meeting_key === meetingKey,
@@ -424,191 +426,164 @@ export function Nav() {
     setSelectLatestSessionOnLoad(true);
   }
 
+  // Resolves "the latest event" from three independent sources and picks the
+  // most recently started one. OpenF1's `meeting_key=latest` /
+  // `session_key=latest` aliases are convenient but can lag (or be served
+  // stale by a cache), so they are treated as candidates, never as the answer.
   const selectLatestEvent = useCallback(
     async (source: "auto" | "manual" = "auto") => {
-      let resolvedMeeting = latestMeeting;
-      let resolvedSessions = latestMeetingSessions.data;
+      if (isSelectingLatest) return;
+      setIsSelectingLatest(true);
+      try {
+        const now = Date.now();
+        // The choice is time-driven (most recently *started* meeting/session
+        // as of `now`), and the season calendar and weekend schedules are
+        // published in advance, so cached lists are fine. Manual clicks only
+        // refresh lists older than a few minutes; a forced round trip would
+        // queue behind the client rate limiter and make the button feel dead.
+        const staleTime =
+          source === "manual"
+            ? LATEST_MANUAL_STALE_MS
+            : CURRENT_SEASON_STALE_MS;
+        const safe = async <T,>(p: Promise<T>): Promise<T | undefined> => {
+          try {
+            return await p;
+          } catch {
+            return undefined;
+          }
+        };
 
-      if (source === "manual") {
-        const latestMeetingResult = await latestMeetingQuery.refetch();
-        resolvedMeeting = latestMeetingResult.data ?? resolvedMeeting;
+        const [aliasMeetings, aliasSessions, calendar] = await Promise.all([
+          safe(
+            queryClient.fetchQuery({
+              queryKey: ["latestMeeting"],
+              queryFn: () => api.latestMeeting(),
+              staleTime,
+            }),
+          ),
+          safe(
+            queryClient.fetchQuery({
+              queryKey: ["latestSession"],
+              queryFn: () => api.latestSession(),
+              staleTime,
+            }),
+          ),
+          safe(
+            queryClient.fetchQuery({
+              queryKey: ["meetings", currentCalendarYear],
+              queryFn: () => api.meetings(currentCalendarYear),
+              staleTime,
+            }),
+          ),
+        ]);
 
-        if (
-          resolvedMeeting &&
-          resolvedMeeting.meeting_key === latestMeeting?.meeting_key
-        ) {
-          const latestMeetingSessionsResult =
-            await latestMeetingSessions.refetch();
-          resolvedSessions =
-            latestMeetingSessionsResult.data ?? resolvedSessions;
-        } else {
-          resolvedSessions = undefined;
+        const aliasMeeting = aliasMeetings?.[0] ?? null;
+        const aliasSession = aliasSessions?.[0] ?? null;
+        const calendarMeetings = calendar ?? [];
+
+        const hasStarted = (dateStart: string) =>
+          new Date(dateStart).getTime() <= now;
+
+        type Candidate = Pick<Meeting, "year" | "meeting_key" | "date_start">;
+        const candidates: Candidate[] = [];
+        if (aliasMeeting && !aliasMeeting.is_cancelled) {
+          candidates.push(aliasMeeting);
         }
-      }
+        if (aliasSession && !aliasSession.is_cancelled) {
+          candidates.push(
+            calendarMeetings.find(
+              (m) => m.meeting_key === aliasSession.meeting_key,
+            ) ?? {
+              year: aliasSession.year,
+              meeting_key: aliasSession.meeting_key,
+              date_start: aliasSession.date_start,
+            },
+          );
+        }
+        for (const m of calendarMeetings) {
+          if (!m.is_cancelled) candidates.push(m);
+        }
 
-      if (resolvedMeeting && latestMeetingSessions.isPending) {
-        return;
-      }
-
-      const latestMeetingSession =
-        resolvedSessions
-          ?.filter((s) => new Date(s.date_start).getTime() <= nowMs)
+        const target = candidates
+          .filter((m) => hasStarted(m.date_start))
           .sort(
             (a, b) =>
               new Date(b.date_start).getTime() -
               new Date(a.date_start).getTime(),
-          )[0] ?? null;
+          )[0];
+        if (!target) return;
 
-      if (resolvedMeeting && latestMeetingSession) {
+        const meetingSessions =
+          (await safe(
+            queryClient.fetchQuery({
+              queryKey: ["sessions", target.meeting_key],
+              queryFn: () => api.sessions(target.meeting_key),
+              staleTime,
+            }),
+          )) ?? [];
+        const pool: Session[] = [...meetingSessions];
+        if (
+          aliasSession &&
+          aliasSession.meeting_key === target.meeting_key &&
+          !pool.some((s) => s.session_key === aliasSession.session_key)
+        ) {
+          pool.push(aliasSession);
+        }
+        const started = pool.filter((s) => hasStarted(s.date_start));
+        const ordered = (started.length > 0 ? started : pool)
+          .filter((s) => !s.is_cancelled)
+          .sort(
+            (a, b) =>
+              new Date(b.date_start).getTime() -
+              new Date(a.date_start).getTime(),
+          );
+        const targetSession =
+          ordered.find((s) => isSessionLive(s)) ?? ordered[0] ?? null;
+
         if (source === "manual") {
           trackEvent("nav_latest_event", {
-            year: resolvedMeeting.year,
-            meeting_key: resolvedMeeting.meeting_key,
-            session_key: latestMeetingSession.session_key,
+            year: target.year,
+            meeting_key: target.meeting_key,
+            ...(targetSession
+              ? { session_key: targetSession.session_key }
+              : {}),
           });
         }
 
         resetPlaybackToStart();
         setSearchParams((prev) => {
           const next = new URLSearchParams(prev);
-          next.set("year", String(resolvedMeeting.year));
-          next.set("meeting", String(resolvedMeeting.meeting_key));
-          next.set("session", String(latestMeetingSession.session_key));
+          next.set("year", String(target.year));
+          next.set("meeting", String(target.meeting_key));
+          if (targetSession) {
+            next.set("session", String(targetSession.session_key));
+          } else {
+            next.delete("session");
+          }
           clearReplayTimeParam(next);
           replaceHistorySearchParams(next);
           return next;
         });
-        setSelectLatestSessionOnLoad(false);
-        return;
+        // No session list yet (e.g. sessions request failed): let the
+        // sessions-loaded effect pick one once useSessions() resolves.
+        setSelectLatestSessionOnLoad(targetSession === null);
+      } finally {
+        setIsSelectingLatest(false);
       }
-
-      if (latestSession) {
-        if (source === "manual") {
-          trackEvent("nav_latest_event", {
-            year: latestSession.year,
-            meeting_key: latestSession.meeting_key,
-            session_key: latestSession.session_key,
-          });
-        }
-
-        resetPlaybackToStart();
-        setSearchParams((prev) => {
-          const next = new URLSearchParams(prev);
-          next.set("year", String(latestSession.year));
-          next.set("meeting", String(latestSession.meeting_key));
-          next.set("session", String(latestSession.session_key));
-          clearReplayTimeParam(next);
-          replaceHistorySearchParams(next);
-          return next;
-        });
-        setSelectLatestSessionOnLoad(false);
-        return;
-      }
-
-      const isOngoing = (m: { date_start: string; date_end: string }) =>
-        new Date(m.date_start).getTime() <= nowMs &&
-        nowMs <= new Date(m.date_end).getTime() + LIVE_BUFFER_MS;
-
-      const latestFromAlias =
-        latestMeeting &&
-        !latestMeeting.is_cancelled &&
-        isRaceWeekend(
-          latestMeeting.meeting_name,
-          latestMeeting.meeting_official_name,
-        ) &&
-        new Date(latestMeeting.date_start).getTime() <= nowMs
-          ? {
-              year: latestMeeting.year,
-              meeting_key: latestMeeting.meeting_key,
-              ongoing: isOngoing(latestMeeting),
-            }
-          : null;
-
-      const raceWeekends = (startedMeetings ?? []).filter((m) =>
-        isRaceWeekend(m.meeting_name, m.meeting_official_name),
-      );
-      const byRecency = (a: { date_start: string }, b: { date_start: string }) =>
-        new Date(b.date_start).getTime() - new Date(a.date_start).getTime();
-
-      // Prefer an ongoing race weekend (a session is currently live), then
-      // fall back to the most recently started race weekend, then any
-      // ongoing meeting, then any started meeting.
-      const ongoingRaceWeekend = raceWeekends
-        .filter(isOngoing)
-        .sort(byRecency)[0];
-      const latestRaceWeekend = raceWeekends.slice().sort(byRecency)[0];
-      const ongoingMeeting = (startedMeetings ?? [])
-        .filter(isOngoing)
-        .sort(byRecency)[0];
-      const latestMeetingFallback = (startedMeetings ?? [])
-        .slice()
-        .sort(byRecency)[0];
-
-      const latest =
-        (latestFromAlias?.ongoing ? latestFromAlias : null) ??
-        ongoingRaceWeekend ??
-        latestFromAlias ??
-        latestRaceWeekend ??
-        ongoingMeeting ??
-        latestMeetingFallback;
-      if (!latest) return;
-
-      if (source === "manual") {
-        trackEvent("nav_latest_event", {
-          year: latest.year,
-          meeting_key: latest.meeting_key,
-        });
-      }
-
-      resetPlaybackToStart();
-      setSearchParams((prev) => {
-        const next = new URLSearchParams(prev);
-        next.set("year", String(latest.year));
-        next.set("meeting", String(latest.meeting_key));
-        next.delete("session");
-        clearReplayTimeParam(next);
-        replaceHistorySearchParams(next);
-        return next;
-      });
-      setSelectLatestSessionOnLoad(true);
     },
-    [
-      latestMeeting,
-      latestMeetingSessions,
-      latestMeetingQuery,
-      latestSession,
-      startedMeetings,
-      nowMs,
-      setSearchParams,
-    ],
+    [isSelectingLatest, queryClient, currentCalendarYear, setSearchParams],
   );
 
   // First app load behavior: mimic pressing "Latest" automatically when
   // no explicit meeting/session is selected in the URL/state.
+  // selectLatestEvent() fetches what it needs itself, so this can run once
+  // on mount without waiting for any query to settle.
   useEffect(() => {
     if (autoLatestBootstrappedRef.current) return;
-    if (meetingKey !== null || sessionKey !== null) {
-      autoLatestBootstrappedRef.current = true;
-      return;
-    }
-    if (meetings.isPending && !latestMeetingQuery.isSuccess) return;
-    // selectLatestEvent() bails out while the latest meeting's sessions are
-    // still loading. On a cold cache that is exactly the moment this effect
-    // first fires, so wait for them here instead of consuming the one-shot
-    // bootstrap and leaving the page with no session selected.
-    if (latestMeeting && latestMeetingSessions.isPending) return;
-
     autoLatestBootstrappedRef.current = true;
-    selectLatestEvent("auto");
-  }, [
-    meetings.isPending,
-    latestMeetingQuery.isSuccess,
-    latestMeeting,
-    latestMeetingSessions.isPending,
-    meetingKey,
-    sessionKey,
-    selectLatestEvent,
-  ]);
+    if (meetingKey !== null || sessionKey !== null) return;
+    void selectLatestEvent("auto");
+  }, [meetingKey, sessionKey, selectLatestEvent]);
 
   const eventLabel = selectedMeeting
     ? `${selectedMeeting.country_name.toUpperCase()} ${selectedMeeting.year}`
@@ -1123,11 +1098,7 @@ export function Nav() {
               onClick={() => {
                 void selectLatestEvent("manual");
               }}
-              disabled={
-                latestSessionQuery.isPending ||
-                latestMeetingSessions.isPending ||
-                (!latestSession && (meetings.isPending || !meetings.data?.length))
-              }
+              disabled={isSelectingLatest}
               className="h-6 px-2 text-[9px] font-black uppercase tracking-widest rounded transition-colors bg-panel text-muted hover:text-white hover:bg-track disabled:opacity-40 disabled:cursor-not-allowed light:bg-white light:text-slate-600 light:border light:border-slate-300 light:hover:text-slate-900 light:hover:bg-slate-100"
             >
               Latest

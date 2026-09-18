@@ -18,19 +18,22 @@ const state = vi.hoisted(() => ({
   view: "tracker",
   setSessionKey: vi.fn(),
   meetings: {
-    data: [],
+    data: [] as Record<string, unknown>[],
     isPending: false,
     isError: false,
     error: null as { status?: number } | null,
   },
   sessions: {
-    data: [],
+    data: [] as Record<string, unknown>[],
     isPending: false,
     isError: false,
     error: null as { status?: number } | null,
   },
   latestMeeting: null as Record<string, unknown> | null,
   latestSession: null as Record<string, unknown> | null,
+  // Sessions returned by the query client per meeting key; falls back to
+  // `sessions.data` when a meeting has no entry.
+  sessionsByMeeting: {} as Record<number, unknown[]>,
   live: false,
   openModal: vi.fn(),
   openHelp: vi.fn(),
@@ -49,6 +52,22 @@ vi.mock("@/timeline/clock", () => ({
   useTimeline: {
     getState: () => ({ reset: resetTimeline }),
   },
+}));
+
+vi.mock("@tanstack/react-query", () => ({
+  useQueryClient: () => ({
+    fetchQuery: async ({ queryKey }: { queryKey: readonly unknown[] }) => {
+      const [root, arg] = queryKey;
+      if (root === "latestMeeting")
+        return state.latestMeeting ? [state.latestMeeting] : [];
+      if (root === "latestSession")
+        return state.latestSession ? [state.latestSession] : [];
+      if (root === "meetings") return state.meetings.data;
+      if (root === "sessions")
+        return state.sessionsByMeeting[arg as number] ?? state.sessions.data;
+      throw new Error(`unexpected query ${String(root)}`);
+    },
+  }),
 }));
 
 vi.mock("@/hooks/useSession", () => ({
@@ -127,6 +146,7 @@ describe("Nav", () => {
     state.view = "tracker";
     resetTimeline.mockReset();
     state.live = true;
+    state.sessionsByMeeting = {};
     state.showNextRaceWeekendBanner = false;
     state.latestMeeting = {
       year: 2025,
@@ -217,19 +237,15 @@ describe("Nav", () => {
     expect(state.openHelp).toHaveBeenCalled();
   });
 
-  it("waits for the latest meeting's sessions before auto-selecting on a cold load", async () => {
-    // Fresh visit: no meeting/session in the URL, latest meeting known, but its
-    // sessions list is still loading (nothing persisted in incognito).
+  it("auto-selects the latest event and session on a cold load with no URL selection", async () => {
     state.searchParams = new URLSearchParams("");
     state.meetingKey = null;
     state.sessionKey = null;
+    // Nothing resolved yet in the hooks — the bootstrap must not depend on them.
+    state.meetings = { ...state.meetings, isPending: true };
     state.sessions = { ...state.sessions, isPending: true };
 
-    const { rerender } = render(<Nav />);
-    expect(state.setSearchParams).not.toHaveBeenCalled();
-
-    state.sessions = { ...state.sessions, isPending: false };
-    rerender(<Nav />);
+    render(<Nav />);
 
     await waitFor(() => expect(state.setSearchParams).toHaveBeenCalled());
     const [updater] = state.setSearchParams.mock.calls[0] as [
@@ -239,6 +255,111 @@ describe("Nav", () => {
     expect(next.get("year")).toBe("2025");
     expect(next.get("meeting")).toBe("22");
     expect(next.get("session")).toBe("202");
+  });
+
+  it("does not auto-select when the URL already names a meeting or session", async () => {
+    render(<Nav />);
+    await new Promise((r) => setTimeout(r, 0));
+    expect(state.setSearchParams).not.toHaveBeenCalled();
+  });
+
+  it("Latest ignores stale aliases and picks the most recently started meeting from the calendar", async () => {
+    state.live = false;
+    // Aliases still point at round 1 …
+    state.latestMeeting = { ...state.latestMeeting, meeting_key: 22 };
+    state.latestSession = { ...state.latestSession, meeting_key: 22 };
+    // … but the calendar shows a later round has already happened.
+    state.meetings.data = [
+      ...state.meetings.data,
+      {
+        ...state.meetings.data[0],
+        meeting_key: 30,
+        meeting_name: "Miami Grand Prix",
+        meeting_official_name: "FORMULA 1 MIAMI GRAND PRIX 2025",
+        location: "Miami Gardens",
+        date_start: "2025-05-02T00:00:00.000Z",
+        date_end: "2025-05-04T23:00:00.000Z",
+      },
+      {
+        ...state.meetings.data[0],
+        meeting_key: 40,
+        meeting_name: "Future Grand Prix",
+        meeting_official_name: "FORMULA 1 FUTURE GRAND PRIX 2999",
+        date_start: "2999-01-01T00:00:00.000Z",
+        date_end: "2999-01-03T00:00:00.000Z",
+      },
+    ];
+    state.sessionsByMeeting[30] = [
+      {
+        session_key: 301,
+        session_name: "Practice 1",
+        date_start: "2025-05-02T16:30:00.000Z",
+        date_end: "2025-05-02T17:30:00.000Z",
+      },
+      {
+        session_key: 305,
+        session_name: "Race",
+        date_start: "2025-05-04T20:00:00.000Z",
+        date_end: "2025-05-04T22:00:00.000Z",
+      },
+      {
+        session_key: 309,
+        session_name: "Not yet",
+        date_start: "2999-05-04T20:00:00.000Z",
+        date_end: "2999-05-04T22:00:00.000Z",
+      },
+    ];
+
+    render(<Nav />);
+    fireEvent.click(screen.getByRole("button", { name: "Latest" }));
+
+    await waitFor(() => expect(state.setSearchParams).toHaveBeenCalled());
+    const [updater] = state.setSearchParams.mock.calls[0] as [
+      (params: URLSearchParams) => URLSearchParams,
+    ];
+    const next = updater(state.searchParams);
+    expect(next.get("meeting")).toBe("30");
+    expect(next.get("session")).toBe("305");
+    expect(next.has("t")).toBe(false);
+    expect(resetTimeline).toHaveBeenCalled();
+  });
+
+  it("Latest uses the session alias when it is newer than the meeting alias", async () => {
+    state.live = false;
+    // Meeting alias lags one round behind; the session alias is current and
+    // its meeting is not in the (stale) calendar list.
+    state.latestSession = {
+      year: 2025,
+      meeting_key: 31,
+      session_key: 315,
+      date_start: "2025-05-18T13:00:00.000Z",
+      date_end: "2025-05-18T15:00:00.000Z",
+    };
+    state.sessionsByMeeting[31] = [
+      {
+        session_key: 311,
+        session_name: "Practice 1",
+        date_start: "2025-05-16T11:30:00.000Z",
+        date_end: "2025-05-16T12:30:00.000Z",
+      },
+      {
+        session_key: 315,
+        session_name: "Race",
+        date_start: "2025-05-18T13:00:00.000Z",
+        date_end: "2025-05-18T15:00:00.000Z",
+      },
+    ];
+
+    render(<Nav />);
+    fireEvent.click(screen.getByRole("button", { name: "Latest" }));
+
+    await waitFor(() => expect(state.setSearchParams).toHaveBeenCalled());
+    const [updater] = state.setSearchParams.mock.calls[0] as [
+      (params: URLSearchParams) => URLSearchParams,
+    ];
+    const next = updater(state.searchParams);
+    expect(next.get("meeting")).toBe("31");
+    expect(next.get("session")).toBe("315");
   });
 
   it("clears the replay time when selecting a different session", () => {
