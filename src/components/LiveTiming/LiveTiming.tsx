@@ -445,9 +445,10 @@ export function LiveTiming({
     Record<string, TimingCellTrend>
   >({});
   const timingCellTimersRef = useRef<Map<string, number>>(new Map());
-  const timingCellSnapshotRef = useRef<
-    Record<string, string | number | null> | null
-  >(null);
+  const timingCellSnapshotRef = useRef<Record<
+    string,
+    string | number | null
+  > | null>(null);
   const tableRef = useRef<HTMLTableElement | null>(null);
   const prevSelectedDriverRef = useRef(selectedDriver);
   const speedUnitShort = speedUnitLabel(metricSystem);
@@ -766,7 +767,8 @@ export function LiveTiming({
     const lastLapNumberByDriver = new Map<number, number>();
     for (const l of completedLaps) {
       const prev = lastLapNumberByDriver.get(l.driver_number) ?? -1;
-      if (l.lap_number > prev) lastLapNumberByDriver.set(l.driver_number, l.lap_number);
+      if (l.lap_number > prev)
+        lastLapNumberByDriver.set(l.driver_number, l.lap_number);
     }
     const priorByDriver = new Map<number, number>();
     for (const l of completedLaps) {
@@ -1027,8 +1029,12 @@ export function LiveTiming({
     return [...activeDriverNumbers]
       .sort(
         (a, b) =>
-          (posMap.get(a) ?? referenceOrderMap.get(a) ?? Number.MAX_SAFE_INTEGER) -
-          (posMap.get(b) ?? referenceOrderMap.get(b) ?? Number.MAX_SAFE_INTEGER),
+          (posMap.get(a) ??
+            referenceOrderMap.get(a) ??
+            Number.MAX_SAFE_INTEGER) -
+          (posMap.get(b) ??
+            referenceOrderMap.get(b) ??
+            Number.MAX_SAFE_INTEGER),
       )
       .map((driverNumber, idx) => ({
         driverNumber,
@@ -1039,7 +1045,15 @@ export function LiveTiming({
           idx + 1,
         eliminatedPhase: null,
       }));
-  }, [drivers, gridMap, posMap, referenceOrderMap, sessionName, startPosMap, timedOrder]);
+  }, [
+    drivers,
+    gridMap,
+    posMap,
+    referenceOrderMap,
+    sessionName,
+    startPosMap,
+    timedOrder,
+  ]);
 
   const leaderBestLap = useMemo(() => {
     const leader = sorted[0];
@@ -1058,7 +1072,8 @@ export function LiveTiming({
           leaderBestLap !== null && bestLap?.lap_duration !== undefined
             ? Math.max(0, bestLap.lap_duration - leaderBestLap)
             : null;
-        let gapValue: TimingDisplayValue = intMap.get(num)?.gap_to_leader ?? null;
+        let gapValue: TimingDisplayValue =
+          intMap.get(num)?.gap_to_leader ?? null;
         if (isTimedSession(sessionName ?? "")) {
           gapValue = pos === 1 ? 0 : timedGap;
         }
@@ -1067,7 +1082,8 @@ export function LiveTiming({
           previousDriverNumber !== null
             ? (bestLapMap.get(previousDriverNumber)?.lap_duration ?? null)
             : null;
-        let intervalValue: TimingDisplayValue = intMap.get(num)?.interval ?? null;
+        let intervalValue: TimingDisplayValue =
+          intMap.get(num)?.interval ?? null;
         if (isTimedSession(sessionName ?? "")) {
           intervalValue =
             previousBestLap !== null && bestLap?.lap_duration !== undefined
@@ -1082,17 +1098,11 @@ export function LiveTiming({
           gapDisplay: fmtGap(gapValue),
           intervalDisplay: fmtInterval(intervalValue),
           gapValue: typeof gapValue === "number" ? gapValue : null,
-          intervalValue: typeof intervalValue === "number" ? intervalValue : null,
+          intervalValue:
+            typeof intervalValue === "number" ? intervalValue : null,
         };
       }),
-    [
-      bestLapMap,
-      intMap,
-      lastLapMap,
-      leaderBestLap,
-      sessionName,
-      sorted,
-    ],
+    [bestLapMap, intMap, lastLapMap, leaderBestLap, sessionName, sorted],
   );
 
   useEffect(() => {
@@ -1137,14 +1147,14 @@ export function LiveTiming({
           ) {
             const tone: TimingCellTrend | null =
               nextValue < previousValue
-               ? "green"
-               : nextValue > previousValue
-                 ? "red"
-                 : null;
+                ? "green"
+                : nextValue > previousValue
+                  ? "red"
+                  : null;
             if (tone !== null) {
               setTimingCellTones((current) => {
-               if (current[key] === tone) return current;
-               return { ...current, [key]: tone };
+                if (current[key] === tone) return current;
+                return { ...current, [key]: tone };
               });
             }
           }
@@ -1580,7 +1590,7 @@ export function LiveTiming({
                 >
                   <span className="block leading-none">Telemetry</span>
                   <span className="block text-[8px] normal-case tracking-normal text-muted leading-none mt-0.5">
-                    {speedUnitShort} · RPM · Gear · Thr/Brk
+                    {speedUnitShort} · Gear · RPM · Thr/Brk
                     {showDrs ? " · DRS" : ""}
                   </span>
                 </th>
@@ -2172,7 +2182,10 @@ export function LiveTiming({
                             </span>{" "}
                             rpm
                           </span>
-                          <PedalTrace throttle={car.throttle} brake={car.brake} />
+                          <PedalTrace
+                            throttle={car.throttle}
+                            brake={car.brake}
+                          />
                           {showDrs && (
                             <span
                               className={`ml-auto px-1 py-0.5 text-[8px] font-black uppercase tracking-[0.08em] ${
