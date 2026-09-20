@@ -280,14 +280,14 @@ function PedalTrace({ throttle, brake }: { throttle: number; brake: number }) {
     <span className="flex items-end gap-0.5 h-4 shrink-0">
       <span className="flex h-full w-1.5 items-end overflow-hidden rounded-[1px] bg-panel">
         <span
-          className="w-full bg-[#39d743] transition-[height] duration-150"
-          style={{ height: `${t}%` }}
+          className="w-full bg-[#ff5252] transition-[height] duration-150"
+          style={{ height: `${b}%` }}
         />
       </span>
       <span className="flex h-full w-1.5 items-end overflow-hidden rounded-[1px] bg-panel">
         <span
-          className="w-full bg-[#ff5252] transition-[height] duration-150"
-          style={{ height: `${b}%` }}
+          className="w-full bg-[#39d743] transition-[height] duration-150"
+          style={{ height: `${t}%` }}
         />
       </span>
     </span>
