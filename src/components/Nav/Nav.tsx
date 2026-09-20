@@ -654,16 +654,6 @@ export function Nav() {
           )}
           {selectedMeeting ? (
             <>
-              {selectedCircuitImageUrl && !isCircuitImageBroken && (
-                <img
-                  src={selectedCircuitImageUrl}
-                  alt={`${selectedMeeting.circuit_short_name} circuit`}
-                  className="hidden lg:block h-5 w-7 object-cover rounded-sm shrink-0"
-                  loading="lazy"
-                  referrerPolicy="no-referrer"
-                  onError={() => markCircuitImageBroken(selectedCircuitImageUrl)}
-                />
-              )}
               {selectedCountryFlagUrl && (
                 <img
                   src={selectedCountryFlagUrl}
@@ -1118,18 +1108,6 @@ export function Nav() {
 
             {selectedMeeting && (
               <div className="sm:hidden min-w-0 flex items-center gap-1.5 rounded border border-panel/80 bg-track px-2 py-1 light:bg-white light:border-slate-300/90">
-                {selectedCircuitImageUrl && !isCircuitImageBroken && (
-                  <img
-                    src={selectedCircuitImageUrl}
-                    alt={`${selectedMeeting.circuit_short_name} circuit`}
-                    className="hidden lg:block h-5 w-7 object-cover rounded-sm"
-                    loading="lazy"
-                    referrerPolicy="no-referrer"
-                    onError={() =>
-                      markCircuitImageBroken(selectedCircuitImageUrl)
-                    }
-                  />
-                )}
                 {selectedCountryFlagUrl && (
                   <img
                     src={selectedCountryFlagUrl}
