@@ -273,6 +273,27 @@ function MiniBar({ value, color }: { value: number; color: string }) {
   );
 }
 
+function PedalTrace({ throttle, brake }: { throttle: number; brake: number }) {
+  const t = Math.max(0, Math.min(100, throttle));
+  const b = Math.max(0, Math.min(100, brake));
+  return (
+    <span className="flex items-end gap-0.5 h-4 shrink-0">
+      <span className="flex h-full w-1.5 items-end overflow-hidden rounded-[1px] bg-panel">
+        <span
+          className="w-full bg-[#39d743] transition-[height] duration-150"
+          style={{ height: `${t}%` }}
+        />
+      </span>
+      <span className="flex h-full w-1.5 items-end overflow-hidden rounded-[1px] bg-panel">
+        <span
+          className="w-full bg-[#ff5252] transition-[height] duration-150"
+          style={{ height: `${b}%` }}
+        />
+      </span>
+    </span>
+  );
+}
+
 function MobilePedalMeter({
   label,
   value,
@@ -1555,7 +1576,7 @@ export function LiveTiming({
               )}
               {showTelemetry && combinedTelemetryColumn && (
                 <th
-                  className={`${headerCellClass} hidden sm:table-cell text-left w-[11rem]`}
+                  className={`${headerCellClass} hidden sm:table-cell text-left w-[12.5rem]`}
                 >
                   <span className="block leading-none">Telemetry</span>
                   <span className="block text-[8px] normal-case tracking-normal text-muted leading-none mt-0.5">
@@ -2134,42 +2155,36 @@ export function LiveTiming({
                       className={`${rowCellPad} align-middle px-2 hidden sm:table-cell`}
                     >
                       {car ? (
-                        <span className="flex flex-col gap-0.5 font-mono tabular-nums leading-tight">
-                          <span className="flex items-center gap-1.5 text-[10px]">
-                            <span className="text-white/90">
-                              {speedDisplay}
-                              <span className="text-muted">
-                                {" "}
-                                {speedUnitCompact}
-                              </span>
-                            </span>
-                            <span className="w-6 text-center font-bold text-white/90">
-                              {car.n_gear === 0 ? "N" : car.n_gear}
-                            </span>
+                        <span className="flex items-center gap-1.5 font-mono tabular-nums leading-tight text-[10px]">
+                          <span className="text-white/90">
+                            {speedDisplay}
                             <span className="text-muted">
-                              {Math.round(car.rpm)} rpm
-                            </span>
-                            {showDrs && (
-                              <span
-                                className={`ml-auto px-1 py-0.5 text-[8px] font-black uppercase tracking-[0.08em] ${
-                                  (car.drs ?? 0) >= 10
-                                    ? "bg-[#39d743] text-black"
-                                    : "bg-panel text-muted"
-                                }`}
-                                title={`DRS raw value ${car.drs ?? 0}`}
-                              >
-                                DRS
-                              </span>
-                            )}
-                          </span>
-                          <span className="flex items-center gap-1 w-full">
-                            <span className="flex-1 min-w-0">
-                              <MiniBar value={car.throttle} color="#39d743" />
-                            </span>
-                            <span className="flex-1 min-w-0">
-                              <MiniBar value={car.brake} color="#ff5252" />
+                              {" "}
+                              {speedUnitCompact}
                             </span>
                           </span>
+                          <span className="w-6 text-center font-bold text-white/90">
+                            {car.n_gear === 0 ? "N" : car.n_gear}
+                          </span>
+                          <span className="text-muted">
+                            <span className="inline-block w-9 text-right">
+                              {Math.round(car.rpm)}
+                            </span>{" "}
+                            rpm
+                          </span>
+                          <PedalTrace throttle={car.throttle} brake={car.brake} />
+                          {showDrs && (
+                            <span
+                              className={`ml-auto px-1 py-0.5 text-[8px] font-black uppercase tracking-[0.08em] ${
+                                (car.drs ?? 0) >= 10
+                                  ? "bg-[#39d743] text-black"
+                                  : "bg-panel text-muted"
+                              }`}
+                              title={`DRS raw value ${car.drs ?? 0}`}
+                            >
+                              DRS
+                            </span>
+                          )}
                         </span>
                       ) : (
                         <span className="block text-center text-muted">—</span>
