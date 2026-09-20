@@ -1555,7 +1555,7 @@ export function LiveTiming({
               )}
               {showTelemetry && combinedTelemetryColumn && (
                 <th
-                  className={`${headerCellClass} hidden sm:table-cell text-left w-[9rem]`}
+                  className={`${headerCellClass} hidden sm:table-cell text-left w-[11rem]`}
                 >
                   <span className="block leading-none">Telemetry</span>
                   <span className="block text-[8px] normal-case tracking-normal text-muted leading-none mt-0.5">
@@ -2162,9 +2162,13 @@ export function LiveTiming({
                               </span>
                             )}
                           </span>
-                          <span className="flex flex-col gap-0.5 w-full">
-                            <MiniBar value={car.throttle} color="#39d743" />
-                            <MiniBar value={car.brake} color="#ff5252" />
+                          <span className="flex items-center gap-1 w-full">
+                            <span className="flex-1 min-w-0">
+                              <MiniBar value={car.throttle} color="#39d743" />
+                            </span>
+                            <span className="flex-1 min-w-0">
+                              <MiniBar value={car.brake} color="#ff5252" />
+                            </span>
                           </span>
                         </span>
                       ) : (
@@ -2206,10 +2210,14 @@ export function LiveTiming({
                         >
                           {car ? (
                             <span
-                              className={`flex flex-col gap-0.5 ${pedalBarsWidthClass} mx-auto`}
+                              className={`flex items-center gap-1 ${pedalBarsWidthClass} mx-auto`}
                             >
-                              <MiniBar value={car.throttle} color="#39d743" />
-                              <MiniBar value={car.brake} color="#ff5252" />
+                              <span className="flex-1 min-w-0">
+                                <MiniBar value={car.throttle} color="#39d743" />
+                              </span>
+                              <span className="flex-1 min-w-0">
+                                <MiniBar value={car.brake} color="#ff5252" />
+                              </span>
                             </span>
                           ) : (
                             <span className="block text-center text-muted">
