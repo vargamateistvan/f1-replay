@@ -33,7 +33,12 @@ import {
 } from "@/api/circuitFactsLookup";
 import { replaceHistorySearchParams, toSafeExternalUrl } from "@/utils/url";
 import { trackEvent } from "@/lib/analytics";
-import { Settings as SettingsIcon, Maximize, Minimize } from "lucide-react";
+import {
+  Settings as SettingsIcon,
+  Maximize,
+  Minimize,
+  ChevronDown,
+} from "lucide-react";
 
 export type MainView = "leaderboard" | "tracker" | "commentary";
 
@@ -45,7 +50,10 @@ const VIEW_TABS: { id: MainView; label: string }[] = [
 const VALID_VIEWS = new Set<MainView>(["leaderboard", "tracker", "commentary"]);
 
 const SELECT =
-  "bg-surface text-white border border-panel text-[11px] font-medium px-2 py-1 focus:outline-none focus:border-muted appearance-none cursor-pointer transition-colors disabled:opacity-60 disabled:cursor-not-allowed light:bg-white light:text-black light:border-slate-300 light:focus:border-slate-500 light:[color-scheme:light] light:[&>option]:bg-white light:[&>option]:text-black";
+  "w-full bg-surface text-white border border-panel rounded-sm text-[11px] font-medium pl-2 pr-6 py-1 focus:outline-none focus:ring-1 focus:ring-f1red/70 focus:border-f1red/70 appearance-none cursor-pointer transition-colors disabled:opacity-60 disabled:cursor-not-allowed light:bg-white light:text-black light:border-slate-300 light:focus:border-slate-500 light:[color-scheme:light] light:[&>option]:bg-white light:[&>option]:text-black";
+
+const FIELD_LABEL =
+  "text-[9px] font-bold uppercase tracking-widest text-muted leading-none";
 
 const CIRCUIT_TYPE_LABEL: Record<string, string> = {
   Permanent: "Permanent",
@@ -936,65 +944,138 @@ export function Nav() {
               </span>
             )}
 
-            <span className="hidden sm:inline text-[9px] font-bold uppercase tracking-widest text-muted shrink-0">
-              Year
-            </span>
-            <select
-              aria-label="Season year"
-              value={year}
-              onChange={(e) => onYear(Number(e.target.value))}
-              className={`${SELECT} shrink-0 w-[4.5rem] sm:w-auto`}
-            >
-              {YEARS.map((y) => (
-                <option key={y} value={y}>
-                  {y}
-                </option>
-              ))}
-            </select>
+            <div className="flex flex-1 flex-wrap items-center gap-x-3 gap-y-1 rounded-md px-2 ring-1 ring-inset ring-panel/80 bg-track/60 light:bg-slate-50 light:ring-slate-300 min-w-[220px]">
+              <label className="flex items-center gap-1 shrink-0">
+                <span className={FIELD_LABEL}>Year</span>
+                <span className="relative inline-block">
+                  <select
+                    aria-label="Season year"
+                    value={year}
+                    onChange={(e) => onYear(Number(e.target.value))}
+                    className={`${SELECT} w-[4.75rem]`}
+                  >
+                    {YEARS.map((y) => (
+                      <option key={y} value={y}>
+                        {y}
+                      </option>
+                    ))}
+                  </select>
+                  <ChevronDown
+                    aria-hidden="true"
+                    className="pointer-events-none absolute right-1.5 top-1/2 h-3 w-3 -translate-y-1/2 text-muted"
+                  />
+                </span>
+              </label>
 
-            <span className="hidden sm:inline text-[9px] font-bold uppercase tracking-widest text-muted shrink-0">
-              Event
-            </span>
-            {meetings.isError && !authFailed ? (
-              <span className="text-red-400 font-mono text-[10px] shrink-0">
-                Failed to load events
-              </span>
-            ) : (
-              <select
-                aria-label="Event"
-                value={meetingKey ?? ""}
-                onChange={(e) => {
-                  const raw = e.target.value;
-                  if (raw === "") {
-                    resetPlaybackToStart();
-                    setSearchParams(
-                      (prev) => {
-                        const next = new URLSearchParams(prev);
-                        next.delete("meeting");
-                        next.delete("session");
-                        clearReplayTimeParam(next);
-                        return next;
-                      },
-                      { replace: true },
-                    );
-                    return;
-                  }
+              <label className="flex items-center gap-1 min-w-0 flex-[2_1_140px]">
+                <span className={`${FIELD_LABEL} shrink-0`}>Event</span>
+                {meetings.isError && !authFailed ? (
+                  <span className="text-[10px] font-mono text-red-400 shrink-0">
+                    Failed to load events
+                  </span>
+                ) : (
+                  <span className="relative min-w-0 flex-1">
+                    <select
+                      aria-label="Event"
+                      value={meetingKey ?? ""}
+                      onChange={(e) => {
+                        const raw = e.target.value;
+                        if (raw === "") {
+                          resetPlaybackToStart();
+                          setSearchParams(
+                            (prev) => {
+                              const next = new URLSearchParams(prev);
+                              next.delete("meeting");
+                              next.delete("session");
+                              clearReplayTimeParam(next);
+                              return next;
+                            },
+                            { replace: true },
+                          );
+                          return;
+                        }
 
-                  const val = Number(raw);
-                  if (!Number.isFinite(val) || val <= 0) return;
-                  onMeeting(val);
-                }}
-                disabled={meetings.isPending}
-                className={`${SELECT} min-w-0 flex-[1_1_132px] sm:flex-[1_1_160px] sm:max-w-none`}
-              >
-                <option value="">— event —</option>
-                {startedMeetings.map((m) => (
-                  <option key={m.meeting_key} value={m.meeting_key}>
-                    {m.location} — {m.meeting_name}
-                  </option>
-                ))}
-              </select>
-            )}
+                        const val = Number(raw);
+                        if (!Number.isFinite(val) || val <= 0) return;
+                        onMeeting(val);
+                      }}
+                      disabled={meetings.isPending}
+                      className={SELECT}
+                    >
+                      <option value="">— event —</option>
+                      {startedMeetings.map((m) => (
+                        <option key={m.meeting_key} value={m.meeting_key}>
+                          {m.location} — {m.meeting_name}
+                        </option>
+                      ))}
+                    </select>
+                    <ChevronDown
+                      aria-hidden="true"
+                      className="pointer-events-none absolute right-1.5 top-1/2 h-3 w-3 -translate-y-1/2 text-muted"
+                    />
+                  </span>
+                )}
+              </label>
+
+              <label className="flex items-center gap-1 min-w-0 flex-[1_1_120px]">
+                <span className={`${FIELD_LABEL} shrink-0`}>Session</span>
+                {sessions.isError && !authFailed ? (
+                  <span className="text-[10px] font-mono text-red-400 shrink-0">
+                    Failed to load sessions
+                  </span>
+                ) : (
+                  <span className="relative min-w-0 flex-1">
+                    <select
+                      aria-label="Session"
+                      value={sessionKey ?? ""}
+                      onChange={(e) => {
+                        const raw = e.target.value;
+                        if (raw === "") {
+                          resetPlaybackToStart();
+                          setSearchParams(
+                            (prev) => {
+                              const next = new URLSearchParams(prev);
+                              next.delete("session");
+                              clearReplayTimeParam(next);
+                              return next;
+                            },
+                            { replace: true },
+                          );
+                          return;
+                        }
+
+                        const val = Number(raw);
+                        if (!Number.isFinite(val) || val <= 0) return;
+                        resetPlaybackToStart();
+                        setSearchParams(
+                          (prev) => {
+                            const next = new URLSearchParams(prev);
+                            next.set("session", String(val));
+                            clearReplayTimeParam(next);
+                            return next;
+                          },
+                          { replace: true },
+                        );
+                        trackEvent("nav_session_changed", { session_key: val });
+                      }}
+                      disabled={sessions.isPending || !meetingKey}
+                      className={SELECT}
+                    >
+                      <option value="">— session —</option>
+                      {startedSessions.map((s) => (
+                        <option key={s.session_key} value={s.session_key}>
+                          {s.session_name}
+                        </option>
+                      ))}
+                    </select>
+                    <ChevronDown
+                      aria-hidden="true"
+                      className="pointer-events-none absolute right-1.5 top-1/2 h-3 w-3 -translate-y-1/2 text-muted"
+                    />
+                  </span>
+                )}
+              </label>
+            </div>
 
             {selectedMeeting && (
               <div className="min-w-0 flex items-center gap-1.5 rounded border border-panel/80 bg-track px-2 py-1 light:bg-white light:border-slate-300/90">
@@ -1032,59 +1113,6 @@ export function Nav() {
                   </span>
                 )}
               </div>
-            )}
-
-            <span className="hidden sm:inline text-[9px] font-bold uppercase tracking-widest text-muted shrink-0">
-              Session
-            </span>
-            {sessions.isError && !authFailed ? (
-              <span className="text-red-400 font-mono text-[10px] shrink-0">
-                Failed to load sessions
-              </span>
-            ) : (
-              <select
-                aria-label="Session"
-                value={sessionKey ?? ""}
-                onChange={(e) => {
-                  const raw = e.target.value;
-                  if (raw === "") {
-                    resetPlaybackToStart();
-                    setSearchParams(
-                      (prev) => {
-                        const next = new URLSearchParams(prev);
-                        next.delete("session");
-                        clearReplayTimeParam(next);
-                        return next;
-                      },
-                      { replace: true },
-                    );
-                    return;
-                  }
-
-                  const val = Number(raw);
-                  if (!Number.isFinite(val) || val <= 0) return;
-                  resetPlaybackToStart();
-                  setSearchParams(
-                    (prev) => {
-                      const next = new URLSearchParams(prev);
-                      next.set("session", String(val));
-                      clearReplayTimeParam(next);
-                      return next;
-                    },
-                    { replace: true },
-                  );
-                  trackEvent("nav_session_changed", { session_key: val });
-                }}
-                disabled={sessions.isPending || !meetingKey}
-                className={`${SELECT} min-w-0 flex-[1_1_108px] sm:flex-none`}
-              >
-                <option value="">— session —</option>
-                {startedSessions.map((s) => (
-                  <option key={s.session_key} value={s.session_key}>
-                    {s.session_name}
-                  </option>
-                ))}
-              </select>
             )}
 
             {(meetings.isPending || sessions.isPending) && (
