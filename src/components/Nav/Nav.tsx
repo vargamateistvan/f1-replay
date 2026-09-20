@@ -645,15 +645,54 @@ export function Nav() {
           </span>
         </button>
 
-        <span className="text-white/80 text-[11px] font-bold tracking-widest uppercase mr-auto truncate hidden sm:flex items-center gap-2">
+        <div className="mr-auto min-w-0 hidden sm:flex items-center gap-2">
           {live && (
             <span
               className="w-1.5 h-1.5 rounded-full bg-white/75 shrink-0"
               aria-hidden="true"
             />
           )}
-          {headerLabel}
-        </span>
+          {selectedMeeting ? (
+            <>
+              {selectedCircuitImageUrl && !isCircuitImageBroken && (
+                <img
+                  src={selectedCircuitImageUrl}
+                  alt={`${selectedMeeting.circuit_short_name} circuit`}
+                  className="hidden lg:block h-5 w-7 object-cover rounded-sm shrink-0"
+                  loading="lazy"
+                  referrerPolicy="no-referrer"
+                  onError={() => markCircuitImageBroken(selectedCircuitImageUrl)}
+                />
+              )}
+              {selectedCountryFlagUrl && (
+                <img
+                  src={selectedCountryFlagUrl}
+                  alt={`${selectedMeeting.country_name} flag`}
+                  className="h-3.5 w-5 object-cover rounded-[2px] border border-white/30 shrink-0"
+                  loading="lazy"
+                  referrerPolicy="no-referrer"
+                />
+              )}
+              <span className="text-white text-[11px] font-bold uppercase tracking-wide truncate max-w-[160px] lg:max-w-[240px]">
+                {selectedMeeting.meeting_name}
+              </span>
+              {sessionLabel && (
+                <span className="text-white/70 text-[11px] font-bold uppercase tracking-widest shrink-0">
+                  · {sessionLabel}
+                </span>
+              )}
+              {selectedMeeting.is_cancelled && (
+                <span className="bg-white text-f1red text-[9px] font-bold uppercase tracking-widest px-1.5 py-0.5 rounded-sm shrink-0">
+                  Cancelled
+                </span>
+              )}
+            </>
+          ) : (
+            <span className="text-white/80 text-[11px] font-bold tracking-widest uppercase truncate">
+              {headerLabel}
+            </span>
+          )}
+        </div>
 
         <nav className="hidden md:flex items-center h-10">
           {VIEW_TABS.map(({ id, label }) => (
@@ -1078,12 +1117,12 @@ export function Nav() {
             </div>
 
             {selectedMeeting && (
-              <div className="min-w-0 flex items-center gap-1.5 rounded border border-panel/80 bg-track px-2 py-1 light:bg-white light:border-slate-300/90">
+              <div className="sm:hidden min-w-0 flex items-center gap-1.5 rounded border border-panel/80 bg-track px-2 py-1 light:bg-white light:border-slate-300/90">
                 {selectedCircuitImageUrl && !isCircuitImageBroken && (
                   <img
                     src={selectedCircuitImageUrl}
                     alt={`${selectedMeeting.circuit_short_name} circuit`}
-                    className="hidden lg:block h-5 w-7 object-cover rounded-sm border border-panel/80"
+                    className="hidden lg:block h-5 w-7 object-cover rounded-sm"
                     loading="lazy"
                     referrerPolicy="no-referrer"
                     onError={() =>
