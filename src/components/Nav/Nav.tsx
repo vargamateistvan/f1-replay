@@ -666,6 +666,9 @@ export function Nav() {
               <span className="text-white text-[11px] font-bold uppercase tracking-wide truncate max-w-[160px] lg:max-w-[240px]">
                 {selectedMeeting.meeting_name}
               </span>
+              <span className="text-white/70 text-[11px] font-bold uppercase tracking-widest shrink-0">
+                {selectedMeeting.year}
+              </span>
               {sessionLabel && (
                 <span className="text-white/70 text-[11px] font-bold uppercase tracking-widest shrink-0">
                   · {sessionLabel}
