@@ -27,10 +27,20 @@ export function useEventToasts(
 
     const now = Date.now();
 
-    if (delta < 0 || delta > JUMP_THRESHOLD_MS) {
+    // Backward seeks discard everything: past events shouldn't re-appear.
+    if (delta < 0) {
       seenRef.current.clear();
       setToasts((prev) => prev.filter((at) => pinnedIds.has(at.event.id)));
       return;
+    }
+
+    // Large forward jumps (e.g. the "Radio ›" / "Pit ›" / "Flag ›" playback
+    // bar buttons, which jump straight to an event's own timestamp) still
+    // need to surface the event landed on, so stale "seen" ids are cleared
+    // but crossed events are still evaluated below instead of bailing out.
+    const isLargeJump = delta > JUMP_THRESHOLD_MS;
+    if (isLargeJump) {
+      seenRef.current.clear();
     }
 
     const fresh: ToastEvent[] = [];
@@ -41,14 +51,21 @@ export function useEventToasts(
         fresh.push(ev);
       }
     }
+    // For a large jump that crosses more events than fit on screen, keep the
+    // most recent ones so the event the user explicitly jumped to is never
+    // dropped in favor of earlier events they skipped past.
+    const freshVisible =
+      isLargeJump && fresh.length > maxVisible
+        ? fresh.slice(-maxVisible)
+        : fresh;
 
     setToasts((prev) => {
       const pruned = prev.filter(
         (at) =>
           pinnedIds.has(at.event.id) || now - at.addedAt < AUTO_DISMISS_MS,
       );
-      if (fresh.length === 0) return pruned;
-      const incoming = fresh.map((ev) => ({ event: ev, addedAt: now }));
+      if (freshVisible.length === 0) return pruned;
+      const incoming = freshVisible.map((ev) => ({ event: ev, addedAt: now }));
       return [...incoming, ...pruned].slice(0, maxVisible);
     });
   }, [t, events, maxVisible, pinnedIds]);

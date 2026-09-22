@@ -75,6 +75,35 @@ describe("useEventToasts", () => {
     expect(result.current.toasts).toHaveLength(0);
   });
 
+  it("still surfaces the landed-on event when forward-jumping straight to it (e.g. the Radio › button)", () => {
+    const radioEvents: ToastEvent[] = [
+      {
+        id: "radio-1",
+        ms: 120_000,
+        kind: "radio",
+        payload: {
+          driverNumber: 1,
+          recordingUrl: "https://example.com/a.mp3",
+          lapNumber: 5,
+        },
+        priority: "high",
+      },
+    ];
+
+    const { result, rerender } = renderHook(
+      ({ t, maxVisible }) => useEventToasts(radioEvents, t, maxVisible),
+      {
+        initialProps: { t: 0, maxVisible: 4 },
+      },
+    );
+
+    // Jumping straight to a radio message's own timestamp is a large forward
+    // jump, but the toast for that message should still appear.
+    rerender({ t: 120_000, maxVisible: 4 });
+
+    expect(result.current.toasts.map((t) => t.event.id)).toEqual(["radio-1"]);
+  });
+
   it("respects maxVisible capacity", () => {
     const burstEvents: ToastEvent[] = [
       {
