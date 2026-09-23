@@ -50,7 +50,7 @@ const VIEW_TABS: { id: MainView; label: string }[] = [
 const VALID_VIEWS = new Set<MainView>(["leaderboard", "tracker", "commentary"]);
 
 const SELECT =
-  "w-full bg-surface text-white border border-panel rounded-sm text-[11px] font-medium pl-2 pr-6 py-1 focus:outline-none focus:ring-1 focus:ring-f1red/70 focus:border-f1red/70 appearance-none cursor-pointer transition-colors disabled:opacity-60 disabled:cursor-not-allowed light:bg-white light:text-black light:border-slate-300 light:focus:border-slate-500 light:[color-scheme:light] light:[&>option]:bg-white light:[&>option]:text-black";
+  "w-full bg-surface text-white border border-panel rounded-sm text-[11px] font-medium pl-2 pr-6 py-1 focus:outline-none focus:ring-1 focus:ring-f1red/70 focus:border-f1red/70 appearance-none cursor-pointer transition-colors disabled:opacity-60 disabled:cursor-not-allowed [&>option]:bg-surface [&>option]:text-white light:bg-white light:text-black light:border-slate-300 light:focus:border-slate-500 light:[color-scheme:light] light:[&>option]:bg-white light:[&>option]:text-black";
 
 const FIELD_LABEL =
   "text-[9px] font-bold uppercase tracking-widest text-muted leading-none";
@@ -285,7 +285,8 @@ export function Nav() {
           .slice()
           .sort(
             (a, b) =>
-              new Date(b.date_start).getTime() - new Date(a.date_start).getTime(),
+              new Date(b.date_start).getTime() -
+              new Date(a.date_start).getTime(),
           )[0];
       if (latestSession) {
         setSearchParams((prev) => {
@@ -918,9 +919,7 @@ export function Nav() {
               </div>
 
               {nextMeetingSessions.isPending ? (
-                <div className="text-[11px] text-f1red">
-                  Loading agenda...
-                </div>
+                <div className="text-[11px] text-f1red">Loading agenda...</div>
               ) : nextAgendaSessions.length === 0 ? (
                 <div className="text-[11px] text-muted">
                   Agenda not available yet.
@@ -976,7 +975,7 @@ export function Nav() {
               </span>
             )}
 
-            <div className="flex flex-1 flex-wrap items-center gap-x-3 gap-y-1 rounded-md px-2 ring-1 ring-inset ring-panel/80 bg-track/60 light:bg-slate-50 light:ring-slate-300 min-w-[220px]">
+            <div className="flex flex-1 flex-wrap items-center gap-x-3 gap-y-1 rounded-md px-2 min-w-[220px]">
               <label className="flex items-center gap-1 shrink-0">
                 <span className={FIELD_LABEL}>Year</span>
                 <span className="relative inline-block">
