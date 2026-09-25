@@ -392,7 +392,7 @@ describe("component coverage boost", () => {
       />,
     );
 
-    expect(screen.getByText(/OpenF1 returned/)).toBeInTheDocument();
+    expect(screen.getByText("Live data is currently unavailable.")).toBeInTheDocument();
     expect(screen.getByText("Street Circuit")).toBeInTheDocument();
     expect(screen.getByText("Live")).toBeInTheDocument();
 

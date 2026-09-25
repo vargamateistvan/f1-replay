@@ -6,6 +6,7 @@ import { useCallback, useEffect, useState, useRef } from "react";
 import { useSearchParams } from "react-router-dom";
 import { replaceHistorySearchParams, toSafeExternalUrl } from "@/utils/url";
 import { trackEvent } from "@/lib/analytics";
+import { LiveDataNotice } from "@/components/LiveDataNotice";
 
 interface Props {
   year: number;
@@ -61,10 +62,11 @@ export function SessionPicker({
     selectedMeeting?.country_flag,
   );
   const live = isSessionLive(selectedSession);
-  const authFailed =
-    isAuthError(meetings.error) ||
-    isAuthError(sessions.error) ||
-    isAuthError(latestSessionQuery.error);
+  const authError = [
+    meetings.error,
+    sessions.error,
+    latestSessionQuery.error,
+  ].find((e) => isAuthError(e));
   const latestSession = latestSessionQuery.data ?? null;
 
   // Automatically select the latest session once sessions load
@@ -157,15 +159,7 @@ export function SessionPicker({
 
   return (
     <div>
-      {authFailed && (
-        <div className="bg-f1red/15 border-b border-f1red/40 px-4 py-1.5 text-[11px] text-red-300 font-mono">
-          OpenF1 returned <span className="font-bold">401/403</span> — the API
-          is rejecting requests. Historical data is normally free; if it now
-          requires a token, set{" "}
-          <span className="font-bold">VITE_OPENF1_API_KEY</span> in{" "}
-          <span className="font-bold">.env.local</span> and restart.
-        </div>
-      )}
+      <LiveDataNotice error={authError} />
       <div className="bg-surface border-b border-panel light:bg-white light:border-slate-300/80">
         <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 px-4 py-2 light:bg-white">
           <span className="text-[10px] font-bold uppercase tracking-widest text-muted">

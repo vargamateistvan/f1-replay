@@ -141,7 +141,10 @@ describe("SessionPicker", () => {
       />,
     );
 
-    expect(screen.getByText(/OpenF1 returned/)).toBeInTheDocument();
+    expect(
+      screen.getByText("Live data is currently unavailable."),
+    ).toBeInTheDocument();
+    expect(screen.queryByText(/VITE_OPENF1_API_KEY/)).not.toBeInTheDocument();
     expect(screen.getByText("Street Circuit")).toBeInTheDocument();
     expect(screen.getByText("Live")).toBeInTheDocument();
 

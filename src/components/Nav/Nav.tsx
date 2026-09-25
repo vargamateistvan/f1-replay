@@ -19,6 +19,7 @@ import { isSessionLive } from "@/utils/live";
 import { YEARS, DEFAULT_YEAR, CURRENT_SEASON_STALE_MS } from "@/constants";
 import { useNumberParam, useStringParam } from "@/hooks/useSearchParamState";
 import { AppLogo } from "@/components/AppLogo";
+import { LiveDataNotice } from "@/components/LiveDataNotice";
 import { useTimeline } from "@/timeline/clock";
 import { useSettings } from "@/stores/settings";
 import {
@@ -187,11 +188,13 @@ export function Nav() {
     enabled: needsCurrentYearMeetings,
   });
   const sessions = useSessions(meetingKey);
-  const authFailed =
-    isAuthError(meetings.error) ||
-    isAuthError(sessions.error) ||
-    isAuthError(latestMeetingQuery.error) ||
-    isAuthError(latestSessionQuery.error);
+  const authError = [
+    meetings.error,
+    sessions.error,
+    latestMeetingQuery.error,
+    latestSessionQuery.error,
+  ].find((e) => isAuthError(e));
+  const authFailed = authError !== undefined;
   const queryClient = useQueryClient();
   const [isSelectingLatest, setIsSelectingLatest] = useState(false);
 
@@ -949,14 +952,8 @@ export function Nav() {
         </div>
       )}
 
-      {/* ── Auth failure banner ───────────────────────────────── */}
-      {authFailed && (
-        <div className="bg-f1red/15 border-b border-f1red/40 px-4 py-1 text-[10px] text-red-300 font-mono">
-          OpenF1 returned <span className="font-bold">401/403</span> — set{" "}
-          <span className="font-bold">VITE_OPENF1_API_KEY</span> in{" "}
-          <span className="font-bold">.env.local</span> and restart.
-        </div>
-      )}
+      {/* ── Auth failure banner (OpenF1 gates access during live sessions) */}
+      <LiveDataNotice error={authError} />
 
       {/* ── Dark sub-bar: session pickers (main + telemetry routes) */}
       {(isMainRoute || isTelemetryRoute) && (

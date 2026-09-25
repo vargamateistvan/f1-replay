@@ -214,7 +214,10 @@ describe("Nav", () => {
     state.meetings.error = { status: 401 };
     render(<Nav />);
 
-    expect(screen.getByText(/OpenF1 returned/)).toBeInTheDocument();
+    expect(
+      screen.getByText("Live data is currently unavailable."),
+    ).toBeInTheDocument();
+    expect(screen.queryByText(/VITE_OPENF1_API_KEY/)).not.toBeInTheDocument();
     expect(screen.getAllByText("Live").length).toBeGreaterThan(0);
 
     fireEvent.click(screen.getByRole("button", { name: "Latest" }));
