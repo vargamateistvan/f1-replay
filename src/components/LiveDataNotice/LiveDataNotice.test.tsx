@@ -32,7 +32,7 @@ describe("LiveDataNotice", () => {
     expect(container).toBeEmptyDOMElement();
   });
 
-  it("can be dismissed, hiding every instance for the rest of the session", () => {
+  it("can be dismissed, hiding every instance without persisting to storage", () => {
     const error = new OpenF1Error(403, "position");
     render(
       <>
@@ -47,8 +47,7 @@ describe("LiveDataNotice", () => {
     );
 
     expect(screen.queryByRole("alert")).not.toBeInTheDocument();
-    expect(sessionStorage.getItem("f1replay:live-data-notice-dismissed")).toBe(
-      "1",
-    );
+    expect(sessionStorage.length).toBe(0);
+    expect(localStorage.length).toBe(0);
   });
 });
