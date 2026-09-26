@@ -600,198 +600,6 @@ export function LiveTiming({
     return m;
   }, [pits, currentT]);
 
-  const completedLaps = useMemo(
-    () =>
-      laps.filter(
-        (lap): lap is Lap & { date_start: string; lap_duration: number } => {
-          if (!lap.date_start || lap.lap_duration === null) return false;
-          const lapEndT =
-            new Date(lap.date_start).getTime() + lap.lap_duration * 1000;
-          return lapEndT <= currentT;
-        },
-      ),
-    [laps, currentT],
-  );
-
-  const lastLapMap = useMemo(() => {
-    const m = new Map<number, Lap>();
-    for (const l of completedLaps) {
-      const prev = m.get(l.driver_number);
-      if (!prev || l.lap_number > prev.lap_number) m.set(l.driver_number, l);
-    }
-    return m;
-  }, [completedLaps]);
-
-  const currentLapMap = useMemo(() => {
-    const m = new Map<number, number>();
-    for (const l of laps) {
-      if (!l.date_start) continue;
-      if (new Date(l.date_start).getTime() <= currentT) {
-        const prev = m.get(l.driver_number) ?? 0;
-        if (l.lap_number > prev) m.set(l.driver_number, l.lap_number);
-      }
-    }
-    return m;
-  }, [laps, currentT]);
-
-  const bestLapMap = useMemo(() => {
-    const m = new Map<number, Lap & { lap_duration: number }>();
-    for (const lap of completedLaps) {
-      if (lap.lap_duration === null) continue;
-      const prev = m.get(lap.driver_number);
-      if (
-        !prev ||
-        lap.lap_duration < prev.lap_duration ||
-        (lap.lap_duration === prev.lap_duration &&
-          lap.lap_number < prev.lap_number)
-      ) {
-        m.set(lap.driver_number, lap as Lap & { lap_duration: number });
-      }
-    }
-    return m;
-  }, [completedLaps]);
-
-  // Session-best sector times and lap times
-  const sessionBest = useMemo(() => {
-    let s1: number | null = null,
-      s2: number | null = null,
-      s3: number | null = null;
-    let lap: number | null = null;
-    for (const l of completedLaps) {
-      if (
-        l.duration_sector_1 !== null &&
-        (s1 === null || l.duration_sector_1 < s1)
-      )
-        s1 = l.duration_sector_1;
-      if (
-        l.duration_sector_2 !== null &&
-        (s2 === null || l.duration_sector_2 < s2)
-      )
-        s2 = l.duration_sector_2;
-      if (
-        l.duration_sector_3 !== null &&
-        (s3 === null || l.duration_sector_3 < s3)
-      )
-        s3 = l.duration_sector_3;
-      if (l.lap_duration !== null && (lap === null || l.lap_duration < lap))
-        lap = l.lap_duration;
-    }
-    return { s1, s2, s3, lap };
-  }, [completedLaps]);
-
-  const sessionBestOwners = useMemo(() => {
-    let s1: SessionBestOwner | null = null;
-    let s2: SessionBestOwner | null = null;
-    let s3: SessionBestOwner | null = null;
-    for (const lap of completedLaps) {
-      if (
-        lap.duration_sector_1 !== null &&
-        (s1 === null || lap.duration_sector_1 < s1.time)
-      ) {
-        s1 = {
-          driverNumber: lap.driver_number,
-          lapNumber: lap.lap_number,
-          time: lap.duration_sector_1,
-        };
-      }
-      if (
-        lap.duration_sector_2 !== null &&
-        (s2 === null || lap.duration_sector_2 < s2.time)
-      ) {
-        s2 = {
-          driverNumber: lap.driver_number,
-          lapNumber: lap.lap_number,
-          time: lap.duration_sector_2,
-        };
-      }
-      if (
-        lap.duration_sector_3 !== null &&
-        (s3 === null || lap.duration_sector_3 < s3.time)
-      ) {
-        s3 = {
-          driverNumber: lap.driver_number,
-          lapNumber: lap.lap_number,
-          time: lap.duration_sector_3,
-        };
-      }
-    }
-    return { s1, s2, s3 };
-  }, [completedLaps]);
-
-  // Starting tyre: compound from the driver's first stint (stint_number === 1,
-  // per the OpenF1 stints schema). Falls back to the lowest lap_start if a
-  // session lacks a stint_number 1 record.
-  const startCompoundMap = useMemo(() => {
-    const first = new Map<number, { rank: number; compound: string }>();
-    for (const s of stints ?? []) {
-      const rank = s.stint_number === 1 ? -1 : s.lap_start;
-      const prev = first.get(s.driver_number);
-      if (!prev || rank < prev.rank)
-        first.set(s.driver_number, { rank, compound: s.compound });
-    }
-    return new Map([...first.entries()].map(([n, v]) => [n, v.compound]));
-  }, [stints]);
-
-  // Personal-best sectors per driver (across all laps up to currentT)
-  const personalBestMap = useMemo(() => {
-    const m = new Map<
-      number,
-      { s1: number | null; s2: number | null; s3: number | null }
-    >();
-    for (const l of completedLaps) {
-      const pb = m.get(l.driver_number) ?? { s1: null, s2: null, s3: null };
-      if (
-        l.duration_sector_1 !== null &&
-        (pb.s1 === null || l.duration_sector_1 < pb.s1)
-      )
-        pb.s1 = l.duration_sector_1;
-      if (
-        l.duration_sector_2 !== null &&
-        (pb.s2 === null || l.duration_sector_2 < pb.s2)
-      )
-        pb.s2 = l.duration_sector_2;
-      if (
-        l.duration_sector_3 !== null &&
-        (pb.s3 === null || l.duration_sector_3 < pb.s3)
-      )
-        pb.s3 = l.duration_sector_3;
-      m.set(l.driver_number, pb);
-    }
-    return m;
-  }, [completedLaps]);
-
-  // Each driver's best lap time set before their most recent completed lap,
-  // used to classify a freshly-set lap as an improvement, regression, or
-  // new session/personal best.
-  const priorBestLapMap = useMemo(() => {
-    const lastLapNumberByDriver = new Map<number, number>();
-    for (const l of completedLaps) {
-      const prev = lastLapNumberByDriver.get(l.driver_number) ?? -1;
-      if (l.lap_number > prev)
-        lastLapNumberByDriver.set(l.driver_number, l.lap_number);
-    }
-    const priorByDriver = new Map<number, number>();
-    for (const l of completedLaps) {
-      if (l.lap_duration === null) continue;
-      if (l.lap_number === lastLapNumberByDriver.get(l.driver_number)) continue;
-      const prev = priorByDriver.get(l.driver_number);
-      if (prev === undefined || l.lap_duration < prev) {
-        priorByDriver.set(l.driver_number, l.lap_duration);
-      }
-    }
-    return priorByDriver;
-  }, [completedLaps]);
-
-  const retiredDrivers = useMemo(() => {
-    return deriveRetiredDrivers({
-      positions,
-      laps,
-      raceControl,
-      currentT,
-      isRaceSession: isRaceSession(sessionName),
-    });
-  }, [positions, laps, raceControl, currentT, sessionName]);
-
   const referenceOrderMap = useMemo(() => {
     const m = new Map<number, number>();
     for (const [driverNumber, position] of [...posMap.entries()].sort(
@@ -898,10 +706,28 @@ export function LiveTiming({
     const referenceAt = (driverNumber: number) =>
       referenceOrderMap.get(driverNumber) ?? Number.MAX_SAFE_INTEGER;
 
-    const rankAt = (cutoffAbsMs: number) => {
+    const isQuali = isQualiSession(sessionName ?? "");
+    const q2StartAbs =
+      isQuali && qualiPhaseStarts.q2StartMs !== null
+        ? sessionStartMs + qualiPhaseStarts.q2StartMs
+        : null;
+    const q3StartAbs =
+      isQuali && qualiPhaseStarts.q3StartMs !== null
+        ? sessionStartMs + qualiPhaseStarts.q3StartMs
+        : null;
+    // Each qualifying part starts with a clean timing sheet: only laps begun
+    // after the current part started count for the active drivers.
+    const phaseWindows = {
+      q2StartAbs,
+      q3StartAbs,
+      currentFromAbs: q3StartAbs ?? q2StartAbs ?? Number.NEGATIVE_INFINITY,
+    };
+
+    const rankAt = (fromAbsMs: number, cutoffAbsMs: number) => {
       const bestByDriver = new Map<number, number>();
       for (const lap of completed) {
         if (lap.endMs > cutoffAbsMs) break;
+        if (new Date(lap.date_start).getTime() < fromAbsMs) continue;
         const prev = bestByDriver.get(lap.driver_number);
         if (prev === undefined || lap.lap_duration < prev) {
           bestByDriver.set(lap.driver_number, lap.lap_duration);
@@ -919,13 +745,14 @@ export function LiveTiming({
       });
     };
 
-    const currentOrder = rankAt(currentT);
+    const currentOrder = rankAt(phaseWindows.currentFromAbs, currentT);
 
-    if (!isQualiSession(sessionName ?? "") || !qualiPhase) {
+    if (!isQuali || !qualiPhase) {
       return {
         order: currentOrder,
         eliminatedQ1: [] as number[],
         eliminatedQ2: [] as number[],
+        phaseWindows,
       };
     }
 
@@ -937,6 +764,7 @@ export function LiveTiming({
         order: currentOrder,
         eliminatedQ1: [] as number[],
         eliminatedQ2: [] as number[],
+        phaseWindows,
       };
     }
 
@@ -946,7 +774,7 @@ export function LiveTiming({
         : qualiPhaseStarts.q1EndMs !== null
           ? sessionStartMs + Math.max(0, qualiPhaseStarts.q1EndMs)
           : currentT;
-    const q1Ranking = rankAt(q1CutoffAbs);
+    const q1Ranking = rankAt(Number.NEGATIVE_INFINITY, q1CutoffAbs);
     const eliminatedQ1 = q1Ranking.slice(
       Math.max(0, q1Ranking.length - q1EliminationCount),
     );
@@ -960,6 +788,7 @@ export function LiveTiming({
         order: [...active, ...eliminatedQ1],
         eliminatedQ1,
         eliminatedQ2: [] as number[],
+        phaseWindows,
       };
     }
 
@@ -969,7 +798,10 @@ export function LiveTiming({
         : qualiPhaseStarts.q2EndMs !== null
           ? sessionStartMs + Math.max(0, qualiPhaseStarts.q2EndMs)
           : currentT;
-    const q2Ranking = rankAt(q2CutoffAbs).filter(
+    const q2Ranking = rankAt(
+      q2StartAbs ?? Number.NEGATIVE_INFINITY,
+      q2CutoffAbs,
+    ).filter(
       (n) => !eliminatedQ1.includes(n),
     );
     const eliminatedQ2 = q2Ranking.slice(
@@ -983,6 +815,7 @@ export function LiveTiming({
       order: [...active, ...eliminatedQ2, ...eliminatedQ1],
       eliminatedQ1,
       eliminatedQ2,
+      phaseWindows,
     };
   }, [
     drivers,
@@ -998,6 +831,231 @@ export function LiveTiming({
     qualiPhaseStarts.q2EndMs,
     sessionStartMs,
   ]);
+
+  const completedLaps = useMemo(
+    () =>
+      laps.filter(
+        (lap): lap is Lap & { date_start: string; lap_duration: number } => {
+          if (!lap.date_start || lap.lap_duration === null) return false;
+          const lapEndT =
+            new Date(lap.date_start).getTime() + lap.lap_duration * 1000;
+          return lapEndT <= currentT;
+        },
+      ),
+    [laps, currentT],
+  );
+
+  // Laps shown in the timing columns. In qualifying each part resets the
+  // sheet: active drivers only show laps from the current part, while
+  // eliminated drivers keep the laps from the part they were knocked out in.
+  const timingLaps = useMemo(() => {
+    const { q2StartAbs, q3StartAbs, currentFromAbs } = timedOrder.phaseWindows;
+    if (q2StartAbs === null && q3StartAbs === null) return completedLaps;
+
+    const eliminatedQ1 = new Set(timedOrder.eliminatedQ1);
+    const eliminatedQ2 = new Set(timedOrder.eliminatedQ2);
+    return completedLaps.filter((lap) => {
+      const startMs = new Date(lap.date_start).getTime();
+      if (eliminatedQ1.has(lap.driver_number)) {
+        return q2StartAbs === null || startMs < q2StartAbs;
+      }
+      if (eliminatedQ2.has(lap.driver_number)) {
+        return (
+          (q2StartAbs === null || startMs >= q2StartAbs) &&
+          (q3StartAbs === null || startMs < q3StartAbs)
+        );
+      }
+      return startMs >= currentFromAbs;
+    });
+  }, [completedLaps, timedOrder]);
+
+  // Session-best references (purple) only consider the current qualifying part.
+  const currentPartLaps = useMemo(() => {
+    const { currentFromAbs } = timedOrder.phaseWindows;
+    if (!Number.isFinite(currentFromAbs)) return completedLaps;
+    return completedLaps.filter(
+      (lap) => new Date(lap.date_start).getTime() >= currentFromAbs,
+    );
+  }, [completedLaps, timedOrder]);
+
+  const lastLapMap = useMemo(() => {
+    const m = new Map<number, Lap>();
+    for (const l of timingLaps) {
+      const prev = m.get(l.driver_number);
+      if (!prev || l.lap_number > prev.lap_number) m.set(l.driver_number, l);
+    }
+    return m;
+  }, [timingLaps]);
+
+  const currentLapMap = useMemo(() => {
+    const m = new Map<number, number>();
+    for (const l of laps) {
+      if (!l.date_start) continue;
+      if (new Date(l.date_start).getTime() <= currentT) {
+        const prev = m.get(l.driver_number) ?? 0;
+        if (l.lap_number > prev) m.set(l.driver_number, l.lap_number);
+      }
+    }
+    return m;
+  }, [laps, currentT]);
+
+  const bestLapMap = useMemo(() => {
+    const m = new Map<number, Lap & { lap_duration: number }>();
+    for (const lap of timingLaps) {
+      if (lap.lap_duration === null) continue;
+      const prev = m.get(lap.driver_number);
+      if (
+        !prev ||
+        lap.lap_duration < prev.lap_duration ||
+        (lap.lap_duration === prev.lap_duration &&
+          lap.lap_number < prev.lap_number)
+      ) {
+        m.set(lap.driver_number, lap as Lap & { lap_duration: number });
+      }
+    }
+    return m;
+  }, [timingLaps]);
+
+  // Session-best sector times and lap times
+  const sessionBest = useMemo(() => {
+    let s1: number | null = null,
+      s2: number | null = null,
+      s3: number | null = null;
+    let lap: number | null = null;
+    for (const l of currentPartLaps) {
+      if (
+        l.duration_sector_1 !== null &&
+        (s1 === null || l.duration_sector_1 < s1)
+      )
+        s1 = l.duration_sector_1;
+      if (
+        l.duration_sector_2 !== null &&
+        (s2 === null || l.duration_sector_2 < s2)
+      )
+        s2 = l.duration_sector_2;
+      if (
+        l.duration_sector_3 !== null &&
+        (s3 === null || l.duration_sector_3 < s3)
+      )
+        s3 = l.duration_sector_3;
+      if (l.lap_duration !== null && (lap === null || l.lap_duration < lap))
+        lap = l.lap_duration;
+    }
+    return { s1, s2, s3, lap };
+  }, [currentPartLaps]);
+
+  const sessionBestOwners = useMemo(() => {
+    let s1: SessionBestOwner | null = null;
+    let s2: SessionBestOwner | null = null;
+    let s3: SessionBestOwner | null = null;
+    for (const lap of currentPartLaps) {
+      if (
+        lap.duration_sector_1 !== null &&
+        (s1 === null || lap.duration_sector_1 < s1.time)
+      ) {
+        s1 = {
+          driverNumber: lap.driver_number,
+          lapNumber: lap.lap_number,
+          time: lap.duration_sector_1,
+        };
+      }
+      if (
+        lap.duration_sector_2 !== null &&
+        (s2 === null || lap.duration_sector_2 < s2.time)
+      ) {
+        s2 = {
+          driverNumber: lap.driver_number,
+          lapNumber: lap.lap_number,
+          time: lap.duration_sector_2,
+        };
+      }
+      if (
+        lap.duration_sector_3 !== null &&
+        (s3 === null || lap.duration_sector_3 < s3.time)
+      ) {
+        s3 = {
+          driverNumber: lap.driver_number,
+          lapNumber: lap.lap_number,
+          time: lap.duration_sector_3,
+        };
+      }
+    }
+    return { s1, s2, s3 };
+  }, [currentPartLaps]);
+
+  // Starting tyre: compound from the driver's first stint (stint_number === 1,
+  // per the OpenF1 stints schema). Falls back to the lowest lap_start if a
+  // session lacks a stint_number 1 record.
+  const startCompoundMap = useMemo(() => {
+    const first = new Map<number, { rank: number; compound: string }>();
+    for (const s of stints ?? []) {
+      const rank = s.stint_number === 1 ? -1 : s.lap_start;
+      const prev = first.get(s.driver_number);
+      if (!prev || rank < prev.rank)
+        first.set(s.driver_number, { rank, compound: s.compound });
+    }
+    return new Map([...first.entries()].map(([n, v]) => [n, v.compound]));
+  }, [stints]);
+
+  // Personal-best sectors per driver (across all laps up to currentT)
+  const personalBestMap = useMemo(() => {
+    const m = new Map<
+      number,
+      { s1: number | null; s2: number | null; s3: number | null }
+    >();
+    for (const l of timingLaps) {
+      const pb = m.get(l.driver_number) ?? { s1: null, s2: null, s3: null };
+      if (
+        l.duration_sector_1 !== null &&
+        (pb.s1 === null || l.duration_sector_1 < pb.s1)
+      )
+        pb.s1 = l.duration_sector_1;
+      if (
+        l.duration_sector_2 !== null &&
+        (pb.s2 === null || l.duration_sector_2 < pb.s2)
+      )
+        pb.s2 = l.duration_sector_2;
+      if (
+        l.duration_sector_3 !== null &&
+        (pb.s3 === null || l.duration_sector_3 < pb.s3)
+      )
+        pb.s3 = l.duration_sector_3;
+      m.set(l.driver_number, pb);
+    }
+    return m;
+  }, [timingLaps]);
+
+  // Each driver's best lap time set before their most recent completed lap,
+  // used to classify a freshly-set lap as an improvement, regression, or
+  // new session/personal best.
+  const priorBestLapMap = useMemo(() => {
+    const lastLapNumberByDriver = new Map<number, number>();
+    for (const l of timingLaps) {
+      const prev = lastLapNumberByDriver.get(l.driver_number) ?? -1;
+      if (l.lap_number > prev)
+        lastLapNumberByDriver.set(l.driver_number, l.lap_number);
+    }
+    const priorByDriver = new Map<number, number>();
+    for (const l of timingLaps) {
+      if (l.lap_duration === null) continue;
+      if (l.lap_number === lastLapNumberByDriver.get(l.driver_number)) continue;
+      const prev = priorByDriver.get(l.driver_number);
+      if (prev === undefined || l.lap_duration < prev) {
+        priorByDriver.set(l.driver_number, l.lap_duration);
+      }
+    }
+    return priorByDriver;
+  }, [timingLaps]);
+
+  const retiredDrivers = useMemo(() => {
+    return deriveRetiredDrivers({
+      positions,
+      laps,
+      raceControl,
+      currentT,
+      isRaceSession: isRaceSession(sessionName),
+    });
+  }, [positions, laps, raceControl, currentT, sessionName]);
 
   const sorted = useMemo<SortedRow[]>(() => {
     const timed = isTimedSession(sessionName ?? "");

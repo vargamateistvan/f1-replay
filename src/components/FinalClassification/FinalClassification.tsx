@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, type MouseEvent } from "react";
 import { createPortal } from "react-dom";
 import type { Driver, SessionResult } from "@/api/types";
 import { teamColor } from "@/utils/color";
-import { isQualiSession } from "@/utils/session";
+import { isPracticeSession, isQualiSession } from "@/utils/session";
 import { Q3_GRID_SIZE } from "@/constants";
 import { DriverHeadshot } from "@/components/DriverHeadshot";
 
@@ -22,6 +22,7 @@ interface DecoratedResult {
   color: string;
   status: string;
   detail: string;
+  phaseTimes: string[];
   isEliminated: boolean;
 }
 
@@ -65,6 +66,58 @@ function formatRelativeDurationClock(
 ): string | null {
   const formatted = formatDurationClock(seconds);
   return formatted ? `+${formatted}` : null;
+}
+
+function formatLapTime(seconds: number | null): string | null {
+  if (seconds === null || !Number.isFinite(seconds)) return null;
+  const totalMs = Math.max(0, Math.round(seconds * 1000));
+  const minutes = Math.floor(totalMs / 60_000);
+  const secs = Math.floor((totalMs % 60_000) / 1000);
+  const millis = totalMs % 1000;
+  return `${minutes}:${String(secs).padStart(2, "0")}.${String(millis).padStart(3, "0")}`;
+}
+
+function toPhaseArray<T>(value: T | T[] | null): (T | null)[] {
+  if (value === null) return [];
+  return Array.isArray(value) ? value : [value];
+}
+
+// Qualifying results carry one entry per part: duration = [Q1, Q2, Q3] best
+// lap times and gap_to_leader = [Q1, Q2, Q3] gaps (null where not reached).
+function qualiPhaseTimes(result: SessionResult): (number | null)[] {
+  const times = toPhaseArray(result.duration);
+  return [0, 1, 2].map((i) => {
+    const value = times[i] ?? null;
+    return typeof value === "number" && Number.isFinite(value) ? value : null;
+  });
+}
+
+function lastPhaseIndex(result: SessionResult): number {
+  const times = qualiPhaseTimes(result);
+  for (let i = times.length - 1; i >= 0; i--) {
+    if (times[i] !== null) return i;
+  }
+  return -1;
+}
+
+function timedResultDetail(result: SessionResult, phased: boolean): string {
+  const status = resultStatus(result);
+  const idx = phased ? lastPhaseIndex(result) : 0;
+  const time = phased
+    ? (qualiPhaseTimes(result)[idx] ?? null)
+    : typeof result.duration === "number"
+      ? result.duration
+      : (toPhaseArray(result.duration)[0] ?? null);
+  const gapRaw = toPhaseArray(result.gap_to_leader)[phased ? idx : 0] ?? null;
+  const gap = formatGapValue(
+    normalizeValue(gapRaw as number | string | null),
+  );
+
+  if (time === null) return status === "CLASSIFIED" ? "No time" : status;
+  if (result.position === 1 || gap === null || gap === "+0") {
+    return formatLapTime(time) ?? "—";
+  }
+  return gap;
 }
 
 function resultStatus(result: SessionResult): string {
@@ -195,6 +248,17 @@ function FinalClassificationContent({
     [drivers],
   );
 
+  const phased = useMemo(
+    () =>
+      isQualiSession(sessionName ?? "") ||
+      results.some(
+        (result) =>
+          Array.isArray(result.duration) && result.duration.length > 1,
+      ),
+    [results, sessionName],
+  );
+  const timed = phased || isPracticeSession(sessionName ?? "");
+
   const decorated = useMemo<DecoratedResult[]>(() => {
     const outOfQuali = isQualiSession(sessionName ?? "");
     return sortResults(results).map((result) => {
@@ -204,13 +268,18 @@ function FinalClassificationContent({
         driver,
         color: teamColor(driver?.team_colour),
         status: resultStatus(result),
-        detail: resultDetail(result),
+        detail: timed
+          ? timedResultDetail(result, phased)
+          : resultDetail(result),
+        phaseTimes: phased
+          ? qualiPhaseTimes(result).map((time) => formatLapTime(time) ?? "—")
+          : [],
         isEliminated:
           outOfQuali &&
           (result.position === null || result.position > Q3_GRID_SIZE),
       };
     });
-  }, [results, driverByNumber, sessionName]);
+  }, [results, driverByNumber, sessionName, timed, phased]);
 
   const podium = decorated.filter(
     (entry) => entry.result.position && entry.result.position <= 3,
@@ -298,7 +367,18 @@ function FinalClassificationContent({
               <th className="px-4 py-2 text-left">Driver</th>
               <th className="hidden px-4 py-2 text-left md:table-cell">Team</th>
               <th className="px-4 py-2 text-right">Laps</th>
-              <th className="px-4 py-2 text-right sm:px-5">Gap / Time</th>
+              {phased ? (
+                (["Q1", "Q2", "Q3"] as const).map((label, i) => (
+                  <th
+                    key={label}
+                    className={`px-4 py-2 text-right ${i === 2 ? "sm:px-5" : ""}`}
+                  >
+                    {label}
+                  </th>
+                ))
+              ) : (
+                <th className="px-4 py-2 text-right sm:px-5">Gap / Time</th>
+              )}
             </tr>
           </thead>
           <tbody>
@@ -346,11 +426,22 @@ function FinalClassificationContent({
                 >
                   {entry.result.number_of_laps ?? "—"}
                 </td>
-                <td
-                  className={`px-4 py-2.5 text-right font-mono tabular-nums sm:px-5 ${entry.isEliminated ? "text-muted" : "text-white"}`}
-                >
-                  {entry.detail}
-                </td>
+                {phased ? (
+                  entry.phaseTimes.map((time, i) => (
+                    <td
+                      key={i}
+                      className={`px-4 py-2.5 text-right font-mono tabular-nums ${i === 2 ? "sm:px-5" : ""} ${entry.isEliminated || time === "—" ? "text-muted" : "text-white"}`}
+                    >
+                      {time}
+                    </td>
+                  ))
+                ) : (
+                  <td
+                    className={`px-4 py-2.5 text-right font-mono tabular-nums sm:px-5 ${entry.isEliminated ? "text-muted" : "text-white"}`}
+                  >
+                    {entry.detail}
+                  </td>
+                )}
               </tr>
             ))}
           </tbody>

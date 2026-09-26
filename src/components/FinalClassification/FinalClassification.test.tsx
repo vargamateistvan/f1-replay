@@ -88,6 +88,66 @@ describe("FinalClassification", () => {
     expect(screen.getAllByText("01:24:01.250").length).toBeGreaterThan(0);
   });
 
+  it("shows per-part qualifying lap times instead of Q1 duration clocks", () => {
+    const results = [
+      {
+        position: 1,
+        driver_number: 1,
+        number_of_laps: 18,
+        points: null,
+        dnf: false,
+        dns: false,
+        dsq: false,
+        duration: [76.0, 75.5, 74.321],
+        gap_to_leader: [0.2, 0, 0],
+        meeting_key: 1,
+        session_key: 1,
+      },
+      {
+        position: 2,
+        driver_number: 16,
+        number_of_laps: 18,
+        points: null,
+        dnf: false,
+        dns: false,
+        dsq: false,
+        duration: [75.8, 75.6, 74.5],
+        gap_to_leader: [0, 0.1, 0.179],
+        meeting_key: 1,
+        session_key: 1,
+      },
+      {
+        position: 16,
+        driver_number: 63,
+        number_of_laps: 7,
+        points: null,
+        dnf: false,
+        dns: false,
+        dsq: false,
+        duration: [77.25, null, null],
+        gap_to_leader: [1.45, null, null],
+        meeting_key: 1,
+        session_key: 1,
+      },
+    ] as SessionResult[];
+
+    render(
+      <FinalClassification
+        results={results}
+        drivers={drivers}
+        sessionName="Qualifying"
+      />,
+    );
+
+    expect(screen.getByText("Q1")).toBeInTheDocument();
+    expect(screen.getByText("Q3")).toBeInTheDocument();
+    expect(screen.getAllByText("1:14.321").length).toBeGreaterThan(0);
+    expect(screen.getByText("1:17.250")).toBeInTheDocument();
+    // Podium detail uses the deciding (Q3) gap, not Q1's.
+    expect(screen.getByText("+0.179")).toBeInTheDocument();
+    expect(screen.queryByText(/00:01:16/)).not.toBeInTheDocument();
+  });
+
   it("supports dialog close via escape, close button, and backdrop", () => {
     const onClose = vi.fn();
     const results = [

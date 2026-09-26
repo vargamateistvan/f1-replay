@@ -558,6 +558,87 @@ describe("LiveTiming", () => {
     expect(screen.getAllByText("OUT Q1").length).toBe(5);
   });
 
+  it("resets best and last lap for active drivers when a new qualifying part starts", () => {
+    const sessionStartMs = Date.parse("2024-01-01T00:00:00.000Z");
+    const fieldDrivers = Array.from({ length: 20 }, (_, i) => ({
+      driver_number: i + 1,
+      name_acronym: `D${String(i + 1).padStart(2, "0")}`,
+      full_name: `Driver ${i + 1}`,
+      team_colour: "3671C6",
+    })) as unknown as Driver[];
+    const makeLap = (
+      driver: number,
+      dateStart: string,
+      lapNumber: number,
+      duration: number,
+    ) =>
+      ({
+        date_start: dateStart,
+        driver_number: driver,
+        duration_sector_1: 30,
+        duration_sector_2: 30,
+        duration_sector_3: duration - 60,
+        i1_speed: null,
+        i2_speed: null,
+        is_pit_out_lap: false,
+        lap_duration: duration,
+        lap_number: lapNumber,
+        meeting_key: 1,
+        segments_sector_1: [],
+        segments_sector_2: [],
+        segments_sector_3: [],
+        session_key: 1,
+        st_speed: null,
+      }) as unknown as Lap;
+
+    const q1Laps = fieldDrivers.map((d, i) =>
+      makeLap(d.driver_number, "2024-01-01T00:01:00.000Z", 1, 80 + i + 0.111),
+    );
+    // Driver 2 sets a Q2 lap; driver 1 has not completed one yet.
+    const q2Laps = [makeLap(2, "2024-01-01T00:20:00.000Z", 2, 79.555)];
+
+    render(
+      <LiveTiming
+        drivers={fieldDrivers}
+        positions={[]}
+        intervals={[]}
+        pits={[]}
+        laps={[...q1Laps, ...q2Laps]}
+        raceControl={
+          [
+            {
+              category: "Other",
+              date: "2024-01-01T00:18:00.000Z",
+              driver_number: null,
+              flag: null,
+              lap_number: null,
+              meeting_key: 1,
+              message: "Q2 STARTED",
+              qualifying_phase: 2,
+              scope: null,
+              sector: null,
+              session_key: 1,
+            },
+          ] as unknown as RaceControl[]
+        }
+        sessionName="Qualifying"
+        sessionTimeMs={25 * 60_000}
+        sessionStartMs={sessionStartMs}
+      />,
+    );
+
+    const rows = screen.getAllByRole("row");
+    expect(rows[1]).toHaveTextContent("D02");
+    expect(rows[1]).toHaveTextContent("1:19.555");
+    expect(rows[1]).not.toHaveTextContent("1:21.111");
+    const d01Row = rows.find((row) => row.textContent?.includes("D01"));
+    expect(d01Row).not.toHaveTextContent("1:20.111");
+    // Eliminated drivers keep their Q1 time.
+    const d20Row = rows.find((row) => row.textContent?.includes("D20"));
+    expect(d20Row).toHaveTextContent("1:39.111");
+    expect(d20Row).toHaveTextContent("OUT Q1");
+  });
+
   it("does not show elimination tags during Q1", () => {
     const sessionStartMs = Date.parse("2024-01-01T00:00:00.000Z");
     const fieldDrivers = Array.from({ length: 20 }, (_, i) => {
