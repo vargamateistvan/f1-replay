@@ -51,16 +51,10 @@ const VIEW_TABS: { id: MainView; label: string }[] = [
 const VALID_VIEWS = new Set<MainView>(["leaderboard", "tracker", "commentary"]);
 
 const SELECT =
-  "w-full bg-surface text-white border border-panel rounded-sm text-[11px] font-medium pl-2 pr-6 py-1 focus:outline-none focus:ring-1 focus:ring-f1red/70 focus:border-f1red/70 appearance-none cursor-pointer transition-colors disabled:opacity-60 disabled:cursor-not-allowed [&>option]:bg-surface [&>option]:text-white light:bg-white light:text-black light:border-slate-300 light:focus:border-slate-500 light:[color-scheme:light] light:[&>option]:bg-white light:[&>option]:text-black";
+  "w-full max-sm:h-7 bg-surface text-white border border-panel rounded-sm text-[11px] font-medium pl-2 pr-6 py-1 focus:outline-none focus:ring-1 focus:ring-f1red/70 focus:border-f1red/70 appearance-none cursor-pointer transition-colors disabled:opacity-60 disabled:cursor-not-allowed [&>option]:bg-surface [&>option]:text-white light:bg-white light:text-black light:border-slate-300 light:focus:border-slate-500 light:[color-scheme:light] light:[&>option]:bg-white light:[&>option]:text-black";
 
 const FIELD_LABEL =
   "text-[9px] font-bold uppercase tracking-widest text-muted leading-none";
-
-const CIRCUIT_TYPE_LABEL: Record<string, string> = {
-  Permanent: "Permanent",
-  "Temporary - Street": "Street Circuit",
-  "Temporary - Road": "Road Course",
-};
 
 const TRACK_FACTS_ENABLED = false;
 // How old cached calendar/alias data may be before the Latest button refetches.
@@ -649,7 +643,7 @@ export function Nav() {
           </span>
         </button>
 
-        <div className="mr-auto min-w-0 hidden sm:flex items-center gap-2">
+        <div className="mr-auto min-w-0 flex items-center gap-2 overflow-hidden">
           {live && (
             <span
               className="w-1.5 h-1.5 rounded-full bg-white/75 shrink-0"
@@ -667,14 +661,14 @@ export function Nav() {
                   referrerPolicy="no-referrer"
                 />
               )}
-              <span className="text-white text-[11px] font-bold uppercase tracking-wide truncate max-w-[160px] lg:max-w-[240px]">
+              <span className="min-w-0 text-white text-[10px] sm:text-[11px] font-bold uppercase tracking-wide truncate sm:max-w-[160px] lg:max-w-[240px]">
                 {selectedMeeting.meeting_name}
               </span>
-              <span className="text-white/70 text-[11px] font-bold uppercase tracking-widest shrink-0">
+              <span className="hidden sm:inline text-white/70 text-[11px] font-bold uppercase tracking-widest shrink-0">
                 {selectedMeeting.year}
               </span>
               {sessionLabel && (
-                <span className="text-white/70 text-[11px] font-bold uppercase tracking-widest shrink-0">
+                <span className="hidden sm:inline text-white/70 text-[11px] font-bold uppercase tracking-widest shrink-0">
                   · {sessionLabel}
                 </span>
               )}
@@ -685,7 +679,7 @@ export function Nav() {
               )}
             </>
           ) : (
-            <span className="text-white/80 text-[11px] font-bold tracking-widest uppercase truncate">
+            <span className="hidden sm:inline text-white/80 text-[11px] font-bold tracking-widest uppercase truncate">
               {headerLabel}
             </span>
           )}
@@ -959,21 +953,17 @@ export function Nav() {
       {(isMainRoute || isTelemetryRoute) && (
         <div className="border-b border-panel bg-[linear-gradient(180deg,#11131b,#0f1118)] light:!bg-white light:!bg-none light:border-slate-300/80">
           <div
-            className="flex flex-wrap items-center gap-1.5 py-1.5 light:!bg-white"
-            style={{
-              paddingLeft: "max(0.5rem, env(safe-area-inset-left))",
-              paddingRight: "max(0.5rem, env(safe-area-inset-right))",
-            }}
+            className="grid grid-cols-[4.75rem_minmax(0,1fr)_auto] items-end gap-x-2 gap-y-1.5 py-1.5 pl-[max(0.75rem,env(safe-area-inset-left))] pr-[max(0.75rem,env(safe-area-inset-right))] sm:flex sm:flex-wrap sm:items-center sm:gap-1.5 sm:pl-[max(0.5rem,env(safe-area-inset-left))] sm:pr-[max(0.5rem,env(safe-area-inset-right))] light:!bg-white"
           >
             {live && (
-              <span className="flex items-center gap-1 bg-f1red text-white text-[9px] font-black uppercase tracking-widest px-2 py-0.5 shrink-0">
+              <span className="hidden sm:flex items-center gap-1 bg-f1red text-white text-[9px] font-black uppercase tracking-widest px-2 py-0.5 shrink-0">
                 <span className="w-1.5 h-1.5 rounded-full bg-white" />
                 Live
               </span>
             )}
 
-            <div className="flex flex-1 flex-wrap items-center gap-x-3 gap-y-1 rounded-md px-2 min-w-[220px]">
-              <label className="flex items-center gap-1 shrink-0">
+            <div className="contents sm:flex sm:flex-1 sm:flex-wrap sm:items-center sm:gap-x-3 sm:gap-y-1 sm:rounded-md sm:px-2 sm:min-w-[220px]">
+              <label className="col-start-1 row-start-1 flex flex-col gap-1 sm:flex-row sm:items-center sm:gap-1 shrink-0">
                 <span className={FIELD_LABEL}>Year</span>
                 <span className="relative inline-block">
                   <select
@@ -995,7 +985,7 @@ export function Nav() {
                 </span>
               </label>
 
-              <label className="flex items-center gap-1 min-w-0 flex-[2_1_140px]">
+              <label className="col-start-2 col-span-2 row-start-1 flex flex-col gap-1 min-w-0 sm:flex-row sm:items-center sm:gap-1 sm:flex-[2_1_140px]">
                 <span className={`${FIELD_LABEL} shrink-0`}>Event</span>
                 {meetings.isError && !authFailed ? (
                   <span className="text-[10px] font-mono text-red-400 shrink-0">
@@ -1045,7 +1035,7 @@ export function Nav() {
                 )}
               </label>
 
-              <label className="flex items-center gap-1 min-w-0 flex-[1_1_120px]">
+              <label className="col-start-1 col-span-2 row-start-2 flex flex-col gap-1 min-w-0 sm:flex-row sm:items-center sm:gap-1 sm:flex-[1_1_120px]">
                 <span className={`${FIELD_LABEL} shrink-0`}>Session</span>
                 {sessions.isError && !authFailed ? (
                   <span className="text-[10px] font-mono text-red-400 shrink-0">
@@ -1105,48 +1095,29 @@ export function Nav() {
               </label>
             </div>
 
-            {selectedMeeting && (
-              <div className="sm:hidden min-w-0 flex items-center gap-1.5 rounded border border-panel/80 bg-track px-2 py-1 light:bg-white light:border-slate-300/90">
-                {selectedCountryFlagUrl && (
-                  <img
-                    src={selectedCountryFlagUrl}
-                    alt={`${selectedMeeting.country_name} flag`}
-                    className="h-3.5 w-5 object-cover rounded-[2px] border border-panel/80"
-                    loading="lazy"
-                    referrerPolicy="no-referrer"
-                  />
-                )}
-                <span className="text-[10px] text-white/90 font-semibold truncate max-w-[170px] sm:max-w-[230px] light:text-slate-800">
-                  {selectedMeeting.meeting_name}
+            <div className="col-start-3 row-start-2 flex items-center justify-end gap-1.5">
+              {live && (
+                <span className="sm:hidden flex h-7 items-center gap-1 bg-f1red text-white text-[9px] font-black uppercase tracking-widest px-2 shrink-0">
+                  <span className="w-1.5 h-1.5 rounded-full bg-white" />
+                  Live
                 </span>
-                <span className="hidden sm:inline text-[9px] text-muted uppercase tracking-widest light:text-slate-500">
-                  {CIRCUIT_TYPE_LABEL[selectedMeeting.circuit_type] ??
-                    selectedMeeting.circuit_type}
-                </span>
-                {selectedMeeting.is_cancelled && (
-                  <span className="bg-red-500/15 border border-red-500/40 text-red-300 text-[9px] font-bold uppercase tracking-widest px-1.5 py-0.5 rounded-sm">
-                    Cancelled
-                  </span>
-                )}
-              </div>
-            )}
+              )}
 
-            {(meetings.isPending || sessions.isPending) && (
-              <span className="text-muted text-[9px] shrink-0 ml-auto sm:ml-0">
-                Loading…
-              </span>
-            )}
+              {(meetings.isPending || sessions.isPending) && (
+                <span className="text-muted text-[9px] shrink-0">Loading…</span>
+              )}
 
-            <button
-              type="button"
-              onClick={() => {
-                void selectLatestEvent("manual");
-              }}
-              disabled={isSelectingLatest}
-              className="h-6 px-2 text-[9px] font-black uppercase tracking-widest rounded transition-colors bg-panel text-muted hover:text-white hover:bg-track disabled:opacity-40 disabled:cursor-not-allowed light:bg-white light:text-slate-600 light:border light:border-slate-300 light:hover:text-slate-900 light:hover:bg-slate-100"
-            >
-              Latest
-            </button>
+              <button
+                type="button"
+                onClick={() => {
+                  void selectLatestEvent("manual");
+                }}
+                disabled={isSelectingLatest}
+                className="h-7 sm:h-6 px-2.5 sm:px-2 text-[9px] font-black uppercase tracking-widest rounded-sm transition-colors bg-panel text-muted hover:text-white hover:bg-track disabled:opacity-40 disabled:cursor-not-allowed light:bg-white light:text-slate-600 light:border light:border-slate-300 light:hover:text-slate-900 light:hover:bg-slate-100"
+              >
+                Latest
+              </button>
+            </div>
           </div>
         </div>
       )}
