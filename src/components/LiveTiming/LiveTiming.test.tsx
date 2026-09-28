@@ -1253,7 +1253,7 @@ describe("LiveTiming", () => {
     expect(rpmHeader?.className).toContain("w-[3.5rem]");
 
     expect(screen.getByText("Thr/Brk").closest("th")?.className).toContain(
-      "w-[4rem]",
+      "w-[6rem]",
     );
     expect(screen.getAllByText("DRS")[0]?.closest("th")?.className).toContain(
       "w-[3rem]",
@@ -1306,11 +1306,74 @@ describe("LiveTiming", () => {
     const table = screen.getByRole("table");
     expect(table.className).toContain("min-w-[62rem]");
     expect(screen.getByText("Thr/Brk").closest("th")?.className).toContain(
-      "w-[3.5rem]",
+      "w-[5rem]",
     );
+    expect(
+      screen.getAllByRole("img", { name: "Throttle 95%, brake 0%" }).length,
+    ).toBeGreaterThan(0);
+    expect(screen.getAllByText("95").length).toBeGreaterThan(0);
     expect(screen.getAllByText("DRS")[0]?.closest("th")?.className).toContain(
       "w-[2.5rem]",
     );
+  });
+
+  it("labels pedal phases as FULL, BRK and LIFT", () => {
+    const sessionStartMs = Date.parse("2024-01-01T00:00:00.000Z");
+    const car = (
+      driver_number: number,
+      throttle: number,
+      brake: number,
+    ): CarData => ({
+      brake,
+      date: "2024-01-01T00:00:12.000Z",
+      driver_number,
+      drs: 0,
+      meeting_key: 1,
+      n_gear: 7,
+      rpm: 11000,
+      session_key: 1,
+      speed: 280,
+      throttle,
+    });
+    const props = {
+      drivers,
+      positions: [
+        { driver_number: 1, position: 1, date: "2024-01-01T00:00:10.000Z" },
+        { driver_number: 16, position: 2, date: "2024-01-01T00:00:10.000Z" },
+      ] as Position[],
+      intervals: [],
+      pits: [],
+      laps: [],
+      sessionTimeMs: 20_000,
+      sessionStartMs,
+    };
+
+    const { rerender } = render(
+      <LiveTiming
+        {...props}
+        carData={
+          new Map<number, CarData>([
+            [1, car(1, 100, 0)],
+            [16, car(16, 0, 100)],
+          ])
+        }
+      />,
+    );
+
+    expect(screen.getAllByText("FULL").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("BRK").length).toBeGreaterThan(0);
+    expect(
+      screen.getAllByRole("img", { name: "Throttle 0%, brake 100%" }).length,
+    ).toBeGreaterThan(0);
+
+    rerender(
+      <LiveTiming
+        {...props}
+        carData={new Map<number, CarData>([[1, car(1, 5, 0)]])}
+      />,
+    );
+
+    expect(screen.getAllByText("LIFT").length).toBeGreaterThan(0);
   });
 
   it("renders last lap after best lap and respects column visibility", () => {

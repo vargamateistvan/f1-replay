@@ -259,35 +259,107 @@ const TH =
 const TH_COMPACT =
   "py-1 px-1.5 text-[9px] font-bold uppercase tracking-[0.1em] text-muted select-none sm:px-2";
 
-function MiniBar({ value, color }: { value: number; color: string }) {
+const THROTTLE_COLOR = "#39d743";
+const BRAKE_COLOR = "#ff5252";
+
+function clampPct(value: number) {
+  return Math.max(0, Math.min(100, value));
+}
+
+type PedalPhase = "brake" | "full" | "lift" | "partial";
+
+function pedalPhase(throttle: number, brake: number): PedalPhase {
+  if (brake >= 10) return "brake";
+  if (throttle >= 98) return "full";
+  if (throttle < 15) return "lift";
+  return "partial";
+}
+
+// Same solid-fill badge vocabulary as the DRS / status badges in the tower.
+const PEDAL_PHASE_BADGE: Record<PedalPhase, string> = {
+  brake: "bg-[#ff5252] text-white",
+  full: "bg-[#39d743] text-black",
+  lift: "bg-[#f5a623] text-black",
+  partial: "bg-panel text-muted",
+};
+
+function PedalFill({
+  value,
+  color,
+  heightClass,
+}: {
+  value: number;
+  color: string;
+  heightClass: string;
+}) {
   return (
-    <span className="block h-1.5 bg-panel overflow-hidden rounded-sm">
+    <span className={`block ${heightClass} overflow-hidden bg-panel`}>
       <span
-        className="block h-full"
-        style={{
-          width: `${Math.max(0, Math.min(100, value))}%`,
-          background: color,
-        }}
+        className="block h-full transition-[width] duration-150 ease-out motion-reduce:transition-none"
+        style={{ width: `${clampPct(value)}%`, background: color }}
       />
     </span>
   );
 }
 
-function PedalTrace({ throttle, brake }: { throttle: number; brake: number }) {
-  const t = Math.max(0, Math.min(100, throttle));
-  const b = Math.max(0, Math.min(100, brake));
+function PedalBars({
+  throttle,
+  brake,
+  widthClass,
+}: {
+  throttle: number;
+  brake: number;
+  widthClass: string;
+}) {
+  const t = Math.round(clampPct(throttle));
+  const b = Math.round(clampPct(brake));
+  const phase = pedalPhase(t, b);
+  const phaseLabel: Record<PedalPhase, string> = {
+    brake: "BRK",
+    full: "FULL",
+    lift: "LIFT",
+    partial: `${t}`,
+  };
   return (
-    <span className="flex items-end gap-0.5 h-4 shrink-0">
-      <span className="flex h-full w-1.5 items-end overflow-hidden rounded-[1px] bg-panel">
+    <span
+      role="img"
+      aria-label={`Throttle ${t}%, brake ${b}%`}
+      title={`Throttle ${t}% · Brake ${b}%`}
+      className={`mx-auto flex items-center gap-1.5 ${widthClass}`}
+    >
+      <span className="flex min-w-0 flex-1 flex-col gap-[2px]">
+        <PedalFill value={t} color={THROTTLE_COLOR} heightClass="h-[7px]" />
+        <PedalFill value={b} color={BRAKE_COLOR} heightClass="h-[4px]" />
+      </span>
+      <span
+        className={`flex w-[2rem] shrink-0 items-center justify-center px-1 py-0.5 text-center leading-none text-[9px] font-black uppercase tracking-[0.08em] tabular-nums ${PEDAL_PHASE_BADGE[phase]}`}
+      >
+        {phaseLabel[phase]}
+      </span>
+    </span>
+  );
+}
+
+function PedalTrace({ throttle, brake }: { throttle: number; brake: number }) {
+  const t = Math.round(clampPct(throttle));
+  const b = Math.round(clampPct(brake));
+  return (
+    <span
+      role="img"
+      aria-label={`Throttle ${t}%, brake ${b}%`}
+      title={`Throttle ${t}% · Brake ${b}%`}
+      className="flex items-end gap-0.5 h-4 shrink-0"
+    >
+      <span className="flex h-full w-1.5 items-end overflow-hidden bg-panel">
         <span
-          className="w-full bg-[#ff5252] transition-[height] duration-150"
-          style={{ height: `${b}%` }}
+          className="w-full transition-[height] duration-150 motion-reduce:transition-none"
+          style={{ height: `${b}%`, background: BRAKE_COLOR }}
         />
       </span>
-      <span className="flex h-full w-1.5 items-end overflow-hidden rounded-[1px] bg-panel">
+      <span className="flex h-full w-1.5 items-end overflow-hidden bg-panel">
         <span
-          className="w-full bg-[#39d743] transition-[height] duration-150"
-          style={{ height: `${t}%` }}
+          className="w-full transition-[height] duration-150 motion-reduce:transition-none"
+          style={{ height: `${t}%`, background: THROTTLE_COLOR }}
         />
       </span>
     </span>
@@ -305,19 +377,19 @@ function MobilePedalMeter({
   color: string;
   labelClassName: string;
 }) {
-  const clamped = value === null ? 0 : Math.max(0, Math.min(100, value));
+  const clamped = value === null ? 0 : clampPct(value);
   const activeSegments = Math.round(clamped / 20);
 
   return (
     <span className="inline-flex min-w-0 items-center gap-1">
       <span className={labelClassName}>{label}</span>
-      <span className="inline-flex items-center gap-0.5">
+      <span className="inline-flex items-center gap-px">
         {Array.from({ length: 5 }, (_, i) => {
           const active = i < activeSegments;
           return (
             <span
               key={i}
-              className="h-1.5 w-1 rounded-[2px]"
+              className="h-1.5 w-1.5"
               style={{
                 background: active
                   ? color
@@ -1348,9 +1420,9 @@ export function LiveTiming({
     : "hidden lg:table-cell";
   const telemetryPadClass = compactDriverColumn ? "px-1" : "px-2";
   const telemetryCenterPadClass = compactDriverColumn ? "px-0.5" : "px-1";
-  const pedalHeaderWidthClass = compactDriverColumn ? "w-[3.5rem]" : "w-[4rem]";
+  const pedalHeaderWidthClass = compactDriverColumn ? "w-[5rem]" : "w-[6rem]";
   const drsHeaderWidthClass = compactDriverColumn ? "w-[2.5rem]" : "w-[3rem]";
-  const pedalBarsWidthClass = compactDriverColumn ? "w-10" : "w-12";
+  const pedalBarsWidthClass = compactDriverColumn ? "w-[4.5rem]" : "w-[5.25rem]";
   const tableMinWidthClass = showTelemetry
     ? compactDriverColumn
       ? "min-w-[62rem]"
@@ -2295,16 +2367,11 @@ export function LiveTiming({
                           className={`${pedalColumnClass} ${rowCellPad} align-middle ${telemetryCenterPadClass}`}
                         >
                           {car ? (
-                            <span
-                              className={`flex items-center gap-1 ${pedalBarsWidthClass} mx-auto`}
-                            >
-                              <span className="flex-1 min-w-0">
-                                <MiniBar value={car.throttle} color="#39d743" />
-                              </span>
-                              <span className="flex-1 min-w-0">
-                                <MiniBar value={car.brake} color="#ff5252" />
-                              </span>
-                            </span>
+                            <PedalBars
+                              throttle={car.throttle}
+                              brake={car.brake}
+                              widthClass={pedalBarsWidthClass}
+                            />
                           ) : (
                             <span className="block text-center text-muted">
                               —
