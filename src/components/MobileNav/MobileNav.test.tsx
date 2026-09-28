@@ -30,6 +30,10 @@ vi.mock("@/hooks/useSearchParamState", () => ({
   useStringParam: () => [mobileNavState.view, mobileNavState.setView],
 }));
 
+vi.mock("@/hooks/useReleaseDate", () => ({
+  useReleaseDate: () => "2026-09-20T10:00:00Z",
+}));
+
 describe("MobileNav", () => {
   beforeEach(() => {
     mobileNavState.searchParams = new URLSearchParams("year=2025&meeting=22");
@@ -68,6 +72,37 @@ describe("MobileNav", () => {
     expect(
       screen.queryByRole("button", { name: "Telemetry" }),
     ).not.toBeInTheDocument();
+  });
+
+  it("opens the About dialog with version, release date and data source", () => {
+    render(<MobileNav />);
+
+    fireEvent.click(screen.getByRole("button", { name: /More/ }));
+    fireEvent.click(screen.getByRole("button", { name: /About/ }));
+
+    const dialog = screen.getByRole("dialog", { name: "About F1 Replay" });
+    expect(dialog).toHaveTextContent("Version");
+    expect(dialog).toHaveTextContent("Released");
+    expect(dialog).toHaveTextContent("2026");
+    expect(screen.getByRole("link", { name: "OpenF1 API" })).toHaveAttribute(
+      "href",
+      "https://openf1.org/",
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "Privacy" }));
+    expect(mobileNavState.navigate).toHaveBeenCalledWith("/privacy");
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+  });
+
+  it("closes the About dialog with Escape", () => {
+    render(<MobileNav />);
+
+    fireEvent.click(screen.getByRole("button", { name: /More/ }));
+    fireEvent.click(screen.getByRole("button", { name: /About/ }));
+    expect(screen.getByRole("dialog")).toBeInTheDocument();
+
+    fireEvent.keyDown(window, { key: "Escape" });
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
   });
 
   it("forces leaderboard view back to tracker on mobile main route", () => {

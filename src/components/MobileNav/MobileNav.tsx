@@ -1,9 +1,13 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useSearchParams, useLocation, useNavigate } from "react-router-dom";
+import { Info } from "lucide-react";
 import { useStringParam } from "@/hooks/useSearchParamState";
+import { useReleaseDate } from "@/hooks/useReleaseDate";
 import { useSettings } from "@/stores/settings";
 import type { MainView } from "@/components/Nav";
+import { AboutDialog } from "@/components/AboutDialog";
 import { trackEvent } from "@/lib/analytics";
+import { appVersionLabel, formatReleaseDate } from "@/lib/appVersion";
 
 const VALID_VIEWS = new Set<MainView>(["leaderboard", "tracker", "commentary"]);
 
@@ -14,6 +18,9 @@ export function MobileNav() {
   const openHelp = useSettings((s) => s.openHelp);
   const [view, setView] = useStringParam<MainView>("view", "tracker");
   const [showMore, setShowMore] = useState(false);
+  const [showAbout, setShowAbout] = useState(false);
+  const closeAbout = useCallback(() => setShowAbout(false), []);
+  const releaseDate = formatReleaseDate(useReleaseDate(), "short");
   const currentView: MainView = VALID_VIEWS.has(view as MainView)
     ? (view as MainView)
     : "tracker";
@@ -99,6 +106,29 @@ export function MobileNav() {
         </div>
       )}
 
+      {showMore && (
+        <button
+          type="button"
+          onClick={() => {
+            setShowMore(false);
+            setShowAbout(true);
+            trackEvent("mobile_nav_about_opened");
+          }}
+          className="flex h-8 items-center justify-between gap-2 border-b border-panel bg-track px-3 text-left"
+        >
+          <span className="flex min-w-0 items-center gap-1.5 font-mono text-[10px] uppercase tracking-[0.12em] text-muted">
+            <Info size={11} aria-hidden="true" className="shrink-0" />
+            <span className="truncate">
+              {appVersionLabel}
+              {releaseDate ? ` · ${releaseDate}` : ""}
+            </span>
+          </span>
+          <span className="shrink-0 text-[9px] font-black uppercase tracking-widest text-white/60">
+            About ›
+          </span>
+        </button>
+      )}
+
       <div className="flex h-12">
         <button
           onClick={() => {
@@ -146,6 +176,14 @@ export function MobileNav() {
           <span>More</span>
         </button>
       </div>
+      <AboutDialog
+        open={showAbout}
+        onClose={closeAbout}
+        onNavigate={(url) => {
+          setShowAbout(false);
+          goTo(url);
+        }}
+      />
     </nav>
   );
 }

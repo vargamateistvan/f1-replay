@@ -11,7 +11,6 @@ import {
   useCallback,
   useEffect,
   useRef,
-  useState,
   type ReactNode,
 } from "react";
 import { Nav } from "@/components/Nav";
@@ -25,7 +24,12 @@ import {
   trackPageEngagement,
   trackPageView,
 } from "@/lib/analytics";
-import { appVersionLabel } from "@/lib/appVersion";
+import {
+  appVersionLabel,
+  formatReleaseDate,
+  RELEASES_PAGE_URL,
+} from "@/lib/appVersion";
+import { useReleaseDate } from "@/hooks/useReleaseDate";
 const RaceWeekend = lazy(() => import("@/pages/RaceWeekend"));
 const Telemetry = lazy(() => import("@/pages/Telemetry"));
 const Standings = lazy(() => import("@/pages/Standings"));
@@ -117,64 +121,12 @@ function RouteMotionShell({ children }: { children: ReactNode }) {
 }
 
 function ReleaseVersionLabel() {
-  const [releaseDate, setReleaseDate] = useState<string | null>(null);
-
-  useEffect(() => {
-    let isMounted = true;
-    const controller = new AbortController();
-
-    void fetch(
-      "https://api.github.com/repos/vargamateistvan/f1-replay/releases/latest",
-      {
-        headers: {
-          Accept: "application/vnd.github+json",
-          "X-GitHub-Api-Version": "2022-11-28",
-        },
-        signal: controller.signal,
-      },
-    )
-      .then((response) => {
-        if (!response.ok) {
-          throw new Error(`GitHub releases request failed: ${response.status}`);
-        }
-        return response.json() as Promise<{ published_at?: string; created_at?: string }>;
-      })
-      .then((data) => {
-        if (!isMounted) return;
-
-        const publishedAt = data.published_at ?? data.created_at;
-        if (!publishedAt) return;
-
-        setReleaseDate(
-          new Intl.DateTimeFormat(undefined, {
-            month: "short",
-            day: "numeric",
-            year: "numeric",
-            hour: "2-digit",
-            minute: "2-digit",
-            second: "2-digit",
-            hour12: false,
-            timeZoneName: "short",
-            timeZone: "UTC",
-          }).format(new Date(publishedAt)),
-        );
-      })
-      .catch(() => {
-        if (isMounted) {
-          setReleaseDate(null);
-        }
-      });
-
-    return () => {
-      isMounted = false;
-      controller.abort();
-    };
-  }, []);
+  const releaseDate = formatReleaseDate(useReleaseDate());
 
   return (
     <span className="inline-flex items-center gap-2">
       <a
-        href="https://github.com/vargamateistvan/f1-replay/releases"
+        href={RELEASES_PAGE_URL}
         target="_blank"
         rel="noreferrer"
         className="font-mono uppercase tracking-[0.12em] text-muted/85 transition-colors hover:text-f1red"

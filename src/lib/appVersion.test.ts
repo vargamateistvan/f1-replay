@@ -1,7 +1,22 @@
 import { describe, expect, it } from "vitest";
-import { formatAppVersion, normalizeAppVersion } from "@/lib/appVersion";
+import {
+  formatAppVersion,
+  formatReleaseDate,
+  normalizeAppVersion,
+} from "@/lib/appVersion";
 
 describe("appVersion", () => {
+  it("formats release dates and rejects missing or invalid input", () => {
+    expect(formatReleaseDate(null)).toBeNull();
+    expect(formatReleaseDate("not-a-date")).toBeNull();
+
+    const short = formatReleaseDate("2026-09-20T10:00:00Z", "short");
+    expect(short).toContain("2026");
+    expect(short).not.toMatch(/10:00/);
+
+    expect(formatReleaseDate("2026-09-20T10:00:00Z")).toMatch(/10:00:00/);
+  });
+
   it("normalizes blank versions to null", () => {
     expect(normalizeAppVersion(undefined)).toBeNull();
     expect(normalizeAppVersion("")).toBeNull();
