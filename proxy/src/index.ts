@@ -13,8 +13,8 @@
  *
  * Cache TTL strategy
  * ──────────────────
- * STATIC / RESULT     → permanent in KV, 30-day browser cache
- * Historical data     → permanent in KV, 30-day browser cache
+ * STATIC / RESULT     → 90 days in KV, 30-day browser cache
+ * Historical data     → 90 days in KV, 30-day browser cache
  * Live location/data  → 5 s
  * Live position/laps  → 20 s
  * Other live data     → 60 s
@@ -67,8 +67,10 @@ export interface Env {
 const OPENF1_BASE = "https://api.openf1.org/v1";
 
 const TTL_PERMANENT = 60 * 60 * 24 * 30; // 30-day browser cache TTL.
-// Historical / static KV entries are intentionally written without an
-// expiration so they remain available until we delete them explicitly.
+// Historical / static race-weekend data is immutable, but KV entries expire
+// after 90 days so old weekends don't accumulate in storage forever. An
+// expired entry is simply re-fetched from OpenF1 on the next request.
+const TTL_HISTORICAL_KV = 60 * 60 * 24 * 90;
 // `meeting_key=latest` / `session_key=latest` resolve to a different row every
 // race weekend, so they must never be cached permanently: a stale alias makes
 // the app open the previous event on first load.
@@ -473,10 +475,9 @@ export default {
         // ── Store in KV ─────────────────────────────────────────────────────
 
         try {
-          const kvWriteOptions =
-            ttl === TTL_PERMANENT ? undefined : { expirationTtl: ttl };
-
-          await env.CACHE.put(kvCacheKey, body, kvWriteOptions);
+          await env.CACHE.put(kvCacheKey, body, {
+            expirationTtl: ttl === TTL_PERMANENT ? TTL_HISTORICAL_KV : ttl,
+          });
         } catch {
           // Best effort.
         }

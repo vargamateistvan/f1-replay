@@ -22,16 +22,28 @@ api.openf1.org
 
 | Bucket | Endpoints | TTL |
 |--------|-----------|-----|
-| Static metadata | `meetings`, `sessions`, `drivers`, `starting_grid` | permanent in KV; 30-day browser cache |
+| Static metadata | `meetings`, `sessions`, `drivers`, `starting_grid` | 90 days in KV; 30-day browser cache |
 | `latest` aliases | any request with `meeting_key=latest` / `session_key=latest` | 5 min |
 | Current-season standings | `championship_drivers`, `championship_teams` | 60 s TTL; they change after each race |
-| Session results | `session_result` | permanent in KV; 30-day browser cache |
-| Historical date-window | `location`, `car_data` where `date<` is in the past | permanent in KV; 30-day browser cache |
+| Session results | `session_result` | 90 days in KV; 30-day browser cache |
+| Historical date-window | `location`, `car_data` where `date<` is in the past | 90 days in KV; 30-day browser cache |
 | Live date-window | `location`, `car_data` where `date<` is recent | 5 s |
 | Live fast feeds | `position`, `intervals`, `laps` | 20 s |
 | Live slow feeds | `weather`, `race_control`, `team_radio`, `pit`, `stints`, `overtakes` | 60 s |
 
 Empty `[]` responses are **never cached** — live data may not exist yet.
+
+Historical KV entries expire after 90 days so old race weekends don't accumulate in storage; an expired entry is transparently re-fetched from OpenF1 on the next request.
+
+Entries written before the 90-day TTL was introduced have no expiration. Backfill them once (values are preserved, only the expiry is added):
+
+```bash
+cd proxy
+export CLOUDFLARE_API_TOKEN=...   # needs "Workers KV Storage: Edit"
+export CLOUDFLARE_ACCOUNT_ID=...
+yarn kv:expire-legacy             # dry run — lists keys without an expiration
+yarn kv:expire-legacy --apply     # re-writes them with a 90-day TTL
+```
 
 ### Cache warming
 
@@ -41,8 +53,8 @@ Two request headers enhance warm runs when the `WARM_SECRET` Worker secret is se
 
 | Header | Effect |
 |--------|--------|
-| `X-Warm-Secret: <secret>` | Response is cached **permanently**, even for endpoints whose URL alone can't prove they're historical (`laps`, `position`, `intervals`, `weather`, …) |
-| `X-Warm-Refresh: 1` | Bypasses the cache read and re-fetches from OpenF1 — used to keep the permanently-cached `meetings`/`sessions` lists current mid-season |
+| `X-Warm-Secret: <secret>` | Response is cached as historical (**90 days** in KV), even for endpoints whose URL alone can't prove they're historical (`laps`, `position`, `intervals`, `weather`, …) |
+| `X-Warm-Refresh: 1` | Bypasses the cache read and re-fetches from OpenF1 — used to keep the long-cached `meetings`/`sessions` lists current mid-season |
 
 Setup:
 
@@ -54,7 +66,7 @@ wrangler secret put WARM_SECRET     # paste a long random string
 # 2 — add the same value as a GitHub Actions secret named WARM_SECRET
 ```
 
-Without `WARM_SECRET` the workflow still warms location/car_data windows and static endpoints (they cache permanently on their own); the live-feed endpoints just keep their short TTLs and session lists aren't refreshed.
+Without `WARM_SECRET` the workflow still warms location/car_data windows and static endpoints (they cache as historical on their own); the live-feed endpoints just keep their short TTLs and session lists aren't refreshed.
 
 You can also warm a specific session manually:
 
