@@ -15,7 +15,7 @@ enabled = false
 # with the one printed by that command, and set preview_id for `wrangler dev`.
 [[kv_namespaces]]
 binding = "CACHE"
-id = "4601e1837a1e4c288428bfe7a6fb447c"
+id = "ab5b437ce1b84e179ca6352bf30673b2"
 preview_id = "e4b5f4d660ae47d0ba187ed5b2b25f74"
 
 [vars]
