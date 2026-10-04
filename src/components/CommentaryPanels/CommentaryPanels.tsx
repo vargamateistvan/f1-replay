@@ -17,6 +17,7 @@ import type {
   Pit,
   Position,
   RaceControl,
+  Stint,
   TeamRadio,
 } from "@/api/types";
 import {
@@ -82,6 +83,7 @@ type Props = {
   raceControlEntries: RaceControl[];
   teamRadioEntries: TeamRadio[];
   pitEntries: Pit[];
+  stints: Stint[];
   overtakeEntries: Overtake[];
   drivers: Driver[];
   laps: Lap[];
@@ -108,6 +110,7 @@ type RenderContext = Readonly<{
   raceControlEntries: RaceControl[];
   teamRadioEntries: TeamRadio[];
   pitEntries: Pit[];
+  stints: Stint[];
   overtakeEntries: Overtake[];
   drivers: Driver[];
   laps: Lap[];
@@ -176,6 +179,7 @@ function renderCommentaryTabContent(ctx: RenderContext): ReactNode {
         <Suspense fallback={<PanelFallback />}>
           <PitFeed
             entries={ctx.pitEntries}
+            stints={ctx.stints}
             sessionKey={ctx.sessionKey}
             sessionType={ctx.sessionType}
             drivers={ctx.drivers}
@@ -255,6 +259,7 @@ export function CommentaryPanels({
   raceControlEntries,
   teamRadioEntries,
   pitEntries,
+  stints,
   overtakeEntries,
   drivers,
   laps,
@@ -372,6 +377,7 @@ export function CommentaryPanels({
     raceControlEntries,
     teamRadioEntries,
     pitEntries,
+    stints,
     overtakeEntries,
     drivers,
     laps,

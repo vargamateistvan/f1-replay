@@ -7,6 +7,7 @@ import type {
   Pit,
   Position,
   RaceControl,
+  Stint,
   TeamRadio,
 } from "@/api/types";
 import type { ToastEvent } from "@/timeline/events";
@@ -49,6 +50,7 @@ const emptyDrivers: Driver[] = [];
 const emptyLaps: Lap[] = [];
 const emptyPositions: Position[] = [];
 const emptyPits: Pit[] = [];
+const emptyStints: Stint[] = [];
 const emptyOvertakes: Overtake[] = [];
 const emptyRadio: TeamRadio[] = [];
 const emptyToasts: ToastEvent[] = [];
@@ -64,6 +66,7 @@ function renderChaptersPanel(raceControlEntries: RaceControl[]) {
       raceControlEntries={raceControlEntries}
       teamRadioEntries={emptyRadio}
       pitEntries={emptyPits}
+      stints={emptyStints}
       overtakeEntries={emptyOvertakes}
       drivers={emptyDrivers}
       laps={emptyLaps}

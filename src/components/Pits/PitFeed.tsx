@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
-import type { Driver, Pit } from "@/api/types";
+import type { Driver, Pit, Stint } from "@/api/types";
 import { downloadEndpointCsv } from "@/api/client";
+import { TyreBadge } from "@/components/LiveTiming/TyreBadge";
 import { useSettings } from "@/stores/settings";
 import { teamColor } from "@/utils/color";
 import { formatPitDuration, laneDuration, pitStopTime } from "@/utils/pit";
@@ -23,6 +24,7 @@ import {
 
 interface Props {
   readonly entries: Pit[];
+  readonly stints: Stint[];
   readonly sessionKey?: number | null;
   readonly sessionType?: string;
   readonly drivers: Driver[];
@@ -44,6 +46,7 @@ type LapGroup = {
 
 export function PitFeed({
   entries,
+  stints,
   sessionKey = null,
   sessionType,
   drivers,
@@ -64,6 +67,19 @@ export function PitFeed({
     () => new Map(drivers.map((d) => [d.driver_number, d])),
     [drivers],
   );
+
+  const stintsByDriver = useMemo(() => {
+    const byDriver = new Map<number, Stint[]>();
+    for (const stint of stints) {
+      const driverStints = byDriver.get(stint.driver_number) ?? [];
+      driverStints.push(stint);
+      byDriver.set(stint.driver_number, driverStints);
+    }
+    for (const driverStints of byDriver.values()) {
+      driverStints.sort((a, b) => a.lap_start - b.lap_start);
+    }
+    return byDriver;
+  }, [stints]);
 
   const datedEntries = useMemo(
     () =>
@@ -156,6 +172,9 @@ export function PitFeed({
               const ms = dateMs - sessionStartMs;
               const stop = pitStopTime(entry);
               const lane = laneDuration(entry);
+              const nextStint = stintsByDriver
+                .get(entry.driver_number)
+                ?.find((stint) => stint.lap_start > entry.lap_number);
 
               return (
                 <div
@@ -188,6 +207,21 @@ export function PitFeed({
                         <span className="font-mono tabular-nums text-white/70">
                           Lane {formatPitDuration(lane) ?? "--:--:---"}
                         </span>
+                      )}
+                      {nextStint && (
+                        <div className="inline-flex max-w-full shrink-0 items-center gap-2 whitespace-nowrap rounded bg-white/[0.04] px-1.5 py-0.5">
+                          <div className="w-10 shrink-0">
+                            <TyreBadge
+                              stints={stints}
+                              driverNumber={entry.driver_number}
+                              currentLap={nextStint.lap_start}
+                            />
+                          </div>
+                          <span className="whitespace-nowrap font-mono tabular-nums text-white/70">
+                            Stint {nextStint.stint_number} · L
+                            {nextStint.lap_start}–{nextStint.lap_end}
+                          </span>
+                        </div>
                       )}
                     </div>
                   </div>

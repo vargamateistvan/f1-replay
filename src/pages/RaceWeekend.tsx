@@ -2552,6 +2552,7 @@ export default function RaceWeekend() {
                 raceControlEntries={raceControl.data ?? []}
                 teamRadioEntries={teamRadio.data ?? []}
                 pitEntries={pits.data ?? []}
+                stints={stints.data ?? []}
                 overtakeEntries={overtakes.data ?? []}
                 drivers={drivers.data ?? []}
                 laps={laps.data ?? []}
