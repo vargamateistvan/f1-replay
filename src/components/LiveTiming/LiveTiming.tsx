@@ -1411,7 +1411,7 @@ export function LiveTiming({
     : "hidden lg:table-cell";
   const rpmColumnClass = trackerTelemetryColumnsClass
     ? "hidden md:table-cell"
-    : "hidden 2xl:table-cell";
+    : "hidden lg:table-cell";
   const pedalColumnClass = trackerTelemetryColumnsClass
     ? "hidden md:table-cell"
     : "hidden lg:table-cell";

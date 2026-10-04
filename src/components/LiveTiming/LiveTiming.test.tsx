@@ -1249,7 +1249,7 @@ describe("LiveTiming", () => {
 
     const rpmHeader = screen.getAllByText("RPM")[0]?.closest("th");
     expect(rpmHeader?.className).toContain("hidden");
-    expect(rpmHeader?.className).toContain("2xl:table-cell");
+    expect(rpmHeader?.className).toContain("lg:table-cell");
     expect(rpmHeader?.className).toContain("w-[3.5rem]");
 
     expect(screen.getByText("Thr/Brk").closest("th")?.className).toContain(
