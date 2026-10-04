@@ -285,16 +285,24 @@ describe("deep component coverage", () => {
       },
     ] as RaceChapter[];
 
-    const snapshots = [
+    const snapshots: WhatChangedSnapshot[] = [
       {
-        window: { id: "w-1" },
+        window: {
+          id: "w-1",
+          kind: "safety_car",
+          label: "Safety Car",
+          startMs: 20_000,
+          endMs: 40_000,
+          startLap: null,
+        },
         positionChanges: [
           { driverNumber: 1, before: 3, after: 1, delta: 2 },
           { driverNumber: 16, before: 1, after: 3, delta: -2 },
         ],
         pitsDuringWindow: [1],
+        retiredDuringWindow: [],
       },
-    ] as WhatChangedSnapshot[];
+    ];
 
     const { rerender } = render(
       <RaceChapters

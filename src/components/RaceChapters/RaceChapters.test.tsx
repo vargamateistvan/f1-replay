@@ -89,6 +89,7 @@ describe("RaceChapters", () => {
           { driverNumber: 16, before: 1, after: 2, delta: -1 },
         ],
         pitsDuringWindow: [16],
+        retiredDuringWindow: [1],
       },
     ];
 
@@ -109,6 +110,8 @@ describe("RaceChapters", () => {
     expect(screen.getAllByText("Lap 2").length).toBeGreaterThan(0);
     expect(screen.getByText("What Changed")).toBeInTheDocument();
     expect(screen.getByText("Pitted:")).toBeInTheDocument();
+    expect(screen.getByText("Retired:")).toBeInTheDocument();
+    expect(screen.getAllByText("VER").length).toBeGreaterThan(0);
 
     fireEvent.click(screen.getAllByRole("button", { name: /Jump to/ })[0]!);
     expect(onJump).toHaveBeenCalled();

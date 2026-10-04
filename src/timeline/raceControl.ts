@@ -1,4 +1,5 @@
-import type { RaceControl, Position, Pit } from "@/api/types";
+import type { RaceControl, Position, Pit, Lap } from "@/api/types";
+import { deriveRetiredDrivers } from "@/utils/retirement";
 import {
   getSafetyControlPhase,
   isGlobalTrackClearSignal,
@@ -989,6 +990,8 @@ export interface WhatChangedSnapshot {
   positionChanges: PositionChange[];
   /** Driver numbers who entered the pit lane during this window. */
   pitsDuringWindow: number[];
+  /** Drivers newly identified as retired during this window. */
+  retiredDuringWindow: number[];
 }
 
 function positionAtMs(
@@ -1011,6 +1014,9 @@ export function computeWhatChanged(
   positions: Position[],
   pits: Pit[],
   sessionStartMs: number,
+  laps: Lap[] = [],
+  raceControl: RaceControl[] = [],
+  isRaceSession = false,
 ): WhatChangedSnapshot[] {
   if (!sessionStartMs || windows.length === 0) return [];
 
@@ -1061,7 +1067,30 @@ export function computeWhatChanged(
       }
     }
 
-    snapshots.push({ window: w, positionChanges: changes, pitsDuringWindow });
+    const retiredBefore = deriveRetiredDrivers({
+      positions,
+      laps,
+      raceControl,
+      currentT: sessionStartMs + beforeMs,
+      isRaceSession,
+    });
+    const retiredAfter = deriveRetiredDrivers({
+      positions,
+      laps,
+      raceControl,
+      currentT: sessionStartMs + afterMs,
+      isRaceSession,
+    });
+    const retiredDuringWindow = [...retiredAfter].filter(
+      (driverNumber) => !retiredBefore.has(driverNumber),
+    );
+
+    snapshots.push({
+      window: w,
+      positionChanges: changes,
+      pitsDuringWindow,
+      retiredDuringWindow,
+    });
   }
 
   return snapshots;

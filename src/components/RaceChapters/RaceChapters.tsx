@@ -102,7 +102,8 @@ function WhatChangedCard({ snapshot, drivers }: WhatChangedCardProps) {
   if (
     gainers.length === 0 &&
     losers.length === 0 &&
-    snapshot.pitsDuringWindow.length === 0
+    snapshot.pitsDuringWindow.length === 0 &&
+    snapshot.retiredDuringWindow.length === 0
   ) {
     return null;
   }
@@ -173,6 +174,30 @@ function WhatChangedCard({ snapshot, drivers }: WhatChangedCardProps) {
               Pitted:
             </span>
             {snapshot.pitsDuringWindow.map((dn) => {
+              const d = driverMap.get(dn);
+              return (
+                <span
+                  key={dn}
+                  className="rounded px-1 py-0.5 text-[9px] font-black uppercase"
+                  style={{
+                    background: `#${d?.team_colour ?? "636369"}22`,
+                    color: `#${d?.team_colour ?? "ffffff"}`,
+                  }}
+                >
+                  {d?.name_acronym ?? `#${dn}`}
+                </span>
+              );
+            })}
+          </div>
+        )}
+
+        {/* Retirements */}
+        {snapshot.retiredDuringWindow.length > 0 && (
+          <div className="flex flex-wrap items-center gap-1 px-2 py-1">
+            <span className="text-muted text-[9px] font-black uppercase tracking-widest shrink-0">
+              Retired:
+            </span>
+            {snapshot.retiredDuringWindow.map((dn) => {
               const d = driverMap.get(dn);
               return (
                 <span

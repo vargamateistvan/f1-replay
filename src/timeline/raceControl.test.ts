@@ -1,8 +1,9 @@
 import { describe, expect, it } from "vitest";
-import type { RaceControl } from "@/api/types";
+import type { Position, RaceControl } from "@/api/types";
 import {
   buildIncidentWindows,
   clusterRaceControlMarkers,
+  computeWhatChanged,
   deriveTrackFlagState,
   hasAnyMarshalYellow,
   isActiveTrackFlag,
@@ -31,6 +32,44 @@ function rc(partial: Partial<RaceControl>): RaceControl {
     ...partial,
   };
 }
+
+describe("computeWhatChanged retirements", () => {
+  it("includes drivers newly retired during the incident window", () => {
+    const position = (driver_number: number, sec: number): Position => ({
+      date: iso(sec),
+      driver_number,
+      meeting_key: 1,
+      position: driver_number === 1 ? 1 : 2,
+      session_key: 1,
+    });
+    const snapshots = computeWhatChanged(
+      [
+        {
+          id: "safety_car-20000",
+          kind: "safety_car",
+          label: "Safety Car",
+          startMs: 20_000,
+          endMs: 40_000,
+          startLap: null,
+        },
+      ],
+      [position(1, 10), position(16, 10), position(1, 25), position(16, 25)],
+      [],
+      START,
+      [],
+      [
+        rc({
+          date: iso(30),
+          driver_number: 16,
+          message: "CAR 16 (LEC) - RETIRED",
+        }),
+      ],
+      true,
+    );
+
+    expect(snapshots[0]?.retiredDuringWindow).toEqual([16]);
+  });
+});
 
 describe("buildIncidentWindows safety control phases", () => {
   it("opens and closes a safety-car window from message phrases", () => {

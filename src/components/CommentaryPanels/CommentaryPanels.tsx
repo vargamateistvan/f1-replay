@@ -351,12 +351,18 @@ export function CommentaryPanels({
       positions,
       pitEntries,
       sessionStartMs,
+      laps,
+      raceControlEntries,
+      sessionType === "Race" || sessionType === "Sprint",
     );
   }, [
     incidentWindows,
     positions,
     pitEntries,
     sessionStartMs,
+    laps,
+    raceControlEntries,
+    sessionType,
     shouldBuildChapters,
   ]);
 
