@@ -367,7 +367,7 @@ describe("LiveTiming", () => {
     expect(screen.getByText("LEAD")).toBeInTheDocument();
     expect(screen.queryByText("Interval")).not.toBeInTheDocument();
     expect(screen.getByText("+5.234")).toBeInTheDocument();
-    expect(screen.getByText("OUTLAP")).toBeInTheDocument();
+    expect(screen.getByText("OL")).toHaveAttribute("title", "Out lap");
     expect(screen.getByText("RET")).toBeInTheDocument();
     const investigationBadge = screen.getByLabelText("Under investigation");
     expect(investigationBadge).toBeInTheDocument();
@@ -555,7 +555,7 @@ describe("LiveTiming", () => {
     expect(rows[1]).toHaveTextContent("D01");
     expect(rows[2]).toHaveTextContent("D02");
     expect(rows[3]).toHaveTextContent("D03");
-    expect(screen.getAllByText("OUT Q1").length).toBe(5);
+    expect(screen.getAllByTitle("Eliminated in Q1").length).toBe(5);
   });
 
   it("resets best and last lap for active drivers when a new qualifying part starts", () => {
@@ -636,7 +636,7 @@ describe("LiveTiming", () => {
     // Eliminated drivers keep their Q1 time.
     const d20Row = rows.find((row) => row.textContent?.includes("D20"));
     expect(d20Row).toHaveTextContent("1:39.111");
-    expect(d20Row).toHaveTextContent("OUT Q1");
+    expect(d20Row?.querySelector('[title="Eliminated in Q1"]')).toBeInTheDocument();
   });
 
   it("does not show elimination tags during Q1", () => {
@@ -723,8 +723,8 @@ describe("LiveTiming", () => {
       />,
     );
 
-    expect(screen.queryByText("OUT Q1")).not.toBeInTheDocument();
-    expect(screen.queryByText("OUT Q2")).not.toBeInTheDocument();
+    expect(screen.queryByTitle("Eliminated in Q1")).not.toBeInTheDocument();
+    expect(screen.queryByTitle("Eliminated in Q2")).not.toBeInTheDocument();
   });
 
   it("highlights a row when a timed-session lap is just completed", () => {
@@ -1258,6 +1258,45 @@ describe("LiveTiming", () => {
     expect(screen.getAllByText("DRS")[0]?.closest("th")?.className).toContain(
       "w-[3rem]",
     );
+  });
+
+  it("keeps the alerts column compact", () => {
+    render(
+      <LiveTiming
+        drivers={drivers}
+        positions={[]}
+        intervals={[]}
+        pits={[]}
+        laps={[]}
+        sessionTimeMs={20_000}
+        sessionStartMs={Date.parse("2024-01-01T00:00:00.000Z")}
+      />,
+    );
+
+    const alertsHeader = screen.getByRole("columnheader", { name: "Alerts" });
+    expect(alertsHeader.className).toContain("w-[1.5rem]");
+    expect(alertsHeader.className).toContain("lg:w-[1.75rem]");
+    expect(alertsHeader).toHaveTextContent("!");
+  });
+
+  it("keeps the original alerts column design on the leaderboard", () => {
+    render(
+      <LiveTiming
+        drivers={drivers}
+        positions={[]}
+        intervals={[]}
+        pits={[]}
+        laps={[]}
+        sessionTimeMs={20_000}
+        sessionStartMs={Date.parse("2024-01-01T00:00:00.000Z")}
+        fullWidthTable
+      />,
+    );
+
+    const alertsHeader = screen.getByRole("columnheader", { name: "Alerts" });
+    expect(alertsHeader.className).toContain("w-[2rem]");
+    expect(alertsHeader.className).toContain("lg:w-[2.25rem]");
+    expect(alertsHeader).toHaveTextContent("Alerts");
   });
 
   it("applies compact telemetry column width classes", () => {

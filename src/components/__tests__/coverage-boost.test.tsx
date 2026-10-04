@@ -1353,7 +1353,7 @@ describe("component coverage boost", () => {
     );
 
     expect(screen.getByText("LEAD")).toBeInTheDocument();
-    expect(screen.getByText("OUTLAP")).toBeInTheDocument();
+    expect(screen.getByText("OL")).toHaveAttribute("title", "Out lap");
     expect(screen.getByText("RET")).toBeInTheDocument();
     expect(screen.getByText("Speed")).toBeInTheDocument();
     expect(screen.getByTitle(/lap.*old/)).toBeInTheDocument();

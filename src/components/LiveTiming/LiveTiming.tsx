@@ -1636,9 +1636,11 @@ export function LiveTiming({
               )}
               {columns.alerts && (
                 <th
-                  className={`${mobileAlertsColumnClass} ${headerCellClass} text-center w-[2rem] lg:w-[2.25rem]`}
+                  aria-label={fullWidthTable ? undefined : "Alerts"}
+                  title={fullWidthTable ? undefined : "Alerts"}
+                  className={`${mobileAlertsColumnClass} ${headerCellClass} ${fullWidthTable ? "text-center w-[2rem] lg:w-[2.25rem]" : "!px-0 text-center w-[1.5rem] lg:w-[1.75rem]"}`}
                 >
-                  Alerts
+                  {fullWidthTable ? "Alerts" : "!"}
                 </th>
               )}
               {columns.bestLap && (
@@ -1936,9 +1938,10 @@ export function LiveTiming({
               if (eliminated) {
                 statusContent = (
                   <span
+                    title={`Eliminated in ${row.eliminatedPhase}`}
                     className={`inline-flex bg-[#3a214a] text-[#e7c7ff] font-black uppercase tracking-widest ${statusBadgeClass}`}
                   >
-                    OUT {row.eliminatedPhase}
+                  {fullWidthTable ? `OUT ${row.eliminatedPhase}` : "OUT"}
                   </span>
                 );
               } else if (retired) {
@@ -1952,9 +1955,10 @@ export function LiveTiming({
               } else if (isOutlap) {
                 statusContent = (
                   <span
+                    title="Out lap"
                     className={`bg-[#4b5563] text-[#d0d5dd] font-black uppercase tracking-widest ${statusBadgeClass}`}
                   >
-                    OUTLAP
+                  {fullWidthTable ? "OUTLAP" : "OL"}
                   </span>
                 );
               } else if (inPit) {
@@ -2109,7 +2113,7 @@ export function LiveTiming({
                   {/* Alerts: investigation/penalty markers + driver status */}
                   {columns.alerts && (
                     <td
-                      className={`${mobileAlertsColumnClass} ${rowCellPad} align-middle px-0 text-center font-black ${dense ? "text-[8px]" : "text-[8px] min-[390px]:text-[9px]"} tabular-nums sm:px-0.5`}
+                      className={`${mobileAlertsColumnClass} ${rowCellPad} align-middle ${fullWidthTable ? "px-0 text-center font-black sm:px-0.5" : "px-0 text-center font-black"} ${dense ? "text-[8px]" : "text-[8px] min-[390px]:text-[9px]"} tabular-nums`}
                     >
                       {(hasInvestigationMarker ||
                         hasPenaltyMarker ||
