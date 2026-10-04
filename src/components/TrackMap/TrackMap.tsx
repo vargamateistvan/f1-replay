@@ -282,6 +282,14 @@ const SPECIAL_TRACK_VEHICLES: Record<
     halo: "rgba(245,166,35,0.55)",
   },
   243: {
+    shortLabel: "SC",
+    fullLabel: "SAFETY CAR",
+    fill: "#f5a623",
+    stroke: "#7a5400",
+    text: "#101010",
+    halo: "rgba(245,166,35,0.55)",
+  },
+  244: {
     shortLabel: "MC",
     fullLabel: "MEDICAL CAR",
     fill: "#e8002d",
@@ -556,9 +564,9 @@ export function TrackMap({
   const defaultRotationDeg = useMemo(
     () =>
       circuitGeom && Number.isFinite(circuitGeom.rotation)
-        // The circuit geometry is Cartesian (Y-up), while SVG is Y-down.
-        // The Y-axis reflection reverses the supplied rotation direction.
-        ? normalizeDeg(-circuitGeom.rotation)
+        ? // The circuit geometry is Cartesian (Y-up), while SVG is Y-down.
+          // The Y-axis reflection reverses the supplied rotation direction.
+          normalizeDeg(-circuitGeom.rotation)
         : computeTrackAutoRotationDeg(outline?.points ?? [], true),
     [circuitGeom, outline],
   );
@@ -598,11 +606,7 @@ export function TrackMap({
       setZoomLevel(TRACK_FIT_ZOOM);
       setRotationDeg(defaultRotationDeg);
     }
-  }, [
-    isCompactViewport,
-    zoomStorageKey,
-    defaultRotationDeg,
-  ]);
+  }, [isCompactViewport, zoomStorageKey, defaultRotationDeg]);
 
   // Fetch telemetry for the focused driver's last completed lap.
   // Only fires when a driver is focused and a lap number is known; result is
@@ -1273,7 +1277,10 @@ export function TrackMap({
         <>
           {circuitGeom.marshalSectors.map((ms) => {
             // Paint the post the feed actually flagged, not a third of the lap.
-            const flagKey = resolveFlagForMarshalPost(trackFlagState, ms.number);
+            const flagKey = resolveFlagForMarshalPost(
+              trackFlagState,
+              ms.number,
+            );
             const tint = flagKey ? (FLAG_COLORS[flagKey] ?? null) : null;
             if (!tint) return null;
             const { sx, sy } = locationToSvg(
@@ -1739,18 +1746,9 @@ export function TrackMap({
             x2="100%"
             y2="100%"
           >
-            <stop
-              offset="0%"
-              stopColor={lightMode ? "#eaf1ff" : "#303949"}
-            />
-            <stop
-              offset="52%"
-              stopColor={lightMode ? "#cdd8ed" : "#202835"}
-            />
-            <stop
-              offset="100%"
-              stopColor={lightMode ? "#aebad0" : "#141922"}
-            />
+            <stop offset="0%" stopColor={lightMode ? "#eaf1ff" : "#303949"} />
+            <stop offset="52%" stopColor={lightMode ? "#cdd8ed" : "#202835"} />
+            <stop offset="100%" stopColor={lightMode ? "#aebad0" : "#141922"} />
           </linearGradient>
           <pattern
             id={finishPatternId}
@@ -1853,7 +1851,9 @@ export function TrackMap({
           <path
             d={pathData}
             fill="none"
-            stroke={lightMode ? "rgba(255,255,255,0.8)" : "rgba(255,255,255,0.18)"}
+            stroke={
+              lightMode ? "rgba(255,255,255,0.8)" : "rgba(255,255,255,0.18)"
+            }
             strokeWidth={1.5}
             strokeLinecap="round"
             strokeLinejoin="round"
@@ -1861,7 +1861,9 @@ export function TrackMap({
           <path
             d={pathData}
             fill="none"
-            stroke={lightMode ? "rgba(255,255,255,0.7)" : "rgba(214,219,232,0.4)"}
+            stroke={
+              lightMode ? "rgba(255,255,255,0.7)" : "rgba(214,219,232,0.4)"
+            }
             strokeWidth={0.8}
             strokeLinecap="round"
             strokeLinejoin="round"
