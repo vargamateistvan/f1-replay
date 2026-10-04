@@ -138,6 +138,7 @@ const VALID_COMMENTARY_TABS = new Set<CommentaryTab>([
   "passes",
   "moments",
   "chapters",
+  "weather",
 ]);
 
 const PANEL = "bg-surface border border-panel";
@@ -1543,6 +1544,7 @@ export default function RaceWeekend() {
           "beats",
         ],
         ["chapters", "Chapters", "Chptrs", incidentWindows.length, "windows"],
+        ["weather", "Weather", "WX", weather.data?.length ?? 0, "readings"],
       ] as const,
     [
       commentaryKeyMomentsCount,
@@ -1551,6 +1553,7 @@ export default function RaceWeekend() {
       pits.data?.length,
       raceControl.data?.length,
       teamRadio.data?.length,
+      weather.data?.length,
     ],
   );
 
@@ -2459,7 +2462,7 @@ export default function RaceWeekend() {
           <div
             data-motion-card
             data-motion-tab-strip
-            className="grid grid-cols-6 w-full border-b border-panel shrink-0 bg-track sm:flex sm:overflow-x-auto"
+            className="grid grid-cols-7 w-full border-b border-panel shrink-0 bg-track sm:flex sm:overflow-x-auto"
           >
             {commentaryTabs.map(
               ([tab, label, shortLabel, count, metaLabel]) => (
@@ -2506,33 +2509,35 @@ export default function RaceWeekend() {
                   {commentaryStatusLabel}
                 </span>
               </span>
-              <button
-                type="button"
-                onClick={() =>
-                  setCommentaryTimeMode(
-                    (() => {
-                      const nextValue =
-                        commentaryTimeMode === "all" ? "elapsed" : "all";
-                      trackEvent("raceweekend_commentary_time_mode_changed", {
-                        mode: nextValue,
-                      });
-                      return nextValue;
-                    })(),
-                  )
-                }
-                className={`h-5 px-2 text-[9px] font-black uppercase tracking-widest border transition-colors ${
-                  commentaryTimeMode === "all"
-                    ? "border-f1red bg-f1red text-white"
-                    : "border-panel bg-track text-muted hover:text-white"
-                }`}
-                title={
-                  commentaryTimeMode === "all"
-                    ? "Showing all commentary items"
-                    : "Showing elapsed commentary items"
-                }
-              >
-                {commentaryTimeMode === "all" ? "All" : "Elapsed"}
-              </button>
+              {activeCommentaryTab !== "weather" && (
+                <button
+                  type="button"
+                  onClick={() =>
+                    setCommentaryTimeMode(
+                      (() => {
+                        const nextValue =
+                          commentaryTimeMode === "all" ? "elapsed" : "all";
+                        trackEvent("raceweekend_commentary_time_mode_changed", {
+                          mode: nextValue,
+                        });
+                        return nextValue;
+                      })(),
+                    )
+                  }
+                  className={`h-5 px-2 text-[9px] font-black uppercase tracking-widest border transition-colors ${
+                    commentaryTimeMode === "all"
+                      ? "border-f1red bg-f1red text-white"
+                      : "border-panel bg-track text-muted hover:text-white"
+                  }`}
+                  title={
+                    commentaryTimeMode === "all"
+                      ? "Showing all commentary items"
+                      : "Showing elapsed commentary items"
+                  }
+                >
+                  {commentaryTimeMode === "all" ? "All" : "Elapsed"}
+                </button>
+              )}
             </div>
           </div>
 
@@ -2549,11 +2554,13 @@ export default function RaceWeekend() {
                 teamRadioError={teamRadio.isError}
                 pitsError={pits.isError}
                 overtakesError={overtakes.isError}
+                weatherError={weather.isError}
                 raceControlEntries={raceControl.data ?? []}
                 teamRadioEntries={teamRadio.data ?? []}
                 pitEntries={pits.data ?? []}
                 stints={stints.data ?? []}
                 overtakeEntries={overtakes.data ?? []}
+                weatherEntries={weather.data ?? []}
                 drivers={drivers.data ?? []}
                 laps={laps.data ?? []}
                 positions={positions.data ?? []}

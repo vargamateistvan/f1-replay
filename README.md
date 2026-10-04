@@ -18,7 +18,7 @@ The app features a broadcast-style experience with:
 - **Gap & Interval Views** — race standings, gaps to leader, and head-to-head comparisons
 - **Lap Charts** — sector times, speed traps, lap progression
 - **Team Radio & Race Control** — driver communications and official race events, including resilient in-toast radio playback controls
-- **Weather Data** — track conditions at any point in time
+- **Weather Data** — track conditions at any point in time, with full-session temperature, wind speed, humidity, and wet/dry history charts in Commentary's Weather tab; a playback-synced marker shows the current session time in HH:mm:ss
 - **Error-Resilient Routing** — dedicated crash and not-found pages for safer navigation
 - **Mobile Responsive** — optimized for desktop and tablet use
 

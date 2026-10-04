@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { render, waitFor } from "@testing-library/react";
+import { render, screen, waitFor } from "@testing-library/react";
 import type {
   Driver,
   Lap,
@@ -14,6 +14,7 @@ import type { ToastEvent } from "@/timeline/events";
 import { CommentaryPanels } from "./CommentaryPanels";
 
 const raceChaptersPropsSpy = vi.fn<(props: unknown) => void>();
+const weatherHistoryPropsSpy = vi.fn<(props: unknown) => void>();
 
 vi.mock("@/components/RaceControl/RaceControl", () => ({
   RaceControlFeed: () => null,
@@ -42,8 +43,21 @@ vi.mock("@/components/RaceChapters/RaceChapters", () => ({
   },
 }));
 
+vi.mock("@/components/Weather/WeatherHistory", () => ({
+  WeatherHistory: (props: unknown) => {
+    weatherHistoryPropsSpy(props);
+    return null;
+  },
+}));
+
 type RaceChaptersProps = {
   chapters: Array<{ kind: string }>;
+};
+type WeatherHistoryProps = {
+  entries: Array<{ date: string }>;
+  sessionKey: number | null;
+  sessionTimeMs: number;
+  sessionStartMs: number;
 };
 
 const emptyDrivers: Driver[] = [];
@@ -55,19 +69,38 @@ const emptyOvertakes: Overtake[] = [];
 const emptyRadio: TeamRadio[] = [];
 const emptyToasts: ToastEvent[] = [];
 
-function renderChaptersPanel(raceControlEntries: RaceControl[]) {
+function renderCommentaryPanel(
+  commentaryTab: "chapters" | "weather",
+  raceControlEntries: RaceControl[] = [],
+  weatherError = false,
+) {
   render(
     <CommentaryPanels
-      commentaryTab="chapters"
+      commentaryTab={commentaryTab}
       raceControlError={false}
       teamRadioError={false}
       pitsError={false}
       overtakesError={false}
+      weatherError={weatherError}
       raceControlEntries={raceControlEntries}
       teamRadioEntries={emptyRadio}
       pitEntries={emptyPits}
       stints={emptyStints}
       overtakeEntries={emptyOvertakes}
+      weatherEntries={[
+        {
+          air_temperature: 25,
+          date: "2024-01-01T00:00:00.000Z",
+          humidity: 50,
+          meeting_key: 1,
+          pressure: 1012,
+          rainfall: 0,
+          session_key: 1,
+          track_temperature: 30,
+          wind_direction: 90,
+          wind_speed: 2,
+        },
+      ]}
       drivers={emptyDrivers}
       laps={emptyLaps}
       positions={emptyPositions}
@@ -89,7 +122,7 @@ describe("CommentaryPanels", () => {
   it("uses chequered message to build finish chapter when flag casing is non-standard", async () => {
     raceChaptersPropsSpy.mockClear();
 
-    renderChaptersPanel([
+    renderCommentaryPanel("chapters", [
       {
         category: "Flag",
         date: "2024-01-01T00:00:20Z",
@@ -117,5 +150,34 @@ describe("CommentaryPanels", () => {
     expect(
       lastCall?.chapters.some((chapter) => chapter.kind === "finish"),
     ).toBe(true);
+  });
+
+  it("renders weather history with the current session and playhead", async () => {
+    weatherHistoryPropsSpy.mockClear();
+
+    renderCommentaryPanel("weather");
+
+    await waitFor(() => {
+      expect(weatherHistoryPropsSpy).toHaveBeenCalled();
+    });
+
+    const props = weatherHistoryPropsSpy.mock.calls.at(-1)?.[0] as
+      | WeatherHistoryProps
+      | undefined;
+
+    expect(props).toMatchObject({
+      sessionKey: 1,
+      sessionTimeMs: 0,
+      sessionStartMs: Date.parse("2024-01-01T00:00:00Z"),
+      entries: [{ date: "2024-01-01T00:00:00.000Z" }],
+    });
+  });
+
+  it("shows an explicit error when weather fails to load", () => {
+    weatherHistoryPropsSpy.mockClear();
+    renderCommentaryPanel("weather", [], true);
+
+    expect(screen.getByText("Failed to load weather")).toBeInTheDocument();
+    expect(weatherHistoryPropsSpy).not.toHaveBeenCalled();
   });
 });

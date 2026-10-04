@@ -62,6 +62,9 @@ export const TRACK_OUTLINE_LAP = 2;
 // Fallback session duration when date_end is missing (2 hours).
 export const DEFAULT_SESSION_MS = 7_200_000;
 
+// ── Weather history ──────────────────────────────────────────────────────────
+export const WEATHER_CHART_HEIGHT = 200;
+
 // ── Special track vehicles ──────────────────────────────────────────────────--
 // OpenF1 reports the safety cars and the medical car through the `location`
 // feed using reserved driver numbers. F1 runs two safety cars that alternate

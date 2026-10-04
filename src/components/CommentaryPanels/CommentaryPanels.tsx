@@ -19,6 +19,7 @@ import type {
   RaceControl,
   Stint,
   TeamRadio,
+  Weather,
 } from "@/api/types";
 import {
   buildKeyMoments,
@@ -33,7 +34,8 @@ export type CommentaryTab =
   | "pits"
   | "passes"
   | "moments"
-  | "chapters";
+  | "chapters"
+  | "weather";
 
 const RaceControlFeed = lazy(() =>
   import("@/components/RaceControl/RaceControl").then((m) => ({
@@ -65,6 +67,11 @@ const RaceChapters = lazy(() =>
     default: m.RaceChapters,
   })),
 );
+const WeatherHistory = lazy(() =>
+  import("@/components/Weather/WeatherHistory").then((m) => ({
+    default: m.WeatherHistory,
+  })),
+);
 
 function PanelFallback() {
   return (
@@ -80,11 +87,13 @@ type Props = {
   teamRadioError: boolean;
   pitsError: boolean;
   overtakesError: boolean;
+  weatherError: boolean;
   raceControlEntries: RaceControl[];
   teamRadioEntries: TeamRadio[];
   pitEntries: Pit[];
   stints: Stint[];
   overtakeEntries: Overtake[];
+  weatherEntries: Weather[];
   drivers: Driver[];
   laps: Lap[];
   positions: Position[];
@@ -112,6 +121,8 @@ type RenderContext = Readonly<{
   pitEntries: Pit[];
   stints: Stint[];
   overtakeEntries: Overtake[];
+  weatherError: boolean;
+  weatherEntries: Weather[];
   drivers: Driver[];
   laps: Lap[];
   sessionKey: number | null;
@@ -245,6 +256,20 @@ function renderCommentaryTabContent(ctx: RenderContext): ReactNode {
         </Suspense>
       );
     }
+    case "weather": {
+      if (ctx.weatherError)
+        return <ErrorMessage message="Failed to load weather" />;
+      return (
+        <Suspense fallback={<PanelFallback />}>
+          <WeatherHistory
+            entries={ctx.weatherEntries}
+            sessionKey={ctx.sessionKey}
+            sessionTimeMs={ctx.sessionTimeMs}
+            sessionStartMs={ctx.sessionStartMs}
+          />
+        </Suspense>
+      );
+    }
     default:
       return null;
   }
@@ -256,11 +281,13 @@ export function CommentaryPanels({
   teamRadioError,
   pitsError,
   overtakesError,
+  weatherError,
   raceControlEntries,
   teamRadioEntries,
   pitEntries,
   stints,
   overtakeEntries,
+  weatherEntries,
   drivers,
   laps,
   positions,
@@ -380,11 +407,13 @@ export function CommentaryPanels({
     teamRadioError,
     pitsError,
     overtakesError,
+    weatherError,
     raceControlEntries,
     teamRadioEntries,
     pitEntries,
     stints,
     overtakeEntries,
+    weatherEntries,
     drivers,
     laps,
     sessionKey,
