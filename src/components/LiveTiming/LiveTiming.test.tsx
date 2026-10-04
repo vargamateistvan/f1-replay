@@ -1317,6 +1317,61 @@ describe("LiveTiming", () => {
     );
   });
 
+  it.each([
+    { drs: 12, drsColumn: true, width: "w-[12.5rem]", hasDrs: true },
+    { drs: null, drsColumn: true, width: "w-[11rem]", hasDrs: false },
+    { drs: 12, drsColumn: false, width: "w-[11rem]", hasDrs: false },
+  ])(
+    "sizes the combined telemetry column to $width when drs=$drs and drs column=$drsColumn",
+    ({ drs, drsColumn, width, hasDrs }) => {
+      render(
+        <LiveTiming
+          drivers={drivers}
+          positions={
+            [
+              {
+                driver_number: 1,
+                position: 1,
+                date: "2024-01-01T00:00:10.000Z",
+              },
+            ] as Position[]
+          }
+          intervals={[]}
+          pits={[]}
+          laps={[]}
+          sessionTimeMs={20_000}
+          sessionStartMs={Date.parse("2024-01-01T00:00:00.000Z")}
+          combinedTelemetryColumn
+          columnVisibility={{ drs: drsColumn }}
+          carData={
+            new Map<number, CarData>([
+              [
+                1,
+                {
+                  brake: 0,
+                  date: "2024-01-01T00:00:12.000Z",
+                  driver_number: 1,
+                  drs,
+                  meeting_key: 1,
+                  n_gear: 7,
+                  rpm: 12001,
+                  session_key: 1,
+                  speed: 301,
+                  throttle: 95,
+                },
+              ],
+            ])
+          }
+        />,
+      );
+
+      const header = screen.getByText("Telemetry").closest("th");
+      expect(header?.className).toContain(width);
+      expect(header?.textContent?.includes("DRS")).toBe(hasDrs);
+      expect(screen.queryByTitle(/^DRS raw value/) !== null).toBe(hasDrs);
+    },
+  );
+
   it("labels pedal phases as FULL, BRK and LIFT", () => {
     const sessionStartMs = Date.parse("2024-01-01T00:00:00.000Z");
     const car = (

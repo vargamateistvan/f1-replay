@@ -1422,6 +1422,10 @@ export function LiveTiming({
   const telemetryCenterPadClass = compactDriverColumn ? "px-0.5" : "px-1";
   const pedalHeaderWidthClass = compactDriverColumn ? "w-[5rem]" : "w-[6rem]";
   const drsHeaderWidthClass = compactDriverColumn ? "w-[2.5rem]" : "w-[3rem]";
+  const showCombinedDrs = showDrs && columns.drs;
+  const combinedTelemetryWidthClass = showCombinedDrs
+    ? "w-[12.5rem]"
+    : "w-[11rem]";
   const pedalBarsWidthClass = compactDriverColumn ? "w-[4.5rem]" : "w-[5.25rem]";
   const tableMinWidthClass = showTelemetry
     ? compactDriverColumn
@@ -1716,12 +1720,12 @@ export function LiveTiming({
               )}
               {showTelemetry && combinedTelemetryColumn && (
                 <th
-                  className={`${headerCellClass} hidden sm:table-cell text-left w-[12.5rem]`}
+                  className={`${headerCellClass} hidden sm:table-cell text-left ${combinedTelemetryWidthClass}`}
                 >
                   <span className="block leading-none">Telemetry</span>
                   <span className="block text-[8px] normal-case tracking-normal text-muted leading-none mt-0.5">
                     {speedUnitShort} · Gear · RPM · Thr/Brk
-                    {showDrs ? " · DRS" : ""}
+                    {showCombinedDrs ? " · DRS" : ""}
                   </span>
                 </th>
               )}
@@ -2316,7 +2320,7 @@ export function LiveTiming({
                             throttle={car.throttle}
                             brake={car.brake}
                           />
-                          {showDrs && (
+                          {showCombinedDrs && (
                             <span
                               className={`ml-auto px-1 py-0.5 text-[8px] font-black uppercase tracking-[0.08em] ${
                                 (car.drs ?? 0) >= 10
