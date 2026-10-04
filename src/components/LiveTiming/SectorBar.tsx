@@ -16,19 +16,21 @@ interface Props {
 //   normal   = yellow (slower than the driver's personal best)
 //   none     = empty  (not yet set)
 function minisectorClass(code: number, lightMode: boolean): string {
-  // OpenF1 minisector state IDs can vary by session feed. Map common families
-  // to tower-friendly colours, and fallback to neutral for unknown codes.
-  if (code >= 2064)
-    return lightMode ? "bg-[#8f4cf0] ring-1 ring-white/30" : "bg-[#9b59f5]";
   if (code === 2051)
+    return lightMode ? "bg-[#8f4cf0] ring-1 ring-white/30" : "bg-[#9b59f5]";
+  if (code === 2048)
     return lightMode ? "bg-[#e0b400] ring-1 ring-white/25" : "bg-[#f5d400]";
-  if (code >= 2049)
+  if (code === 2049)
     return lightMode ? "bg-[#2e9e45] ring-1 ring-white/20" : "bg-[#39b54a]";
-  if (code > 0)
+  if (code === 2064)
     return lightMode
-      ? "bg-slate-500/70 ring-1 ring-slate-400/20"
-      : "bg-white/35";
-  return lightMode ? "bg-slate-300/95 ring-1 ring-slate-400/15" : "bg-panel";
+      ? "bg-[#3b82c4] ring-1 ring-white/20"
+      : "bg-[#4a90d9]";
+  if (code === 0)
+    return lightMode ? "bg-slate-300/95 ring-1 ring-slate-400/15" : "bg-panel";
+  return lightMode
+    ? "bg-slate-500/70 ring-1 ring-slate-400/20"
+    : "bg-slate-500/70";
 }
 
 export function SectorBar({
