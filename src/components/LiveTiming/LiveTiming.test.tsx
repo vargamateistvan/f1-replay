@@ -146,7 +146,7 @@ describe("LiveTiming", () => {
     expect(screen.getAllByText("VER").length).toBeGreaterThan(0);
   });
 
-  it("covers populated race rows with select/pit/outlap/telemetry", () => {
+  it("covers populated race rows with select/pit/finished/telemetry", () => {
     const onSelectDriver = vi.fn();
     const sessionStartMs = Date.parse("2024-01-01T00:00:00.000Z");
     const carData = new Map<number, CarData>([
@@ -367,7 +367,11 @@ describe("LiveTiming", () => {
     expect(screen.getByText("LEAD")).toBeInTheDocument();
     expect(screen.queryByText("Interval")).not.toBeInTheDocument();
     expect(screen.getByText("+5.234")).toBeInTheDocument();
-    expect(screen.getByText("OL")).toHaveAttribute("title", "Out lap");
+    expect(screen.queryByText("OL")).not.toBeInTheDocument();
+    expect(screen.getByRole("img", { name: "Finished" })).toHaveAttribute(
+      "title",
+      "Finished",
+    );
     expect(screen.getByText("RET")).toBeInTheDocument();
     const investigationBadge = screen.getByLabelText("Under investigation");
     expect(investigationBadge).toBeInTheDocument();

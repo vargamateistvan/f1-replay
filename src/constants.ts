@@ -114,6 +114,12 @@ export const COMPOUND_COLORS = {
 export const RACE_POINTS = [25, 18, 15, 12, 10, 8, 6, 4, 2, 1] as const;
 export const SPRINT_POINTS = [8, 7, 6, 5, 4, 3, 2, 1] as const;
 
+// ── Race finish detection ───────────────────────────────────────────────────--
+// The race-control CHEQUERED timestamp sits within a few seconds either side of
+// the leader's actual line crossing (2024 races: −2.8 s … +0.8 s). Search this
+// window around the flag for the leader's finishing crossing.
+export const CHEQUERED_LEADER_SEARCH_MS = 15_000;
+
 // ── API rate limiting ───────────────────────────────────────────────────────--
 // OpenF1 free tier: 3 req/s and 30 req/min.
 // We cap at 2/s and 25/min to keep headroom and avoid hitting server limits

@@ -14,6 +14,7 @@ import type {
 } from "@/api/types";
 import { teamColor } from "@/utils/color";
 import { laneDuration } from "@/utils/pit";
+import { deriveFinishedDrivers } from "@/utils/finish";
 import { deriveRetiredDrivers } from "@/utils/retirement";
 import { useSettings } from "@/stores/settings";
 import { animateMotion, motionEnabled, tabSwapMotion } from "@/lib/motion";
@@ -405,6 +406,14 @@ function MobilePedalMeter({
     </span>
   );
 }
+
+// Same #111/#fff checker used by the TrackMap finish line and RaceControl rows.
+const CHEQUERED_BADGE_STYLE: CSSProperties = {
+  backgroundColor: "#fff",
+  backgroundImage:
+    "conic-gradient(#111 25%, transparent 0 50%, #111 0 75%, transparent 0)",
+  backgroundSize: "4px 4px",
+};
 
 function isRaceSession(sessionName?: string) {
   if (!sessionName) return false;
@@ -1128,6 +1137,20 @@ export function LiveTiming({
       isRaceSession: isRaceSession(sessionName),
     });
   }, [positions, laps, raceControl, currentT, sessionName]);
+
+  const finishedDrivers = useMemo(() => {
+    return deriveFinishedDrivers({
+      laps,
+      chequeredAbsMs:
+        chequeredMs !== null && sessionStartMs
+          ? sessionStartMs + chequeredMs
+          : null,
+      currentT,
+      isRaceSession:
+        isRaceSession(sessionName) && !isTimedSession(sessionName ?? ""),
+      retiredDrivers,
+    });
+  }, [laps, chequeredMs, sessionStartMs, currentT, sessionName, retiredDrivers]);
 
   const sorted = useMemo<SortedRow[]>(() => {
     const timed = isTimedSession(sessionName ?? "");
@@ -1950,6 +1973,18 @@ export function LiveTiming({
                     className={`hidden min-[390px]:inline-flex bg-[#3a1010] text-[#ff5252] font-black uppercase tracking-widest ${statusBadgeClass}`}
                   >
                     RET
+                  </span>
+                );
+              } else if (finishedDrivers.has(num)) {
+                statusContent = (
+                  <span
+                    role="img"
+                    title="Finished"
+                    aria-label="Finished"
+                    className={`text-transparent font-black uppercase tracking-widest ring-1 ring-inset ring-white/25 ${statusBadgeClass}`}
+                    style={CHEQUERED_BADGE_STYLE}
+                  >
+                    <span aria-hidden="true">FIN</span>
                   </span>
                 );
               } else if (isOutlap) {
