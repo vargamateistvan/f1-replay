@@ -34,6 +34,20 @@ export function startLightsState(
 }
 
 /**
+ * The session-relative span the start-light sequence occupies, from the
+ * "get ready" lead-in to lights out. Played back at 1x regardless of speed.
+ */
+export function startLightsWindow(lightsOutMs: number): {
+  startMs: number;
+  endMs: number;
+} {
+  return {
+    startMs: lightsOutMs - START_LIGHTS_SEQUENCE_MS - START_LIGHTS_LEAD_IN_MS,
+    endMs: lightsOutMs,
+  };
+}
+
+/**
  * Whether moving from `prev` to `next` turned on exactly one more light — the
  * moment to play the start-light beep. Seeking into, across or back through
  * the sequence doesn't count, and lights out is silent.

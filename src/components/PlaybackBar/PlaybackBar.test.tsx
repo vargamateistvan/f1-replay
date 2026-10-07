@@ -1,6 +1,7 @@
 import { describe, expect, it, vi, beforeEach } from "vitest";
 import { fireEvent, render, screen } from "@testing-library/react";
 import { PlaybackBar } from "@/components/PlaybackBar";
+import { startLightsWindow } from "@/timeline/startLights";
 
 const { timelineState, mockUseTimeline } = vi.hoisted(() => {
   const timelineState = {
@@ -78,6 +79,27 @@ describe("PlaybackBar marker interactions", () => {
     fireEvent.click(markerButton);
 
     expect(timelineState.setT).toHaveBeenCalledWith(45_000);
+  });
+
+  it("marks the race start and jumps to the start-light lead-in", () => {
+    render(<PlaybackBar durationMs={600_000} raceStartMs={222_000} />);
+
+    const marker = screen.getByRole("button", {
+      name: "Jump to race start: lights out at 03:42",
+    });
+    expect(marker).toHaveStyle({ left: "37%" });
+    fireEvent.click(marker);
+
+    expect(timelineState.setT).toHaveBeenCalledWith(
+      startLightsWindow(222_000).startMs,
+    );
+  });
+
+  it("omits the race start marker when there is no race start", () => {
+    render(<PlaybackBar durationMs={600_000} raceStartMs={null} />);
+    expect(
+      screen.queryByRole("button", { name: /Jump to race start/ }),
+    ).not.toBeInTheDocument();
   });
 
   it("jumps forward to Q2 and Q3 phase starts", () => {

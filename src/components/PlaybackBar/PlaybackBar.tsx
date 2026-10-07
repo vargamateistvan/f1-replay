@@ -13,6 +13,7 @@ import { useCoarseTime } from "@/hooks/useCoarseTime";
 import { useMediaQuery } from "@/hooks/useMediaQuery";
 import { SPEEDS } from "@/constants";
 import { nextAfter, prevBefore } from "@/timeline/events";
+import { startLightsWindow } from "@/timeline/startLights";
 import type { RaceControlMarker, MarkerSummary } from "@/timeline/raceControl";
 import { useSettings } from "@/stores/settings";
 import { trackEvent } from "@/lib/analytics";
@@ -45,6 +46,8 @@ interface Props {
   /** Session-relative start times for qualifying phase jumps. */
   q2StartMs?: number | null;
   q3StartMs?: number | null;
+  /** Session-relative lights-out time (races/sprints); shows a race-start marker. */
+  raceStartMs?: number | null;
   /** Starts loading the target's session-aligned replay windows before seeking. */
   onSeek?: (targetMs: number) => void;
   mobileInline?: boolean;
@@ -170,6 +173,7 @@ export function PlaybackBar({
   qualiPhase = null,
   q2StartMs = null,
   q3StartMs = null,
+  raceStartMs = null,
   onSeek,
   mobileInline = false,
   showSpeedControls = true,
@@ -191,6 +195,9 @@ export function PlaybackBar({
   const hasClampedRef = useRef(false);
   const skipTimeCommitOnBlurRef = useRef(false);
   const lightMode = useSettings((s) => s.lightMode);
+  const markerTooltipClass = lightMode
+    ? "pointer-events-none absolute bottom-full left-1/2 z-20 mb-2 w-max max-w-[180px] -translate-x-1/2 whitespace-normal break-words text-center rounded border border-slate-300 bg-white px-2 py-1 text-[10px] font-black uppercase tracking-wider text-slate-900 opacity-0 shadow-[0_8px_20px_rgba(15,23,42,0.18)] transition-opacity group-hover:opacity-100 group-focus-visible:opacity-100"
+    : "pointer-events-none absolute bottom-full left-1/2 z-20 mb-2 w-max max-w-[180px] -translate-x-1/2 whitespace-normal break-words text-center rounded border border-panel bg-[#101117] px-2 py-1 text-[10px] font-black uppercase tracking-wider text-white opacity-0 shadow-[0_8px_20px_rgba(0,0,0,0.45)] transition-opacity group-hover:opacity-100 group-focus-visible:opacity-100";
   const prevPlayingRef = useRef(playing);
 
   useEffect(() => {
@@ -278,6 +285,13 @@ export function PlaybackBar({
   );
 
   const prevLap = prevBefore(lapStarts, t);
+  const raceStartLeft =
+    raceStartMs !== null &&
+    durationMs > 0 &&
+    raceStartMs >= 0 &&
+    raceStartMs <= durationMs
+      ? (raceStartMs / durationMs) * 100
+      : null;
   const nextLap = nextAfter(lapStarts, t);
   const nextPit = nextAfter(pitTimes, t);
   const nextFlag = nextAfter(flagTimes, t);
@@ -470,19 +484,36 @@ export function PlaybackBar({
                     <span
                       className={`absolute left-1/2 top-1/2 h-4 w-1.5 -translate-x-1/2 -translate-y-1/2 rounded ${color} opacity-90 ring-1 ring-black/35 transition-opacity group-hover:opacity-100`}
                     />
-                    <span
-                      className={
-                        lightMode
-                          ? "pointer-events-none absolute bottom-full left-1/2 z-20 mb-2 w-max max-w-[180px] -translate-x-1/2 whitespace-normal break-words text-center rounded border border-slate-300 bg-white px-2 py-1 text-[10px] font-black uppercase tracking-wider text-slate-900 opacity-0 shadow-[0_8px_20px_rgba(15,23,42,0.18)] transition-opacity group-hover:opacity-100 group-focus-visible:opacity-100"
-                          : "pointer-events-none absolute bottom-full left-1/2 z-20 mb-2 w-max max-w-[180px] -translate-x-1/2 whitespace-normal break-words text-center rounded border border-panel bg-[#101117] px-2 py-1 text-[10px] font-black uppercase tracking-wider text-white opacity-0 shadow-[0_8px_20px_rgba(0,0,0,0.45)] transition-opacity group-hover:opacity-100 group-focus-visible:opacity-100"
-                      }
-                    >
-                      {tooltip}
-                    </span>
+                    <span className={markerTooltipClass}>{tooltip}</span>
                   </button>
                 );
               })}
             </div>
+          )}
+          {raceStartLeft !== null && raceStartMs !== null && (
+            <button
+              type="button"
+              title={markerTooltip("Race start", raceStartMs)}
+              aria-label={`Jump to race start: lights out at ${fmtTime(raceStartMs)}`}
+              onClick={() => {
+                trackEvent("playback_marker_jump", {
+                  marker_type: "Race start",
+                  target_ms: Math.round(raceStartMs),
+                });
+                // Land at the "get ready" lead-in so the light sequence plays.
+                jump(startLightsWindow(raceStartMs).startMs);
+              }}
+              className="group absolute top-1/2 h-5 w-5 rounded-full"
+              style={{
+                left: `${raceStartLeft}%`,
+                transform: "translate(-50%, -50%)",
+              }}
+            >
+              <span className="absolute left-1/2 top-1/2 h-4 w-1.5 -translate-x-1/2 -translate-y-1/2 rounded bg-[#00c851] opacity-90 ring-1 ring-black/35 transition-opacity group-hover:opacity-100" />
+              <span className={markerTooltipClass}>
+                {markerTooltip("Race start", raceStartMs)}
+              </span>
+            </button>
           )}
         </div>
 

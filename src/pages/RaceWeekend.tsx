@@ -34,6 +34,7 @@ import {
 } from "@/hooks/useSession";
 import { useSearchParams } from "react-router-dom";
 import { useTimeline } from "@/timeline/clock";
+import { startLightsWindow } from "@/timeline/startLights";
 import { useCoarseTime } from "@/hooks/useCoarseTime";
 import { useMediaQuery } from "@/hooks/useMediaQuery";
 import { useOpenF1LiveMqtt } from "@/hooks/useOpenF1LiveMqtt";
@@ -1332,6 +1333,17 @@ export default function RaceWeekend() {
     useTimeline.getState().setSpeed(defaultSpeed);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [sessionKey]);
+
+  // The start-light sequence always plays at 1x, whatever the playback speed.
+  useEffect(() => {
+    const { setRealTimeWindow } = useTimeline.getState();
+    setRealTimeWindow(
+      isRaceSession && lightsOutMs != null
+        ? startLightsWindow(lightsOutMs)
+        : null,
+    );
+    return () => setRealTimeWindow(null);
+  }, [isRaceSession, lightsOutMs]);
 
   const toastEvents = useMemo(() => {
     if (!shouldBuildToastEvents || !sessionStartMs) return [];
@@ -2663,6 +2675,7 @@ export default function RaceWeekend() {
         qualiPhase={qualiPhase}
         q2StartMs={qualiPhaseStartTimes.q2StartMs}
         q3StartMs={qualiPhaseStartTimes.q3StartMs}
+        raceStartMs={isRaceSession ? lightsOutMs : null}
         onSeek={prefetchPlaybackWindows}
         showSpeedControls={showPlaybackSpeedControls}
         showEventChips={showPlaybackEventChips}

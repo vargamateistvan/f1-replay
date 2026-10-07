@@ -6,7 +6,11 @@ import {
   START_LIGHTS_LEAD_IN_MS,
   START_LIGHTS_SEQUENCE_MS,
 } from "@/constants";
-import { isNewStartLight, startLightsState } from "./startLights";
+import {
+  isNewStartLight,
+  startLightsState,
+  startLightsWindow,
+} from "./startLights";
 
 const LIGHTS_OUT = 60_000;
 const FIRST_LIGHT = LIGHTS_OUT - START_LIGHTS_SEQUENCE_MS;
@@ -81,5 +85,17 @@ describe("isNewStartLight", () => {
     expect(isNewStartLight(out, seq(5))).toBe(false);
     expect(isNewStartLight(seq(2), seq(2))).toBe(false);
     expect(isNewStartLight(seq(5), null)).toBe(false);
+  });
+});
+
+describe("startLightsWindow", () => {
+  it("spans from the get-ready lead-in to lights out", () => {
+    const { startMs, endMs } = startLightsWindow(LIGHTS_OUT);
+    expect(endMs).toBe(LIGHTS_OUT);
+    expect(startLightsState(startMs - 1, LIGHTS_OUT)).toBeNull();
+    expect(startLightsState(startMs, LIGHTS_OUT)).toEqual({
+      phase: "sequence",
+      lit: 0,
+    });
   });
 });

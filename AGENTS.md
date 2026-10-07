@@ -137,7 +137,7 @@ components/ (render to DOM; read settings from Zustand)
 | ------------------------------------------------- | ---------------------------------------------------------------------------------------- |
 | `TrackMap`                                        | Animated SVG track map: driver blobs, sector flags, follow-cam, compass, weather overlay, status badges (start lights, SC/VSC, chequered flag) |
 | `LiveTiming`                                      | Real-time leaderboard: positions, intervals, mini-sectors, telemetry columns             |
-| `PlaybackBar`                                     | Scrubber / speed controls / event chips                                                  |
+| `PlaybackBar`                                     | Scrubber (race-control + race-start markers) / speed controls / event chips              |
 | `RaceControl`                                     | Race control message feed                                                                |
 | `TeamRadio`                                       | Audio player for team radio clips                                                        |
 | `TelemetryChart`                                  | uPlot-based telemetry overlay (speed/throttle/brake/RPM/gear)                            |
@@ -173,7 +173,7 @@ components/ (render to DOM; read settings from Zustand)
 
 | Store         | File                 | Persisted?                       | Purpose                                                   |
 | ------------- | -------------------- | -------------------------------- | --------------------------------------------------------- |
-| `useTimeline` | `timeline/clock.ts`  | No                               | Playback state: `t`, `playing`, `speed`, `sessionStartMs` |
+| `useTimeline` | `timeline/clock.ts`  | No                               | Playback state: `t`, `playing`, `speed`, `sessionStartMs`, `realTimeWindow` (span forced to 1x, e.g. race start lights) |
 | `useSettings` | `stores/settings.ts` | Yes (localStorage via `persist`) | All `AppSettings` flags                                   |
 
 ### 6b. TanStack Query keys (convention)
@@ -349,4 +349,4 @@ Authentication: optional bearer token via `VITE_OPENF1_API_KEY` env var (`.env.l
 8. **`Float32Array` coords in `LocationIndex`** have reduced precision vs JS `number`. This is intentional for performance. Do not convert back to `number[]` arrays in hot paths.
 9. **`SPEEDS`** (`[1,2,4,8,16]`) and `MAX_FRAME_STEP_MS` (`250`) are the only safe values for playback. Do not introduce arbitrary speed multipliers.
 10. **SEO routes** are generated at build time from `seo-routes.json`. Add new deep-linkable pages to this file and run `yarn generate:sitemap`.
-11. **Start-light sounds** play `public/sounds/start-light.mp3` as each light comes on (synthesized beep if it's missing); lights out is silent. Only commit audio you have the rights to. Light pacing is `START_LIGHT_INTERVAL_MS` / `START_LIGHTS_HOLD_MS` in `constants.ts`.
+11. **Start-light sounds** play `public/sounds/start-light.mp3` as each light comes on (synthesized beep if it's missing); lights out is silent. Only commit audio you have the rights to. Light pacing is `START_LIGHT_INTERVAL_MS` / `START_LIGHTS_HOLD_MS` in `constants.ts`. The sequence always plays at 1x: the clock drops to 1x when it enters `realTimeWindow` and restores the previous speed at lights out.
