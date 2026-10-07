@@ -6,7 +6,11 @@ import {
 import type { Location } from "@/api/types";
 import { useTrackOutline } from "@/hooks/useTrackMap";
 import type { TrackFlagState } from "@/timeline/raceControl";
-import { TRACK_SVG_PAD } from "@/constants";
+import {
+  START_LIGHT_INTERVAL_MS,
+  START_LIGHTS_SEQUENCE_MS,
+  TRACK_SVG_PAD,
+} from "@/constants";
 import { getCircuitGeometry } from "@/data/circuitGeometry";
 
 let timelineT = 0;
@@ -326,7 +330,8 @@ describe("TrackMap sector flag state rendering", () => {
         drivers={[mockDriver]}
         locationData={mockLocationData}
         sessionStartMs={0}
-        lightsOutMs={2_500}
+        // t = 0 lands just after the third light comes on.
+        lightsOutMs={START_LIGHTS_SEQUENCE_MS - 2 * START_LIGHT_INTERVAL_MS}
         activeTrackVehicles={{
           safetyCar: false,
           vsc: false,

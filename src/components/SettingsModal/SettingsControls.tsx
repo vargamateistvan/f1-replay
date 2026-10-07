@@ -1002,6 +1002,12 @@ export function SettingsBody() {
           onChange={toggle("mapShowRaceLeader")}
         />
         <SettingRow
+          label="Start light sounds"
+          description="Beep as each race start light comes on"
+          checked={settings.mapStartLightsSound}
+          onChange={toggle("mapStartLightsSound")}
+        />
+        <SettingRow
           label="Tyre compound badges"
           description="Compound icons on each driver dot"
           checked={settings.mapShowCompoundBadges}

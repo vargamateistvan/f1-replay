@@ -15,6 +15,7 @@ import { useSettings } from "@/stores/settings";
 import { formatPitDuration } from "@/utils/pit";
 import { toSafeExternalUrl } from "@/utils/url";
 import { useAudioProgress } from "@/hooks/useAudioProgress";
+import { beep, getAudioContext } from "@/lib/audio";
 
 interface Props {
   toasts: ActiveToast[];
@@ -26,38 +27,6 @@ interface Props {
   maxVisible?: 2 | 4 | 6 | 8;
   /** Called whenever the set of toast ids currently playing radio audio changes. */
   onPlayingIdsChange?: (playingIds: Set<string>) => void;
-}
-
-let audioCtx: AudioContext | null = null;
-
-function getAudioContext(): AudioContext | null {
-  if (typeof window === "undefined") return null;
-  const Ctx =
-    window.AudioContext ||
-    (window as typeof window & { webkitAudioContext?: typeof AudioContext })
-      .webkitAudioContext;
-  if (!Ctx) return null;
-  if (!audioCtx) audioCtx = new Ctx();
-  return audioCtx;
-}
-
-function beep(
-  ctx: AudioContext,
-  frequency: number,
-  startAt: number,
-  duration: number,
-  volume = 0.04,
-) {
-  const osc = ctx.createOscillator();
-  const gain = ctx.createGain();
-  osc.type = "sine";
-  osc.frequency.setValueAtTime(frequency, startAt);
-  gain.gain.setValueAtTime(0, startAt);
-  gain.gain.linearRampToValueAtTime(volume, startAt + 0.01);
-  gain.gain.exponentialRampToValueAtTime(0.0001, startAt + duration);
-  osc.connect(gain).connect(ctx.destination);
-  osc.start(startAt);
-  osc.stop(startAt + duration);
 }
 
 function playToastCue(kind: ActiveToast["event"]["kind"]) {
@@ -141,11 +110,6 @@ export function EventToastStack({
 
     const ctx = getAudioContext();
     if (!ctx) return;
-    if (ctx.state === "suspended") {
-      void ctx.resume().catch(() => {
-        /* Ignore blocked autoplay contexts. */
-      });
-    }
 
     for (const at of unseen) {
       playedRef.current.add(at.event.id);

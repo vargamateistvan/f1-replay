@@ -28,6 +28,7 @@ export interface AppSettings {
   mapShowDriverAcronym: boolean;
   mapShowDriverNumberInside: boolean;
   mapShowRaceLeader: boolean;
+  mapStartLightsSound: boolean;
   mapShowEnhancedVisuals: boolean;
   mapShowMarshalHeatmap: boolean;
   mapShowCornerNumbers: boolean;
@@ -127,6 +128,7 @@ export const SETTINGS_DEFAULTS: AppSettings = {
   mapShowDriverAcronym: true,
   mapShowDriverNumberInside: false,
   mapShowRaceLeader: true,
+  mapStartLightsSound: true,
   mapShowEnhancedVisuals: true,
   mapShowMarshalHeatmap: false,
   mapShowCornerNumbers: false,

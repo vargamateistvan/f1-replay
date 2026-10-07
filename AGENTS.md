@@ -71,6 +71,7 @@ src/
     useMediaQuery.ts    — Responsive breakpoint hook
     useSearchParamState.ts — URL search param ↔ React state bridge
     useTimelineUrlSync.ts — Keeps ?t= query param in sync with playhead
+    useStartLightsSound.ts — Race-start light beeps (public/sounds/start-light.mp3, synth fallback)
     useVerticalResize.ts — Drag-to-resize panels
 
   utils/
@@ -100,6 +101,7 @@ src/
 
   lib/
     queryPersister.ts   — IndexedDB-backed TanStack Query persister
+    audio.ts            — Shared Web Audio context, beep(), and cached loadSample()/playSample()
 
   test/
     (shared test helpers / setup)
@@ -347,3 +349,4 @@ Authentication: optional bearer token via `VITE_OPENF1_API_KEY` env var (`.env.l
 8. **`Float32Array` coords in `LocationIndex`** have reduced precision vs JS `number`. This is intentional for performance. Do not convert back to `number[]` arrays in hot paths.
 9. **`SPEEDS`** (`[1,2,4,8,16]`) and `MAX_FRAME_STEP_MS` (`250`) are the only safe values for playback. Do not introduce arbitrary speed multipliers.
 10. **SEO routes** are generated at build time from `seo-routes.json`. Add new deep-linkable pages to this file and run `yarn generate:sitemap`.
+11. **Start-light sounds** play `public/sounds/start-light.mp3` as each light comes on (synthesized beep if it's missing); lights out is silent. Only commit audio you have the rights to. Light pacing is `START_LIGHT_INTERVAL_MS` / `START_LIGHTS_HOLD_MS` in `constants.ts`.

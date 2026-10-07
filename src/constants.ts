@@ -121,13 +121,24 @@ export const SPRINT_POINTS = [8, 7, 6, 5, 4, 3, 2, 1] as const;
 export const CHEQUERED_LEADER_SEARCH_MS = 15_000;
 
 // ── Race start lights ───────────────────────────────────────────────────────--
-// Five red lights come on 1 s apart and all go out together at the start.
+// Five red lights come on one by one, hold, then all go out together at the
+// start. Tune the interval/hold to match the start-light sound's pacing.
 export const START_LIGHT_COUNT = 5;
-export const START_LIGHTS_SEQUENCE_MS = START_LIGHT_COUNT * 1_000;
+export const START_LIGHT_INTERVAL_MS = 1_000;
+// Time between the last light coming on and lights out.
+export const START_LIGHTS_HOLD_MS = 1_000;
+// From the first light coming on to lights out.
+export const START_LIGHTS_SEQUENCE_MS =
+  (START_LIGHT_COUNT - 1) * START_LIGHT_INTERVAL_MS + START_LIGHTS_HOLD_MS;
 // "Get ready" lead-in shown before the first light comes on.
 export const START_LIGHTS_LEAD_IN_MS = 700;
 // How long "Lights Out" stays up after the start.
 export const LIGHTS_OUT_NOTICE_MS = 3_500;
+// Above this playback speed the beeps would run together, so they're skipped.
+export const START_LIGHTS_SOUND_MAX_SPEED = 4;
+// Beep played as each light comes on (lights out is silent). If the file is
+// missing or can't be decoded, a synthesized tone plays instead.
+export const START_LIGHT_SOUND_URL = `${import.meta.env.BASE_URL}sounds/start-light.mp3`;
 
 // ── API rate limiting ───────────────────────────────────────────────────────--
 // OpenF1 free tier: 3 req/s and 30 req/min.

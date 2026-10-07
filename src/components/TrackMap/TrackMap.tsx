@@ -22,6 +22,7 @@ import {
 import { useCarDataWindow } from "@/hooks/useCarDataWindow";
 import { chunkIndexFor } from "@/hooks/useLocationChunks";
 import { useCoarseTime } from "@/hooks/useCoarseTime";
+import { useStartLightsSound } from "@/hooks/useStartLightsSound";
 import {
   computeTrackAutoRotationDeg,
   useTrackOutline,
@@ -377,6 +378,7 @@ export function TrackMap({
   const mapShowCornerNumbers = useSettings((s) => s.mapShowCornerNumbers);
   const mapShowElevation = useSettings((s) => s.mapShowElevation);
   const mapShowRaceLeader = useSettings((s) => s.mapShowRaceLeader);
+  const mapStartLightsSound = useSettings((s) => s.mapStartLightsSound);
   const mapShowClock = useSettings((s) => s.mapShowClock);
   const isCompactViewport = useMediaQuery("(max-width: 767px)");
   const [zoomLevel, setZoomLevel] = useState(TRACK_FIT_ZOOM);
@@ -1531,6 +1533,12 @@ export function TrackMap({
 
   const svgRef = useRef<SVGSVGElement>(null);
 
+  const startLights = startLightsState(t, lightsOutMs);
+  useStartLightsSound(
+    startLights,
+    mapStartLightsSound && lightsOutMs != null,
+  );
+
   if (!sessionKey) {
     return (
       <div className="flex items-center justify-center w-full h-full text-muted text-sm">
@@ -1641,8 +1649,6 @@ export function TrackMap({
     timingSectorFlags[1] != null ||
     timingSectorFlags[2] != null ||
     timingSectorFlags[3] != null;
-
-  const startLights = startLightsState(t, lightsOutMs);
 
   const topStatusBadges = (() => {
     const badges: StatusBadge[] = [];
