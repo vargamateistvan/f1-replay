@@ -23,6 +23,7 @@ import { SCRUBBER_THUMB_PX, SPEEDS } from "@/constants";
 import { nextAfter, prevBefore } from "@/timeline/events";
 import { startLightsWindow } from "@/timeline/startLights";
 import type { RaceControlMarker, MarkerSummary } from "@/timeline/raceControl";
+import { flagAccentStyleFor } from "@/components/RaceControl/flagConfig";
 import { useSettings } from "@/stores/settings";
 import { trackEvent } from "@/lib/analytics";
 import {
@@ -539,8 +540,12 @@ export function PlaybackBar({
                 const left = (marker.ms / durationMs) * 100;
                 if (!Number.isFinite(left) || left < 0 || left > 100)
                   return null;
-                const color =
-                  marker.severity === "critical"
+                // Flag markers use the race control feed's flag palette;
+                // non-flag incidents fall back to severity colours.
+                const flagStyle = flagAccentStyleFor(marker.flag, 6);
+                const color = flagStyle
+                  ? ""
+                  : marker.severity === "critical"
                     ? "bg-red-500"
                     : marker.severity === "warning"
                       ? "bg-amber-400"
@@ -567,6 +572,7 @@ export function PlaybackBar({
                   >
                     <span
                       className={`absolute left-1/2 top-1/2 h-4 w-1.5 -translate-x-1/2 -translate-y-1/2 rounded ${color} opacity-90 ring-1 ring-black/35 transition-opacity group-hover:opacity-100`}
+                      style={flagStyle ?? undefined}
                     />
                     <span className={markerTooltipClass}>{tooltip}</span>
                   </button>

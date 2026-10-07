@@ -82,6 +82,50 @@ describe("PlaybackBar marker interactions", () => {
     expect(timelineState.setT).toHaveBeenCalledWith(45_000);
   });
 
+  it("colours flag markers with the race control flag palette", () => {
+    render(
+      <PlaybackBar
+        durationMs={120_000}
+        raceControlMarkers={[
+          {
+            id: "sc",
+            ms: 30_000,
+            severity: "critical",
+            label: "Safety Car",
+            flag: "SAFETY_CAR",
+          },
+          {
+            id: "red",
+            ms: 60_000,
+            severity: "critical",
+            label: "Red Flag",
+            flag: "RED",
+          },
+          {
+            id: "inv",
+            ms: 90_000,
+            severity: "warning",
+            label: "Investigation",
+            flag: null,
+          },
+        ]}
+      />,
+    );
+
+    const swatch = (name: string) =>
+      screen.getByRole("button", { name }).firstElementChild as HTMLElement;
+
+    expect(swatch("Jump to incident: Safety Car at 00:30")).toHaveStyle({
+      backgroundColor: "#f5a623",
+    });
+    expect(swatch("Jump to incident: Red Flag at 01:00")).toHaveStyle({
+      backgroundColor: "#e8002d",
+    });
+    const investigation = swatch("Jump to incident: Investigation at 01:30");
+    expect(investigation).toHaveClass("bg-amber-400");
+    expect(investigation.getAttribute("style")).toBeNull();
+  });
+
   it("marks the race start and jumps to the start-light lead-in", () => {
     render(<PlaybackBar durationMs={600_000} raceStartMs={222_000} />);
 

@@ -40,6 +40,8 @@ export interface RaceControlMarker {
   ms: number;
   severity: RaceControlSeverity;
   label: string;
+  /** Flag of the source event, used to colour the marker like the race control feed. */
+  flag?: string | null;
 }
 
 const FLAG_TITLE: Record<string, string> = {
@@ -613,6 +615,7 @@ export function buildRaceControlMarkers(
       ms: event.ms,
       severity: event.severity,
       label: event.title,
+      flag: event.flag,
     }));
 }
 
@@ -674,6 +677,7 @@ export function clusterRaceControlMarkers(
         group.length > 1
           ? `${rep.label} (+${group.length - 1} more)`
           : rep.label,
+      flag: rep.flag,
     });
 
     groupStart = groupEnd;
