@@ -16,6 +16,7 @@ import { formatPitDuration } from "@/utils/pit";
 import { toSafeExternalUrl } from "@/utils/url";
 import { useAudioProgress } from "@/hooks/useAudioProgress";
 import { beep, getAudioContext } from "@/lib/audio";
+import { RadioAudio } from "@/components/RadioAudio";
 
 interface Props {
   toasts: ActiveToast[];
@@ -398,14 +399,12 @@ function RadioToast({
             </span>
           </button>
           {playing && recordingUrl && (
-            <audio
+            <RadioAudio
               key={recordingUrl}
-              ref={audioRef}
+              audioRef={audioRef}
               src={recordingUrl}
-              autoPlay
               onTimeUpdate={onTimeUpdate}
               onEnded={() => setPlaying(false)}
-              className="hidden"
             />
           )}
         </div>

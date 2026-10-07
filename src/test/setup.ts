@@ -38,11 +38,11 @@ if (!globalThis.URL.revokeObjectURL) {
   globalThis.URL.revokeObjectURL = () => undefined;
 }
 
-if (!globalThis.HTMLMediaElement.prototype.play) {
-  vi.spyOn(globalThis.HTMLMediaElement.prototype, "play").mockImplementation(
-    () => Promise.resolve(),
-  );
-}
+// jsdom defines play() but doesn't implement it (it logs an error and
+// returns undefined), so always stub it.
+vi.spyOn(globalThis.HTMLMediaElement.prototype, "play").mockImplementation(
+  () => Promise.resolve(),
+);
 
 if (!globalThis.HTMLMediaElement.prototype.pause) {
   vi.spyOn(globalThis.HTMLMediaElement.prototype, "pause").mockImplementation(

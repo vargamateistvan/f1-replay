@@ -140,6 +140,7 @@ components/ (render to DOM; read settings from Zustand)
 | `PlaybackBar`                                     | Scrubber (race-control + race-start markers) / speed controls / event chips              |
 | `RaceControl`                                     | Race control message feed                                                                |
 | `TeamRadio`                                       | Audio player for team radio clips                                                        |
+| `RadioAudio`                                      | Shared radio `<audio>`: plays `public/sounds/radio-intro.mp3` chime, then the clip       |
 | `TelemetryChart`                                  | uPlot-based telemetry overlay (speed/throttle/brake/RPM/gear)                            |
 | `GapChart`                                        | Recharts gap-to-leader chart                                                             |
 | `LapChart`                                        | Lap time evolution chart                                                                 |
@@ -350,3 +351,4 @@ Authentication: optional bearer token via `VITE_OPENF1_API_KEY` env var (`.env.l
 9. **`SPEEDS`** (`[1,2,4,8,16]`) and `MAX_FRAME_STEP_MS` (`250`) are the only safe values for playback. Do not introduce arbitrary speed multipliers.
 10. **SEO routes** are generated at build time from `seo-routes.json`. Add new deep-linkable pages to this file and run `yarn generate:sitemap`.
 11. **Start-light sounds** play `public/sounds/start-light.mp3` as each light comes on (synthesized beep if it's missing); lights out is silent. Only commit audio you have the rights to. Light pacing is `START_LIGHT_INTERVAL_MS` / `START_LIGHTS_HOLD_MS` in `constants.ts`. The sequence always plays at 1x: the clock drops to 1x when it enters `realTimeWindow` and restores the previous speed at lights out.
+12. **Team radio playback** (panel, toasts, catch-up) must go through `RadioAudio`, which plays the `public/sounds/radio-intro.mp3` chime and starts the clip after `RADIO_INTRO_LEAD_MS`. Don't render a bare `<audio autoPlay>` for radio.

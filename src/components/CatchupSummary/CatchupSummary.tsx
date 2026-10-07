@@ -14,6 +14,7 @@ import { teamColor } from "@/utils/color";
 import { formatPitDuration } from "@/utils/pit";
 import { useSettings } from "@/stores/settings";
 import { toSafeExternalUrl } from "@/utils/url";
+import { RadioAudio } from "@/components/RadioAudio";
 
 interface Props {
   summary: CatchupSummaryData;
@@ -332,16 +333,12 @@ function CatchupEventRow({
           </div>
         )}
         {isPlaying && recordingUrl && (
-          <audio
+          <RadioAudio
             key={recordingUrl}
             src={recordingUrl}
-            autoPlay
             onEnded={() => onToggleRadio(recordingUrl)}
             onError={() => onToggleRadio(recordingUrl)}
-            className="hidden"
-          >
-            <track kind="captions" />
-          </audio>
+          />
         )}
       </div>
     );

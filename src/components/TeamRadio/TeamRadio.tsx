@@ -9,6 +9,7 @@ import { buildLapLookup, lapNumberAtMs } from "@/utils/lapLookup";
 import { upperBoundByValue } from "@/utils/sortedTime";
 import { isPracticeSession } from "@/utils/session";
 import { toSafeExternalUrl } from "@/utils/url";
+import { RadioAudio } from "@/components/RadioAudio";
 import {
   COMMENTARY_BADGE_CLASS,
   COMMENTARY_CHEVRON_CLASS,
@@ -291,18 +292,14 @@ function RadioRow({
         </button>
         <span className={COMMENTARY_CHEVRON_CLASS}>›</span>
         {isPlaying && recordingUrl && (
-          <audio
+          <RadioAudio
             key={recordingUrl}
-            ref={audioRef}
+            audioRef={audioRef}
             src={recordingUrl}
-            autoPlay
             onTimeUpdate={onTimeUpdate}
             onEnded={onEnded}
             onError={onEnded}
-            className="hidden"
-          >
-            <track kind="captions" />
-          </audio>
+          />
         )}
       </div>
     </div>

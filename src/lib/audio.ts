@@ -60,11 +60,16 @@ export function loadSample(url: string): Promise<AudioBuffer | null> {
   return cached;
 }
 
-export function playSample(ctx: AudioContext, buffer: AudioBuffer, volume = 1) {
+export function playSample(
+  ctx: AudioContext,
+  buffer: AudioBuffer,
+  volume = 1,
+): AudioBufferSourceNode {
   const source = ctx.createBufferSource();
   const gain = ctx.createGain();
   source.buffer = buffer;
   gain.gain.value = volume;
   source.connect(gain).connect(ctx.destination);
   source.start();
+  return source;
 }

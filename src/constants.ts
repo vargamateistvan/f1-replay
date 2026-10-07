@@ -139,6 +139,10 @@ export const START_LIGHTS_SOUND_MAX_SPEED = 4;
 // Beep played as each light comes on (lights out is silent). If the file is
 // missing or can't be decoded, a synthesized tone plays instead.
 export const START_LIGHT_SOUND_URL = `${import.meta.env.BASE_URL}sounds/start-light.mp3`;
+// Chime played before each team-radio message. The message starts once the
+// chime's main beep has played; its fading tail runs underneath.
+export const RADIO_INTRO_SOUND_URL = `${import.meta.env.BASE_URL}sounds/radio-intro.mp3`;
+export const RADIO_INTRO_LEAD_MS = 600;
 
 // ── API rate limiting ───────────────────────────────────────────────────────--
 // OpenF1 free tier: 3 req/s and 30 req/min.
