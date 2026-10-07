@@ -37,6 +37,7 @@ import {
   timingSectorForMarshalPost,
   type TrackFlagState,
 } from "@/timeline/raceControl";
+import { startLightsState } from "@/timeline/startLights";
 import { teamColor } from "@/utils/color";
 import { useSettings } from "@/stores/settings";
 import { resampleToAxis } from "@/utils/telemetry";
@@ -67,6 +68,7 @@ import {
   SAFETY_CAR_NUMBERS,
   FOLLOW_ZOOM_W,
   FOLLOW_ZOOM_H,
+  START_LIGHT_COUNT,
 } from "@/constants";
 import {
   clampFollowView,
@@ -249,6 +251,8 @@ interface Props {
    * per-driver requests. */
   readonly sharedAllDriverWindow?: boolean;
   readonly raceLeader?: Driver | null;
+  /** Session-relative ms of race start; drives the start-lights badge. */
+  readonly lightsOutMs?: number | null;
   readonly showTrackScreenshot?: boolean;
   readonly showEnhancedVisuals?: boolean;
   readonly onSelectDriver?: (driverNumber: number) => void;
@@ -309,6 +313,29 @@ const CHEQUERED_SWATCH_STYLE: CSSProperties = {
   backgroundSize: "5px 5px",
 };
 
+const START_LIGHT_ON_STYLE: CSSProperties = {
+  background: "#e8002d",
+  boxShadow:
+    "0 0 6px 2px rgba(232,0,45,0.65), inset 0 1px 0 rgba(255,100,100,0.35)",
+};
+
+const START_LIGHT_OFF_STYLE: CSSProperties = {
+  background: "#1e0808",
+  boxShadow: "inset 0 0 0 1px #3a1414",
+};
+
+interface StatusBadge {
+  key: string;
+  label: string;
+  bg: string;
+  border: string;
+  text: string;
+  driver?: Driver;
+  chequered?: boolean;
+  /** Start-light gantry: lights currently on. Rendered without text; `label` is its accessible name. */
+  lightsLit?: number;
+}
+
 export function TrackMap({
   sessionKey,
   drivers,
@@ -333,6 +360,7 @@ export function TrackMap({
   showCompass = true,
   showFocusedHud = true,
   raceLeader = null,
+  lightsOutMs = null,
   sharedAllDriverWindow = false,
   showTrackScreenshot = true,
   showEnhancedVisuals = true,
@@ -1614,54 +1642,77 @@ export function TrackMap({
     timingSectorFlags[2] != null ||
     timingSectorFlags[3] != null;
 
+  const startLights = startLightsState(t, lightsOutMs);
+
   const topStatusBadges = (() => {
-    const badges: Array<{
-      key: string;
-      label: string;
-      bg: string;
-      border: string;
-      text: string;
-      driver?: Driver;
-      chequered?: boolean;
-    }> = [];
+    const badges: StatusBadge[] = [];
     const seen = new Set<string>();
 
-    const push = (
-      key: string,
-      label: string,
-      bg: string,
-      border: string,
-      text: string,
-      driver?: Driver,
-      chequered?: boolean,
-    ) => {
-      if (seen.has(key)) return;
-      seen.add(key);
-      badges.push({ key, label, bg, border, text, driver, chequered });
+    const push = (badge: StatusBadge) => {
+      if (seen.has(badge.key)) return;
+      seen.add(badge.key);
+      badges.push(badge);
     };
 
-    if (activeTrackVehicles?.chequeredFlag) {
-      push(
-        "chequered",
-        "Chequered Flag",
-        "#ffffff",
-        "#111111",
-        "#101010",
-        undefined,
-        true,
-      );
+    if (startLights) {
+      // Lights only: they go on one by one, then all go dark at the start.
+      const lightsOut = startLights.phase === "out";
+      push({
+        key: "start_lights",
+        label: lightsOut
+          ? "Lights out"
+          : `${startLights.lit} of ${START_LIGHT_COUNT} start lights on`,
+        bg: "#0c0c18",
+        border: lightsOut ? "#00c851" : "#5f121d",
+        text: "#c8c8ff",
+        lightsLit: lightsOut ? 0 : startLights.lit,
+      });
     }
-    if (activeTrackVehicles?.formationLap) {
-      push("formation", "Formation Lap", "#1c1c2e", "#2d3550", "#c8c8ff");
+    if (activeTrackVehicles?.chequeredFlag) {
+      push({
+        key: "chequered",
+        label: "Chequered Flag",
+        bg: "#ffffff",
+        border: "#111111",
+        text: "#101010",
+        chequered: true,
+      });
+    }
+    if (activeTrackVehicles?.formationLap && !startLights) {
+      push({
+        key: "formation",
+        label: "Formation Lap",
+        bg: "#1c1c2e",
+        border: "#2d3550",
+        text: "#c8c8ff",
+      });
     }
     if (activeTrackVehicles?.safetyCar) {
-      push("safety_car", "Safety Car", "#f5a623", "#704600", "#101010");
+      push({
+        key: "safety_car",
+        label: "Safety Car",
+        bg: "#f5a623",
+        border: "#704600",
+        text: "#101010",
+      });
     }
     if (activeTrackVehicles?.vsc) {
-      push("vsc", "VSC", "#ffd166", "#7a5400", "#101010");
+      push({
+        key: "vsc",
+        label: "VSC",
+        bg: "#ffd166",
+        border: "#7a5400",
+        text: "#101010",
+      });
     }
     if (activeTrackVehicles?.medicalCar) {
-      push("medical", "Medical Car", "#e8002d", "#5f121d", "#ffffff");
+      push({
+        key: "medical",
+        label: "Medical Car",
+        bg: "#e8002d",
+        border: "#5f121d",
+        text: "#ffffff",
+      });
     }
 
     const addFlagBadge = (flag: string, suffix = "") => {
@@ -1689,13 +1740,13 @@ export function TrackMap({
       const label = labelMap[flag];
       if (!color || !label) return;
       const text = flag === "RED" ? "#ffffff" : "#101010";
-      push(
-        `flag_${flag}${suffix}`,
-        `${label}${suffix}`,
-        color,
-        `${color}99`,
+      push({
+        key: `flag_${flag}${suffix}`,
+        label: `${label}${suffix}`,
+        bg: color,
+        border: `${color}99`,
         text,
-      );
+      });
     };
 
     const globalTrackFlag = trackFlagState?.globalFlag ?? null;
@@ -1715,14 +1766,14 @@ export function TrackMap({
         raceLeader.last_name ||
         `#${raceLeader.driver_number}`;
       const teamCol = teamColor(raceLeader.team_colour, "#ffd700");
-      push(
-        "race_leader",
-        `RACE LEADER: ${acronym}`,
-        lightMode ? "#eaf1ff" : "#131520",
-        teamCol,
-        lightMode ? "#101010" : "#ffffff",
-        raceLeader,
-      );
+      push({
+        key: "race_leader",
+        label: `RACE LEADER: ${acronym}`,
+        bg: lightMode ? "#eaf1ff" : "#131520",
+        border: teamCol,
+        text: lightMode ? "#101010" : "#ffffff",
+        driver: raceLeader,
+      });
     }
 
     return badges;
@@ -1732,40 +1783,62 @@ export function TrackMap({
     <div className="relative w-full h-full">
       {topStatusBadges.length > 0 && (
         <div className="pointer-events-none absolute top-2 left-1/2 z-20 -translate-x-1/2 flex flex-col items-center gap-1">
-          {topStatusBadges.map((badge) => (
-            <div
-              key={badge.key}
-              className="border px-2 py-0.5 text-[9px] font-black uppercase tracking-[0.16em] flex items-center gap-1.5 shadow-md rounded-sm"
-              style={{
-                background: badge.bg,
-                borderColor: badge.border,
-                color: badge.text,
-              }}
-            >
-              {badge.driver && (
-                <DriverHeadshot
-                  driver={badge.driver}
-                  accent={teamColor(badge.driver.team_colour)}
-                  size="xs"
-                />
-              )}
-              {badge.chequered && (
-                <span
-                  aria-hidden="true"
-                  className="h-2.5 w-3"
-                  style={CHEQUERED_SWATCH_STYLE}
-                />
-              )}
-              <span>{badge.label}</span>
-              {badge.chequered && (
-                <span
-                  aria-hidden="true"
-                  className="h-2.5 w-3"
-                  style={CHEQUERED_SWATCH_STYLE}
-                />
-              )}
-            </div>
-          ))}
+          {topStatusBadges.map((badge) =>
+            badge.lightsLit !== undefined ? (
+              <div
+                key={badge.key}
+                role="img"
+                aria-label={badge.label}
+                className="flex items-center gap-[5px] rounded-sm border p-1.5 shadow-md"
+                style={{ background: badge.bg, borderColor: badge.border }}
+              >
+                {Array.from({ length: START_LIGHT_COUNT }, (_, i) => (
+                  <span
+                    key={i}
+                    className="h-[15px] w-[15px] rounded-full"
+                    style={
+                      i < (badge.lightsLit ?? 0)
+                        ? START_LIGHT_ON_STYLE
+                        : START_LIGHT_OFF_STYLE
+                    }
+                  />
+                ))}
+              </div>
+            ) : (
+              <div
+                key={badge.key}
+                className="border px-2 py-0.5 text-[9px] font-black uppercase tracking-[0.16em] flex items-center gap-1.5 shadow-md rounded-sm"
+                style={{
+                  background: badge.bg,
+                  borderColor: badge.border,
+                  color: badge.text,
+                }}
+              >
+                {badge.driver && (
+                  <DriverHeadshot
+                    driver={badge.driver}
+                    accent={teamColor(badge.driver.team_colour)}
+                    size="xs"
+                  />
+                )}
+                {badge.chequered && (
+                  <span
+                    aria-hidden="true"
+                    className="h-2.5 w-3"
+                    style={CHEQUERED_SWATCH_STYLE}
+                  />
+                )}
+                <span>{badge.label}</span>
+                {badge.chequered && (
+                  <span
+                    aria-hidden="true"
+                    className="h-2.5 w-3"
+                    style={CHEQUERED_SWATCH_STYLE}
+                  />
+                )}
+              </div>
+            ),
+          )}
         </div>
       )}
 

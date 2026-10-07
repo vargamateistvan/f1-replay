@@ -13,7 +13,6 @@ import type { ActiveTrackVehicles } from "@/components/TrackMap/TrackMap";
 import LiveTiming from "@/components/LiveTiming/LiveTiming";
 import { WeatherPanel } from "@/components/Weather/WeatherPanel";
 import { QualifyingBanner } from "@/components/QualifyingBanner";
-import { StartingLights } from "@/components/StartingLights";
 import { SessionInfoBar } from "@/components/SessionInfoBar";
 import { ErrorMessage } from "@/components/ErrorMessage";
 import { LiveDataNotice } from "@/components/LiveDataNotice";
@@ -77,7 +76,12 @@ import { CatchupSummary } from "@/components/CatchupSummary/CatchupSummary";
 import { ResizeHandle } from "@/components/ResizeHandle";
 import { isSessionLive } from "@/utils/live";
 import { isAuthError } from "@/api/client";
-import { DEFAULT_SESSION_MS, DEFAULT_YEAR, RACE_LEADER_NOTIFICATION_MS } from "@/constants";
+import {
+  DEFAULT_SESSION_MS,
+  DEFAULT_YEAR,
+  RACE_LEADER_NOTIFICATION_MS,
+  START_LIGHTS_SEQUENCE_MS,
+} from "@/constants";
 import { useSettings } from "@/stores/settings";
 import { deriveRetiredDrivers } from "@/utils/retirement";
 import { computeBattlingDrivers } from "@/utils/battles";
@@ -1070,12 +1074,11 @@ export default function RaceWeekend() {
   const activeTrackVehicles = useMemo<ActiveTrackVehicles | null>(() => {
     if (!isMapVisible) return null;
     if (!sessionStartMs) return null;
-    const LIGHTS_SEQUENCE_MS = 5_000;
     const formationLap =
       isRaceSession &&
       lightsOutMs != null &&
       tSlow >= 0 &&
-      tSlow < Math.max(0, lightsOutMs - LIGHTS_SEQUENCE_MS);
+      tSlow < Math.max(0, lightsOutMs - START_LIGHTS_SEQUENCE_MS);
     const cutoff = sessionStartMs + tSlow;
 
     const state =
@@ -1946,6 +1949,7 @@ export default function RaceWeekend() {
       safetyCarSirenOn={safetyCarSirenOn}
       retiredDrivers={retiredDrivers}
       raceLeader={isRaceSession && mapShowRaceLeader ? raceLeaderDriver : null}
+      lightsOutMs={isRaceSession ? lightsOutMs : null}
       onSelectDriver={toggleFocus}
     />
   );
@@ -1968,11 +1972,6 @@ export default function RaceWeekend() {
       )}
 
       <LiveDataNotice error={liveDataError} />
-
-      {/* Starting lights — absolute overlay, race sessions only */}
-      {sessionStartMs > 0 && isRaceSession && lightsOutMs != null && (
-        <StartingLights t={t} lightsOutMs={lightsOutMs} />
-      )}
 
       {/* ── LEADERBOARD VIEW ──────────────────────────────────────────── */}
       {currentView === "leaderboard" && (

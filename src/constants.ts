@@ -120,6 +120,15 @@ export const SPRINT_POINTS = [8, 7, 6, 5, 4, 3, 2, 1] as const;
 // window around the flag for the leader's finishing crossing.
 export const CHEQUERED_LEADER_SEARCH_MS = 15_000;
 
+// ── Race start lights ───────────────────────────────────────────────────────--
+// Five red lights come on 1 s apart and all go out together at the start.
+export const START_LIGHT_COUNT = 5;
+export const START_LIGHTS_SEQUENCE_MS = START_LIGHT_COUNT * 1_000;
+// "Get ready" lead-in shown before the first light comes on.
+export const START_LIGHTS_LEAD_IN_MS = 700;
+// How long "Lights Out" stays up after the start.
+export const LIGHTS_OUT_NOTICE_MS = 3_500;
+
 // ── API rate limiting ───────────────────────────────────────────────────────--
 // OpenF1 free tier: 3 req/s and 30 req/min.
 // We cap at 2/s and 25/min to keep headroom and avoid hitting server limits

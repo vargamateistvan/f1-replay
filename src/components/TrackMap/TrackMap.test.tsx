@@ -315,6 +315,47 @@ describe("TrackMap sector flag state rendering", () => {
     expect(screen.getByText("Yellow Flag S1")).toBeTruthy();
   });
 
+  it("shows the start-lights badge instead of the formation lap", () => {
+    vi.mocked(useTrackOutline).mockReturnValue(
+      mockTrackOutlineQueryResult(mockOutline),
+    );
+
+    const { rerender } = render(
+      <TrackMap
+        sessionKey={1}
+        drivers={[mockDriver]}
+        locationData={mockLocationData}
+        sessionStartMs={0}
+        lightsOutMs={2_500}
+        activeTrackVehicles={{
+          safetyCar: false,
+          vsc: false,
+          medicalCar: false,
+          formationLap: true,
+        }}
+      />,
+    );
+
+    expect(
+      screen.getByRole("img", { name: "3 of 5 start lights on" }),
+    ).toBeTruthy();
+    expect(screen.queryByText("Lights Out")).toBeNull();
+    expect(screen.queryByText("Formation Lap")).toBeNull();
+
+    rerender(
+      <TrackMap
+        sessionKey={1}
+        drivers={[mockDriver]}
+        locationData={mockLocationData}
+        sessionStartMs={0}
+        lightsOutMs={0}
+      />,
+    );
+
+    expect(screen.getByRole("img", { name: "Lights out" })).toBeTruthy();
+    expect(screen.queryByText(/lights out/i)).toBeNull();
+  });
+
   it("badges the projected timing sector for a marshal-post yellow", () => {
     vi.mocked(useTrackOutline).mockReturnValue(
       mockTrackOutlineQueryResult(mockOutline),

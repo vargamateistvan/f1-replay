@@ -37,7 +37,6 @@ import {
   Toggle,
 } from "@/components/SettingsModal/SettingsControls";
 import { SettingsModal } from "@/components/SettingsModal/SettingsModal";
-import { StartingLights } from "@/components/StartingLights";
 import { StrategyBar } from "@/components/Strategy/StrategyBar";
 import { TeamRadioFeed } from "@/components/TeamRadio/TeamRadio";
 import { TelemetryChart } from "@/components/TelemetryChart/TelemetryChart";
@@ -500,11 +499,6 @@ describe("component smoke tests", () => {
 
   it("renders SettingsModal", () => {
     wrap(<SettingsModal />);
-    expect(true).toBe(true);
-  });
-
-  it("renders StartingLights", () => {
-    wrap(<StartingLights t={0} lightsOutMs={5000} />);
     expect(true).toBe(true);
   });
 

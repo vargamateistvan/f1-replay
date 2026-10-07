@@ -51,6 +51,7 @@ src/
     events.ts           — Toast event normalisation (radio, flag, pit, overtake…)
     interpolate.ts      — Typed-array binary search + linear interpolation for location
     raceControl.ts      — Race control event enrichment and flag-state machine
+    startLights.ts      — Start-light sequence state for the track-map badge
 
   stores/
     settings.ts         — Zustand persist store for all user preferences (AppSettings)
@@ -132,7 +133,7 @@ components/ (render to DOM; read settings from Zustand)
 
 | Component                                         | Purpose                                                                                  |
 | ------------------------------------------------- | ---------------------------------------------------------------------------------------- |
-| `TrackMap`                                        | Animated SVG track map: driver blobs, sector flags, follow-cam, compass, weather overlay |
+| `TrackMap`                                        | Animated SVG track map: driver blobs, sector flags, follow-cam, compass, weather overlay, status badges (start lights, SC/VSC, chequered flag) |
 | `LiveTiming`                                      | Real-time leaderboard: positions, intervals, mini-sectors, telemetry columns             |
 | `PlaybackBar`                                     | Scrubber / speed controls / event chips                                                  |
 | `RaceControl`                                     | Race control message feed                                                                |
@@ -147,7 +148,6 @@ components/ (render to DOM; read settings from Zustand)
 | `Overtakes`                                       | Overtake event list                                                                      |
 | `FlagBanner`                                      | Full-screen flag overlay (Safety Car, Red Flag, etc.)                                    |
 | `QualifyingBanner`                                | Qualifying session elimination indicator                                                 |
-| `StartingLights`                                  | Animated race-start lights sequence                                                      |
 | `SessionInfoBar`                                  | Circuit name, session type, current lap                                                  |
 | `SessionPicker`                                   | Year / meeting / session picker                                                          |
 | `FocusedTelemetry`                                | Focused single-driver telemetry panel                                                    |
