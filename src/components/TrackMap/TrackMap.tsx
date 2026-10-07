@@ -1,4 +1,5 @@
 import { useMemo, useState, useEffect, useRef, useCallback } from "react";
+import type { CSSProperties } from "react";
 import {
   Clock3,
   CloudRain,
@@ -214,6 +215,7 @@ export interface ActiveTrackVehicles {
   vsc: boolean;
   medicalCar: boolean;
   formationLap?: boolean;
+  chequeredFlag?: boolean;
 }
 
 interface Props {
@@ -297,6 +299,14 @@ const SPECIAL_TRACK_VEHICLES: Record<
     text: "#ffffff",
     halo: "rgba(232,0,45,0.55)",
   },
+};
+
+// Same #111/#fff checker as the finish line and the timing-tower FIN chip.
+const CHEQUERED_SWATCH_STYLE: CSSProperties = {
+  backgroundColor: "#fff",
+  backgroundImage:
+    "conic-gradient(#111 25%, transparent 0 50%, #111 0 75%, transparent 0)",
+  backgroundSize: "5px 5px",
 };
 
 export function TrackMap({
@@ -1612,6 +1622,7 @@ export function TrackMap({
       border: string;
       text: string;
       driver?: Driver;
+      chequered?: boolean;
     }> = [];
     const seen = new Set<string>();
 
@@ -1622,12 +1633,24 @@ export function TrackMap({
       border: string,
       text: string,
       driver?: Driver,
+      chequered?: boolean,
     ) => {
       if (seen.has(key)) return;
       seen.add(key);
-      badges.push({ key, label, bg, border, text, driver });
+      badges.push({ key, label, bg, border, text, driver, chequered });
     };
 
+    if (activeTrackVehicles?.chequeredFlag) {
+      push(
+        "chequered",
+        "Chequered Flag",
+        "#ffffff",
+        "#111111",
+        "#101010",
+        undefined,
+        true,
+      );
+    }
     if (activeTrackVehicles?.formationLap) {
       push("formation", "Formation Lap", "#1c1c2e", "#2d3550", "#c8c8ff");
     }
@@ -1726,7 +1749,21 @@ export function TrackMap({
                   size="xs"
                 />
               )}
+              {badge.chequered && (
+                <span
+                  aria-hidden="true"
+                  className="h-2.5 w-3"
+                  style={CHEQUERED_SWATCH_STYLE}
+                />
+              )}
               <span>{badge.label}</span>
+              {badge.chequered && (
+                <span
+                  aria-hidden="true"
+                  className="h-2.5 w-3"
+                  style={CHEQUERED_SWATCH_STYLE}
+                />
+              )}
             </div>
           ))}
         </div>

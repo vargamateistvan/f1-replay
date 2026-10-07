@@ -367,6 +367,36 @@ export function deriveTrackFlagState(
   return state;
 }
 
+export interface ChequeredFlagPoint {
+  absMs: number;
+  shown: boolean;
+}
+
+/**
+ * When the chequered flag is out. It stays out until the session ends, except
+ * in qualifying, where it falls at the end of each part and the next part
+ * starts with "GREEN LIGHT - PIT EXIT OPEN" / "SESSION STARTED". Those rows
+ * don't clear `deriveTrackFlagState`'s global flag, so they're tracked here.
+ */
+export function buildChequeredFlagTimeline(
+  entries: RaceControl[],
+): ChequeredFlagPoint[] {
+  const sorted = [...entries].sort(
+    (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime(),
+  );
+  const timeline: ChequeredFlagPoint[] = [];
+  for (const entry of sorted) {
+    if (flagScopeOf(entry) === "driver") continue;
+    const message = (entry.message ?? "").toUpperCase();
+    let shown: boolean | null = null;
+    if (stateFlagKeyFor(entry) === "CHEQUERED") shown = true;
+    else if (/\bSESSION STARTED\b|\bGREEN LIGHT\b/.test(message)) shown = false;
+    if (shown === null || timeline.at(-1)?.shown === shown) continue;
+    timeline.push({ absMs: new Date(entry.date).getTime(), shown });
+  }
+  return timeline;
+}
+
 /**
  * Maps a marshal post onto a timing sector by splitting the posts into thirds.
  *

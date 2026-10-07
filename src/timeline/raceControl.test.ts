@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import type { Position, RaceControl } from "@/api/types";
 import {
+  buildChequeredFlagTimeline,
   buildIncidentWindows,
   clusterRaceControlMarkers,
   computeWhatChanged,
@@ -670,6 +671,43 @@ describe("flag scope routing", () => {
     );
 
     expect(state?.globalFlag).toBe("CHEQUERED");
+  });
+});
+
+describe("buildChequeredFlagTimeline", () => {
+  const shownAt = (entries: RaceControl[], sec: number) =>
+    buildChequeredFlagTimeline(entries)
+      .filter((point) => point.absMs <= START + sec * 1000)
+      .at(-1)?.shown ?? false;
+
+  it("keeps the flag out after a race finishes", () => {
+    const entries = [
+      rc({ date: iso(0), flag: "GREEN", message: "GREEN LIGHT - PIT EXIT OPEN" }),
+      rc({ date: iso(100), flag: "CHEQUERED", message: "CHEQUERED FLAG" }),
+    ];
+    expect(shownAt(entries, 50)).toBe(false);
+    expect(shownAt(entries, 100)).toBe(true);
+    expect(shownAt(entries, 5_000)).toBe(true);
+  });
+
+  it("withdraws the flag when the next qualifying part starts", () => {
+    // Real Bahrain 2024 Q1 → Q2 sequence.
+    const entries = [
+      rc({ date: iso(100), flag: "CHEQUERED", message: "CHEQUERED FLAG" }),
+      rc({ date: iso(100.2), scope: null, category: "Other", message: "SESSION FINISHED" }),
+      rc({ date: iso(520), flag: "GREEN", message: "GREEN LIGHT - PIT EXIT OPEN" }),
+      rc({ date: iso(520.2), scope: null, category: "Other", message: "SESSION STARTED" }),
+      rc({ date: iso(1300), flag: "CHEQUERED", message: "CHEQUERED FLAG" }),
+    ];
+    expect(shownAt(entries, 300)).toBe(true);
+    expect(shownAt(entries, 520)).toBe(false);
+    expect(shownAt(entries, 1_000)).toBe(false);
+    expect(shownAt(entries, 1_300)).toBe(true);
+  });
+
+  it("detects the flag from the message when the flag field is empty", () => {
+    const entries = [rc({ date: iso(10), message: "CHEQUERED FLAG" })];
+    expect(shownAt(entries, 10)).toBe(true);
   });
 });
 

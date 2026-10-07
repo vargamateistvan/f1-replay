@@ -285,6 +285,36 @@ describe("TrackMap sector flag state rendering", () => {
     expect(screen.queryByText("Yellow Flag S1")).toBeNull();
   });
 
+  it("badges the chequered flag alongside an active sector yellow", () => {
+    vi.mocked(useTrackOutline).mockReturnValue(
+      mockTrackOutlineQueryResult(mockOutline),
+    );
+
+    render(
+      <TrackMap
+        sessionKey={1}
+        drivers={[mockDriver]}
+        locationData={mockLocationData}
+        sessionStartMs={0}
+        trackFlagState={{
+          globalFlag: "CHEQUERED",
+          marshalFlags: { 1: "YELLOW" },
+          maxMarshalSector: 3,
+          updatedAtMs: 0,
+        }}
+        activeTrackVehicles={{
+          safetyCar: false,
+          vsc: false,
+          medicalCar: false,
+          chequeredFlag: true,
+        }}
+      />,
+    );
+
+    expect(screen.getByText("Chequered Flag")).toBeTruthy();
+    expect(screen.getByText("Yellow Flag S1")).toBeTruthy();
+  });
+
   it("badges the projected timing sector for a marshal-post yellow", () => {
     vi.mocked(useTrackOutline).mockReturnValue(
       mockTrackOutlineQueryResult(mockOutline),

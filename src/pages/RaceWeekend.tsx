@@ -61,6 +61,7 @@ import {
   buildToastEvents,
 } from "@/timeline/events";
 import {
+  buildChequeredFlagTimeline,
   buildRaceControlMarkers,
   buildIncidentWindows,
   clusterRaceControlMarkers,
@@ -542,6 +543,11 @@ export default function RaceWeekend() {
 
     return timeline;
   }, [timedRaceControlSignals]);
+
+  const chequeredFlagTimeline = useMemo(
+    () => buildChequeredFlagTimeline(raceControl.data ?? []),
+    [raceControl.data],
+  );
 
   const timedOvertakes = useMemo((): TimedRow<Overtake>[] => {
     if (!sessionStartMs || !overtakes.data?.length) return [];
@@ -1081,11 +1087,16 @@ export default function RaceWeekend() {
     const safetyCar = state?.safetyCar ?? false;
     const vsc = state?.vsc ?? false;
     const medicalCar = state?.medicalCar ?? false;
+    const chequeredFlag =
+      lastAtOrBefore(chequeredFlagTimeline, cutoff, (point) => point.absMs)
+        ?.shown ?? false;
 
-    if (!safetyCar && !vsc && !medicalCar && !formationLap) return null;
-    return { safetyCar, vsc, medicalCar, formationLap };
+    if (!safetyCar && !vsc && !medicalCar && !formationLap && !chequeredFlag)
+      return null;
+    return { safetyCar, vsc, medicalCar, formationLap, chequeredFlag };
   }, [
     trackVehicleStateTimeline,
+    chequeredFlagTimeline,
     sessionStartMs,
     tSlow,
     isRaceSession,
