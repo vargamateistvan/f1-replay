@@ -15,6 +15,7 @@ import { formatPitDuration } from "@/utils/pit";
 import { useSettings } from "@/stores/settings";
 import { toSafeExternalUrl } from "@/utils/url";
 import { RadioAudio } from "@/components/RadioAudio";
+import { useAudioProgress } from "@/hooks/useAudioProgress";
 
 interface Props {
   summary: CatchupSummaryData;
@@ -272,79 +273,115 @@ function CatchupEventRow({
   }
 
   if (ev.kind === "radio") {
-    const p = ev.payload as RadioPayload;
-    const d = driverMap.get(p.driverNumber);
-    const driverColor = teamColor(d?.team_colour);
-    const recordingUrl = toSafeExternalUrl(p.recordingUrl);
-    const hasAudio = Boolean(recordingUrl);
-    const isPlaying = recordingUrl !== null && playingUrl === recordingUrl;
     return (
-      <div className="px-3 py-2 border-l-2 border-l-[#6b6b7a]">
-        <div className="flex items-center justify-between gap-2">
-          <div className="flex items-center gap-1.5">
-            <span className="text-[8px] font-black px-1 py-0.5 bg-[#6b6b7a] text-white uppercase tracking-widest shrink-0">
-              RADIO
-            </span>
-            <span
-              className="text-[12px] font-black"
-              style={{ color: driverColor }}
-            >
-              {d?.name_acronym ?? p.driverNumber}
-            </span>
-            {d?.full_name && (
-              <span className="text-[10px] text-muted">{d.full_name}</span>
-            )}
-          </div>
-          <div className="flex items-center gap-1.5 shrink-0">
-            <span className="text-[10px] font-mono tabular-nums text-muted">
-              {fmtRaceTime(ev.ms)}
-            </span>
-            <button
-              onClick={() => recordingUrl && onToggleRadio(recordingUrl)}
-              disabled={!hasAudio}
-              aria-label={isPlaying ? "Stop" : "Play"}
-              className={[
-                "flex items-center gap-1 px-2 py-0.5 text-[9px] font-black uppercase tracking-widest transition-colors",
-                isPlaying
-                  ? "bg-f1red text-white"
-                  : "bg-panel text-muted hover:text-white",
-                !hasAudio ? "opacity-30 cursor-not-allowed" : "",
-              ]
-                .filter(Boolean)
-                .join(" ")}
-            >
-              {isPlaying ? (
-                <>
-                  <Square size={9} strokeWidth={2.4} aria-hidden="true" /> Stop
-                </>
-              ) : (
-                <>
-                  <Play size={9} strokeWidth={2.4} aria-hidden="true" /> Play
-                </>
-              )}
-            </button>
-          </div>
-        </div>
-        {typeof p.lapNumber === "number" && (
-          <div className="mt-0.5">
-            <span className="text-[9px] text-muted font-mono">
-              Lap {p.lapNumber}
-            </span>
-          </div>
-        )}
-        {isPlaying && recordingUrl && (
-          <RadioAudio
-            key={recordingUrl}
-            src={recordingUrl}
-            onEnded={() => onToggleRadio(recordingUrl)}
-            onError={() => onToggleRadio(recordingUrl)}
-          />
-        )}
-      </div>
+      <CatchupRadioRow
+        ev={ev}
+        driverMap={driverMap}
+        playingUrl={playingUrl}
+        onToggleRadio={onToggleRadio}
+      />
     );
   }
 
   return null;
+}
+
+function CatchupRadioRow({
+  ev,
+  driverMap,
+  playingUrl,
+  onToggleRadio,
+}: Readonly<{
+  ev: import("@/timeline/events").ToastEvent;
+  driverMap: Map<number, import("@/api/types").Driver>;
+  playingUrl: string | null;
+  onToggleRadio: (url: string) => void;
+}>) {
+  const p = ev.payload as RadioPayload;
+  const d = driverMap.get(p.driverNumber);
+  const driverColor = teamColor(d?.team_colour);
+  const recordingUrl = toSafeExternalUrl(p.recordingUrl);
+  const hasAudio = Boolean(recordingUrl);
+  const isPlaying = recordingUrl !== null && playingUrl === recordingUrl;
+  const { progress, audioRef, onTimeUpdate } = useAudioProgress(isPlaying);
+
+  return (
+    <div className="px-3 py-2 border-l-2 border-l-[#6b6b7a]">
+      <div className="flex items-center justify-between gap-2">
+        <div className="flex items-center gap-1.5">
+          <span className="text-[8px] font-black px-1 py-0.5 bg-[#6b6b7a] text-white uppercase tracking-widest shrink-0">
+            RADIO
+          </span>
+          <span
+            className="text-[12px] font-black"
+            style={{ color: driverColor }}
+          >
+            {d?.name_acronym ?? p.driverNumber}
+          </span>
+          {d?.full_name && (
+            <span className="text-[10px] text-muted">{d.full_name}</span>
+          )}
+        </div>
+        <div className="flex items-center gap-1.5 shrink-0">
+          <span className="text-[10px] font-mono tabular-nums text-muted">
+            {fmtRaceTime(ev.ms)}
+          </span>
+          <button
+            onClick={() => recordingUrl && onToggleRadio(recordingUrl)}
+            disabled={!hasAudio}
+            aria-label={isPlaying ? "Stop" : "Play"}
+            className={[
+              "relative flex h-6 min-w-[64px] items-center justify-center gap-1 overflow-hidden rounded px-2 text-[9px] font-black uppercase tracking-widest transition-colors",
+              isPlaying
+                ? "bg-track text-white"
+                : "bg-panel text-muted hover:text-white hover:bg-track",
+              !hasAudio ? "opacity-30 cursor-not-allowed" : "",
+            ]
+              .filter(Boolean)
+              .join(" ")}
+          >
+            {isPlaying && (
+              <span
+                aria-hidden="true"
+                className="absolute inset-y-0 left-0 bg-f1red transition-[width] duration-150 ease-linear"
+                style={{ width: `${progress * 100}%` }}
+                data-progress={Math.round(progress * 100)}
+              />
+            )}
+            <span className="relative flex items-center gap-1">
+              {isPlaying ? (
+                <>
+                  <Square size={11} strokeWidth={2.4} aria-hidden="true" />{" "}
+                  Stop
+                </>
+              ) : (
+                <>
+                  <Play size={11} strokeWidth={2.4} aria-hidden="true" /> Play
+                </>
+              )}
+            </span>
+          </button>
+        </div>
+      </div>
+      {typeof p.lapNumber === "number" && (
+        <div className="mt-0.5">
+          <span className="text-[9px] text-muted font-mono">
+            Lap {p.lapNumber}
+          </span>
+        </div>
+      )}
+      {isPlaying && recordingUrl && (
+        <RadioAudio
+          key={recordingUrl}
+          audioRef={audioRef}
+          src={recordingUrl}
+          onTimeUpdate={onTimeUpdate}
+          onEnded={() => onToggleRadio(recordingUrl)}
+          onError={() => onToggleRadio(recordingUrl)}
+        />
+      )}
+    </div>
+  );
 }
 
 interface FilterChip {

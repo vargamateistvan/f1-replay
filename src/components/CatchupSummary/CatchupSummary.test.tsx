@@ -4,6 +4,12 @@ import { CatchupSummary } from "@/components/CatchupSummary/CatchupSummary";
 import type { Driver } from "@/api/types";
 import type { CatchupSummary as CatchupSummaryData } from "@/hooks/useCatchupSummary";
 
+vi.mock("@/lib/audio", () => ({
+  getAudioContext: () => null,
+  loadSample: () => Promise.resolve(null),
+  playSample: vi.fn(),
+}));
+
 const drivers: Driver[] = [
   {
     driver_number: 1,
@@ -137,5 +143,42 @@ describe("CatchupSummary", () => {
 
     expect(screen.getByText("RADIO")).toBeInTheDocument();
     expect(screen.getByText("Lap 7")).toBeInTheDocument();
+  });
+
+  it("fills the radio button with playback progress like other radio players", () => {
+    const { container } = render(
+      <CatchupSummary
+        summary={
+          {
+            fromMs: 0,
+            toMs: 45_000,
+            events: [
+              {
+                id: "radio-1",
+                ms: 25_000,
+                kind: "radio",
+                payload: {
+                  driverNumber: 1,
+                  recordingUrl: "https://example.com/radio.mp3",
+                },
+              },
+            ],
+          } as CatchupSummaryData
+        }
+        drivers={drivers}
+        onDismiss={vi.fn()}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "Play" }));
+    const stopButton = screen.getByRole("button", { name: "Stop" });
+    const audio = container.querySelector("audio")!;
+    Object.defineProperty(audio, "duration", { value: 10 });
+    Object.defineProperty(audio, "currentTime", { value: 5 });
+    fireEvent.timeUpdate(audio);
+
+    const fill = stopButton.querySelector("[data-progress]") as HTMLElement;
+    expect(fill).toHaveAttribute("data-progress", "50");
+    expect(fill).toHaveStyle({ width: "50%" });
   });
 });
