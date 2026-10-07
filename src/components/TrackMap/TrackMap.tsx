@@ -267,6 +267,8 @@ const SPECIAL_TRACK_VEHICLES: Record<
     fill: string;
     stroke: string;
     text: string;
+    /** Marker text colour in dark mode; falls back to `text`. */
+    textDark?: string;
     halo: string;
   }
 > = {
@@ -278,6 +280,7 @@ const SPECIAL_TRACK_VEHICLES: Record<
     fill: "#f5a623",
     stroke: "#7a5400",
     text: "#101010",
+    textDark: "#ffffff",
     halo: "rgba(245,166,35,0.55)",
   },
   242: {
@@ -286,6 +289,7 @@ const SPECIAL_TRACK_VEHICLES: Record<
     fill: "#f5a623",
     stroke: "#7a5400",
     text: "#101010",
+    textDark: "#ffffff",
     halo: "rgba(245,166,35,0.55)",
   },
   243: {
@@ -294,6 +298,7 @@ const SPECIAL_TRACK_VEHICLES: Record<
     fill: "#f5a623",
     stroke: "#7a5400",
     text: "#101010",
+    textDark: "#ffffff",
     halo: "rgba(245,166,35,0.55)",
   },
   244: {
@@ -2246,9 +2251,9 @@ export function TrackMap({
                 ? specialVehicle.stroke
                 : "#ffffff";
               const markerTextColor = specialVehicle
-                ? isSafetyCar && !lightMode
-                  ? "#ffffff"
-                  : specialVehicle.text
+                ? lightMode
+                  ? specialVehicle.text
+                  : (specialVehicle.textDark ?? specialVehicle.text)
                 : "#ffffff";
               const markerText = specialVehicle
                 ? specialVehicle.shortLabel

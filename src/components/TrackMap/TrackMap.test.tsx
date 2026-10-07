@@ -510,6 +510,39 @@ describe("TrackMap sector flag state rendering", () => {
     );
   });
 
+  it("draws safety car dot text in white in dark mode", () => {
+    vi.mocked(useTrackOutline).mockReturnValue(
+      mockTrackOutlineQueryResult(mockOutline),
+    );
+
+    const vehicles: Location[] = [241, 243].flatMap((num) =>
+      [10, 11].map((sec) => ({
+        date: `2024-01-01T00:00:${sec}.000Z`,
+        driver_number: num,
+        meeting_key: 1,
+        session_key: 1,
+        x: 40 + sec + num,
+        y: 40 + sec,
+        z: 0,
+      })),
+    );
+
+    render(
+      <TrackMap
+        sessionKey={1}
+        drivers={[mockDriver]}
+        locationData={[...mockLocationData, ...vehicles]}
+        sessionStartMs={0}
+      />,
+    );
+
+    const markers = screen.getAllByText("SC");
+    expect(markers).toHaveLength(2);
+    for (const marker of markers) {
+      expect(marker.getAttribute("fill")).toBe("#ffffff");
+    }
+  });
+
   it("uses baked circuit rotation as the default track heading", () => {
     vi.mocked(useTrackOutline).mockReturnValue(
       mockTrackOutlineQueryResult(mockOutline),
