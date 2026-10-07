@@ -1,4 +1,11 @@
-import { memo, useCallback, useEffect, useRef, useState } from "react";
+import {
+  memo,
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+  type MouseEvent,
+} from "react";
 import { createPortal } from "react-dom";
 import {
   FastForward,
@@ -11,7 +18,7 @@ import {
 import { useTimeline } from "@/timeline/clock";
 import { useCoarseTime } from "@/hooks/useCoarseTime";
 import { useMediaQuery } from "@/hooks/useMediaQuery";
-import { SPEEDS } from "@/constants";
+import { SCRUBBER_THUMB_PX, SPEEDS } from "@/constants";
 import { nextAfter, prevBefore } from "@/timeline/events";
 import { startLightsWindow } from "@/timeline/startLights";
 import type { RaceControlMarker, MarkerSummary } from "@/timeline/raceControl";
@@ -195,9 +202,12 @@ export function PlaybackBar({
   const hasClampedRef = useRef(false);
   const skipTimeCommitOnBlurRef = useRef(false);
   const lightMode = useSettings((s) => s.lightMode);
-  const markerTooltipClass = lightMode
-    ? "pointer-events-none absolute bottom-full left-1/2 z-20 mb-2 w-max max-w-[180px] -translate-x-1/2 whitespace-normal break-words text-center rounded border border-slate-300 bg-white px-2 py-1 text-[10px] font-black uppercase tracking-wider text-slate-900 opacity-0 shadow-[0_8px_20px_rgba(15,23,42,0.18)] transition-opacity group-hover:opacity-100 group-focus-visible:opacity-100"
-    : "pointer-events-none absolute bottom-full left-1/2 z-20 mb-2 w-max max-w-[180px] -translate-x-1/2 whitespace-normal break-words text-center rounded border border-panel bg-[#101117] px-2 py-1 text-[10px] font-black uppercase tracking-wider text-white opacity-0 shadow-[0_8px_20px_rgba(0,0,0,0.45)] transition-opacity group-hover:opacity-100 group-focus-visible:opacity-100";
+  const tooltipBaseClass = lightMode
+    ? "pointer-events-none absolute bottom-full left-1/2 z-20 mb-2 w-max max-w-[180px] -translate-x-1/2 whitespace-normal break-words text-center rounded border border-slate-300 bg-white px-2 py-1 text-[10px] font-black uppercase tracking-wider text-slate-900 shadow-[0_8px_20px_rgba(15,23,42,0.18)]"
+    : "pointer-events-none absolute bottom-full left-1/2 z-20 mb-2 w-max max-w-[180px] -translate-x-1/2 whitespace-normal break-words text-center rounded border border-panel bg-[#101117] px-2 py-1 text-[10px] font-black uppercase tracking-wider text-white shadow-[0_8px_20px_rgba(0,0,0,0.45)]";
+  const markerTooltipClass = `${tooltipBaseClass} opacity-0 transition-opacity group-hover:opacity-100 group-focus-visible:opacity-100`;
+  // Fraction along the scrubber under the mouse, for the hover time readout.
+  const [hoverPct, setHoverPct] = useState<number | null>(null);
   const prevPlayingRef = useRef(playing);
 
   useEffect(() => {
@@ -283,6 +293,19 @@ export function PlaybackBar({
     },
     [jump, t],
   );
+
+  const onScrubberHover = (e: MouseEvent<HTMLDivElement>) => {
+    // Markers show their own tooltip.
+    if (durationMs <= 0 || (e.target as HTMLElement).closest("button")) {
+      setHoverPct(null);
+      return;
+    }
+    const rect = e.currentTarget.getBoundingClientRect();
+    const travel = rect.width - SCRUBBER_THUMB_PX;
+    if (travel <= 0) return;
+    const pct = (e.clientX - rect.left - SCRUBBER_THUMB_PX / 2) / travel;
+    setHoverPct(Math.min(1, Math.max(0, pct)));
+  };
 
   const prevLap = prevBefore(lapStarts, t);
   const raceStartLeft =
@@ -438,7 +461,11 @@ export function PlaybackBar({
         />
 
         {/* Scrubber */}
-        <div className="relative flex-1 h-4 flex items-center">
+        <div
+          className="relative flex-1 h-4 flex items-center"
+          onMouseMove={onScrubberHover}
+          onMouseLeave={() => setHoverPct(null)}
+        >
           <input
             type="range"
             min={0}
@@ -449,9 +476,16 @@ export function PlaybackBar({
             style={{ touchAction: "none" }}
             aria-label="Seek"
           />
-          {durationMs > 0 && showMarkers && !isCompactViewport && (
-            <div className="absolute inset-0 pointer-events-none">
-              {raceControlMarkers.map((marker) => {
+          {/* The thumb's centre stops half a thumb inside each end of the
+              track, so markers and the hover time share that inset span. */}
+          <div
+            className="absolute inset-y-0 pointer-events-none"
+            style={{ left: SCRUBBER_THUMB_PX / 2, right: SCRUBBER_THUMB_PX / 2 }}
+          >
+            {durationMs > 0 &&
+              showMarkers &&
+              !isCompactViewport &&
+              raceControlMarkers.map((marker) => {
                 const left = (marker.ms / durationMs) * 100;
                 if (!Number.isFinite(left) || left < 0 || left > 100)
                   return null;
@@ -488,33 +522,42 @@ export function PlaybackBar({
                   </button>
                 );
               })}
-            </div>
-          )}
-          {raceStartLeft !== null && raceStartMs !== null && (
-            <button
-              type="button"
-              title={markerTooltip("Race start", raceStartMs)}
-              aria-label={`Jump to race start: lights out at ${fmtTime(raceStartMs)}`}
-              onClick={() => {
-                trackEvent("playback_marker_jump", {
-                  marker_type: "Race start",
-                  target_ms: Math.round(raceStartMs),
-                });
-                // Land at the "get ready" lead-in so the light sequence plays.
-                jump(startLightsWindow(raceStartMs).startMs);
-              }}
-              className="group absolute top-1/2 h-5 w-5 rounded-full"
-              style={{
-                left: `${raceStartLeft}%`,
-                transform: "translate(-50%, -50%)",
-              }}
-            >
-              <span className="absolute left-1/2 top-1/2 h-4 w-1.5 -translate-x-1/2 -translate-y-1/2 rounded bg-[#00c851] opacity-90 ring-1 ring-black/35 transition-opacity group-hover:opacity-100" />
-              <span className={markerTooltipClass}>
-                {markerTooltip("Race start", raceStartMs)}
+            {raceStartLeft !== null && raceStartMs !== null && (
+              <button
+                type="button"
+                title={markerTooltip("Race start", raceStartMs)}
+                aria-label={`Jump to race start: lights out at ${fmtTime(raceStartMs)}`}
+                onClick={() => {
+                  trackEvent("playback_marker_jump", {
+                    marker_type: "Race start",
+                    target_ms: Math.round(raceStartMs),
+                  });
+                  // Land at the "get ready" lead-in so the light sequence plays.
+                  jump(startLightsWindow(raceStartMs).startMs);
+                }}
+                className="group absolute top-1/2 h-5 w-5 rounded-full pointer-events-auto"
+                style={{
+                  left: `${raceStartLeft}%`,
+                  transform: "translate(-50%, -50%)",
+                }}
+              >
+                <span className="absolute left-1/2 top-1/2 h-4 w-1.5 -translate-x-1/2 -translate-y-1/2 rounded bg-[#00c851] opacity-90 ring-1 ring-black/35 transition-opacity group-hover:opacity-100" />
+                <span className={markerTooltipClass}>
+                  {markerTooltip("Race start", raceStartMs)}
+                </span>
+              </button>
+            )}
+            {hoverPct !== null && durationMs > 0 && (
+              <span
+                role="tooltip"
+                aria-label="Time at pointer"
+                className={`${tooltipBaseClass} tabular-nums`}
+                style={{ left: `${hoverPct * 100}%` }}
+              >
+                {fmtTime(hoverPct * durationMs)}
               </span>
-            </button>
-          )}
+            )}
+          </div>
         </div>
 
         {/* Duration — hidden on mobile to reclaim scrubber space */}

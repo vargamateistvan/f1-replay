@@ -310,17 +310,18 @@ input[type='range'] {
   accent-color: #E8002D;
 }
 
-/* Larger thumb for touch targets */
+/* 16px round thumb in every browser (Chromium/WebKit draw this natively).
+   Keep in sync with SCRUBBER_THUMB_PX, which places the playback markers. */
 input[type='range']::-webkit-slider-thumb {
-  width: 20px;
-  height: 20px;
-  border-radius: 2px;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
 }
 
 input[type='range']::-moz-range-thumb {
-  width: 20px;
-  height: 20px;
-  border-radius: 2px;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
 }
 
 /* Select and option styling for all browsers */

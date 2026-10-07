@@ -14,6 +14,9 @@ export const DEFAULT_YEAR = YEARS[0];
 
 // ── Playback ────────────────────────────────────────────────────────────────--
 export const SPEEDS = [1, 2, 4, 8, 16] as const;
+// Diameter of the playback scrubber's thumb (see index.css). Its centre stops
+// half this inside each end of the track, so markers are laid out on that span.
+export const SCRUBBER_THUMB_PX = 16;
 // Cap a single RAF step so a throttled/backgrounded tab can't jump the playhead
 // across a whole location chunk when it refocuses (real ms, before speed scaling).
 export const MAX_FRAME_STEP_MS = 250;

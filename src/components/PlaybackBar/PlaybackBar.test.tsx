@@ -2,6 +2,7 @@ import { describe, expect, it, vi, beforeEach } from "vitest";
 import { fireEvent, render, screen } from "@testing-library/react";
 import { PlaybackBar } from "@/components/PlaybackBar";
 import { startLightsWindow } from "@/timeline/startLights";
+import { SCRUBBER_THUMB_PX } from "@/constants";
 
 const { timelineState, mockUseTimeline } = vi.hoisted(() => {
   const timelineState = {
@@ -93,6 +94,60 @@ describe("PlaybackBar marker interactions", () => {
     expect(timelineState.setT).toHaveBeenCalledWith(
       startLightsWindow(222_000).startMs,
     );
+  });
+
+  it("shows the time under the pointer when hovering the scrubber", () => {
+    render(<PlaybackBar durationMs={6_000_000} raceStartMs={222_000} />);
+    const scrubber = screen.getByRole("slider", { name: "Seek" })
+      .parentElement as HTMLElement;
+    vi.spyOn(scrubber, "getBoundingClientRect").mockReturnValue({
+      left: 100,
+      width: 816,
+      top: 0,
+      right: 916,
+      bottom: 16,
+      height: 16,
+      x: 100,
+      y: 0,
+      toJSON: () => ({}),
+    });
+
+    // Track travel is 816 - 16 = 800px, starting 8px in.
+    fireEvent.mouseMove(scrubber, { clientX: 100 + 8 + 400 });
+    expect(
+      screen.getByRole("tooltip", { name: "Time at pointer" }),
+    ).toHaveTextContent("50:00");
+
+    fireEvent.mouseMove(scrubber, { clientX: 100 });
+    expect(
+      screen.getByRole("tooltip", { name: "Time at pointer" }),
+    ).toHaveTextContent("00:00");
+
+    // Markers show their own label instead.
+    fireEvent.mouseMove(
+      screen.getByRole("button", { name: /Jump to race start/ }),
+      { clientX: 140 },
+    );
+    expect(
+      screen.queryByRole("tooltip", { name: "Time at pointer" }),
+    ).not.toBeInTheDocument();
+
+    fireEvent.mouseMove(scrubber, { clientX: 300 });
+    fireEvent.mouseLeave(scrubber);
+    expect(
+      screen.queryByRole("tooltip", { name: "Time at pointer" }),
+    ).not.toBeInTheDocument();
+  });
+
+  it("lays markers out over the thumb's travel, not the full track", () => {
+    render(<PlaybackBar durationMs={600_000} raceStartMs={222_000} />);
+    const markerLayer = screen.getByRole("button", {
+      name: /Jump to race start/,
+    }).parentElement as HTMLElement;
+    expect(markerLayer).toHaveStyle({
+      left: `${SCRUBBER_THUMB_PX / 2}px`,
+      right: `${SCRUBBER_THUMB_PX / 2}px`,
+    });
   });
 
   it("omits the race start marker when there is no race start", () => {
