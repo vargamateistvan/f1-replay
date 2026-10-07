@@ -150,10 +150,28 @@ describe("PlaybackBar marker interactions", () => {
     });
   });
 
+  it("marks the chequered flag and jumps to it", () => {
+    render(<PlaybackBar durationMs={6_000_000} chequeredMs={5_726_000} />);
+
+    const marker = screen.getByRole("button", {
+      name: "Jump to chequered flag at 1:35:26",
+    });
+    expect(marker).toHaveAttribute("title", "Chequered flag at 1:35:26");
+    expect(marker.firstElementChild).toHaveStyle({
+      backgroundColor: "rgb(255, 255, 255)",
+    });
+    fireEvent.click(marker);
+
+    expect(timelineState.setT).toHaveBeenCalledWith(5_726_000);
+  });
+
   it("omits the race start marker when there is no race start", () => {
     render(<PlaybackBar durationMs={600_000} raceStartMs={null} />);
     expect(
       screen.queryByRole("button", { name: /Jump to race start/ }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: /Jump to chequered flag/ }),
     ).not.toBeInTheDocument();
   });
 

@@ -4,6 +4,7 @@ import {
   useEffect,
   useRef,
   useState,
+  type CSSProperties,
   type MouseEvent,
 } from "react";
 import { createPortal } from "react-dom";
@@ -55,6 +56,8 @@ interface Props {
   q3StartMs?: number | null;
   /** Session-relative lights-out time (races/sprints); shows a race-start marker. */
   raceStartMs?: number | null;
+  /** Session-relative chequered-flag time (races/sprints); shows a finish marker. */
+  chequeredMs?: number | null;
   /** Starts loading the target's session-aligned replay windows before seeking. */
   onSeek?: (targetMs: number) => void;
   mobileInline?: boolean;
@@ -100,6 +103,14 @@ function parseSeekTimeInput(value: string): number | null {
 function markerTooltip(label: string, ms: number) {
   return `${label} at ${fmtTime(ms)}`;
 }
+
+// Same #111/#fff checker as the track map's chequered flag badge.
+const CHEQUERED_SWATCH_STYLE: CSSProperties = {
+  backgroundColor: "#fff",
+  backgroundImage:
+    "conic-gradient(#111 25%, transparent 0 50%, #111 0 75%, transparent 0)",
+  backgroundSize: "4px 4px",
+};
 
 const JUMP_BTN =
   "flex h-8 w-6 items-center justify-center text-xs bg-panel text-muted transition-colors shrink-0 hover:text-white hover:bg-track sm:w-7 disabled:opacity-30 disabled:hover:bg-panel disabled:hover:text-muted";
@@ -181,6 +192,7 @@ export function PlaybackBar({
   q2StartMs = null,
   q3StartMs = null,
   raceStartMs = null,
+  chequeredMs = null,
   onSeek,
   mobileInline = false,
   showSpeedControls = true,
@@ -307,14 +319,52 @@ export function PlaybackBar({
     setHoverPct(Math.min(1, Math.max(0, pct)));
   };
 
+  // Race start / chequered flag: always shown, unlike race-control markers.
+  const renderLandmark = ({
+    ms,
+    label,
+    ariaLabel,
+    swatchClassName = "",
+    swatchStyle,
+    targetMs,
+  }: {
+    ms: number;
+    label: string;
+    ariaLabel: string;
+    swatchClassName?: string;
+    swatchStyle?: CSSProperties;
+    targetMs: number;
+  }) => {
+    if (durationMs <= 0 || ms < 0 || ms > durationMs) return null;
+    const tooltip = markerTooltip(label, ms);
+    return (
+      <button
+        type="button"
+        title={tooltip}
+        aria-label={ariaLabel}
+        onClick={() => {
+          trackEvent("playback_marker_jump", {
+            marker_type: label,
+            target_ms: Math.round(targetMs),
+          });
+          jump(targetMs);
+        }}
+        className="group absolute top-1/2 h-5 w-5 rounded-full pointer-events-auto"
+        style={{
+          left: `${(ms / durationMs) * 100}%`,
+          transform: "translate(-50%, -50%)",
+        }}
+      >
+        <span
+          className={`absolute left-1/2 top-1/2 h-4 w-1.5 -translate-x-1/2 -translate-y-1/2 rounded ${swatchClassName} opacity-90 ring-1 ring-black/35 transition-opacity group-hover:opacity-100`}
+          style={swatchStyle}
+        />
+        <span className={markerTooltipClass}>{tooltip}</span>
+      </button>
+    );
+  };
+
   const prevLap = prevBefore(lapStarts, t);
-  const raceStartLeft =
-    raceStartMs !== null &&
-    durationMs > 0 &&
-    raceStartMs >= 0 &&
-    raceStartMs <= durationMs
-      ? (raceStartMs / durationMs) * 100
-      : null;
   const nextLap = nextAfter(lapStarts, t);
   const nextPit = nextAfter(pitTimes, t);
   const nextFlag = nextAfter(flagTimes, t);
@@ -522,31 +572,23 @@ export function PlaybackBar({
                   </button>
                 );
               })}
-            {raceStartLeft !== null && raceStartMs !== null && (
-              <button
-                type="button"
-                title={markerTooltip("Race start", raceStartMs)}
-                aria-label={`Jump to race start: lights out at ${fmtTime(raceStartMs)}`}
-                onClick={() => {
-                  trackEvent("playback_marker_jump", {
-                    marker_type: "Race start",
-                    target_ms: Math.round(raceStartMs),
-                  });
-                  // Land at the "get ready" lead-in so the light sequence plays.
-                  jump(startLightsWindow(raceStartMs).startMs);
-                }}
-                className="group absolute top-1/2 h-5 w-5 rounded-full pointer-events-auto"
-                style={{
-                  left: `${raceStartLeft}%`,
-                  transform: "translate(-50%, -50%)",
-                }}
-              >
-                <span className="absolute left-1/2 top-1/2 h-4 w-1.5 -translate-x-1/2 -translate-y-1/2 rounded bg-[#00c851] opacity-90 ring-1 ring-black/35 transition-opacity group-hover:opacity-100" />
-                <span className={markerTooltipClass}>
-                  {markerTooltip("Race start", raceStartMs)}
-                </span>
-              </button>
-            )}
+            {raceStartMs !== null &&
+              renderLandmark({
+                ms: raceStartMs,
+                label: "Race start",
+                ariaLabel: `Jump to race start: lights out at ${fmtTime(raceStartMs)}`,
+                swatchClassName: "bg-[#00c851]",
+                // Land at the "get ready" lead-in so the light sequence plays.
+                targetMs: startLightsWindow(raceStartMs).startMs,
+              })}
+            {chequeredMs !== null &&
+              renderLandmark({
+                ms: chequeredMs,
+                label: "Chequered flag",
+                ariaLabel: `Jump to chequered flag at ${fmtTime(chequeredMs)}`,
+                swatchStyle: CHEQUERED_SWATCH_STYLE,
+                targetMs: chequeredMs,
+              })}
             {hoverPct !== null && durationMs > 0 && (
               <span
                 role="tooltip"

@@ -430,23 +430,22 @@ export default function RaceWeekend() {
   const raceControl = useRaceControl(sessionKey, live);
   const teamRadio = useTeamRadio(sessionKey, live);
   const weather = useWeather(sessionKey, live);
-  const liveDataError =
-    live
-      ? [
-          drivers.error,
-          positions.error,
-          intervals.error,
-          stints.error,
-          laps.error,
-          pits.error,
-          grid.error,
-          sessionResult.error,
-          overtakes.error,
-          raceControl.error,
-          teamRadio.error,
-          weather.error,
-        ].find(isAuthError)
-      : null;
+  const liveDataError = live
+    ? [
+        drivers.error,
+        positions.error,
+        intervals.error,
+        stints.error,
+        laps.error,
+        pits.error,
+        grid.error,
+        sessionResult.error,
+        overtakes.error,
+        raceControl.error,
+        teamRadio.error,
+        weather.error,
+      ].find(isAuthError)
+    : null;
 
   // Stable selector — won't re-render on every t tick.
   const setSessionStart = useTimeline((s) => s.setSessionStart);
@@ -629,7 +628,8 @@ export default function RaceWeekend() {
         }),
       ),
     ].filter(
-      (animation): animation is NonNullable<typeof animation> => animation !== null,
+      (animation): animation is NonNullable<typeof animation> =>
+        animation !== null,
     );
 
     const cards = root.querySelectorAll("[data-motion-card]");
@@ -726,8 +726,7 @@ export default function RaceWeekend() {
     sessionKey !== null &&
     (drivers.isPending || positions.isPending || intervals.isPending);
   const isLoadingEventSession =
-    meetingKey !== null &&
-    (sessions.isPending || isLoadingSessionData);
+    meetingKey !== null && (sessions.isPending || isLoadingSessionData);
   const queryClient = useQueryClient();
 
   const locationChunkIdx = locationChunkIndexFor(t);
@@ -818,9 +817,12 @@ export default function RaceWeekend() {
   );
 
   const raceControlMarkers = useMemo(() => {
-    const raw = buildRaceControlMarkers(normalizedRcEvents);
-    return clusterRaceControlMarkers(raw);
-  }, [normalizedRcEvents]);
+    // Races show the chequered flag as its own playback-bar landmark.
+    const events = isRaceSession
+      ? normalizedRcEvents.filter((event) => event.flag !== "CHEQUERED")
+      : normalizedRcEvents;
+    return clusterRaceControlMarkers(buildRaceControlMarkers(events));
+  }, [normalizedRcEvents, isRaceSession]);
 
   const markerSummary = useMemo(
     () => summarizeMarkers(raceControlMarkers),
@@ -1050,15 +1052,14 @@ export default function RaceWeekend() {
     let activeLeaderNum: number | null = null;
     for (const ev of raceLeaderEvents) {
       if (ev.ms > currentT) break;
-      if (
-        currentT >= ev.ms &&
-        currentT < ev.ms + RACE_LEADER_NOTIFICATION_MS
-      ) {
+      if (currentT >= ev.ms && currentT < ev.ms + RACE_LEADER_NOTIFICATION_MS) {
         activeLeaderNum = ev.driverNumber;
       }
     }
     if (activeLeaderNum === null) return null;
-    return drivers.data.find((d) => d.driver_number === activeLeaderNum) ?? null;
+    return (
+      drivers.data.find((d) => d.driver_number === activeLeaderNum) ?? null
+    );
   }, [raceLeaderEvents, drivers.data, sessionStartMs, tSlow, isMapVisible]);
 
   // Current session global/sector track flag state at playhead.
@@ -1414,7 +1415,8 @@ export default function RaceWeekend() {
     const consider = (dateStr: string | null | undefined) => {
       if (!dateStr) return;
       const ms = new Date(dateStr).getTime() - sessionStartMs;
-      if (Number.isFinite(ms)) latest = latest === null ? ms : Math.max(latest, ms);
+      if (Number.isFinite(ms))
+        latest = latest === null ? ms : Math.max(latest, ms);
     };
     for (const { row: lap, relMs: lapStartMs } of timedLaps) {
       if (lap.date_start && lap.lap_duration && lap.lap_duration > 0) {
@@ -1966,10 +1968,23 @@ export default function RaceWeekend() {
     />
   );
 
+  const eventToastStack = (
+    <EventToastStack
+      toasts={toasts}
+      drivers={drivers.data ?? []}
+      onDismiss={dismiss}
+      radioAutoplay={settingToastRadioAutoplay}
+      soundsEnabled={toastSoundsEnabled}
+      maxVisible={notificationMaxVisible}
+      layout="overlay"
+      onPlayingIdsChange={setPlayingToastIds}
+    />
+  );
+
   // ── View layouts ─────────────────────────────────────────────────────────────
 
   return (
-    <div className="relative flex flex-col overflow-x-hidden pb-[calc(7.5rem+env(safe-area-inset-bottom))] md:h-full md:min-h-0 md:flex-1 md:overflow-hidden md:pb-0">
+    <div className="relative flex flex-col overflow-x-clip pb-[calc(7.5rem+env(safe-area-inset-bottom))] md:h-full md:min-h-0 md:flex-1 md:overflow-hidden md:pb-0">
       {isLoadingEventSession && (
         <div className="absolute inset-0 z-40 flex items-center justify-center bg-[#0b0c12]/86 backdrop-blur-sm">
           <div className="mx-4 w-full max-w-sm rounded border border-panel bg-surface px-4 py-4 text-center shadow-2xl">
@@ -1984,6 +1999,11 @@ export default function RaceWeekend() {
       )}
 
       <LiveDataNotice error={liveDataError} />
+
+      {/* Mobile: zero-height sticky anchor keeps toasts in the top-right corner while scrolling */}
+      {currentView === "tracker" && isCompactViewport && (
+        <div className="sticky top-20 z-40 h-0">{eventToastStack}</div>
+      )}
 
       {/* ── LEADERBOARD VIEW ──────────────────────────────────────────── */}
       {currentView === "leaderboard" && (
@@ -2077,19 +2097,8 @@ export default function RaceWeekend() {
             data-motion-card
             className="flex flex-col md:flex-1 md:min-h-0 md:overflow-hidden relative"
           >
-            {/* Toast overlay — covers both mobile and desktop tracker content */}
-            {activeTrackerTab !== "map" && (
-              <EventToastStack
-                toasts={toasts}
-                drivers={drivers.data ?? []}
-                onDismiss={dismiss}
-                radioAutoplay={settingToastRadioAutoplay}
-                soundsEnabled={toastSoundsEnabled}
-                maxVisible={notificationMaxVisible}
-                layout="overlay"
-                onPlayingIdsChange={setPlayingToastIds}
-              />
-            )}
+            {/* Desktop toast overlay — mobile renders it at the page root */}
+            {!isCompactViewport && eventToastStack}
 
             {/* Phone layout: tab-switched (md:hidden) */}
             <div className="md:hidden flex flex-col w-full">
@@ -2197,16 +2206,6 @@ export default function RaceWeekend() {
                       </div>
                     )}
                     <div className="relative flex-1 min-h-[64vw]">
-                      <EventToastStack
-                        toasts={toasts}
-                        drivers={drivers.data ?? []}
-                        onDismiss={dismiss}
-                        radioAutoplay={settingToastRadioAutoplay}
-                        soundsEnabled={toastSoundsEnabled}
-                        maxVisible={notificationMaxVisible}
-                        layout="overlay"
-                        onPlayingIdsChange={setPlayingToastIds}
-                      />
                       {drivers.isError ? (
                         <ErrorMessage message="Failed to load driver data" />
                       ) : (
@@ -2429,8 +2428,10 @@ export default function RaceWeekend() {
               />
 
               {/* Track map — fills remaining width */}
-              <div               data-motion-card
-              className="flex-1 min-w-0 bg-[#10101a] flex flex-col">
+              <div
+                data-motion-card
+                className="flex-1 min-w-0 bg-[#10101a] flex flex-col"
+              >
                 <div className="relative flex-1 min-h-0">
                   {drivers.isError ? (
                     <ErrorMessage message="Failed to load driver data" />
@@ -2676,6 +2677,7 @@ export default function RaceWeekend() {
         q2StartMs={qualiPhaseStartTimes.q2StartMs}
         q3StartMs={qualiPhaseStartTimes.q3StartMs}
         raceStartMs={isRaceSession ? lightsOutMs : null}
+        chequeredMs={isRaceSession ? chequeredMs : null}
         onSeek={prefetchPlaybackWindows}
         showSpeedControls={showPlaybackSpeedControls}
         showEventChips={showPlaybackEventChips}
