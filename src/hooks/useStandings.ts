@@ -49,8 +49,14 @@ export function useStandings(
           .filter((session) => session.meeting_key === preferredMeetingKey)
           .at(-1)?.session_key ?? null
       : null;
-  const selectedKey =
-    preferredSessionKey ?? meetingKeyOverride ?? latestKey;
+  // Only honour a preferred session if it belongs to the selected year —
+  // otherwise a stale ?session= from another season would override the year.
+  const sessionOverride =
+    preferredSessionKey != null &&
+    (sessionsQ.data ?? []).some((s) => s.session_key === preferredSessionKey)
+      ? preferredSessionKey
+      : null;
+  const selectedKey = sessionOverride ?? meetingKeyOverride ?? latestKey;
 
   const driversQ = useQuery({
     queryKey: ["drivers", selectedKey],

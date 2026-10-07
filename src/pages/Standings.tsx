@@ -25,7 +25,9 @@ import {
 } from "@/lib/motion";
 import { ErrorMessage } from "@/components/ErrorMessage";
 import { DriverHeadshot } from "@/components/DriverHeadshot";
+import { useSearchParams } from "react-router-dom";
 import { useNumberParam, useStringParam } from "@/hooks/useSearchParamState";
+import { replaceHistorySearchParams } from "@/utils/url";
 import { YEARS, DEFAULT_YEAR } from "@/constants";
 
 type Tab = "drivers" | "constructors";
@@ -441,10 +443,26 @@ function ConstructorChart({ standings }: { standings: ConstructorStanding[] }) {
 
 // ── Page ──────────────────────────────────────────────────────────────────────
 export default function Standings() {
-  const [yearParam, setYear] = useNumberParam("year", DEFAULT_YEAR);
+  const [, setSearchParams] = useSearchParams();
+  const [yearParam] = useNumberParam("year", DEFAULT_YEAR);
   const year = yearParam ?? DEFAULT_YEAR;
   const [meetingKey] = useNumberParam("meeting", null);
   const [sessionKey] = useNumberParam("session", null);
+  // meeting/session belong to the previous year; drop them in the same update
+  // so the new year's latest race drives the standings.
+  const setYear = (next: number) => {
+    setSearchParams(
+      (prev) => {
+        const p = new URLSearchParams(prev);
+        p.set("year", String(next));
+        p.delete("meeting");
+        p.delete("session");
+        replaceHistorySearchParams(p);
+        return p;
+      },
+      { replace: true },
+    );
+  };
   const [tab, setTab] = useStringParam<Tab>("tab", "drivers");
   const driverTableRef = useRef<HTMLDivElement>(null);
   const driverChartRef = useRef<HTMLDivElement>(null);
