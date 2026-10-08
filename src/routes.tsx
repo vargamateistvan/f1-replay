@@ -30,6 +30,7 @@ import {
   RELEASES_PAGE_URL,
 } from "@/lib/appVersion";
 import { useReleaseDate } from "@/hooks/useReleaseDate";
+import { OPENF1_SITE_URL } from "@/constants";
 const RaceWeekend = lazy(() => import("@/pages/RaceWeekend"));
 const Telemetry = lazy(() => import("@/pages/Telemetry"));
 const Standings = lazy(() => import("@/pages/Standings"));
@@ -164,7 +165,23 @@ export function AppRouter() {
         </main>
         <footer className="hidden border-t border-panel bg-track/90 px-3 py-1 text-[10px] text-muted md:block">
           <div className="mx-auto flex w-full items-center justify-between gap-2.5">
-            <ReleaseVersionLabel />
+            <div className="flex items-center gap-2.5">
+              <ReleaseVersionLabel />
+              <span aria-hidden="true" className="text-muted">
+                |
+              </span>
+              <span>
+                Data source:{" "}
+                <a
+                  href={OPENF1_SITE_URL}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="text-f1red/85 transition-colors hover:text-f1red"
+                >
+                  OpenF1
+                </a>
+              </span>
+            </div>
             <div className="flex items-center gap-2.5">
               <Link
                 to="/privacy"

@@ -8,8 +8,7 @@ import {
   formatReleaseDate,
   RELEASES_PAGE_URL,
 } from "@/lib/appVersion";
-
-const OPENF1_URL = "https://openf1.org/";
+import { OPENF1_SITE_URL } from "@/constants";
 
 interface Props {
   open: boolean;
@@ -91,7 +90,7 @@ export function AboutDialog({ open, onClose, onNavigate }: Props) {
             <dt className={ROW_LABEL}>Data</dt>
             <dd className={ROW_VALUE}>
               <a
-                href={OPENF1_URL}
+                href={OPENF1_SITE_URL}
                 target="_blank"
                 rel="noreferrer"
                 className="transition-colors hover:text-f1red"
