@@ -193,7 +193,8 @@ function DriverTable({ standings }: { standings: DriverStanding[] }) {
             <th className="text-left py-2 px-3 text-[10px] font-bold uppercase tracking-widest text-muted">
               Driver
             </th>
-            <th className="text-left py-2 px-3 text-[10px] font-bold uppercase tracking-widest text-muted hidden sm:table-cell">
+            {/* In the md+ split layout the panel is ≤420px; the team moves under the name. */}
+            <th className="text-left py-2 px-3 text-[10px] font-bold uppercase tracking-widest text-muted hidden sm:table-cell md:hidden">
               Team
             </th>
             <th className="text-right py-2 px-3 text-[10px] font-bold uppercase tracking-widest text-muted w-16">
@@ -244,12 +245,15 @@ function DriverTable({ standings }: { standings: DriverStanding[] }) {
                   >
                     {s.acronym}
                   </span>
-                  <span className="text-muted text-xs hidden sm:inline">
-                    {s.fullName}
+                  <span className="hidden sm:flex flex-col leading-tight">
+                    <span className="text-muted text-xs">{s.fullName}</span>
+                    <span className="hidden md:block text-muted/70 text-[10px]">
+                      {s.team}
+                    </span>
                   </span>
                 </span>
               </td>
-              <td className="py-3 px-3 text-muted text-xs hidden sm:table-cell">
+              <td className="py-3 px-3 text-muted text-xs hidden sm:table-cell md:hidden">
                 {s.team}
               </td>
               <td className="py-3 px-3 text-right font-mono tabular-nums font-bold text-sm">
