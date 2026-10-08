@@ -13,7 +13,8 @@ name: Warm Proxy Cache
 # once `date<` is more than 30 minutes in the past.
 #
 # Every run also backfills session_result for each finished Race/Sprint/
-# Qualifying since 2023 (what the Standings page fetches). The proxy caches
+# Qualifying and championship_drivers/teams for each Race/Sprint since 2023
+# (what the Standings page fetches). The proxy caches
 # those forever, so after the first run this is a sub-second pass of cache
 # hits that only reaches OpenF1 for newly-finished sessions.
 #

@@ -36,8 +36,9 @@ import { appendFileSync } from "node:fs";
  *
  * Results backfill: the Standings page requests session_result for every
  * finished Race/Sprint (and main Qualifying for the teammate comparison) of a
- * season. The proxy keeps those forever, so every run tops up any that are
- * missing; already-cached ones are cheap hits that don't touch OpenF1.
+ * season, plus championship_drivers/teams for the selected Race/Sprint. The
+ * proxy keeps those forever, so every run tops up any that are missing;
+ * already-cached ones are cheap hits that don't touch OpenF1.
  */
 
 const OPENF1_DIRECT = "https://api.openf1.org/v1";
@@ -315,8 +316,8 @@ function sessionUrls(session) {
   push("session_result", { session_key: sk }, { refresh: true });
   push("starting_grid", { session_key: sk });
   push("overtakes", { session_key: sk });
-  push("championship_drivers", { session_key: sk });
-  push("championship_teams", { session_key: sk });
+  push("championship_drivers", { session_key: sk }, { refresh: true });
+  push("championship_teams", { session_key: sk }, { refresh: true });
 
   // Location chunks — 2-min grid aligned to date_start (useLocationChunks).
   const lastLocationChunk = Math.floor(durationMs / LOCATION_CHUNK_MS);
@@ -357,16 +358,32 @@ function isSprintName(name) {
   return /(^|\s)sprint(\s|$)/i.test(name ?? "") && !/qualifying/i.test(name ?? "");
 }
 
-function isStandingsResultSession(s) {
-  if (s.is_cancelled) return false;
-  const isPoints =
+function isPointsSession(s) {
+  return (
     s.session_type === "Race" ||
     s.session_type === "Sprint" ||
-    isSprintName(s.session_name);
+    isSprintName(s.session_name)
+  );
+}
+
+function isStandingsResultSession(s) {
+  if (s.is_cancelled) return false;
   const isMainQualifying =
     s.session_type === "Qualifying" &&
     !/sprint|shootout/i.test(s.session_name ?? "");
-  return isPoints || isMainQualifying;
+  return isPointsSession(s) || isMainQualifying;
+}
+
+// URLs the Standings page needs for one finished session. Championship
+// snapshots only exist for Races/Sprints (other sessions 404).
+function standingsUrls(s) {
+  const params = { session_key: s.session_key };
+  const urls = [canonicalUrl(PROXY_BASE, "session_result", params)];
+  if (isPointsSession(s)) {
+    urls.push(canonicalUrl(PROXY_BASE, "championship_drivers", params));
+    urls.push(canonicalUrl(PROXY_BASE, "championship_teams", params));
+  }
+  return urls;
 }
 
 async function backfillSeasonResults(alreadyWarmed) {
@@ -397,14 +414,13 @@ async function backfillSeasonResults(alreadyWarmed) {
       );
     });
 
-    console.log(`Backfilling ${due.length} session results for ${year}…`);
+    const urls = due.flatMap(standingsUrls);
+    console.log(
+      `Backfilling ${urls.length} results/championship URLs for ${year}…`,
+    );
     const before = snapshotStats();
-    for (const s of due) {
-      await warmFetch(
-        canonicalUrl(PROXY_BASE, "session_result", {
-          session_key: s.session_key,
-        }),
-      );
+    for (const url of urls) {
+      await warmFetch(url);
       requested++;
     }
     const delta = diffStats(before, stats);

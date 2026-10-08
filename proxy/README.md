@@ -24,8 +24,8 @@ api.openf1.org
 |--------|-----------|-----|
 | Static metadata | `meetings`, `sessions`, `drivers`, `starting_grid` | 90 days in KV; 30-day browser cache |
 | `latest` aliases | any request with `meeting_key=latest` / `session_key=latest` | 5 min |
-| Current-season standings | `championship_drivers`, `championship_teams` | 60 s TTL; they change after each race |
-| Session results | `session_result?session_key=<n>` | **Forever** in KV (no expiry); 1-day edge/browser cache so corrections propagate |
+| Session results & standings snapshots | `session_result`, `championship_drivers`, `championship_teams` with a numeric `session_key` | **Forever** in KV (no expiry); 1-day edge/browser cache so corrections propagate |
+| Other championship queries | `championship_drivers`, `championship_teams` without a concrete `session_key` | 60 s TTL |
 | Historical date-window | `location`, `car_data` where `date<` is in the past | 90 days in KV; 30-day browser cache |
 | Live date-window | `location`, `car_data` where `date<` is recent | 5 s |
 | Live fast feeds | `position`, `intervals`, `laps` | 20 s |
@@ -33,9 +33,9 @@ api.openf1.org
 
 Empty `[]` responses are **never cached** — live data may not exist yet.
 
-Historical KV entries expire after 90 days so old race weekends don't accumulate in storage; an expired entry is transparently re-fetched from OpenF1 on the next request. `session_result` is the exception: the Standings page requests one per round of a season, so results are kept forever to avoid a 429 burst whenever an old season is opened. They are small (≈20 rows per session).
+Historical KV entries expire after 90 days so old race weekends don't accumulate in storage; an expired entry is transparently re-fetched from OpenF1 on the next request. `session_result` and per-session `championship_*` snapshots are the exception: the Standings page requests them for every round of a season, so they are kept forever to avoid a 429 burst whenever an old season is opened. They are small (≈20 rows per session).
 
-Entries written before the 90-day TTL was introduced have no expiration. Backfill them once (values are preserved, only the expiry is added; `session_result` keys are skipped):
+Entries written before the 90-day TTL was introduced have no expiration. Backfill them once (values are preserved, only the expiry is added; `session_result` / `championship_*` keys are skipped):
 
 ```bash
 cd proxy
@@ -49,16 +49,16 @@ yarn kv:expire-legacy --apply     # re-writes them with a 90-day TTL
 
 The GitHub workflow `.github/workflows/warm-cache.yml` runs hourly on race-weekend days (Thu–Sun UTC, plus an early-Monday catch-up), detects sessions that ended 40 min – 3 h ago, and replays every canonical app URL for them through the proxy (`scripts/warm-proxy-cache.mjs`) — static endpoints, 2-min location chunks and 5-min car_data chunks — self-throttled under the OpenF1 rate limits. The first real visitor then gets cache hits everywhere.
 
-Every run also **backfills season results**: it lists each season's sessions (2023 → now) through the proxy and requests `session_result` for every finished Race, Sprint and main Qualifying — exactly what the Standings page (wins/podiums, points progression, teammate head-to-heads) fetches. Results are cached forever, so only missing ones reach OpenF1; a fully-warmed run takes under a second. Tune with `RESULTS_BACKFILL=0` (disable) or `RESULTS_BACKFILL_FROM_YEAR`.
+Every run also **backfills season results**: it lists each season's sessions (2023 → now) through the proxy and requests `session_result` for every finished Race, Sprint and main Qualifying, plus `championship_drivers` / `championship_teams` for every Race and Sprint — exactly what the Standings page (wins/podiums, points progression, teammate head-to-heads) fetches. Results are cached forever, so only missing ones reach OpenF1; a fully-warmed run takes under a second. Tune with `RESULTS_BACKFILL=0` (disable) or `RESULTS_BACKFILL_FROM_YEAR`.
 
-Freshly-finished sessions' `session_result` is warmed with `X-Warm-Refresh: 1` on every run inside the lookback window (24 h in the workflow), so a provisional classification or a late stewards' penalty overwrites the forever-cached copy.
+Freshly-finished sessions' `session_result` and `championship_*` are warmed with `X-Warm-Refresh: 1` on every run inside the lookback window (24 h in the workflow), so a provisional classification or a late stewards' penalty overwrites the forever-cached copy.
 
 Two request headers enhance warm runs when the `WARM_SECRET` Worker secret is set:
 
 | Header | Effect |
 |--------|--------|
 | `X-Warm-Secret: <secret>` | Response is cached as historical (**90 days** in KV), even for endpoints whose URL alone can't prove they're historical (`laps`, `position`, `intervals`, `weather`, …) |
-| `X-Warm-Refresh: 1` | Bypasses the cache read and re-fetches from OpenF1 — used to keep the long-cached `meetings`/`sessions` lists current mid-season, and to re-fetch a just-finished session's `session_result` |
+| `X-Warm-Refresh: 1` | Bypasses the cache read and re-fetches from OpenF1 — used to keep the long-cached `meetings`/`sessions` lists current mid-season, and to re-fetch a just-finished session's `session_result` / `championship_*` |
 
 Setup:
 

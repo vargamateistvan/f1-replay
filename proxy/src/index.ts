@@ -13,7 +13,8 @@
  *
  * Cache TTL strategy
  * ──────────────────
- * SESSION RESULT      → forever in KV, 1-day edge/browser cache
+ * SESSION RESULT /
+ * CHAMPIONSHIP        → forever in KV, 1-day edge/browser cache (per session_key)
  * STATIC              → 90 days in KV, 30-day browser cache
  * Historical data     → 90 days in KV, 30-day browser cache
  * Live location/data  → 5 s
@@ -72,8 +73,9 @@ const TTL_PERMANENT = 60 * 60 * 24 * 30; // 30-day browser cache TTL.
 // after 90 days so old weekends don't accumulate in storage forever. An
 // expired entry is simply re-fetched from OpenF1 on the next request.
 const TTL_HISTORICAL_KV = 60 * 60 * 24 * 90;
-// Final classifications never change once published, and the Standings page
-// requests one per round of a season, so they are kept in KV with no expiry.
+// Final classifications and the championship snapshot after a session never
+// change once published, and the Standings page requests them for every round
+// of a season, so they are kept in KV with no expiry.
 // The warm workflow re-fetches them for 24 h after a session (X-Warm-Refresh)
 // so a provisional copy or a late stewards' penalty is overwritten. KV is the
 // long-lived copy; the per-colo edge cache and browsers re-read it daily so a
@@ -113,12 +115,20 @@ const STATIC_ENDPOINTS = new Set([
   "starting_grid",
 ]);
 
+// Only reached without a concrete session_key (e.g. meeting_key filters).
 const CURRENT_SEASON_MUTABLE_ENDPOINTS = new Set([
   "championship_drivers",
   "championship_teams",
 ]);
 
 const RESULT_ENDPOINTS = new Set(["session_result"]);
+
+// Per-session snapshots that are immutable once the session has finished.
+const FOREVER_ENDPOINTS = new Set([
+  "session_result",
+  "championship_drivers",
+  "championship_teams",
+]);
 
 const NUMERIC_KEY = /^\d+$/;
 
@@ -165,14 +175,15 @@ function usesLatestAlias(params: URLSearchParams): boolean {
 }
 
 /**
- * Results for a concrete session are immutable and cached without expiry.
+ * Results / championship standings for a concrete session are immutable and
+ * cached without expiry.
  */
 function isForeverCacheable(
   endpoint: string,
   params: URLSearchParams,
 ): boolean {
   return (
-    RESULT_ENDPOINTS.has(endpoint) &&
+    FOREVER_ENDPOINTS.has(endpoint) &&
     NUMERIC_KEY.test(params.get("session_key") ?? "") &&
     !usesLatestAlias(params)
   );
