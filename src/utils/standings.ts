@@ -44,6 +44,68 @@ interface SessionLike {
   session_name?: string;
 }
 
+interface DatedSessionLike extends SessionLike {
+  date_start: string;
+  date_end?: string;
+  is_cancelled?: boolean;
+}
+
+export function isPointsSession(session: SessionLike): boolean {
+  return (
+    session.session_type === "Race" ||
+    session.session_type === "Sprint" ||
+    isSprintSession(session.session_name)
+  );
+}
+
+export function isGrandPrixSession(session: SessionLike): boolean {
+  return (
+    session.session_type === "Race" && !isSprintSession(session.session_name)
+  );
+}
+
+// Race/Sprint sessions that have finished by `nowMs`, oldest first. Upcoming
+// sessions are excluded because their championship data is still empty.
+export function completedPointsSessions<T extends DatedSessionLike>(
+  sessions: T[],
+  nowMs: number,
+): T[] {
+  return sessions
+    .filter((s) => {
+      if (s.is_cancelled || !isPointsSession(s)) return false;
+      const end = Date.parse(s.date_end ?? s.date_start);
+      return Number.isFinite(end) && end <= nowMs;
+    })
+    .sort((a, b) => Date.parse(a.date_start) - Date.parse(b.date_start));
+}
+
+export interface PodiumTally {
+  wins: Map<number, number>;
+  podiums: Map<number, number>;
+}
+
+// Grand Prix wins/podiums per driver number. Sprints are excluded, matching
+// the official F1 statistics convention.
+export function tallyGrandPrixPodiums(
+  sessions: SessionLike[],
+  results: (SessionResult[] | undefined)[],
+): PodiumTally {
+  const wins = new Map<number, number>();
+  const podiums = new Map<number, number>();
+
+  sessions.forEach((session, i) => {
+    if (!isGrandPrixSession(session)) return;
+    for (const r of results[i] ?? []) {
+      if (r.dns || r.dsq || r.position === null || r.position > 3) continue;
+      const num = r.driver_number;
+      podiums.set(num, (podiums.get(num) ?? 0) + 1);
+      if (r.position === 1) wins.set(num, (wins.get(num) ?? 0) + 1);
+    }
+  });
+
+  return { wins, podiums };
+}
+
 // Aggregate a season's race/sprint results into driver + constructor tables.
 // `results[i]` is the session_result for `sessions[i]` (undefined if not loaded).
 // Pure and deterministic — the unit of standings logic worth testing.

@@ -1,6 +1,11 @@
 import { describe, it, expect } from "vitest";
 import { canonicalTeamName } from "./identity";
-import { computeStandings, type DriverInfo } from "./standings";
+import {
+  completedPointsSessions,
+  computeStandings,
+  tallyGrandPrixPodiums,
+  type DriverInfo,
+} from "./standings";
 import type { SessionResult } from "@/api/types";
 
 function res(p: Partial<SessionResult>): SessionResult {
@@ -142,5 +147,81 @@ describe("computeStandings — constructors", () => {
     expect(
       canonicalTeamName("Oracle Red Bull Racing", ["Red Bull", "Ferrari"]),
     ).toBe("Red Bull");
+  });
+});
+
+describe("completedPointsSessions", () => {
+  const now = Date.parse("2025-06-01T00:00:00Z");
+  const s = (
+    key: number,
+    session_type: string,
+    date_start: string,
+    extra: Record<string, unknown> = {},
+  ) => ({
+    session_key: key,
+    session_type,
+    session_name: session_type,
+    date_start,
+    date_end: date_start,
+    ...extra,
+  });
+
+  it("keeps finished Race/Sprint sessions in chronological order", () => {
+    const out = completedPointsSessions(
+      [
+        s(3, "Race", "2025-05-20T00:00:00Z"),
+        s(1, "Sprint", "2025-05-01T00:00:00Z"),
+        s(2, "Qualifying", "2025-05-10T00:00:00Z"),
+      ],
+      now,
+    );
+    expect(out.map((x) => x.session_key)).toEqual([1, 3]);
+  });
+
+  it("drops upcoming, in-progress and cancelled sessions", () => {
+    const out = completedPointsSessions(
+      [
+        s(1, "Race", "2025-05-01T00:00:00Z"),
+        s(2, "Race", "2025-06-10T00:00:00Z"),
+        s(3, "Race", "2025-05-31T23:00:00Z", {
+          date_end: "2025-06-01T01:00:00Z",
+        }),
+        s(4, "Race", "2025-05-15T00:00:00Z", { is_cancelled: true }),
+      ],
+      now,
+    );
+    expect(out.map((x) => x.session_key)).toEqual([1]);
+  });
+});
+
+describe("tallyGrandPrixPodiums", () => {
+  it("counts Grand Prix wins/podiums and ignores sprints, DSQ and DNS", () => {
+    const { wins, podiums } = tallyGrandPrixPodiums(
+      [
+        { session_type: "Race", session_name: "Race" },
+        { session_type: "Race", session_name: "Sprint" },
+        { session_type: "Race", session_name: "Race" },
+      ],
+      [
+        [res({ driver_number: 1, position: 1 }), res({ driver_number: 44, position: 2 }), res({ driver_number: 4, position: 4 })],
+        [res({ driver_number: 4, position: 1 })],
+        [
+          res({ driver_number: 44, position: 1, dsq: true }),
+          res({ driver_number: 1, position: 2 }),
+          res({ driver_number: 11, position: 3 }),
+        ],
+      ],
+    );
+    expect(Object.fromEntries(wins)).toEqual({ 1: 1 });
+    expect(Object.fromEntries(podiums)).toEqual({ 1: 2, 44: 1, 11: 1 });
+  });
+
+  it("tolerates results that have not loaded yet", () => {
+    const { wins, podiums } = tallyGrandPrixPodiums(
+      [{ session_type: "Race", session_name: "Race" }],
+      [undefined],
+    );
+    expect(wins.size).toBe(0);
+    expect(podiums.size).toBe(0);
   });
 });
