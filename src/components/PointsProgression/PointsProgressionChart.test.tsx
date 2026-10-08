@@ -20,8 +20,8 @@ vi.mock("recharts", () => {
 });
 
 const rounds = [
-  { sessionKey: 1, label: "Sakhir", isSprint: false },
-  { sessionKey: 2, label: "Jeddah", isSprint: false },
+  { sessionKey: 1, label: "Sakhir", code: "BRN", isSprint: false },
+  { sessionKey: 2, label: "Jeddah", code: "KSA", isSprint: false },
 ];
 
 const series: ProgressionSeries[] = Array.from({ length: 12 }, (_, i) => ({

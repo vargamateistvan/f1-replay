@@ -264,6 +264,12 @@ describe("useStandings", () => {
       expect(totals.get(1)).toEqual([25, 32, 50]);
       expect(totals.get(11)).toEqual([18, 26, 51]);
       expect(hook.current.constructorProgression.totals.get("Red Bull Racing")).toEqual([43, 58, 101]);
+      expect(hook.current.resultsGrid.rounds.map((r) => r.isSprint)).toEqual([false, true, false]);
+      expect(hook.current.resultsGrid.cells.get(44)).toEqual([
+        { position: 3, points: 15, status: "finished" },
+        null,
+        { position: 3, points: 15, status: "finished" },
+      ]);
     });
 
     it("marks the champion once the season is over", () => {

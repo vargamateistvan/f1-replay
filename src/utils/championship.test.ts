@@ -6,6 +6,7 @@ import {
   maxSessionPoints,
   pointsProgression,
   remainingPoints,
+  resultsGrid,
   teammatePairs,
   titleOutlook,
 } from "./championship";
@@ -209,5 +210,46 @@ describe("teammatePairs", () => {
       { team: "Red Bull", a: 1, b: 30 },
       { team: "Ferrari", a: 16, b: 44 },
     ]);
+  });
+});
+
+describe("resultsGrid", () => {
+  it("records each driver's classification per round", () => {
+    const { rounds, cells } = resultsGrid(
+      [
+        session(1, "Race", "2025-03-01T00:00:00Z", { country_code: "bhr" }),
+        session(2, "Sprint", "2025-03-08T00:00:00Z", { country_code: "CHN" }),
+        session(3, "Race", "2025-03-09T00:00:00Z"),
+      ],
+      [
+        [
+          res({ driver_number: 1, position: 1, points: 25 }),
+          res({ driver_number: 4, position: null, dnf: true }),
+        ],
+        [res({ driver_number: 1, position: 3 }), res({ driver_number: 4, position: 2, dsq: true })],
+        undefined,
+      ],
+    );
+    expect(rounds.map((r) => [r.code, r.isSprint])).toEqual([
+      ["BHR", false],
+      ["CHN", true],
+    ]);
+    expect(cells.get(1)).toEqual([
+      { position: 1, points: 25, status: "finished" },
+      { position: 3, points: 6, status: "finished" },
+    ]);
+    expect(cells.get(4)).toEqual([
+      { position: null, points: 0, status: "dnf" },
+      { position: 2, points: 0, status: "dsq" },
+    ]);
+  });
+
+  it("leaves a gap for rounds a driver missed", () => {
+    const { cells } = resultsGrid(
+      [session(1, "Race", "2025-03-01T00:00:00Z"), session(2, "Race", "2025-03-08T00:00:00Z")],
+      [[res({ driver_number: 1, position: 1 })], [res({ driver_number: 40, position: 9 })]],
+    );
+    expect(cells.get(1)?.[1]).toBeNull();
+    expect(cells.get(40)?.[0]).toBeNull();
   });
 });

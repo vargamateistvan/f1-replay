@@ -31,16 +31,17 @@ import {
 } from "@/components/PointsProgression/PointsProgressionChart";
 import { TitleOutlookBanner } from "@/components/TitleOutlook/TitleOutlookBanner";
 import { TeammateComparison } from "@/components/TeammateComparison/TeammateComparison";
+import { ResultsGrid } from "@/components/ResultsGrid/ResultsGrid";
 import type { TitleOutlook } from "@/utils/championship";
 import { useSearchParams } from "react-router-dom";
 import { useNumberParam, useStringParam } from "@/hooks/useSearchParamState";
 import { replaceHistorySearchParams } from "@/utils/url";
 import { YEARS, DEFAULT_YEAR } from "@/constants";
 
-type Tab = "drivers" | "constructors" | "teammates";
+type Tab = "drivers" | "constructors" | "results" | "teammates";
 type ChartView = "totals" | "progression";
 
-const TABS: Tab[] = ["drivers", "constructors", "teammates"];
+const TABS: Tab[] = ["drivers", "constructors", "results", "teammates"];
 const CHART_VIEWS: ChartView[] = ["totals", "progression"];
 
 const TITLE_LABEL: Record<TitleOutlook["status"], string> = {
@@ -545,6 +546,7 @@ export default function Standings() {
     ? chartParam
     : "totals";
   const teammatesRef = useRef<HTMLDivElement>(null);
+  const resultsRef = useRef<HTMLDivElement>(null);
   const driverTableRef = useRef<HTMLDivElement>(null);
   const driverChartRef = useRef<HTMLDivElement>(null);
   const constructorTableRef = useRef<HTMLDivElement>(null);
@@ -555,6 +557,7 @@ export default function Standings() {
   const tabButtonRefs = useRef<Record<Tab, HTMLButtonElement | null>>({
     drivers: null,
     constructors: null,
+    results: null,
     teammates: null,
   });
 
@@ -565,6 +568,7 @@ export default function Standings() {
     constructorProgression,
     remaining,
     teammates,
+    resultsGrid,
     qualifyingLoading,
     loadedRaces,
     totalRaces,
@@ -611,7 +615,9 @@ export default function Standings() {
         ? driverTableRef.current
         : tab === "constructors"
           ? constructorTableRef.current
-          : teammatesRef.current;
+          : tab === "results"
+            ? resultsRef.current
+            : teammatesRef.current;
     const chartRoot =
       tab === "drivers"
         ? driverChartRef.current
@@ -749,6 +755,18 @@ export default function Standings() {
       {isError ? (
         <div className="flex-1">
           <ErrorMessage message="Failed to load championship data" />
+        </div>
+      ) : tab === "results" ? (
+        <div
+          ref={resultsRef}
+          className="w-full md:flex md:min-h-0 md:flex-1 md:flex-col md:overflow-hidden"
+        >
+          <ResultsGrid
+            rounds={resultsGrid.rounds}
+            cells={resultsGrid.cells}
+            standings={driverStandings}
+            loading={isFetching}
+          />
         </div>
       ) : tab === "teammates" ? (
         <div

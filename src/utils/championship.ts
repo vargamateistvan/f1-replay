@@ -26,7 +26,19 @@ interface RoundSession {
 export interface ProgressionRound {
   sessionKey: number;
   label: string;
+  /** Short column header, e.g. country code. */
+  code: string;
   isSprint: boolean;
+}
+
+function toRound(session: RoundSession, isSprint: boolean): ProgressionRound {
+  const base = session.circuit_short_name ?? session.country_code ?? "?";
+  return {
+    sessionKey: session.session_key,
+    label: isSprint ? `${base} (S)` : base,
+    code: (session.country_code ?? base.slice(0, 3)).toUpperCase(),
+    isSprint,
+  };
 }
 
 export interface PointsProgression<K> {
@@ -58,12 +70,7 @@ export function pointsProgression<K>(
       keys.add(key);
       earned.set(key, (earned.get(key) ?? 0) + resultPoints(r, isSprint));
     }
-    const base = session.circuit_short_name ?? session.country_code ?? "?";
-    rounds.push({
-      sessionKey: session.session_key,
-      label: isSprint ? `${base} (S)` : base,
-      isSprint,
-    });
+    rounds.push(toRound(session, isSprint));
     perRound.push(earned);
   });
 
@@ -76,6 +83,65 @@ export function pointsProgression<K>(
     );
   }
   return { rounds, totals };
+}
+
+// ── Per-race results grid ───────────────────────────────────────────────────
+
+export type GridStatus = "finished" | "dnf" | "dns" | "dsq";
+
+export interface GridCell {
+  position: number | null;
+  points: number;
+  status: GridStatus;
+}
+
+export interface ResultsGrid {
+  rounds: ProgressionRound[];
+  /** Per-driver cells aligned with `rounds`; null = did not take part. */
+  cells: Map<number, (GridCell | null)[]>;
+}
+
+function gridStatus(r: SessionResult): GridStatus {
+  if (r.dsq) return "dsq";
+  if (r.dns) return "dns";
+  if (r.dnf || r.position === null) return "dnf";
+  return "finished";
+}
+
+// Every driver's classification in each Race/Sprint. Rounds whose results
+// have not loaded yet are skipped.
+export function resultsGrid(
+  sessions: RoundSession[],
+  results: (SessionResult[] | undefined)[],
+): ResultsGrid {
+  const rounds: ProgressionRound[] = [];
+  const byRound: Map<number, GridCell>[] = [];
+
+  sessions.forEach((session, i) => {
+    const result = results[i];
+    if (!result) return;
+    const isSprint = isSprintPointsSession(session);
+    const round = new Map<number, GridCell>();
+    for (const r of result) {
+      round.set(r.driver_number, {
+        position: r.position,
+        points: resultPoints(r, isSprint),
+        status: gridStatus(r),
+      });
+    }
+    rounds.push(toRound(session, isSprint));
+    byRound.push(round);
+  });
+
+  const drivers = new Set(byRound.flatMap((round) => [...round.keys()]));
+  const cells = new Map<number, (GridCell | null)[]>();
+  for (const num of drivers) {
+    cells.set(
+      num,
+      byRound.map((round) => round.get(num) ?? null),
+    );
+  }
+  return { rounds, cells };
 }
 
 // ── Title outlook ───────────────────────────────────────────────────────────

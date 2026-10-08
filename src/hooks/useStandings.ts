@@ -18,11 +18,13 @@ import {
   isMainQualifyingSession,
   pointsProgression,
   remainingPoints,
+  resultsGrid,
   teammatePairs,
   titleOutlook,
   type HeadToHead,
   type PointsProgression,
   type RemainingPoints,
+  type ResultsGrid,
 } from "@/utils/championship";
 import {
   useChampionshipDrivers,
@@ -319,6 +321,11 @@ export function useStandings(
     [pointsSessions, results.data, teamOf],
   );
 
+  const grid = useMemo<ResultsGrid>(
+    () => resultsGrid(pointsSessions, results.data),
+    [pointsSessions, results.data],
+  );
+
   const teammates = useMemo<TeammateComparison[]>(() => {
     const standingByNumber = new Map(
       driverStandings.map((d) => [d.driverNumber, d]),
@@ -377,6 +384,7 @@ export function useStandings(
     constructorProgression,
     remaining,
     teammates,
+    resultsGrid: grid,
     qualifyingLoading: qualifyingResults.loaded < qualifyingSessions.length,
     loadedRaces: results.loaded + qualifyingResults.loaded,
     totalRaces: pointsSessions.length + qualifyingSessions.length,

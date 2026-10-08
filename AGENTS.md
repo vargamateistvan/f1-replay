@@ -83,7 +83,7 @@ src/
     retirement.ts       — Retirement detection from race control
     session.ts          — Session utility helpers
     standings.ts        — computeStandings(), completed-session + wins/podiums tallies
-    championship.ts     — Points progression, title-outlook maths, teammate head-to-heads
+    championship.ts     — Points progression, per-race results grid, title-outlook maths, teammate head-to-heads
     telemetry.ts        — resampleToAxis, computeDelta, smooth (signal processing)
     units.ts            — Metric/imperial conversion
 
@@ -169,6 +169,7 @@ components/ (render to DOM; read settings from Zustand)
 | `PointsProgressionChart`                          | Cumulative championship points per round (Standings → Progression)                       |
 | `TitleOutlookBanner`                              | "N drivers in contention / X clinched" summary above the standings tables                |
 | `TeammateComparison`                              | Qualifying / race / points head-to-heads per team (Standings → Teammates)                |
+| `ResultsGrid`                                     | Drivers × rounds finishing positions/points, colour-coded (Standings → Results)          |
 
 ---
 
