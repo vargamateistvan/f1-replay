@@ -12,6 +12,11 @@ name: Warm Proxy Cache
 # date_end — the proxy only classifies date windows as historical/permanent
 # once `date<` is more than 30 minutes in the past.
 #
+# Every run also backfills session_result for each finished Race/Sprint/
+# Qualifying since 2023 (what the Standings page fetches). The proxy caches
+# those forever, so after the first run this is a sub-second pass of cache
+# hits that only reaches OpenF1 for newly-finished sessions.
+#
 # Secrets used (all optional):
 #   WARM_PROXY_BASE      — proxy base URL (must be your Worker/proxy domain,
 #                          NOT api.openf1.org); falls back to the public proxy.
@@ -40,6 +45,10 @@ on:
       proxy_base:
         description: "Optional proxy base override (e.g. https://<worker>.workers.dev/v1)"
         required: false
+      results_backfill_from_year:
+        description: "First season whose session results are backfilled"
+        required: false
+        default: "2023"
 
 jobs:
   warm:
@@ -103,3 +112,4 @@ jobs:
           WARM_SECRET: ${{ secrets.WARM_SECRET }}
           SESSION_KEY: ${{ inputs.session_key }}
           LOOKBACK_HOURS: ${{ inputs.lookback_hours || '24' }}
+          RESULTS_BACKFILL_FROM_YEAR: ${{ inputs.results_backfill_from_year || '2023' }}

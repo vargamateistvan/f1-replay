@@ -8,7 +8,8 @@ import { readFileSync } from "node:fs";
  * KV without an expiration, so they'd live forever. KV expirations are fixed
  * at write time, so the only way to put them on the clock is to re-write
  * them. This script lists every `openf1:` key, picks the ones with no
- * expiration, and re-writes their value with `expiration_ttl` = 90 days
+ * expiration (except `session_result`, which is cached forever by design),
+ * and re-writes their value with `expiration_ttl` = 90 days
  * (counted from now). Values are preserved — no OpenF1 refetch is needed.
  *
  * Dry run by default; pass `--apply` to actually write.
@@ -27,6 +28,8 @@ import { readFileSync } from "node:fs";
 // Mirror TTL_HISTORICAL_KV in src/index.ts — keep in sync.
 const TTL_HISTORICAL_KV = 60 * 60 * 24 * 90;
 const KEY_PREFIX = "openf1:";
+// session_result entries are cached forever on purpose (see src/index.ts).
+const FOREVER_KEY_PREFIXES = ["openf1:/session_result?"];
 
 // Cloudflare bulk-write limits: 10 000 pairs / 100 MB per request.
 const BULK_MAX_PAIRS = 1000;
@@ -110,7 +113,12 @@ async function listLegacyKeys() {
     }
     for (const key of json.result) {
       total++;
-      if (key.expiration == null) legacy.push(key.name);
+      if (
+        key.expiration == null &&
+        !FOREVER_KEY_PREFIXES.some((prefix) => key.name.startsWith(prefix))
+      ) {
+        legacy.push(key.name);
+      }
     }
     cursor = json.result_info?.cursor ?? "";
   } while (cursor);

@@ -29,6 +29,15 @@ import { appendFileSync } from "node:fs";
  *   MIN_AGE_MINUTES  optional — wait this long after date_end before warming
  *                    so the proxy classifies date windows as historical and
  *                    OpenF1 has published results (default 40).
+ *   RESULTS_BACKFILL optional — "0" disables the season results backfill.
+ *   RESULTS_BACKFILL_FROM_YEAR
+ *                    optional — first season to backfill (default 2023, the
+ *                    start of OpenF1 coverage).
+ *
+ * Results backfill: the Standings page requests session_result for every
+ * finished Race/Sprint (and main Qualifying for the teammate comparison) of a
+ * season. The proxy keeps those forever, so every run tops up any that are
+ * missing; already-cached ones are cheap hits that don't touch OpenF1.
  */
 
 const OPENF1_DIRECT = "https://api.openf1.org/v1";
@@ -39,6 +48,9 @@ const SESSION_KEY = process.env.SESSION_KEY ?? "";
 const LOOKBACK_HOURS = Number(process.env.LOOKBACK_HOURS) || 3;
 const MIN_AGE_MINUTES = Number(process.env.MIN_AGE_MINUTES) || 40;
 const GITHUB_STEP_SUMMARY = process.env.GITHUB_STEP_SUMMARY ?? "";
+const RESULTS_BACKFILL = process.env.RESULTS_BACKFILL !== "0";
+const RESULTS_BACKFILL_FROM_YEAR =
+  Number(process.env.RESULTS_BACKFILL_FROM_YEAR) || 2023;
 
 // Mirror src/constants.ts — keep in sync.
 const LOCATION_CHUNK_MS = 2 * 60 * 1000; // LOCATION_CHUNK_MS
@@ -145,7 +157,7 @@ let firstForbiddenDetail = null;
  * Fetch through the proxy. Pessimistically reserves an origin slot before
  * sending (the request may be a MISS); releases it when X-Cache says HIT.
  */
-async function warmFetch(url, { refresh = false } = {}) {
+async function warmFetch(url, { refresh = false, onBody = null } = {}) {
   const headers = { Accept: "application/json" };
   if (WARM_SECRET) {
     headers["X-Warm-Secret"] = WARM_SECRET;
@@ -220,6 +232,7 @@ async function warmFetch(url, { refresh = false } = {}) {
 
     const body = await res.text();
     if (body.trim() === "[]") stats.empty++;
+    else if (onBody) onBody(body);
     return "ok";
   }
 
@@ -297,7 +310,9 @@ function sessionUrls(session) {
   push("race_control", { session_key: sk });
   push("team_radio", { session_key: sk });
   push("weather", { session_key: sk });
-  push("session_result", { session_key: sk });
+  // Cached forever by the proxy — refresh on every run inside the lookback
+  // window so provisional results / late penalties are overwritten.
+  push("session_result", { session_key: sk }, { refresh: true });
   push("starting_grid", { session_key: sk });
   push("overtakes", { session_key: sk });
   push("championship_drivers", { session_key: sk });
@@ -336,23 +351,77 @@ function sessionUrls(session) {
   return urls;
 }
 
+// ── Season results backfill (mirrors src/hooks/useStandings.ts) ─────────────
+
+function isSprintName(name) {
+  return /(^|\s)sprint(\s|$)/i.test(name ?? "") && !/qualifying/i.test(name ?? "");
+}
+
+function isStandingsResultSession(s) {
+  if (s.is_cancelled) return false;
+  const isPoints =
+    s.session_type === "Race" ||
+    s.session_type === "Sprint" ||
+    isSprintName(s.session_name);
+  const isMainQualifying =
+    s.session_type === "Qualifying" &&
+    !/sprint|shootout/i.test(s.session_name ?? "");
+  return isPoints || isMainQualifying;
+}
+
+async function backfillSeasonResults(alreadyWarmed) {
+  const now = Date.now();
+  const currentYear = new Date().getUTCFullYear();
+  const totals = diffStats(stats, stats);
+  let requested = 0;
+
+  for (let year = currentYear; year >= RESULTS_BACKFILL_FROM_YEAR; year--) {
+    let seasonSessions = [];
+    await warmFetch(canonicalUrl(PROXY_BASE, "sessions", { year }), {
+      onBody: (body) => {
+        try {
+          seasonSessions = JSON.parse(body);
+        } catch {
+          seasonSessions = [];
+        }
+      },
+    });
+
+    const due = seasonSessions.filter((s) => {
+      const endMs = Date.parse(s.date_end);
+      return (
+        isStandingsResultSession(s) &&
+        !alreadyWarmed.has(s.session_key) &&
+        Number.isFinite(endMs) &&
+        now - endMs >= MIN_AGE_MINUTES * 60_000
+      );
+    });
+
+    console.log(`Backfilling ${due.length} session results for ${year}…`);
+    const before = snapshotStats();
+    for (const s of due) {
+      await warmFetch(
+        canonicalUrl(PROXY_BASE, "session_result", {
+          session_key: s.session_key,
+        }),
+      );
+      requested++;
+    }
+    const delta = diffStats(before, stats);
+    for (const key of Object.keys(totals)) totals[key] += delta[key];
+  }
+
+  return { requested, stats: totals };
+}
+
 // ── Main ─────────────────────────────────────────────────────────────────────
 
 const sessions = await findSessionsToWarm();
 
 if (sessions.length === 0) {
-  const message = `No sessions ended in the last ${LOOKBACK_HOURS} h (min age ${MIN_AGE_MINUTES} min). Nothing to warm.`;
-  console.log(message);
-  writeGithubSummary([
-    "## Warm Proxy Cache",
-    "",
-    "No sessions matched the warm-up window in this run.",
-    "",
-    `- Lookback hours: \`${LOOKBACK_HOURS}\``,
-    `- Minimum age (minutes): \`${MIN_AGE_MINUTES}\``,
-    `- Proxy base: \`${PROXY_BASE}\``,
-  ]);
-  process.exit(0);
+  console.log(
+    `No sessions ended in the last ${LOOKBACK_HOURS} h (min age ${MIN_AGE_MINUTES} min).`,
+  );
 }
 
 const perSession = [];
@@ -399,6 +468,17 @@ for (const session of sessions) {
   });
 }
 
+const backfill = RESULTS_BACKFILL
+  ? await backfillSeasonResults(new Set(sessions.map((s) => s.session_key)))
+  : null;
+
+if (backfill) {
+  console.log(
+    `Results backfill: ${backfill.requested} requested, ` +
+      `${backfill.stats.hit} already cached, ${backfill.stats.miss} warmed.`,
+  );
+}
+
 console.log(
   `Done. cache hits: ${stats.hit}, misses (warmed): ${stats.miss}, ` +
     `empty: ${stats.empty}, no-data windows: ${stats.noData}, ` +
@@ -415,7 +495,12 @@ writeGithubSummary([
   "## Warm Proxy Cache",
   "",
   `- Proxy base: \`${PROXY_BASE}\``,
-  `- Sessions warmed: \`${sessions.length}\``,
+  `- Sessions warmed: \`${sessions.length}\` (lookback ${LOOKBACK_HOURS} h, min age ${MIN_AGE_MINUTES} min)`,
+  ...(backfill
+    ? [
+        `- Results backfill: \`${backfill.requested}\` requested, \`${backfill.stats.hit}\` already cached, \`${backfill.stats.miss}\` warmed, \`${backfill.stats.error}\` errors`,
+      ]
+    : []),
   `- Cache hits: \`${stats.hit}\``,
   `- Misses (warmed): \`${stats.miss}\``,
   `- No-data windows: \`${stats.noData}\``,

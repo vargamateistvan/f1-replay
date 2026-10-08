@@ -13,7 +13,8 @@
  *
  * Cache TTL strategy
  * ──────────────────
- * STATIC / RESULT     → 90 days in KV, 30-day browser cache
+ * SESSION RESULT      → forever in KV, 1-day edge/browser cache
+ * STATIC              → 90 days in KV, 30-day browser cache
  * Historical data     → 90 days in KV, 30-day browser cache
  * Live location/data  → 5 s
  * Live position/laps  → 20 s
@@ -71,6 +72,13 @@ const TTL_PERMANENT = 60 * 60 * 24 * 30; // 30-day browser cache TTL.
 // after 90 days so old weekends don't accumulate in storage forever. An
 // expired entry is simply re-fetched from OpenF1 on the next request.
 const TTL_HISTORICAL_KV = 60 * 60 * 24 * 90;
+// Final classifications never change once published, and the Standings page
+// requests one per round of a season, so they are kept in KV with no expiry.
+// The warm workflow re-fetches them for 24 h after a session (X-Warm-Refresh)
+// so a provisional copy or a late stewards' penalty is overwritten. KV is the
+// long-lived copy; the per-colo edge cache and browsers re-read it daily so a
+// corrected result propagates everywhere.
+const TTL_RESULT_HTTP = 60 * 60 * 24;
 // `meeting_key=latest` / `session_key=latest` resolve to a different row every
 // race weekend, so they must never be cached permanently: a stale alias makes
 // the app open the previous event on first load.
@@ -111,6 +119,8 @@ const CURRENT_SEASON_MUTABLE_ENDPOINTS = new Set([
 ]);
 
 const RESULT_ENDPOINTS = new Set(["session_result"]);
+
+const NUMERIC_KEY = /^\d+$/;
 
 const WINDOW_ENDPOINTS = new Set(["location", "car_data"]);
 
@@ -154,9 +164,27 @@ function usesLatestAlias(params: URLSearchParams): boolean {
   return false;
 }
 
+/**
+ * Results for a concrete session are immutable and cached without expiry.
+ */
+function isForeverCacheable(
+  endpoint: string,
+  params: URLSearchParams,
+): boolean {
+  return (
+    RESULT_ENDPOINTS.has(endpoint) &&
+    NUMERIC_KEY.test(params.get("session_key") ?? "") &&
+    !usesLatestAlias(params)
+  );
+}
+
 function chooseTtl(endpoint: string, params: URLSearchParams): number {
   if (usesLatestAlias(params)) {
     return TTL_LATEST_ALIAS;
+  }
+
+  if (isForeverCacheable(endpoint, params)) {
+    return TTL_RESULT_HTTP;
   }
 
   if (CURRENT_SEASON_MUTABLE_ENDPOINTS.has(endpoint)) {
@@ -306,9 +334,13 @@ export default {
       env.WARM_SECRET !== "" &&
       request.headers.get("X-Warm-Secret") === env.WARM_SECRET;
 
-    const ttl = isWarmRequest
-      ? TTL_PERMANENT
-      : chooseTtl(endpoint, url.searchParams);
+    const cacheForever = isForeverCacheable(endpoint, url.searchParams);
+
+    const ttl = cacheForever
+      ? TTL_RESULT_HTTP
+      : isWarmRequest
+        ? TTL_PERMANENT
+        : chooseTtl(endpoint, url.searchParams);
 
     // Authenticated warm requests can additionally force a refetch from
     // OpenF1 with `X-Warm-Refresh: 1`. This is how the warm workflow keeps
@@ -475,9 +507,16 @@ export default {
         // ── Store in KV ─────────────────────────────────────────────────────
 
         try {
-          await env.CACHE.put(kvCacheKey, body, {
-            expirationTtl: ttl === TTL_PERMANENT ? TTL_HISTORICAL_KV : ttl,
-          });
+          await env.CACHE.put(
+            kvCacheKey,
+            body,
+            cacheForever
+              ? undefined
+              : {
+                  expirationTtl:
+                    ttl === TTL_PERMANENT ? TTL_HISTORICAL_KV : ttl,
+                },
+          );
         } catch {
           // Best effort.
         }
