@@ -1,4 +1,5 @@
 import type { Driver, SessionResult } from "@/api/types";
+import type { TitleOutlook } from "@/utils/championship";
 import { RACE_POINTS, SPRINT_POINTS } from "@/constants";
 import { isSprintSession } from "@/utils/session";
 
@@ -17,6 +18,8 @@ export interface DriverStanding {
   pointsDelta?: number | null;
   /** Championship positions gained in most recent race, positive = moved up (undefined when using fallback). */
   positionChange?: number | null;
+  /** Whether the title is still reachable after the selected session. */
+  title?: TitleOutlook;
 }
 
 export interface ConstructorStanding {
@@ -29,6 +32,8 @@ export interface ConstructorStanding {
   pointsDelta?: number | null;
   /** Championship positions gained in most recent race, positive = moved up (undefined when using fallback). */
   positionChange?: number | null;
+  /** Whether the title is still reachable after the selected session. */
+  title?: TitleOutlook;
 }
 
 // Per-driver lookups assembled from the drivers endpoint.
@@ -56,6 +61,21 @@ export function isPointsSession(session: SessionLike): boolean {
     session.session_type === "Sprint" ||
     isSprintSession(session.session_name)
   );
+}
+
+export function isSprintPointsSession(session: SessionLike): boolean {
+  return (
+    session.session_type === "Sprint" || isSprintSession(session.session_name)
+  );
+}
+
+// Points scored by one classification entry. Trusts the API's value when
+// present; otherwise derives it from the finishing slot.
+export function resultPoints(r: SessionResult, isSprint: boolean): number {
+  if (r.points != null) return r.points;
+  if (r.dns || r.dsq || r.position === null) return 0;
+  const table = isSprint ? SPRINT_POINTS : RACE_POINTS;
+  return table[r.position - 1] ?? 0;
 }
 
 export function isGrandPrixSession(session: SessionLike): boolean {
@@ -130,7 +150,6 @@ export function computeStandings(
 
     const isSprint =
       session.session_type === "Sprint" || isSprintSession(session.session_name);
-    const fallbackPts = isSprint ? SPRINT_POINTS : RACE_POINTS;
 
     for (const r of result) {
       if (r.dns) continue; // did not start → no entry
@@ -139,8 +158,7 @@ export function computeStandings(
       const classified = pos !== null && !r.dsq; // finished and not disqualified
       const won = classified && pos === 1;
       const onPodium = classified && pos <= 3;
-      // Trust the API's points when present; otherwise derive from finishing slot.
-      const earned = r.points ?? (classified ? (fallbackPts[pos - 1] ?? 0) : 0);
+      const earned = resultPoints(r, isSprint);
 
       dPts.set(num, (dPts.get(num) ?? 0) + earned);
       if (won) dWins.set(num, (dWins.get(num) ?? 0) + 1);

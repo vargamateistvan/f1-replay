@@ -118,6 +118,11 @@ export const COMPOUND_COLORS = {
 // ── Championship points ─────────────────────────────────────────────────────--
 export const RACE_POINTS = [25, 18, 15, 12, 10, 8, 6, 4, 2, 1] as const;
 export const SPRINT_POINTS = [8, 7, 6, 5, 4, 3, 2, 1] as const;
+// Bonus point for the fastest lap (top-10 finishers only), awarded 2019–2024.
+export const FASTEST_LAP_POINT = 1;
+export const FASTEST_LAP_POINT_LAST_YEAR = 2024;
+// Lines drawn by default in the points progression chart before "show all".
+export const PROGRESSION_DEFAULT_LINES = 10;
 
 // ── Race finish detection ───────────────────────────────────────────────────--
 // The race-control CHEQUERED timestamp sits within a few seconds either side of

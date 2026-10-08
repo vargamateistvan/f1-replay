@@ -208,4 +208,114 @@ describe("useStandings", () => {
       team: "AlphaTauri",
     });
   });
+
+  describe("season insights", () => {
+    const sessions = [
+      { ...sessions2023[0], circuit_short_name: "Sakhir" },
+      {
+        session_key: 8999,
+        meeting_key: 1100,
+        session_type: "Qualifying",
+        session_name: "Qualifying",
+        date_start: "2023-03-04T15:00:00Z",
+        date_end: "2023-03-04T16:00:00Z",
+      },
+      {
+        session_key: 9100,
+        meeting_key: 1101,
+        session_type: "Race",
+        session_name: "Sprint",
+        date_start: "2023-03-11T15:00:00Z",
+        date_end: "2023-03-11T16:00:00Z",
+        circuit_short_name: "Jeddah",
+      },
+      { ...sessions2023[1], circuit_short_name: "Yas Marina" },
+    ];
+
+    const data = {
+      "sessions-year:2023": sessions,
+      "sessionResult:9000": [result(1, 1), result(11, 2), result(44, 3)],
+      "sessionResult:9100": [result(11, 1), result(1, 2)],
+      "sessionResult:9001": [result(11, 1), result(1, 2), result(44, 3)],
+      "sessionResult:8999": [result(11, 1), result(1, 2), result(44, 3), result(63, 4)],
+      "drivers:9001": [
+        driver(1, "VER", "Red Bull Racing"),
+        driver(11, "PER", "Red Bull Racing"),
+        driver(44, "HAM", "Mercedes"),
+        driver(63, "RUS", "Mercedes"),
+      ],
+      "championshipDrivers:9001": [
+        champ(1, 1, 50),
+        champ(11, 2, 51),
+        champ(44, 3, 30),
+        champ(63, 4, 0),
+      ],
+      "championshipTeams:9001": [
+        { team_name: "Red Bull Racing", position_current: 1, position_start: 1, points_current: 101, points_start: 101 },
+        { team_name: "Mercedes", position_current: 2, position_start: 2, points_current: 30, points_start: 30 },
+      ],
+    };
+
+    it("builds cumulative race + sprint progression for drivers and teams", () => {
+      mockData(data);
+      const { result: hook } = renderHook(() => useStandings(2023));
+      const { rounds, totals } = hook.current.driverProgression;
+      expect(rounds.map((r) => r.label)).toEqual(["Sakhir", "Jeddah (S)", "Yas Marina"]);
+      expect(totals.get(1)).toEqual([25, 32, 50]);
+      expect(totals.get(11)).toEqual([18, 26, 51]);
+      expect(hook.current.constructorProgression.totals.get("Red Bull Racing")).toEqual([43, 58, 101]);
+    });
+
+    it("marks the champion once the season is over", () => {
+      mockData(data);
+      const { result: hook } = renderHook(() => useStandings(2023));
+      expect(hook.current.remaining).toMatchObject({ races: 0, sprints: 0 });
+      expect(hook.current.driverStandings[0].title?.status).toBe("champion");
+      expect(hook.current.driverStandings[1].title?.status).toBe("eliminated");
+    });
+
+    it("reports title contenders mid-season", () => {
+      mockData({
+        ...data,
+        "championshipDrivers:9000": [champ(1, 1, 25), champ(11, 2, 18), champ(44, 3, 15)],
+        "championshipTeams:9000": [],
+        "drivers:9000": data["drivers:9001"],
+      });
+      const { result: hook } = renderHook(() => useStandings(2023, 9000));
+      expect(hook.current.remaining).toEqual({ races: 1, sprints: 1, driver: 34, team: 59 });
+      expect(hook.current.driverStandings.map((d) => d.title?.status)).toEqual([
+        "leader",
+        "contender",
+        "contender",
+      ]);
+    });
+
+    it("only fetches qualifying results when teammates are requested", () => {
+      mockData(data);
+      renderHook(() => useStandings(2023));
+      expect(queryKeysFor("sessionResult")).not.toContainEqual(["sessionResult", 8999]);
+
+      mockUseQuery.mockClear();
+      const { result: hook } = renderHook(() =>
+        useStandings(2023, null, null, { includeQualifying: true }),
+      );
+      expect(queryKeysFor("sessionResult")).toContainEqual(["sessionResult", 8999]);
+      expect(hook.current.teammates).toMatchObject([
+        {
+          team: "Red Bull Racing",
+          a: { acronym: "PER" },
+          b: { acronym: "VER" },
+          qualifying: { a: 1, b: 0 },
+          race: { a: 1, b: 1 },
+        },
+        {
+          team: "Mercedes",
+          a: { acronym: "HAM" },
+          b: { acronym: "RUS" },
+          qualifying: { a: 1, b: 0 },
+          race: { a: 2, b: 0 },
+        },
+      ]);
+    });
+  });
 });

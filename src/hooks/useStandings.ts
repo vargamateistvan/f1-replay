@@ -14,6 +14,17 @@ import {
   type DriverStanding,
 } from "@/utils/standings";
 import {
+  headToHead,
+  isMainQualifyingSession,
+  pointsProgression,
+  remainingPoints,
+  teammatePairs,
+  titleOutlook,
+  type HeadToHead,
+  type PointsProgression,
+  type RemainingPoints,
+} from "@/utils/championship";
+import {
   useChampionshipDrivers,
   useChampionshipTeams,
   useDrivers,
@@ -21,6 +32,20 @@ import {
 
 // Re-exported for existing import sites (pages/Standings.tsx).
 export type { DriverStanding, ConstructorStanding } from "@/utils/standings";
+
+export interface TeammateComparison {
+  team: string;
+  color: string;
+  a: DriverStanding;
+  b: DriverStanding;
+  qualifying: HeadToHead;
+  race: HeadToHead;
+}
+
+export interface StandingsOptions {
+  /** Fetch qualifying results for the teammate comparison (one request per round). */
+  includeQualifying?: boolean;
+}
 
 // Module-level so useQueries can memoise the combined result between renders.
 function combineResults(queries: UseQueryResult<SessionResult[]>[]) {
@@ -38,10 +63,19 @@ function combineDrivers(queries: UseQueryResult<Driver[]>[]) {
   };
 }
 
+function sessionResultQuery(sessionKey: number) {
+  return {
+    queryKey: ["sessionResult", sessionKey],
+    queryFn: () => api.sessionResult(sessionKey),
+    staleTime: Infinity,
+  };
+}
+
 export function useStandings(
   year: number,
   preferredSessionKey: number | null = null,
   preferredMeetingKey: number | null = null,
+  { includeQualifying = false }: StandingsOptions = {},
 ) {
   const isCurrentYear = year === new Date().getFullYear();
 
@@ -79,25 +113,38 @@ export function useStandings(
     return session ? Date.parse(session.date_start) : null;
   }, [sessionsQ.data, selectedKey]);
 
-  // Grands Prix up to and including the selected session feed wins/podiums.
-  const tallySessions = useMemo(
+  // Races and Sprints up to and including the selected session.
+  const pointsSessions = useMemo(
     () =>
       selectedStartMs === null
         ? []
         : raceSessions.filter(
-            (s) =>
-              isGrandPrixSession(s) &&
-              Date.parse(s.date_start) <= selectedStartMs,
+            (s) => Date.parse(s.date_start) <= selectedStartMs,
           ),
     [raceSessions, selectedStartMs],
   );
 
+  const qualifyingSessions = useMemo(() => {
+    if (!includeQualifying || selectedStartMs === null) return [];
+    const nowMs = Date.now();
+    return (sessionsQ.data ?? [])
+      .filter(
+        (s) =>
+          !s.is_cancelled &&
+          isMainQualifyingSession(s) &&
+          Date.parse(s.date_start) <= selectedStartMs &&
+          Date.parse(s.date_end ?? s.date_start) <= nowMs,
+      )
+      .sort((a, b) => Date.parse(a.date_start) - Date.parse(b.date_start));
+  }, [includeQualifying, sessionsQ.data, selectedStartMs]);
+
   const results = useQueries({
-    queries: tallySessions.map((s) => ({
-      queryKey: ["sessionResult", s.session_key],
-      queryFn: () => api.sessionResult(s.session_key),
-      staleTime: Infinity,
-    })),
+    queries: pointsSessions.map((s) => sessionResultQuery(s.session_key)),
+    combine: combineResults,
+  });
+
+  const qualifyingResults = useQueries({
+    queries: qualifyingSessions.map((s) => sessionResultQuery(s.session_key)),
     combine: combineResults,
   });
 
@@ -106,22 +153,22 @@ export function useStandings(
   const championshipTeamsQ = useChampionshipTeams(selectedKey, isCurrentYear);
 
   // Drivers in the standings who did not take part in the selected session
-  // (mid-season replacements) are resolved from their most recent Grand Prix.
+  // (mid-season replacements) are resolved from their most recent race.
   const fallbackDriverSessionKeys = useMemo(() => {
     if (!driversQ.data) return [];
     const known = new Set(driversQ.data.map((d) => d.driver_number));
     const keys = new Set<number>();
     for (const { driver_number } of championshipDriversQ.data ?? []) {
       if (known.has(driver_number)) continue;
-      for (let i = tallySessions.length - 1; i >= 0; i--) {
+      for (let i = pointsSessions.length - 1; i >= 0; i--) {
         if (results.data[i]?.some((r) => r.driver_number === driver_number)) {
-          keys.add(tallySessions[i].session_key);
+          keys.add(pointsSessions[i].session_key);
           break;
         }
       }
     }
     return [...keys];
-  }, [driversQ.data, championshipDriversQ.data, tallySessions, results.data]);
+  }, [driversQ.data, championshipDriversQ.data, pointsSessions, results.data]);
 
   const fallbackDrivers = useQueries({
     queries: fallbackDriverSessionKeys.map((key) => ({
@@ -172,73 +219,152 @@ export function useStandings(
   }, [driverByNumber, knownTeamNames]);
 
   const tally = useMemo(
-    () => tallyGrandPrixPodiums(tallySessions, results.data),
-    [tallySessions, results.data],
+    () => tallyGrandPrixPodiums(pointsSessions, results.data),
+    [pointsSessions, results.data],
   );
 
-  // Wins are credited to the driver's latest team; mid-season swaps are rare
-  // enough that fetching every session's driver list is not worth the requests.
+  // Team results are credited to each driver's latest team; mid-season swaps
+  // are rare enough that fetching every session's driver list isn't worth it.
+  const teamOf = useMemo(
+    () => (driverNumber: number) => {
+      const team = driverInfo.team.get(driverNumber);
+      return team ? canonicalTeamName(team, knownTeamNames) : null;
+    },
+    [driverInfo, knownTeamNames],
+  );
+
   const teamWins = useMemo(() => {
     const wins = new Map<string, number>();
     for (const [num, count] of tally.wins) {
-      const team = driverInfo.team.get(num);
-      if (!team) continue;
-      const name = canonicalTeamName(team, knownTeamNames);
-      wins.set(name, (wins.get(name) ?? 0) + count);
+      const name = teamOf(num);
+      if (name) wins.set(name, (wins.get(name) ?? 0) + count);
     }
     return wins;
-  }, [tally, driverInfo, knownTeamNames]);
+  }, [tally, teamOf]);
 
-  const driverStandings = useMemo<DriverStanding[]>(
+  const remaining = useMemo<RemainingPoints | null>(
     () =>
-      [...(championshipDriversQ.data ?? [])]
-        .sort(
-          (a, b) =>
-            a.position_current - b.position_current ||
-            b.points_current - a.points_current,
-        )
-        .map((d) => ({
-          position: d.position_current,
-          driverNumber: d.driver_number,
-          driver: driverByNumber.get(d.driver_number),
-          acronym:
-            driverInfo.acronym.get(d.driver_number) ?? `#${d.driver_number}`,
-          fullName:
-            driverInfo.fullName.get(d.driver_number) ??
-            `Driver ${d.driver_number}`,
-          team: driverInfo.team.get(d.driver_number) ?? "—",
-          color: driverInfo.color.get(d.driver_number) ?? "#888",
-          points: d.points_current,
-          wins: tally.wins.get(d.driver_number) ?? 0,
-          podiums: tally.podiums.get(d.driver_number) ?? 0,
-          pointsDelta: d.points_current - d.points_start,
-          positionChange: d.position_start - d.position_current,
-        })),
-    [championshipDriversQ.data, driverByNumber, driverInfo, tally],
+      selectedStartMs === null
+        ? null
+        : remainingPoints(sessionsQ.data ?? [], selectedStartMs, year),
+    [sessionsQ.data, selectedStartMs, year],
   );
 
-  const constructorStandings = useMemo<ConstructorStanding[]>(
-    () =>
-      [...(championshipTeamsQ.data ?? [])]
-        .sort(
-          (a, b) =>
-            a.position_current - b.position_current ||
-            b.points_current - a.points_current,
-        )
-        .map((c) => {
-          const name = canonicalTeamName(c.team_name, knownTeamNames);
-          return {
-            position: c.position_current,
-            name,
-            color: teamColorByName.get(name) ?? "#888",
-            points: c.points_current,
-            wins: teamWins.get(name) ?? 0,
-            pointsDelta: c.points_current - c.points_start,
-            positionChange: c.position_start - c.position_current,
-          };
-        }),
-    [championshipTeamsQ.data, knownTeamNames, teamColorByName, teamWins],
+  const driverStandings = useMemo<DriverStanding[]>(() => {
+    const rows = [...(championshipDriversQ.data ?? [])]
+      .sort(
+        (a, b) =>
+          a.position_current - b.position_current ||
+          b.points_current - a.points_current,
+      )
+      .map((d) => ({
+        position: d.position_current,
+        driverNumber: d.driver_number,
+        driver: driverByNumber.get(d.driver_number),
+        acronym:
+          driverInfo.acronym.get(d.driver_number) ?? `#${d.driver_number}`,
+        fullName:
+          driverInfo.fullName.get(d.driver_number) ??
+          `Driver ${d.driver_number}`,
+        team: driverInfo.team.get(d.driver_number) ?? "—",
+        color: driverInfo.color.get(d.driver_number) ?? "#888",
+        points: d.points_current,
+        wins: tally.wins.get(d.driver_number) ?? 0,
+        podiums: tally.podiums.get(d.driver_number) ?? 0,
+        pointsDelta: d.points_current - d.points_start,
+        positionChange: d.position_start - d.position_current,
+      }));
+    if (!remaining) return rows;
+    const outlook = titleOutlook(
+      rows.map((r) => ({ key: r.driverNumber, points: r.points })),
+      remaining.driver,
+    );
+    return rows.map((r) => ({ ...r, title: outlook.get(r.driverNumber) }));
+  }, [championshipDriversQ.data, driverByNumber, driverInfo, tally, remaining]);
+
+  const constructorStandings = useMemo<ConstructorStanding[]>(() => {
+    const rows = [...(championshipTeamsQ.data ?? [])]
+      .sort(
+        (a, b) =>
+          a.position_current - b.position_current ||
+          b.points_current - a.points_current,
+      )
+      .map((c) => {
+        const name = canonicalTeamName(c.team_name, knownTeamNames);
+        return {
+          position: c.position_current,
+          name,
+          color: teamColorByName.get(name) ?? "#888",
+          points: c.points_current,
+          wins: teamWins.get(name) ?? 0,
+          pointsDelta: c.points_current - c.points_start,
+          positionChange: c.position_start - c.position_current,
+        };
+      });
+    if (!remaining) return rows;
+    const outlook = titleOutlook(
+      rows.map((r) => ({ key: r.name, points: r.points })),
+      remaining.team,
+    );
+    return rows.map((r) => ({ ...r, title: outlook.get(r.name) }));
+  }, [championshipTeamsQ.data, knownTeamNames, teamColorByName, teamWins, remaining]);
+
+  const driverProgression = useMemo<PointsProgression<number>>(
+    () => pointsProgression(pointsSessions, results.data, (num) => num),
+    [pointsSessions, results.data],
   );
+
+  const constructorProgression = useMemo<PointsProgression<string>>(
+    () => pointsProgression(pointsSessions, results.data, teamOf),
+    [pointsSessions, results.data, teamOf],
+  );
+
+  const teammates = useMemo<TeammateComparison[]>(() => {
+    const standingByNumber = new Map(
+      driverStandings.map((d) => [d.driverNumber, d]),
+    );
+    const points = new Map(
+      driverStandings.map((d) => [d.driverNumber, d.points]),
+    );
+    const lineup = (driversQ.data ?? []).map((d) => ({
+      driver_number: d.driver_number,
+      team_name: canonicalTeamName(d.team_name, knownTeamNames),
+    }));
+    const raceResults = results.data.filter((_, i) =>
+      isGrandPrixSession(pointsSessions[i]),
+    );
+    const order = new Map(constructorStandings.map((c) => [c.name, c.position]));
+
+    return teammatePairs(lineup, points)
+      .flatMap((pair) => {
+        const a = standingByNumber.get(pair.a);
+        const b = standingByNumber.get(pair.b);
+        if (!a || !b) return [];
+        return [
+          {
+            team: pair.team,
+            color: teamColorByName.get(pair.team) ?? a.color,
+            a,
+            b,
+            qualifying: headToHead(qualifyingResults.data, pair.a, pair.b),
+            race: headToHead(raceResults, pair.a, pair.b),
+          },
+        ];
+      })
+      .sort(
+        (x, y) =>
+          (order.get(x.team) ?? Infinity) - (order.get(y.team) ?? Infinity),
+      );
+  }, [
+    driverStandings,
+    constructorStandings,
+    driversQ.data,
+    knownTeamNames,
+    teamColorByName,
+    pointsSessions,
+    results.data,
+    qualifyingResults.data,
+  ]);
 
   // Session-scoped queries are disabled (and stay "pending") when the season
   // has no completed race yet, so they only count once a session is selected.
@@ -247,8 +373,13 @@ export function useStandings(
   return {
     driverStandings,
     constructorStandings,
-    loadedRaces: results.loaded,
-    totalRaces: tallySessions.length,
+    driverProgression,
+    constructorProgression,
+    remaining,
+    teammates,
+    qualifyingLoading: qualifyingResults.loaded < qualifyingSessions.length,
+    loadedRaces: results.loaded + qualifyingResults.loaded,
+    totalRaces: pointsSessions.length + qualifyingSessions.length,
     isLoading:
       sessionsQ.isPending ||
       (hasSelection &&
@@ -261,6 +392,7 @@ export function useStandings(
       championshipDriversQ.isFetching ||
       championshipTeamsQ.isFetching ||
       results.isFetching ||
+      qualifyingResults.isFetching ||
       fallbackDrivers.isFetching,
     isError:
       sessionsQ.isError ||

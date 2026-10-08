@@ -8,7 +8,7 @@ import {
   Cell,
   ResponsiveContainer,
 } from "recharts";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   useStandings,
   type DriverStanding,
@@ -25,12 +25,46 @@ import {
 } from "@/lib/motion";
 import { ErrorMessage } from "@/components/ErrorMessage";
 import { DriverHeadshot } from "@/components/DriverHeadshot";
+import {
+  PointsProgressionChart,
+  type ProgressionSeries,
+} from "@/components/PointsProgression/PointsProgressionChart";
+import { TitleOutlookBanner } from "@/components/TitleOutlook/TitleOutlookBanner";
+import { TeammateComparison } from "@/components/TeammateComparison/TeammateComparison";
+import type { TitleOutlook } from "@/utils/championship";
 import { useSearchParams } from "react-router-dom";
 import { useNumberParam, useStringParam } from "@/hooks/useSearchParamState";
 import { replaceHistorySearchParams } from "@/utils/url";
 import { YEARS, DEFAULT_YEAR } from "@/constants";
 
-type Tab = "drivers" | "constructors";
+type Tab = "drivers" | "constructors" | "teammates";
+type ChartView = "totals" | "progression";
+
+const TABS: Tab[] = ["drivers", "constructors", "teammates"];
+const CHART_VIEWS: ChartView[] = ["totals", "progression"];
+
+const TITLE_LABEL: Record<TitleOutlook["status"], string> = {
+  champion: "Champion",
+  leader: "Championship leader",
+  contender: "Can still win the title",
+  eliminated: "Out of title contention",
+};
+
+function TitleLine({ title }: { title?: TitleOutlook }) {
+  if (!title) return null;
+  return (
+    <div
+      className={
+        title.status === "eliminated" ? "text-muted" : "text-amber-300"
+      }
+    >
+      {TITLE_LABEL[title.status]}
+      {title.status === "contender" || title.status === "leader"
+        ? ` · max ${title.maxPoints}`
+        : ""}
+    </div>
+  );
+}
 
 // ── Loading progress bar ──────────────────────────────────────────────────────
 function LoadingBar({ loaded, total }: { loaded: number; total: number }) {
@@ -89,6 +123,7 @@ function DriverTooltip({ active, payload }: TooltipProps<DriverStanding>) {
       <div className="text-muted">
         {d.wins} wins · {d.podiums} podiums
       </div>
+      <TitleLine title={d.title} />
     </div>
   );
 }
@@ -110,6 +145,7 @@ function ConstructorTooltip({
       <div className="text-muted">
         {c.wins} win{c.wins !== 1 ? "s" : ""}
       </div>
+      <TitleLine title={c.title} />
     </div>
   );
 }
@@ -441,6 +477,42 @@ function ConstructorChart({ standings }: { standings: ConstructorStanding[] }) {
   );
 }
 
+// ── Chart header ──────────────────────────────────────────────────────────────
+function ChartHeader({
+  title,
+  view,
+  onChange,
+}: {
+  title: string;
+  view: ChartView;
+  onChange: (view: ChartView) => void;
+}) {
+  return (
+    <div className="mb-3 flex items-center justify-between gap-3">
+      <div className="text-[10px] text-muted font-bold uppercase tracking-[0.12em]">
+        Points — {title}
+      </div>
+      <div className="flex" role="group" aria-label="Chart view">
+        {CHART_VIEWS.map((v) => (
+          <button
+            key={v}
+            type="button"
+            aria-pressed={view === v}
+            onClick={() => onChange(v)}
+            className={`border px-2 py-1 text-[10px] font-bold uppercase tracking-[0.12em] ${
+              view === v
+                ? "border-f1red bg-f1red text-white"
+                : "border-panel bg-track text-muted hover:text-white"
+            }`}
+          >
+            {v}
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 // ── Page ──────────────────────────────────────────────────────────────────────
 export default function Standings() {
   const [, setSearchParams] = useSearchParams();
@@ -463,7 +535,16 @@ export default function Standings() {
       { replace: true },
     );
   };
-  const [tab, setTab] = useStringParam<Tab>("tab", "drivers");
+  const [tabParam, setTab] = useStringParam<Tab>("tab", "drivers");
+  const tab: Tab = TABS.includes(tabParam) ? tabParam : "drivers";
+  const [chartParam, setChartView] = useStringParam<ChartView>(
+    "chart",
+    "totals",
+  );
+  const chartView: ChartView = CHART_VIEWS.includes(chartParam)
+    ? chartParam
+    : "totals";
+  const teammatesRef = useRef<HTMLDivElement>(null);
   const driverTableRef = useRef<HTMLDivElement>(null);
   const driverChartRef = useRef<HTMLDivElement>(null);
   const constructorTableRef = useRef<HTMLDivElement>(null);
@@ -474,26 +555,69 @@ export default function Standings() {
   const tabButtonRefs = useRef<Record<Tab, HTMLButtonElement | null>>({
     drivers: null,
     constructors: null,
+    teammates: null,
   });
 
   const {
     driverStandings,
     constructorStandings,
+    driverProgression,
+    constructorProgression,
+    remaining,
+    teammates,
+    qualifyingLoading,
     loadedRaces,
     totalRaces,
     isLoading,
     isFetching,
     isError,
-  } = useStandings(year, sessionKey, meetingKey);
+  } = useStandings(year, sessionKey, meetingKey, {
+    includeQualifying: tab === "teammates",
+  });
+
+  const driverSeries = useMemo<ProgressionSeries[]>(() => {
+    const seenTeams = new Set<string>();
+    return driverStandings.map((d) => {
+      const dashed = seenTeams.has(d.team);
+      seenTeams.add(d.team);
+      return {
+        key: `d${d.driverNumber}`,
+        label: d.acronym,
+        color: d.color,
+        dashed,
+        values: driverProgression.totals.get(d.driverNumber) ?? [],
+      };
+    });
+  }, [driverStandings, driverProgression]);
+
+  // Index-based keys: team names may contain "." which Recharts reads as a path.
+  const constructorSeries = useMemo<ProgressionSeries[]>(
+    () =>
+      constructorStandings.map((c, i) => ({
+        key: `c${i}`,
+        label: c.name,
+        color: c.color,
+        values: constructorProgression.totals.get(c.name) ?? [],
+      })),
+    [constructorStandings, constructorProgression],
+  );
 
   useEffect(() => {
     if (isFetching || isError) return;
     if (!motionEnabled()) return;
 
     const tableRoot =
-      tab === "drivers" ? driverTableRef.current : constructorTableRef.current;
+      tab === "drivers"
+        ? driverTableRef.current
+        : tab === "constructors"
+          ? constructorTableRef.current
+          : teammatesRef.current;
     const chartRoot =
-      tab === "drivers" ? driverChartRef.current : constructorChartRef.current;
+      tab === "drivers"
+        ? driverChartRef.current
+        : tab === "constructors"
+          ? constructorChartRef.current
+          : null;
     const targets = [tableRoot, chartRoot].filter(
       (node): node is HTMLDivElement => node !== null,
     );
@@ -504,7 +628,7 @@ export default function Standings() {
       (animation): animation is NonNullable<typeof animation> => animation !== null,
     );
 
-    const rows = tableRoot?.querySelectorAll("tbody tr[data-standing-row]");
+    const rows = tableRoot?.querySelectorAll("[data-standing-row]");
     if (rows?.length) {
       const rowsAnimation = animateMotion(rows, staggerFadeUpMotion());
       if (rowsAnimation) animations.push(rowsAnimation);
@@ -599,7 +723,7 @@ export default function Standings() {
             className="pointer-events-none absolute bottom-0 h-0.5 bg-f1red"
             style={{ left: 0, width: 0 }}
           />
-          {(["drivers", "constructors"] as Tab[]).map((t) => (
+          {TABS.map((t) => (
             <button
               key={t}
               ref={(node) => {
@@ -626,49 +750,106 @@ export default function Standings() {
         <div className="flex-1">
           <ErrorMessage message="Failed to load championship data" />
         </div>
-      ) : (
+      ) : tab === "teammates" ? (
         <div
-          ref={contentGridRef}
-          className="grid w-full gap-0 md:grid-cols-[minmax(300px,420px)_minmax(0,1fr)] md:flex-1 md:overflow-hidden"
+          ref={teammatesRef}
+          className="w-full md:flex-1 md:overflow-auto"
         >
-          {tab === "drivers" ? (
-            <>
-              <div
-                ref={driverTableRef}
-                className="w-full shrink-0 border-b border-panel md:border-r md:border-b-0 md:overflow-auto md:max-h-full"
-              >
-                <DriverTable standings={driverStandings} />
-              </div>
-              <div
-                ref={driverChartRef}
-                className="min-w-0 md:overflow-auto p-4 bg-track min-h-[18rem]"
-              >
-                <div className="text-[10px] text-muted font-bold mb-3 uppercase tracking-[0.12em]">
-                  Points — {year} Driver Championship
-                </div>
-                <DriverChart standings={driverStandings} />
-              </div>
-            </>
-          ) : (
-            <>
-              <div
-                ref={constructorTableRef}
-                className="w-full shrink-0 border-b border-panel md:border-r md:border-b-0 md:overflow-auto md:max-h-full"
-              >
-                <ConstructorTable standings={constructorStandings} />
-              </div>
-              <div
-                ref={constructorChartRef}
-                className="min-w-0 md:overflow-auto p-4 bg-track min-h-[18rem]"
-              >
-                <div className="text-[10px] text-muted font-bold mb-3 uppercase tracking-[0.12em]">
-                  Points — {year} Constructor Championship
-                </div>
-                <ConstructorChart standings={constructorStandings} />
-              </div>
-            </>
-          )}
+          <TeammateComparison
+            comparisons={teammates}
+            qualifyingLoading={qualifyingLoading}
+          />
         </div>
+      ) : (
+        <>
+          {tab === "drivers" ? (
+            <TitleOutlookBanner
+              scope="driver"
+              remaining={remaining}
+              entries={driverStandings.map((d) => ({
+                key: String(d.driverNumber),
+                label: d.acronym,
+                color: d.color,
+                points: d.points,
+                title: d.title,
+              }))}
+            />
+          ) : (
+            <TitleOutlookBanner
+              scope="team"
+              remaining={remaining}
+              entries={constructorStandings.map((c) => ({
+                key: c.name,
+                label: c.name,
+                color: c.color,
+                points: c.points,
+                title: c.title,
+              }))}
+            />
+          )}
+          <div
+            ref={contentGridRef}
+            className="grid w-full gap-0 md:grid-cols-[minmax(300px,420px)_minmax(0,1fr)] md:flex-1 md:overflow-hidden"
+          >
+            {tab === "drivers" ? (
+              <>
+                <div
+                  ref={driverTableRef}
+                  className="w-full shrink-0 border-b border-panel md:border-r md:border-b-0 md:overflow-auto md:max-h-full"
+                >
+                  <DriverTable standings={driverStandings} />
+                </div>
+                <div
+                  ref={driverChartRef}
+                  className="min-w-0 md:overflow-auto p-4 bg-track min-h-[18rem]"
+                >
+                  <ChartHeader
+                    title={`${year} Driver Championship`}
+                    view={chartView}
+                    onChange={setChartView}
+                  />
+                  {chartView === "progression" ? (
+                    <PointsProgressionChart
+                      rounds={driverProgression.rounds}
+                      series={driverSeries}
+                      loading={isFetching}
+                    />
+                  ) : (
+                    <DriverChart standings={driverStandings} />
+                  )}
+                </div>
+              </>
+            ) : (
+              <>
+                <div
+                  ref={constructorTableRef}
+                  className="w-full shrink-0 border-b border-panel md:border-r md:border-b-0 md:overflow-auto md:max-h-full"
+                >
+                  <ConstructorTable standings={constructorStandings} />
+                </div>
+                <div
+                  ref={constructorChartRef}
+                  className="min-w-0 md:overflow-auto p-4 bg-track min-h-[18rem]"
+                >
+                  <ChartHeader
+                    title={`${year} Constructor Championship`}
+                    view={chartView}
+                    onChange={setChartView}
+                  />
+                  {chartView === "progression" ? (
+                    <PointsProgressionChart
+                      rounds={constructorProgression.rounds}
+                      series={constructorSeries}
+                      loading={isFetching}
+                    />
+                  ) : (
+                    <ConstructorChart standings={constructorStandings} />
+                  )}
+                </div>
+              </>
+            )}
+          </div>
+        </>
       )}
     </div>
   );

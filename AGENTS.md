@@ -82,7 +82,8 @@ src/
     raceControlFlags.ts — Flag severity, safety-car phase classification
     retirement.ts       — Retirement detection from race control
     session.ts          — Session utility helpers
-    standings.ts        — computeStandings() pure function (testable)
+    standings.ts        — computeStandings(), completed-session + wins/podiums tallies
+    championship.ts     — Points progression, title-outlook maths, teammate head-to-heads
     telemetry.ts        — resampleToAxis, computeDelta, smooth (signal processing)
     units.ts            — Metric/imperial conversion
 
@@ -165,6 +166,9 @@ components/ (render to DOM; read settings from Zustand)
 | `Seo` / `RouteSeo`                                | Per-route `<head>` meta tags                                                             |
 | `ResizeHandle`                                    | Drag handle for split-panel layouts                                                      |
 | `Weather`                                         | Weather icon/badge overlay                                                               |
+| `PointsProgressionChart`                          | Cumulative championship points per round (Standings → Progression)                       |
+| `TitleOutlookBanner`                              | "N drivers in contention / X clinched" summary above the standings tables                |
+| `TeammateComparison`                              | Qualifying / race / points head-to-heads per team (Standings → Teammates)                |
 
 ---
 
@@ -237,6 +241,8 @@ components/ (render to DOM; read settings from Zustand)
 - Pure function `computeStandings(sessions, results, info)` — deterministic, fully unit-tested.
 - Trusts `SessionResult.points` when present (API value); derives from position table otherwise.
 - Handles Sprint sessions with a separate `SPRINT_POINTS` table.
+- `useStandings` only considers finished Race/Sprint sessions, fetches one `session_result` per round (shared `["sessionResult", key]` cache) for wins/podiums and the progression chart, and fetches main-qualifying results only when the Teammates tab is open.
+- Title outlook (`utils/championship.ts`): remaining points = 25 per GP (+1 fastest lap up to `FASTEST_LAP_POINT_LAST_YEAR`) and 8 per Sprint (double the top-two slots for teams). A rival who can only draw level stays a contender (countback).
 
 ### Track map geometry (`hooks/useTrackMap.ts`)
 
