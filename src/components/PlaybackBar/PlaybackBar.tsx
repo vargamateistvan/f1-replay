@@ -9,6 +9,8 @@ import {
 } from "react";
 import { createPortal } from "react-dom";
 import {
+  Eye,
+  EyeOff,
   FastForward,
   Pause,
   Play,
@@ -322,8 +324,8 @@ export function PlaybackBar({
     setHoverPct(Math.min(1, Math.max(0, pct)));
   };
 
-  // Race start / chequered flag / qualifying parts: always shown, unlike
-  // race-control markers.
+  // Race start / chequered flag / qualifying parts. Shown on every viewport,
+  // but hidden together with race-control markers by the marker toggle.
   const renderLandmark = ({
     ms,
     label,
@@ -342,7 +344,8 @@ export function PlaybackBar({
     badgeText?: string;
     targetMs: number;
   }) => {
-    if (durationMs <= 0 || ms < 0 || ms > durationMs) return null;
+    if (!showMarkers || durationMs <= 0 || ms < 0 || ms > durationMs)
+      return null;
     const tooltip = markerTooltip(label, ms);
     return (
       <button
@@ -386,6 +389,11 @@ export function PlaybackBar({
     { phase: "Q2", ms: q2StartMs },
     { phase: "Q3", ms: q3StartMs },
   ];
+  const hasMarkers =
+    raceControlMarkers.length > 0 ||
+    raceStartMs !== null ||
+    chequeredMs !== null ||
+    qualiStarts.some(({ ms }) => ms !== null);
 
   const prevLap = prevBefore(lapStarts, t);
   const nextLap = nextAfter(lapStarts, t);
@@ -553,7 +561,10 @@ export function PlaybackBar({
               track, so markers and the hover time share that inset span. */}
           <div
             className="absolute inset-y-0 pointer-events-none"
-            style={{ left: SCRUBBER_THUMB_PX / 2, right: SCRUBBER_THUMB_PX / 2 }}
+            style={{
+              left: SCRUBBER_THUMB_PX / 2,
+              right: SCRUBBER_THUMB_PX / 2,
+            }}
           >
             {durationMs > 0 &&
               showMarkers &&
@@ -647,47 +658,52 @@ export function PlaybackBar({
           {fmtTime(durationMs)}
         </span>
 
-        {/* Marker legend toggle — desktop only */}
-        {markerSummary !== null &&
-          (markerSummary.critical ?? 0) + (markerSummary.warning ?? 0) > 0 && (
-            <button
-              type="button"
-              onClick={(e) => {
-                animateMotion(e.currentTarget, pressMotion());
-                setShowMarkers((v) => {
-                  const nextValue = !v;
-                  trackEvent("playback_markers_toggled", {
-                    enabled: nextValue,
-                  });
-                  return nextValue;
+        {/* Marker toggle (race control + landmarks) — desktop only */}
+        {hasMarkers && (
+          <button
+            type="button"
+            onClick={(e) => {
+              animateMotion(e.currentTarget, pressMotion());
+              setShowMarkers((v) => {
+                const nextValue = !v;
+                trackEvent("playback_markers_toggled", {
+                  enabled: nextValue,
                 });
-              }}
-              title={
-                showMarkers
-                  ? "Hide race-control markers"
-                  : "Show race-control markers"
-              }
-              aria-pressed={showMarkers}
-              className={`hidden sm:flex items-center gap-1 shrink-0 h-7 px-2 text-[9px] font-black uppercase tracking-widest transition-colors border ${
-                showMarkers
-                  ? "border-amber-500/60 text-amber-300 bg-amber-500/10 hover:bg-amber-500/20"
-                  : "border-panel text-muted bg-panel hover:text-white"
-              }`}
-            >
-              {markerSummary.critical > 0 && (
-                <span className="flex items-center gap-0.5">
-                  <span className="inline-block w-1.5 h-1.5 rounded-sm bg-red-500" />
-                  {markerSummary.critical}
-                </span>
-              )}
-              {markerSummary.warning > 0 && (
-                <span className="flex items-center gap-0.5">
-                  <span className="inline-block w-1.5 h-1.5 rounded-sm bg-amber-400" />
-                  {markerSummary.warning}
-                </span>
-              )}
-            </button>
-          )}
+                return nextValue;
+              });
+            }}
+            title={
+              showMarkers ? "Hide timeline markers" : "Show timeline markers"
+            }
+            aria-label={
+              showMarkers ? "Hide timeline markers" : "Show timeline markers"
+            }
+            aria-pressed={showMarkers}
+            className={`hidden sm:flex items-center gap-1 shrink-0 h-7 px-2 text-[9px] font-black uppercase tracking-widest transition-colors border ${
+              showMarkers
+                ? "border-amber-500/60 text-amber-300 bg-amber-500/10 hover:bg-amber-500/20"
+                : "border-panel text-muted bg-panel hover:text-white"
+            }`}
+          >
+            {showMarkers ? (
+              <Eye size={12} aria-hidden="true" />
+            ) : (
+              <EyeOff size={12} aria-hidden="true" />
+            )}
+            {(markerSummary?.critical ?? 0) > 0 && (
+              <span className="flex items-center gap-0.5">
+                <span className="inline-block w-1.5 h-1.5 rounded-sm bg-red-500" />
+                {markerSummary?.critical}
+              </span>
+            )}
+            {(markerSummary?.warning ?? 0) > 0 && (
+              <span className="flex items-center gap-0.5">
+                <span className="inline-block w-1.5 h-1.5 rounded-sm bg-amber-400" />
+                {markerSummary?.warning}
+              </span>
+            )}
+          </button>
+        )}
 
         {/* Speed buttons — desktop only (mobile lives in chips row) */}
         {showSpeedControls && (
@@ -840,11 +856,7 @@ export function PlaybackBar({
     </div>
   );
 
-  if (
-    !mobileInline &&
-    isMobileNavViewport &&
-    typeof document !== "undefined"
-  ) {
+  if (!mobileInline && isMobileNavViewport && typeof document !== "undefined") {
     return createPortal(playbackBar, document.body);
   }
 

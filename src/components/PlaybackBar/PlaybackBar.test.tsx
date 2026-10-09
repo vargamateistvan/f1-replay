@@ -229,9 +229,15 @@ describe("PlaybackBar marker interactions", () => {
       />,
     );
 
-    const q1 = screen.getByRole("button", { name: "Jump to Q1 start at 00:00" });
-    const q2 = screen.getByRole("button", { name: "Jump to Q2 start at 25:00" });
-    const q3 = screen.getByRole("button", { name: "Jump to Q3 start at 48:00" });
+    const q1 = screen.getByRole("button", {
+      name: "Jump to Q1 start at 00:00",
+    });
+    const q2 = screen.getByRole("button", {
+      name: "Jump to Q2 start at 25:00",
+    });
+    const q3 = screen.getByRole("button", {
+      name: "Jump to Q3 start at 48:00",
+    });
     expect(q1).toHaveStyle({ left: "0%" });
     expect(q2).toHaveStyle({ left: "37.5%" });
     expect(q3).toHaveAttribute("title", "Q3 start at 48:00");
@@ -245,6 +251,63 @@ describe("PlaybackBar marker interactions", () => {
     render(<PlaybackBar durationMs={600_000} />);
     expect(
       screen.queryByRole("button", { name: /Jump to Q\d start/ }),
+    ).not.toBeInTheDocument();
+  });
+
+  it("hides and shows every scrubber marker with one toggle", () => {
+    render(
+      <PlaybackBar
+        durationMs={6_000_000}
+        raceControlMarkers={[
+          {
+            id: "rc-1",
+            ms: 120_000,
+            label: "Investigation",
+            severity: "warning",
+            flag: null,
+          },
+        ]}
+        markerSummary={{ critical: 0, warning: 1 }}
+        raceStartMs={222_000}
+        chequeredMs={5_726_000}
+        q1StartMs={0}
+      />,
+    );
+    const markerNames = [
+      /Jump to incident/,
+      /Jump to race start/,
+      /Jump to chequered flag/,
+      /Jump to Q1 start/,
+    ];
+
+    fireEvent.click(
+      screen.getByRole("button", { name: "Hide timeline markers" }),
+    );
+    for (const name of markerNames) {
+      expect(screen.queryByRole("button", { name })).not.toBeInTheDocument();
+    }
+
+    const toggle = screen.getByRole("button", {
+      name: "Show timeline markers",
+    });
+    expect(toggle).toHaveAttribute("aria-pressed", "false");
+    fireEvent.click(toggle);
+    for (const name of markerNames) {
+      expect(screen.getByRole("button", { name })).toBeInTheDocument();
+    }
+  });
+
+  it("offers the marker toggle when only landmarks exist", () => {
+    render(<PlaybackBar durationMs={600_000} raceStartMs={222_000} />);
+    expect(
+      screen.getByRole("button", { name: "Hide timeline markers" }),
+    ).toBeInTheDocument();
+  });
+
+  it("omits the marker toggle when there are no markers", () => {
+    render(<PlaybackBar durationMs={600_000} />);
+    expect(
+      screen.queryByRole("button", { name: /timeline markers/ }),
     ).not.toBeInTheDocument();
   });
 
