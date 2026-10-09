@@ -25,15 +25,17 @@ const STATUS_TEXT: Record<Exclude<GridCell["status"], "finished">, string> = {
   dsq: "DSQ",
 };
 
+// Podiums keep their medal colours; everything else uses the app palette
+// (panel tiles, muted text, F1 red) so the grid matches the standings tables.
 function cellTone(cell: GridCell | null): string {
   if (!cell) return "text-muted/40";
-  if (cell.status === "dnf") return "bg-red-500/15 text-red-300";
+  if (cell.status === "dnf") return "bg-f1red/10 text-f1red font-bold";
   if (cell.status !== "finished") return "text-muted";
   if (cell.position === 1) return "bg-amber-300 text-black font-black";
-  if (cell.position === 2) return "bg-zinc-300 text-black font-bold";
+  if (cell.position === 2) return "bg-[#c0c0c0] text-black font-bold";
   if (cell.position === 3) return "bg-[#cd7f32] text-black font-bold";
-  if (cell.points > 0) return "bg-emerald-500/20 text-emerald-200";
-  return "text-white/70";
+  if (cell.points > 0) return "bg-panel text-white font-bold";
+  return "text-muted";
 }
 
 function cellText(cell: GridCell | null, mode: Mode): string {

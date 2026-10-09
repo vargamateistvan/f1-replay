@@ -53,7 +53,7 @@ describe("ResultsGrid", () => {
     expect(ver.map((c) => c.textContent)).toEqual(["1", "2", "DNF", "32"]);
     expect(ver[0]).toHaveClass("bg-amber-300");
     expect(ver[0]).toHaveAttribute("title", "VER · Sakhir: P1 · 25 pts");
-    expect(ver[2]).toHaveClass("text-red-300");
+    expect(ver[2]).toHaveClass("text-f1red");
 
     const nor = within(rowFor("NOR")).getAllByRole("cell");
     expect(nor.map((c) => c.textContent)).toEqual(["12", "", "3", "15"]);
