@@ -29,13 +29,7 @@ import type { IncidentWindow } from "@/timeline/raceControl";
 import type { KeyMoment } from "@/components/KeyMoments/types";
 
 export type CommentaryTab =
-  | "rc"
-  | "radio"
-  | "pits"
-  | "passes"
-  | "moments"
-  | "chapters"
-  | "weather";
+  "rc" | "radio" | "pits" | "passes" | "moments" | "chapters" | "weather";
 
 const RaceControlFeed = lazy(() =>
   import("@/components/RaceControl/RaceControl").then((m) => ({
@@ -103,6 +97,8 @@ type Props = {
   sessionType: string | undefined;
   sessionTimeMs: number;
   sessionStartMs: number;
+  /** Session-relative lights-out time; races only. */
+  raceStartMs?: number | null;
   toastEvents: ToastEvent[];
   showAllItems: boolean;
   focusDriver: number | null;
@@ -297,6 +293,7 @@ export function CommentaryPanels({
   sessionType,
   sessionTimeMs,
   sessionStartMs,
+  raceStartMs = null,
   toastEvents,
   showAllItems,
   focusDriver,
@@ -368,8 +365,19 @@ export function CommentaryPanels({
 
   const raceChapters = useMemo(() => {
     if (!shouldBuildChapters) return [];
-    return buildRaceChapters(incidentWindows, sessionDurationMs, chequeredMs);
-  }, [incidentWindows, sessionDurationMs, chequeredMs, shouldBuildChapters]);
+    return buildRaceChapters(
+      incidentWindows,
+      sessionDurationMs,
+      chequeredMs,
+      raceStartMs,
+    );
+  }, [
+    incidentWindows,
+    sessionDurationMs,
+    chequeredMs,
+    raceStartMs,
+    shouldBuildChapters,
+  ]);
 
   const whatChangedSnapshots = useMemo(() => {
     if (!shouldBuildChapters) return [];

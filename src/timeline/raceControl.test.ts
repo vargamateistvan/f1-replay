@@ -3,6 +3,7 @@ import type { Position, RaceControl } from "@/api/types";
 import {
   buildChequeredFlagTimeline,
   buildIncidentWindows,
+  buildRaceChapters,
   clusterRaceControlMarkers,
   computeWhatChanged,
   deriveTrackFlagState,
@@ -12,6 +13,7 @@ import {
   resolveFlagForMarshalPost,
   timingSectorForMarshalPost,
   normalizeRaceControl,
+  type IncidentWindow,
 } from "./raceControl";
 
 const START = new Date("2024-01-01T00:00:00Z").getTime();
@@ -129,7 +131,11 @@ describe("buildIncidentWindows safety control phases", () => {
       [
         rc({ date: iso(5), message: "SAFETY CAR LIGHTS ON", lap_number: 10 }),
         rc({ date: iso(10), message: "SAFETY CAR DEPLOYED", lap_number: 10 }),
-        rc({ date: iso(30), message: "SAFETY CAR IN THIS LAP", lap_number: 12 }),
+        rc({
+          date: iso(30),
+          message: "SAFETY CAR IN THIS LAP",
+          lap_number: 12,
+        }),
       ],
       START,
     );
@@ -468,7 +474,12 @@ describe("deriveTrackFlagState", () => {
       [
         rc({ date: iso(10), flag: "YELLOW", scope: "Sector", sector: 19 }),
         rc({ date: iso(12), flag: "YELLOW", scope: "Sector", sector: 17 }),
-        rc({ date: iso(20), flag: "YELLOW", scope: "Track", message: "YELLOW FLAG" }),
+        rc({
+          date: iso(20),
+          flag: "YELLOW",
+          scope: "Track",
+          message: "YELLOW FLAG",
+        }),
         rc({
           date: iso(22),
           flag: "CLEAR",
@@ -665,7 +676,14 @@ describe("flag scope routing", () => {
   it("does not read a chequered flag as a red flag", () => {
     // "CHEQUERED FLAG" contains the substring "RED FLAG".
     const state = deriveTrackFlagState(
-      [rc({ date: iso(10), flag: null, scope: "Track", message: "CHEQUERED FLAG" })],
+      [
+        rc({
+          date: iso(10),
+          flag: null,
+          scope: "Track",
+          message: "CHEQUERED FLAG",
+        }),
+      ],
       START,
       START + 30_000,
     );
@@ -682,7 +700,11 @@ describe("buildChequeredFlagTimeline", () => {
 
   it("keeps the flag out after a race finishes", () => {
     const entries = [
-      rc({ date: iso(0), flag: "GREEN", message: "GREEN LIGHT - PIT EXIT OPEN" }),
+      rc({
+        date: iso(0),
+        flag: "GREEN",
+        message: "GREEN LIGHT - PIT EXIT OPEN",
+      }),
       rc({ date: iso(100), flag: "CHEQUERED", message: "CHEQUERED FLAG" }),
     ];
     expect(shownAt(entries, 50)).toBe(false);
@@ -694,9 +716,23 @@ describe("buildChequeredFlagTimeline", () => {
     // Real Bahrain 2024 Q1 → Q2 sequence.
     const entries = [
       rc({ date: iso(100), flag: "CHEQUERED", message: "CHEQUERED FLAG" }),
-      rc({ date: iso(100.2), scope: null, category: "Other", message: "SESSION FINISHED" }),
-      rc({ date: iso(520), flag: "GREEN", message: "GREEN LIGHT - PIT EXIT OPEN" }),
-      rc({ date: iso(520.2), scope: null, category: "Other", message: "SESSION STARTED" }),
+      rc({
+        date: iso(100.2),
+        scope: null,
+        category: "Other",
+        message: "SESSION FINISHED",
+      }),
+      rc({
+        date: iso(520),
+        flag: "GREEN",
+        message: "GREEN LIGHT - PIT EXIT OPEN",
+      }),
+      rc({
+        date: iso(520.2),
+        scope: null,
+        category: "Other",
+        message: "SESSION STARTED",
+      }),
       rc({ date: iso(1300), flag: "CHEQUERED", message: "CHEQUERED FLAG" }),
     ];
     expect(shownAt(entries, 300)).toBe(true);
@@ -732,7 +768,12 @@ describe("timing sector projection", () => {
       [
         rc({ date: iso(10), flag: "YELLOW", scope: "Sector", sector: 2 }),
         rc({ date: iso(11), flag: "YELLOW", scope: "Sector", sector: 10 }),
-        rc({ date: iso(12), flag: "DOUBLE YELLOW", scope: "Sector", sector: 22 }),
+        rc({
+          date: iso(12),
+          flag: "DOUBLE YELLOW",
+          scope: "Sector",
+          sector: 22,
+        }),
       ],
       START,
       START + 30_000,
@@ -749,7 +790,12 @@ describe("timing sector projection", () => {
     const state = deriveTrackFlagState(
       [
         rc({ date: iso(10), flag: "YELLOW", scope: "Sector", sector: 1 }),
-        rc({ date: iso(11), flag: "DOUBLE YELLOW", scope: "Sector", sector: 2 }),
+        rc({
+          date: iso(11),
+          flag: "DOUBLE YELLOW",
+          scope: "Sector",
+          sector: 2,
+        }),
       ],
       START,
       START + 30_000,
@@ -808,7 +854,12 @@ describe("flag resolution for painting", () => {
   it("lets an inactive global flag fall through to the post's own flag", () => {
     const state = deriveTrackFlagState(
       [
-        rc({ date: iso(10), flag: "CHEQUERED", scope: "Track", message: "CHEQUERED FLAG" }),
+        rc({
+          date: iso(10),
+          flag: "CHEQUERED",
+          scope: "Track",
+          message: "CHEQUERED FLAG",
+        }),
         rc({
           date: iso(20),
           flag: "YELLOW",
@@ -842,7 +893,14 @@ describe("flag resolution for painting", () => {
 
   it("detects a yellow at any marshal post", () => {
     const yellow = deriveTrackFlagState(
-      [rc({ date: iso(10), flag: "DOUBLE YELLOW", scope: "Sector", sector: 23 })],
+      [
+        rc({
+          date: iso(10),
+          flag: "DOUBLE YELLOW",
+          scope: "Sector",
+          sector: 23,
+        }),
+      ],
       START,
       START + 30_000,
     );
@@ -855,5 +913,62 @@ describe("flag resolution for painting", () => {
     expect(hasAnyMarshalYellow(yellow)).toBe(true);
     expect(hasAnyMarshalYellow(red)).toBe(false);
     expect(hasAnyMarshalYellow(null)).toBe(false);
+  });
+});
+
+describe("buildRaceChapters", () => {
+  const sc = (startMs: number, endMs: number | null): IncidentWindow => ({
+    id: `safety_car-${startMs}`,
+    kind: "safety_car",
+    label: "Safety Car",
+    startMs,
+    endMs,
+    startLap: null,
+  });
+
+  it("anchors Race Start at lights out and adds a Chequered Flag chapter", () => {
+    const chapters = buildRaceChapters(
+      [sc(40_000, 60_000)],
+      120_000,
+      100_000,
+      10_000,
+    );
+    expect(chapters.map((c) => [c.kind, c.label, c.startMs, c.endMs])).toEqual([
+      ["start", "Race Start", 10_000, 40_000],
+      ["safety_car", "Safety Car", 40_000, 60_000],
+      ["green", "Green Flag", 60_000, 100_000],
+      ["finish", "Chequered Flag", 100_000, 120_000],
+    ]);
+  });
+
+  it("emits a Race Start marker when an incident covers lights out", () => {
+    const chapters = buildRaceChapters(
+      [sc(5_000, 30_000)],
+      120_000,
+      100_000,
+      10_000,
+    );
+    expect(chapters.map((c) => [c.kind, c.startMs, c.endMs])).toEqual([
+      ["safety_car", 5_000, 30_000],
+      ["start", 10_000, null],
+      ["green", 30_000, 100_000],
+      ["finish", 100_000, 120_000],
+    ]);
+  });
+
+  it("does not add a trailing green segment after a still-open incident", () => {
+    const chapters = buildRaceChapters([sc(80_000, null)], 120_000, 100_000, 0);
+    expect(chapters.map((c) => c.kind)).toEqual([
+      "start",
+      "safety_car",
+      "finish",
+    ]);
+  });
+
+  it("falls back to t=0 and no chequered chapter when markers are unknown", () => {
+    const chapters = buildRaceChapters([], 50_000, null);
+    expect(chapters.map((c) => [c.kind, c.label, c.startMs, c.endMs])).toEqual([
+      ["start", "Race Start", 0, 50_000],
+    ]);
   });
 });

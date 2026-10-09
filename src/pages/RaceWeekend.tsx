@@ -2593,6 +2593,7 @@ export default function RaceWeekend() {
                 sessionType={session?.session_type}
                 sessionTimeMs={t}
                 sessionStartMs={sessionStartMs}
+                raceStartMs={isRaceSession ? lightsOutMs : null}
                 toastEvents={toastEvents}
                 showAllItems={commentaryTimeMode === "all"}
                 focusDriver={focusDriver}

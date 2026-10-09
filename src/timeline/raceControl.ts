@@ -821,10 +821,7 @@ export function groupEventsByPhase(
 // subsequent "track clear" or restart event.
 
 export type IncidentWindowKind =
-  | "safety_car"
-  | "vsc"
-  | "red_flag"
-  | "yellow_flag";
+  "safety_car" | "vsc" | "red_flag" | "yellow_flag";
 
 export interface IncidentWindow {
   id: string;
@@ -927,13 +924,7 @@ export function buildIncidentWindows(
 // Divide a session into named, jump-to-able chapters.
 
 export type ChapterKind =
-  | "start"
-  | "green"
-  | "safety_car"
-  | "vsc"
-  | "yellow"
-  | "red_flag"
-  | "finish";
+  "start" | "green" | "safety_car" | "vsc" | "yellow" | "red_flag" | "finish";
 
 export interface RaceChapter {
   id: string;
@@ -945,36 +936,47 @@ export interface RaceChapter {
   incidentWindowId: string | null;
 }
 
+/**
+ * @param raceStartMs Session-relative lights-out time. When provided, the
+ *   "Race Start" chapter is anchored there instead of at t=0, and a standalone
+ *   Race Start marker is emitted if an incident (e.g. SC start) covers it.
+ * @param chequeredMs Session-relative chequered flag time. When provided, a
+ *   "Chequered Flag" chapter runs from the flag to the end of the session.
+ */
 export function buildRaceChapters(
   incidentWindows: IncidentWindow[],
   sessionDurationMs: number,
   chequeredMs: number | null,
+  raceStartMs: number | null = null,
 ): RaceChapter[] {
   const chapters: RaceChapter[] = [];
+  const startMs = raceStartMs ?? 0;
   const finishMs = chequeredMs ?? sessionDurationMs;
-  let cursor = 0;
+  let cursor = startMs;
   let greenCount = 0;
 
+  const pushGreen = (from: number, to: number) => {
+    const isStart = from === startMs;
+    if (!isStart) greenCount++;
+    chapters.push({
+      id: isStart ? `start-${from}` : `green-${from}`,
+      kind: isStart ? "start" : "green",
+      label: isStart
+        ? "Race Start"
+        : greenCount === 1
+          ? "Green Flag"
+          : `Green Flag ${greenCount}`,
+      startMs: from,
+      endMs: to,
+      durationMs: to - from,
+      incidentWindowId: null,
+    });
+  };
+
   for (const w of [...incidentWindows].sort((a, b) => a.startMs - b.startMs)) {
-    // Green / start segment before this incident
-    if (w.startMs > cursor) {
-      greenCount++;
-      const label =
-        cursor === 0
-          ? "Race Start"
-          : greenCount === 1
-            ? "Green Flag"
-            : `Green Flag ${greenCount}`;
-      chapters.push({
-        id: `green-${cursor}`,
-        kind: cursor === 0 ? "start" : "green",
-        label,
-        startMs: cursor,
-        endMs: w.startMs,
-        durationMs: w.startMs - cursor,
-        incidentWindowId: null,
-      });
-    }
+    // Green / start segment before this incident (never past the chequered flag)
+    const greenEnd = Math.min(w.startMs, finishMs);
+    if (greenEnd > cursor) pushGreen(cursor, greenEnd);
 
     // Incident window chapter
     const end = w.endMs;
@@ -988,23 +990,43 @@ export function buildRaceChapters(
       incidentWindowId: w.id,
     });
 
-    if (end !== null) cursor = end;
+    // An open window runs to the end of the session — no trailing green.
+    cursor = Math.max(cursor, end ?? Math.max(w.startMs, finishMs));
   }
 
-  // Final green / finish segment
-  if (cursor < finishMs) {
+  // Final green segment up to the flag / end of data
+  if (cursor < finishMs) pushGreen(cursor, finishMs);
+
+  if (
+    raceStartMs !== null &&
+    !chapters.some((c) => c.kind === "start" && c.startMs === raceStartMs)
+  ) {
     chapters.push({
-      id: `finish-${cursor}`,
-      kind: finishMs === chequeredMs ? "finish" : "green",
-      label: finishMs === chequeredMs ? "Finish" : "Green Flag",
-      startMs: cursor,
-      endMs: finishMs,
-      durationMs: finishMs - cursor,
+      id: `start-${raceStartMs}`,
+      kind: "start",
+      label: "Race Start",
+      startMs: raceStartMs,
+      endMs: null,
+      durationMs: null,
       incidentWindowId: null,
     });
   }
 
-  return chapters;
+  if (chequeredMs !== null) {
+    const end = sessionDurationMs > chequeredMs ? sessionDurationMs : null;
+    chapters.push({
+      id: `finish-${chequeredMs}`,
+      kind: "finish",
+      label: "Chequered Flag",
+      startMs: chequeredMs,
+      endMs: end,
+      durationMs: end !== null ? end - chequeredMs : null,
+      incidentWindowId: null,
+    });
+  }
+
+  // Stable sort keeps the Race Start marker ahead of a same-time incident.
+  return chapters.sort((a, b) => a.startMs - b.startMs);
 }
 
 // ─── What Changed snapshots ───────────────────────────────────────────────────
