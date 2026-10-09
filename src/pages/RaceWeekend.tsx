@@ -1599,6 +1599,7 @@ export default function RaceWeekend() {
   const qualiPhaseStartTimes = useMemo(() => {
     if (!sessionStartMs || !isQualiSession(sessionName)) {
       return {
+        q1StartMs: null as number | null,
         q2StartMs: null as number | null,
         q3StartMs: null as number | null,
         q1EndMs: null as number | null,
@@ -1607,19 +1608,33 @@ export default function RaceWeekend() {
       };
     }
 
+    let q1StartMs: number | null = null;
     let q2StartMs: number | null = null;
     let q3StartMs: number | null = null;
     let q1EndMs: number | null = null;
     let q2EndMs: number | null = null;
     let q3EndMs: number | null = null;
+    let firstSessionStartMs: number | null = null;
     for (const { row: entry, relMs } of timedRaceControl) {
       const msg = (entry.message ?? "").toUpperCase();
 
       // Prefer explicit phase markers from the API when present.
+      if (q1StartMs === null && entry.qualifying_phase === 1) q1StartMs = relMs;
       if (q2StartMs === null && entry.qualifying_phase === 2) q2StartMs = relMs;
       if (q3StartMs === null && entry.qualifying_phase === 3) q3StartMs = relMs;
 
+      if (firstSessionStartMs === null && /\bSESSION STARTED\b/.test(msg)) {
+        firstSessionStartMs = relMs;
+      }
+
       // Fallback for sessions where qualifying_phase is missing.
+      if (
+        q1StartMs === null &&
+        /\bQ1\b/.test(msg) &&
+        /(STARTED|START|GREEN|WILL START|SESSION START)/.test(msg)
+      ) {
+        q1StartMs = relMs;
+      }
       if (
         q2StartMs === null &&
         /\bQ2\b/.test(msg) &&
@@ -1658,6 +1673,7 @@ export default function RaceWeekend() {
       }
 
       if (
+        q1StartMs !== null &&
         q2StartMs !== null &&
         q3StartMs !== null &&
         q1EndMs !== null &&
@@ -1668,7 +1684,16 @@ export default function RaceWeekend() {
       }
     }
 
-    return { q2StartMs, q3StartMs, q1EndMs, q2EndMs, q3EndMs };
+    // Untagged feeds: Q1 is the first "SESSION STARTED" before Q2 begins.
+    if (
+      q1StartMs === null &&
+      firstSessionStartMs !== null &&
+      (q2StartMs === null || firstSessionStartMs < q2StartMs)
+    ) {
+      q1StartMs = firstSessionStartMs;
+    }
+
+    return { q1StartMs, q2StartMs, q3StartMs, q1EndMs, q2EndMs, q3EndMs };
   }, [timedRaceControl, sessionName, sessionStartMs]);
 
   const countdownMs = useMemo(() => {
@@ -2675,6 +2700,7 @@ export default function RaceWeekend() {
         incidentReplayHint={incidentReplayHint}
         countdownMs={countdownMs}
         qualiPhase={qualiPhase}
+        q1StartMs={qualiPhaseStartTimes.q1StartMs}
         q2StartMs={qualiPhaseStartTimes.q2StartMs}
         q3StartMs={qualiPhaseStartTimes.q3StartMs}
         raceStartMs={isRaceSession ? lightsOutMs : null}

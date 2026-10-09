@@ -52,7 +52,8 @@ interface Props {
   countdownMs?: number | null;
   /** Active qualifying phase label e.g. "Q1" — shown alongside the countdown */
   qualiPhase?: string | null;
-  /** Session-relative start times for qualifying phase jumps. */
+  /** Session-relative start times for qualifying phases (markers + jumps). */
+  q1StartMs?: number | null;
   q2StartMs?: number | null;
   q3StartMs?: number | null;
   /** Session-relative lights-out time (races/sprints); shows a race-start marker. */
@@ -190,6 +191,7 @@ export function PlaybackBar({
   incidentReplayHint = null,
   countdownMs = null,
   qualiPhase = null,
+  q1StartMs = null,
   q2StartMs = null,
   q3StartMs = null,
   raceStartMs = null,
@@ -320,13 +322,15 @@ export function PlaybackBar({
     setHoverPct(Math.min(1, Math.max(0, pct)));
   };
 
-  // Race start / chequered flag: always shown, unlike race-control markers.
+  // Race start / chequered flag / qualifying parts: always shown, unlike
+  // race-control markers.
   const renderLandmark = ({
     ms,
     label,
     ariaLabel,
     swatchClassName = "",
     swatchStyle,
+    badgeText,
     targetMs,
   }: {
     ms: number;
@@ -334,12 +338,15 @@ export function PlaybackBar({
     ariaLabel: string;
     swatchClassName?: string;
     swatchStyle?: CSSProperties;
+    /** Short text shown in a pill instead of the plain bar swatch. */
+    badgeText?: string;
     targetMs: number;
   }) => {
     if (durationMs <= 0 || ms < 0 || ms > durationMs) return null;
     const tooltip = markerTooltip(label, ms);
     return (
       <button
+        key={label}
         type="button"
         title={tooltip}
         aria-label={ariaLabel}
@@ -356,14 +363,29 @@ export function PlaybackBar({
           transform: "translate(-50%, -50%)",
         }}
       >
-        <span
-          className={`absolute left-1/2 top-1/2 h-4 w-1.5 -translate-x-1/2 -translate-y-1/2 rounded ${swatchClassName} opacity-90 ring-1 ring-black/35 transition-opacity group-hover:opacity-100`}
-          style={swatchStyle}
-        />
+        {badgeText ? (
+          <span
+            className={`absolute left-1/2 top-1/2 flex h-4 -translate-x-1/2 -translate-y-1/2 items-center rounded px-0.5 text-[8px] font-black leading-none ${swatchClassName} opacity-90 ring-1 ring-black/35 transition-opacity group-hover:opacity-100`}
+            style={swatchStyle}
+          >
+            {badgeText}
+          </span>
+        ) : (
+          <span
+            className={`absolute left-1/2 top-1/2 h-4 w-1.5 -translate-x-1/2 -translate-y-1/2 rounded ${swatchClassName} opacity-90 ring-1 ring-black/35 transition-opacity group-hover:opacity-100`}
+            style={swatchStyle}
+          />
+        )}
         <span className={markerTooltipClass}>{tooltip}</span>
       </button>
     );
   };
+
+  const qualiStarts = [
+    { phase: "Q1", ms: q1StartMs },
+    { phase: "Q2", ms: q2StartMs },
+    { phase: "Q3", ms: q3StartMs },
+  ];
 
   const prevLap = prevBefore(lapStarts, t);
   const nextLap = nextAfter(lapStarts, t);
@@ -595,6 +617,18 @@ export function PlaybackBar({
                 swatchStyle: CHEQUERED_SWATCH_STYLE,
                 targetMs: chequeredMs,
               })}
+            {qualiStarts.map(({ phase, ms }) =>
+              ms === null
+                ? null
+                : renderLandmark({
+                    ms,
+                    label: `${phase} start`,
+                    ariaLabel: `Jump to ${phase} start at ${fmtTime(ms)}`,
+                    swatchClassName: "bg-[#00c851] text-black",
+                    badgeText: phase,
+                    targetMs: ms,
+                  }),
+            )}
             {hoverPct !== null && durationMs > 0 && (
               <span
                 role="tooltip"

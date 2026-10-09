@@ -219,6 +219,35 @@ describe("PlaybackBar marker interactions", () => {
     ).not.toBeInTheDocument();
   });
 
+  it("marks qualifying part starts and jumps to them", () => {
+    render(
+      <PlaybackBar
+        durationMs={4_000_000}
+        q1StartMs={0}
+        q2StartMs={1_500_000}
+        q3StartMs={2_880_000}
+      />,
+    );
+
+    const q1 = screen.getByRole("button", { name: "Jump to Q1 start at 00:00" });
+    const q2 = screen.getByRole("button", { name: "Jump to Q2 start at 25:00" });
+    const q3 = screen.getByRole("button", { name: "Jump to Q3 start at 48:00" });
+    expect(q1).toHaveStyle({ left: "0%" });
+    expect(q2).toHaveStyle({ left: "37.5%" });
+    expect(q3).toHaveAttribute("title", "Q3 start at 48:00");
+    expect(q3).toHaveTextContent("Q3");
+
+    fireEvent.click(q2);
+    expect(timelineState.setT).toHaveBeenCalledWith(1_500_000);
+  });
+
+  it("omits qualifying markers outside qualifying", () => {
+    render(<PlaybackBar durationMs={600_000} />);
+    expect(
+      screen.queryByRole("button", { name: /Jump to Q\d start/ }),
+    ).not.toBeInTheDocument();
+  });
+
   it("jumps forward to Q2 and Q3 phase starts", () => {
     render(
       <PlaybackBar
