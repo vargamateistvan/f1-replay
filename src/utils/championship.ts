@@ -1,4 +1,4 @@
-import type { SessionResult } from "@/api/types";
+import type { Lap, SessionResult } from "@/api/types";
 import {
   FASTEST_LAP_POINT,
   FASTEST_LAP_POINT_LAST_YEAR,
@@ -13,6 +13,7 @@ import {
 
 interface RoundSession {
   session_key: number;
+  meeting_key?: number;
   session_type?: string;
   session_name?: string;
   date_start: string;
@@ -93,6 +94,18 @@ export interface GridCell {
   position: number | null;
   points: number;
   status: GridStatus;
+  /** Started from pole (Grand Prix only). */
+  pole?: boolean;
+  /** Set the race's fastest lap (Grand Prix only). */
+  fastestLap?: boolean;
+}
+
+/** Driver number per race session key. */
+export type RoundMarkers = Map<number, number>;
+
+export interface GridMarkers {
+  pole?: RoundMarkers;
+  fastestLap?: RoundMarkers;
 }
 
 export interface ResultsGrid {
@@ -113,6 +126,7 @@ function gridStatus(r: SessionResult): GridStatus {
 export function resultsGrid(
   sessions: RoundSession[],
   results: (SessionResult[] | undefined)[],
+  markers: GridMarkers = {},
 ): ResultsGrid {
   const rounds: ProgressionRound[] = [];
   const byRound: Map<number, GridCell>[] = [];
@@ -122,12 +136,17 @@ export function resultsGrid(
     if (!result) return;
     const isSprint = isSprintPointsSession(session);
     const round = new Map<number, GridCell>();
+    const pole = markers.pole?.get(session.session_key);
+    const fastest = markers.fastestLap?.get(session.session_key);
     for (const r of result) {
-      round.set(r.driver_number, {
+      const cell: GridCell = {
         position: r.position,
         points: resultPoints(r, isSprint),
         status: gridStatus(r),
-      });
+      };
+      if (r.driver_number === pole) cell.pole = true;
+      if (r.driver_number === fastest) cell.fastestLap = true;
+      round.set(r.driver_number, cell);
     }
     rounds.push(toRound(session, isSprint));
     byRound.push(round);
@@ -142,6 +161,43 @@ export function resultsGrid(
     );
   }
   return { rounds, cells };
+}
+
+export interface PoleLap {
+  driverNumber: number;
+  /** Best qualifying time in seconds, or null when unknown. */
+  time: number | null;
+}
+
+// Pole sitter = qualifying P1 (grid penalties don't move pole), with the
+// quickest of their Q1/Q2/Q3 times.
+export function poleFromQualifying(result: SessionResult[]): PoleLap | null {
+  const p1 = result.find((r) => r.position === 1);
+  if (!p1) return null;
+  const times = (Array.isArray(p1.duration) ? p1.duration : [p1.duration])
+    .filter((t): t is number => typeof t === "number" && t > 0);
+  return {
+    driverNumber: p1.driver_number,
+    time: times.length > 0 ? Math.min(...times) : null,
+  };
+}
+
+// Disqualified drivers' laps don't count, so `excluded` drivers are skipped.
+export function fastestLapOf(
+  laps: Pick<Lap, "driver_number" | "lap_number" | "lap_duration">[],
+  excluded: ReadonlySet<number> = new Set(),
+): { driverNumber: number; lapNumber: number; time: number } | null {
+  let best: { driverNumber: number; lapNumber: number; time: number } | null =
+    null;
+  for (const lap of laps) {
+    if (excluded.has(lap.driver_number)) continue;
+    const time = lap.lap_duration;
+    if (time === null || !(time > 0)) continue;
+    if (!best || time < best.time) {
+      best = { driverNumber: lap.driver_number, lapNumber: lap.lap_number, time };
+    }
+  }
+  return best;
 }
 
 // ── Title outlook ───────────────────────────────────────────────────────────

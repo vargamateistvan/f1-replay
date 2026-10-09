@@ -590,6 +590,7 @@ export default function Standings() {
     isError,
   } = useStandings(year, sessionKey, meetingKey, {
     includeQualifying: tab === "teammates",
+    includeResultMarkers: tab === "results",
   });
 
   const driverSeries = useMemo<ProgressionSeries[]>(() => {

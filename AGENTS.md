@@ -208,6 +208,7 @@ components/ (render to DOM; read settings from Zustand)
 ["location-chunk", sessionKey, chunkIndex]
 ["car-data-window", sessionKey, dateGte, dateLte]
 ["car-data-all-window", sessionKey, dateGte, dateLte]
+["fastest-lap", raceSessionKey]   — winning lap only (laps fetched near pole pace)
 ```
 
 **Rules**: `staleTime: Infinity` for historical sessions; `staleTime: 0` + `refetchInterval: LIVE_POLL_FAST_MS | LIVE_POLL_SLOW_MS` for active sessions. Never manually invalidate historical queries.

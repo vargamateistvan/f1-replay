@@ -65,8 +65,28 @@ function describe(cell: GridCell | null): string {
     cell.status === "finished"
       ? `P${cell.position}`
       : `${STATUS_TEXT[cell.status]} (${STATUS_DESCRIPTION[cell.status].toLowerCase()})`;
-  return `${where} · ${cell.points} pts`;
+  const extras = [
+    cell.pole ? "pole position" : null,
+    cell.fastestLap ? "fastest lap" : null,
+  ].filter(Boolean);
+  return [where, `${cell.points} pts`, ...extras].join(" · ");
 }
+
+function markerText(cell: GridCell | null): string {
+  if (!cell) return "";
+  return `${cell.pole ? "P" : ""}${cell.fastestLap ? "F" : ""}`;
+}
+
+function Marker({ text }: { text: string }) {
+  return (
+    <sup className="ml-px text-[8px] font-bold leading-none">{text}</sup>
+  );
+}
+
+const MARKERS: { mark: string; description: string }[] = [
+  { mark: "P", description: "Pole position" },
+  { mark: "F", description: "Fastest lap" },
+];
 
 const LEGEND: { label: string; tone: string; description?: string }[] = [
   {
@@ -135,6 +155,17 @@ export function ResultsGrid({ rounds, standings, cells, loading }: Props) {
                   {item.label}
                 </>
               )}
+            </span>
+          ))}
+          {MARKERS.map((item) => (
+            <span
+              key={item.mark}
+              className="flex items-center gap-1.5 text-muted"
+            >
+              <span className="font-mono text-white">
+                1<Marker text={item.mark} />
+              </span>
+              {item.description}
             </span>
           ))}
           <span className="text-muted">· S = Sprint</span>
@@ -231,6 +262,7 @@ export function ResultsGrid({ rounds, standings, cells, loading }: Props) {
                         }`}
                       >
                         {cellText(cell, mode)}
+                        {markerText(cell) && <Marker text={markerText(cell)} />}
                       </td>
                     );
                   })}

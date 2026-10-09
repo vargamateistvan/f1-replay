@@ -114,6 +114,43 @@ describe("useStandings", () => {
     expect(championshipKey()).toBe(9001);
   });
 
+  it("uses the last race before a preferred non-points session", () => {
+    const sprintQualifying = {
+      session_key: 9050,
+      meeting_key: 1101,
+      session_type: "Qualifying",
+      session_name: "Sprint Qualifying",
+      date_start: "2023-11-24T13:00:00Z",
+      date_end: "2023-11-24T14:00:00Z",
+    };
+    mockData({ "sessions-year:2023": [...sessions2023, sprintQualifying] });
+    renderHook(() => useStandings(2023, 9050));
+    expect(championshipKey()).toBe(9000);
+    expect(queryKeysFor("championshipDrivers")).not.toContainEqual([
+      "championshipDrivers",
+      9050,
+    ]);
+  });
+
+  it("has no standings for a session before the season's first race", () => {
+    mockData({
+      "sessions-year:2023": [
+        ...sessions2023,
+        {
+          session_key: 8990,
+          meeting_key: 1100,
+          session_type: "Practice",
+          session_name: "Practice 1",
+          date_start: "2023-03-03T11:30:00Z",
+          date_end: "2023-03-03T12:30:00Z",
+        },
+      ],
+    });
+    const { result: hook } = renderHook(() => useStandings(2023, 8990));
+    expect(championshipKey()).toBeNull();
+    expect(hook.current.isLoading).toBe(false);
+  });
+
   it("skips races that have not finished yet", () => {
     const future = new Date(Date.now() + 7 * 86_400_000).toISOString();
     mockData({
@@ -322,6 +359,32 @@ describe("useStandings", () => {
           race: { a: 2, b: 0 },
         },
       ]);
+    });
+
+    it("marks pole and fastest lap on Grand Prix columns when requested", () => {
+      mockData(data);
+      renderHook(() => useStandings(2023));
+      expect(queryKeysFor("fastest-lap")).toEqual([]);
+
+      mockUseQuery.mockClear();
+      mockData({
+        ...data,
+        "fastest-lap:9000": { driverNumber: 44, lapNumber: 51, time: 93.1 },
+        "fastest-lap:9001": { driverNumber: 1, lapNumber: 40, time: 86.7 },
+      });
+      const { result: hook } = renderHook(() =>
+        useStandings(2023, null, null, { includeResultMarkers: true }),
+      );
+      // Sprints (9100) get no markers; 9001 has no qualifying but still loads.
+      expect(queryKeysFor("fastest-lap")).toEqual([
+        ["fastest-lap", 9000],
+        ["fastest-lap", 9001],
+      ]);
+      const cells = hook.current.resultsGrid.cells;
+      expect(cells.get(11)?.[0]).toMatchObject({ pole: true });
+      expect(cells.get(44)?.[0]).toMatchObject({ fastestLap: true });
+      expect(cells.get(1)?.[2]).toMatchObject({ fastestLap: true });
+      expect(cells.get(1)?.[0]).not.toHaveProperty("pole");
     });
   });
 });

@@ -1,21 +1,25 @@
 import { useMemo } from "react";
 import { useQueries, useQuery, type UseQueryResult } from "@tanstack/react-query";
 import { api } from "@/api/endpoints";
-import type { Driver, SessionResult } from "@/api/types";
+import type { Driver } from "@/api/types";
 import { CURRENT_SEASON_STALE_MS } from "@/utils/live";
+import { FASTEST_LAP_FILTER_RATIO } from "@/constants";
 import { teamColor } from "@/utils/color";
 import { canonicalTeamName } from "@/utils/identity";
 import {
   completedPointsSessions,
   isGrandPrixSession,
+  isPointsSession,
   tallyGrandPrixPodiums,
   type ConstructorStanding,
   type DriverInfo,
   type DriverStanding,
 } from "@/utils/standings";
 import {
+  fastestLapOf,
   headToHead,
   isMainQualifyingSession,
+  poleFromQualifying,
   pointsProgression,
   remainingPoints,
   resultsGrid,
@@ -25,6 +29,7 @@ import {
   type PointsProgression,
   type RemainingPoints,
   type ResultsGrid,
+  type RoundMarkers,
 } from "@/utils/championship";
 import {
   useChampionshipDrivers,
@@ -47,15 +52,40 @@ export interface TeammateComparison {
 export interface StandingsOptions {
   /** Fetch qualifying results for the teammate comparison (one request per round). */
   includeQualifying?: boolean;
+  /** Fetch pole positions and fastest laps for the results grid. */
+  includeResultMarkers?: boolean;
 }
 
+type FastestLap = NonNullable<ReturnType<typeof fastestLapOf>>;
+
 // Module-level so useQueries can memoise the combined result between renders.
-function combineResults(queries: UseQueryResult<SessionResult[]>[]) {
+function combineResults<T>(queries: UseQueryResult<T>[]) {
   return {
     data: queries.map((q) => q.data),
+    /** False while a query has neither data nor an error yet. */
+    settled: queries.map((q) => !q.isPending),
     loaded: queries.filter((q) => q.data !== undefined).length,
     isFetching: queries.some((q) => q.isFetching),
   };
+}
+
+// Narrows the request to laps near pole pace (a fraction of the ~0.5 MB full
+// lap list); the overall fastest lap is always inside that window when it is
+// non-empty. Only the winning lap is cached.
+async function fetchFastestLap(
+  sessionKey: number,
+  poleTime: number | null,
+  disqualified: ReadonlySet<number>,
+): Promise<FastestLap | null> {
+  if (poleTime !== null) {
+    const limit = Math.round(poleTime * FASTEST_LAP_FILTER_RATIO * 1000) / 1000;
+    const near = await api.laps(sessionKey, undefined, {
+      "lap_duration<": limit,
+    });
+    const best = fastestLapOf(near, disqualified);
+    if (best) return best;
+  }
+  return fastestLapOf(await api.laps(sessionKey), disqualified);
 }
 
 function combineDrivers(queries: UseQueryResult<Driver[]>[]) {
@@ -77,7 +107,7 @@ export function useStandings(
   year: number,
   preferredSessionKey: number | null = null,
   preferredMeetingKey: number | null = null,
-  { includeQualifying = false }: StandingsOptions = {},
+  { includeQualifying = false, includeResultMarkers = false }: StandingsOptions = {},
 ) {
   const isCurrentYear = year === new Date().getFullYear();
 
@@ -105,8 +135,18 @@ export function useStandings(
     preferredSessionKey != null
       ? (sessionsQ.data ?? []).find((s) => s.session_key === preferredSessionKey)
       : undefined;
-  const selectedKey =
-    selectedSession?.session_key ?? meetingKeyOverride ?? latestKey;
+  // Championship tables only exist for Races and Sprints, so a practice or
+  // qualifying session shows the standings after the last one before it.
+  const selectedKey = selectedSession
+    ? isPointsSession(selectedSession)
+      ? selectedSession.session_key
+      : raceSessions
+          .filter(
+            (s) =>
+              Date.parse(s.date_start) < Date.parse(selectedSession.date_start),
+          )
+          .at(-1)?.session_key ?? null
+    : meetingKeyOverride ?? latestKey;
 
   const selectedStartMs = useMemo(() => {
     const session = (sessionsQ.data ?? []).find(
@@ -127,7 +167,8 @@ export function useStandings(
   );
 
   const qualifyingSessions = useMemo(() => {
-    if (!includeQualifying || selectedStartMs === null) return [];
+    if (!(includeQualifying || includeResultMarkers) || selectedStartMs === null)
+      return [];
     const nowMs = Date.now();
     return (sessionsQ.data ?? [])
       .filter(
@@ -138,7 +179,7 @@ export function useStandings(
           Date.parse(s.date_end ?? s.date_start) <= nowMs,
       )
       .sort((a, b) => Date.parse(a.date_start) - Date.parse(b.date_start));
-  }, [includeQualifying, sessionsQ.data, selectedStartMs]);
+  }, [includeQualifying, includeResultMarkers, sessionsQ.data, selectedStartMs]);
 
   const results = useQueries({
     queries: pointsSessions.map((s) => sessionResultQuery(s.session_key)),
@@ -148,6 +189,62 @@ export function useStandings(
   const qualifyingResults = useQueries({
     queries: qualifyingSessions.map((s) => sessionResultQuery(s.session_key)),
     combine: combineResults,
+  });
+
+  // Pole and fastest lap are marked on Grand Prix columns only.
+  const markerRaceIndexes = useMemo(
+    () =>
+      includeResultMarkers
+        ? pointsSessions.flatMap((s, i) => (isGrandPrixSession(s) ? [i] : []))
+        : [],
+    [includeResultMarkers, pointsSessions],
+  );
+  const markerRaces = useMemo(
+    () => markerRaceIndexes.map((i) => pointsSessions[i]),
+    [markerRaceIndexes, pointsSessions],
+  );
+
+  // Per race: undefined until its result has loaded.
+  const disqualifiedPerRace = useMemo(
+    () =>
+      markerRaceIndexes.map((i) => {
+        const result = results.data[i];
+        if (!result) return results.settled[i] ? new Set<number>() : undefined;
+        return new Set(result.filter((r) => r.dsq).map((r) => r.driver_number));
+      }),
+    [markerRaceIndexes, results],
+  );
+
+  // Per race: undefined while its qualifying is loading, null when unknown.
+  const polePerRace = useMemo(() => {
+    const qualifyingIndex = new Map(
+      qualifyingSessions.map((s, i) => [s.meeting_key, i]),
+    );
+    return markerRaces.map((race) => {
+      const i = qualifyingIndex.get(race.meeting_key);
+      if (i === undefined) return null;
+      if (!qualifyingResults.settled[i]) return undefined;
+      const result = qualifyingResults.data[i];
+      return result ? poleFromQualifying(result) : null;
+    });
+  }, [markerRaces, qualifyingSessions, qualifyingResults]);
+
+  const fastestLaps = useQueries({
+    queries: markerRaces.map((race, i) => ({
+      queryKey: ["fastest-lap", race.session_key],
+      queryFn: () =>
+        fetchFastestLap(
+          race.session_key,
+          polePerRace[i]?.time ?? null,
+          disqualifiedPerRace[i] ?? new Set(),
+        ),
+      staleTime: Infinity,
+      // Wait for qualifying (to narrow the lap request by pole time) and the
+      // race result (to skip disqualified drivers).
+      enabled:
+        polePerRace[i] !== undefined && disqualifiedPerRace[i] !== undefined,
+    })),
+    combine: combineResults<FastestLap | null>,
   });
 
   const driversQ = useDrivers(selectedKey);
@@ -321,10 +418,17 @@ export function useStandings(
     [pointsSessions, results.data, teamOf],
   );
 
-  const grid = useMemo<ResultsGrid>(
-    () => resultsGrid(pointsSessions, results.data),
-    [pointsSessions, results.data],
-  );
+  const grid = useMemo<ResultsGrid>(() => {
+    const pole: RoundMarkers = new Map();
+    const fastestLap: RoundMarkers = new Map();
+    markerRaces.forEach((race, i) => {
+      const poleLap = polePerRace[i];
+      if (poleLap) pole.set(race.session_key, poleLap.driverNumber);
+      const best = fastestLaps.data[i];
+      if (best) fastestLap.set(race.session_key, best.driverNumber);
+    });
+    return resultsGrid(pointsSessions, results.data, { pole, fastestLap });
+  }, [pointsSessions, results.data, markerRaces, polePerRace, fastestLaps.data]);
 
   const teammates = useMemo<TeammateComparison[]>(() => {
     const standingByNumber = new Map(
@@ -386,8 +490,9 @@ export function useStandings(
     teammates,
     resultsGrid: grid,
     qualifyingLoading: qualifyingResults.loaded < qualifyingSessions.length,
-    loadedRaces: results.loaded + qualifyingResults.loaded,
-    totalRaces: pointsSessions.length + qualifyingSessions.length,
+    loadedRaces: results.loaded + qualifyingResults.loaded + fastestLaps.loaded,
+    totalRaces:
+      pointsSessions.length + qualifyingSessions.length + markerRaces.length,
     isLoading:
       sessionsQ.isPending ||
       (hasSelection &&
@@ -401,6 +506,7 @@ export function useStandings(
       championshipTeamsQ.isFetching ||
       results.isFetching ||
       qualifyingResults.isFetching ||
+      fastestLaps.isFetching ||
       fallbackDrivers.isFetching,
     isError:
       sessionsQ.isError ||

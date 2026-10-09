@@ -121,6 +121,9 @@ export const SPRINT_POINTS = [8, 7, 6, 5, 4, 3, 2, 1] as const;
 // Bonus point for the fastest lap (top-10 finishers only), awarded 2019–2024.
 export const FASTEST_LAP_POINT = 1;
 export const FASTEST_LAP_POINT_LAST_YEAR = 2024;
+// Race laps are requested only below pole time × this ratio (race pace is
+// typically 3–7 % slower), falling back to every lap when none qualify.
+export const FASTEST_LAP_FILTER_RATIO = 1.1;
 // Lines drawn by default in the points progression chart before "show all".
 export const PROGRESSION_DEFAULT_LINES = 10;
 
