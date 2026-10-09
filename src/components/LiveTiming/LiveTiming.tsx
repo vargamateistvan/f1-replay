@@ -14,6 +14,7 @@ import type {
 } from "@/api/types";
 import { teamColor } from "@/utils/color";
 import { laneDuration } from "@/utils/pit";
+import { PIT_LANE_FALLBACK_MS } from "@/constants";
 import { deriveFinishedDrivers } from "@/utils/finish";
 import { deriveRetiredDrivers } from "@/utils/retirement";
 import { useSettings } from "@/stores/settings";
@@ -628,9 +629,10 @@ export function LiveTiming({
   const pittingNow = useMemo(() => {
     const s = new Set<number>();
     for (const p of pits) {
-      const entry = new Date(p.date).getTime();
+      // OpenF1 stamps pit records at pit-lane exit, not entry.
+      const exitMs = new Date(p.date).getTime();
       const lane = laneDuration(p);
-      const exitMs = lane ? entry + lane * 1000 : entry + 30_000;
+      const entry = exitMs - (lane ? lane * 1000 : PIT_LANE_FALLBACK_MS);
       if (entry <= currentT && currentT <= exitMs) {
         if (
           latestSessionStartMs !== null &&

@@ -404,7 +404,7 @@ describe("LiveTiming", () => {
         intervals={[]}
         pits={[
           {
-            date: "2024-01-01T00:00:20.000Z",
+            date: "2024-01-01T00:00:50.000Z",
             driver_number: 1,
             lap_number: 1,
             meeting_key: 1,
@@ -430,11 +430,52 @@ describe("LiveTiming", () => {
             session_key: 1,
           },
         ] as RaceControl[]}
-        sessionTimeMs={60_000}
+        sessionTimeMs={48_000}
         sessionStartMs={sessionStartMs}
       />,
     );
 
+    expect(screen.queryByText("PIT")).not.toBeInTheDocument();
+  });
+
+  it("shows the pit badge before the pit record's exit timestamp, not after", () => {
+    const sessionStartMs = Date.parse("2024-01-01T00:00:00.000Z");
+    // Practice-style garage stay: OpenF1 stamps the record at pit exit (10:00)
+    // with a 5-minute lane duration, so the car was in the pits 05:00–10:00.
+    const pits = [
+      {
+        date: "2024-01-01T00:10:00.000Z",
+        driver_number: 1,
+        lap_number: 8,
+        meeting_key: 1,
+        stop_duration: null,
+        lane_duration: 300,
+        pit_duration: 300,
+        session_key: 1,
+      },
+    ] as Pit[];
+    const positions = [
+      { driver_number: 1, position: 1, date: "2024-01-01T00:00:10.000Z" },
+    ] as Position[];
+    const renderAt = (sessionTimeMs: number) =>
+      render(
+        <LiveTiming
+          drivers={drivers}
+          positions={positions}
+          intervals={[]}
+          pits={pits}
+          laps={[]}
+          sessionName="Practice 1"
+          sessionTimeMs={sessionTimeMs}
+          sessionStartMs={sessionStartMs}
+        />,
+      );
+
+    const { unmount } = renderAt(7 * 60_000);
+    expect(screen.getByText("PIT")).toBeInTheDocument();
+    unmount();
+
+    renderAt(12 * 60_000);
     expect(screen.queryByText("PIT")).not.toBeInTheDocument();
   });
 
