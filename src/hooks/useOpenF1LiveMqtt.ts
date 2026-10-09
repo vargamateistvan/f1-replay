@@ -1,6 +1,5 @@
 import { useEffect } from "react";
 import { useQueryClient } from "@tanstack/react-query";
-import mqtt from "mqtt";
 import type { MqttClient } from "mqtt";
 import {
   LIVE_MQTT_MAX_ROWS,
@@ -145,58 +144,74 @@ export function useOpenF1LiveMqtt(
     const url = import.meta.env.VITE_OPENF1_MQTT_WSS_URL ?? OPENF1_MQTT_WSS_URL;
     const username = import.meta.env.VITE_OPENF1_MQTT_USERNAME ?? "f1-replay";
 
-    const client: MqttClient = mqtt.connect(url, {
-      username,
-      password: token,
-      reconnectPeriod: 5_000,
-      connectTimeout: OPENF1_MQTT_CONNECT_TIMEOUT_MS,
-      keepalive: 30,
-      clean: true,
-      protocolVersion: 4,
-    });
+    let client: MqttClient | null = null;
+    let cancelled = false;
+
+    // mqtt is large and only needed for live sessions, so load it on demand.
+    void import("mqtt")
+      .then(({ default: mqtt }) => {
+        if (cancelled) return;
+        client = mqtt.connect(url, {
+          username,
+          password: token,
+          reconnectPeriod: 5_000,
+          connectTimeout: OPENF1_MQTT_CONNECT_TIMEOUT_MS,
+          keepalive: 30,
+          clean: true,
+          protocolVersion: 4,
+        });
+        attachHandlers(client);
+      })
+      .catch((err) => {
+        console.warn("OpenF1 MQTT client failed to load", err);
+      });
 
     const topics = Object.keys(TOPIC_TO_QUERY);
 
-    client.on("connect", () => {
-      client.subscribe(topics, (err) => {
-        if (err) console.warn("OpenF1 MQTT subscribe failed", err);
+    function attachHandlers(client: MqttClient) {
+      client.on("connect", () => {
+        client.subscribe(topics, (err) => {
+          if (err) console.warn("OpenF1 MQTT subscribe failed", err);
+        });
       });
-    });
 
-    client.on("message", (topic, rawMessage) => {
-      const config =
-        TOPIC_TO_QUERY[topic as keyof typeof TOPIC_TO_QUERY] ?? null;
-      if (!config) return;
+      client.on("message", (topic, rawMessage) => {
+        const config =
+          TOPIC_TO_QUERY[topic as keyof typeof TOPIC_TO_QUERY] ?? null;
+        if (!config) return;
 
-      let parsed: MqttPayload;
-      try {
-        parsed = JSON.parse(rawMessage.toString()) as MqttPayload;
-      } catch {
-        return;
-      }
+        let parsed: MqttPayload;
+        try {
+          parsed = JSON.parse(rawMessage.toString()) as MqttPayload;
+        } catch {
+          return;
+        }
 
-      if (parsed.session_key !== sessionKey) return;
+        if (parsed.session_key !== sessionKey) return;
 
-      const queryKey = [config.queryKeyName, sessionKey] as const;
-      queryClient.setQueryData(queryKey, (prev) =>
-        mergeRow(prev as MqttPayload[] | undefined, parsed, config),
-      );
-
-      // Keep the all-driver lap query in sync too.
-      if (topic === "v1/laps") {
-        queryClient.setQueryData(
-          lapsQueryKey(sessionKey, undefined, undefined),
-          (prev) => mergeRow(prev as MqttPayload[] | undefined, parsed, config),
+        const queryKey = [config.queryKeyName, sessionKey] as const;
+        queryClient.setQueryData(queryKey, (prev) =>
+          mergeRow(prev as MqttPayload[] | undefined, parsed, config),
         );
-      }
-    });
 
-    client.on("error", (err) => {
-      console.warn("OpenF1 MQTT connection error", err);
-    });
+        // Keep the all-driver lap query in sync too.
+        if (topic === "v1/laps") {
+          queryClient.setQueryData(
+            lapsQueryKey(sessionKey, undefined, undefined),
+            (prev) =>
+              mergeRow(prev as MqttPayload[] | undefined, parsed, config),
+          );
+        }
+      });
+
+      client.on("error", (err) => {
+        console.warn("OpenF1 MQTT connection error", err);
+      });
+    }
 
     return () => {
-      client.end(true);
+      cancelled = true;
+      client?.end(true);
     };
   }, [isLive, queryClient, sessionKey]);
 }

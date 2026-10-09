@@ -13,6 +13,11 @@ import { queryPersister } from "@/lib/queryPersister";
 import { shouldPersistQueryKey } from "@/lib/queryPersistencePolicy";
 import { useSettings } from "@/stores/settings";
 import { initializeAnalytics } from "@/lib/analytics";
+import { loadScriptOnce, runWhenIdle } from "@/lib/idle";
+import { useMediaQuery } from "@/hooks/useMediaQuery";
+import { COFFEE_WIDGET_MIN_WIDTH_PX } from "@/constants";
+
+const COFFEE_WIDGET_SCRIPT_ID = "bmc-widget-script";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -48,6 +53,46 @@ const shouldDehydrateAppQuery = (
 
 function CoffeeWidgetGate() {
   const showCoffeeWidget = useSettings((s) => s.showCoffeeWidget);
+  const isWideViewport = useMediaQuery(
+    `(min-width: ${COFFEE_WIDGET_MIN_WIDTH_PX}px)`,
+  );
+  const shouldLoad = showCoffeeWidget && isWideViewport;
+
+  // The widget is hidden on small screens, so only fetch it when it can
+  // actually be shown, and only after the page is idle.
+  useEffect(() => {
+    if (!shouldLoad) return;
+    runWhenIdle(() => {
+      const script = loadScriptOnce(
+        COFFEE_WIDGET_SCRIPT_ID,
+        "https://cdnjs.buymeacoffee.com/1.0.0/widget.prod.min.js",
+        {
+          "data-name": "BMC-Widget",
+          "data-cfasync": "false",
+          "data-id": "matt_varga",
+          "data-description": "Support me on Buy me a coffee!",
+          "data-message": "",
+          "data-color": "#E8002D",
+          "data-position": "Right",
+          "data-x_margin": "18",
+          "data-y_margin": "18",
+        },
+      );
+      if (!script || script.dataset.bmcInit) return;
+      script.dataset.bmcInit = "pending";
+      script.addEventListener(
+        "load",
+        () => {
+          // The widget bootstraps on window DOMContentLoaded, which has
+          // already fired by the time this deferred script loads.
+          script.dataset.bmcInit = "done";
+          window.dispatchEvent(new Event("DOMContentLoaded"));
+        },
+        { once: true },
+      );
+    });
+  }, [shouldLoad]);
+
   useEffect(() => {
     const STYLE_ID = "bmc-hide-style";
     if (!showCoffeeWidget) {

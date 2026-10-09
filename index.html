@@ -2,8 +2,7 @@
 <html lang="en">
 
 <head>
-  <!-- Google tag (gtag.js) -->
-  <script async src="https://www.googletagmanager.com/gtag/js?id=G-R9T6QJHL5X"></script>
+  <!-- Google tag (gtag.js): the library itself is loaded on idle by src/lib/analytics.ts -->
   <script>
     window.dataLayer = window.dataLayer || [];
     function gtag() { dataLayer.push(arguments); }
@@ -12,6 +11,8 @@
 
   <meta charset="UTF-8" />
   <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+  <!-- Warm up the driver/flag image CDN. The API origin preconnect is injected at build time (vite.config.ts). -->
+  <link rel="preconnect" href="https://media.formula1.com" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
   <meta name="application-name" content="F1 Replay" />
   <meta name="apple-mobile-web-app-title" content="F1 Replay" />
@@ -90,11 +91,19 @@
 </head>
 
 <body>
-  <div id="root"></div>
+  <div id="root">
+    <!-- Static loading shell: painted as soon as CSS arrives, replaced by React on first render. -->
+    <div class="flex min-h-screen items-center justify-center gap-3 text-xs uppercase tracking-[0.12em] text-muted"
+      role="status">
+      <svg width="24" height="24" viewBox="0 0 32 32" fill="none" aria-hidden="true">
+        <circle cx="16" cy="16" r="12" stroke="#E8002D" stroke-width="2.5" stroke-linecap="round"
+          stroke-dasharray="67 8" stroke-dashoffset="71" transform="rotate(-90 16 16)" />
+        <polygon points="12,10 12,22 23,16" fill="#E8002D" />
+      </svg>
+      Loading F1 Replay
+    </div>
+  </div>
   <script type="module" src="/src/main.tsx"></script>
-  <script data-name="BMC-Widget" data-cfasync="false" src="https://cdnjs.buymeacoffee.com/1.0.0/widget.prod.min.js"
-    data-id="matt_varga" data-description="Support me on Buy me a coffee!" data-message="" data-color="#E8002D"
-    data-position="Right" data-x_margin="18" data-y_margin="18"></script>
 </body>
 
 </html>

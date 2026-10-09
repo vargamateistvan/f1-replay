@@ -127,6 +127,9 @@ vi.mock("@/data/circuits", () => ({
 
 vi.mock("@/data/circuitGeometry", () => ({
   getCircuitGeometry: vi.fn(() => null),
+  // Geometry is served synchronously via getCircuitGeometry in tests.
+  hasCircuitGeometry: () => false,
+  loadCircuitGeometry: async () => null,
 }));
 
 vi.mock("recharts", () => {

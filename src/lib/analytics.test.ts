@@ -137,6 +137,27 @@ describe("analytics", () => {
     );
   });
 
+  it("loads gtag.js lazily once the page is idle", async () => {
+    window.gtag = vi.fn();
+    const { initializeAnalytics } = await importFreshAnalytics();
+    // Earlier tests may have scheduled a real-timer injection that has fired.
+    document.getElementById("gtag-js")?.remove();
+    vi.useFakeTimers();
+
+    initializeAnalytics();
+    expect(document.getElementById("gtag-js")).toBeNull();
+
+    vi.runAllTimers();
+    const script = document.getElementById("gtag-js") as HTMLScriptElement;
+    expect(script?.src).toBe(
+      "https://www.googletagmanager.com/gtag/js?id=G-TEST123",
+    );
+    expect(script.async).toBe(true);
+
+    script.remove();
+    vi.useRealTimers();
+  });
+
   it("classifies smaller viewports for event context", async () => {
     Object.defineProperty(window, "innerWidth", {
       configurable: true,

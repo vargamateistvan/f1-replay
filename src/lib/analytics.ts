@@ -1,4 +1,5 @@
 import { appVersion } from "@/lib/appVersion";
+import { loadScriptOnce, runWhenIdle } from "@/lib/idle";
 
 type EventParams = Record<string, string | number | boolean | undefined>;
 type GtagCommand = "js" | "config" | "event" | "set";
@@ -106,6 +107,14 @@ export function initializeAnalytics(): void {
   if (initialized || !shouldTrackAnalytics() || typeof window === "undefined")
     return;
   initialized = true;
+  // gtag.js is ~180 KB of third-party JS. The inline stub in index.html
+  // queues commands in dataLayer, so the real library can load once idle.
+  runWhenIdle(() => {
+    loadScriptOnce(
+      "gtag-js",
+      `https://www.googletagmanager.com/gtag/js?id=${encodeURIComponent(GA_MEASUREMENT_ID)}`,
+    );
+  });
   if (appVersion) {
     window.gtag?.("set", "user_properties", {
       app_version: appVersion,

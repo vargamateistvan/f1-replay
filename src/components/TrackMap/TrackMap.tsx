@@ -78,7 +78,7 @@ import {
   type CameraView,
 } from "./trackCamera";
 import { getCircuitLayout } from "@/data/circuits";
-import { getCircuitGeometry } from "@/data/circuitGeometry";
+import { useCircuitGeometry } from "@/hooks/useCircuitGeometry";
 
 // Speed → HSL color: 0 km/h = blue (240°), 150 = green (120°), 300+ = red (0°).
 // Matches the F1 broadcast "speed trace" convention.
@@ -494,9 +494,11 @@ export function TrackMap({
     { sharedAllDriverWindow },
   );
 
-  // Baked official geometry — available immediately when the bake script has run.
-  const circuitGeom =
-    circuitKey != null ? getCircuitGeometry(circuitKey, year) : null;
+  // Baked official geometry — loaded on demand for this circuit only.
+  const { data: circuitGeom, isPending: bakedPending } = useCircuitGeometry(
+    circuitKey,
+    year,
+  );
   const hasBaked = circuitGeom != null;
 
   // OpenF1 reports flags per marshal post, so the three-sector view shown in the
@@ -519,8 +521,9 @@ export function TrackMap({
   // let it try a bounded number of drivers inside one query. Iterating here
   // with a per-driver query would fire a laps request for every driver.
   const candidateDrivers = useMemo(
-    () => (hasBaked ? null : drivers.map((d) => d.driver_number)),
-    [drivers, hasBaked],
+    () =>
+      hasBaked || bakedPending ? null : drivers.map((d) => d.driver_number),
+    [drivers, hasBaked, bakedPending],
   );
   const { data: outline, isPending } = useTrackOutline(
     sessionKey,

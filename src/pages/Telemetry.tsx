@@ -42,7 +42,7 @@ import {
   type CornerAnalysisLap,
 } from "@/components/CornerAnalysis/CornerAnalysis";
 import { CompoundRing } from "@/components/LiveTiming/TyreBadge";
-import { getCircuitGeometry } from "@/data/circuitGeometry";
+import { useCircuitGeometry } from "@/hooks/useCircuitGeometry";
 import {
   CORNER_HIGH_SPEED_KMH,
   CORNER_LOW_SPEED_KMH,
@@ -617,6 +617,10 @@ export default function Telemetry() {
     [dataA.data],
   );
 
+  const { data: circuitGeom } = useCircuitGeometry(
+    session?.circuit_key,
+    session?.year,
+  );
   const trackPreview = useMemo(() => {
     const outline = trackOutlineA.data;
     if (!outline || outline.points.length < 2) return null;
@@ -626,9 +630,6 @@ export default function Telemetry() {
       return null;
     }
 
-    const circuitGeom = session?.circuit_key
-      ? getCircuitGeometry(session.circuit_key, session.year ?? null)
-      : null;
     // Points are rotated in Cartesian Y-up coordinates before locationToSvg
     // mirrors Y for SVG, yielding the same visible orientation as TrackMap.
     const rotationDeg =
@@ -790,7 +791,7 @@ export default function Telemetry() {
       cornerLabels,
       cornerMarkers,
     };
-  }, [trackOutlineA.data, session?.circuit_key, session?.year]);
+  }, [trackOutlineA.data, circuitGeom]);
 
   const telemetryCornerMarkers = useMemo<ChartCornerMarker[]>(() => {
     const lapDistance = xDist[xDist.length - 1];

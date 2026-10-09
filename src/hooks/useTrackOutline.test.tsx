@@ -23,6 +23,9 @@ vi.mock("@/api/endpoints", () => ({
 
 vi.mock("@/data/circuitGeometry", () => ({
   getCircuitGeometry: (...args: unknown[]) => mockGetCircuitGeometry(...args),
+  // Geometry is served synchronously via getCircuitGeometry in tests.
+  hasCircuitGeometry: () => false,
+  loadCircuitGeometry: async () => null,
 }));
 
 vi.mock("@/data/circuits", () => ({

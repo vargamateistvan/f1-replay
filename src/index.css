@@ -36,6 +36,8 @@ html.light .text-white\/80      { color: rgba(18,18,26,0.8) !important; }
 html.light .text-white\/70      { color: rgba(18,18,26,0.7) !important; }
 html.light .text-white\/60      { color: rgba(18,18,26,0.6) !important; }
 html.light .text-white\/50      { color: rgba(18,18,26,0.5) !important; }
+/* AA-contrast accent red (dark mode uses a lighter tint) */
+html.light .text-\[\#ff5c77\]   { color: #c8102e !important; }
 
 /* Hardcoded hex backgrounds */
 html.light .bg-\[\#15151e\]     { background-color: rgb(240 240 245) !important; }

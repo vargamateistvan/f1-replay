@@ -15,8 +15,6 @@ import {
 } from "react";
 import { Nav } from "@/components/Nav";
 import { MobileNav } from "@/components/MobileNav";
-import { SettingsModal } from "@/components/SettingsModal/SettingsModal";
-import { HowItWorksModal } from "@/components/HowItWorksModal/HowItWorksModal";
 import { RouteSeo } from "@/components/Seo/RouteSeo";
 import { animateMotion, motionEnabled, routeEnterMotion } from "@/lib/motion";
 import {
@@ -31,6 +29,7 @@ import {
 } from "@/lib/appVersion";
 import { useReleaseDate } from "@/hooks/useReleaseDate";
 import { OPENF1_SITE_URL } from "@/constants";
+import { useSettings } from "@/stores/settings";
 const RaceWeekend = lazy(() => import("@/pages/RaceWeekend"));
 const Telemetry = lazy(() => import("@/pages/Telemetry"));
 const Standings = lazy(() => import("@/pages/Standings"));
@@ -38,6 +37,29 @@ const Settings = lazy(() => import("@/pages/Settings"));
 const Privacy = lazy(() => import("@/pages/Privacy"));
 const Terms = lazy(() => import("@/pages/Terms"));
 const NotFound = lazy(() => import("@/pages/NotFound"));
+// Modals are code-split and only mounted while open to keep them (and the
+// TrackMap preview inside settings) out of the initial bundle.
+const SettingsModal = lazy(() =>
+  import("@/components/SettingsModal/SettingsModal").then((m) => ({
+    default: m.SettingsModal,
+  })),
+);
+const HowItWorksModal = lazy(() =>
+  import("@/components/HowItWorksModal/HowItWorksModal").then((m) => ({
+    default: m.HowItWorksModal,
+  })),
+);
+
+function LazyModals() {
+  const isSettingsOpen = useSettings((s) => s.isOpen);
+  const isHelpOpen = useSettings((s) => s.isHelpOpen);
+  return (
+    <Suspense fallback={null}>
+      {isSettingsOpen && <SettingsModal />}
+      {isHelpOpen && <HowItWorksModal />}
+    </Suspense>
+  );
+}
 
 function RouteFallback() {
   return (
@@ -211,8 +233,7 @@ export function AppRouter() {
           </div>
         </footer>
         <MobileNav />
-        <SettingsModal />
-        <HowItWorksModal />
+        <LazyModals />
       </div>
     </BrowserRouter>
   );

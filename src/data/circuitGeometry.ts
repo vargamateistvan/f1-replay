@@ -9,17 +9,19 @@
  */
 import type { CircuitGeometry } from "./circuitGeometryTypes";
 
-// Vite eager glob — loads all JSON files in the directory at build time.
+// Lazy glob: each JSON file becomes its own chunk, so a session only downloads
+// the geometry for its own circuit instead of every circuit (~2.4 MB).
 // Returns {} when the directory is empty (before running the bake script),
 // which causes useTrackOutline to fall back to the GPS-derived path.
-const modules = import.meta.glob<CircuitGeometry>("./circuit-geometry/*.json", {
-  eager: true,
+const loaders = import.meta.glob<CircuitGeometry>("./circuit-geometry/*.json", {
   import: "default",
 });
 
-// Map: circuit_key → (year → geometry)
-const CIRCUIT_GEOMETRY = new Map<number, Map<number, CircuitGeometry>>();
-for (const [path, data] of Object.entries(modules)) {
+type GeometryLoader = () => Promise<CircuitGeometry>;
+
+// Map: circuit_key → (year → loader). Built from file names only.
+const CIRCUIT_GEOMETRY = new Map<number, Map<number, GeometryLoader>>();
+for (const [path, loader] of Object.entries(loaders)) {
   // Filenames are "{circuitKey}-{year}.json"
   const m = path.match(/\/(\d+)-(\d+)\.json$/);
   if (!m) continue;
@@ -30,21 +32,26 @@ for (const [path, data] of Object.entries(modules)) {
     yearMap = new Map();
     CIRCUIT_GEOMETRY.set(circuitKey, yearMap);
   }
-  yearMap.set(year, data);
+  yearMap.set(year, loader);
 }
 
+const loaded = new Map<string, CircuitGeometry>();
+const inFlight = new Map<string, Promise<CircuitGeometry | null>>();
+
+const cacheKey = (circuitKey: number, year: number) => `${circuitKey}-${year}`;
+
 /**
- * Returns the baked geometry for a given circuit key and year.
+ * Resolves which baked year to use for a given circuit key and year.
  *
  * Lookup order:
  * 1. Exact year match.
  * 2. Nearest year ≤ requested (most-recent earlier layout).
  * 3. Nearest year overall (future-only data, e.g. brand-new circuit).
  */
-export function getCircuitGeometry(
+function resolveGeometryYear(
   circuitKey: number,
   year?: number | null,
-): CircuitGeometry | null {
+): number | null {
   const yearMap = CIRCUIT_GEOMETRY.get(circuitKey);
   if (!yearMap) return null;
 
@@ -52,22 +59,72 @@ export function getCircuitGeometry(
   if (availableYears.length === 0) return null;
 
   if (year == null) {
-    // No year specified — return latest available
-    return yearMap.get(availableYears[availableYears.length - 1]!) ?? null;
+    // No year specified — use latest available
+    return availableYears[availableYears.length - 1]!;
   }
 
   // Exact match
-  if (yearMap.has(year)) return yearMap.get(year)!;
+  if (yearMap.has(year)) return year;
 
   // Most recent year that is ≤ requested (correct historical layout)
   let best: number | null = null;
   for (const y of availableYears) {
     if (y <= year) best = y;
   }
-  if (best !== null) return yearMap.get(best)!;
+  if (best !== null) return best;
 
   // Fallback: oldest available year (circuit only has future data)
-  return yearMap.get(availableYears[0]!) ?? null;
+  return availableYears[0]!;
+}
+
+/** True when baked geometry exists for the circuit (loaded or not). */
+export function hasCircuitGeometry(
+  circuitKey: number,
+  year?: number | null,
+): boolean {
+  return resolveGeometryYear(circuitKey, year) !== null;
+}
+
+/**
+ * Returns the baked geometry for a given circuit key and year if it has
+ * already been loaded via `loadCircuitGeometry` (see `useCircuitGeometry`),
+ * otherwise null.
+ */
+export function getCircuitGeometry(
+  circuitKey: number,
+  year?: number | null,
+): CircuitGeometry | null {
+  const resolvedYear = resolveGeometryYear(circuitKey, year);
+  if (resolvedYear === null) return null;
+  return loaded.get(cacheKey(circuitKey, resolvedYear)) ?? null;
+}
+
+/** Loads (and caches) the baked geometry for a given circuit key and year. */
+export function loadCircuitGeometry(
+  circuitKey: number,
+  year?: number | null,
+): Promise<CircuitGeometry | null> {
+  const resolvedYear = resolveGeometryYear(circuitKey, year);
+  if (resolvedYear === null) return Promise.resolve(null);
+
+  const key = cacheKey(circuitKey, resolvedYear);
+  const cached = loaded.get(key);
+  if (cached) return Promise.resolve(cached);
+
+  const pending = inFlight.get(key);
+  if (pending) return pending;
+
+  const loader = CIRCUIT_GEOMETRY.get(circuitKey)!.get(resolvedYear)!;
+  const promise = loader()
+    .then((geometry) => {
+      loaded.set(key, geometry);
+      return geometry;
+    })
+    .finally(() => {
+      inFlight.delete(key);
+    });
+  inFlight.set(key, promise);
+  return promise;
 }
 
 export type {

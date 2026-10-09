@@ -1,14 +1,45 @@
 import { sentryVitePlugin } from "@sentry/vite-plugin";
-import { defineConfig } from "vite";
+import { defineConfig, loadEnv, type Plugin } from "vite";
 import react from "@vitejs/plugin-react";
 import { fileURLToPath, URL } from "node:url";
-import { env } from "node:process";
+import { cwd, env } from "node:process";
 
 const sentryRelease = env.SENTRY_RELEASE;
 
-export default defineConfig({
+const DEFAULT_OPENF1_API_BASE = "https://api.openf1.org/v1";
+
+/**
+ * Adds a `preconnect` hint for the OpenF1 API origin (which may be a proxy set
+ * via VITE_OPENF1_API_BASE) so the first data requests skip DNS/TLS setup.
+ */
+function apiPreconnectPlugin(mode: string): Plugin {
+  const viteEnv = loadEnv(mode, cwd(), "VITE_");
+  const apiBase = viteEnv.VITE_OPENF1_API_BASE || DEFAULT_OPENF1_API_BASE;
+  let origin: string | null = null;
+  try {
+    origin = new URL(apiBase).origin;
+  } catch {
+    // Relative base (e.g. the dev proxy) — same origin, nothing to preconnect.
+  }
+  return {
+    name: "api-preconnect",
+    transformIndexHtml() {
+      if (!origin) return [];
+      return [
+        {
+          tag: "link",
+          attrs: { rel: "preconnect", href: origin, crossorigin: "" },
+          injectTo: "head-prepend",
+        },
+      ];
+    },
+  };
+}
+
+export default defineConfig(({ mode }) => ({
   base: "/",
   plugins: [
+    apiPreconnectPlugin(mode),
     react(),
     sentryVitePlugin({
       org: "f1-replay",
@@ -52,50 +83,35 @@ export default defineConfig({
           const moduleId = id.replaceAll("\\", "/");
 
           if (moduleId.includes("node_modules")) {
+            // Match on the package root so e.g. `@sentry/react` isn't
+            // mistaken for `react` and dragged into the vendor-react chunk.
+            const inPackage = (...names: string[]) =>
+              names.some((name) => moduleId.includes(`/node_modules/${name}/`));
+
             if (
-              moduleId.includes("/react/") ||
-              moduleId.includes("/react-dom/") ||
-              moduleId.includes("/react-router-dom/")
+              inPackage(
+                "react",
+                "react-dom",
+                "scheduler",
+                "react-router",
+                "react-router-dom",
+                "@remix-run/router",
+              )
             ) {
               return "vendor-react";
             }
-            if (
-              moduleId.includes("/recharts/") ||
-              moduleId.includes("/uplot/")
-            ) {
+            if (inPackage("recharts", "uplot")) {
               return "vendor-charts";
             }
-            if (
-              moduleId.includes("/@tanstack/react-query/") ||
-              moduleId.includes("/zustand/")
-            ) {
+            if (inPackage("@tanstack/react-query", "zustand")) {
               return "vendor-query";
             }
             return undefined;
           }
 
-          if (moduleId.includes("/src/components/LiveTiming/")) {
-            return "feature-raceweekend-panels";
-          }
-          if (
-            moduleId.includes("/src/components/TrackMap/") ||
-            moduleId.includes("/src/hooks/useTrackMap") ||
-            moduleId.includes("/src/hooks/useLocationChunks")
-          ) {
-            return "feature-raceweekend-panels";
-          }
-          if (
-            moduleId.includes("/src/timeline/raceControl") ||
-            moduleId.includes("/src/components/RaceControl/") ||
-            moduleId.includes("/src/components/KeyMoments/") ||
-            moduleId.includes("/src/components/RaceChapters/")
-          ) {
-            return "feature-raceweekend-panels";
-          }
-          if (moduleId.includes("/src/components/PlaybackBar/")) {
-            return "feature-playback";
-          }
-
+          // App code is split by the lazy route boundaries in routes.tsx.
+          // Forcing src/ modules into named chunks here pulls their shared
+          // dependencies into the entry's preload graph for every route.
           return undefined;
         },
       },
@@ -103,4 +119,4 @@ export default defineConfig({
 
     sourcemap: true,
   },
-});
+}));

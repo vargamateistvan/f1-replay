@@ -2,9 +2,10 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { api } from "@/api/endpoints";
 import type { Lap } from "@/api/types";
 import { TRACK_OUTLINE_LAP } from "@/constants";
-import { getCircuitGeometry } from "@/data/circuitGeometry";
+import type { CircuitGeometry } from "@/data/circuitGeometry";
 import { getCircuitLayout } from "@/data/circuits";
 import { lapsQueryKey } from "@/hooks/queryKeys";
+import { useCircuitGeometry } from "@/hooks/useCircuitGeometry";
 
 // How many drivers the GPS fallback will try before giving up. Each attempt
 // costs one /location request, so keep this small to protect the rate budget.
@@ -218,9 +219,7 @@ export function computeTrackAutoRotationDeg(
   return normalizeHorizontalLevelDeg(-headingDeg);
 }
 
-function bakedOutline(circuitKey: number | null, year: number | null) {
-  if (circuitKey === null) return null;
-  const geom = getCircuitGeometry(circuitKey, year);
+function bakedOutline(geom: CircuitGeometry | null) {
   if (!geom || geom.x.length === 0) return null;
   const points = geom.x.map((x, i) => ({ x, y: geom.y[i]! }));
   const bounds = computeTrackBounds(points);
@@ -286,9 +285,14 @@ export function useTrackOutline(
         : [...driverNumbers];
   const candidatesKey = candidates.join(",");
 
-  // Baked data is available synchronously, so seed the cache with it and
-  // never wait on the network.
-  const baked = bakedOutline(circuitKey, year);
+  // Baked data is cached once loaded, so seed the query with it and never
+  // wait on the network. While it's still loading, hold off on the GPS
+  // fallback so we don't spend API budget on an outline we won't use.
+  const { data: circuitGeom, isPending: bakedPending } = useCircuitGeometry(
+    circuitKey,
+    year,
+  );
+  const baked = bakedOutline(circuitGeom);
   const canDeriveGps = sessionKey !== null && candidates.length > 0;
 
   return useQuery({
@@ -359,9 +363,10 @@ export function useTrackOutline(
     // Without baked geometry, wait for the driver list before fetching so a
     // `null` result is never produced just because drivers haven't loaded yet.
     enabled:
-      baked !== null ||
-      canDeriveGps ||
-      (sessionKey === null && circuitKey !== null),
+      !bakedPending &&
+      (baked !== null ||
+        canDeriveGps ||
+        (sessionKey === null && circuitKey !== null)),
     staleTime: Infinity,
   });
 }

@@ -3,7 +3,7 @@ import {
   RATE_MAX_PER_MINUTE,
   RATE_MAX_RETRIES,
 } from "@/constants";
-import * as Sentry from "@sentry/react";
+import { Sentry } from "@/lib/sentry";
 
 const DEFAULT_BASE = "https://api.openf1.org/v1";
 

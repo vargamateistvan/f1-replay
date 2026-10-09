@@ -32,15 +32,15 @@ interface TrackStatus {
 
 const FLAG_STATUS: Record<string, TrackStatus> = {
   FORMATION_LAP: { label: "FORMATION LAP", bg: "#1c1c2e", color: "#c8c8ff" },
-  GREEN: { label: "GREEN FLAG", bg: "#39b54a", color: "#fff" },
-  CLEAR: { label: "TRACK CLEAR", bg: "#39b54a", color: "#fff" },
+  GREEN: { label: "GREEN FLAG", bg: "#39b54a", color: "#000" },
+  CLEAR: { label: "TRACK CLEAR", bg: "#39b54a", color: "#000" },
   YELLOW: { label: "YELLOW FLAG", bg: "#f5d400", color: "#000" },
   DOUBLE_YELLOW: { label: "DBL YELLOW", bg: "#f5d400", color: "#000" },
   RED: { label: "RED FLAG", bg: "#e8002d", color: "#fff" },
   SAFETY_CAR: { label: "SAFETY CAR", bg: "#f5a623", color: "#000" },
   VIRTUAL_SAFETY_CAR: { label: "VSC", bg: "#f5a623", color: "#000" },
   CHEQUERED: { label: "CHEQUERED", bg: "#e8e8e8", color: "#000" },
-  BLACK_AND_WHITE: { label: "B&W FLAG", bg: "#888", color: "#fff" },
+  BLACK_AND_WHITE: { label: "B&W FLAG", bg: "#888", color: "#000" },
 };
 
 function deriveStatus(

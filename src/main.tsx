@@ -1,5 +1,4 @@
 import { createRoot } from "react-dom/client";
-import * as Sentry from "@sentry/react";
 import "@fontsource/inter/latin-400.css";
 import "@fontsource/inter/latin-500.css";
 import "@fontsource/inter/latin-600.css";
@@ -12,6 +11,8 @@ import "@fontsource/jetbrains-mono/latin-700.css";
 import "./index.css";
 import App from "./App.tsx";
 import { appVersion } from "@/lib/appVersion";
+import { runWhenIdle } from "@/lib/idle";
+import { loadSentry, Sentry } from "@/lib/sentry";
 
 const sentryDsn =
   import.meta.env.VITE_SENTRY_DSN ||
@@ -38,29 +39,44 @@ function isCrossOriginFrameError(value: unknown): boolean {
 }
 
 if (shouldInitializeSentry && sentryDsn) {
-  Sentry.init({
-    dsn: sentryDsn,
-    environment: import.meta.env.MODE,
-    release: appVersion ?? undefined,
-    dataCollection: {
-      // To disable sending user data and HTTP bodies, uncomment the lines below. For more info visit:
-      // https://docs.sentry.io/platforms/javascript/guides/react/configuration/options/#dataCollection
-      // userInfo: false,
-      // httpBodies: []
-    },
-    integrations: [
-      Sentry.browserTracingIntegration(),
-      Sentry.browserProfilingIntegration(),
-      Sentry.replayIntegration(),
-      Sentry.consoleLoggingIntegration({ levels: ["log", "warn", "error"] }),
-    ],
-    enableLogs: true,
-    tracesSampleRate: 1,
-    profileSessionSampleRate: 1,
-    tracePropagationTargets: ["localhost", /^https:\/\/yourserver\.io\/api/],
-    // Session Replay
-    replaysSessionSampleRate: import.meta.env.DEV ? 1 : 0.1,
-    replaysOnErrorSampleRate: 1,
+  // The SDK loads in parallel with the first render; early calls are queued.
+  void loadSentry((sdk) => {
+    sdk.init({
+      dsn: sentryDsn,
+      environment: import.meta.env.MODE,
+      release: appVersion ?? undefined,
+      dataCollection: {
+        // To disable sending user data and HTTP bodies, uncomment the lines below. For more info visit:
+        // https://docs.sentry.io/platforms/javascript/guides/react/configuration/options/#dataCollection
+        // userInfo: false,
+        // httpBodies: []
+      },
+      integrations: [
+        sdk.browserTracingIntegration(),
+        sdk.browserProfilingIntegration(),
+        sdk.consoleLoggingIntegration({ levels: ["log", "warn", "error"] }),
+      ],
+      enableLogs: true,
+      tracesSampleRate: 1,
+      profileSessionSampleRate: 1,
+      tracePropagationTargets: ["localhost", /^https:\/\/yourserver\.io\/api/],
+      // Session Replay
+      replaysSessionSampleRate: import.meta.env.DEV ? 1 : 0.1,
+      replaysOnErrorSampleRate: 1,
+    });
+
+    // Session Replay is the heaviest part of the SDK; load it from the Sentry
+    // CDN once the page is idle so it stays off the critical rendering path.
+    runWhenIdle(() => {
+      sdk
+        .lazyLoadIntegration("replayIntegration")
+        .then((replayIntegration) => {
+          sdk.addIntegration(replayIntegration());
+        })
+        .catch(() => {
+          // Non-fatal: replay is optional diagnostics.
+        });
+    });
   });
 }
 

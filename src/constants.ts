@@ -201,3 +201,14 @@ export const CORNER_ZONE_COLORS = {
   medium: "rgba(245, 202, 95, 0.12)",
   high: "rgba(65, 217, 122, 0.12)",
 } as const;
+
+// OpenF1 /pit `date` marks pit-lane EXIT, so the in-pit window is
+// [date - lane_duration, date]. When lane_duration is missing (e.g. a car
+// leaving the garage at session start) assume this much pit-lane time.
+export const PIT_LANE_FALLBACK_MS = 30_000;
+
+// ── Deferred loading ──────────────────────────────────────────────────────────
+/** Max wait (ms) for an idle period before running deferred non-critical work. */
+export const IDLE_CALLBACK_TIMEOUT_MS = 4_000;
+/** Min viewport width (px) at which the Buy Me a Coffee widget is shown/loaded. */
+export const COFFEE_WIDGET_MIN_WIDTH_PX = 768;

@@ -86,6 +86,9 @@ vi.mock("@/data/circuits", () => ({
 
 vi.mock("@/data/circuitGeometry", () => ({
   getCircuitGeometry: () => testState.circuitGeom,
+  // Geometry is served synchronously via getCircuitGeometry in tests.
+  hasCircuitGeometry: () => false,
+  loadCircuitGeometry: async () => null,
 }));
 
 const drivers: Driver[] = [

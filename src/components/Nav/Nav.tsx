@@ -856,7 +856,7 @@ export function Nav() {
                 </div>
               </div>
 
-              <span className="ml-auto h-6 px-2 rounded-sm bg-white/5 text-[9px] font-mono text-f1red shrink-0 inline-flex items-center light:bg-slate-100">
+              <span className="ml-auto h-6 px-2 rounded-sm bg-white/5 text-[9px] font-mono text-[#ff5c77] shrink-0 inline-flex items-center light:bg-slate-100">
                 {nextMeetingCountdown}
               </span>
 

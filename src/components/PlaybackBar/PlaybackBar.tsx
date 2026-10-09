@@ -159,7 +159,7 @@ const SpeedButtons = memo(function SpeedButtons({
             trackEvent("playback_speed_changed", { speed: s });
           }}
           aria-pressed={speed === s}
-          aria-label={`${s}x speed`}
+          aria-label={`${s}× speed`}
           className={`text-[10px] font-black uppercase tracking-widest transition-colors ${
             speed === s
               ? "bg-f1red text-white"
@@ -775,7 +775,7 @@ export function PlaybackBar({
             }}
             disabled={nextSafetyCar === null}
             className={CHIP_STRETCH}
-            aria-label="Jump to next safety car"
+            aria-label="Jump to next SC (safety car)"
           >
             SC ›
           </button>
@@ -786,7 +786,7 @@ export function PlaybackBar({
             }}
             disabled={nextPass === null}
             className={CHIP_STRETCH}
-            aria-label="Jump to next overtake"
+            aria-label="Jump to next pass (overtake)"
           >
             Pass ›
           </button>
