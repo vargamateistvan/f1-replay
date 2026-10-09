@@ -35,6 +35,7 @@ import { ResultsGrid } from "@/components/ResultsGrid/ResultsGrid";
 import type { TitleOutlook } from "@/utils/championship";
 import { useSearchParams } from "react-router-dom";
 import { useNumberParam, useStringParam } from "@/hooks/useSearchParamState";
+import { useMediaQuery } from "@/hooks/useMediaQuery";
 import { replaceHistorySearchParams } from "@/utils/url";
 import { YEARS, DEFAULT_YEAR } from "@/constants";
 
@@ -43,6 +44,8 @@ type ChartView = "totals" | "progression";
 
 const TABS: Tab[] = ["drivers", "constructors", "results", "teammates"];
 const CHART_VIEWS: ChartView[] = ["totals", "progression"];
+// Shorter labels so all four tabs fit a phone-width tab bar.
+const TAB_SHORT_LABEL: Partial<Record<Tab, string>> = { constructors: "teams" };
 
 const TITLE_LABEL: Record<TitleOutlook["status"], string> = {
   champion: "Champion",
@@ -290,6 +293,7 @@ function DriverTable({ standings }: { standings: DriverStanding[] }) {
 
 function DriverChart({ standings }: { standings: DriverStanding[] }) {
   const maxPts = standings[0]?.points ?? 1;
+  const isMobileViewport = useMediaQuery("(max-width: 767px)");
   const [chartRoot, setChartRoot] = useState<HTMLDivElement | null>(null);
   useChartBarReveal(chartRoot, standings.length > 0, [
     standings.length,
@@ -304,7 +308,12 @@ function DriverChart({ standings }: { standings: DriverStanding[] }) {
         <BarChart
           data={standings}
           layout="vertical"
-          margin={{ top: 4, right: 48, left: 56, bottom: 4 }}
+          margin={{
+            top: 4,
+            right: isMobileViewport ? 16 : 48,
+            left: isMobileViewport ? 0 : 56,
+            bottom: 4,
+          }}
           barSize={14}
         >
           <CartesianGrid horizontal={false} stroke="rgb(var(--color-panel))" />
@@ -493,8 +502,8 @@ function ChartHeader({
   onChange: (view: ChartView) => void;
 }) {
   return (
-    <div className="mb-3 flex items-center justify-between gap-3">
-      <div className="text-[10px] text-muted font-bold uppercase tracking-[0.12em]">
+    <div className="mb-3 flex flex-wrap items-center justify-between gap-x-3 gap-y-2">
+      <div className="min-w-0 text-[10px] text-muted font-bold uppercase tracking-[0.12em]">
         Points — {title}
       </div>
       <div className="flex" role="group" aria-label="Chart view">
@@ -666,6 +675,17 @@ export default function Standings() {
   }, [tab, year]);
 
   useEffect(() => {
+    const bar = tabBarRef.current;
+    const button = tabButtonRefs.current[tab];
+    if (!bar || !button || bar.scrollWidth <= bar.clientWidth) return;
+    const start = button.offsetLeft;
+    const end = start + button.offsetWidth;
+    if (start < bar.scrollLeft) bar.scrollLeft = start;
+    else if (end > bar.scrollLeft + bar.clientWidth)
+      bar.scrollLeft = end - bar.clientWidth;
+  }, [tab]);
+
+  useEffect(() => {
     if (!motionEnabled()) return;
 
     const bar = tabBarRef.current;
@@ -673,12 +693,16 @@ export default function Standings() {
     const button = tabButtonRefs.current[tab];
     if (!bar || !indicator || !button) return;
 
+    // The bar may scroll horizontally on narrow screens; offsets are measured
+    // in its scrolled content space.
     const barRect = bar.getBoundingClientRect();
     const buttonRect = button.getBoundingClientRect();
     const currentRect = indicator.getBoundingClientRect();
-    const targetLeft = buttonRect.left - barRect.left;
+    const targetLeft = buttonRect.left - barRect.left + bar.scrollLeft;
     const targetWidth = buttonRect.width;
-    const currentLeft = currentRect.width ? currentRect.left - barRect.left : targetLeft;
+    const currentLeft = currentRect.width
+      ? currentRect.left - barRect.left + bar.scrollLeft
+      : targetLeft;
     const currentWidth = currentRect.width || targetWidth;
 
     const animation = animateMotion(indicator, {
@@ -726,7 +750,9 @@ export default function Standings() {
         {/* Tabs */}
         <div
           ref={tabBarRef}
-          className="relative flex h-11 w-full sm:ml-auto sm:w-auto"
+          role="tablist"
+          aria-label="Standings view"
+          className="relative -mx-4 flex h-11 w-[calc(100%+2rem)] overflow-x-auto overflow-y-hidden [scrollbar-width:none] [&::-webkit-scrollbar]:hidden sm:ml-auto sm:mr-0 sm:w-auto"
         >
           <span
             ref={tabIndicatorRef}
@@ -739,14 +765,25 @@ export default function Standings() {
               ref={(node) => {
                 tabButtonRefs.current[t] = node;
               }}
+              type="button"
+              role="tab"
+              aria-selected={tab === t}
+              aria-label={t}
               onClick={() => setTab(t)}
-              className={`h-11 flex-1 items-center justify-center px-4 text-xs font-bold uppercase tracking-[0.12em] transition-colors border-b-2 sm:flex-none ${
+              className={`h-11 flex-1 shrink-0 items-center justify-center whitespace-nowrap px-1.5 text-xs font-bold uppercase tracking-[0.06em] transition-colors border-b-2 sm:flex-none sm:px-4 sm:tracking-[0.12em] ${
                 tab === t
                   ? "text-white border-f1red"
                   : "text-muted border-transparent hover:text-white"
               }`}
             >
-              {t}
+              {TAB_SHORT_LABEL[t] ? (
+                <>
+                  <span className="sm:hidden">{TAB_SHORT_LABEL[t]}</span>
+                  <span className="hidden sm:inline">{t}</span>
+                </>
+              ) : (
+                t
+              )}
             </button>
           ))}
         </div>

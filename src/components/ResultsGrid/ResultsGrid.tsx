@@ -120,7 +120,8 @@ export function ResultsGrid({ rounds, standings, cells, loading }: Props) {
         </div>
       </div>
 
-      <div className="overflow-auto border border-panel md:min-h-0 md:flex-1">
+      {/* Capped on mobile so the sticky header and driver column stay usable. */}
+      <div className="max-h-[70vh] overflow-auto border border-panel md:max-h-none md:min-h-0 md:flex-1">
         <table className="border-collapse font-mono text-[11px] tabular-nums">
           <thead>
             <tr className="bg-surface">
