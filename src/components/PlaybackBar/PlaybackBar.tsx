@@ -428,7 +428,9 @@ export function PlaybackBar({
       }
     >
       {/* ── Transport + scrubber row ─────────────────────────────── */}
-      <div className="flex items-center gap-1.5 w-full sm:gap-2">
+      {/* Below sm the scrubber wraps onto its own full-width line so the
+          timeline markers have room to be seen. */}
+      <div className="flex flex-wrap items-center gap-1.5 w-full sm:flex-nowrap sm:gap-2">
         {/* Start */}
         <button
           onClick={(e) => {
@@ -543,7 +545,7 @@ export function PlaybackBar({
 
         {/* Scrubber */}
         <div
-          className="relative flex-1 h-4 flex items-center"
+          className="relative order-first w-full h-4 flex items-center sm:order-none sm:w-auto sm:flex-1"
           onMouseMove={onScrubberHover}
           onMouseLeave={() => setHoverPct(null)}
         >
