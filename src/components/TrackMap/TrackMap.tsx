@@ -15,6 +15,7 @@ import {
   ZoomOut,
 } from "lucide-react";
 import { DriverHeadshot } from "@/components/DriverHeadshot";
+import { ErrorMessage } from "@/components/ErrorMessage";
 import {
   useCarDataForLap,
   type TelemetrySample,
@@ -1562,8 +1563,11 @@ export function TrackMap({
 
   if (!outline) {
     return (
-      <div className="flex items-center justify-center w-full h-full text-muted text-sm">
-        No location data available for this session
+      <div className="w-full h-full">
+        <ErrorMessage
+          message="No location data available for this session"
+          variant="empty"
+        />
       </div>
     );
   }

@@ -1,58 +1,64 @@
+import { Inbox, TriangleAlert } from "lucide-react";
+
 interface Props {
   readonly message?: string;
   readonly compact?: boolean;
   readonly variant?: "error" | "empty";
 }
 
+const TONES = {
+  error: {
+    Icon: TriangleAlert,
+    kicker: "Error",
+    accent: "border-l-f1red",
+    iconCls: "text-f1red",
+    role: "alert",
+  },
+  empty: {
+    Icon: Inbox,
+    kicker: "No data",
+    accent: "border-l-flag-sc",
+    iconCls: "text-flag-sc",
+    role: "status",
+  },
+} as const;
+
 export function ErrorMessage({
   message = "Failed to load data",
   compact = false,
   variant = "error",
 }: Props) {
-  if (compact) {
-    const compactTone =
-      variant === "empty"
-        ? "text-amber-300 border-amber-500/40"
-        : "text-red-400 border-red-500/40";
-    const compactIcon = variant === "empty" ? "◌" : "⚠";
+  const { Icon, kicker, accent, iconCls, role } = TONES[variant];
 
+  if (compact) {
     return (
       <div
-        className={`text-xs font-mono px-2 py-1 border rounded-sm bg-track/50 ${compactTone}`}
+        role={role}
+        className={`inline-flex max-w-full items-center gap-1.5 border border-panel border-l-2 ${accent} bg-surface px-2 py-1 text-[10px] font-bold uppercase tracking-widest text-muted`}
       >
-        {compactIcon} {message}
+        <Icon aria-hidden="true" className={`h-3 w-3 shrink-0 ${iconCls}`} />
+        <span className="truncate">{message}</span>
       </div>
     );
   }
 
-  const tone =
-    variant === "empty"
-      ? {
-          iconChip: "bg-amber-500/10 border-amber-500/30 text-amber-300",
-          text: "text-amber-200",
-          border: "border-amber-500/25",
-          bg: "bg-gradient-to-b from-amber-500/10 to-transparent",
-          icon: "◌",
-        }
-      : {
-          iconChip: "bg-red-500/10 border-red-500/30 text-red-400",
-          text: "text-red-300",
-          border: "border-red-500/30",
-          bg: "bg-gradient-to-b from-red-500/10 to-transparent",
-          icon: "⚠",
-        };
-
   return (
-    <div className={`flex h-full items-center justify-center p-4 ${tone.bg}`}>
+    <div className="flex h-full items-center justify-center p-4">
       <div
-        className={`max-w-md w-full rounded-md border px-4 py-5 text-center ${tone.border}`}
+        role={role}
+        className={`flex w-full max-w-sm items-center gap-3 border border-panel border-l-2 ${accent} bg-surface px-4 py-3`}
       >
-        <div
-          className={`mx-auto mb-2 w-fit rounded-full border px-3 py-1 ${tone.iconChip}`}
-        >
-          <span className="text-xl leading-none">{tone.icon}</span>
+        <Icon aria-hidden="true" className={`h-4 w-4 shrink-0 ${iconCls}`} />
+        <div className="min-w-0">
+          <div
+            className={`text-[10px] font-black uppercase tracking-widest ${iconCls}`}
+          >
+            {kicker}
+          </div>
+          <div className="mt-0.5 text-xs font-bold uppercase tracking-[0.12em] text-white">
+            {message}
+          </div>
         </div>
-        <div className={`text-sm font-mono ${tone.text}`}>{message}</div>
       </div>
     </div>
   );

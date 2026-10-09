@@ -1,4 +1,5 @@
 import { useLatestSession, useMeetings, useSessions } from "@/hooks/useSession";
+import { ErrorMessage } from "@/components/ErrorMessage";
 import { isAuthError } from "@/api/client";
 import { isSessionLive } from "@/utils/live";
 import { YEARS } from "@/constants";
@@ -210,9 +211,7 @@ export function SessionPicker({
             Event
           </span>
           {meetings.isError ? (
-            <span className="text-red-400 font-mono text-[11px]">
-              Failed to load events
-            </span>
+            <ErrorMessage message="Failed to load events" compact />
           ) : (
             <select
               aria-label="Event"
@@ -281,9 +280,7 @@ export function SessionPicker({
             Session
           </span>
           {sessions.isError ? (
-            <span className="text-red-400 font-mono text-[11px]">
-              Failed to load sessions
-            </span>
+            <ErrorMessage message="Failed to load sessions" compact />
           ) : (
             <select
               aria-label="Session"

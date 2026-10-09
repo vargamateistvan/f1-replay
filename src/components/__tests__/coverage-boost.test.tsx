@@ -775,10 +775,10 @@ describe("component coverage boost", () => {
 
   it("covers ErrorMessage compact and full variants", () => {
     const { rerender } = render(<ErrorMessage message="Load failed" compact />);
-    expect(screen.getByText("⚠ Load failed")).toBeInTheDocument();
+    expect(screen.getByRole("alert")).toHaveTextContent("Load failed");
 
     rerender(<ErrorMessage message="Crash" />);
-    expect(screen.getByText("⚠")).toBeInTheDocument();
+    expect(screen.getByText("Error")).toBeInTheDocument();
     expect(screen.getByText("Crash")).toBeInTheDocument();
   });
 

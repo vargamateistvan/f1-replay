@@ -4,6 +4,7 @@ import {
   useLocation,
   useNavigate,
 } from "react-router-dom";
+import { ErrorMessage } from "@/components/ErrorMessage";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import {
@@ -988,9 +989,7 @@ export function Nav() {
               <label className="col-start-2 col-span-2 row-start-1 flex flex-col gap-1 min-w-0 sm:flex-row sm:items-center sm:gap-1 sm:flex-[2_1_140px]">
                 <span className={`${FIELD_LABEL} shrink-0`}>Event</span>
                 {meetings.isError && !authFailed ? (
-                  <span className="text-[10px] font-mono text-red-400 shrink-0">
-                    Failed to load events
-                  </span>
+                  <ErrorMessage message="Failed to load events" compact />
                 ) : (
                   <span className="relative min-w-0 flex-1">
                     <select
@@ -1038,9 +1037,7 @@ export function Nav() {
               <label className="col-start-1 col-span-2 row-start-2 flex flex-col gap-1 min-w-0 sm:flex-row sm:items-center sm:gap-1 sm:flex-[1_1_120px]">
                 <span className={`${FIELD_LABEL} shrink-0`}>Session</span>
                 {sessions.isError && !authFailed ? (
-                  <span className="text-[10px] font-mono text-red-400 shrink-0">
-                    Failed to load sessions
-                  </span>
+                  <ErrorMessage message="Failed to load sessions" compact />
                 ) : (
                   <span className="relative min-w-0 flex-1">
                     <select
