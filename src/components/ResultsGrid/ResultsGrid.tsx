@@ -2,8 +2,14 @@ import { useState } from "react";
 import type { GridCell, ProgressionRound } from "@/utils/championship";
 import type { DriverStanding } from "@/utils/standings";
 import { ErrorMessage } from "@/components/ErrorMessage";
+import { DriverHeadshot } from "@/components/DriverHeadshot";
 
 type Mode = "position" | "points";
+
+// Matches the driver/constructor standings table headers; the inset shadow
+// stands in for border-b, which border-collapse drops on sticky cells.
+const HEAD =
+  "sticky top-0 bg-track py-2 text-[10px] font-bold uppercase tracking-widest shadow-[inset_0_-1px_0_rgb(var(--color-panel))]";
 
 interface Props {
   readonly rounds: ProgressionRound[];
@@ -87,9 +93,9 @@ export function ResultsGrid({ rounds, standings, cells, loading }: Props) {
   }
 
   return (
-    <div className="flex flex-col gap-3 p-4 md:min-h-0 md:flex-1">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div className="flex flex-wrap gap-1.5 text-[10px] font-bold">
+    <div className="flex flex-col md:min-h-0 md:flex-1">
+      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-panel bg-surface px-4 py-2">
+        <div className="flex flex-wrap gap-x-2.5 gap-y-1.5 text-[10px] font-bold">
           {LEGEND.map((item) => (
             <span
               key={item.label}
@@ -121,14 +127,11 @@ export function ResultsGrid({ rounds, standings, cells, loading }: Props) {
       </div>
 
       {/* Capped on mobile so the sticky header and driver column stay usable. */}
-      <div className="max-h-[70vh] overflow-auto border border-panel md:max-h-none md:min-h-0 md:flex-1">
-        <table className="border-collapse font-mono text-[11px] tabular-nums">
+      <div className="max-h-[70vh] overflow-auto md:max-h-none md:min-h-0 md:flex-1">
+        <table className="w-full border-collapse">
           <thead>
-            <tr className="bg-surface">
-              <th
-                scope="col"
-                className="sticky left-0 top-0 z-20 bg-surface px-3 py-2 text-left text-[10px] font-bold uppercase tracking-widest text-muted"
-              >
+            <tr>
+              <th scope="col" className={`${HEAD} left-0 z-20 px-3 text-left text-muted`}>
                 Driver
               </th>
               {rounds.map((round) => (
@@ -136,10 +139,8 @@ export function ResultsGrid({ rounds, standings, cells, loading }: Props) {
                   key={round.sessionKey}
                   scope="col"
                   title={round.label}
-                  className={`sticky top-0 z-10 min-w-[2.25rem] px-1 py-2 text-center text-[10px] font-bold ${
-                    round.isSprint
-                      ? "bg-surface text-muted/70"
-                      : "bg-surface text-muted"
+                  className={`${HEAD} z-10 min-w-[2.5rem] px-1 text-center ${
+                    round.isSprint ? "text-muted/70" : "text-muted"
                   }`}
                 >
                   <span className="block">{round.code}</span>
@@ -148,10 +149,7 @@ export function ResultsGrid({ rounds, standings, cells, loading }: Props) {
                   )}
                 </th>
               ))}
-              <th
-                scope="col"
-                className="sticky right-0 top-0 z-20 bg-surface px-3 py-2 text-right text-[10px] font-bold uppercase tracking-widest text-muted"
-              >
+              <th scope="col" className={`${HEAD} right-0 z-20 px-3 text-right text-muted`}>
                 Pts
               </th>
             </tr>
@@ -163,21 +161,29 @@ export function ResultsGrid({ rounds, standings, cells, loading }: Props) {
                 <tr
                   key={d.driverNumber}
                   data-standing-row
-                  className="border-t border-panel"
+                  className="border-b border-panel"
                 >
                   <th
                     scope="row"
-                    className="sticky left-0 z-10 bg-track px-3 py-1.5 text-left"
+                    className="sticky left-0 z-10 bg-track px-3 py-3 text-left font-normal"
                   >
                     <span className="flex items-center gap-2">
-                      <span className="w-5 text-right text-muted">
+                      <span className="w-5 font-black text-sm tabular-nums">
                         {d.position}
                       </span>
+                      <DriverHeadshot
+                        driver={d.driver}
+                        accent={d.color}
+                        size="xxs"
+                      />
                       <span
-                        className="h-3.5 w-[3px]"
+                        className="h-4 w-[3px] shrink-0"
                         style={{ background: d.color }}
                       />
-                      <span className="font-black" style={{ color: d.color }}>
+                      <span
+                        className="font-black text-xs"
+                        style={{ color: d.color }}
+                      >
                         {d.acronym}
                       </span>
                     </span>
@@ -188,7 +194,7 @@ export function ResultsGrid({ rounds, standings, cells, loading }: Props) {
                       <td
                         key={round.sessionKey}
                         title={`${d.acronym} · ${round.label}: ${describe(cell)}`}
-                        className={`border-l border-panel px-1 py-1.5 text-center ${cellTone(cell)} ${
+                        className={`border-l border-panel px-1 py-3 text-center font-mono text-xs tabular-nums ${cellTone(cell)} ${
                           round.isSprint ? "text-[10px] italic" : ""
                         }`}
                       >
@@ -196,7 +202,7 @@ export function ResultsGrid({ rounds, standings, cells, loading }: Props) {
                       </td>
                     );
                   })}
-                  <td className="sticky right-0 z-10 border-l border-panel bg-track px-3 py-1.5 text-right font-bold text-white">
+                  <td className="sticky right-0 z-10 border-l border-panel bg-track px-3 py-3 text-right font-mono text-sm font-bold tabular-nums">
                     {d.points}
                   </td>
                 </tr>
