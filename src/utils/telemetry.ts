@@ -29,7 +29,7 @@ export function resampleToAxis(ref: TelemetrySample[], other: TelemetrySample[])
 }
 
 // Δ time of `other` (already resampled onto ref's axis) vs `ref` at each point.
-// Positive = ref is ahead.
+// Positive = `other` reached that distance sooner, i.e. `other` is ahead.
 export function computeDelta(ref: TelemetrySample[], other: TelemetrySample[]): number[] {
   return ref.map((s, i) => s.timeS - (other[i]?.timeS ?? s.timeS))
 }

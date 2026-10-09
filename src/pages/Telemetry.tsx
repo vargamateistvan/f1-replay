@@ -18,14 +18,26 @@ import {
   useCarDataForLap,
   type TelemetrySample,
 } from "@/hooks/useCarDataForLap";
-import { useDrivers, useLaps, useSessions } from "@/hooks/useSession";
+import { useDrivers, useLaps, useSessions, useStints, useWeather } from "@/hooks/useSession";
 import { useNumberParam, useStringParam } from "@/hooks/useSearchParamState";
 import { useSettings } from "@/stores/settings";
 import { teamColor } from "@/utils/color";
 import { computeDelta, resampleToAxis, smooth } from "@/utils/telemetry";
-import { speedUnitLabel, toDisplaySpeed } from "@/utils/units";
+import {
+  speedUnitLabel,
+  temperatureUnitLabel,
+  toDisplaySpeed,
+  toDisplayTemperature,
+} from "@/utils/units";
 import { toSafeExternalUrl } from "@/utils/url";
+import { tyreForLap, type LapTyre } from "@/utils/lapContext";
+import { weatherAtSessionTime } from "@/utils/weather";
 import { DriverHeadshot } from "@/components/DriverHeadshot";
+import {
+  CornerAnalysis,
+  type CornerAnalysisLap,
+} from "@/components/CornerAnalysis/CornerAnalysis";
+import { CompoundRing } from "@/components/LiveTiming/TyreBadge";
 import { getCircuitGeometry } from "@/data/circuitGeometry";
 import {
   CORNER_HIGH_SPEED_KMH,
@@ -82,6 +94,7 @@ interface SplitRow {
   i1: number | null;
   i2: number | null;
   st: number | null;
+  tyre: LapTyre | null;
 }
 
 interface LapMeta {
@@ -89,6 +102,20 @@ interface LapMeta {
   statusLabel: string;
   statusClass: string;
 }
+
+interface LapConditions {
+  tyre: LapTyre | null;
+  trackTempC: number | null;
+  airTempC: number | null;
+  rainfall: boolean;
+}
+
+const EMPTY_LAP_CONDITIONS: LapConditions = {
+  tyre: null,
+  trackTempC: null,
+  airTempC: null,
+  rainfall: false,
+};
 
 interface SparklineStats {
   min: number;
@@ -303,6 +330,8 @@ export default function Telemetry() {
   const drivers = useDrivers(sessionKey);
   // Filter pit-out laps server-side to reduce bandwidth
   const laps = useLaps(sessionKey, undefined, false, { is_pit_out_lap: false });
+  const stints = useStints(sessionKey);
+  const weather = useWeather(sessionKey);
 
   const selectedLapA = lapA ?? sharedLap;
   const selectedLapB = lapB ?? sharedLap;
@@ -519,6 +548,34 @@ export default function Telemetry() {
   const lapMetaB = useMemo(
     () => getLapMeta(driverB, selectedLapB),
     [driverB, selectedLapB, getLapMeta],
+  );
+
+  const getLapConditions = useCallback(
+    (driver: number | null, lapNo: number | null): LapConditions => {
+      if (driver === null || lapNo === null) return EMPTY_LAP_CONDITIONS;
+      const tyre = tyreForLap(stints.data ?? [], driver, lapNo);
+      const lapStart = lapLookup.get(`${driver}:${lapNo}`)?.date_start;
+      const lapStartMs = lapStart ? new Date(lapStart).getTime() : NaN;
+      const conditions = Number.isFinite(lapStartMs)
+        ? weatherAtSessionTime(weather.data ?? [], lapStartMs, 0)
+        : null;
+      return {
+        tyre,
+        trackTempC: conditions?.track_temperature ?? null,
+        airTempC: conditions?.air_temperature ?? null,
+        rainfall: (conditions?.rainfall ?? 0) > 0,
+      };
+    },
+    [stints.data, weather.data, lapLookup],
+  );
+
+  const lapConditionsA = useMemo(
+    () => getLapConditions(driverA, selectedLapA),
+    [driverA, selectedLapA, getLapConditions],
+  );
+  const lapConditionsB = useMemo(
+    () => getLapConditions(driverB, selectedLapB),
+    [driverB, selectedLapB, getLapConditions],
   );
 
   // Reference axis = driver A; B and C are resampled onto it.
@@ -1192,6 +1249,54 @@ export default function Telemetry() {
     () => formatDeltaHint(finishDeltaB),
     [finishDeltaB],
   );
+
+  // Raw (non-resampled) laps: the analysis aligns them by distance itself, and
+  // the native sample positions give the most accurate brake/throttle points.
+  const cornerAnalysisLaps = useMemo<CornerAnalysisLap[]>(() => {
+    const out: CornerAnalysisLap[] = [];
+    // Only the two drivers selectable in the UI (A and B) are compared.
+    const slots = [
+      { key: "a", num: driverA, lapNo: selectedLapA, data: dataA.data, index: 0, fallback: "A" },
+      { key: "b", num: driverB, lapNo: selectedLapB, data: dataB.data, index: 1, fallback: "B" },
+    ];
+    for (const slot of slots) {
+      if (slot.num === null || !slot.data?.length) continue;
+      // Without the reference lap there is no distance axis to compare on.
+      if (slot.key !== "a" && out.length === 0) break;
+      const lap =
+        slot.lapNo !== null ? lapLookup.get(`${slot.num}:${slot.lapNo}`) : undefined;
+      out.push({
+        key: slot.key,
+        label: acr(slot.num, slot.fallback),
+        lapNo: slot.lapNo,
+        color: colorFor(slot.num, slot.index),
+        samples: slot.data,
+        timing: {
+          lapS: lap?.lap_duration ?? null,
+          sectorsS: [lap?.duration_sector_1 ?? null, lap?.duration_sector_2 ?? null],
+        },
+      });
+    }
+    return out;
+  }, [
+    driverA,
+    driverB,
+    selectedLapA,
+    selectedLapB,
+    dataA.data,
+    dataB.data,
+    acr,
+    colorFor,
+    lapLookup,
+  ]);
+
+  const speedChartAnchorRef = useRef<HTMLDivElement | null>(null);
+  const scrollToSpeedChart = useCallback(() => {
+    speedChartAnchorRef.current?.scrollIntoView({
+      behavior: motionEnabled() ? "smooth" : "auto",
+      block: "start",
+    });
+  }, []);
   const splitRows = useMemo(() => {
     const slots = [
       { num: driverA, lapNo: selectedLapA, index: 0 },
@@ -1217,6 +1322,7 @@ export default function Telemetry() {
           i1: lap.i1_speed,
           i2: lap.i2_speed,
           st: lap.st_speed,
+          tyre: tyreForLap(stints.data ?? [], num, lapNo),
         },
       ];
     });
@@ -1232,6 +1338,7 @@ export default function Telemetry() {
     selectedLapC,
     lapLookup,
     driverByNumber,
+    stints.data,
   ]);
 
   const fastest = useMemo(() => {
@@ -1548,6 +1655,7 @@ export default function Telemetry() {
                   : null
               }
               lapMeta={lapMetaA}
+              conditions={lapConditionsA}
               speedTrace={dataA.data?.map((sample) => sample.speed) ?? []}
               deltaHint={deltaHintA}
               sectorWins={
@@ -1622,6 +1730,7 @@ export default function Telemetry() {
                   : null
               }
               lapMeta={lapMetaB}
+              conditions={lapConditionsB}
               speedTrace={dataB.data?.map((sample) => sample.speed) ?? []}
               deltaHint={deltaHintB}
               sectorWins={
@@ -1636,7 +1745,7 @@ export default function Telemetry() {
 
             <div
               ref={trackPreviewRef}
-              className="h-full lg:h-[248px] rounded border border-panel bg-track p-1.5 flex flex-col"
+              className="h-full lg:h-[276px] rounded border border-panel bg-track p-1.5 flex flex-col"
             >
               <div className="mb-1 flex items-center gap-1.5">
                 <span className="text-[10px] font-black uppercase tracking-[0.15em] text-muted">
@@ -2066,23 +2175,25 @@ export default function Telemetry() {
 
               <SplitsTable rows={splitRows} fastest={fastest} />
 
-              <TelemetryChart
-                title={`Speed (${speedUnit})`}
-                xData={xDist}
-                cornerMarkers={telemetryCornerMarkers}
-                cornerZones={telemetryCornerZones}
-                showCornerAxis
-                showCornerZoneLabels
-                yMin={0}
-                yMax={speedChartMax}
-                height={280}
-                interactiveControls
-                onHoverX={handleChartHoverX}
-                legendUnit={speedUnit}
-                distanceUnit={distanceUnit}
-                distanceScale={distanceScale}
-                series={speedSeries}
-              />
+              <div ref={speedChartAnchorRef} className="scroll-mt-2">
+                <TelemetryChart
+                  title={`Speed (${speedUnit})`}
+                  xData={xDist}
+                  cornerMarkers={telemetryCornerMarkers}
+                  cornerZones={telemetryCornerZones}
+                  showCornerAxis
+                  showCornerZoneLabels
+                  yMin={0}
+                  yMax={speedChartMax}
+                  height={280}
+                  interactiveControls
+                  onHoverX={handleChartHoverX}
+                  legendUnit={speedUnit}
+                  distanceUnit={distanceUnit}
+                  distanceScale={distanceScale}
+                  series={speedSeries}
+                />
+              </div>
               <TelemetryChart
                 title="Throttle (%)"
                 xData={xDist}
@@ -2154,7 +2265,7 @@ export default function Telemetry() {
                   <div className={PANEL_TITLE}>
                     Delta vs {acr(driverA, "A")}
                     <span className="ml-2 font-normal normal-case tracking-normal text-muted">
-                      (+ = {acr(driverA, "A")} ahead)
+                      (+ = ahead of {acr(driverA, "A")})
                     </span>
                   </div>
                   <TelemetryChart
@@ -2173,6 +2284,13 @@ export default function Telemetry() {
                   />
                 </div>
               )}
+
+              <CornerAnalysis
+                zones={telemetryCornerZones}
+                laps={cornerAnalysisLaps}
+                onHoverDistance={handleChartHoverX}
+                onFocusSegment={scrollToSpeedChart}
+              />
             </div>
           );
         })()}
@@ -2234,6 +2352,7 @@ function DriverLapCard({
   bestLap,
   latestLap,
   lapMeta,
+  conditions,
   speedTrace,
   deltaHint,
   sectorWins,
@@ -2262,6 +2381,7 @@ function DriverLapCard({
   bestLap: number | null;
   latestLap: number | null;
   lapMeta: LapMeta;
+  conditions: LapConditions;
   speedTrace: number[];
   deltaHint: DeltaHint;
   sectorWins: SectorWins;
@@ -2285,7 +2405,7 @@ function DriverLapCard({
     lap !== null && latestLap !== null && Number(lap) === Number(latestLap);
 
   return (
-    <div className="h-full lg:h-[248px] rounded border border-panel bg-track p-1.5">
+    <div className="h-full lg:h-[276px] rounded border border-panel bg-track p-1.5">
       <div className="mb-1.5 flex items-center justify-between gap-1.5">
         <div className="flex min-w-0 items-center gap-2">
           <div className="relative h-7 w-7 shrink-0 overflow-hidden rounded border border-panel bg-surface">
@@ -2430,6 +2550,8 @@ function DriverLapCard({
         </span>
       </div>
 
+      <LapConditionsRow conditions={conditions} />
+
       {!compact && (
         <div className="mt-1.5 overflow-hidden rounded border border-panel bg-surface">
           <div className="flex items-center justify-between border-b border-[#2d2d3b] px-2 py-1">
@@ -2451,6 +2573,57 @@ function DriverLapCard({
             />
           </div>
         </div>
+      )}
+    </div>
+  );
+}
+
+function LapConditionsRow({ conditions }: { conditions: LapConditions }) {
+  const metricSystem = useSettings((s) => s.metricSystem);
+  const { tyre, trackTempC, airTempC, rainfall } = conditions;
+  if (!tyre && trackTempC === null && airTempC === null) return null;
+
+  const tempUnit = `°${temperatureUnitLabel(metricSystem)}`;
+  const fmtTemp = (c: number) =>
+    `${Math.round(toDisplayTemperature(c, metricSystem))}${tempUnit}`;
+  const chip =
+    "inline-flex items-center gap-1 rounded border border-panel bg-surface px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-[0.08em] text-muted";
+
+  return (
+    <div className="mt-1 flex flex-wrap items-center gap-1" data-testid="lap-conditions">
+      {tyre && (
+        <span
+          className={chip}
+          title={`${tyre.compound} tyre · ${tyre.age} lap${tyre.age === 1 ? "" : "s"} old at lap start · stint ${tyre.stintNumber}`}
+        >
+          <span className="scale-75">
+            <CompoundRing compound={tyre.compound} />
+          </span>
+          <span className="text-white">
+            {tyre.compound === "INTERMEDIATE" ? "INTER" : tyre.compound}
+          </span>
+          <span className="font-mono normal-case">
+            {tyre.age} lap{tyre.age === 1 ? "" : "s"}
+          </span>
+        </span>
+      )}
+      {trackTempC !== null && (
+        <span className={chip} title="Track temperature at lap start">
+          Track <span className="font-mono text-white">{fmtTemp(trackTempC)}</span>
+        </span>
+      )}
+      {airTempC !== null && (
+        <span className={chip} title="Air temperature at lap start">
+          Air <span className="font-mono text-white">{fmtTemp(airTempC)}</span>
+        </span>
+      )}
+      {rainfall && (
+        <span
+          className="inline-flex items-center rounded border border-[#2c6ab7] bg-[#112744] px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-[0.08em] text-[#b9dcff]"
+          title="Rainfall reported at lap start"
+        >
+          Rain
+        </span>
       )}
     </div>
   );
@@ -2643,7 +2816,7 @@ function SplitsTable({
     <div className={PANEL}>
       <div className={PANEL_TITLE}>Sector splits</div>
       <div className="overflow-x-auto">
-        <table className="w-full min-w-[620px] font-mono text-xs">
+        <table className="w-full min-w-[680px] font-mono text-xs">
           <thead>
             <tr className="text-[10px] uppercase tracking-widest text-[#636369]">
               <th className="whitespace-nowrap px-2 py-1 text-left sm:px-3">
@@ -2651,6 +2824,12 @@ function SplitsTable({
               </th>
               <th className="whitespace-nowrap px-2 py-1 text-right sm:px-3">
                 Lap #
+              </th>
+              <th
+                className="whitespace-nowrap px-2 py-1 text-left sm:px-3"
+                title="Tyre compound and age (laps) at the start of the lap"
+              >
+                Tyre
               </th>
               <th className="whitespace-nowrap px-2 py-1 text-right sm:px-3">
                 S1
@@ -2693,6 +2872,21 @@ function SplitsTable({
                 </td>
                 <td className="whitespace-nowrap px-2 py-1 text-right tabular-nums text-muted sm:px-3">
                   {r.lapNo}
+                </td>
+                <td className="whitespace-nowrap px-2 py-1 text-left sm:px-3">
+                  {r.tyre ? (
+                    <span
+                      className="inline-flex items-center gap-1"
+                      title={`${r.tyre.compound} · ${r.tyre.age} lap${r.tyre.age === 1 ? "" : "s"} old`}
+                    >
+                      <span className="scale-75">
+                        <CompoundRing compound={r.tyre.compound} />
+                      </span>
+                      <span className="tabular-nums text-muted">{r.tyre.age}L</span>
+                    </span>
+                  ) : (
+                    <span className="text-muted">-</span>
+                  )}
                 </td>
                 <td
                   className={`whitespace-nowrap px-2 py-1 text-right tabular-nums sm:px-3 ${clsMin(r.s1, fastest.s1)}`}

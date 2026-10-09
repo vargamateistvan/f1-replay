@@ -19,7 +19,7 @@ const COMPOUND_STYLE: Record<Compound, { color: string; letter: string }> = {
   UNKNOWN: { color: "#7b7b82", letter: "?" },
 };
 
-function CompoundRing({ compound }: { compound: Compound }) {
+export function CompoundRing({ compound }: { compound: Compound }) {
   const lightMode = useSettings((s) => s.lightMode);
   const { color: baseColor, letter } =
     COMPOUND_STYLE[compound] ?? COMPOUND_STYLE.UNKNOWN;

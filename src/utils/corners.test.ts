@@ -99,6 +99,28 @@ describe("buildCornerZones", () => {
     expect(zones[0]!.endDistance).toBeLessThan(zones[1]!.startDistance);
   });
 
+  it("includes the braking phase despite speed-trace noise near a slow apex", () => {
+    // Real Monza T1 trace (2024 Q, NOR): note the 86 → 83 km/h wobble on entry.
+    const trace: [number, number][] = [
+      [722, 345], [745, 344], [774, 319], [801, 283], [823, 219], [839, 180],
+      [857, 139], [864, 123], [875, 106], [880, 103], [884, 98], [890, 94],
+      [898, 89], [908, 83], [915, 86], [923, 81], [930, 75], [935, 73],
+      [941, 74], [946, 79], [951, 83], [959, 90], [969, 105], [978, 120],
+      [985, 129], [992, 141], [1005, 157], [1018, 172], [1028, 177],
+      [1046, 194], [1057, 202], [1066, 209], [1083, 219], [1093, 223],
+      [1120, 260], [1160, 300], [1200, 330], [1240, 340],
+    ];
+    const zones = buildCornerZones(
+      [{ label: "1", distance: 931 }],
+      trace.map(([d]) => d),
+      trace.map(([, v]) => v),
+    );
+
+    expect(zones).toHaveLength(1);
+    expect(zones[0]!.minSpeed).toBe(73);
+    expect(zones[0]!.startDistance).toBe(774);
+  });
+
   it("ignores corners with a non finite distance", () => {
     const xDist = axis(41, 10);
     const speeds = xDist.map((d) => (d === 200 ? 90 : 300));

@@ -30,7 +30,7 @@ describe('resampleToAxis', () => {
 })
 
 describe('computeDelta', () => {
-  it('is the time difference per index (+ = ref ahead)', () => {
+  it('is the time difference per index (+ = other ahead)', () => {
     const ref = [sample(0, 0), sample(10, 5)]
     const other = [sample(0, 1), sample(10, 4)]
     expect(computeDelta(ref, other)).toEqual([-1, 1])

@@ -85,6 +85,9 @@ src/
     standings.ts        — computeStandings(), completed-session + wins/podiums tallies
     championship.ts     — Points progression, per-race results grid, title-outlook maths, teammate head-to-heads
     telemetry.ts        — resampleToAxis, computeDelta, smooth (signal processing)
+    corners.ts          — buildCornerZones(): braking→exit corner zones for telemetry charts
+    cornerAnalysis.ts   — Per-corner metrics, lap alignment to timing lines, segment time deltas
+    lapContext.ts       — tyreForLap(): compound + tyre age for a driver's lap
     units.ts            — Metric/imperial conversion
 
   data/
@@ -144,6 +147,7 @@ components/ (render to DOM; read settings from Zustand)
 | `RadioAudio`                                      | Shared radio `<audio>`: plays `public/sounds/radio-intro.mp3` chime, then the clip       |
 | `TelemetryChart`                                  | uPlot-based telemetry overlay (speed/throttle/brake/RPM/gear)                            |
 | `GapChart`                                        | Recharts gap-to-leader chart                                                             |
+| `CornerAnalysis`                                  | Telemetry page: per-corner speeds/brake/throttle + time gained/lost per lap segment      |
 | `LapChart`                                        | Lap time evolution chart                                                                 |
 | `Strategy`                                        | Tyre strategy bar chart                                                                  |
 | `FinalClassification`                             | End-of-race classification table                                                         |
@@ -236,6 +240,13 @@ components/ (render to DOM; read settings from Zustand)
 - `buildToastEvents()` merges laps, pits, race control, overtakes, team radio into a single sorted `ToastEvent[]`.
 - `useEventToasts` advances forward through the array as `t` increases; on a backwards seek or large forward jump (`> JUMP_THRESHOLD_MS = 5 s`) the seen-set and queue are cleared.
 - A `useCatchupSummary` hook fires when `t` jumps > 60 s, collecting all crossed events into a summary modal.
+
+### Corner analysis (`utils/cornerAnalysis.ts`, `components/CornerAnalysis`)
+
+- Telemetry distance is integrated from speed, so it drifts per lap. `alignLap()` anchors each lap at the timing lines it crosses (lap start extrapolated from the first sample, official S1/S2 lines, finish) and rescales piecewise onto the reference lap (Driver A = chart axis). Segment deltas therefore sum exactly to the official lap-time gap.
+- `buildLapSegments()` tiles the lap into straights + corner zones (from `buildCornerZones`); `segmentDeltas()` gives time gained/lost per segment (+ = slower than reference).
+- `analyzeCornerZone()` reports entry/min/exit speed, braking point (short brake-signal dropouts bridged, `CORNER_BRAKE_GAP_M`) and return to full throttle, relative to the reference lap's slowest point.
+- Clicking a corner calls `focusTelemetryCharts()` (`components/TelemetryChart/sync.ts`) to zoom every chart.
 
 ### Standing computation (`utils/standings.ts`)
 

@@ -175,6 +175,26 @@ export const CORNER_HIGH_SPEED_KMH = 220;
 // fraction of the surrounding straight-line speed.
 export const CORNER_ZONE_RECOVERY = 0.93;
 
+// Speed traces wobble by a few km/h between samples. While searching for the
+// straight-line peak either side of an apex, a dip smaller than this is noise,
+// not the end of the braking/acceleration phase.
+export const CORNER_PEAK_NOISE_KMH = 8;
+
+// Corner analysis: OpenF1 reports brake as 0/100, and throttle rarely reads a
+// clean 100, so these thresholds classify "on the brakes" / "flat out".
+export const CORNER_BRAKE_ON_PCT = 50;
+export const CORNER_FULL_THROTTLE_PCT = 95;
+// How far before a corner zone to look for the braking point, and after it to
+// look for the return to full throttle (metres).
+export const CORNER_BRAKE_LOOKBACK_M = 200;
+// Brake-off gaps up to this long (metres) inside one braking phase are
+// bridged: the 0/100 brake signal often drops out for a sample or two, e.g.
+// when a driver briefly releases the pedal before flicking into a chicane.
+export const CORNER_BRAKE_GAP_M = 30;
+export const CORNER_THROTTLE_LOOKAHEAD_M = 200;
+// Lead-in/run-out added either side of a corner zone when zooming charts to it.
+export const CORNER_FOCUS_PADDING_M = 80;
+
 // Fill/stroke tints for each corner speed class.
 export const CORNER_ZONE_COLORS = {
   low: "rgba(232, 0, 45, 0.13)",

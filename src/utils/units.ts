@@ -58,6 +58,18 @@ export function distanceUnitLabel(unitSystem: UnitSystem): string {
   return unitSystem === "imperial" ? "mi" : "km";
 }
 
+export function toDisplayShortDistanceM(
+  meters: number,
+  unitSystem: UnitSystem,
+): number {
+  if (unitSystem === "imperial") return meters * M_TO_FT;
+  return meters;
+}
+
+export function shortDistanceUnitLabel(unitSystem: UnitSystem): string {
+  return unitSystem === "imperial" ? "ft" : "m";
+}
+
 export function toDisplayAltitudeM(
   meters: number,
   unitSystem: UnitSystem,

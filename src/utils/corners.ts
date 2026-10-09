@@ -1,6 +1,7 @@
 import {
   CORNER_HIGH_SPEED_KMH,
   CORNER_LOW_SPEED_KMH,
+  CORNER_PEAK_NOISE_KMH,
   CORNER_ZONE_RECOVERY,
 } from "@/constants";
 
@@ -86,19 +87,25 @@ function expandZone(
   apexIdx: number,
 ): { startIdx: number; endIdx: number } {
   const apexSpeed = speeds[apexIdx]!;
+  // The peak has been passed once speed falls clearly below it; small dips
+  // are sensor noise (which would otherwise stop the search at the apex in
+  // slow corners, where 2 % is only a couple of km/h).
+  const pastPeak = (speed: number, peak: number) =>
+    peak > apexSpeed &&
+    speed < Math.min(peak * 0.98, peak - CORNER_PEAK_NOISE_KMH);
 
   let peakBefore = apexSpeed;
   for (let i = apexIdx; i >= 0; i--) {
     const speed = speeds[i]!;
     if (speed > peakBefore) peakBefore = speed;
-    else if (speed < peakBefore * 0.98 && peakBefore > apexSpeed) break;
+    else if (pastPeak(speed, peakBefore)) break;
   }
 
   let peakAfter = apexSpeed;
   for (let i = apexIdx; i < speeds.length; i++) {
     const speed = speeds[i]!;
     if (speed > peakAfter) peakAfter = speed;
-    else if (speed < peakAfter * 0.98 && peakAfter > apexSpeed) break;
+    else if (pastPeak(speed, peakAfter)) break;
   }
 
   const enterThreshold = Math.max(apexSpeed, peakBefore * CORNER_ZONE_RECOVERY);

@@ -8,9 +8,7 @@ import {
   type CornerSpeedClass,
   type CornerZone,
 } from "@/utils/corners";
-
-const X_SYNC_EVENT = "telemetrychart:x-sync";
-const X_SYNC_GROUP = "telemetry";
+import { X_SYNC_EVENT, X_SYNC_GROUP } from "./sync";
 
 let nextChartInstanceId = 1;
 
