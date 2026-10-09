@@ -19,18 +19,32 @@ interface Props {
   readonly loading?: boolean;
 }
 
-const STATUS_TEXT: Record<Exclude<GridCell["status"], "finished">, string> = {
+type Status = Exclude<GridCell["status"], "finished">;
+
+const STATUS_TEXT: Record<Status, string> = {
   dnf: "DNF",
   dns: "DNS",
   dsq: "DSQ",
+};
+
+const STATUS_DESCRIPTION: Record<Status, string> = {
+  dnf: "Did not finish",
+  dns: "Did not start",
+  dsq: "Disqualified",
+};
+
+// Non-classified results share F1 red, getting stronger from DNS to DSQ.
+const STATUS_TONE: Record<Status, string> = {
+  dns: "text-f1red/60 font-bold",
+  dnf: "bg-f1red/10 text-f1red font-bold",
+  dsq: "bg-f1red text-white font-bold",
 };
 
 // Podiums keep their medal colours; everything else uses the app palette
 // (panel tiles, muted text, F1 red) so the grid matches the standings tables.
 function cellTone(cell: GridCell | null): string {
   if (!cell) return "text-muted/40";
-  if (cell.status === "dnf") return "bg-f1red/10 text-f1red font-bold";
-  if (cell.status !== "finished") return "text-muted";
+  if (cell.status !== "finished") return STATUS_TONE[cell.status];
   if (cell.position === 1) return "bg-amber-300 text-black font-black";
   if (cell.position === 2) return "bg-[#c0c0c0] text-black font-bold";
   if (cell.position === 3) return "bg-[#cd7f32] text-black font-bold";
@@ -48,11 +62,13 @@ function cellText(cell: GridCell | null, mode: Mode): string {
 function describe(cell: GridCell | null): string {
   if (!cell) return "did not take part";
   const where =
-    cell.status === "finished" ? `P${cell.position}` : STATUS_TEXT[cell.status];
+    cell.status === "finished"
+      ? `P${cell.position}`
+      : `${STATUS_TEXT[cell.status]} (${STATUS_DESCRIPTION[cell.status].toLowerCase()})`;
   return `${where} · ${cell.points} pts`;
 }
 
-const LEGEND: { label: string; tone: string }[] = [
+const LEGEND: { label: string; tone: string; description?: string }[] = [
   {
     label: "Win",
     tone: cellTone({ position: 1, points: 25, status: "finished" }),
@@ -73,10 +89,11 @@ const LEGEND: { label: string; tone: string }[] = [
     label: "No points",
     tone: cellTone({ position: 15, points: 0, status: "finished" }),
   },
-  {
-    label: "DNF",
-    tone: cellTone({ position: null, points: 0, status: "dnf" }),
-  },
+  ...(["dns", "dnf", "dsq"] as Status[]).map((status) => ({
+    label: STATUS_TEXT[status],
+    tone: STATUS_TONE[status],
+    description: STATUS_DESCRIPTION[status],
+  })),
 ];
 
 // Drivers × rounds table of finishing positions (or points), colour-coded.
@@ -103,8 +120,21 @@ export function ResultsGrid({ rounds, standings, cells, loading }: Props) {
               key={item.label}
               className="flex items-center gap-1.5 text-muted"
             >
-              <span className={`h-3 w-3 border border-panel ${item.tone}`} />
-              {item.label}
+              {item.description ? (
+                <>
+                  <span
+                    className={`border border-panel px-1 font-mono text-[9px] leading-3 ${item.tone}`}
+                  >
+                    {item.label}
+                  </span>
+                  {item.description}
+                </>
+              ) : (
+                <>
+                  <span className={`h-3 w-3 border border-panel ${item.tone}`} />
+                  {item.label}
+                </>
+              )}
             </span>
           ))}
           <span className="text-muted">· S = Sprint</span>

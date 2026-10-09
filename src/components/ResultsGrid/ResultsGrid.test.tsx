@@ -31,9 +31,14 @@ const cell = (position: number | null, points: number, status: GridCell["status"
 const cells = new Map<number, (GridCell | null)[]>([
   [1, [cell(1, 25), cell(2, 7), cell(null, 0, "dnf")]],
   [4, [cell(12, 0), null, cell(3, 15)]],
+  [16, [cell(null, 0, "dns"), cell(null, 0, "dsq"), cell(8, 4)]],
 ]);
 
-const standings = [standing(1, "VER", 1, 32), standing(4, "NOR", 2, 15)];
+const standings = [
+  standing(1, "VER", 1, 32),
+  standing(4, "NOR", 2, 15),
+  standing(16, "LEC", 3, 4),
+];
 
 function rowFor(acronym: string) {
   return screen.getByRole("rowheader", { name: new RegExp(acronym) }).closest("tr")!;
@@ -54,10 +59,28 @@ describe("ResultsGrid", () => {
     expect(ver[0]).toHaveClass("bg-amber-300");
     expect(ver[0]).toHaveAttribute("title", "VER · Sakhir: P1 · 25 pts");
     expect(ver[2]).toHaveClass("text-f1red");
+    expect(ver[2]).toHaveAttribute("title", "VER · Shanghai: DNF (did not finish) · 0 pts");
 
     const nor = within(rowFor("NOR")).getAllByRole("cell");
     expect(nor.map((c) => c.textContent)).toEqual(["12", "", "3", "15"]);
     expect(nor[1]).toHaveAttribute("title", "NOR · Shanghai (S): did not take part");
+  });
+
+  it("distinguishes non-starts and disqualifications", () => {
+    render(<ResultsGrid rounds={rounds} standings={standings} cells={cells} />);
+    const lec = within(rowFor("LEC")).getAllByRole("cell");
+    expect(lec.map((c) => c.textContent)).toEqual(["DNS", "DSQ", "8", "4"]);
+    expect(lec[0]).toHaveClass("text-f1red/60");
+    expect(lec[0]).toHaveAttribute("title", "LEC · Sakhir: DNS (did not start) · 0 pts");
+    expect(lec[1]).toHaveClass("bg-f1red");
+    expect(lec[1]).toHaveAttribute("title", "LEC · Shanghai (S): DSQ (disqualified) · 0 pts");
+  });
+
+  it("explains every non-classified status in the legend", () => {
+    render(<ResultsGrid rounds={rounds} standings={standings} cells={cells} />);
+    for (const text of ["Did not start", "Did not finish", "Disqualified"]) {
+      expect(screen.getByText(text)).toBeInTheDocument();
+    }
   });
 
   it("switches to points scored", () => {
