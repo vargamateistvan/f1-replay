@@ -5,9 +5,14 @@ name: Warm Proxy Cache
 # then gets KV/edge cache hits instead of spending OpenF1 rate-limit budget
 # (3 req/s, 30 req/min) on cold fetches.
 #
-# The cron only runs Thursday–Sunday (UTC) — F1 weekend sessions all fall in
-# that range — plus early Monday hours to catch sessions that end late Sunday
-# UTC. Each run is a cheap no-op (one discovery request) when no session
+# The cron runs hourly Thursday–Sunday (UTC) — F1 weekend sessions all fall
+# in that range — plus early Monday hours to catch sessions that end late
+# Sunday UTC, and once a day on Tuesday/Wednesday, so it runs every day.
+# Sessions that ended within LOOKBACK_HOURS (52) have their mutable data
+# (session_result, championship_*, laps, pit, starting_grid, overtakes…)
+# re-fetched on every run; the proxy only rewrites a cached entry when
+# OpenF1's data actually changed (late stewards' penalties, provisional
+# classifications, late-published data). Each run is cheap when no session
 # ended recently. Sessions become eligible MIN_AGE_MINUTES (40) after
 # date_end — the proxy only classifies date windows as historical/permanent
 # once `date<` is more than 30 minutes in the past.
@@ -34,15 +39,17 @@ on:
     - cron: "27 * * * 0,4-6"
     # Monday 00–03 UTC catch-up for sessions ending late Sunday UTC.
     - cron: "27 0-3 * * 1"
+    # Daily Tuesday/Wednesday run to pick up post-weekend corrections.
+    - cron: "27 6 * * 2,3"
   workflow_dispatch:
     inputs:
       session_key:
         description: "Warm one specific OpenF1 session_key (skips discovery)"
         required: false
       lookback_hours:
-        description: "How many hours back to look for ended sessions"
+        description: "How many hours back to look for ended sessions (their mutable data is refreshed)"
         required: false
-        default: "24"
+        default: "52"
       proxy_base:
         description: "Optional proxy base override (e.g. https://<worker>.workers.dev/v1)"
         required: false
@@ -50,6 +57,11 @@ on:
         description: "First season whose session results are backfilled"
         required: false
         default: "2023"
+      log_requests:
+        description: "Log every proxy request (cache state, status, size, latency)"
+        type: boolean
+        required: false
+        default: true
 
 jobs:
   warm:
@@ -112,5 +124,8 @@ jobs:
           PROXY_BASE: ${{ env.PROXY_BASE }}
           WARM_SECRET: ${{ secrets.WARM_SECRET }}
           SESSION_KEY: ${{ inputs.session_key }}
-          LOOKBACK_HOURS: ${{ inputs.lookback_hours || '24' }}
+          LOOKBACK_HOURS: ${{ inputs.lookback_hours || '52' }}
           RESULTS_BACKFILL_FROM_YEAR: ${{ inputs.results_backfill_from_year || '2023' }}
+          # Scheduled runs have no inputs (null == false in expressions), so
+          # only a manual run can turn per-request logs off.
+          WARM_LOG_REQUESTS: ${{ github.event_name == 'workflow_dispatch' && !inputs.log_requests && '0' || '1' }}

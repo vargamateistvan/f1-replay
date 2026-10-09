@@ -28,8 +28,10 @@
  * The warm-cache GitHub workflow (scripts/warm-proxy-cache.mjs) replays every
  * canonical app URL after a session ends. Requests carrying a valid
  * `X-Warm-Secret` header are cached permanently, and `X-Warm-Refresh: 1`
- * additionally bypasses the cache read to re-fetch mutable lists
- * (meetings/sessions) from OpenF1.
+ * additionally bypasses the cache read to re-fetch mutable data
+ * (meetings/sessions lists, recent session results) from OpenF1. A refresh
+ * only rewrites KV when the body differs from the cached copy and reports
+ * the outcome in `X-Warm-Updated: 1|0`.
  *
  * CORS
  * ────
@@ -76,7 +78,7 @@ const TTL_HISTORICAL_KV = 60 * 60 * 24 * 90;
 // Final classifications and the championship snapshot after a session never
 // change once published, and the Standings page requests them for every round
 // of a season, so they are kept in KV with no expiry.
-// The warm workflow re-fetches them for 24 h after a session (X-Warm-Refresh)
+// The warm workflow re-fetches them for 52 h after a session (X-Warm-Refresh)
 // so a provisional copy or a late stewards' penalty is overwritten. KV is the
 // long-lived copy; the per-colo edge cache and browsers re-read it daily so a
 // corrected result propagates everywhere.
@@ -356,7 +358,8 @@ export default {
     // Authenticated warm requests can additionally force a refetch from
     // OpenF1 with `X-Warm-Refresh: 1`. This is how the warm workflow keeps
     // permanently-cached-but-mutable lists (meetings/sessions for the current
-    // year) up to date after every session.
+    // year) and recently-finished session data up to date. KV is only
+    // rewritten when the refetched body differs from the cached copy.
     const isWarmRefresh =
       isWarmRequest && request.headers.get("X-Warm-Refresh") === "1";
 
@@ -509,27 +512,44 @@ export default {
       // Never cache empty arrays.
       const isEmpty = body.trim() === "[]";
 
+      // A warm refresh only rewrites KV when OpenF1's data actually changed
+      // (e.g. a stewards' penalty reshuffles session_result). Unchanged
+      // entries keep their original write, saving KV write quota.
+      let changed = true;
+      if (isWarmRefresh && !isEmpty) {
+        try {
+          changed = (await env.CACHE.get(kvCacheKey)) !== body;
+        } catch {
+          // KV unavailable — treat as changed and attempt the write.
+        }
+      }
+
       const response = jsonResponse(body, 200, {
         "X-Cache": "MISS",
         "Cache-Control": `public, max-age=${ttl}`,
+        ...(isWarmRefresh && !isEmpty
+          ? { "X-Warm-Updated": changed ? "1" : "0" }
+          : {}),
       });
 
       if (!isEmpty) {
         // ── Store in KV ─────────────────────────────────────────────────────
 
-        try {
-          await env.CACHE.put(
-            kvCacheKey,
-            body,
-            cacheForever
-              ? undefined
-              : {
-                  expirationTtl:
-                    ttl === TTL_PERMANENT ? TTL_HISTORICAL_KV : ttl,
-                },
-          );
-        } catch {
-          // Best effort.
+        if (changed) {
+          try {
+            await env.CACHE.put(
+              kvCacheKey,
+              body,
+              cacheForever
+                ? undefined
+                : {
+                    expirationTtl:
+                      ttl === TTL_PERMANENT ? TTL_HISTORICAL_KV : ttl,
+                  },
+            );
+          } catch {
+            // Best effort.
+          }
         }
 
         // ── Store in Cloudflare Cache API ───────────────────────────────────

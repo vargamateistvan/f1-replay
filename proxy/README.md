@@ -47,18 +47,20 @@ yarn kv:expire-legacy --apply     # re-writes them with a 90-day TTL
 
 ### Cache warming
 
-The GitHub workflow `.github/workflows/warm-cache.yml` runs hourly on race-weekend days (Thu–Sun UTC, plus an early-Monday catch-up), detects sessions that ended 40 min – 3 h ago, and replays every canonical app URL for them through the proxy (`scripts/warm-proxy-cache.mjs`) — static endpoints, 2-min location chunks and 5-min car_data chunks — self-throttled under the OpenF1 rate limits. The first real visitor then gets cache hits everywhere.
+The GitHub workflow `.github/workflows/warm-cache.yml` runs hourly on race-weekend days (Thu–Sun UTC, plus an early-Monday catch-up) and once a day on Tuesday/Wednesday, detects sessions that ended 40 min – 52 h ago, and replays every canonical app URL for them through the proxy (`scripts/warm-proxy-cache.mjs`) — static endpoints, 2-min location chunks and 5-min car_data chunks — self-throttled under the OpenF1 rate limits. The first real visitor then gets cache hits everywhere.
 
 Every run also **backfills season results**: it lists each season's sessions (2023 → now) through the proxy and requests `session_result` for every finished Race, Sprint and main Qualifying, plus `championship_drivers` / `championship_teams` for every Race and Sprint — exactly what the Standings page (wins/podiums, points progression, teammate head-to-heads) fetches. Results are cached forever, so only missing ones reach OpenF1; a fully-warmed run takes under a second. Tune with `RESULTS_BACKFILL=0` (disable) or `RESULTS_BACKFILL_FROM_YEAR`.
 
-Freshly-finished sessions' `session_result` and `championship_*` are warmed with `X-Warm-Refresh: 1` on every run inside the lookback window (24 h in the workflow), so a provisional classification or a late stewards' penalty overwrites the forever-cached copy.
+Freshly-finished sessions' mutable data — `session_result`, `championship_*`, `starting_grid`, `laps`, `pit`, `stints`, `race_control`, `team_radio`, `overtakes`, `drivers` — is warmed with `X-Warm-Refresh: 1` on every run inside the lookback window (52 h in the workflow), so a provisional classification, a late stewards' penalty or late-published data replaces the cached copy. The Worker compares the refetched body with the KV copy and only rewrites KV when the data changed, reporting `X-Warm-Updated: 1` (changed) or `0` (unchanged); the run summary counts both.
+
+Run logs are grouped into collapsible sections (configuration, session discovery with why each nearby session was or wasn't picked, one section per warmed session and per backfilled season). Each request logs its cache state, HTTP status, size, latency and refresh outcome. Changed entries are raised as `notice` annotations and failures as `warning` annotations, and both are listed in the job summary. Disable the per-request lines with the `log_requests` workflow input (`WARM_LOG_REQUESTS=0`).
 
 Two request headers enhance warm runs when the `WARM_SECRET` Worker secret is set:
 
 | Header | Effect |
 |--------|--------|
 | `X-Warm-Secret: <secret>` | Response is cached as historical (**90 days** in KV), even for endpoints whose URL alone can't prove they're historical (`laps`, `position`, `intervals`, `weather`, …) |
-| `X-Warm-Refresh: 1` | Bypasses the cache read and re-fetches from OpenF1 — used to keep the long-cached `meetings`/`sessions` lists current mid-season, and to re-fetch a just-finished session's `session_result` / `championship_*` |
+| `X-Warm-Refresh: 1` | Bypasses the cache read and re-fetches from OpenF1 — used to keep the long-cached `meetings`/`sessions` lists current mid-season, and to re-fetch a recently-finished session's results and other mutable data. KV is only rewritten when the body changed (`X-Warm-Updated: 1\|0` in the response) |
 
 Setup:
 
