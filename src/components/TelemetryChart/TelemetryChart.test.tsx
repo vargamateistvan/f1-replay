@@ -156,4 +156,33 @@ describe("TelemetryChart", () => {
     expect(screen.getByText("High speed")).toBeInTheDocument();
     expect(screen.getByText("Low")).toBeInTheDocument();
   });
+
+  it("limits the chart key to the given corner speed classes", () => {
+    render(
+      <TelemetryChart
+        title="Speed"
+        xData={[0, 50, 100, 150]}
+        series={[
+          { label: "VER", color: "#e8002d", data: [100, 150, 140, 130] },
+        ]}
+        cornerZones={[
+          {
+            key: "turn-1",
+            labels: ["1"],
+            apexes: [50],
+            startDistance: 25,
+            endDistance: 75,
+            speedClass: "low",
+            minSpeed: 100,
+          },
+        ]}
+        cornerSpeedClasses={["low", "high"]}
+        showCornerZoneLabels
+      />,
+    );
+
+    expect(screen.getByText("Low speed")).toBeInTheDocument();
+    expect(screen.queryByText("Medium speed")).not.toBeInTheDocument();
+    expect(screen.getByText("High speed")).toBeInTheDocument();
+  });
 });

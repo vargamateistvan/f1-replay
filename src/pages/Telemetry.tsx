@@ -6,7 +6,11 @@ import {
   TelemetryChart,
   type ChartCornerMarker,
 } from "@/components/TelemetryChart/TelemetryChart";
-import { buildCornerZones, type CornerZone } from "@/utils/corners";
+import {
+  buildCornerZones,
+  type CornerSpeedClass,
+  type CornerZone,
+} from "@/utils/corners";
 import {
   computeTrackAutoRotationDeg,
   computeTrackBounds,
@@ -20,7 +24,7 @@ import {
 } from "@/hooks/useCarDataForLap";
 import { useDrivers, useLaps, useSessions, useStints, useWeather } from "@/hooks/useSession";
 import { useNumberParam, useStringParam } from "@/hooks/useSearchParamState";
-import { useSettings } from "@/stores/settings";
+import { TELEMETRY_CORNER_ZONE_SETTINGS, useSettings } from "@/stores/settings";
 import { teamColor } from "@/utils/color";
 import { computeDelta, resampleToAxis, smooth } from "@/utils/telemetry";
 import {
@@ -66,16 +70,19 @@ type TrackCornerMarker = ChartCornerMarker;
 
 const CORNER_SPEED_LEGEND = [
   {
+    speedClass: "low",
     label: "Low",
     range: `< ${CORNER_LOW_SPEED_KMH}`,
     color: CORNER_ZONE_COLORS.low,
   },
   {
+    speedClass: "medium",
     label: "Medium",
     range: `${CORNER_LOW_SPEED_KMH}-${CORNER_HIGH_SPEED_KMH - 1}`,
     color: CORNER_ZONE_COLORS.medium,
   },
   {
+    speedClass: "high",
     label: "High",
     range: `${CORNER_HIGH_SPEED_KMH}+`,
     color: CORNER_ZONE_COLORS.high,
@@ -287,6 +294,20 @@ function formatDeltaHint(deltaSeconds: number | null): DeltaHint {
 export default function Telemetry() {
   const lightMode = useSettings((s) => s.lightMode);
   const metricSystem = useSettings((s) => s.metricSystem);
+  const setSetting = useSettings((s) => s.setSetting);
+  const showLowCornerZones = useSettings((s) => s.telemetryCornerZonesLow);
+  const showMediumCornerZones = useSettings((s) => s.telemetryCornerZonesMedium);
+  const showHighCornerZones = useSettings((s) => s.telemetryCornerZonesHigh);
+  const cornerZoneVisibility = useMemo<Record<CornerSpeedClass, boolean>>(
+    () => ({
+      low: showLowCornerZones,
+      medium: showMediumCornerZones,
+      high: showHighCornerZones,
+    }),
+    [showLowCornerZones, showMediumCornerZones, showHighCornerZones],
+  );
+  const anyCornerZoneShown =
+    showLowCornerZones || showMediumCornerZones || showHighCornerZones;
   const cardDeckRef = useRef<HTMLDivElement | null>(null);
   const trackPreviewRef = useRef<HTMLDivElement | null>(null);
   const chartsRef = useRef<HTMLDivElement | null>(null);
@@ -791,6 +812,19 @@ export default function Telemetry() {
       dataA.data.map((sample) => sample.speed),
     );
   }, [telemetryCornerMarkers, xDist, dataA.data]);
+
+  // Zones shaded on the charts; the corner analysis always uses every zone.
+  const chartCornerZones = useMemo(
+    () => telemetryCornerZones.filter((zone) => cornerZoneVisibility[zone.speedClass]),
+    [telemetryCornerZones, cornerZoneVisibility],
+  );
+  const visibleCornerSpeedClasses = useMemo(
+    () =>
+      CORNER_SPEED_LEGEND.map((item) => item.speedClass).filter(
+        (speedClass) => cornerZoneVisibility[speedClass],
+      ),
+    [cornerZoneVisibility],
+  );
 
   // For a given set of raw samples, find the interpolated telemetry at a given timeS
   const sampleAtTimeS = useCallback(
@@ -2152,24 +2186,58 @@ export default function Telemetry() {
                 })}
                 <div className="flex flex-wrap items-center gap-1.5 text-[9px] uppercase tracking-[0.12em] text-muted">
                   <span className="font-black">Corner speed</span>
-                  {CORNER_SPEED_LEGEND.map((item) => (
-                    <span
-                      key={item.label}
-                      className="inline-flex items-center gap-1 rounded-sm border border-panel bg-surface px-1.5 py-1"
-                      title={`${item.label} speed corner: ${item.range} km/h apex speed`}
-                    >
-                      <span
-                        className="h-2 w-2 rounded-sm border border-white/20"
-                        style={{ background: item.color }}
-                      />
-                      <span className="font-black text-white/85">
-                        {item.label}
-                      </span>
-                      <span className="font-mono normal-case text-muted">
-                        {item.range} km/h
-                      </span>
-                    </span>
-                  ))}
+                  {CORNER_SPEED_LEGEND.map((item) => {
+                    const shown = cornerZoneVisibility[item.speedClass];
+                    return (
+                      <button
+                        key={item.label}
+                        type="button"
+                        aria-pressed={shown}
+                        onClick={() =>
+                          setSetting(
+                            TELEMETRY_CORNER_ZONE_SETTINGS[item.speedClass],
+                            !shown,
+                          )
+                        }
+                        className={`inline-flex items-center gap-1 rounded-sm border px-1.5 py-1 uppercase tracking-[0.12em] transition-colors hover:border-muted ${
+                          shown
+                            ? "border-panel bg-surface"
+                            : "border-dashed border-panel bg-transparent opacity-50"
+                        }`}
+                        title={`${shown ? "Hide" : "Show"} ${item.label.toLowerCase()} speed corner bands on the charts (${item.range} km/h apex speed)`}
+                      >
+                        <span
+                          className="h-2 w-2 rounded-sm border border-white/20"
+                          style={{ background: shown ? item.color : "transparent" }}
+                        />
+                        <span
+                          className={`font-black ${shown ? "text-white/85" : "text-muted line-through"}`}
+                        >
+                          {item.label}
+                        </span>
+                        <span className="font-mono normal-case text-muted">
+                          {item.range} km/h
+                        </span>
+                      </button>
+                    );
+                  })}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const next = !anyCornerZoneShown;
+                      for (const key of Object.values(TELEMETRY_CORNER_ZONE_SETTINGS)) {
+                        setSetting(key, next);
+                      }
+                    }}
+                    className="rounded-sm border border-panel bg-surface px-1.5 py-1 font-black uppercase tracking-[0.12em] text-muted transition-colors hover:border-muted hover:text-white"
+                    title={
+                      anyCornerZoneShown
+                        ? "Hide all corner speed bands on the charts"
+                        : "Show all corner speed bands on the charts"
+                    }
+                  >
+                    {anyCornerZoneShown ? "Hide all" : "Show all"}
+                  </button>
                 </div>
               </div>
 
@@ -2180,9 +2248,10 @@ export default function Telemetry() {
                   title={`Speed (${speedUnit})`}
                   xData={xDist}
                   cornerMarkers={telemetryCornerMarkers}
-                  cornerZones={telemetryCornerZones}
+                  cornerZones={chartCornerZones}
                   showCornerAxis
                   showCornerZoneLabels
+                  cornerSpeedClasses={visibleCornerSpeedClasses}
                   yMin={0}
                   yMax={speedChartMax}
                   height={280}
@@ -2198,7 +2267,7 @@ export default function Telemetry() {
                 title="Throttle (%)"
                 xData={xDist}
                 cornerMarkers={telemetryCornerMarkers}
-                cornerZones={telemetryCornerZones}
+                cornerZones={chartCornerZones}
                 showCornerAxis
                 yMin={0}
                 yMax={100}
@@ -2214,7 +2283,7 @@ export default function Telemetry() {
                 title="Brake"
                 xData={xDist}
                 cornerMarkers={telemetryCornerMarkers}
-                cornerZones={telemetryCornerZones}
+                cornerZones={chartCornerZones}
                 showCornerAxis
                 yMin={0}
                 yMax={100}
@@ -2230,7 +2299,7 @@ export default function Telemetry() {
                 title="Gear"
                 xData={xDist}
                 cornerMarkers={telemetryCornerMarkers}
-                cornerZones={telemetryCornerZones}
+                cornerZones={chartCornerZones}
                 showCornerAxis
                 yMin={0}
                 yMax={9}
@@ -2247,7 +2316,7 @@ export default function Telemetry() {
                 title="RPM"
                 xData={xDist}
                 cornerMarkers={telemetryCornerMarkers}
-                cornerZones={telemetryCornerZones}
+                cornerZones={chartCornerZones}
                 showCornerAxis
                 yMin={0}
                 yMax={15000}
@@ -2272,7 +2341,7 @@ export default function Telemetry() {
                     title=""
                     xData={xDist}
                     cornerMarkers={telemetryCornerMarkers}
-                    cornerZones={telemetryCornerZones}
+                    cornerZones={chartCornerZones}
                     showCornerAxis
                     height={220}
                     interactiveControls

@@ -104,6 +104,8 @@ interface Props {
   readonly showCornerAxis?: boolean;
   /** Renders the bracketed speed-class labels above the plot. */
   readonly showCornerZoneLabels?: boolean;
+  /** Speed classes listed in the zone key (defaults to all classes). */
+  readonly cornerSpeedClasses?: readonly CornerSpeedClass[];
   readonly height?: number;
   readonly interactiveControls?: boolean;
   readonly onHoverX?: (x: number | null) => void;
@@ -205,6 +207,7 @@ export function TelemetryChart({
   cornerZones = [],
   showCornerAxis = false,
   showCornerZoneLabels = false,
+  cornerSpeedClasses = CORNER_SPEED_CLASS_ORDER,
 }: Props) {
   const theme = themeForTitle(title);
   const chartInstanceIdRef = useRef(nextChartInstanceId++);
@@ -676,7 +679,7 @@ export function TelemetryChart({
       {visibleRange && showCornerZoneLabels && cornerZones.length > 0 && (
         <div className="border-t border-panel/70 bg-black/25">
           <div className="flex flex-wrap items-center gap-1 px-2 py-1">
-            {CORNER_SPEED_CLASS_ORDER.map((speedClass) => (
+            {cornerSpeedClasses.map((speedClass) => (
               <span
                 key={speedClass}
                 className="inline-flex items-center gap-1 rounded-sm border border-panel/80 bg-track/80 px-1.5 py-0.5 text-[8px] font-black uppercase tracking-[0.1em] text-white/80"

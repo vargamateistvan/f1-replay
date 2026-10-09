@@ -8,7 +8,11 @@ import {
 } from "@/hooks/useSession";
 import { useLocationChunks } from "@/hooks/useLocationChunks";
 import { trackEvent } from "@/lib/analytics";
-import { SPEEDS } from "@/constants";
+import {
+  CORNER_HIGH_SPEED_KMH,
+  CORNER_LOW_SPEED_KMH,
+  SPEEDS,
+} from "@/constants";
 import { animateMotion, pressMotion } from "@/lib/motion";
 import { TrackMap } from "@/components/TrackMap/TrackMap";
 import type { TrackFlagState } from "@/timeline/raceControl";
@@ -967,6 +971,26 @@ export function SettingsBody() {
           </div>
         </div>
       )}
+
+      <SectionHeader>Telemetry Charts</SectionHeader>
+      <SettingRow
+        label="Low speed corner bands"
+        description={`Shade corners with an apex below ${CORNER_LOW_SPEED_KMH} km/h on telemetry charts`}
+        checked={settings.telemetryCornerZonesLow}
+        onChange={toggle("telemetryCornerZonesLow")}
+      />
+      <SettingRow
+        label="Medium speed corner bands"
+        description={`Shade corners with a ${CORNER_LOW_SPEED_KMH}–${CORNER_HIGH_SPEED_KMH - 1} km/h apex on telemetry charts`}
+        checked={settings.telemetryCornerZonesMedium}
+        onChange={toggle("telemetryCornerZonesMedium")}
+      />
+      <SettingRow
+        label="High speed corner bands"
+        description={`Shade corners with an apex of ${CORNER_HIGH_SPEED_KMH} km/h or more on telemetry charts`}
+        checked={settings.telemetryCornerZonesHigh}
+        onChange={toggle("telemetryCornerZonesHigh")}
+      />
         </div>
       )}
 

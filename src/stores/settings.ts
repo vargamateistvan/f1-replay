@@ -1,5 +1,6 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
+import type { CornerSpeedClass } from "@/utils/corners";
 
 // All user-configurable preferences. These are persisted to localStorage.
 export interface AppSettings {
@@ -74,6 +75,10 @@ export interface AppSettings {
   timingMobileShowInterval: boolean;
   timingMobileShowLap: boolean;
   trackScreenshotPngEnabled: boolean;
+  // Telemetry charts: corner speed bands per class
+  telemetryCornerZonesLow: boolean;
+  telemetryCornerZonesMedium: boolean;
+  telemetryCornerZonesHigh: boolean;
   // Support
   showCoffeeWidget: boolean;
   // Playback
@@ -89,6 +94,13 @@ export interface AppSettings {
   // Units
   metricSystem: "metric" | "imperial";
 }
+
+/** Setting that controls whether each corner speed class is shaded on telemetry charts. */
+export const TELEMETRY_CORNER_ZONE_SETTINGS = {
+  low: "telemetryCornerZonesLow",
+  medium: "telemetryCornerZonesMedium",
+  high: "telemetryCornerZonesHigh",
+} as const satisfies Record<CornerSpeedClass, keyof AppSettings>;
 
 interface SettingsStore extends AppSettings {
   isOpen: boolean;
@@ -172,6 +184,9 @@ export const SETTINGS_DEFAULTS: AppSettings = {
   timingMobileShowInterval: false,
   timingMobileShowLap: false,
   trackScreenshotPngEnabled: true,
+  telemetryCornerZonesLow: true,
+  telemetryCornerZonesMedium: true,
+  telemetryCornerZonesHigh: true,
   showCoffeeWidget: true,
   defaultSpeed: 1,
   showPlaybackSpeedControls: true,
