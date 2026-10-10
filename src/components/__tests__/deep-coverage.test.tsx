@@ -442,7 +442,6 @@ describe("deep component coverage", () => {
     fireEvent.click(screen.getByTitle("Reset zoom"));
     fireEvent.click(screen.getByTitle("Rotate left"));
     fireEvent.click(screen.getByTitle("Rotate right"));
-    fireEvent.click(screen.getByTitle("Reset rotation"));
 
     fireEvent.click(screen.getByText("↓ PNG"));
     fireEvent.click(screen.getAllByText("VER")[0]!);

@@ -5,7 +5,6 @@ import {
   CloudRain,
   Droplets,
   Gauge,
-  LocateFixed,
   RotateCcw,
   RotateCw,
   Search,
@@ -2472,7 +2471,7 @@ export function TrackMap({
 
       {(showTrackControls || onOpenSettings) && (
         <div
-          className="absolute top-2 right-2 z-20 flex flex-col items-start gap-1 p-1"
+          className="absolute top-2 right-2 z-20 flex flex-col items-end gap-1 p-1"
           style={{
             background: overlayBackground,
             backdropFilter: "blur(4px)",
@@ -2481,6 +2480,37 @@ export function TrackMap({
           {!showTrackControls && settingsButton}
           {showTrackControls && (
             <>
+              <div className="flex items-center gap-1">
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    animateMotion(e.currentTarget, pressMotion());
+                    trackEvent("trackmap_rotation_changed", {
+                      direction: "left",
+                    });
+                    rotateLeft();
+                  }}
+                  className="w-7 h-7 flex items-center justify-center border border-panel text-white/85 hover:text-white hover:border-white/50 transition-colors"
+                  title="Rotate left"
+                >
+                  <RotateCcw size={14} strokeWidth={2.2} aria-hidden="true" />
+                </button>
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    animateMotion(e.currentTarget, pressMotion());
+                    trackEvent("trackmap_rotation_changed", {
+                      direction: "right",
+                    });
+                    rotateRight();
+                  }}
+                  className="w-7 h-7 flex items-center justify-center border border-panel text-white/85 hover:text-white hover:border-white/50 transition-colors"
+                  title="Rotate right"
+                >
+                  <RotateCw size={14} strokeWidth={2.2} aria-hidden="true" />
+                </button>
+                {settingsButton}
+              </div>
               <div className="flex items-center gap-1">
                 <button
                   type="button"
@@ -2526,51 +2556,6 @@ export function TrackMap({
                   title="Reset zoom"
                 >
                   <Search size={14} strokeWidth={2.2} aria-hidden="true" />
-                </button>
-                {settingsButton}
-              </div>
-              <div className="flex items-center gap-1">
-                <button
-                  type="button"
-                  onClick={(e) => {
-                    animateMotion(e.currentTarget, pressMotion());
-                    trackEvent("trackmap_rotation_changed", {
-                      direction: "left",
-                    });
-                    rotateLeft();
-                  }}
-                  className="w-7 h-7 flex items-center justify-center border border-panel text-white/85 hover:text-white hover:border-white/50 transition-colors"
-                  title="Rotate left"
-                >
-                  <RotateCcw size={14} strokeWidth={2.2} aria-hidden="true" />
-                </button>
-                <button
-                  type="button"
-                  onClick={(e) => {
-                    animateMotion(e.currentTarget, pressMotion());
-                    trackEvent("trackmap_rotation_changed", {
-                      direction: "right",
-                    });
-                    rotateRight();
-                  }}
-                  className="w-7 h-7 flex items-center justify-center border border-panel text-white/85 hover:text-white hover:border-white/50 transition-colors"
-                  title="Rotate right"
-                >
-                  <RotateCw size={14} strokeWidth={2.2} aria-hidden="true" />
-                </button>
-                <button
-                  type="button"
-                  onClick={(e) => {
-                    animateMotion(e.currentTarget, pressMotion());
-                    trackEvent("trackmap_rotation_reset", {
-                      rotation: defaultRotationDeg,
-                    });
-                    setRotation(defaultRotationDeg);
-                  }}
-                  className="w-7 h-7 flex items-center justify-center border border-panel text-white/85 hover:text-white hover:border-white/50 transition-colors"
-                  title="Reset rotation"
-                >
-                  <LocateFixed size={14} strokeWidth={2.2} aria-hidden="true" />
                 </button>
               </div>
             </>
