@@ -2616,6 +2616,7 @@ export default function RaceWeekend() {
                 sessionKey={sessionKey}
                 sessionYear={session?.year ?? null}
                 sessionType={session?.session_type}
+                sessionName={session?.session_name}
                 sessionTimeMs={t}
                 sessionStartMs={sessionStartMs}
                 raceStartMs={isRaceSession ? lightsOutMs : null}

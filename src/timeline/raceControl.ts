@@ -942,12 +942,14 @@ export interface RaceChapter {
  *   Race Start marker is emitted if an incident (e.g. SC start) covers it.
  * @param chequeredMs Session-relative chequered flag time. When provided, a
  *   "Chequered Flag" chapter runs from the flag to the end of the session.
+ * @param startLabel Label for the opening chapter (e.g. "Sprint Start").
  */
 export function buildRaceChapters(
   incidentWindows: IncidentWindow[],
   sessionDurationMs: number,
   chequeredMs: number | null,
   raceStartMs: number | null = null,
+  startLabel = "Race Start",
 ): RaceChapter[] {
   const chapters: RaceChapter[] = [];
   const startMs = raceStartMs ?? 0;
@@ -962,7 +964,7 @@ export function buildRaceChapters(
       id: isStart ? `start-${from}` : `green-${from}`,
       kind: isStart ? "start" : "green",
       label: isStart
-        ? "Race Start"
+        ? startLabel
         : greenCount === 1
           ? "Green Flag"
           : `Green Flag ${greenCount}`,
@@ -1004,7 +1006,7 @@ export function buildRaceChapters(
     chapters.push({
       id: `start-${raceStartMs}`,
       kind: "start",
-      label: "Race Start",
+      label: startLabel,
       startMs: raceStartMs,
       endMs: null,
       durationMs: null,

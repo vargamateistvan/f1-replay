@@ -26,6 +26,7 @@ import {
   type TimedPositionPoint,
 } from "@/components/CommentaryPanels/keyMoments";
 import type { IncidentWindow } from "@/timeline/raceControl";
+import { sessionStartLabel } from "@/utils/session";
 import type { KeyMoment } from "@/components/KeyMoments/types";
 
 export type CommentaryTab =
@@ -95,6 +96,8 @@ type Props = {
   sessionKey: number | null;
   sessionYear: number | null;
   sessionType: string | undefined;
+  /** OpenF1 session_name ("Sprint", "Practice 1"…); picks the start chapter label. */
+  sessionName?: string;
   sessionTimeMs: number;
   sessionStartMs: number;
   /** Session-relative lights-out time; races only. */
@@ -291,6 +294,7 @@ export function CommentaryPanels({
   sessionKey,
   sessionYear,
   sessionType,
+  sessionName,
   sessionTimeMs,
   sessionStartMs,
   raceStartMs = null,
@@ -370,12 +374,14 @@ export function CommentaryPanels({
       sessionDurationMs,
       chequeredMs,
       raceStartMs,
+      sessionStartLabel(sessionName),
     );
   }, [
     incidentWindows,
     sessionDurationMs,
     chequeredMs,
     raceStartMs,
+    sessionName,
     shouldBuildChapters,
   ]);
 

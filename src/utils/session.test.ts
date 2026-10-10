@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { RaceControl } from "@/api/types";
-import { detectQualiPhase } from "@/utils/session";
+import { detectQualiPhase, sessionStartLabel } from "@/utils/session";
 
 function rc(
   date: string,
@@ -45,5 +45,17 @@ describe("detectQualiPhase", () => {
     ];
 
     expect(detectQualiPhase(messages, sessionStart, 30 * 60_000)).toBe("Q3");
+  });
+});
+
+describe("sessionStartLabel", () => {
+  it("names the opening chapter after the session", () => {
+    expect(sessionStartLabel("Race")).toBe("Race Start");
+    expect(sessionStartLabel(undefined)).toBe("Race Start");
+    expect(sessionStartLabel("Sprint")).toBe("Sprint Start");
+    expect(sessionStartLabel("Qualifying")).toBe("Qualifying Start");
+    expect(sessionStartLabel("Sprint Qualifying")).toBe("Qualifying Start");
+    expect(sessionStartLabel("Sprint Shootout")).toBe("Qualifying Start");
+    expect(sessionStartLabel("Practice 2")).toBe("Practice Start");
   });
 });

@@ -19,6 +19,15 @@ export function isTimedSession(name: string): boolean {
   return isPracticeSession(name) || isQualiSession(name);
 }
 
+// Label for the opening chapter of a session ("Race Start", "Sprint Start"…).
+export function sessionStartLabel(name: string | undefined): string {
+  if (!name) return "Race Start";
+  if (isQualiSession(name) || /shootout/i.test(name)) return "Qualifying Start";
+  if (isPracticeSession(name)) return "Practice Start";
+  if (isSprintSession(name)) return "Sprint Start";
+  return "Race Start";
+}
+
 // Returns the qualifying phase (Q1/Q2/Q3) active at session-relative time t.
 // Scans race control messages for "Q1 PERIOD STARTED" style markers.
 // Only advances — a later "END OF Q1" message won't clear the phase.
