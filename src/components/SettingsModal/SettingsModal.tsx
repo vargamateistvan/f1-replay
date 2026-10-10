@@ -11,7 +11,7 @@ import {
 } from "@/lib/motion";
 
 export function SettingsModal() {
-  const { isOpen, closeModal } = useSettings();
+  const { isOpen, modalTab, closeModal } = useSettings();
   const backdropRef = useRef<HTMLDivElement>(null);
   const panelRef = useRef<HTMLDivElement>(null);
 
@@ -128,7 +128,7 @@ export function SettingsModal() {
           className="flex flex-1 min-h-0 flex-col overscroll-contain px-5 pb-4"
           style={{ WebkitOverflowScrolling: "touch" }}
         >
-          <SettingsBody />
+          <SettingsBody initialTab={modalTab} />
         </div>
       </div>
     </div>

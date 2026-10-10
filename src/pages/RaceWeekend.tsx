@@ -8,6 +8,7 @@ import {
   useState,
 } from "react";
 import { useQueryClient } from "@tanstack/react-query";
+import { Settings as SettingsIcon } from "lucide-react";
 import { PlaybackBar } from "@/components/PlaybackBar";
 import type { ActiveTrackVehicles } from "@/components/TrackMap/TrackMap";
 import LiveTiming from "@/components/LiveTiming/LiveTiming";
@@ -32,7 +33,7 @@ import {
   useOvertakes,
   useSessionResult,
 } from "@/hooks/useSession";
-import { useSearchParams } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { useTimeline } from "@/timeline/clock";
 import { startLightsWindow } from "@/timeline/startLights";
 import { useCoarseTime } from "@/hooks/useCoarseTime";
@@ -83,7 +84,7 @@ import {
   RACE_LEADER_NOTIFICATION_MS,
   START_LIGHTS_SEQUENCE_MS,
 } from "@/constants";
-import { useSettings } from "@/stores/settings";
+import { useSettings, type SettingsTabId } from "@/stores/settings";
 import { deriveRetiredDrivers } from "@/utils/retirement";
 import { computeBattlingDrivers } from "@/utils/battles";
 import { weatherAtSessionTime } from "@/utils/weather";
@@ -287,6 +288,21 @@ export default function RaceWeekend() {
   const [, setSearchParams] = useSearchParams();
 
   const isCompactViewport = useMediaQuery("(max-width: 767px)");
+  const navigate = useNavigate();
+  const openSettingsModal = useSettings((s) => s.openModal);
+  // Phones use the full-page settings route (like the bottom nav); desktop
+  // opens the modal over the replay.
+  const openSettingsTab = useCallback(
+    (tab: SettingsTabId) => {
+      trackEvent("raceweekend_settings_opened", {
+        tab,
+        source: isCompactViewport ? "mobile" : "desktop",
+      });
+      if (isCompactViewport) navigate(`/settings?tab=${tab}`);
+      else openSettingsModal(tab);
+    },
+    [isCompactViewport, navigate, openSettingsModal],
+  );
   const [isResultsDialogOpen, setIsResultsDialogOpen] = useState(false);
   const [isQualiEliminationsDialogOpen, setIsQualiEliminationsDialogOpen] =
     useState(false);
@@ -1992,7 +2008,28 @@ export default function RaceWeekend() {
       raceLeader={isRaceSession && mapShowRaceLeader ? raceLeaderDriver : null}
       lightsOutMs={isRaceSession ? lightsOutMs : null}
       onSelectDriver={toggleFocus}
+      onOpenSettings={
+        isCompactViewport ? undefined : () => openSettingsTab("track")
+      }
     />
+  );
+
+  const trackerSettingsButton = (
+    <button
+      type="button"
+      onClick={() =>
+        openSettingsTab(activeTrackerTab === "map" ? "track" : "timing")
+      }
+      className="shrink-0 w-8 flex items-center justify-center text-muted hover:text-white transition-colors"
+      aria-label={
+        activeTrackerTab === "map" ? "Track map settings" : "Timing settings"
+      }
+      title={
+        activeTrackerTab === "map" ? "Track map settings" : "Timing settings"
+      }
+    >
+      <SettingsIcon width={14} height={14} aria-hidden="true" />
+    </button>
   );
 
   const eventToastStack = (
@@ -2132,35 +2169,38 @@ export default function RaceWeekend() {
               {/* Tab chips */}
               <div
                 data-motion-tab-strip
-                className="sticky top-0 z-20 grid grid-cols-5 w-full border-b border-panel shrink-0 bg-track/95 backdrop-blur"
+                className="sticky top-0 z-20 flex w-full border-b border-panel shrink-0 bg-track/95 backdrop-blur"
               >
-                {(
-                  [
-                    ["timing", "Timing"],
-                    ["map", "Track"],
-                    ["strategy", "Tyre Strategy"],
-                    ["chart", "Chart"],
-                    ["gap", "Gap"],
-                  ] as [TrackerTab, string][]
-                ).map(([tab, label]) => (
-                  <button
-                    key={tab}
-                    onClick={() => {
-                      trackEvent("raceweekend_tracker_tab_changed", {
-                        tab,
-                        source: "mobile",
-                      });
-                      setTrackerTab(tab);
-                    }}
-                    className={`w-full px-1.5 py-2 text-[10px] font-bold uppercase tracking-wider border-b-2 -mb-px transition-colors ${
-                      activeTrackerTab === tab
-                        ? "text-white border-f1red bg-surface"
-                        : "text-muted border-transparent hover:text-white"
-                    }`}
-                  >
-                    {label}
-                  </button>
-                ))}
+                <div className="grid grid-cols-5 flex-1 min-w-0">
+                  {(
+                    [
+                      ["timing", "Timing"],
+                      ["map", "Track"],
+                      ["strategy", "Tyre Strategy"],
+                      ["chart", "Chart"],
+                      ["gap", "Gap"],
+                    ] as [TrackerTab, string][]
+                  ).map(([tab, label]) => (
+                    <button
+                      key={tab}
+                      onClick={() => {
+                        trackEvent("raceweekend_tracker_tab_changed", {
+                          tab,
+                          source: "mobile",
+                        });
+                        setTrackerTab(tab);
+                      }}
+                      className={`w-full px-1.5 py-2 text-[10px] font-bold uppercase tracking-wider border-b-2 -mb-px transition-colors ${
+                        activeTrackerTab === tab
+                          ? "text-white border-f1red bg-surface"
+                          : "text-muted border-transparent hover:text-white"
+                      }`}
+                    >
+                      {label}
+                    </button>
+                  ))}
+                </div>
+                {trackerSettingsButton}
               </div>
 
               {/* Tab content */}
@@ -2354,6 +2394,7 @@ export default function RaceWeekend() {
                       {label}
                     </button>
                   ))}
+                  {trackerSettingsButton}
                 </div>
 
                 {/* Panel content */}

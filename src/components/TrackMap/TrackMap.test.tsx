@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import {
   TrackMap,
 } from "./TrackMap";
@@ -643,5 +643,34 @@ describe("TrackMap sector flag state rendering", () => {
     const img = screen.getByAltText("Max Verstappen");
     expect(img).toBeTruthy();
     expect(img.getAttribute("src")).toBe("https://example.com/ver.jpg");
+  });
+
+  it("shows a settings shortcut only when onOpenSettings is provided", () => {
+    vi.mocked(useTrackOutline).mockReturnValue(
+      mockTrackOutlineQueryResult(mockOutline),
+    );
+    const onOpenSettings = vi.fn();
+    const { rerender } = render(
+      <TrackMap
+        sessionKey={1}
+        drivers={[mockDriver]}
+        locationData={mockLocationData}
+        sessionStartMs={0}
+      />,
+    );
+    expect(screen.queryByLabelText("Track map settings")).toBeNull();
+
+    rerender(
+      <TrackMap
+        sessionKey={1}
+        drivers={[mockDriver]}
+        locationData={mockLocationData}
+        sessionStartMs={0}
+        showTrackControls={false}
+        onOpenSettings={onOpenSettings}
+      />,
+    );
+    fireEvent.click(screen.getByLabelText("Track map settings"));
+    expect(onOpenSettings).toHaveBeenCalledOnce();
   });
 });

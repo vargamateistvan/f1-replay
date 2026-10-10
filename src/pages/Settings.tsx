@@ -1,8 +1,12 @@
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { SettingsBody } from "@/components/SettingsModal/SettingsControls";
+import { isSettingsTabId } from "@/stores/settings";
 
 export default function Settings() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const tabParam = searchParams.get("tab");
+  const initialTab = isSettingsTabId(tabParam) ? tabParam : undefined;
 
   return (
     <div className="flex flex-1 flex-col bg-track md:h-full">
@@ -33,7 +37,7 @@ export default function Settings() {
       {/* Content — on desktop the inner panels own their scrolling; on phones
           the page scrolls so nothing hides behind the bottom nav. */}
       <div className="flex flex-1 flex-col px-4 pb-4 md:min-h-0">
-        <SettingsBody />
+        <SettingsBody key={initialTab} initialTab={initialTab} />
       </div>
     </div>
   );

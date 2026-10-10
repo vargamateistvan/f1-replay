@@ -1,5 +1,9 @@
 import { useMemo, useState, type ReactNode } from "react";
-import { useSettings, type AppSettings } from "@/stores/settings";
+import {
+  useSettings,
+  type AppSettings,
+  type SettingsTabId,
+} from "@/stores/settings";
 import { useMediaQuery } from "@/hooks/useMediaQuery";
 import {
   useDrivers,
@@ -138,9 +142,7 @@ const SETTINGS_TABS = [
   { id: "timing", label: "Timing" },
   { id: "track", label: "Track map" },
   { id: "interface", label: "Interface" },
-] as const;
-
-type SettingsTab = (typeof SETTINGS_TABS)[number]["id"];
+] as const satisfies readonly { id: SettingsTabId; label: string }[];
 
 function TrackMapPreview() {
   const latestMeeting = useLatestMeeting();
@@ -394,10 +396,14 @@ export function UnitSelector({
 
 // ── Settings body (all sections) ──────────────────────────────────────────────
 
-export function SettingsBody() {
+export function SettingsBody({
+  initialTab = "general",
+}: {
+  initialTab?: SettingsTabId;
+} = {}) {
   const { setSetting, reset, ...settings } = useSettings();
   const isMobileViewport = useMediaQuery("(max-width: 767px)");
-  const [activeTab, setActiveTab] = useState<SettingsTab>("general");
+  const [activeTab, setActiveTab] = useState<SettingsTabId>(initialTab);
 
   function updateSetting<K extends keyof AppSettings>(
     key: K,

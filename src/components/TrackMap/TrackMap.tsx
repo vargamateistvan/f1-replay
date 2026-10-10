@@ -9,6 +9,7 @@ import {
   RotateCcw,
   RotateCw,
   Search,
+  Settings as SettingsIcon,
   Thermometer,
   Wind,
   ZoomIn,
@@ -258,6 +259,8 @@ interface Props {
   readonly showTrackScreenshot?: boolean;
   readonly showEnhancedVisuals?: boolean;
   readonly onSelectDriver?: (driverNumber: number) => void;
+  /** When set, shows a shortcut to the track map settings. */
+  readonly onOpenSettings?: () => void;
 }
 
 const SPECIAL_TRACK_VEHICLES: Record<
@@ -372,6 +375,7 @@ export function TrackMap({
   showTrackScreenshot = true,
   showEnhancedVisuals = true,
   onSelectDriver,
+  onOpenSettings,
 }: Props) {
   const t = useCoarseTime(100);
   const lightMode = useSettings((s) => s.lightMode);
@@ -1543,10 +1547,7 @@ export function TrackMap({
   const svgRef = useRef<SVGSVGElement>(null);
 
   const startLights = startLightsState(t, lightsOutMs);
-  useStartLightsSound(
-    startLights,
-    mapStartLightsSound && lightsOutMs != null,
-  );
+  useStartLightsSound(startLights, mapStartLightsSound && lightsOutMs != null);
 
   if (!sessionKey) {
     return (
@@ -1796,6 +1797,21 @@ export function TrackMap({
 
     return badges;
   })();
+
+  const settingsButton = onOpenSettings && (
+    <button
+      type="button"
+      onClick={(e) => {
+        animateMotion(e.currentTarget, pressMotion());
+        onOpenSettings();
+      }}
+      className="w-7 h-7 flex items-center justify-center border border-panel text-white/85 hover:text-white hover:border-white/50 transition-colors"
+      title="Track map settings"
+      aria-label="Track map settings"
+    >
+      <SettingsIcon size={14} strokeWidth={2.2} aria-hidden="true" />
+    </button>
+  );
 
   return (
     <div className="relative w-full h-full">
@@ -2454,105 +2470,111 @@ export function TrackMap({
         )}
       </svg>
 
-      {showTrackControls && (
+      {(showTrackControls || onOpenSettings) && (
         <div
-          className="absolute top-2 right-2 z-20 flex flex-col gap-1 p-1"
+          className="absolute top-2 right-2 z-20 flex flex-col items-start gap-1 p-1"
           style={{
             background: overlayBackground,
             backdropFilter: "blur(4px)",
           }}
         >
-          <div className="flex items-center gap-1">
-            <button
-              type="button"
-              onClick={(e) => {
-                animateMotion(e.currentTarget, pressMotion());
-                setZoomLevel((z) => {
-                  const next = Math.max(0.6, z - 0.2);
-                  persistZoomLevel(next);
-                  trackEvent("trackmap_zoom_changed", { zoom: next });
-                  return next;
-                });
-              }}
-              className="w-7 h-7 flex items-center justify-center border border-panel text-white/85 hover:text-white hover:border-white/50 transition-colors"
-              title="Zoom out"
-            >
-              <ZoomOut size={14} strokeWidth={2.2} aria-hidden="true" />
-            </button>
-            <button
-              type="button"
-              onClick={(e) => {
-                animateMotion(e.currentTarget, pressMotion());
-                setZoomLevel((z) => {
-                  const next = Math.min(3, z + 0.2);
-                  persistZoomLevel(next);
-                  trackEvent("trackmap_zoom_changed", { zoom: next });
-                  return next;
-                });
-              }}
-              className="w-7 h-7 flex items-center justify-center border border-panel text-white/85 hover:text-white hover:border-white/50 transition-colors"
-              title="Zoom in"
-            >
-              <ZoomIn size={14} strokeWidth={2.2} aria-hidden="true" />
-            </button>
-            <button
-              type="button"
-              onClick={(e) => {
-                animateMotion(e.currentTarget, pressMotion());
-                trackEvent("trackmap_zoom_reset");
-                setZoomLevel(TRACK_FIT_ZOOM);
-                persistZoomLevel(TRACK_FIT_ZOOM);
-              }}
-              className="w-7 h-7 flex items-center justify-center border border-panel text-white/85 hover:text-white hover:border-white/50 transition-colors"
-              title="Reset zoom"
-            >
-              <Search size={14} strokeWidth={2.2} aria-hidden="true" />
-            </button>
-          </div>
-          <div className="flex items-center gap-1">
-            <button
-              type="button"
-              onClick={(e) => {
-                animateMotion(e.currentTarget, pressMotion());
-                trackEvent("trackmap_rotation_changed", {
-                  direction: "left",
-                });
-                rotateLeft();
-              }}
-              className="w-7 h-7 flex items-center justify-center border border-panel text-white/85 hover:text-white hover:border-white/50 transition-colors"
-              title="Rotate left"
-            >
-              <RotateCcw size={14} strokeWidth={2.2} aria-hidden="true" />
-            </button>
-            <button
-              type="button"
-              onClick={(e) => {
-                animateMotion(e.currentTarget, pressMotion());
-                trackEvent("trackmap_rotation_changed", {
-                  direction: "right",
-                });
-                rotateRight();
-              }}
-              className="w-7 h-7 flex items-center justify-center border border-panel text-white/85 hover:text-white hover:border-white/50 transition-colors"
-              title="Rotate right"
-            >
-              <RotateCw size={14} strokeWidth={2.2} aria-hidden="true" />
-            </button>
-            <button
-              type="button"
-              onClick={(e) => {
-                animateMotion(e.currentTarget, pressMotion());
-                trackEvent("trackmap_rotation_reset", {
-                  rotation: defaultRotationDeg,
-                });
-                setRotation(defaultRotationDeg);
-              }}
-              className="w-7 h-7 flex items-center justify-center border border-panel text-white/85 hover:text-white hover:border-white/50 transition-colors"
-              title="Reset rotation"
-            >
-              <LocateFixed size={14} strokeWidth={2.2} aria-hidden="true" />
-            </button>
-          </div>
+          {!showTrackControls && settingsButton}
+          {showTrackControls && (
+            <>
+              <div className="flex items-center gap-1">
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    animateMotion(e.currentTarget, pressMotion());
+                    setZoomLevel((z) => {
+                      const next = Math.max(0.6, z - 0.2);
+                      persistZoomLevel(next);
+                      trackEvent("trackmap_zoom_changed", { zoom: next });
+                      return next;
+                    });
+                  }}
+                  className="w-7 h-7 flex items-center justify-center border border-panel text-white/85 hover:text-white hover:border-white/50 transition-colors"
+                  title="Zoom out"
+                >
+                  <ZoomOut size={14} strokeWidth={2.2} aria-hidden="true" />
+                </button>
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    animateMotion(e.currentTarget, pressMotion());
+                    setZoomLevel((z) => {
+                      const next = Math.min(3, z + 0.2);
+                      persistZoomLevel(next);
+                      trackEvent("trackmap_zoom_changed", { zoom: next });
+                      return next;
+                    });
+                  }}
+                  className="w-7 h-7 flex items-center justify-center border border-panel text-white/85 hover:text-white hover:border-white/50 transition-colors"
+                  title="Zoom in"
+                >
+                  <ZoomIn size={14} strokeWidth={2.2} aria-hidden="true" />
+                </button>
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    animateMotion(e.currentTarget, pressMotion());
+                    trackEvent("trackmap_zoom_reset");
+                    setZoomLevel(TRACK_FIT_ZOOM);
+                    persistZoomLevel(TRACK_FIT_ZOOM);
+                  }}
+                  className="w-7 h-7 flex items-center justify-center border border-panel text-white/85 hover:text-white hover:border-white/50 transition-colors"
+                  title="Reset zoom"
+                >
+                  <Search size={14} strokeWidth={2.2} aria-hidden="true" />
+                </button>
+                {settingsButton}
+              </div>
+              <div className="flex items-center gap-1">
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    animateMotion(e.currentTarget, pressMotion());
+                    trackEvent("trackmap_rotation_changed", {
+                      direction: "left",
+                    });
+                    rotateLeft();
+                  }}
+                  className="w-7 h-7 flex items-center justify-center border border-panel text-white/85 hover:text-white hover:border-white/50 transition-colors"
+                  title="Rotate left"
+                >
+                  <RotateCcw size={14} strokeWidth={2.2} aria-hidden="true" />
+                </button>
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    animateMotion(e.currentTarget, pressMotion());
+                    trackEvent("trackmap_rotation_changed", {
+                      direction: "right",
+                    });
+                    rotateRight();
+                  }}
+                  className="w-7 h-7 flex items-center justify-center border border-panel text-white/85 hover:text-white hover:border-white/50 transition-colors"
+                  title="Rotate right"
+                >
+                  <RotateCw size={14} strokeWidth={2.2} aria-hidden="true" />
+                </button>
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    animateMotion(e.currentTarget, pressMotion());
+                    trackEvent("trackmap_rotation_reset", {
+                      rotation: defaultRotationDeg,
+                    });
+                    setRotation(defaultRotationDeg);
+                  }}
+                  className="w-7 h-7 flex items-center justify-center border border-panel text-white/85 hover:text-white hover:border-white/50 transition-colors"
+                  title="Reset rotation"
+                >
+                  <LocateFixed size={14} strokeWidth={2.2} aria-hidden="true" />
+                </button>
+              </div>
+            </>
+          )}
         </div>
       )}
 

@@ -102,9 +102,26 @@ export const TELEMETRY_CORNER_ZONE_SETTINGS = {
   high: "telemetryCornerZonesHigh",
 } as const satisfies Record<CornerSpeedClass, keyof AppSettings>;
 
+/** Category tabs in the settings panel; used to deep-link from a view. */
+export const SETTINGS_TAB_IDS = [
+  "general",
+  "playback",
+  "notifications",
+  "timing",
+  "track",
+  "interface",
+] as const;
+export type SettingsTabId = (typeof SETTINGS_TAB_IDS)[number];
+
+export function isSettingsTabId(value: unknown): value is SettingsTabId {
+  return (SETTINGS_TAB_IDS as readonly unknown[]).includes(value);
+}
+
 interface SettingsStore extends AppSettings {
   isOpen: boolean;
-  openModal: () => void;
+  /** Tab the modal opens on. */
+  modalTab: SettingsTabId;
+  openModal: (tab?: SettingsTabId) => void;
   closeModal: () => void;
   isHelpOpen: boolean;
   openHelp: () => void;
@@ -212,7 +229,8 @@ export const useSettings = create<SettingsStore>()(
     (set) => ({
       ...SETTINGS_DEFAULTS,
       isOpen: false,
-      openModal: () => set({ isOpen: true }),
+      modalTab: "general",
+      openModal: (tab = "general") => set({ isOpen: true, modalTab: tab }),
       closeModal: () => set({ isOpen: false }),
       isHelpOpen: false,
       openHelp: () => set({ isHelpOpen: true }),
@@ -227,6 +245,8 @@ export const useSettings = create<SettingsStore>()(
         const {
           // eslint-disable-next-line @typescript-eslint/no-unused-vars
           isOpen,
+          // eslint-disable-next-line @typescript-eslint/no-unused-vars
+          modalTab,
           // eslint-disable-next-line @typescript-eslint/no-unused-vars
           openModal,
           // eslint-disable-next-line @typescript-eslint/no-unused-vars

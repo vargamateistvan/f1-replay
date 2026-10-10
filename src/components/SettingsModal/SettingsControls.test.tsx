@@ -295,4 +295,12 @@ describe("SettingsControls", () => {
       expect(screen.getByText(group)).toBeInTheDocument();
     }
   });
+
+  it("opens on the requested category", () => {
+    render(<SettingsBody initialTab="track" />);
+    expect(screen.getByRole("tab", { name: "Track map" })).toHaveAttribute(
+      "aria-selected",
+      "true",
+    );
+  });
 });
