@@ -1530,15 +1530,9 @@ export default function Telemetry() {
         </div>
       )}
 
-      <div
-        className={`px-3 py-3 ${
-          lightMode
-            ? "bg-[radial-gradient(circle_at_top_left,#edf1fb_0%,#e8edf8_40%,#e3e9f6_100%)]"
-            : "bg-[radial-gradient(circle_at_top_left,#2a2136_0%,#1b1d28_40%,#16161f_100%)]"
-        }`}
-      >
+      <div className="border-b border-panel bg-track px-3 py-3">
         <div className="mb-2 flex items-center justify-between">
-          <span className="text-[10px] font-bold uppercase tracking-[0.12em] text-muted">
+          <span className="text-[10px] font-black uppercase tracking-[0.12em] text-muted">
             Driver & track preview
           </span>
           <button
@@ -1552,7 +1546,7 @@ export default function Telemetry() {
                 return nextValue;
               });
             }}
-            className="h-7 border border-panel bg-track px-2 text-[10px] font-black uppercase tracking-widest text-white transition-colors hover:border-[#95b7ff]"
+            className="h-7 border border-panel bg-track px-2 text-[10px] font-black uppercase tracking-widest text-white transition-colors hover:border-f1red"
             aria-expanded={isCardsAccordionOpen}
             title={
               isCardsAccordionOpen
@@ -1816,13 +1810,13 @@ export default function Telemetry() {
 
             <div
               ref={trackPreviewRef}
-              className="h-full lg:h-[276px] rounded border border-panel bg-track p-1.5 flex flex-col"
+              className="h-full lg:h-[276px] border border-panel bg-track p-1.5 flex flex-col"
             >
               <div className="mb-1 flex items-center gap-1.5">
                 <span className="text-[10px] font-black uppercase tracking-[0.15em] text-muted">
                   Track position preview
                 </span>
-                <span className="h-1.5 w-8 rounded-full bg-f1red" />
+                <span className="h-0.5 w-6 bg-f1red" />
                 <button
                   type="button"
                   onClick={() => setIsTrackDialogOpen((v) => !v)}
@@ -1834,12 +1828,11 @@ export default function Telemetry() {
               </div>
 
               {trackPreview ? (
-                <div className="relative min-h-[112px] flex-1 overflow-hidden rounded border border-panel bg-track">
-                  <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_25%_20%,rgba(39,68,158,0.2),transparent_45%),radial-gradient(circle_at_85%_80%,rgba(232,0,45,0.1),transparent_40%)]" />
+                <div className="relative min-h-[112px] flex-1 overflow-hidden border border-panel bg-track">
                   {TrackSvg}
                 </div>
               ) : (
-                <div className="flex min-h-[112px] flex-1 items-center justify-center rounded border border-panel bg-track px-3 text-center text-xs text-muted">
+                <div className="flex min-h-[112px] flex-1 items-center justify-center border border-panel bg-track px-3 text-center text-xs text-muted">
                   Select Driver A and a valid lap to draw the track.
                 </div>
               )}
@@ -1862,7 +1855,7 @@ export default function Telemetry() {
                   <span className="text-[10px] font-black uppercase tracking-[0.15em] text-muted">
                     Track position preview
                   </span>
-                  <span className="h-1.5 w-8 rounded-full bg-f1red" />
+                  <span className="h-0.5 w-6 bg-f1red" />
                   {session && (
                     <span className="ml-2 text-[10px] text-muted">
                       {session.circuit_short_name} · {session.session_name} · {session.year}
@@ -1879,8 +1872,7 @@ export default function Telemetry() {
                 </div>
 
                 {/* Track SVG — interactive */}
-                <div className="relative min-h-[20rem] flex-1 overflow-hidden rounded border border-panel bg-track sm:min-h-[28rem]">
-                  <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_25%_20%,rgba(39,68,158,0.2),transparent_45%),radial-gradient(circle_at_85%_80%,rgba(232,0,45,0.1),transparent_40%)]" />
+                <div className="relative min-h-[20rem] flex-1 overflow-hidden border border-panel bg-track sm:min-h-[28rem]">
                   <svg
                     viewBox={`0 0 ${TRACK_SVG_W} ${TRACK_SVG_H}`}
                     className="relative h-full w-full cursor-crosshair"
@@ -2208,13 +2200,6 @@ export default function Telemetry() {
           );
         })()}
 
-        {session && (
-          <span className="mt-1 block text-xs text-muted sm:ml-auto">
-            {session.circuit_short_name} · {session.session_name} ·{" "}
-            {session.year}
-          </span>
-        )}
-
         {isLoading && (
           <span className="mt-1 block text-xs text-f1red">
             Loading telemetry...
@@ -2223,9 +2208,7 @@ export default function Telemetry() {
       </div>
 
       <div
-        className={`panel-scroll space-y-2 border-t border-panel px-3 pb-3 pt-1 ${
-          lightMode ? "bg-[#edf1f9]" : "bg-track"
-        }`}
+        className="panel-scroll space-y-2 bg-track px-3 pb-3 pt-1"
       >
         {(() => {
           if (hasError) {
@@ -2236,7 +2219,7 @@ export default function Telemetry() {
 
           if (!driverA || !selectedLapA) {
             return (
-              <div className="flex h-full items-center justify-center text-sm text-muted">
+              <div className="flex h-full items-center justify-center text-[10px] font-bold uppercase tracking-widest text-muted">
                 Select Driver A and a lap to view telemetry
               </div>
             );
@@ -2566,10 +2549,10 @@ function DriverLapCard({
     lap !== null && latestLap !== null && Number(lap) === Number(latestLap);
 
   return (
-    <div className="h-full lg:h-[276px] rounded border border-panel bg-track p-1.5">
+    <div className="h-full lg:h-[276px] border border-panel bg-track p-1.5">
       <div className="mb-1.5 flex items-center justify-between gap-1.5">
         <div className="flex min-w-0 items-center gap-2">
-          <div className="relative h-7 w-7 shrink-0 overflow-hidden rounded border border-panel bg-surface">
+          <div className="relative h-7 w-7 shrink-0 overflow-hidden border border-panel bg-surface">
             {hasHeadshot ? (
               <img
                 src={safeHeadshotUrl}
@@ -2598,7 +2581,7 @@ function DriverLapCard({
                 {driverTag}
               </span>
               <span
-                className="h-1.5 w-8 rounded-full"
+                className="h-0.5 w-6"
                 style={{ backgroundColor: accent }}
               />
             </div>
@@ -2622,7 +2605,7 @@ function DriverLapCard({
           />
           <span
             key={`wins-${sectorAnimationSeed ?? "none"}-${sectorWins.total}`}
-            className={`rounded border px-1.5 py-0.5 text-[9px] font-black uppercase tracking-[0.1em] ${
+            className={`border px-1.5 py-0.5 text-[9px] font-black uppercase tracking-[0.1em] ${
               sectorWins.total > 0
                 ? "border-[#5f4c7c] bg-[#251a35] text-[#d4b7ff] animate-[pulse_0.45s_ease-out_1]"
                 : "border-panel bg-surface text-muted"
@@ -2695,16 +2678,16 @@ function DriverLapCard({
       </div>
 
       <div className="mt-1.5 flex flex-wrap items-center gap-1">
-        <span className="rounded border border-panel bg-surface px-2 py-1 text-[10px] font-bold uppercase tracking-[0.1em] text-muted">
+        <span className="border border-panel bg-surface px-2 py-1 text-[10px] font-bold uppercase tracking-[0.1em] text-muted">
           {lapMeta.timeText}
         </span>
         <span
-          className={`rounded border px-2 py-1 text-[10px] font-bold uppercase tracking-[0.1em] ${lapMeta.statusClass}`}
+          className={`border px-2 py-1 text-[10px] font-bold uppercase tracking-[0.1em] ${lapMeta.statusClass}`}
         >
           {lapMeta.statusLabel}
         </span>
         <span
-          className={`rounded border px-2 py-1 text-[10px] font-bold uppercase tracking-[0.1em] ${deltaHint.className}`}
+          className={`border px-2 py-1 text-[10px] font-bold uppercase tracking-[0.1em] ${deltaHint.className}`}
           title="Estimated lap-end delta versus Driver A"
         >
           {deltaHint.text}
@@ -2714,7 +2697,7 @@ function DriverLapCard({
       <LapConditionsRow conditions={conditions} />
 
       {!compact && (
-        <div className="mt-1.5 overflow-hidden rounded border border-panel bg-surface">
+        <div className="mt-1.5 overflow-hidden border border-panel bg-surface">
           <div className="flex items-center justify-between border-b border-[#2d2d3b] px-2 py-1">
             <span className="text-[10px] font-bold uppercase tracking-[0.12em] text-muted">
               Speed trace
@@ -2748,7 +2731,7 @@ function LapConditionsRow({ conditions }: { conditions: LapConditions }) {
   const fmtTemp = (c: number) =>
     `${Math.round(toDisplayTemperature(c, metricSystem))}${tempUnit}`;
   const chip =
-    "inline-flex items-center gap-1 rounded border border-panel bg-surface px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-[0.08em] text-muted";
+    "inline-flex items-center gap-1 border border-panel bg-surface px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-[0.08em] text-muted";
 
   return (
     <div className="mt-1 flex flex-wrap items-center gap-1" data-testid="lap-conditions">
@@ -2780,7 +2763,7 @@ function LapConditionsRow({ conditions }: { conditions: LapConditions }) {
       )}
       {rainfall && (
         <span
-          className="inline-flex items-center rounded border border-[#2c6ab7] bg-[#112744] px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-[0.08em] text-[#b9dcff]"
+          className="inline-flex items-center border border-[#2c6ab7] bg-[#112744] px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-[0.08em] text-[#b9dcff]"
           title="Rainfall reported at lap start"
         >
           Rain
@@ -2802,7 +2785,7 @@ function SectorChip({
   return (
     <span
       key={`${label}-${animationSeed ?? "none"}-${active ? 1 : 0}`}
-      className={`rounded border px-1.5 py-0.5 text-[9px] font-black uppercase tracking-[0.1em] ${
+      className={`border px-1.5 py-0.5 text-[9px] font-black uppercase tracking-[0.1em] ${
         active
           ? "border-[#6f54a2] bg-[#2a1b3f] text-[#dfcbff] animate-[pulse_0.45s_ease-out_1]"
           : "border-panel bg-surface text-muted"

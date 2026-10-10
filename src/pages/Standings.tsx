@@ -38,6 +38,13 @@ import { useNumberParam, useStringParam } from "@/hooks/useSearchParamState";
 import { useMediaQuery } from "@/hooks/useMediaQuery";
 import { replaceHistorySearchParams } from "@/utils/url";
 import { YEARS, DEFAULT_YEAR } from "@/constants";
+import { ChevronDown } from "lucide-react";
+import {
+  PICKER_BAR,
+  PICKER_CHEVRON,
+  PICKER_FIELD_LABEL,
+  PICKER_SELECT,
+} from "@/components/Nav/pickerStyles";
 
 type Tab = "drivers" | "constructors" | "results" | "teammates";
 type ChartView = "totals" | "progression";
@@ -593,6 +600,13 @@ export default function Standings() {
     includeResultMarkers: tab === "results",
   });
 
+  const tabCounts: Record<Tab, { count: number; unit: string }> = {
+    drivers: { count: driverStandings.length, unit: "drivers" },
+    constructors: { count: constructorStandings.length, unit: "teams" },
+    results: { count: resultsGrid.rounds.length, unit: "rounds" },
+    teammates: { count: teammates.length, unit: "pairs" },
+  };
+
   const driverSeries = useMemo<ProgressionSeries[]>(() => {
     const seenTeams = new Set<string>();
     return driverStandings.map((d) => {
@@ -721,73 +735,81 @@ export default function Standings() {
 
   return (
     <div className="flex flex-col md:h-full md:overflow-hidden bg-track">
-      {/* Header */}
-      <div className="flex flex-wrap items-center gap-3 px-4 pt-2 pb-2 bg-surface border-b border-panel">
-        <span className="text-f1red font-black text-sm tracking-[0.18em] uppercase">
-          STANDINGS
-        </span>
+      {/* Picker bar — same styles as the race pages' session picker */}
+      <div className={PICKER_BAR}>
+        <div className="flex flex-wrap items-center gap-x-3 gap-y-1 py-1.5 pl-[max(0.75rem,env(safe-area-inset-left))] pr-[max(0.75rem,env(safe-area-inset-right))] sm:px-4">
+          <label className="flex items-center gap-1">
+            <span className={PICKER_FIELD_LABEL}>Year</span>
+            <span className="relative inline-block">
+              <select
+                aria-label="Season year"
+                value={year}
+                onChange={(e) => setYear(Number(e.target.value))}
+                className={`${PICKER_SELECT} w-[4.75rem]`}
+              >
+                {YEARS.map((y) => (
+                  <option key={y} value={y}>
+                    {y}
+                  </option>
+                ))}
+              </select>
+              <ChevronDown aria-hidden="true" className={PICKER_CHEVRON} />
+            </span>
+          </label>
 
-        <label className="text-[10px] font-bold uppercase tracking-widest text-muted">
-          Year
-        </label>
-        <select
-          value={year}
-          onChange={(e) => setYear(Number(e.target.value))}
-          className="bg-panel text-white border border-panel text-xs font-medium px-3 py-1.5 focus:outline-none"
-        >
-          {YEARS.map((y) => (
-            <option key={y} value={y}>
-              {y}
-            </option>
-          ))}
-        </select>
+          {isLoading && (
+            <span className={PICKER_FIELD_LABEL}>Loading sessions…</span>
+          )}
+        </div>
+      </div>
 
-        {isLoading && (
-          <span className="text-muted text-xs">
-            Loading sessions…
-          </span>
-        )}
-
-        {/* Tabs */}
-        <div
-          ref={tabBarRef}
-          role="tablist"
-          aria-label="Standings view"
-          className="relative -mx-4 flex h-11 w-[calc(100%+2rem)] overflow-x-auto overflow-y-hidden [scrollbar-width:none] [&::-webkit-scrollbar]:hidden sm:ml-auto sm:mr-0 sm:w-auto"
-        >
-          <span
-            ref={tabIndicatorRef}
-            className="pointer-events-none absolute bottom-0 h-0.5 bg-f1red"
-            style={{ left: 0, width: 0 }}
-          />
-          {TABS.map((t) => (
-            <button
-              key={t}
-              ref={(node) => {
-                tabButtonRefs.current[t] = node;
-              }}
-              type="button"
-              role="tab"
-              aria-selected={tab === t}
-              aria-label={t}
-              onClick={() => setTab(t)}
-              className={`h-11 flex-1 shrink-0 items-center justify-center whitespace-nowrap px-1.5 text-xs font-bold uppercase tracking-[0.06em] transition-colors border-b-2 sm:flex-none sm:px-4 sm:tracking-[0.12em] ${
-                tab === t
-                  ? "text-white border-f1red"
-                  : "text-muted border-transparent hover:text-white"
+      {/* Sub-tabs — same pattern as the Commentary tabs */}
+      <div
+        ref={tabBarRef}
+        role="tablist"
+        aria-label="Standings view"
+        className="relative flex w-full shrink-0 overflow-x-auto overflow-y-hidden border-b border-panel bg-track [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+      >
+        <span
+          ref={tabIndicatorRef}
+          className="pointer-events-none absolute bottom-0 h-0.5 bg-f1red"
+          style={{ left: 0, width: 0 }}
+        />
+        {TABS.map((t) => (
+          <button
+            key={t}
+            ref={(node) => {
+              tabButtonRefs.current[t] = node;
+            }}
+            type="button"
+            role="tab"
+            aria-selected={tab === t}
+            aria-label={t}
+            onClick={() => setTab(t)}
+            className={`flex-1 shrink-0 whitespace-nowrap border-b-2 px-1.5 py-2 text-[10px] font-bold uppercase tracking-wider transition-colors sm:flex-none sm:px-4 sm:text-[11px] ${
+              tab === t
+                ? "text-white border-f1red"
+                : "text-muted border-transparent hover:text-white"
+            }`}
+          >
+            {TAB_SHORT_LABEL[t] ? (
+              <>
+                <span className="block sm:hidden">{TAB_SHORT_LABEL[t]}</span>
+                <span className="hidden sm:block">{t}</span>
+              </>
+            ) : (
+              <span className="block">{t}</span>
+            )}
+            <span
+              className={`mt-1 block font-mono text-[9px] leading-none tabular-nums ${
+                tab === t ? "text-white/70" : "text-muted/80"
               }`}
             >
-              {TAB_SHORT_LABEL[t] ? (
-                <>
-                  <span className="sm:hidden">{TAB_SHORT_LABEL[t]}</span>
-                  <span className="hidden sm:inline">{t}</span>
-                </>
-              ) : (
-                t
-              )}
-            </button>
-          ))}
-        </div>
+              {tabCounts[t].count}
+              <span className="hidden sm:inline"> {tabCounts[t].unit}</span>
+            </span>
+          </button>
+        ))}
       </div>
 
       {/* Progress bar while race results are loading */}

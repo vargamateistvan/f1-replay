@@ -41,6 +41,12 @@ import {
   Minimize,
   ChevronDown,
 } from "lucide-react";
+import {
+  PICKER_BAR,
+  PICKER_CHEVRON,
+  PICKER_FIELD_LABEL,
+  PICKER_SELECT,
+} from "./pickerStyles";
 
 export type MainView = "leaderboard" | "tracker" | "commentary";
 
@@ -51,11 +57,9 @@ const VIEW_TABS: { id: MainView; label: string }[] = [
 ];
 const VALID_VIEWS = new Set<MainView>(["leaderboard", "tracker", "commentary"]);
 
-const SELECT =
-  "w-full max-sm:h-7 bg-surface text-white border border-panel rounded-sm text-[11px] font-medium pl-2 pr-6 py-1 focus:outline-none focus:ring-1 focus:ring-f1red/70 focus:border-f1red/70 appearance-none cursor-pointer transition-colors disabled:opacity-60 disabled:cursor-not-allowed [&>option]:bg-surface [&>option]:text-white light:bg-white light:text-black light:border-slate-300 light:focus:border-slate-500 light:[color-scheme:light] light:[&>option]:bg-white light:[&>option]:text-black";
+const SELECT = PICKER_SELECT;
 
-const FIELD_LABEL =
-  "text-[9px] font-bold uppercase tracking-widest text-muted leading-none";
+const FIELD_LABEL = PICKER_FIELD_LABEL;
 
 const TRACK_FACTS_ENABLED = false;
 // How old cached calendar/alias data may be before the Latest button refetches.
@@ -954,7 +958,7 @@ export function Nav() {
 
       {/* ── Dark sub-bar: session pickers (main + telemetry routes) */}
       {(isMainRoute || isTelemetryRoute) && (
-        <div className="border-b border-panel bg-[linear-gradient(180deg,#11131b,#0f1118)] light:!bg-white light:!bg-none light:border-slate-300/80">
+        <div className={PICKER_BAR}>
           <div
             className="grid grid-cols-[4.75rem_minmax(0,1fr)_auto] items-end gap-x-2 gap-y-1.5 py-1.5 pl-[max(0.75rem,env(safe-area-inset-left))] pr-[max(0.75rem,env(safe-area-inset-right))] sm:flex sm:flex-wrap sm:items-center sm:gap-1.5 sm:pl-[max(0.5rem,env(safe-area-inset-left))] sm:pr-[max(0.5rem,env(safe-area-inset-right))] light:!bg-white"
           >
@@ -983,7 +987,7 @@ export function Nav() {
                   </select>
                   <ChevronDown
                     aria-hidden="true"
-                    className="pointer-events-none absolute right-1.5 top-1/2 h-3 w-3 -translate-y-1/2 text-muted"
+                    className={PICKER_CHEVRON}
                   />
                 </span>
               </label>
@@ -1030,7 +1034,7 @@ export function Nav() {
                     </select>
                     <ChevronDown
                       aria-hidden="true"
-                      className="pointer-events-none absolute right-1.5 top-1/2 h-3 w-3 -translate-y-1/2 text-muted"
+                      className={PICKER_CHEVRON}
                     />
                   </span>
                 )}
@@ -1087,7 +1091,7 @@ export function Nav() {
                     </select>
                     <ChevronDown
                       aria-hidden="true"
-                      className="pointer-events-none absolute right-1.5 top-1/2 h-3 w-3 -translate-y-1/2 text-muted"
+                      className={PICKER_CHEVRON}
                     />
                   </span>
                 )}
