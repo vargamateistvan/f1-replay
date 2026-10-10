@@ -1,8 +1,7 @@
 import { memo } from "react";
 import type { CircuitLayout } from "@/data/circuits";
 import type { CircuitGeometry } from "@/data/circuitGeometryTypes";
-import { locationToSvg } from "@/hooks/useTrackMap";
-import { TRACK_SVG_PAD as PAD, SECTOR_COLORS } from "@/constants";
+import { SECTOR_COLORS } from "@/constants";
 import { timingSectorForMarshalPost } from "@/timeline/raceControl";
 import {
   nearestSvgPointIndex,
@@ -168,7 +167,7 @@ export const CornerNumbers = memo(function CornerNumbers({
   lightMode: boolean;
 }) {
   if (!circuitGeom?.corners.length) return null;
-  const { bounds, innerW, innerH, svgPts } = geom;
+  const { svgPts } = geom;
   const OFFSET = 16; // px outside the track ribbon
 
   return (
@@ -184,13 +183,10 @@ export const CornerNumbers = memo(function CornerNumbers({
         </filter>
       </defs>
       {circuitGeom.corners.map((corner) => {
-        // Corner apex in unpadded SVG space (PAD is added after the offset).
-        const { sx: apexSx, sy: apexSy } = locationToSvg(
+        const { sx: apexSx, sy: apexSy } = projectToSvg(
+          geom,
           corner.trackPosition.x,
           corner.trackPosition.y,
-          bounds,
-          innerW,
-          innerH,
         );
         const bestIdx = nearestSvgPointIndex(svgPts, apexSx, apexSy);
 
@@ -204,8 +200,8 @@ export const CornerNumbers = memo(function CornerNumbers({
         const nx = -tdy / tlen;
         const ny = tdx / tlen;
 
-        const cx = apexSx + PAD + nx * OFFSET;
-        const cy = apexSy + PAD + ny * OFFSET;
+        const cx = apexSx + nx * OFFSET;
+        const cy = apexSy + ny * OFFSET;
 
         return (
           <text

@@ -376,19 +376,15 @@ export function buildMarshalHeatmapSegments(
   marshalSectors: readonly MarshalSector[] | undefined,
 ): MarshalHeatmapSegment[] {
   if (!geom || !marshalSectors?.length) return [];
-  const { bounds, innerW, innerH, svgPts, normArc } = geom;
+  const { svgPts, normArc } = geom;
   const total = marshalSectors.length;
 
   // Map each marshal sector to the nearest svgPts index → normArc position.
   const postArcs = marshalSectors.map((ms, i) => {
-    // NOTE: unpadded coordinates matched against padded `svgPts` — kept as-is
-    // to preserve existing placement.
-    const { sx, sy } = locationToSvg(
+    const { sx, sy } = projectToSvg(
+      geom,
       ms.trackPosition.x,
       ms.trackPosition.y,
-      bounds,
-      innerW,
-      innerH,
     );
     const bestIdx = nearestSvgPointIndex(svgPts, sx, sy);
     return {

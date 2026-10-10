@@ -125,6 +125,28 @@ describe("buildMarshalHeatmapSegments", () => {
     expect(segments.map((s) => s.sector).sort()).toEqual([1, 2, 3]);
   });
 
+  it("anchors each post at the outline point it sits on", () => {
+    // Dense outline: neighbouring points are closer than the SVG padding, so
+    // matching in the wrong coordinate space would pick the wrong point.
+    const circle = {
+      points: Array.from({ length: 60 }, (_, i) => {
+        const a = (i / 60) * Math.PI * 2;
+        return { x: 50 + 50 * Math.cos(a), y: 50 + 50 * Math.sin(a) };
+      }),
+      bounds: squareOutline.bounds,
+    };
+    const geom = buildTrackGeometry(circle);
+    const indices = [5, 20, 40];
+    const posts = indices.map((idx, i) => ({
+      number: i + 1,
+      trackPosition: circle.points[idx]!,
+    }));
+    const segments = buildMarshalHeatmapSegments(geom, posts);
+    expect(segments.map((s) => s.arcStart)).toEqual(
+      indices.map((idx) => geom.normArc[idx]),
+    );
+  });
+
   it("returns nothing without marshal posts", () => {
     const geom = buildTrackGeometry(squareOutline);
     expect(buildMarshalHeatmapSegments(geom, [])).toEqual([]);
