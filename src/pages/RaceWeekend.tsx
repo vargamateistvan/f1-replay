@@ -424,7 +424,9 @@ export default function RaceWeekend() {
   const stints = useStints(sessionKey, live);
   const laps = useLaps(sessionKey, undefined, live);
   const pits = usePits(sessionKey, live);
-  const grid = useStartingGrid(sessionKey, session?.meeting_key ?? null);
+  // The URL meeting key is known up front; keying on session?.meeting_key
+  // would change the query key once sessions load and fetch the grid twice.
+  const grid = useStartingGrid(sessionKey, meetingKey);
   const sessionResult = useSessionResult(sessionKey);
   const overtakes = useOvertakes(sessionKey, live);
   const raceControl = useRaceControl(sessionKey, live);

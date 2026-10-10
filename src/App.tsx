@@ -1,16 +1,14 @@
-import {
-  QueryClient,
-  defaultShouldDehydrateQuery,
-} from "@tanstack/react-query";
-import { PersistQueryClientProvider } from "@tanstack/react-query-persist-client";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { AppRouter } from "./routes";
 import { useEffect } from "react";
 import { startClock, stopClock } from "./timeline/clock";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { ErrorDisplay } from "@/components/ErrorDisplay";
 import { OpenF1Error } from "@/api/client";
-import { queryPersister } from "@/lib/queryPersister";
-import { shouldPersistQueryKey } from "@/lib/queryPersistencePolicy";
+import {
+  queryPersister,
+  schedulePersistedCacheMaintenance,
+} from "@/lib/queryPersister";
 import { useSettings } from "@/stores/settings";
 import { initializeAnalytics } from "@/lib/analytics";
 import { loadScriptOnce, runWhenIdle } from "@/lib/idle";
@@ -35,21 +33,12 @@ const queryClient = new QueryClient({
       refetchOnWindowFocus: false,
       // Keep everything in memory for the whole session; persister's maxAge handles expiry.
       gcTime: Infinity,
+      // Each query restores itself from IndexedDB on first use (30-day window);
+      // live-session queries (staleTime: 0) restore as stale and refetch.
+      persister: queryPersister.persisterFn,
     },
   },
 });
-
-// Historical F1 data never changes, so 30 days is a safe persistence window.
-// Live-session queries (staleTime: 0) are restored as stale and immediately refetched.
-const PERSIST_MAX_AGE = 30 * 24 * 60 * 60 * 1000;
-
-const shouldDehydrateAppQuery = (
-  query: Parameters<typeof defaultShouldDehydrateQuery>[0],
-) => {
-  return (
-    defaultShouldDehydrateQuery(query) && shouldPersistQueryKey(query.queryKey)
-  );
-};
 
 function CoffeeWidgetGate() {
   const showCoffeeWidget = useSettings((s) => s.showCoffeeWidget);
@@ -134,26 +123,18 @@ export default function App() {
   useEffect(() => {
     startClock();
     initializeAnalytics();
+    schedulePersistedCacheMaintenance();
     return stopClock;
   }, []);
 
   return (
     <ErrorBoundary>
-      <PersistQueryClientProvider
-        client={queryClient}
-        persistOptions={{
-          persister: queryPersister,
-          maxAge: PERSIST_MAX_AGE,
-          dehydrateOptions: {
-            shouldDehydrateQuery: shouldDehydrateAppQuery,
-          },
-        }}
-      >
+      <QueryClientProvider client={queryClient}>
         <CoffeeWidgetGate />
         <LightModeGate />
         <ErrorDisplay />
         <AppRouter />
-      </PersistQueryClientProvider>
+      </QueryClientProvider>
     </ErrorBoundary>
   );
 }

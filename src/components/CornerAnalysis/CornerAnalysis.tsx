@@ -1,4 +1,4 @@
-import { Fragment, useMemo } from "react";
+import { Fragment, memo, useMemo } from "react";
 import { ZoomIn } from "lucide-react";
 import { CORNER_FOCUS_PADDING_M, CORNER_ZONE_COLORS } from "@/constants";
 import type { TelemetrySample } from "@/hooks/useCarDataForLap";
@@ -115,7 +115,7 @@ const higher = (a: number, b: number) => a > b;
 const lower = (a: number, b: number) => a < b;
 const toMs = (seconds: number) => Math.round(seconds * 1000);
 
-export function CornerAnalysis({
+function CornerAnalysisImpl({
   zones,
   laps,
   onHoverDistance,
@@ -499,3 +499,6 @@ export function CornerAnalysis({
     </div>
   );
 }
+
+// Memoized: the Telemetry page re-renders on every chart hover move.
+export const CornerAnalysis = memo(CornerAnalysisImpl);

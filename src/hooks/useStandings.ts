@@ -181,6 +181,15 @@ export function useStandings(
       .sort((a, b) => Date.parse(a.date_start) - Date.parse(b.date_start));
   }, [includeQualifying, includeResultMarkers, sessionsQ.data, selectedStartMs]);
 
+  // Subscribed before the per-round fan-out below: TanStack starts fetches in
+  // subscription order and the rate-limited client queue is FIFO, so the
+  // standings tables don't wait behind every round's result.
+  // Only the latest round's tables can still change; older rounds are final.
+  const refreshTables = isCurrentYear && selectedKey === latestKey;
+  const driversQ = useDrivers(selectedKey);
+  const championshipDriversQ = useChampionshipDrivers(selectedKey, refreshTables);
+  const championshipTeamsQ = useChampionshipTeams(selectedKey, refreshTables);
+
   const results = useQueries({
     queries: pointsSessions.map((s) => sessionResultQuery(s.session_key)),
     combine: combineResults,
@@ -246,10 +255,6 @@ export function useStandings(
     })),
     combine: combineResults<FastestLap | null>,
   });
-
-  const driversQ = useDrivers(selectedKey);
-  const championshipDriversQ = useChampionshipDrivers(selectedKey, isCurrentYear);
-  const championshipTeamsQ = useChampionshipTeams(selectedKey, isCurrentYear);
 
   // Drivers in the standings who did not take part in the selected session
   // (mid-season replacements) are resolved from their most recent race.

@@ -100,8 +100,13 @@ export default defineConfig(({ mode }) => ({
             ) {
               return "vendor-react";
             }
-            if (inPackage("recharts", "uplot")) {
-              return "vendor-charts";
+            // Separate chunks: Telemetry/FocusedTelemetry only need uPlot,
+            // and the Standings/gap charts only need recharts.
+            if (inPackage("recharts")) {
+              return "vendor-recharts";
+            }
+            if (inPackage("uplot")) {
+              return "vendor-uplot";
             }
             if (inPackage("@tanstack/react-query", "zustand")) {
               return "vendor-query";

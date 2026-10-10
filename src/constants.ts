@@ -223,3 +223,9 @@ export const PIT_LANE_FALLBACK_MS = 30_000;
 export const IDLE_CALLBACK_TIMEOUT_MS = 4_000;
 /** Min viewport width (px) at which the Buy Me a Coffee widget is shown/loaded. */
 export const COFFEE_WIDGET_MIN_WIDTH_PX = 768;
+
+// ── Query cache persistence (IndexedDB) ───────────────────────────────────────
+/** Persisted queries older than this are dropped (historical data never changes). */
+export const QUERY_PERSIST_MAX_AGE_MS = 30 * 24 * 60 * 60 * 1000;
+/** Min gap between sweeps that delete expired persisted queries. */
+export const QUERY_PERSIST_GC_INTERVAL_MS = 24 * 60 * 60 * 1000;

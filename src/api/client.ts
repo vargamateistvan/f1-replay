@@ -64,7 +64,7 @@ export function isAuthError(err: unknown): err is OpenF1Error {
 // honour Retry-After with exponential backoff.
 
 const startTimes: number[] = []; // ms timestamps of recent request starts
-const waiters: Array<() => void> = [];
+const waiters: Array<(startedAt: number) => void> = [];
 
 // When any request receives a 429 we stamp a global block so all queued
 // requests wait out the full backoff rather than firing immediately.
@@ -114,7 +114,7 @@ function pump() {
   if (wait <= 0) {
     startTimes.push(now);
     const run = waiters.shift()!;
-    run();
+    run(now);
     // Try to release more in the same tick if windows still allow it.
     schedulePump(0);
   } else {
@@ -128,12 +128,25 @@ function schedulePump(delay: number) {
   setTimeout(pump, Math.max(0, delay));
 }
 
-// Resolves when the caller is cleared to start a request.
-function acquireSlot(): Promise<void> {
+// Resolves (with the slot's start timestamp) when the caller is cleared to
+// start a request.
+function acquireSlot(): Promise<number> {
   return new Promise((resolve) => {
     waiters.push(resolve);
     schedulePump(0);
   });
+}
+
+// Responses served from the f1-replay proxy cache (`X-Cache: EDGE | KV`) never
+// reach OpenF1, so they give their slot back instead of counting against the
+// OpenF1 windows. Direct OpenF1 responses carry no such header.
+function releaseSlotIfCached(res: Response, startedAt: number) {
+  const cache = res.headers?.get("X-Cache");
+  if (cache !== "EDGE" && cache !== "KV") return;
+  const idx = startTimes.indexOf(startedAt);
+  if (idx === -1) return;
+  startTimes.splice(idx, 1);
+  schedulePump(0);
 }
 
 // ── Fetch with backoff ──────────────────────────────────────────────────────--
@@ -191,9 +204,10 @@ export async function fetchEndpoint<T>(
 
     for (;;) {
       try {
-        await acquireSlot();
+        const slotStartedAt = await acquireSlot();
         const requestStartedAt = globalThis.performance?.now() ?? Date.now();
         const res = await fetch(url, { headers });
+        releaseSlotIfCached(res, slotStartedAt);
         const responseTimeMs = Math.round(
           (globalThis.performance?.now() ?? Date.now()) - requestStartedAt,
         );
@@ -332,9 +346,10 @@ export async function downloadEndpointCsv(
 
   let attempt = 0;
   for (;;) {
-    await acquireSlot();
+    const slotStartedAt = await acquireSlot();
     const requestStartedAt = globalThis.performance?.now() ?? Date.now();
     const res = await fetch(url, { headers });
+    releaseSlotIfCached(res, slotStartedAt);
     const responseTimeMs = Math.round(
       (globalThis.performance?.now() ?? Date.now()) - requestStartedAt,
     );

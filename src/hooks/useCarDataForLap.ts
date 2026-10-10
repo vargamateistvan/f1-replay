@@ -2,6 +2,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import type { QueryClient } from "@tanstack/react-query";
 import { api } from "@/api/endpoints";
 import type { CarData, Lap } from "@/api/types";
+import { lapsQueryKey } from "./queryKeys";
 
 export interface TelemetrySample {
   distM: number; // distance along lap in metres (integrated from speed)
@@ -67,10 +68,10 @@ async function fetchCarDataForLap(
   lapNumber: number,
 ): Promise<TelemetrySample[] | null> {
   // Step 1 — get the lap's date range.
-  // Reuse the all-driver laps query key from useLaps(sessionKey) so telemetry
+  // Reuse the all-driver laps query from useLaps(sessionKey) so telemetry
   // does not trigger separate `driver_number` laps requests on startup.
   const laps = await queryClient.ensureQueryData<Lap[]>({
-    queryKey: ["laps", sessionKey, undefined],
+    queryKey: lapsQueryKey(sessionKey),
     queryFn: () => api.laps(sessionKey),
     staleTime: Infinity,
   });

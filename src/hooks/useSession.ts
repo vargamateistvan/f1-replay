@@ -52,10 +52,11 @@ export function useLatestMeeting(options?: { enabled?: boolean }) {
   });
 }
 
-export function useLatestSession() {
+export function useLatestSession(options?: { enabled?: boolean }) {
   return useQuery({
     queryKey: ["latestSession"],
     queryFn: () => api.latestSession(),
+    enabled: options?.enabled ?? true,
     staleTime: CURRENT_SEASON_STALE_MS,
     select: (rows) => rows[0] ?? null,
   });
@@ -167,6 +168,8 @@ export function useStartingGrid(
   sessionKey: number | null,
   meetingKey: number | null = null,
 ) {
+  const queryClient = useQueryClient();
+
   return useQuery({
     queryKey: ["startingGrid", sessionKey, meetingKey],
     queryFn: async () => {
@@ -175,7 +178,12 @@ export function useStartingGrid(
       const directRows = await api.startingGrid(sessionKey, meetingKey ?? undefined);
       if (directRows.length > 0 || meetingKey === null) return directRows;
 
-      const meetingSessions = await api.sessions(meetingKey);
+      // Shares the ["sessions", meetingKey] cache with useSessions.
+      const meetingSessions = await queryClient.ensureQueryData({
+        queryKey: ["sessions", meetingKey],
+        queryFn: () => api.sessions(meetingKey),
+        staleTime: CURRENT_SEASON_STALE_MS,
+      });
       const raceSession = meetingSessions.find((session) => session.session_key === sessionKey);
       if (!raceSession) return directRows;
 

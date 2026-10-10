@@ -1,60 +1,125 @@
-import { createAsyncStoragePersister } from '@tanstack/query-async-storage-persister'
+import {
+  experimental_createQueryPersister,
+  type AsyncStorage,
+  type PersistedQuery,
+} from "@tanstack/react-query-persist-client";
+import {
+  QUERY_PERSIST_GC_INTERVAL_MS,
+  QUERY_PERSIST_MAX_AGE_MS,
+} from "@/constants";
+import { shouldPersistQueryKey } from "./queryPersistencePolicy";
+import { runWhenIdle } from "./idle";
 
-// Minimal IndexedDB key-value adapter — avoids a third-party dep.
-// The persister serialises the whole query cache to a single JSON string,
-// so storing it in IDB (no size cap) is safer than localStorage (~5 MB).
-// Falls back to a no-op adapter when IDB is blocked (private-mode Safari, etc.)
-// so cache persistence degrades gracefully instead of throwing.
+// Per-query IndexedDB persistence. Each query is stored under its own key and
+// restored lazily the first time it runs, so app start never waits on reading
+// (or parsing) the whole cache, and a write only touches the query that
+// changed. Values are stored as structured clones — no JSON round-trip.
+// Falls back to a no-op when IDB is blocked (private-mode Safari, etc.).
+
+const DB_NAME = "f1-replay";
+const STORE = "cache";
+const KEY_PREFIX = "q";
+/** Bump to discard every persisted query (e.g. after an API shape change). */
+const CACHE_BUSTER = "1";
+/** Single-blob cache written by the old whole-client persister. */
+const LEGACY_BLOB_KEY = "f1-query-cache";
+const GC_STAMP_KEY = "f1-query-cache-gc-at";
 
 function openDb(): Promise<IDBDatabase | null> {
   return new Promise((resolve) => {
     try {
-      const req = indexedDB.open('f1-replay', 1)
-      req.onupgradeneeded = () => req.result.createObjectStore('cache')
-      req.onsuccess = () => resolve(req.result)
-      req.onerror = () => resolve(null)
+      const req = indexedDB.open(DB_NAME, 1);
+      req.onupgradeneeded = () => req.result.createObjectStore(STORE);
+      req.onsuccess = () => resolve(req.result);
+      req.onerror = () => resolve(null);
     } catch {
-      resolve(null)
+      resolve(null);
     }
-  })
+  });
 }
 
-const dbPromise = openDb()
+let dbPromise: Promise<IDBDatabase | null> | null = null;
+const getDb = () => (dbPromise ??= openDb());
 
-const idbStorage = {
-  async getItem(key: string): Promise<string | null> {
-    const db = await dbPromise
-    if (!db) return null
-    return new Promise((resolve, reject) => {
-      const req = db.transaction('cache').objectStore('cache').get(key)
-      req.onsuccess = () => resolve((req.result as string | undefined) ?? null)
-      req.onerror = () => reject(req.error)
-    })
-  },
-  async setItem(key: string, value: string): Promise<void> {
-    const db = await dbPromise
-    if (!db) return
-    return new Promise((resolve, reject) => {
-      const tx = db.transaction('cache', 'readwrite')
-      tx.objectStore('cache').put(value, key)
-      tx.oncomplete = () => resolve()
-      tx.onerror = () => reject(tx.error)
-    })
-  },
-  async removeItem(key: string): Promise<void> {
-    const db = await dbPromise
-    if (!db) return
-    return new Promise((resolve, reject) => {
-      const tx = db.transaction('cache', 'readwrite')
-      tx.objectStore('cache').delete(key)
-      tx.oncomplete = () => resolve()
-      tx.onerror = () => reject(tx.error)
-    })
-  },
+function request<T>(req: IDBRequest<T>): Promise<T> {
+  return new Promise((resolve, reject) => {
+    req.onsuccess = () => resolve(req.result);
+    req.onerror = () => reject(req.error);
+  });
 }
 
-export const queryPersister = createAsyncStoragePersister({
+async function withStore<T>(
+  mode: "readonly" | "readwrite",
+  fn: (store: IDBObjectStore) => IDBRequest<T>,
+): Promise<T | undefined> {
+  const db = await getDb();
+  if (!db) return undefined;
+  return request(fn(db.transaction(STORE, mode).objectStore(STORE)));
+}
+
+const idbStorage: AsyncStorage<PersistedQuery> = {
+  async getItem(key) {
+    return (await withStore("readonly", (s) => s.get(key))) ?? null;
+  },
+  async setItem(key, value) {
+    try {
+      await withStore("readwrite", (s) => s.put(value, key));
+    } catch {
+      // Quota exceeded or an uncloneable value — persistence is best-effort.
+    }
+  },
+  async removeItem(key) {
+    await withStore("readwrite", (s) => s.delete(key));
+  },
+  async entries() {
+    const db = await getDb();
+    if (!db) return [];
+    const store = db.transaction(STORE).objectStore(STORE);
+    const range = IDBKeyRange.bound(`${KEY_PREFIX}-`, `${KEY_PREFIX}.`, false, true);
+    const [keys, values] = await Promise.all([
+      request(store.getAllKeys(range)),
+      request(store.getAll(range)),
+    ]);
+    return keys.map((k, i) => [k as string, values[i] as PersistedQuery]);
+  },
+};
+
+export const queryPersister = experimental_createQueryPersister<PersistedQuery>({
   storage: idbStorage,
-  key: 'f1-query-cache',
-  throttleTime: 2_000, // write at most every 2 s — location chunks update frequently
-})
+  prefix: KEY_PREFIX,
+  buster: CACHE_BUSTER,
+  maxAge: QUERY_PERSIST_MAX_AGE_MS,
+  serialize: (persisted) => persisted,
+  deserialize: (stored) => stored,
+  filters: { predicate: (query) => shouldPersistQueryKey(query.queryKey) },
+});
+
+function readGcStamp(): number {
+  try {
+    return Number(localStorage.getItem(GC_STAMP_KEY)) || 0;
+  } catch {
+    return 0;
+  }
+}
+
+/**
+ * Once the page is idle, drops the legacy single-blob cache and (at most once
+ * per QUERY_PERSIST_GC_INTERVAL_MS) deletes expired persisted queries — lazy
+ * restore only removes entries that are actually requested again.
+ */
+export function schedulePersistedCacheMaintenance(): void {
+  runWhenIdle(() => {
+    void Promise.resolve(idbStorage.removeItem(LEGACY_BLOB_KEY)).catch(() => {});
+    if (Date.now() - readGcStamp() < QUERY_PERSIST_GC_INTERVAL_MS) return;
+    void queryPersister
+      .persisterGc()
+      .then(() => {
+        try {
+          localStorage.setItem(GC_STAMP_KEY, String(Date.now()));
+        } catch {
+          // Ignore — GC simply runs again next visit.
+        }
+      })
+      .catch(() => {});
+  });
+}

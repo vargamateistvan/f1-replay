@@ -21,7 +21,7 @@
 | Language          | TypeScript 5.6 (strict)                                      |
 | Routing           | React Router v6                                              |
 | Server state      | TanStack Query v5                                            |
-| Cache persistence | TanStack Query Persist Client → IndexedDB                    |
+| Cache persistence | TanStack per-query persister (`experimental_createQueryPersister`) → IndexedDB |
 | Client state      | Zustand v5                                                   |
 | Styling           | Tailwind CSS v3                                              |
 | Charts            | Recharts (standings/gap charts), uPlot (high-freq telemetry) |
@@ -104,7 +104,7 @@ src/
     (see Section 5)
 
   lib/
-    queryPersister.ts   — IndexedDB-backed TanStack Query persister
+    queryPersister.ts   — Per-query IndexedDB persister (lazy restore, structured clone, idle GC)
     audio.ts            — Shared Web Audio context, beep(), and cached loadSample()/playSample()
 
   test/
@@ -232,7 +232,8 @@ components/ (render to DOM; read settings from Zustand)
 
 ### Rate limiter (`api/client.ts`)
 
-- Sliding-window: max **3 req/s** and **30 req/min** (OpenF1 free tier limits).
+- Sliding-window: `RATE_MAX_PER_SECOND` / `RATE_MAX_PER_MINUTE` (currently 2 req/s, 25 req/min — under OpenF1's free-tier 3/30).
+- Responses served from the proxy cache (`X-Cache: EDGE | KV`, exposed via CORS) give their slot back, so cached data isn't throttled; only misses count. The queue is FIFO — hooks subscribed first fetch first.
 - Concurrent identical GETs (same URL) are deduplicated via `inFlightJsonRequests` map.
 - On HTTP 429 the client honours `Retry-After` with exponential backoff (up to `RATE_MAX_RETRIES`).
 
@@ -365,7 +366,7 @@ Authentication: optional bearer token via `VITE_OPENF1_API_KEY` env var (`.env.l
 4. **`team_name` from OpenF1 is not canonical** (varies across sessions). Use `canonicalTeamName()` from `utils/identity.ts` before grouping/comparing.
 5. **`pit_duration` is deprecated** for sessions after the 2024 US GP. Use `lane_duration ?? pit_duration`.
 6. **Rate limiter is automatic** — do not add manual `setTimeout` delays around API calls. The client queue handles ordering.
-7. **IndexedDB persister serialises the full query cache.** Avoid storing non-serialisable values (functions, class instances) in query data.
+7. **Each query is persisted to IndexedDB individually** (structured clone, restored lazily inside its queryFn; `queryPersistencePolicy.ts` excludes location/car-data windows). Query data must be structured-cloneable (no functions). Data written only via `setQueryData` is not persisted. Bump `CACHE_BUSTER` in `queryPersister.ts` after an API shape change.
 8. **`Float32Array` coords in `LocationIndex`** have reduced precision vs JS `number`. This is intentional for performance. Do not convert back to `number[]` arrays in hot paths.
 9. **`SPEEDS`** (`[1,2,4,8,16]`) and `MAX_FRAME_STEP_MS` (`250`) are the only safe values for playback. Do not introduce arbitrary speed multipliers.
 10. **SEO routes** are generated at build time from `seo-routes.json`. Add new deep-linkable pages to this file and run `yarn generate:sitemap`.

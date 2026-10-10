@@ -117,6 +117,8 @@ interface LapConditions {
   rainfall: boolean;
 }
 
+const EMPTY_SPEED_TRACE: number[] = [];
+
 const EMPTY_LAP_CONDITIONS: LapConditions = {
   tyre: null,
   trackTempC: null,
@@ -349,8 +351,14 @@ export default function Telemetry() {
 
   const sessions = useSessions(meetingKey);
   const drivers = useDrivers(sessionKey);
-  // Filter pit-out laps server-side to reduce bandwidth
-  const laps = useLaps(sessionKey, undefined, false, { is_pit_out_lap: false });
+  // All-laps query shared with useCarDataForLap, useTrackOutline and the race
+  // page (one request, one cache entry); pit-out laps are dropped client-side.
+  const allLaps = useLaps(sessionKey);
+  const lapRows = useMemo(
+    () => allLaps.data?.filter((lap) => !lap.is_pit_out_lap),
+    [allLaps.data],
+  );
+  const laps = { data: lapRows, isPending: allLaps.isPending };
   const stints = useStints(sessionKey);
   const weather = useWeather(sessionKey);
 
@@ -439,6 +447,16 @@ export default function Telemetry() {
     return out;
   }, [laps.data]);
 
+  // Stable sparkline inputs so the lap cards' memoized stats survive re-renders.
+  const speedTraceA = useMemo(
+    () => dataA.data?.map((sample) => sample.speed) ?? EMPTY_SPEED_TRACE,
+    [dataA.data],
+  );
+  const speedTraceB = useMemo(
+    () => dataB.data?.map((sample) => sample.speed) ?? EMPTY_SPEED_TRACE,
+    [dataB.data],
+  );
+
   const lapLookup = useMemo(() => {
     const out = new Map<string, Lap>();
     for (const lap of laps.data ?? []) {
@@ -447,8 +465,10 @@ export default function Telemetry() {
     return out;
   }, [laps.data]);
 
+  // Wait for the session so its circuit_key can select baked geometry;
+  // otherwise a deep link derives the outline from GPS (extra requests).
   const trackOutlineA = useTrackOutline(
-    sessionKey,
+    session ? sessionKey : null,
     driverA,
     session?.circuit_key ?? null,
     session?.circuit_short_name ?? null,
@@ -1691,7 +1711,7 @@ export default function Telemetry() {
               }
               lapMeta={lapMetaA}
               conditions={lapConditionsA}
-              speedTrace={dataA.data?.map((sample) => sample.speed) ?? []}
+              speedTrace={speedTraceA}
               deltaHint={deltaHintA}
               sectorWins={
                 driverA !== null
@@ -1766,7 +1786,7 @@ export default function Telemetry() {
               }
               lapMeta={lapMetaB}
               conditions={lapConditionsB}
-              speedTrace={dataB.data?.map((sample) => sample.speed) ?? []}
+              speedTrace={speedTraceB}
               deltaHint={deltaHintB}
               sectorWins={
                 driverB !== null
@@ -2863,7 +2883,7 @@ function SplitsTable({
     st: number | null;
   };
 }) {
-  const { metricSystem } = useSettings();
+  const metricSystem = useSettings((s) => s.metricSystem);
 
   if (rows.length === 0) return null;
   const speedUnit = speedUnitLabel(metricSystem);

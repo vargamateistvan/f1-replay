@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { memo, useEffect, useRef, useState } from "react";
 import uPlot from "uplot";
 import "uplot/dist/uPlot.min.css";
 import { ErrorMessage } from "@/components/ErrorMessage";
@@ -194,7 +194,7 @@ function themeForTitle(title: string): ChartTheme {
   };
 }
 
-export function TelemetryChart({
+function TelemetryChartImpl({
   title,
   xData,
   series,
@@ -795,3 +795,7 @@ export function TelemetryChart({
     </div>
   );
 }
+
+// Memoized: the Telemetry page re-renders on every chart hover move, and the
+// charts' props are all stable between those renders.
+export const TelemetryChart = memo(TelemetryChartImpl);

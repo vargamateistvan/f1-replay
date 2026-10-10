@@ -257,6 +257,8 @@ const CORS: Record<string, string> = {
   "Access-Control-Allow-Methods": "GET, OPTIONS",
   "Access-Control-Allow-Headers": "Authorization, Content-Type",
   "Access-Control-Max-Age": "86400",
+  // Lets the SPA skip its OpenF1 rate limiter for cache hits.
+  "Access-Control-Expose-Headers": "X-Cache",
 };
 
 function corsHeaders(

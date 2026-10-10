@@ -196,6 +196,68 @@ describe("fetchEndpoint - rate limiter", () => {
     }
   });
 
+  it("does not count proxy cache hits against the rate windows", async () => {
+    vi.useFakeTimers();
+    try {
+      const { fetchEndpoint } = await importFreshClient();
+
+      let callCount = 0;
+      vi.stubGlobal(
+        "fetch",
+        vi.fn(() => {
+          callCount++;
+          return Promise.resolve({
+            ok: true,
+            headers: new Headers({ "X-Cache": callCount % 2 ? "KV" : "EDGE" }),
+            json: async () => [],
+          });
+        }),
+      );
+
+      const promises = Array.from({ length: 40 }, (_, i) =>
+        fetchEndpoint("session_result", { session_key: i }),
+      );
+
+      // Well under one rate window: misses would be capped at a few per second.
+      await vi.advanceTimersByTimeAsync(50);
+      await Promise.all(promises);
+      expect(callCount).toBe(40);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("keeps rate-limiting proxy cache misses", async () => {
+    vi.useFakeTimers();
+    try {
+      const { fetchEndpoint } = await importFreshClient();
+
+      let callCount = 0;
+      vi.stubGlobal(
+        "fetch",
+        vi.fn(() => {
+          callCount++;
+          return Promise.resolve({
+            ok: true,
+            headers: new Headers({ "X-Cache": "MISS" }),
+            json: async () => [],
+          });
+        }),
+      );
+
+      void Promise.all(
+        Array.from({ length: 10 }, (_, i) =>
+          fetchEndpoint("session_result", { session_key: i }),
+        ),
+      );
+
+      await vi.advanceTimersByTimeAsync(50);
+      expect(callCount).toBeLessThan(10);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
   it("treats a location 404 as an empty array", async () => {
     const { fetchEndpoint } = await importFreshClient();
 

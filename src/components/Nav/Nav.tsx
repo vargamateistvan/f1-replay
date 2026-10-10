@@ -172,8 +172,10 @@ export function Nav() {
   const [view] = useStringParam<MainView>("view", "tracker");
 
   const meetings = useMeetings(year);
-  const latestMeetingQuery = useLatestMeeting();
-  const latestSessionQuery = useLatestSession();
+  // Observe-only: selectLatestEvent fetches these on demand; the observers
+  // just surface an auth failure without spending two requests on every load.
+  const latestMeetingQuery = useLatestMeeting({ enabled: false });
+  const latestSessionQuery = useLatestSession({ enabled: false });
   // Fetch the current calendar year only when the next-race banner needs it
   // and the user is browsing a different year.
   const currentCalendarYear = new Date().getFullYear();
