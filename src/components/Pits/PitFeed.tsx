@@ -9,7 +9,6 @@ import { upperBoundByValue } from "@/utils/sortedTime";
 import { isPracticeSession } from "@/utils/session";
 import {
   COMMENTARY_BADGE_CLASS,
-  COMMENTARY_CHEVRON_CLASS,
   COMMENTARY_FEED_SCROLL_CLASS,
   COMMENTARY_GROUP_CLASS,
   COMMENTARY_GROUP_HEADER_CLASS,
@@ -21,6 +20,7 @@ import {
   commentaryGroupLabel,
   formatSessionElapsedTime,
 } from "@/components/CommentaryPanels/commentaryList";
+import { CommentaryJumpButton } from "@/components/CommentaryPanels/CommentaryJumpButton";
 
 interface Props {
   readonly entries: Pit[];
@@ -32,6 +32,7 @@ interface Props {
   readonly sessionStartMs: number;
   readonly showAllItems?: boolean;
   readonly phaseLookup?: (ms: number) => number | null;
+  readonly onJump?: (ms: number) => void;
 }
 
 type VisiblePitEntry = {
@@ -54,6 +55,7 @@ export function PitFeed({
   sessionStartMs,
   showAllItems = false,
   phaseLookup = () => null,
+  onJump,
 }: Props) {
   const showCsvExportButtons = useSettings((s) => s.showCsvExportButtons);
   const [renderLimit, setRenderLimit] = useState(120);
@@ -225,7 +227,13 @@ export function PitFeed({
                       )}
                     </div>
                   </div>
-                  <span className={COMMENTARY_CHEVRON_CLASS}>›</span>
+                  {onJump && (
+                    <CommentaryJumpButton
+                      ms={ms}
+                      label={`pit stop for ${driver?.name_acronym ?? entry.driver_number}`}
+                      onJump={onJump}
+                    />
+                  )}
                 </div>
               );
             })}

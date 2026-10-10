@@ -1,11 +1,11 @@
 import { useMemo } from "react";
+import { ChevronRight } from "lucide-react";
 import type { Lap } from "@/api/types";
 import type { KeyMoment } from "@/components/KeyMoments/types";
 import { buildLapLookup, lapNumberAtMs } from "@/utils/lapLookup";
 import { isPracticeSession } from "@/utils/session";
 import {
   COMMENTARY_BADGE_CLASS,
-  COMMENTARY_CHEVRON_CLASS,
   COMMENTARY_FEED_SCROLL_CLASS,
   COMMENTARY_GROUP_CLASS,
   COMMENTARY_GROUP_HEADER_CLASS,
@@ -17,6 +17,7 @@ import {
   commentaryGroupLabel,
   formatSessionElapsedTime,
 } from "@/components/CommentaryPanels/commentaryList";
+import { COMMENTARY_JUMP_BUTTON_CLASS } from "@/components/CommentaryPanels/CommentaryJumpButton";
 
 interface Props {
   moments: KeyMoment[];
@@ -165,7 +166,12 @@ export function KeyMoments({
                     )}
                   </span>
                 </span>
-                <span className={COMMENTARY_CHEVRON_CLASS}>›</span>
+                <span
+                  aria-hidden="true"
+                  className={`self-center ${COMMENTARY_JUMP_BUTTON_CLASS}`}
+                >
+                  <ChevronRight size={11} strokeWidth={2.4} />
+                </span>
               </button>
             );
           })}

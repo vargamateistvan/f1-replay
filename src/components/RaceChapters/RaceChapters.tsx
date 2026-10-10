@@ -9,7 +9,6 @@ import { buildLapLookup, lapNumberAtMs } from "@/utils/lapLookup";
 import { isPracticeSession } from "@/utils/session";
 import {
   COMMENTARY_BADGE_CLASS,
-  COMMENTARY_CHEVRON_CLASS,
   COMMENTARY_FEED_SCROLL_CLASS,
   COMMENTARY_GROUP_CLASS,
   COMMENTARY_GROUP_HEADER_CLASS,
@@ -21,6 +20,7 @@ import {
   commentaryGroupLabel,
   formatSessionElapsedTime,
 } from "@/components/CommentaryPanels/commentaryList";
+import { CommentaryJumpButton } from "@/components/CommentaryPanels/CommentaryJumpButton";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -277,15 +277,11 @@ function ChapterRow({
           </span>
         </span>
         <div className="shrink-0 flex items-center gap-1">
-          <button
-            type="button"
-            onClick={() => onJump(chapter.startMs)}
-            className="h-6 rounded px-2 text-[9px] font-black uppercase tracking-widest bg-panel text-muted transition-colors hover:bg-track hover:text-white"
-            aria-label={`Jump to ${chapter.label}`}
-            title={`Jump to ${chapter.label}`}
-          >
-            Jump
-          </button>
+          <CommentaryJumpButton
+            ms={chapter.startMs}
+            label={chapter.label}
+            onJump={onJump}
+          />
           {canReplayWindow && (
             <button
               type="button"
@@ -297,7 +293,6 @@ function ChapterRow({
               Replay
             </button>
           )}
-          <span className={COMMENTARY_CHEVRON_CLASS}>›</span>
         </div>
       </div>
 

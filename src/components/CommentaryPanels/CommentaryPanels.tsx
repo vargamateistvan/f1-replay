@@ -68,6 +68,8 @@ const WeatherHistory = lazy(() =>
   })),
 );
 
+const jumpTo = (ms: number) => useTimeline.getState().setT(ms);
+
 function PanelFallback() {
   return (
     <div className="flex h-full min-h-[120px] items-center justify-center text-[10px] font-bold uppercase tracking-[0.12em] text-muted">
@@ -158,6 +160,7 @@ function renderCommentaryTabContent(ctx: RenderContext): ReactNode {
             onClearFocus={
               ctx.focusDriver !== null ? ctx.onClearFocus : undefined
             }
+            onJump={jumpTo}
           />
         </Suspense>
       );
@@ -178,6 +181,7 @@ function renderCommentaryTabContent(ctx: RenderContext): ReactNode {
             sessionStartMs={ctx.sessionStartMs}
             showAllItems={ctx.showAllItems}
             phaseLookup={ctx.phaseLookup}
+            onJump={jumpTo}
           />
         </Suspense>
       );
@@ -197,6 +201,7 @@ function renderCommentaryTabContent(ctx: RenderContext): ReactNode {
             sessionStartMs={ctx.sessionStartMs}
             showAllItems={ctx.showAllItems}
             phaseLookup={ctx.phaseLookup}
+            onJump={jumpTo}
           />
         </Suspense>
       );
@@ -216,6 +221,7 @@ function renderCommentaryTabContent(ctx: RenderContext): ReactNode {
             sessionStartMs={ctx.sessionStartMs}
             showAllItems={ctx.showAllItems}
             phaseLookup={ctx.phaseLookup}
+            onJump={jumpTo}
           />
         </Suspense>
       );
@@ -231,7 +237,7 @@ function renderCommentaryTabContent(ctx: RenderContext): ReactNode {
             sessionTimeMs={ctx.sessionTimeMs}
             showAllItems={ctx.showAllItems}
             phaseLookup={ctx.phaseLookup}
-            onJump={(ms) => useTimeline.getState().setT(ms)}
+            onJump={jumpTo}
           />
         </Suspense>
       );
@@ -249,7 +255,7 @@ function renderCommentaryTabContent(ctx: RenderContext): ReactNode {
             sessionTimeMs={ctx.sessionTimeMs}
             showAllItems={ctx.showAllItems}
             phaseLookup={ctx.phaseLookup}
-            onJump={(ms) => useTimeline.getState().setT(ms)}
+            onJump={jumpTo}
             onPlayWindow={ctx.onPlayWindow}
           />
         </Suspense>

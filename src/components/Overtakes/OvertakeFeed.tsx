@@ -8,7 +8,6 @@ import { upperBoundByValue } from "@/utils/sortedTime";
 import { isPracticeSession } from "@/utils/session";
 import {
   COMMENTARY_BADGE_CLASS,
-  COMMENTARY_CHEVRON_CLASS,
   COMMENTARY_FEED_SCROLL_CLASS,
   COMMENTARY_GROUP_CLASS,
   COMMENTARY_GROUP_HEADER_CLASS,
@@ -20,6 +19,7 @@ import {
   commentaryGroupLabel,
   formatSessionElapsedTime,
 } from "@/components/CommentaryPanels/commentaryList";
+import { CommentaryJumpButton } from "@/components/CommentaryPanels/CommentaryJumpButton";
 
 interface Props {
   readonly entries: Overtake[];
@@ -31,6 +31,7 @@ interface Props {
   readonly sessionStartMs: number;
   readonly showAllItems?: boolean;
   readonly phaseLookup?: (ms: number) => number | null;
+  readonly onJump?: (ms: number) => void;
 }
 
 type VisibleOvertakeEntry = {
@@ -54,6 +55,7 @@ export function OvertakeFeed({
   sessionStartMs,
   showAllItems = false,
   phaseLookup = () => null,
+  onJump,
 }: Props) {
   const showCsvExportButtons = useSettings((s) => s.showCsvExportButtons);
   const [renderLimit, setRenderLimit] = useState(120);
@@ -196,7 +198,13 @@ export function OvertakeFeed({
                       {e.position !== null && <span>for P{e.position}</span>}
                     </div>
                   </div>
-                  <span className={COMMENTARY_CHEVRON_CLASS}>›</span>
+                  {onJump && (
+                    <CommentaryJumpButton
+                      ms={ms}
+                      label={`${over?.name_acronym ?? e.overtaking_driver_number} passing ${under?.name_acronym ?? e.overtaken_driver_number}`}
+                      onJump={onJump}
+                    />
+                  )}
                 </div>
               );
             })}

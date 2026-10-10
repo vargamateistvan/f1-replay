@@ -16,7 +16,6 @@ import {
 import { isPracticeSession } from "@/utils/session";
 import {
   COMMENTARY_BADGE_CLASS,
-  COMMENTARY_CHEVRON_CLASS,
   COMMENTARY_FEED_SCROLL_CLASS,
   COMMENTARY_GROUP_CLASS,
   COMMENTARY_GROUP_HEADER_CLASS,
@@ -28,6 +27,7 @@ import {
   commentaryGroupLabel,
   formatSessionElapsedTime,
 } from "@/components/CommentaryPanels/commentaryList";
+import { CommentaryJumpButton } from "@/components/CommentaryPanels/CommentaryJumpButton";
 import {
   DEFAULT_FLAG_CONFIG,
   FLAG_CONFIG,
@@ -113,6 +113,7 @@ interface Props {
   readonly drivers?: Driver[];
   readonly focusDriver?: number | null;
   readonly onClearFocus?: () => void;
+  readonly onJump?: (ms: number) => void;
 }
 
 // ─── Component ────────────────────────────────────────────────────────────────
@@ -127,6 +128,7 @@ export function RaceControlFeed({
   drivers = [],
   focusDriver = null,
   onClearFocus,
+  onJump,
 }: Props) {
   const showCsvExportButtons = useSettings((s) => s.showCsvExportButtons);
   const [activeGroups, setActiveGroups] = useState<Set<string>>(
@@ -488,7 +490,13 @@ export function RaceControlFeed({
                           )}
                         </div>
                       </div>
-                      <span className={COMMENTARY_CHEVRON_CLASS}>›</span>
+                      {onJump && (
+                        <CommentaryJumpButton
+                          ms={e.ms}
+                          label={e.title || e.description}
+                          onJump={onJump}
+                        />
+                      )}
                     </div>
                   );
                 })}

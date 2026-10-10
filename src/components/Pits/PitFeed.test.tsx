@@ -1,5 +1,5 @@
-import { render, screen } from "@testing-library/react";
-import { describe, expect, it } from "vitest";
+import { fireEvent, render, screen } from "@testing-library/react";
+import { describe, expect, it, vi } from "vitest";
 import type { Driver, Pit, Stint } from "@/api/types";
 import { PitFeed } from "./PitFeed";
 
@@ -56,7 +56,7 @@ const stints: Stint[] = [
   },
 ];
 
-function renderPitFeed(feedStints: Stint[]) {
+function renderPitFeed(feedStints: Stint[], onJump?: (ms: number) => void) {
   render(
     <PitFeed
       entries={pits}
@@ -66,6 +66,7 @@ function renderPitFeed(feedStints: Stint[]) {
       sessionStartMs={Date.parse("2024-01-01T00:00:00Z")}
       showAllItems
       sessionType="Race"
+      onJump={onJump}
     />,
   );
 }
@@ -84,5 +85,24 @@ describe("PitFeed", () => {
     renderPitFeed(stints.slice(0, 1));
 
     expect(screen.queryByTitle(/lap.*old/)).not.toBeInTheDocument();
+  });
+
+  it("seeks to the pit stop from its link button", () => {
+    const onJump = vi.fn();
+    renderPitFeed(stints, onJump);
+
+    fireEvent.click(
+      screen.getByRole("button", { name: "Jump to pit stop for VER at 10:00" }),
+    );
+
+    expect(onJump).toHaveBeenCalledWith(600_000);
+  });
+
+  it("hides the link button when no jump handler is given", () => {
+    renderPitFeed(stints);
+
+    expect(
+      screen.queryByRole("button", { name: /Jump to/ }),
+    ).not.toBeInTheDocument();
   });
 });

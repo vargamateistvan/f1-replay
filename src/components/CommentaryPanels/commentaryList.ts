@@ -22,8 +22,6 @@ export const COMMENTARY_META_CLASS =
 export const COMMENTARY_BADGE_CLASS =
   "inline-flex h-5 w-fit max-w-full shrink-0 items-center justify-center rounded px-1.5 whitespace-nowrap text-center text-[8px] font-black uppercase tracking-widest leading-none";
 
-export const COMMENTARY_CHEVRON_CLASS = "shrink-0 text-[10px] text-muted";
-
 export function formatSessionElapsedTime(ms: number): string {
   const s = Math.floor(ms / 1000);
   const m = Math.floor(s / 60);

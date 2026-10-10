@@ -12,7 +12,6 @@ import { toSafeExternalUrl } from "@/utils/url";
 import { RadioAudio } from "@/components/RadioAudio";
 import {
   COMMENTARY_BADGE_CLASS,
-  COMMENTARY_CHEVRON_CLASS,
   COMMENTARY_FEED_SCROLL_CLASS,
   COMMENTARY_GROUP_CLASS,
   COMMENTARY_GROUP_HEADER_CLASS,
@@ -24,6 +23,7 @@ import {
   commentaryGroupLabel,
   formatSessionElapsedTime,
 } from "@/components/CommentaryPanels/commentaryList";
+import { CommentaryJumpButton } from "@/components/CommentaryPanels/CommentaryJumpButton";
 
 interface Props {
   readonly entries: TeamRadioEntry[];
@@ -36,6 +36,7 @@ interface Props {
   readonly sessionStartMs: number;
   readonly showAllItems?: boolean;
   readonly phaseLookup?: (ms: number) => number | null;
+  readonly onJump?: (ms: number) => void;
 }
 
 type VisibleRadioEntry = {
@@ -64,6 +65,7 @@ export function TeamRadioFeed({
   sessionStartMs,
   showAllItems = false,
   phaseLookup = () => null,
+  onJump,
 }: Props) {
   const showCsvExportButtons = useSettings((s) => s.showCsvExportButtons);
   const [playing, setPlaying] = useState<string | null>(null);
@@ -195,6 +197,7 @@ export function TeamRadioFeed({
                 playing={playing}
                 onPlay={play}
                 onEnded={() => setPlaying(null)}
+                onJump={onJump}
               />
             ))}
           </div>
@@ -223,6 +226,7 @@ function RadioRow({
   playing,
   onPlay,
   onEnded,
+  onJump,
 }: {
   entry: TeamRadioEntry;
   entryMs: number;
@@ -231,6 +235,7 @@ function RadioRow({
   playing: string | null;
   onPlay: (url: string) => void;
   onEnded: () => void;
+  onJump?: (ms: number) => void;
 }) {
   const color = teamColor(driver?.team_colour);
   const recordingUrl = toSafeExternalUrl(e.recording_url);
@@ -290,7 +295,13 @@ function RadioRow({
             )}
           </span>
         </button>
-        <span className={COMMENTARY_CHEVRON_CLASS}>›</span>
+        {onJump && (
+          <CommentaryJumpButton
+            ms={entryMs - sessionStartMs}
+            label={`team radio for ${driver?.name_acronym ?? e.driver_number}`}
+            onJump={onJump}
+          />
+        )}
         {isPlaying && recordingUrl && (
           <RadioAudio
             key={recordingUrl}
