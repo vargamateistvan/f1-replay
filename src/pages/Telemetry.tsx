@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import type { CSSProperties, PointerEvent } from "react";
 import { createPortal } from "react-dom";
 import type { Lap } from "@/api/types";
 import { ErrorMessage } from "@/components/ErrorMessage";
@@ -1655,6 +1656,34 @@ export default function Telemetry() {
             </svg>
           );
 
+          const inspectTrackAt = (e: PointerEvent<SVGSVGElement>) => {
+            if (!trackPreview) return;
+            const svg = e.currentTarget;
+            let svgX: number;
+            let svgY: number;
+
+            const ctm = svg.getScreenCTM();
+            if (ctm) {
+              const pt = svg.createSVGPoint();
+              pt.x = e.clientX;
+              pt.y = e.clientY;
+              const transformed = pt.matrixTransform(ctm.inverse());
+              svgX = transformed.x;
+              svgY = transformed.y;
+            } else {
+              const rect = svg.getBoundingClientRect();
+              svgX = (e.clientX - rect.left) * (TRACK_SVG_W / rect.width);
+              svgY = (e.clientY - rect.top) * (TRACK_SVG_H / rect.height);
+            }
+
+            const trackDist = nearestTrackDistM(svgX, svgY, trackPreview.points);
+            if (trackDist === null || !dataA.data?.length) return;
+            // Convert track outline dist back to Driver A's distM axis
+            const driverAMaxDist = dataA.data[dataA.data.length - 1]!.distM;
+            const progress = trackDist / trackPreview.totalDist;
+            setDialogHoveredDistM(progress * driverAMaxDist);
+          };
+
           return (
           <>
           <div
@@ -1820,7 +1849,7 @@ export default function Telemetry() {
                 <button
                   type="button"
                   onClick={() => setIsTrackDialogOpen((v) => !v)}
-                  className="ml-auto h-5 border border-panel bg-track px-2 text-[9px] font-black uppercase tracking-widest text-muted transition-colors hover:border-f1red hover:text-white"
+                  className="ml-auto h-7 border border-panel bg-track px-2 text-[9px] lg:h-5 font-black uppercase tracking-widest text-muted transition-colors hover:border-f1red hover:text-white"
                   title={isTrackDialogOpen ? "Close track dialog" : "Expand track"}
                 >
                   {isTrackDialogOpen ? "✕ Close" : "↗ Expand"}
@@ -1828,7 +1857,7 @@ export default function Telemetry() {
               </div>
 
               {trackPreview ? (
-                <div className="relative min-h-[112px] flex-1 overflow-hidden border border-panel bg-track">
+                <div className="relative aspect-[3/2] overflow-hidden border border-panel bg-track lg:aspect-auto lg:min-h-[112px] lg:flex-1">
                   {TrackSvg}
                 </div>
               ) : (
@@ -1849,15 +1878,15 @@ export default function Telemetry() {
               className="fixed inset-0 z-50 flex items-stretch justify-center bg-black/75 p-2 backdrop-blur-sm sm:items-center sm:p-4"
               onClick={(e) => { if (e.target === e.currentTarget) setIsTrackDialogOpen(false); }}
             >
-              <div className="relative flex h-full w-full max-w-[calc(100vw-1rem)] min-h-0 flex-col gap-2 overflow-hidden rounded border border-panel bg-[#15151e] p-2 shadow-2xl sm:h-[92dvh] sm:max-w-6xl sm:gap-3 sm:p-4 lg:max-w-7xl">
+              <div className="relative flex h-full w-full max-w-[calc(100vw-1rem)] min-h-0 flex-col gap-2 overflow-y-auto overscroll-contain rounded border border-panel bg-[#15151e] p-2 shadow-2xl sm:h-[92dvh] sm:max-w-6xl sm:gap-3 sm:overflow-hidden sm:p-4 lg:max-w-7xl">
                 {/* Dialog header */}
-                <div className="flex shrink-0 flex-wrap items-center gap-2">
+                <div className="sticky -top-2 z-10 -mx-2 -mt-2 flex shrink-0 flex-wrap items-center gap-2 bg-[#15151e] px-2 pt-2 pb-1 sm:static sm:m-0 sm:p-0">
                   <span className="text-[10px] font-black uppercase tracking-[0.15em] text-muted">
                     Track position preview
                   </span>
                   <span className="h-0.5 w-6 bg-f1red" />
                   {session && (
-                    <span className="ml-2 text-[10px] text-muted">
+                    <span className="order-last w-full text-[10px] text-muted sm:order-none sm:ml-2 sm:w-auto">
                       {session.circuit_short_name} · {session.session_name} · {session.year}
                     </span>
                   )}
@@ -1872,41 +1901,21 @@ export default function Telemetry() {
                 </div>
 
                 {/* Track SVG — interactive */}
-                <div className="relative min-h-[20rem] flex-1 overflow-hidden border border-panel bg-track sm:min-h-[28rem]">
+                <div className="relative aspect-[3/2] shrink-0 overflow-hidden border border-panel bg-track sm:aspect-auto sm:min-h-[28rem] sm:flex-1 sm:shrink">
                   <svg
                     viewBox={`0 0 ${TRACK_SVG_W} ${TRACK_SVG_H}`}
-                    className="relative h-full w-full cursor-crosshair"
+                    className="relative h-full w-full cursor-crosshair touch-none"
                     role="img"
                     aria-label="Interactive lap track preview"
-                    onMouseMove={(e) => {
-                      const svg = e.currentTarget;
-                      let svgX: number;
-                      let svgY: number;
-
-                      const ctm = svg.getScreenCTM();
-                      if (ctm) {
-                        const pt = svg.createSVGPoint();
-                        pt.x = e.clientX;
-                        pt.y = e.clientY;
-                        const transformed = pt.matrixTransform(ctm.inverse());
-                        svgX = transformed.x;
-                        svgY = transformed.y;
-                      } else {
-                        const rect = svg.getBoundingClientRect();
-                        const scaleX = TRACK_SVG_W / rect.width;
-                        const scaleY = TRACK_SVG_H / rect.height;
-                        svgX = (e.clientX - rect.left) * scaleX;
-                        svgY = (e.clientY - rect.top) * scaleY;
-                      }
-
-                      const trackDist = nearestTrackDistM(svgX, svgY, trackPreview.points);
-                      if (trackDist === null || !dataA.data?.length) return;
-                      // Convert track outline dist back to Driver A's distM axis
-                      const driverAMaxDist = dataA.data[dataA.data.length - 1]!.distM;
-                      const progress = trackDist / trackPreview.totalDist;
-                      setDialogHoveredDistM(progress * driverAMaxDist);
+                    onPointerDown={(e) => {
+                      // Touch: keep tracking the finger while it drags along the track.
+                      if (e.pointerType !== "mouse") e.currentTarget.setPointerCapture(e.pointerId);
+                      inspectTrackAt(e);
                     }}
-                    onMouseLeave={() => { /* keep last position */ }}
+                    onPointerMove={(e) => {
+                      if (e.pointerType !== "mouse" && e.buttons === 0) return;
+                      inspectTrackAt(e);
+                    }}
                   >
                     <polyline points={trackPreview.polyline} fill="none" stroke={lightMode ? "#b0bdd2" : "#222a3a"} strokeWidth={6.0} strokeLinecap="round" strokeLinejoin="round" opacity={0.85} />
                     {miniSectorWinnerSegments.length > 0 ? (
@@ -1994,7 +2003,10 @@ export default function Telemetry() {
                   </svg>
                   {dialogTrackMarkers.length === 0 && (
                     <div className="pointer-events-none absolute inset-0 flex items-end justify-center pb-3">
-                      <span className="text-[10px] text-muted">Move cursor over the track to inspect driver data</span>
+                      <span className="text-[10px] text-muted">
+                        <span className="sm:hidden">Tap or drag along the track to inspect driver data</span>
+                        <span className="hidden sm:inline">Move cursor over the track to inspect driver data</span>
+                      </span>
                     </div>
                   )}
                 </div>
@@ -2020,10 +2032,12 @@ export default function Telemetry() {
                   };
                   return (
                     <div
-                      className="grid shrink-0 gap-2 overflow-x-auto pb-1"
-                      style={{
-                        gridTemplateColumns: `repeat(${dialogTrackMarkers.length}, minmax(14rem, 1fr))`,
-                      }}
+                      className="grid shrink-0 grid-cols-1 gap-2 pb-1 sm:overflow-x-auto sm:[grid-template-columns:repeat(var(--track-card-cols),minmax(14rem,1fr))]"
+                      style={
+                        {
+                          "--track-card-cols": dialogTrackMarkers.length,
+                        } as CSSProperties
+                      }
                     >
                       {dialogTrackMarkers.map((marker) => (
                         <div key={`dlg-data-${marker.driver}`} className="rounded border bg-track p-2.5" style={{ borderColor: `${marker.color}55` }}>
