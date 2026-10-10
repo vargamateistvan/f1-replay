@@ -1,5 +1,5 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
-import { fireEvent, render, screen } from "@testing-library/react";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { act, fireEvent, render, screen } from "@testing-library/react";
 import { LiveTiming } from "@/components/LiveTiming/LiveTiming";
 import { useSettings } from "@/stores/settings";
 import type {
@@ -394,42 +394,48 @@ describe("LiveTiming", () => {
     render(
       <LiveTiming
         drivers={drivers}
-        positions={[
-          {
-            driver_number: 1,
-            position: 1,
-            date: "2024-01-01T00:00:10.000Z",
-          },
-        ] as Position[]}
+        positions={
+          [
+            {
+              driver_number: 1,
+              position: 1,
+              date: "2024-01-01T00:00:10.000Z",
+            },
+          ] as Position[]
+        }
         intervals={[]}
-        pits={[
-          {
-            date: "2024-01-01T00:00:50.000Z",
-            driver_number: 1,
-            lap_number: 1,
-            meeting_key: 1,
-            stop_duration: null,
-            lane_duration: 30,
-            pit_duration: null,
-            session_key: 1,
-          },
-        ] as Pit[]}
+        pits={
+          [
+            {
+              date: "2024-01-01T00:00:50.000Z",
+              driver_number: 1,
+              lap_number: 1,
+              meeting_key: 1,
+              stop_duration: null,
+              lane_duration: 30,
+              pit_duration: null,
+              session_key: 1,
+            },
+          ] as Pit[]
+        }
         laps={[]}
-        raceControl={[
-          {
-            category: "Session",
-            date: "2024-01-01T00:00:47.000Z",
-            driver_number: null,
-            flag: null,
-            lap_number: null,
-            meeting_key: 1,
-            message: "STANDING START",
-            qualifying_phase: null,
-            scope: "Track",
-            sector: null,
-            session_key: 1,
-          },
-        ] as RaceControl[]}
+        raceControl={
+          [
+            {
+              category: "Session",
+              date: "2024-01-01T00:00:47.000Z",
+              driver_number: null,
+              flag: null,
+              lap_number: null,
+              meeting_key: 1,
+              message: "STANDING START",
+              qualifying_phase: null,
+              scope: "Track",
+              sector: null,
+              session_key: 1,
+            },
+          ] as RaceControl[]
+        }
         sessionTimeMs={48_000}
         sessionStartMs={sessionStartMs}
       />,
@@ -681,7 +687,9 @@ describe("LiveTiming", () => {
     // Eliminated drivers keep their Q1 time.
     const d20Row = rows.find((row) => row.textContent?.includes("D20"));
     expect(d20Row).toHaveTextContent("1:39.111");
-    expect(d20Row?.querySelector('[title="Eliminated in Q1"]')).toBeInTheDocument();
+    expect(
+      d20Row?.querySelector('[title="Eliminated in Q1"]'),
+    ).toBeInTheDocument();
   });
 
   it("does not show elimination tags during Q1", () => {
@@ -849,7 +857,11 @@ describe("LiveTiming", () => {
         positions={
           [
             { driver_number: 1, position: 1, date: "2024-01-01T00:00:41.000Z" },
-            { driver_number: 16, position: 2, date: "2024-01-01T00:00:41.000Z" },
+            {
+              driver_number: 16,
+              position: 2,
+              date: "2024-01-01T00:00:41.000Z",
+            },
           ] as Position[]
         }
         intervals={[]}
@@ -1513,6 +1525,94 @@ describe("LiveTiming", () => {
     );
 
     expect(screen.getAllByText("LIFT").length).toBeGreaterThan(0);
+  });
+
+  describe("gap trend colours", () => {
+    const sessionStartMs = Date.parse("2024-01-01T00:00:00.000Z");
+    const GREEN = "rgb(57, 215, 67)";
+    const RED = "rgb(255, 82, 82)";
+    const props = {
+      drivers,
+      positions: [
+        { driver_number: 1, position: 1, date: "2024-01-01T00:00:01.000Z" },
+        { driver_number: 16, position: 2, date: "2024-01-01T00:00:01.000Z" },
+      ] as Position[],
+      intervals: [
+        {
+          driver_number: 16,
+          gap_to_leader: 2,
+          interval: null,
+          date: "2024-01-01T00:00:10.000Z",
+        },
+        {
+          driver_number: 16,
+          gap_to_leader: 1.5,
+          interval: null,
+          date: "2024-01-01T00:00:12.000Z",
+        },
+      ] as unknown as Interval[],
+      pits: [] as Pit[],
+      laps: [] as Lap[],
+      sessionStartMs,
+    };
+    const toneOf = (text: string) => {
+      let node: HTMLElement | null = screen.getAllByText(text)[0] ?? null;
+      while (node) {
+        if (node.style?.color) return node.style.color;
+        node = node.parentElement;
+      }
+      return "";
+    };
+
+    afterEach(() => {
+      vi.useRealTimers();
+    });
+
+    it("colours a shrinking gap green during playback, then fades", () => {
+      vi.useFakeTimers();
+      const { rerender } = render(
+        <LiveTiming {...props} sessionTimeMs={11_000} />,
+      );
+      expect(toneOf("+2.000")).toBe("");
+
+      rerender(<LiveTiming {...props} sessionTimeMs={13_000} />);
+      expect(toneOf("+1.500")).toBe(GREEN);
+
+      act(() => {
+        vi.advanceTimersByTime(6_000);
+      });
+      expect(toneOf("+1.500")).toBe("");
+    });
+
+    it("does not colour cells when scrubbing backwards", () => {
+      const { rerender } = render(
+        <LiveTiming {...props} sessionTimeMs={13_000} />,
+      );
+      rerender(<LiveTiming {...props} sessionTimeMs={11_000} />);
+      // The gap grew only because the playhead went back in time.
+      expect(toneOf("+2.000")).not.toBe(RED);
+      expect(toneOf("+2.000")).toBe("");
+    });
+
+    it("does not colour cells after a large forward jump", () => {
+      const { rerender } = render(
+        <LiveTiming {...props} sessionTimeMs={1_000} />,
+      );
+      rerender(<LiveTiming {...props} sessionTimeMs={11_000} />);
+      rerender(<LiveTiming {...props} sessionTimeMs={60_000} />);
+      expect(toneOf("+1.500")).toBe("");
+    });
+
+    it("clears existing colours on a seek", () => {
+      const { rerender } = render(
+        <LiveTiming {...props} sessionTimeMs={11_000} />,
+      );
+      rerender(<LiveTiming {...props} sessionTimeMs={13_000} />);
+      expect(toneOf("+1.500")).toBe(GREEN);
+
+      rerender(<LiveTiming {...props} sessionTimeMs={600_000} />);
+      expect(toneOf("+1.500")).toBe("");
+    });
   });
 
   it("renders last lap after best lap and respects column visibility", () => {

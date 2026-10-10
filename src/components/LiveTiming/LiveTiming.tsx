@@ -31,6 +31,12 @@ import {
   type QualiPhase,
 } from "@/utils/session";
 import { normalizeRaceControl } from "@/timeline/raceControl";
+import {
+  buildDriverTimeIndex,
+  countPerDriverAt,
+  latestPerDriverAt,
+} from "@/utils/driverTimeIndex";
+import { lastAtOrBefore, upperBoundByValue } from "@/utils/sortedTime";
 import { SectorBar, type SectorTier } from "./SectorBar";
 import { TyreBadge } from "./TyreBadge";
 import { DriverHeadshot } from "@/components/DriverHeadshot";
@@ -127,6 +133,11 @@ type TimingHighlightField = "bestLap" | "lastLap" | "gap" | "interval";
 const Q3_GRID_SIZE = 10;
 const LAP_SET_FLASH_MS = 4_000;
 const TIMING_CELL_FLASH_MS = 1_400;
+/** How long a gap/interval stays green or red after it changes. */
+const TIMING_CELL_TONE_MS = 5_000;
+/** A playhead move bigger than this (or any backwards move) is a seek, not
+ *  playback, so value changes across it must not flash or colour cells. */
+const TIMING_SEEK_JUMP_MS = 5_000;
 
 function fmtGap(val: TimingDisplayValue) {
   if (val === null) return "—";
@@ -531,6 +542,8 @@ export function LiveTiming({
     string,
     string | number | null
   > | null>(null);
+  const seekPendingRef = useRef(false);
+  const lastPlayheadRef = useRef({ t: sessionTimeMs, start: sessionStartMs });
   const tableRef = useRef<HTMLTableElement | null>(null);
   const prevSelectedDriverRef = useRef(selectedDriver);
   const speedUnitShort = speedUnitLabel(metricSystem);
@@ -558,12 +571,13 @@ export function LiveTiming({
     ...columnVisibility,
   };
   const showTelemetry = carData !== undefined;
-  const showDrs =
-    showTelemetry &&
-    carData !== undefined &&
-    [...carData.values()].some(
-      (c) => (c.drs as unknown as number | null) != null,
-    );
+  const showDrs = useMemo(() => {
+    if (carData === undefined) return false;
+    for (const c of carData.values()) {
+      if ((c.drs as unknown as number | null) != null) return true;
+    }
+    return false;
+  }, [carData]);
   const currentT = sessionStartMs + sessionTimeMs;
 
   const driverByNumber = useMemo(
@@ -571,13 +585,19 @@ export function LiveTiming({
     [drivers],
   );
 
+  // Timestamps are parsed once per data change; per-tick lookups below are
+  // binary searches against these indexes.
+  const positionIndex = useMemo(
+    () => buildDriverTimeIndex(positions, (p) => new Date(p.date).getTime()),
+    [positions],
+  );
+
   const posMap = useMemo(() => {
     const m = new Map<number, number>();
-    for (const p of positions)
-      if (new Date(p.date).getTime() <= currentT)
-        m.set(p.driver_number, p.position);
+    for (const [driverNumber, p] of latestPerDriverAt(positionIndex, currentT))
+      m.set(driverNumber, p.position);
     return m;
-  }, [positions, currentT]);
+  }, [positionIndex, currentT]);
 
   const gridMap = useMemo(() => {
     const m = new Map<number, number>();
@@ -587,52 +607,73 @@ export function LiveTiming({
 
   const startPosMap = useMemo(() => {
     const m = new Map<number, number>();
-    const sortedByDate = [...positions].sort(
-      (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime(),
-    );
-    for (const p of sortedByDate) {
-      if (!m.has(p.driver_number)) m.set(p.driver_number, p.position);
+    for (const [driverNumber, series] of positionIndex) {
+      const first = series.items[0];
+      if (first) m.set(driverNumber, first.position);
     }
     return m;
-  }, [positions]);
+  }, [positionIndex]);
 
-  const intMap = useMemo(() => {
-    const m = new Map<number, Interval>();
-    for (const i of intervals)
-      if (new Date(i.date).getTime() <= currentT) m.set(i.driver_number, i);
-    return m;
-  }, [intervals, currentT]);
+  const intervalIndex = useMemo(
+    () => buildDriverTimeIndex(intervals, (i) => new Date(i.date).getTime()),
+    [intervals],
+  );
 
-  const latestSessionStartMs = useMemo(() => {
-    if (!raceControl.length) return null;
+  const intMap = useMemo(
+    () => latestPerDriverAt(intervalIndex, currentT),
+    [intervalIndex, currentT],
+  );
 
-    let latest: number | null = null;
-    for (const entry of [...raceControl].sort(
-      (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime(),
-    )) {
-      const relMs = new Date(entry.date).getTime() - sessionStartMs;
-      if (relMs > sessionTimeMs) break;
+  // Race control sorted by session-relative time, parsed once.
+  const timedRaceControl = useMemo(
+    () =>
+      raceControl
+        .map((entry) => ({
+          entry,
+          relMs: new Date(entry.date).getTime() - sessionStartMs,
+          message: (entry.message ?? "").toUpperCase(),
+        }))
+        .sort((a, b) => a.relMs - b.relMs),
+    [raceControl, sessionStartMs],
+  );
 
-      const message = (entry.message ?? "").toUpperCase();
-      if (
-        /(STANDING START|SESSION STARTED|RACE START|WILL START|STARTED)/.test(
-          message,
-        ) &&
-        !/END OF/.test(message)
-      ) {
-        latest = relMs;
-      }
-    }
-    return latest;
-  }, [raceControl, sessionStartMs, sessionTimeMs]);
+  const sessionStartMarkers = useMemo(
+    () =>
+      timedRaceControl
+        .filter(
+          ({ message }) =>
+            /(STANDING START|SESSION STARTED|RACE START|WILL START|STARTED)/.test(
+              message,
+            ) && !/END OF/.test(message),
+        )
+        .map(({ relMs }) => relMs),
+    [timedRaceControl],
+  );
+
+  const latestSessionStartMs = useMemo(
+    () =>
+      lastAtOrBefore(sessionStartMarkers, sessionTimeMs, (ms) => ms) ?? null,
+    [sessionStartMarkers, sessionTimeMs],
+  );
+
+  const timedPits = useMemo(
+    () =>
+      pits.map((p) => {
+        // OpenF1 stamps pit records at pit-lane exit, not entry.
+        const exitMs = new Date(p.date).getTime();
+        const lane = laneDuration(p);
+        return {
+          driverNumber: p.driver_number,
+          exitMs,
+          entryMs: exitMs - (lane ? lane * 1000 : PIT_LANE_FALLBACK_MS),
+        };
+      }),
+    [pits],
+  );
 
   const pittingNow = useMemo(() => {
     const s = new Set<number>();
-    for (const p of pits) {
-      // OpenF1 stamps pit records at pit-lane exit, not entry.
-      const exitMs = new Date(p.date).getTime();
-      const lane = laneDuration(p);
-      const entry = exitMs - (lane ? lane * 1000 : PIT_LANE_FALLBACK_MS);
+    for (const { driverNumber, exitMs, entryMs: entry } of timedPits) {
       if (entry <= currentT && currentT <= exitMs) {
         if (
           latestSessionStartMs !== null &&
@@ -641,47 +682,53 @@ export function LiveTiming({
         ) {
           continue;
         }
-        s.add(p.driver_number);
+        s.add(driverNumber);
       }
     }
     return s;
-  }, [pits, currentT, latestSessionStartMs, sessionStartMs]);
+  }, [timedPits, currentT, latestSessionStartMs, sessionStartMs]);
+
+  // Penalty/investigation events with their targets resolved once; the
+  // per-tick pass only replays the ones already shown.
+  const penaltyEvents = useMemo(() => {
+    if (!sessionStartMs || raceControl.length === 0) return [];
+    return normalizeRaceControl(raceControl, sessionStartMs).flatMap(
+      (event) => {
+        if (event.kind !== "penalty" && event.kind !== "investigation")
+          return [];
+        const state: PenaltyMarkerState = {
+          status: classifyPenaltyStatus(event.description, event.kind),
+          detail: event.description,
+        };
+        const targets =
+          event.driverNumber !== null
+            ? [event.driverNumber]
+            : extractInvolvedDriverNumbers(event.description);
+        return [{ ms: event.ms, state, targets }];
+      },
+    );
+  }, [raceControl, sessionStartMs]);
 
   const penaltyStatusByDriver = useMemo(() => {
-    if (!sessionStartMs || raceControl.length === 0)
-      return new Map<number, PenaltyMarkerState>();
-
-    const visibleEvents = normalizeRaceControl(
-      raceControl,
-      sessionStartMs,
-    ).filter((event) => event.ms <= sessionTimeMs);
-
     const byDriver = new Map<number, PenaltyMarkerState>();
-    for (const event of visibleEvents) {
-      if (event.kind !== "penalty" && event.kind !== "investigation") continue;
-
-      const status = classifyPenaltyStatus(event.description, event.kind);
-      const targets =
-        event.driverNumber !== null
-          ? [event.driverNumber]
-          : extractInvolvedDriverNumbers(event.description);
-
-      for (const driverNumber of targets) {
-        byDriver.set(driverNumber, { status, detail: event.description });
+    for (const event of penaltyEvents) {
+      if (event.ms > sessionTimeMs) continue;
+      for (const driverNumber of event.targets) {
+        byDriver.set(driverNumber, event.state);
       }
     }
-
     return byDriver;
-  }, [raceControl, sessionStartMs, sessionTimeMs]);
+  }, [penaltyEvents, sessionTimeMs]);
 
-  const pitCountMap = useMemo(() => {
-    const m = new Map<number, number>();
-    for (const p of pits) {
-      if (new Date(p.date).getTime() > currentT) continue;
-      m.set(p.driver_number, (m.get(p.driver_number) ?? 0) + 1);
-    }
-    return m;
-  }, [pits, currentT]);
+  const pitIndex = useMemo(
+    () => buildDriverTimeIndex(pits, (p) => new Date(p.date).getTime()),
+    [pits],
+  );
+
+  const pitCountMap = useMemo(
+    () => countPerDriverAt(pitIndex, currentT),
+    [pitIndex, currentT],
+  );
 
   const referenceOrderMap = useMemo(() => {
     const m = new Map<number, number>();
@@ -714,21 +761,15 @@ export function LiveTiming({
     return detectQualiPhase(raceControl, sessionStartMs, sessionTimeMs);
   }, [raceControl, sessionName, sessionStartMs, sessionTimeMs]);
 
-  const qualiPhaseStarts = useMemo(() => {
+  // First occurrence of each qualifying boundary across the whole session.
+  // "First occurrence at or before t" is then just that value when <= t.
+  const qualiPhaseMarkers = useMemo(() => {
     let q2StartMs: number | null = null;
     let q3StartMs: number | null = null;
     let q1EndMs: number | null = null;
     let q2EndMs: number | null = null;
 
-    const sortedRaceControl = [...raceControl].sort(
-      (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime(),
-    );
-
-    for (const entry of sortedRaceControl) {
-      const relMs = new Date(entry.date).getTime() - sessionStartMs;
-      if (relMs > sessionTimeMs) break;
-      const msg = (entry.message ?? "").toUpperCase();
-
+    for (const { entry, relMs, message: msg } of timedRaceControl) {
       if (q2StartMs === null && entry.qualifying_phase === 2) q2StartMs = relMs;
       if (q3StartMs === null && entry.qualifying_phase === 3) q3StartMs = relMs;
 
@@ -764,7 +805,34 @@ export function LiveTiming({
     }
 
     return { q2StartMs, q3StartMs, q1EndMs, q2EndMs };
-  }, [raceControl, sessionStartMs, sessionTimeMs]);
+  }, [timedRaceControl]);
+
+  const qualiPhaseStarts = useMemo(() => {
+    const visible = (ms: number | null) =>
+      ms !== null && ms <= sessionTimeMs ? ms : null;
+    return {
+      q2StartMs: visible(qualiPhaseMarkers.q2StartMs),
+      q3StartMs: visible(qualiPhaseMarkers.q3StartMs),
+      q1EndMs: visible(qualiPhaseMarkers.q1EndMs),
+      q2EndMs: visible(qualiPhaseMarkers.q2EndMs),
+    };
+  }, [qualiPhaseMarkers, sessionTimeMs]);
+
+  // Laps with a start and duration, timestamps parsed once, sorted by end time.
+  const timedLaps = useMemo(
+    () =>
+      laps
+        .filter(
+          (lap): lap is Lap & { date_start: string; lap_duration: number } =>
+            !!lap.date_start && lap.lap_duration !== null,
+        )
+        .map((lap) => {
+          const startMs = new Date(lap.date_start).getTime();
+          return { ...lap, startMs, endMs: startMs + lap.lap_duration * 1000 };
+        })
+        .sort((a, b) => a.endMs - b.endMs),
+    [laps],
+  );
 
   const timedOrder = useMemo(() => {
     const activeDriverNumbers = new Set<number>();
@@ -774,17 +842,6 @@ export function LiveTiming({
     const eliminatedTotal = Math.max(0, fieldSize - Q3_GRID_SIZE);
     const q1EliminationCount = Math.floor(eliminatedTotal / 2);
     const q2EliminationCount = eliminatedTotal - q1EliminationCount;
-
-    const completed = laps
-      .filter(
-        (lap): lap is Lap & { date_start: string; lap_duration: number } =>
-          !!lap.date_start && lap.lap_duration !== null,
-      )
-      .map((lap) => ({
-        ...lap,
-        endMs: new Date(lap.date_start).getTime() + lap.lap_duration * 1000,
-      }))
-      .sort((a, b) => a.endMs - b.endMs);
 
     const referenceAt = (driverNumber: number) =>
       referenceOrderMap.get(driverNumber) ?? Number.MAX_SAFE_INTEGER;
@@ -808,9 +865,9 @@ export function LiveTiming({
 
     const rankAt = (fromAbsMs: number, cutoffAbsMs: number) => {
       const bestByDriver = new Map<number, number>();
-      for (const lap of completed) {
+      for (const lap of timedLaps) {
         if (lap.endMs > cutoffAbsMs) break;
-        if (new Date(lap.date_start).getTime() < fromAbsMs) continue;
+        if (lap.startMs < fromAbsMs) continue;
         const prev = bestByDriver.get(lap.driver_number);
         if (prev === undefined || lap.lap_duration < prev) {
           bestByDriver.set(lap.driver_number, lap.lap_duration);
@@ -884,9 +941,7 @@ export function LiveTiming({
     const q2Ranking = rankAt(
       q2StartAbs ?? Number.NEGATIVE_INFINITY,
       q2CutoffAbs,
-    ).filter(
-      (n) => !eliminatedQ1.includes(n),
-    );
+    ).filter((n) => !eliminatedQ1.includes(n));
     const eliminatedQ2 = q2Ranking.slice(
       Math.max(0, q2Ranking.length - q2EliminationCount),
     );
@@ -903,7 +958,7 @@ export function LiveTiming({
   }, [
     drivers,
     posMap,
-    laps,
+    timedLaps,
     currentT,
     referenceOrderMap,
     sessionName,
@@ -917,15 +972,11 @@ export function LiveTiming({
 
   const completedLaps = useMemo(
     () =>
-      laps.filter(
-        (lap): lap is Lap & { date_start: string; lap_duration: number } => {
-          if (!lap.date_start || lap.lap_duration === null) return false;
-          const lapEndT =
-            new Date(lap.date_start).getTime() + lap.lap_duration * 1000;
-          return lapEndT <= currentT;
-        },
+      timedLaps.slice(
+        0,
+        upperBoundByValue(timedLaps, currentT, (lap) => lap.endMs),
       ),
-    [laps, currentT],
+    [timedLaps, currentT],
   );
 
   // Laps shown in the timing columns. In qualifying each part resets the
@@ -938,7 +989,7 @@ export function LiveTiming({
     const eliminatedQ1 = new Set(timedOrder.eliminatedQ1);
     const eliminatedQ2 = new Set(timedOrder.eliminatedQ2);
     return completedLaps.filter((lap) => {
-      const startMs = new Date(lap.date_start).getTime();
+      const { startMs } = lap;
       if (eliminatedQ1.has(lap.driver_number)) {
         return q2StartAbs === null || startMs < q2StartAbs;
       }
@@ -956,9 +1007,7 @@ export function LiveTiming({
   const currentPartLaps = useMemo(() => {
     const { currentFromAbs } = timedOrder.phaseWindows;
     if (!Number.isFinite(currentFromAbs)) return completedLaps;
-    return completedLaps.filter(
-      (lap) => new Date(lap.date_start).getTime() >= currentFromAbs,
-    );
+    return completedLaps.filter((lap) => lap.startMs >= currentFromAbs);
   }, [completedLaps, timedOrder]);
 
   const lastLapMap = useMemo(() => {
@@ -970,17 +1019,27 @@ export function LiveTiming({
     return m;
   }, [timingLaps]);
 
+  const lapStartIndex = useMemo(
+    () =>
+      buildDriverTimeIndex(
+        laps.filter((l) => !!l.date_start),
+        (l) => new Date(l.date_start!).getTime(),
+      ),
+    [laps],
+  );
+
+  // Lap numbers rise with start time, so the latest started lap is the
+  // current one.
   const currentLapMap = useMemo(() => {
     const m = new Map<number, number>();
-    for (const l of laps) {
-      if (!l.date_start) continue;
-      if (new Date(l.date_start).getTime() <= currentT) {
-        const prev = m.get(l.driver_number) ?? 0;
-        if (l.lap_number > prev) m.set(l.driver_number, l.lap_number);
-      }
+    for (const [driverNumber, lap] of latestPerDriverAt(
+      lapStartIndex,
+      currentT,
+    )) {
+      if (lap.lap_number > 0) m.set(driverNumber, lap.lap_number);
     }
     return m;
-  }, [laps, currentT]);
+  }, [lapStartIndex, currentT]);
 
   const bestLapMap = useMemo(() => {
     const m = new Map<number, Lap & { lap_duration: number }>();
@@ -1152,7 +1211,14 @@ export function LiveTiming({
         isRaceSession(sessionName) && !isTimedSession(sessionName ?? ""),
       retiredDrivers,
     });
-  }, [laps, chequeredMs, sessionStartMs, currentT, sessionName, retiredDrivers]);
+  }, [
+    laps,
+    chequeredMs,
+    sessionStartMs,
+    currentT,
+    sessionName,
+    retiredDrivers,
+  ]);
 
   const sorted = useMemo<SortedRow[]>(() => {
     const timed = isTimedSession(sessionName ?? "");
@@ -1260,12 +1326,39 @@ export function LiveTiming({
     [bestLapMap, intMap, lastLapMap, leaderBestLap, sessionName, sorted],
   );
 
+  // Declared before the snapshot effect so it runs first in the same commit.
   useEffect(() => {
-    const prev = timingCellSnapshotRef.current;
+    const last = lastPlayheadRef.current;
+    const delta = sessionTimeMs - last.t;
+    if (
+      sessionStartMs !== last.start ||
+      delta < 0 ||
+      delta > TIMING_SEEK_JUMP_MS
+    ) {
+      seekPendingRef.current = true;
+    }
+    lastPlayheadRef.current = { t: sessionTimeMs, start: sessionStartMs };
+  }, [sessionTimeMs, sessionStartMs]);
+
+  useEffect(() => {
+    const prev = seekPendingRef.current ? null : timingCellSnapshotRef.current;
     const nextSnapshot: Record<string, string | number | null> = {};
     const activeKeys = new Set<string>();
 
     if (prev === null) {
+      // First render or a seek: re-baseline without flashing or colouring,
+      // and drop any highlight left over from before the jump.
+      seekPendingRef.current = false;
+      for (const timerId of timingCellTimersRef.current.values()) {
+        window.clearTimeout(timerId);
+      }
+      timingCellTimersRef.current.clear();
+      setTimingCellHighlights((current) =>
+        Object.keys(current).length === 0 ? current : {},
+      );
+      setTimingCellTones((current) =>
+        Object.keys(current).length === 0 ? current : {},
+      );
       for (const snapshot of timingCellSnapshots) {
         const driverKey = String(snapshot.driverNumber);
         nextSnapshot[`${driverKey}:bestLap`] = snapshot.bestLapDisplay;
@@ -1311,6 +1404,24 @@ export function LiveTiming({
                 if (current[key] === tone) return current;
                 return { ...current, [key]: tone };
               });
+              const toneTimerKey = `${key}:tone`;
+              const existingToneTimer =
+                timingCellTimersRef.current.get(toneTimerKey);
+              if (existingToneTimer !== undefined) {
+                window.clearTimeout(existingToneTimer);
+              }
+              timingCellTimersRef.current.set(
+                toneTimerKey,
+                window.setTimeout(() => {
+                  setTimingCellTones((current) => {
+                    if (!(key in current)) return current;
+                    const next = { ...current };
+                    delete next[key];
+                    return next;
+                  });
+                  timingCellTimersRef.current.delete(toneTimerKey);
+                }, TIMING_CELL_TONE_MS),
+              );
             }
           }
           continue;
@@ -1343,10 +1454,12 @@ export function LiveTiming({
     if (prev) {
       for (const key of Object.keys(prev)) {
         if (activeKeys.has(key)) continue;
-        const timerId = timingCellTimersRef.current.get(key);
-        if (timerId !== undefined) {
-          window.clearTimeout(timerId);
-          timingCellTimersRef.current.delete(key);
+        for (const timerKey of [key, `${key}:tone`]) {
+          const timerId = timingCellTimersRef.current.get(timerKey);
+          if (timerId !== undefined) {
+            window.clearTimeout(timerId);
+            timingCellTimersRef.current.delete(timerKey);
+          }
         }
         setTimingCellHighlights((current) => {
           if (!(key in current)) return current;
@@ -1451,7 +1564,9 @@ export function LiveTiming({
   const combinedTelemetryWidthClass = showCombinedDrs
     ? "w-[12.5rem]"
     : "w-[11rem]";
-  const pedalBarsWidthClass = compactDriverColumn ? "w-[4.5rem]" : "w-[5.25rem]";
+  const pedalBarsWidthClass = compactDriverColumn
+    ? "w-[4.5rem]"
+    : "w-[5.25rem]";
   const tableMinWidthClass = showTelemetry
     ? compactDriverColumn
       ? "min-w-[62rem]"
@@ -1966,7 +2081,7 @@ export function LiveTiming({
                     title={`Eliminated in ${row.eliminatedPhase}`}
                     className={`inline-flex bg-[#3a214a] text-[#e7c7ff] font-black uppercase tracking-widest ${statusBadgeClass}`}
                   >
-                  {fullWidthTable ? `OUT ${row.eliminatedPhase}` : "OUT"}
+                    {fullWidthTable ? `OUT ${row.eliminatedPhase}` : "OUT"}
                   </span>
                 );
               } else if (retired) {
@@ -1995,7 +2110,7 @@ export function LiveTiming({
                     title="Out lap"
                     className={`bg-[#4b5563] text-[#d0d5dd] font-black uppercase tracking-widest ${statusBadgeClass}`}
                   >
-                  {fullWidthTable ? "OUTLAP" : "OL"}
+                    {fullWidthTable ? "OUTLAP" : "OL"}
                   </span>
                 );
               } else if (inPit) {
