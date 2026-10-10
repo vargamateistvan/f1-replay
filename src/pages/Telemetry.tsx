@@ -28,8 +28,10 @@ import { TELEMETRY_CORNER_ZONE_SETTINGS, useSettings } from "@/stores/settings";
 import { teamColor } from "@/utils/color";
 import { computeDelta, resampleToAxis, smooth } from "@/utils/telemetry";
 import {
+  shortDistanceUnitLabel,
   speedUnitLabel,
   temperatureUnitLabel,
+  toDisplayShortDistanceM,
   toDisplaySpeed,
   toDisplayTemperature,
 } from "@/utils/units";
@@ -166,6 +168,12 @@ interface TrackMarker {
   seg1: readonly number[] | null;
   seg2: readonly number[] | null;
   seg3: readonly number[] | null;
+  lapNo: number | null;
+  lapTime: number | null;
+  pitOutLap: boolean;
+  tyre: LapTyre | null;
+  /** Share of the lap completed at the hovered moment, 0–1. */
+  lapProgress: number;
 }
 
 
@@ -1015,11 +1023,19 @@ export default function Telemetry() {
           seg1: lap?.segments_sector_1 ?? null,
           seg2: lap?.segments_sector_2 ?? null,
           seg3: lap?.segments_sector_3 ?? null,
+          lapNo: entry.lapNo,
+          lapTime: lap?.lap_duration ?? null,
+          pitOutLap: lap?.is_pit_out_lap ?? false,
+          tyre:
+            entry.lapNo !== null
+              ? tyreForLap(stints.data ?? [], entry.driver, entry.lapNo)
+              : null,
+          lapProgress: progress,
         });
       }
       return markers;
     },
-    [trackPreview, xDist, dataA.data, dataB.data, dataC.data, driverA, driverB, driverC, colorFor, acr, timeSForDistM, distMForDriverAtSameTime, sampleAtTimeS, selectedLapA, selectedLapB, selectedLapC, lapLookup],
+    [trackPreview, xDist, dataA.data, dataB.data, dataC.data, driverA, driverB, driverC, colorFor, acr, timeSForDistM, distMForDriverAtSameTime, sampleAtTimeS, selectedLapA, selectedLapB, selectedLapC, lapLookup, stints.data],
   );
 
   const hoveredTrackPoints = useMemo(
@@ -1996,6 +2012,8 @@ export default function Telemetry() {
                   const minS1 = dialogTrackMarkers.reduce<number | null>((m, r) => r.s1 !== null && (m === null || r.s1 < m) ? r.s1 : m, null);
                   const minS2 = dialogTrackMarkers.reduce<number | null>((m, r) => r.s2 !== null && (m === null || r.s2 < m) ? r.s2 : m, null);
                   const minS3 = dialogTrackMarkers.reduce<number | null>((m, r) => r.s3 !== null && (m === null || r.s3 < m) ? r.s3 : m, null);
+                  const minLapTime = dialogTrackMarkers.reduce<number | null>((m, r) => r.lapTime !== null && (m === null || r.lapTime < m) ? r.lapTime : m, null);
+                  const leaderDistM = Math.max(...dialogTrackMarkers.map((r) => r.distM));
                   const sectorTier = (val: number | null, best: number | null): string => {
                     if (val === null) return "bg-panel";
                     if (best !== null && val === best) return "bg-[#9b59f5]";
@@ -2031,7 +2049,60 @@ export default function Telemetry() {
                             >
                               {driverByNumber.get(marker.driver)?.full_name ?? marker.label}
                             </span>
-                            <span className="font-mono text-[10px] text-muted">{formatLapTime(marker.timeS)}</span>
+                            <span className="font-mono text-[10px] text-muted" title="Elapsed lap time at this point">{formatLapTime(marker.timeS)}</span>
+                          </div>
+
+                          {/* Lap summary */}
+                          <div className="mb-2 flex flex-wrap items-center gap-x-3 gap-y-1.5 rounded border border-panel bg-black/20 px-2 py-1.5">
+                            <div>
+                              <div className="text-[8px] uppercase tracking-widest text-muted">
+                                Lap{marker.lapNo !== null ? ` ${marker.lapNo}` : ""}
+                              </div>
+                              <div className="flex items-baseline gap-1.5">
+                                <span
+                                  className={`font-mono text-sm font-bold ${
+                                    marker.lapTime !== null && marker.lapTime === minLapTime && dialogTrackMarkers.length > 1
+                                      ? "text-[#9b59f5]"
+                                      : "text-white"
+                                  }`}
+                                >
+                                  {marker.lapTime !== null ? formatLapTime(marker.lapTime) : "—"}
+                                </span>
+                                {marker.lapTime !== null && minLapTime !== null && marker.lapTime > minLapTime && (
+                                  <span className="font-mono text-[10px] text-f1red">
+                                    +{(marker.lapTime - minLapTime).toFixed(3)}
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+                            {marker.tyre && (
+                              <div
+                                className="flex items-center gap-1"
+                                title={`${marker.tyre.compound} tyre · ${marker.tyre.age} lap${marker.tyre.age === 1 ? "" : "s"} old at lap start · stint ${marker.tyre.stintNumber}`}
+                              >
+                                <span className="scale-75">
+                                  <CompoundRing compound={marker.tyre.compound} />
+                                </span>
+                                <span className="font-mono text-[10px] text-white">
+                                  {marker.tyre.age}L
+                                </span>
+                              </div>
+                            )}
+                            {marker.pitOutLap && (
+                              <span className="rounded-sm border border-panel px-1 text-[8px] font-black uppercase tracking-widest text-muted">
+                                Out lap
+                              </span>
+                            )}
+                            <div className="ml-auto text-right">
+                              <div className="text-[8px] uppercase tracking-widest text-muted">
+                                {Math.round(marker.lapProgress * 100)}% lap
+                              </div>
+                              <div className="font-mono text-[10px] text-white" title="Distance behind the leading car at this moment">
+                                {leaderDistM - marker.distM < 0.5
+                                  ? "Ahead"
+                                  : `−${toDisplayShortDistanceM(leaderDistM - marker.distM, metricSystem).toFixed(0)} ${shortDistanceUnitLabel(metricSystem)}`}
+                              </div>
+                            </div>
                           </div>
 
                           {/* Live telemetry */}
