@@ -1,226 +1,97 @@
 import { useMemo, useState, useEffect, useRef, useCallback } from "react";
-import type { CSSProperties } from "react";
-import {
-  Clock3,
-  CloudRain,
-  Droplets,
-  Gauge,
-  RotateCcw,
-  RotateCw,
-  Search,
-  Settings as SettingsIcon,
-  Thermometer,
-  Wind,
-  ZoomIn,
-  ZoomOut,
-} from "lucide-react";
-import { DriverHeadshot } from "@/components/DriverHeadshot";
 import { ErrorMessage } from "@/components/ErrorMessage";
-import {
-  useCarDataForLap,
-  type TelemetrySample,
-} from "@/hooks/useCarDataForLap";
+import { useCarDataForLap } from "@/hooks/useCarDataForLap";
 import { useCarDataWindow } from "@/hooks/useCarDataWindow";
 import { chunkIndexFor } from "@/hooks/useLocationChunks";
 import { useCoarseTime } from "@/hooks/useCoarseTime";
 import { useStartLightsSound } from "@/hooks/useStartLightsSound";
 import {
   computeTrackAutoRotationDeg,
+  isOffTrackPlaceholder,
   useTrackOutline,
-  locationToSvg,
 } from "@/hooks/useTrackMap";
 import { useMediaQuery } from "@/hooks/useMediaQuery";
 import { buildIndex, interpolateXY } from "@/timeline/interpolate";
-import { isOffTrackPlaceholder } from "@/hooks/useTrackMap";
 import {
   isActiveTrackFlag,
   projectToTimingSectors,
-  resolveFlagForMarshalPost,
-  timingSectorForMarshalPost,
   type TrackFlagState,
 } from "@/timeline/raceControl";
 import { startLightsState } from "@/timeline/startLights";
-import { teamColor } from "@/utils/color";
 import { useSettings } from "@/stores/settings";
-import { resampleToAxis } from "@/utils/telemetry";
-import {
-  speedUnitLabel,
-  toDisplaySpeed,
-  toDisplayTemperature,
-  temperatureUnitLabel,
-  toDisplayWindSpeed,
-  windSpeedUnitLabel,
-} from "@/utils/units";
 import { trackEvent } from "@/lib/analytics";
-import {
-  animateMotion,
-  motionEnabled,
-  pressMotion,
-  tabSwapMotion,
-} from "@/lib/motion";
-import type { CarData, Driver, Location, Stint, Weather } from "@/api/types";
+import { animateMotion, motionEnabled, tabSwapMotion } from "@/lib/motion";
+import type { Driver, Location, Stint, Weather } from "@/api/types";
 import {
   TRACK_SVG_W as SVG_W,
   TRACK_SVG_H as SVG_H,
-  TRACK_SVG_PAD as PAD,
   TRACK_FIT_ZOOM,
-  SECTOR_COLORS,
-  COMPOUND_COLORS,
-  FLAG_COLORS,
-  SAFETY_CAR_NUMBERS,
   FOLLOW_ZOOM_W,
   FOLLOW_ZOOM_H,
-  START_LIGHT_COUNT,
 } from "@/constants";
+import { getCircuitLayout } from "@/data/circuits";
+import { useCircuitGeometry } from "@/hooks/useCircuitGeometry";
 import {
   clampFollowView,
   lerpCameraView,
   type CameraView,
 } from "./trackCamera";
-import { getCircuitLayout } from "@/data/circuits";
-import { useCircuitGeometry } from "@/hooks/useCircuitGeometry";
+import {
+  mapBackgroundColor,
+  normalizeDeg,
+  overlayBackgroundColor,
+} from "./trackMapFormat";
+import {
+  buildBrakingHotspots,
+  buildDeltaSegments,
+  buildElevationSegments,
+  buildHeatSegments,
+  buildMarshalHeatmapSegments,
+  buildTrackGeometry,
+  carDataAt,
+  projectToSvg,
+} from "./trackGeometry";
+import { buildStatusBadges, type ActiveTrackVehicles } from "./statusBadges";
+import { exportTrackSnapshot } from "./exportSnapshot";
+import {
+  DirectionArrows,
+  SectorBoundaryMarkers,
+  SectorClipPaths,
+  StartFinishLine,
+  TrackConditionRibbon,
+  TrackSurface,
+} from "./layers/TrackSurfaceLayers";
+import {
+  MarshalFlagSegments,
+  SectorFlagTints,
+  TrackFlagColors,
+} from "./layers/FlagLayers";
+import {
+  BrakingHotspots,
+  SpeedHeatLayer,
+  TintedSegmentLayer,
+} from "./layers/TelemetryLayers";
+import {
+  CircuitLayoutOverlays,
+  CornerNumbers,
+  MarshalHeatmapLayer,
+  MarshalSectorDots,
+} from "./layers/CircuitLayers";
+import { CarLayer, type CarPosition } from "./layers/CarLayer";
+import { StatusBadges } from "./overlays/StatusBadges";
+import { TrackControls } from "./overlays/TrackControls";
+import { TrackClockPanel, WeatherPanel } from "./overlays/InfoPanels";
+import { FocusedDriverHud, LapSpeedLegend } from "./overlays/FocusedDriverHud";
+import { Compass, SectorChips } from "./overlays/MapCornerWidgets";
 
-// Speed → HSL color: 0 km/h = blue (240°), 150 = green (120°), 300+ = red (0°).
-// Matches the F1 broadcast "speed trace" convention.
-function speedToColor(speed: number): string {
-  const hue = Math.round(240 - Math.min(speed / 300, 1) * 240);
-  return `hsl(${hue},100%,55%)`;
-}
-
-function windDir(deg: number): string {
-  const dirs = [
-    "N",
-    "NNE",
-    "NE",
-    "ENE",
-    "E",
-    "ESE",
-    "SE",
-    "SSE",
-    "S",
-    "SSW",
-    "SW",
-    "WSW",
-    "W",
-    "WNW",
-    "NW",
-    "NNW",
-  ];
-  return dirs[Math.round(deg / 22.5) % 16] ?? "-";
-}
-
-function normalizeDeg(deg: number): number {
-  let value = deg;
-  while (value < -180) value += 360;
-  while (value > 180) value -= 360;
-  return value;
-}
-
-function formatTrackClock(
-  ms: number,
-  timezone: "local" | "utc",
-  localTimeZone?: string,
-): string {
-  const date = new Date(ms);
-  return date.toLocaleTimeString("en-GB", {
-    hour12: false,
-    hour: "2-digit",
-    minute: "2-digit",
-    second: "2-digit",
-    ...(timezone === "utc"
-      ? { timeZone: "UTC" }
-      : localTimeZone
-        ? { timeZone: localTimeZone }
-        : {}),
-  });
-}
-
-function parseGmtOffsetToMinutes(offset: string | null | undefined): number {
-  if (!offset) return 0;
-  const text = offset.trim();
-  const m = /^([+-])?(\d{1,2}):(\d{2})(?::(\d{2}))?$/.exec(text);
-  if (!m) return 0;
-  const sign = m[1] === "-" ? -1 : 1;
-  const hours = Number(m[2]);
-  const mins = Number(m[3]);
-  return sign * (hours * 60 + mins);
-}
-
-function formatTrackTimeZoneId(offsetMinutes: number): string {
-  if (offsetMinutes === 0) return "Etc/UTC";
-  const abs = Math.abs(offsetMinutes);
-  const hh = Math.floor(abs / 60);
-  const mm = abs % 60;
-  if (mm === 0) {
-    // IANA Etc/GMT sign is inverted by convention: UTC+9 => Etc/GMT-9.
-    return `Etc/GMT${offsetMinutes > 0 ? "-" : "+"}${hh}`;
-  }
-  const sign = offsetMinutes < 0 ? "-" : "+";
-  const hourPart = String(hh).padStart(2, "0");
-  const minPart = String(mm).padStart(2, "0");
-  return `UTC${sign}${hourPart}:${minPart}`;
-}
-
-function formatClockAtOffset(ms: number, offsetMinutes: number): string {
-  const shifted = new Date(ms + offsetMinutes * 60_000);
-  return shifted.toLocaleTimeString("en-GB", {
-    hour12: false,
-    hour: "2-digit",
-    minute: "2-digit",
-    second: "2-digit",
-    timeZone: "UTC",
-  });
-}
+export type { ActiveTrackVehicles } from "./statusBadges";
 
 const ROTATION_STEP_DEG = 15;
+const ZOOM_STEP = 0.2;
+const ZOOM_MIN = 0.6;
+const ZOOM_MAX = 3;
 const FOLLOW_CAMERA_FOCUS_ALPHA = 0.35;
 const FOLLOW_CAMERA_RETURN_ALPHA = 0.2;
-
-// Serialize the live SVG to a hi-DPI PNG and trigger a browser download.
-// Uses XMLSerializer → Image → Canvas pipeline — no extra dependencies.
-function exportTrackSnapshot(svgEl: SVGSVGElement): void {
-  const w = svgEl.clientWidth || SVG_W;
-  const h = svgEl.clientHeight || SVG_H;
-  const dpr = window.devicePixelRatio || 1;
-  const svgStr = new XMLSerializer().serializeToString(svgEl);
-  const svgBlob = new Blob([svgStr], { type: "image/svg+xml" });
-  const url = URL.createObjectURL(svgBlob);
-  const img = new Image();
-  img.onload = () => {
-    const canvas = document.createElement("canvas");
-    canvas.width = w * dpr;
-    canvas.height = h * dpr;
-    const ctx = canvas.getContext("2d");
-    if (!ctx) {
-      URL.revokeObjectURL(url);
-      return;
-    }
-    ctx.scale(dpr, dpr);
-    // Fill background so the PNG isn't transparent where the SVG bg is set via CSS.
-    ctx.fillStyle = "#15151e";
-    ctx.fillRect(0, 0, w, h);
-    ctx.drawImage(img, 0, 0, w, h);
-    URL.revokeObjectURL(url);
-    canvas.toBlob((pngBlob) => {
-      if (!pngBlob) return;
-      const a = document.createElement("a");
-      a.href = URL.createObjectURL(pngBlob);
-      a.download = "f1-replay.png";
-      a.click();
-      setTimeout(() => URL.revokeObjectURL(a.href), 1_000);
-    }, "image/png");
-  };
-  img.onerror = () => URL.revokeObjectURL(url);
-  img.src = url;
-}
-
-export interface ActiveTrackVehicles {
-  safetyCar: boolean;
-  vsc: boolean;
-  medicalCar: boolean;
-  formationLap?: boolean;
-  chequeredFlag?: boolean;
-}
 
 interface Props {
   readonly sessionKey: number | null;
@@ -262,89 +133,12 @@ interface Props {
   readonly onOpenSettings?: () => void;
 }
 
-const SPECIAL_TRACK_VEHICLES: Record<
-  number,
-  {
-    shortLabel: string;
-    fullLabel: string;
-    fill: string;
-    stroke: string;
-    text: string;
-    /** Marker text colour in dark mode; falls back to `text`. */
-    textDark?: string;
-    halo: string;
-  }
-> = {
-  // Both safety cars share one presentation; whichever is deployed for the
-  // event is the one that reports real coordinates.
-  241: {
-    shortLabel: "SC",
-    fullLabel: "SAFETY CAR",
-    fill: "#f5a623",
-    stroke: "#7a5400",
-    text: "#101010",
-    textDark: "#ffffff",
-    halo: "rgba(245,166,35,0.55)",
-  },
-  242: {
-    shortLabel: "SC",
-    fullLabel: "SAFETY CAR",
-    fill: "#f5a623",
-    stroke: "#7a5400",
-    text: "#101010",
-    textDark: "#ffffff",
-    halo: "rgba(245,166,35,0.55)",
-  },
-  243: {
-    shortLabel: "SC",
-    fullLabel: "SAFETY CAR",
-    fill: "#f5a623",
-    stroke: "#7a5400",
-    text: "#101010",
-    textDark: "#ffffff",
-    halo: "rgba(245,166,35,0.55)",
-  },
-  244: {
-    shortLabel: "MC",
-    fullLabel: "MEDICAL CAR",
-    fill: "#e8002d",
-    stroke: "#5f121d",
-    text: "#ffffff",
-    halo: "rgba(232,0,45,0.55)",
-  },
-};
-
-// Same #111/#fff checker as the finish line and the timing-tower FIN chip.
-const CHEQUERED_SWATCH_STYLE: CSSProperties = {
-  backgroundColor: "#fff",
-  backgroundImage:
-    "conic-gradient(#111 25%, transparent 0 50%, #111 0 75%, transparent 0)",
-  backgroundSize: "5px 5px",
-};
-
-const START_LIGHT_ON_STYLE: CSSProperties = {
-  background: "#e8002d",
-  boxShadow:
-    "0 0 6px 2px rgba(232,0,45,0.65), inset 0 1px 0 rgba(255,100,100,0.35)",
-};
-
-const START_LIGHT_OFF_STYLE: CSSProperties = {
-  background: "#1e0808",
-  boxShadow: "inset 0 0 0 1px #3a1414",
-};
-
-interface StatusBadge {
-  key: string;
-  label: string;
-  bg: string;
-  border: string;
-  text: string;
-  driver?: Driver;
-  chequered?: boolean;
-  /** Start-light gantry: lights currently on. Rendered without text; `label` is its accessible name. */
-  lightsLit?: number;
-}
-
+/**
+ * Orchestrates the track map: owns data hooks, zoom/rotation state and the
+ * follow camera, then composes memoized SVG layers (`layers/`) and HTML
+ * overlays (`overlays/`). Session-static layers only re-render when their
+ * inputs change; the car layer and camera are the per-tick work.
+ */
 export function TrackMap({
   sessionKey,
   drivers,
@@ -392,6 +186,7 @@ export function TrackMap({
   const isCompactViewport = useMediaQuery("(max-width: 767px)");
   const [zoomLevel, setZoomLevel] = useState(TRACK_FIT_ZOOM);
   const [rotationDeg, setRotationDeg] = useState(0);
+  const svgRef = useRef<SVGSVGElement>(null);
   const prevFocusDriverRef = useRef<number | null>(focusDriver);
   const cameraViewRef = useRef<CameraView>({ x: 0, y: 0, w: SVG_W, h: SVG_H });
 
@@ -439,53 +234,8 @@ export function TrackMap({
     [zoomStorageKey],
   );
 
-  const setRotation = useCallback((next: number) => {
-    setRotationDeg(normalizeDeg(next));
-  }, []);
-
-  const mapBackground = lightMode ? "#f7f9fe" : "#15151e";
-  const overlayBackground = lightMode
-    ? "rgba(247,249,254,0.9)"
-    : "rgba(21,21,30,0.82)";
-  const hudBackground = lightMode
-    ? "rgba(247,249,254,0.94)"
-    : "rgba(21,21,30,0.85)";
-  const weatherOverlayClass = lightMode
-    ? weatherOverlay?.rainfall && weatherOverlay.rainfall > 0
-      ? "border-l-sky-500 bg-[linear-gradient(135deg,rgba(137,186,255,0.38)_0%,rgba(238,241,250,0.95)_55%)]"
-      : "border-l-[#9ca6bc] bg-[linear-gradient(135deg,rgba(187,193,209,0.45)_0%,rgba(238,241,250,0.95)_55%)]"
-    : weatherOverlay?.rainfall && weatherOverlay.rainfall > 0
-      ? "border-l-sky-400 bg-[linear-gradient(135deg,rgba(18,40,74,0.45)_0%,rgba(21,21,30,0.95)_55%)]"
-      : "border-l-[#4b4b57] bg-[linear-gradient(135deg,rgba(34,36,50,0.45)_0%,rgba(21,21,30,0.95)_55%)]";
-  const speedUnit = speedUnitLabel(metricSystem);
-  const tempUnit = temperatureUnitLabel(metricSystem);
-  const windUnit = windSpeedUnitLabel(metricSystem);
-  const trackOffsetMinutes = useMemo(
-    () => parseGmtOffsetToMinutes(sessionGmtOffset),
-    [sessionGmtOffset],
-  );
-  const trackTimeZoneId = useMemo(
-    () => formatTrackTimeZoneId(trackOffsetMinutes),
-    [trackOffsetMinutes],
-  );
-  const browserTimeZone = useMemo(
-    () => Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC",
-    [],
-  );
-  const trackClock = useMemo(
-    () =>
-      formatClockAtOffset(sessionStartMs + Math.max(0, t), trackOffsetMinutes),
-    [sessionStartMs, t, trackOffsetMinutes],
-  );
-  const localClock = useMemo(
-    () =>
-      formatTrackClock(
-        sessionStartMs + Math.max(0, t),
-        "local",
-        browserTimeZone,
-      ),
-    [browserTimeZone, sessionStartMs, t],
-  );
+  const mapBackground = mapBackgroundColor(lightMode);
+  const overlayBackground = overlayBackgroundColor(lightMode);
 
   // Rolling 5-min car_data window for the focused driver — drives the live HUD overlay.
   const chunkIdx = chunkIndexFor(t);
@@ -571,47 +321,11 @@ export function TrackMap({
     [circuitShortName],
   );
 
-  // Memoize the SVG path string and shared coordinate transform — only changes when
-  // the track outline itself changes (once per session), not on every frame.
-  const trackGeometry = useMemo(() => {
-    if (!outline) return null;
-    const { points, bounds } = outline;
-    const innerW = SVG_W - PAD * 2;
-    const innerH = SVG_H - PAD * 2;
-
-    const svgPts = points.map((p) => {
-      const { sx, sy } = locationToSvg(p.x, p.y, bounds, innerW, innerH);
-      return { sx: sx + PAD, sy: sy + PAD };
-    });
-    const n = svgPts.length;
-    const get = (i: number) => svgPts[((i % n) + n) % n]!;
-    let pathData = `M${get(0).sx.toFixed(1)},${get(0).sy.toFixed(1)}`;
-    for (let i = 0; i < n; i++) {
-      const p0 = get(i - 1),
-        p1 = get(i),
-        p2 = get(i + 1),
-        p3 = get(i + 2);
-      const cp1x = p1.sx + (p2.sx - p0.sx) / 6;
-      const cp1y = p1.sy + (p2.sy - p0.sy) / 6;
-      const cp2x = p2.sx - (p3.sx - p1.sx) / 6;
-      const cp2y = p2.sy - (p3.sy - p1.sy) / 6;
-      pathData += ` C${cp1x.toFixed(1)},${cp1y.toFixed(1)} ${cp2x.toFixed(1)},${cp2y.toFixed(1)} ${p2.sx.toFixed(1)},${p2.sy.toFixed(1)}`;
-    }
-    pathData += " Z";
-
-    // Normalized cumulative arc length for each outline point — used to map
-    // telemetry distance (0–1) onto track geometry for the speed heat overlay.
-    const arcLengths: number[] = [0];
-    for (let i = 0; i < svgPts.length - 1; i++) {
-      const dx = svgPts[i + 1]!.sx - svgPts[i]!.sx;
-      const dy = svgPts[i + 1]!.sy - svgPts[i]!.sy;
-      arcLengths.push(arcLengths[i]! + Math.sqrt(dx * dx + dy * dy));
-    }
-    const totalArc = arcLengths[arcLengths.length - 1] || 1;
-    const normArc = arcLengths.map((l) => l / totalArc);
-
-    return { pathData, bounds, innerW, innerH, svgPts, normArc };
-  }, [outline]);
+  // SVG path + coordinate transform — changes once per session, not per frame.
+  const trackGeometry = useMemo(
+    () => (outline ? buildTrackGeometry(outline) : null),
+    [outline],
+  );
 
   const defaultRotationDeg = useMemo(
     () =>
@@ -622,14 +336,6 @@ export function TrackMap({
         : computeTrackAutoRotationDeg(outline?.points ?? [], true),
     [circuitGeom, outline],
   );
-
-  const rotateLeft = useCallback(() => {
-    setRotation(rotationDeg - ROTATION_STEP_DEG);
-  }, [rotationDeg, setRotation]);
-
-  const rotateRight = useCallback(() => {
-    setRotation(rotationDeg + ROTATION_STEP_DEG);
-  }, [rotationDeg, setRotation]);
 
   useEffect(() => {
     if (isCompactViewport) {
@@ -649,7 +355,7 @@ export function TrackMap({
       const parsedZoom = savedZoom === null ? Number.NaN : Number(savedZoom);
       setZoomLevel(
         Number.isFinite(parsedZoom)
-          ? Math.min(3, Math.max(0.6, parsedZoom))
+          ? Math.min(ZOOM_MAX, Math.max(ZOOM_MIN, parsedZoom))
           : TRACK_FIT_ZOOM,
       );
 
@@ -659,6 +365,35 @@ export function TrackMap({
       setRotationDeg(defaultRotationDeg);
     }
   }, [isCompactViewport, zoomStorageKey, defaultRotationDeg]);
+
+  const rotateBy = useCallback(
+    (direction: "left" | "right") => {
+      trackEvent("trackmap_rotation_changed", { direction });
+      const step =
+        direction === "left" ? -ROTATION_STEP_DEG : ROTATION_STEP_DEG;
+      setRotationDeg(normalizeDeg(rotationDeg + step));
+    },
+    [rotationDeg],
+  );
+  const rotateLeft = useCallback(() => rotateBy("left"), [rotateBy]);
+  const rotateRight = useCallback(() => rotateBy("right"), [rotateBy]);
+
+  const zoomBy = useCallback(
+    (delta: number) => {
+      const next = Math.min(ZOOM_MAX, Math.max(ZOOM_MIN, zoomLevel + delta));
+      setZoomLevel(next);
+      persistZoomLevel(next);
+      trackEvent("trackmap_zoom_changed", { zoom: next });
+    },
+    [zoomLevel, persistZoomLevel],
+  );
+  const zoomOut = useCallback(() => zoomBy(-ZOOM_STEP), [zoomBy]);
+  const zoomIn = useCallback(() => zoomBy(ZOOM_STEP), [zoomBy]);
+  const zoomReset = useCallback(() => {
+    trackEvent("trackmap_zoom_reset");
+    setZoomLevel(TRACK_FIT_ZOOM);
+    persistZoomLevel(TRACK_FIT_ZOOM);
+  }, [persistZoomLevel]);
 
   // Fetch telemetry for the focused driver's last completed lap.
   // Only fires when a driver is focused and a lap number is known; result is
@@ -674,876 +409,63 @@ export function TrackMap({
     focusDriverLap != null && focusDriverLap > 1 ? focusDriverLap - 1 : null,
   );
 
-  // Map telemetry distance onto track arc positions to build colored segments.
-  const heatSegments = useMemo(() => {
-    const samples = heatData.data;
-    if (!trackGeometry || !samples?.length) return [];
-    const { svgPts, normArc } = trackGeometry;
-    const totalDist = samples[samples.length - 1]!.distM || 1;
-
-    return svgPts.slice(0, -1).map((pt, i) => {
-      // Mid-point normalized position of this segment
-      const midNorm = (normArc[i]! + normArc[i + 1]!) / 2;
-      const targetDist = midNorm * totalDist;
-      // Binary search for the closest sample at this distance
-      let lo = 0,
-        hi = samples.length - 1;
-      while (lo < hi) {
-        const mid = (lo + hi) >>> 1;
-        if (samples[mid]!.distM < targetDist) lo = mid + 1;
-        else hi = mid;
-      }
-      const sample = samples[lo] ?? samples[samples.length - 1]!;
-      return {
-        x1: pt.sx,
-        y1: pt.sy,
-        x2: svgPts[i + 1]!.sx,
-        y2: svgPts[i + 1]!.sy,
-        speed: sample.speed,
-      };
-    });
-  }, [trackGeometry, heatData.data]);
-
-  const elevationSegments = useMemo(() => {
-    if (!trackGeometry || !hasBaked) return [];
-    const referenceDriver = focusDriver ?? drivers[0]?.driver_number ?? null;
-    if (referenceDriver == null) return [];
-
-    const samples = locationData
-      .filter((loc) => loc.driver_number === referenceDriver)
-      .map((loc) => ({
-        t: new Date(loc.date).getTime(),
-        x: loc.x,
-        y: loc.y,
-        z: loc.z,
-      }))
-      .sort((a, b) => a.t - b.t);
-
-    if (samples.length < 2) return [];
-
-    const cumulative: number[] = [0];
-    for (let i = 1; i < samples.length; i++) {
-      const prev = samples[i - 1]!;
-      const curr = samples[i]!;
-      cumulative.push(
-        cumulative[i - 1]! + Math.hypot(curr.x - prev.x, curr.y - prev.y),
-      );
-    }
-
-    const totalDist = cumulative.at(-1) || 1;
-    if (totalDist <= 0) return [];
-
-    const normSamples = samples.map((sample, i) => ({
-      norm: cumulative[i]! / totalDist,
-      z: sample.z,
-    }));
-
-    let minZ = Number.POSITIVE_INFINITY;
-    let maxZ = Number.NEGATIVE_INFINITY;
-    for (const sample of normSamples) {
-      if (sample.z < minZ) minZ = sample.z;
-      if (sample.z > maxZ) maxZ = sample.z;
-    }
-
-    const zRange = maxZ - minZ;
-    if (!Number.isFinite(zRange) || zRange < 0.5) return [];
-
-    const { svgPts, normArc } = trackGeometry;
-    return svgPts.slice(0, -1).map((pt, i) => {
-      const next = svgPts[i + 1]!;
-      const midNorm = (normArc[i]! + normArc[i + 1]!) / 2;
-      let lo = 0;
-      let hi = normSamples.length - 1;
-      while (lo < hi) {
-        const mid = (lo + hi) >>> 1;
-        if (normSamples[mid]!.norm < midNorm) lo = mid + 1;
-        else hi = mid;
-      }
-
-      const sample = normSamples[lo] ?? normSamples.at(-1)!;
-      const rawRatio = (sample.z - minZ) / zRange;
-      const ratio = Number.isFinite(rawRatio)
-        ? Math.max(0, Math.min(rawRatio, 1))
-        : 0;
-      const hue = Math.round(220 - ratio * 190);
-      const lightness = lightMode ? 42 : 58;
-      return {
-        x1: pt.sx,
-        y1: pt.sy,
-        x2: next.sx,
-        y2: next.sy,
-        color: `hsl(${hue},78%,${lightness}%)`,
-        opacity: 0.14 + ratio * 0.34,
-      };
-    });
-  }, [trackGeometry, hasBaked, focusDriver, drivers, locationData, lightMode]);
-
-  const deltaSegments = useMemo(() => {
-    const currentSamples = heatData.data;
-    const referenceSamples = referenceHeatData.data;
-    if (
-      !trackGeometry ||
-      !currentSamples?.length ||
-      !referenceSamples?.length
-    ) {
-      return [];
-    }
-
-    const resampledReference = resampleToAxis(currentSamples, referenceSamples);
-    const { svgPts, normArc } = trackGeometry;
-    const totalDist = currentSamples.at(-1)?.distM || 1;
-
-    return svgPts.slice(0, -1).map((pt, i) => {
-      const midNorm = (normArc[i]! + normArc[i + 1]!) / 2;
-      const targetDist = midNorm * totalDist;
-      let lo = 0;
-      let hi = currentSamples.length - 1;
-      while (lo < hi) {
-        const mid = (lo + hi) >>> 1;
-        if (currentSamples[mid]!.distM < targetDist) lo = mid + 1;
-        else hi = mid;
-      }
-      const current = currentSamples[lo] ?? currentSamples.at(-1)!;
-      const reference = resampledReference[lo] ?? resampledReference.at(-1)!;
-      const deltaS = reference.timeS - current.timeS;
-      const rawIntensity = Math.abs(deltaS) / 0.18;
-      const intensity = Number.isFinite(rawIntensity)
-        ? Math.min(rawIntensity, 1)
-        : 0;
-      return {
-        x1: pt.sx,
-        y1: pt.sy,
-        x2: svgPts[i + 1]!.sx,
-        y2: svgPts[i + 1]!.sy,
-        color: deltaS >= 0 ? "#33d17a" : "#ff5b6e",
-        opacity: 0.1 + intensity * 0.38,
-      };
-    });
-  }, [trackGeometry, heatData.data, referenceHeatData.data]);
-
-  const brakingHotspots = useMemo(() => {
-    const samples = heatData.data;
-    if (!trackGeometry || !samples?.length) return [];
-
-    const totalDist = samples.at(-1)?.distM || 1;
-    const peaks: TelemetrySample[] = [];
-    let currentPeak: TelemetrySample | null = null;
-
-    for (const sample of samples) {
-      const hardBrake = sample.brake >= 72 && sample.speed >= 90;
-      if (hardBrake) {
-        if (!currentPeak || sample.brake > currentPeak.brake) {
-          currentPeak = sample;
-        }
-      } else if (currentPeak) {
-        peaks.push(currentPeak);
-        currentPeak = null;
-      }
-    }
-    if (currentPeak) peaks.push(currentPeak);
-
-    const { svgPts, normArc } = trackGeometry;
-    return peaks.slice(0, 8).map((sample, index) => {
-      const sampleNorm = totalDist > 0 ? sample.distM / totalDist : 0;
-      const pointIndex = normArc.findIndex((value) => value >= sampleNorm);
-      const point =
-        svgPts[pointIndex === -1 ? svgPts.length - 1 : pointIndex] ??
-        svgPts[0]!;
-      const rawIntensity = (sample.brake - 70) / 30;
-      const intensity = Number.isFinite(rawIntensity)
-        ? Math.max(0, Math.min(rawIntensity, 1))
-        : 0;
-      return {
-        key: `brake-hotspot-${index}-${sample.distM.toFixed(0)}`,
-        x: point.sx,
-        y: point.sy,
-        radius: 4 + intensity * 5,
-        opacity: 0.14 + intensity * 0.24,
-      };
-    });
-  }, [trackGeometry, heatData.data]);
-
-  const heatStats = useMemo(() => {
-    const samples = heatData.data;
-    if (!samples?.length) return null;
-    let min = Number.POSITIVE_INFINITY;
-    let max = Number.NEGATIVE_INFINITY;
-    let sum = 0;
-    for (const sample of samples) {
-      const speed = sample.speed;
-      if (speed < min) min = speed;
-      if (speed > max) max = speed;
-      sum += speed;
-    }
-    const avg = sum / samples.length;
-    return {
-      min: Math.round(toDisplaySpeed(min, metricSystem)),
-      avg: Math.round(toDisplaySpeed(avg, metricSystem)),
-      max: Math.round(toDisplaySpeed(max, metricSystem)),
-    };
-  }, [heatData.data, metricSystem]);
-
-  // Start/finish marker anchored to the first outline segment.
-  const startFinishOverlay = useMemo(() => {
-    if (!trackGeometry || trackGeometry.svgPts.length < 2) return null;
-    const p0 = trackGeometry.svgPts[0]!;
-    const p1 = trackGeometry.svgPts[1]!;
-    const dx = p1.sx - p0.sx;
-    const dy = p1.sy - p0.sy;
-    const len = Math.hypot(dx, dy) || 1;
-    const nx = -dy / len;
-    const ny = dx / len;
-    const half = 7;
-    const cx = p0.sx;
-    const cy = p0.sy;
-    const x1 = cx + nx * half;
-    const y1 = cy + ny * half;
-    const x2 = cx - nx * half;
-    const y2 = cy - ny * half;
-    return (
-      <g>
-        <line
-          x1={x1}
-          y1={y1}
-          x2={x2}
-          y2={y2}
-          stroke={lightMode ? "#111318" : "#f2f4fb"}
-          strokeWidth={4}
-          strokeLinecap="round"
-          opacity={0.95}
-        />
-        <line
-          x1={x1}
-          y1={y1}
-          x2={x2}
-          y2={y2}
-          stroke={`url(#${finishPatternId})`}
-          strokeWidth={6}
-          strokeLinecap="round"
-          opacity={1}
-        />
-      </g>
-    );
-  }, [trackGeometry, lightMode, finishPatternId]);
-
-  const sectorBoundaryOverlays = useMemo(() => {
-    if (!trackGeometry || trackGeometry.svgPts.length < 6) return null;
-    const { svgPts, normArc } = trackGeometry;
-
-    const markerFor = (target: number, label: "S1" | "S2") => {
-      const idx = Math.max(
-        1,
-        normArc.findIndex((value) => value >= target),
-      );
-      if (idx <= 0) return null;
-      const point = svgPts[idx]!;
-      const prev = svgPts[idx - 1]!;
-      const dx = point.sx - prev.sx;
-      const dy = point.sy - prev.sy;
-      const len = Math.hypot(dx, dy) || 1;
-      const nx = -dy / len;
-      const ny = dx / len;
-      const half = 6.5;
-      const x1 = point.sx + nx * half;
-      const y1 = point.sy + ny * half;
-      const x2 = point.sx - nx * half;
-      const y2 = point.sy - ny * half;
-      const lx = point.sx + nx * 9.8;
-      const ly = point.sy + ny * 9.8;
-
-      return (
-        <g key={`sector-boundary-${label}`}>
-          <line
-            x1={x1}
-            y1={y1}
-            x2={x2}
-            y2={y2}
-            stroke="#9aa4be"
-            strokeWidth={3}
-            strokeLinecap="round"
-            opacity={0.82}
-          />
-          <circle
-            cx={point.sx}
-            cy={point.sy}
-            r={3.1}
-            fill={mapBackground}
-            stroke="#aeb8cf"
-            strokeWidth={0.8}
-            opacity={0.95}
-          />
-          <text
-            x={lx}
-            y={ly}
-            transform={`rotate(${-rotationDeg.toFixed(1)} ${lx.toFixed(1)} ${ly.toFixed(1)})`}
-            textAnchor="middle"
-            dominantBaseline="middle"
-            fontSize={4.8}
-            fill={lightMode ? "#2a3246" : "#d4dbee"}
-            fontFamily="Inter, sans-serif"
-            fontWeight="900"
-            letterSpacing="0.04em"
-          >
-            {label}
-          </text>
-        </g>
-      );
-    };
-
-    return (
-      <>
-        {markerFor(1 / 3, "S1")}
-        {markerFor(2 / 3, "S2")}
-      </>
-    );
-  }, [trackGeometry, mapBackground, rotationDeg, lightMode]);
-
-  const directionArrows = useMemo(() => {
-    if (!trackGeometry || trackGeometry.svgPts.length < 12) return null;
-    const { svgPts } = trackGeometry;
-    const count = 10;
-
-    return (
-      <>
-        {Array.from({ length: count }, (_, i) => {
-          const idx = Math.floor((i / count) * (svgPts.length - 1));
-          const point = svgPts[idx]!;
-          const next = svgPts[(idx + 1) % svgPts.length]!;
-          const angle =
-            (Math.atan2(next.sy - point.sy, next.sx - point.sx) * 180) /
-            Math.PI;
-          return (
-            <g
-              key={`arrow-${idx}`}
-              transform={`translate(${point.sx.toFixed(1)} ${point.sy.toFixed(1)}) rotate(${angle.toFixed(1)})`}
-              opacity={0.62}
-            >
-              <path
-                d="M-3.4,-1.5 L2.8,0 L-3.4,1.5"
-                fill="none"
-                stroke={lightMode ? "#303647" : "#d8deee"}
-                strokeWidth={0.9}
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              />
-            </g>
-          );
-        })}
-      </>
-    );
-  }, [trackGeometry, lightMode]);
-
-  // Corner number labels from baked geometry — offset outside the ribbon via
-  // perpendicular normal at the nearest track point; counter-rotated so they
-  // stay horizontal regardless of track rotation.
-  const cornerOverlays = useMemo(() => {
-    if (!trackGeometry || !circuitGeom || !circuitGeom.corners.length)
-      return null;
-    const { bounds, innerW, innerH, svgPts } = trackGeometry;
-    const OFFSET = 16; // px outside the track ribbon
-
-    // Define defs for shadows
-    const defs = (
-      <defs>
-        <filter id="cornerShadow" x="-50%" y="-50%" width="200%" height="200%">
-          <feDropShadow
-            dx="0"
-            dy="0.8"
-            stdDeviation="1"
-            floodOpacity={lightMode ? "0.2" : "0.5"}
-          />
-        </filter>
-      </defs>
-    );
-
-    return (
-      <>
-        {defs}
-        {circuitGeom.corners.map((corner) => {
-          // Project corner apex into SVG space
-          const { sx: apexSx, sy: apexSy } = locationToSvg(
-            corner.trackPosition.x,
-            corner.trackPosition.y,
-            bounds,
-            innerW,
-            innerH,
-          );
-
-          // Find nearest svgPts index
-          let bestIdx = 0;
-          let bestDist = Infinity;
-          for (let j = 0; j < svgPts.length; j++) {
-            const dx = svgPts[j]!.sx - apexSx;
-            const dy = svgPts[j]!.sy - apexSy;
-            const d = dx * dx + dy * dy;
-            if (d < bestDist) {
-              bestDist = d;
-              bestIdx = j;
-            }
-          }
-
-          // Perpendicular normal at that point
-          const prev = svgPts[Math.max(0, bestIdx - 1)]!;
-          const next = svgPts[Math.min(svgPts.length - 1, bestIdx + 1)]!;
-          const tdx = next.sx - prev.sx;
-          const tdy = next.sy - prev.sy;
-          const tlen = Math.hypot(tdx, tdy) || 1;
-          // Left-hand normal (points to the outside for CW circuits)
-          const nx = -tdy / tlen;
-          const ny = tdx / tlen;
-
-          const cx = apexSx + PAD + nx * OFFSET;
-          const cy = apexSy + PAD + ny * OFFSET;
-
-          const label = `${corner.number}${corner.letter}`;
-
-          return (
-            <text
-              key={`corner-${corner.number}${corner.letter}`}
-              x={cx}
-              y={cy}
-              transform={`rotate(${-rotationDeg.toFixed(1)} ${cx.toFixed(1)} ${cy.toFixed(1)})`}
-              textAnchor="middle"
-              dominantBaseline="middle"
-              fontSize={5}
-              fill={lightMode ? "#1e40af" : "#fbbf24"}
-              stroke={lightMode ? "rgba(255,255,255,0.8)" : "rgba(0,0,0,0.3)"}
-              strokeWidth={0.4}
-              fontFamily="Inter, sans-serif"
-              fontWeight="700"
-              letterSpacing="0.02em"
-              filter="url(#cornerShadow)"
-              style={{ paintOrder: "stroke" }}
-            >
-              {label}
-            </text>
-          );
-        })}
-      </>
-    );
-  }, [trackGeometry, circuitGeom, rotationDeg, lightMode]);
-
-  // Marshal sector tick marks from baked geometry.
-  // Coloured by timing-sector (S1/S2/S3) based on which third of the circuit each belongs to.
-  const marshalSectorOverlays = useMemo(() => {
-    if (!trackGeometry || !circuitGeom || !circuitGeom.marshalSectors.length)
-      return null;
-    const { bounds, innerW, innerH } = trackGeometry;
-    const total = circuitGeom.marshalSectors.length;
-    return (
-      <>
-        {circuitGeom.marshalSectors.map((ms) => {
-          const { sx, sy } = locationToSvg(
-            ms.trackPosition.x,
-            ms.trackPosition.y,
-            bounds,
-            innerW,
-            innerH,
-          );
-          const cx = sx + PAD,
-            cy = sy + PAD;
-          const sector = timingSectorForMarshalPost(ms.number, total);
-          const color = SECTOR_COLORS[sector];
-          return (
-            <circle
-              key={`ms-${ms.number}`}
-              cx={cx}
-              cy={cy}
-              r={2.5}
-              fill={color}
-              fillOpacity={0.35}
-              stroke={color}
-              strokeWidth={0.6}
-              strokeOpacity={0.6}
-            />
-          );
-        })}
-      </>
-    );
-  }, [trackGeometry, circuitGeom]);
-
-  // Marshal-sector heatmap: paints each of the ~15-22 individual marshal posts
-  // as a distinct arc segment on the track ribbon, colored by timing sector
-  // (S1=red, S2=yellow, S3=blue) with alternating opacity so adjacent posts are
-  // visually separable. Hidden by default — enabled via Settings → Track Map.
-  const marshalHeatmapSegments = useMemo(() => {
-    if (!trackGeometry || !circuitGeom?.marshalSectors.length) return [];
-    const { bounds, innerW, innerH, svgPts, normArc } = trackGeometry;
-    const total = circuitGeom.marshalSectors.length;
-
-    // Map each marshal sector to the nearest svgPts index → normArc position.
-    const postArcs = circuitGeom.marshalSectors.map((ms, i) => {
-      const { sx, sy } = locationToSvg(
-        ms.trackPosition.x,
-        ms.trackPosition.y,
-        bounds,
-        innerW,
-        innerH,
-      );
-      let bestIdx = 0;
-      let bestDist = Infinity;
-      for (let j = 0; j < svgPts.length; j++) {
-        const dx = svgPts[j]!.sx - sx;
-        const dy = svgPts[j]!.sy - sy;
-        const d = dx * dx + dy * dy;
-        if (d < bestDist) {
-          bestDist = d;
-          bestIdx = j;
-        }
-      }
-      const sector = timingSectorForMarshalPost(ms.number, total);
-      return {
-        arc: normArc[bestIdx]!,
-        sector,
-        index: i,
-        marshalNumber: ms.number,
-      };
-    });
-
-    postArcs.sort((a, b) => a.arc - b.arc);
-
-    return postArcs.map((post, i) => {
-      const next = postArcs[i + 1];
-      const arcStart = post.arc;
-      const arcEnd = next ? next.arc : 1;
-      const len = Math.max(arcEnd - arcStart, 0.001);
-      return {
-        arcStart,
-        len,
-        sector: post.sector,
-        index: post.index,
-        marshalNumber: post.marshalNumber,
-        i,
-      };
-    });
-  }, [trackGeometry, circuitGeom]);
-
-  // Memoize DRS + legacy sector rectangles (shown only when no baked geometry).
-  const staticOverlays = useMemo(() => {
-    if (!trackGeometry) return null;
-    const { bounds, innerW, innerH } = trackGeometry;
-    const drsElements =
-      circuitLayout?.drsZones.map((zone, idx) => {
-        const { sx: sx1, sy: sy1 } = locationToSvg(
-          zone.line.x1,
-          zone.line.y1,
-          bounds,
-          innerW,
-          innerH,
-        );
-        const { sx: sx2, sy: sy2 } = locationToSvg(
-          zone.line.x2,
-          zone.line.y2,
-          bounds,
-          innerW,
-          innerH,
-        );
-        return (
-          <g key={`drs-${idx}`}>
-            <line
-              x1={sx1 + PAD}
-              y1={sy1 + PAD}
-              x2={sx2 + PAD}
-              y2={sy2 + PAD}
-              stroke="#4da6ff"
-              strokeWidth={3}
-              opacity={0.8}
-            />
-            <circle cx={sx1 + PAD} cy={sy1 + PAD} r={2.5} fill="#4da6ff" />
-          </g>
-        );
-      }) ?? [];
-
-    // Legacy sector rectangles — only when no baked marshal sectors available.
-    const sectorRects =
-      !hasBaked && circuitLayout
-        ? circuitLayout.sectors.map((sector) => {
-            const { sx: sx1, sy: sy1 } = locationToSvg(
-              sector.bounds.minX,
-              sector.bounds.minY,
-              bounds,
-              innerW,
-              innerH,
-            );
-            const { sx: sx2, sy: sy2 } = locationToSvg(
-              sector.bounds.maxX,
-              sector.bounds.maxY,
-              bounds,
-              innerW,
-              innerH,
-            );
-            const x = Math.min(sx1, sx2) + PAD,
-              y = Math.min(sy1, sy2) + PAD;
-            const w = Math.abs(sx2 - sx1),
-              h = Math.abs(sy2 - sy1);
-            return (
-              <g key={`sector-${sector.number}`} opacity={0.15}>
-                <rect
-                  x={x}
-                  y={y}
-                  width={w}
-                  height={h}
-                  fill={SECTOR_COLORS[sector.number]}
-                />
-                <text
-                  x={x + w / 2}
-                  y={y + h / 2}
-                  textAnchor="middle"
-                  dominantBaseline="middle"
-                  fontSize={9}
-                  fill={SECTOR_COLORS[sector.number]}
-                  fontWeight="bold"
-                  fontFamily="Inter, sans-serif"
-                >
-                  S{sector.number}
-                </text>
-              </g>
-            );
-          })
-        : [];
-
-    if (!drsElements.length && !sectorRects.length) return null;
-    return (
-      <>
-        {sectorRects}
-        {drsElements}
-      </>
-    );
-  }, [trackGeometry, circuitLayout, hasBaked]);
-
-  // Flag tint overlaid when a flag is active.
-  // With baked geometry: precise colored dots at each marshal sector position.
-  // Fallback: rectangle tints over legacy sector boxes.
-  const sectorFlagTints = useMemo(() => {
-    if (!trackGeometry || !trackFlagState) return null;
-
-    const tintForSector = (sector: 1 | 2 | 3): string | null => {
-      const flagKey = timingSectorFlags[sector];
-      return flagKey ? (FLAG_COLORS[flagKey] ?? null) : null;
-    };
-
-    const { bounds, innerW, innerH } = trackGeometry;
-
-    if (hasBaked && circuitGeom && circuitGeom.marshalSectors.length) {
-      return (
-        <>
-          {circuitGeom.marshalSectors.map((ms) => {
-            // Paint the post the feed actually flagged, not a third of the lap.
-            const flagKey = resolveFlagForMarshalPost(
-              trackFlagState,
-              ms.number,
-            );
-            const tint = flagKey ? (FLAG_COLORS[flagKey] ?? null) : null;
-            if (!tint) return null;
-            const { sx, sy } = locationToSvg(
-              ms.trackPosition.x,
-              ms.trackPosition.y,
-              bounds,
-              innerW,
-              innerH,
-            );
-            return (
-              <circle
-                key={`flag-ms-${ms.number}`}
-                cx={sx + PAD}
-                cy={sy + PAD}
-                r={4}
-                fill={tint}
-                fillOpacity={0.7}
-              />
-            );
-          })}
-        </>
-      );
-    }
-
-    if (!circuitLayout) return null;
-    return (
-      <>
-        {circuitLayout.sectors.map((sector) => {
-          const sectorNum = sector.number as 1 | 2 | 3;
-          const tint = tintForSector(sectorNum);
-          if (!tint) return null;
-          const { sx: sx1, sy: sy1 } = locationToSvg(
-            sector.bounds.minX,
-            sector.bounds.minY,
-            bounds,
-            innerW,
-            innerH,
-          );
-          const { sx: sx2, sy: sy2 } = locationToSvg(
-            sector.bounds.maxX,
-            sector.bounds.maxY,
-            bounds,
-            innerW,
-            innerH,
-          );
-          const x = Math.min(sx1, sx2) + PAD,
-            y = Math.min(sy1, sy2) + PAD;
-          const w = Math.abs(sx2 - sx1),
-            h = Math.abs(sy2 - sy1);
-          return (
-            <rect
-              key={`flag-tint-${sector.number}`}
-              x={x}
-              y={y}
-              width={w}
-              height={h}
-              fill={tint}
-              opacity={0.28}
-            />
-          );
-        })}
-      </>
-    );
-  }, [
-    trackGeometry,
-    circuitLayout,
-    circuitGeom,
-    hasBaked,
-    trackFlagState,
-    timingSectorFlags,
-  ]);
-
-  // Current-moment car telemetry for the focused driver — binary search on the rolling
-  // 5-min window (same source as FocusedTelemetry). Runs at 60 fps, O(log n).
-  const hudData = useMemo((): CarData | null => {
-    if (focusDriver === null || !hudRawData.length) return null;
-    const targetMs = sessionStartMs + t;
-    let lo = 0,
-      hi = hudRawData.length - 1;
-    while (lo < hi) {
-      const mid = (lo + hi) >>> 1;
-      if (new Date(hudRawData[mid]!.date).getTime() < targetMs) lo = mid + 1;
-      else hi = mid;
-    }
-    const s = hudRawData[lo] ?? hudRawData[hudRawData.length - 1]!;
-    const diff = Math.abs(new Date(s.date).getTime() - targetMs);
-    return diff < 30_000 ? s : null;
-  }, [hudRawData, sessionStartMs, t, focusDriver]);
-
-  const trackConditionRibbonOverlay = useMemo(() => {
-    if (!showEnhancedVisuals || !trackGeometry) return null;
-
-    const flagForSector = (sector: 1 | 2 | 3): string =>
-      timingSectorFlags[sector] ?? "CLEAR";
-
-    const { pathData } = trackGeometry;
-    return (
-      <>
-        <path
-          d={pathData}
-          fill="none"
-          stroke={lightMode ? "#c9d1e3" : "#293043"}
-          strokeWidth={20}
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          opacity={lightMode ? 0.35 : 0.45}
-        />
-        {([1, 2, 3] as const).map((sectorNum) => {
-          const flag = flagForSector(sectorNum);
-          const color = FLAG_COLORS[flag] ?? FLAG_COLORS.CLEAR;
-          const clipPath = circuitLayout?.sectors.some(
-            (sector) => sector.number === sectorNum,
+  // Derived overlay data — computed only when its layer is visible.
+  const showElevation = showEnhancedVisuals && mapShowElevation && hasBaked;
+  const heatSegments = useMemo(
+    () => buildHeatSegments(trackGeometry, heatData.data),
+    [trackGeometry, heatData.data],
+  );
+  const elevationSegments = useMemo(
+    () =>
+      showElevation
+        ? buildElevationSegments(
+            trackGeometry,
+            locationData,
+            focusDriver ?? drivers[0]?.driver_number ?? null,
+            lightMode,
           )
-            ? `url(#track-sector-clip-${sectorNum})`
-            : undefined;
-          const active = flag !== "CLEAR" && flag !== "GREEN";
-          return (
-            <path
-              key={`ribbon-sector-${sectorNum}`}
-              d={pathData}
-              fill="none"
-              stroke={color}
-              strokeWidth={20}
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              {...(clipPath
-                ? { clipPath }
-                : {
-                    pathLength: 300,
-                    strokeDasharray: "100 200",
-                    strokeDashoffset: -(sectorNum - 1) * 100,
-                  })}
-              opacity={active ? 0.5 : 0.24}
-            />
-          );
-        })}
-      </>
-    );
-  }, [
-    showEnhancedVisuals,
-    trackGeometry,
-    timingSectorFlags,
-    circuitLayout,
-    lightMode,
-  ]);
+        : [],
+    [
+      showElevation,
+      trackGeometry,
+      focusDriver,
+      drivers,
+      locationData,
+      lightMode,
+    ],
+  );
+  const deltaSegments = useMemo(
+    () =>
+      showEnhancedVisuals
+        ? buildDeltaSegments(
+            trackGeometry,
+            heatData.data,
+            referenceHeatData.data,
+          )
+        : [],
+    [showEnhancedVisuals, trackGeometry, heatData.data, referenceHeatData.data],
+  );
+  const brakingHotspots = useMemo(
+    () =>
+      showEnhancedVisuals
+        ? buildBrakingHotspots(trackGeometry, heatData.data)
+        : [],
+    [showEnhancedVisuals, trackGeometry, heatData.data],
+  );
+  // Shared by the optional marshal heatmap and the per-post flag segments.
+  const marshalHeatmapSegments = useMemo(
+    () =>
+      buildMarshalHeatmapSegments(trackGeometry, circuitGeom?.marshalSectors),
+    [trackGeometry, circuitGeom],
+  );
 
-  const marshalSectorFlagOverlays = useMemo(() => {
-    if (!trackGeometry || !marshalHeatmapSegments.length) return null;
-
-    return (
-      <>
-        {marshalHeatmapSegments.map((seg) => {
-          // Exactly the posts the feed flagged, plus any active track-wide
-          // flag. Deliberately no timing-sector fallback: that would paint
-          // every post in the same third and imply flags that were never
-          // raised. Sector-level state is conveyed by the ribbon and badges.
-          const flag = resolveFlagForMarshalPost(
-            trackFlagState,
-            seg.marshalNumber,
-          );
-
-          if (!isActiveTrackFlag(flag)) return null;
-          const color = FLAG_COLORS[flag] ?? null;
-          if (!color) return null;
-
-          return (
-            <g
-              key={`marshal-flag-segment-${seg.marshalNumber}`}
-              data-testid={`marshal-flag-segment-${seg.marshalNumber}`}
-            >
-              <path
-                d={trackGeometry.pathData}
-                fill="none"
-                stroke={color}
-                strokeWidth={10}
-                strokeLinecap="round"
-                pathLength={1}
-                strokeDasharray={`${seg.len.toFixed(4)} ${(1 - seg.len).toFixed(4)}`}
-                strokeDashoffset={`-${seg.arcStart.toFixed(4)}`}
-                opacity={0.2}
-              />
-              <path
-                d={trackGeometry.pathData}
-                fill="none"
-                stroke={color}
-                strokeWidth={6}
-                strokeLinecap="round"
-                pathLength={1}
-                strokeDasharray={`${seg.len.toFixed(4)} ${(1 - seg.len).toFixed(4)}`}
-                strokeDashoffset={`-${seg.arcStart.toFixed(4)}`}
-                opacity={0.55}
-              />
-              <path
-                d={trackGeometry.pathData}
-                fill="none"
-                stroke="#ffffff"
-                strokeWidth={1.5}
-                strokeLinecap="round"
-                pathLength={1}
-                strokeDasharray={`${seg.len.toFixed(4)} ${(1 - seg.len).toFixed(4)}`}
-                strokeDashoffset={`-${seg.arcStart.toFixed(4)}`}
-                opacity={0.14}
-              />
-            </g>
-          );
-        })}
-      </>
-    );
-  }, [trackGeometry, marshalHeatmapSegments, trackFlagState]);
-
-  const svgRef = useRef<SVGSVGElement>(null);
+  // Current-moment car telemetry for the focused driver — binary search on the
+  // rolling 5-min window (same source as FocusedTelemetry). O(log n) per tick.
+  const hudData = useMemo(
+    () =>
+      focusDriver === null ? null : carDataAt(hudRawData, sessionStartMs + t),
+    [hudRawData, sessionStartMs, t, focusDriver],
+  );
 
   const startLights = startLightsState(t, lightsOutMs);
   useStartLightsSound(startLights, mapStartLightsSound && lightsOutMs != null);
@@ -1564,7 +486,7 @@ export function TrackMap({
     );
   }
 
-  if (!outline) {
+  if (!outline || !trackGeometry) {
     return (
       <div className="w-full h-full">
         <ErrorMessage
@@ -1575,12 +497,11 @@ export function TrackMap({
     );
   }
 
-  // trackGeometry is guaranteed non-null here: the `!outline` early-return above fires first.
-  const { pathData, bounds, innerW, innerH } = trackGeometry!;
+  const { pathData } = trackGeometry;
 
   // Interpolate each driver's position at the current playhead time t (session-relative ms).
   // This runs per-frame — it's the only thing that should.
-  const carPositions: Array<{ num: number; x: number; y: number }> = [];
+  const carPositions: CarPosition[] = [];
   for (const [num, idx] of locationIndexes) {
     if (retiredDrivers?.has(num)) continue;
     const pos = interpolateXY(idx, t);
@@ -1593,26 +514,20 @@ export function TrackMap({
     carPositions.push({ num, ...pos });
   }
 
-  const pulseSet = new Set(pulseDrivers ?? []);
-
   // Follow-cam: smoothly zooms/pans towards the focused driver. If a focused
   // car sample is temporarily missing, keep the previous camera to avoid snap-back.
   let nextViewTarget: CameraView = { x: 0, y: 0, w: SVG_W, h: SVG_H };
   if (focusDriver !== null) {
     const focusedPos = carPositions.find((c) => c.num === focusDriver);
     if (focusedPos) {
-      const { sx, sy } = locationToSvg(
+      const { sx, sy } = projectToSvg(
+        trackGeometry,
         focusedPos.x,
         focusedPos.y,
-        bounds,
-        innerW,
-        innerH,
       );
-      const cx = sx + PAD;
-      const cy = sy + PAD;
       nextViewTarget = clampFollowView(
-        cx,
-        cy,
+        sx,
+        sy,
         SVG_W,
         SVG_H,
         FOLLOW_ZOOM_W,
@@ -1634,27 +549,12 @@ export function TrackMap({
   );
   cameraViewRef.current = smoothedView;
 
-  const viewX = smoothedView.x;
-  const viewY = smoothedView.y;
-  const viewW = smoothedView.w;
-  const viewH = smoothedView.h;
-
+  const { x: viewX, y: viewY, w: viewW, h: viewH } = smoothedView;
   const viewBox = `${viewX.toFixed(1)} ${viewY.toFixed(1)} ${viewW.toFixed(1)} ${viewH.toFixed(1)}`;
   const pivotX = viewX + viewW / 2;
   const pivotY = viewY + viewH / 2;
   const zoomTransform = `translate(${pivotX.toFixed(1)} ${pivotY.toFixed(1)}) scale(${zoomLevel.toFixed(2)}) translate(${-pivotX.toFixed(1)} ${-pivotY.toFixed(1)})`;
   const trackTransform = `rotate(${rotationDeg.toFixed(1)} ${pivotX.toFixed(1)} ${pivotY.toFixed(1)}) ${zoomTransform}`;
-
-  const flagPalette: Record<string, { color: string; label: string }> = {
-    YELLOW: { color: "#f5d400", label: "Yellow" },
-    DOUBLE_YELLOW: { color: "#f5d400", label: "Double Yellow" },
-    RED: { color: "#e8002d", label: "Red Flag" },
-    SAFETY_CAR: { color: "#f5a623", label: "Safety Car" },
-    VIRTUAL_SC: { color: "#f5a623", label: "VSC" },
-    VIRTUAL_SAFETY_CAR: { color: "#f5a623", label: "VSC" },
-    GREEN: { color: "#39b54a", label: "Green" },
-    CLEAR: { color: "#39b54a", label: "Clear" },
-  };
 
   const hasTrackConditionDisplay =
     isActiveTrackFlag(trackFlagState?.globalFlag) ||
@@ -1662,218 +562,18 @@ export function TrackMap({
     timingSectorFlags[2] != null ||
     timingSectorFlags[3] != null;
 
-  const topStatusBadges = (() => {
-    const badges: StatusBadge[] = [];
-    const seen = new Set<string>();
-
-    const push = (badge: StatusBadge) => {
-      if (seen.has(badge.key)) return;
-      seen.add(badge.key);
-      badges.push(badge);
-    };
-
-    if (startLights) {
-      // Lights only: they go on one by one, then all go dark at the start.
-      const lightsOut = startLights.phase === "out";
-      push({
-        key: "start_lights",
-        label: lightsOut
-          ? "Lights out"
-          : `${startLights.lit} of ${START_LIGHT_COUNT} start lights on`,
-        bg: "#0c0c18",
-        border: lightsOut ? "#00c851" : "#5f121d",
-        text: "#c8c8ff",
-        lightsLit: lightsOut ? 0 : startLights.lit,
-      });
-    }
-    if (activeTrackVehicles?.chequeredFlag) {
-      push({
-        key: "chequered",
-        label: "Chequered Flag",
-        bg: "#ffffff",
-        border: "#111111",
-        text: "#101010",
-        chequered: true,
-      });
-    }
-    if (activeTrackVehicles?.formationLap && !startLights) {
-      push({
-        key: "formation",
-        label: "Formation Lap",
-        bg: "#1c1c2e",
-        border: "#2d3550",
-        text: "#c8c8ff",
-      });
-    }
-    if (activeTrackVehicles?.safetyCar) {
-      push({
-        key: "safety_car",
-        label: "Safety Car",
-        bg: "#f5a623",
-        border: "#704600",
-        text: "#101010",
-      });
-    }
-    if (activeTrackVehicles?.vsc) {
-      push({
-        key: "vsc",
-        label: "VSC",
-        bg: "#ffd166",
-        border: "#7a5400",
-        text: "#101010",
-      });
-    }
-    if (activeTrackVehicles?.medicalCar) {
-      push({
-        key: "medical",
-        label: "Medical Car",
-        bg: "#e8002d",
-        border: "#5f121d",
-        text: "#ffffff",
-      });
-    }
-
-    const addFlagBadge = (flag: string, suffix = "") => {
-      if (flag === "GREEN" || flag === "CLEAR") return;
-
-      // Avoid duplicate chips when the same state is already represented by
-      // active track-vehicle status (e.g. SC or VSC).
-      if (
-        (flag === "SAFETY_CAR" && activeTrackVehicles?.safetyCar) ||
-        ((flag === "VIRTUAL_SC" || flag === "VIRTUAL_SAFETY_CAR") &&
-          activeTrackVehicles?.vsc)
-      ) {
-        return;
-      }
-
-      const labelMap: Record<string, string> = {
-        YELLOW: "Yellow Flag",
-        DOUBLE_YELLOW: "Double Yellow",
-        RED: "Red Flag",
-        SAFETY_CAR: "Safety Car",
-        VIRTUAL_SC: "VSC",
-        VIRTUAL_SAFETY_CAR: "VSC",
-      };
-      const color = flagPalette[flag]?.color;
-      const label = labelMap[flag];
-      if (!color || !label) return;
-      const text = flag === "RED" ? "#ffffff" : "#101010";
-      push({
-        key: `flag_${flag}${suffix}`,
-        label: `${label}${suffix}`,
-        bg: color,
-        border: `${color}99`,
-        text,
-      });
-    };
-
-    const globalTrackFlag = trackFlagState?.globalFlag ?? null;
-    if (isActiveTrackFlag(globalTrackFlag)) {
-      addFlagBadge(globalTrackFlag);
-    } else {
-      ([1, 2, 3] as const).forEach((sector) => {
-        const flag = timingSectorFlags[sector];
-        if (!flag) return;
-        addFlagBadge(flag, ` S${sector}`);
-      });
-    }
-
-    if (raceLeader && mapShowRaceLeader) {
-      const acronym =
-        raceLeader.name_acronym ||
-        raceLeader.last_name ||
-        `#${raceLeader.driver_number}`;
-      const teamCol = teamColor(raceLeader.team_colour, "#ffd700");
-      push({
-        key: "race_leader",
-        label: `RACE LEADER: ${acronym}`,
-        bg: lightMode ? "#eaf1ff" : "#131520",
-        border: teamCol,
-        text: lightMode ? "#101010" : "#ffffff",
-        driver: raceLeader,
-      });
-    }
-
-    return badges;
-  })();
-
-  const settingsButton = onOpenSettings && (
-    <button
-      type="button"
-      onClick={(e) => {
-        animateMotion(e.currentTarget, pressMotion());
-        onOpenSettings();
-      }}
-      className="w-7 h-7 flex items-center justify-center border border-panel text-white/85 hover:text-white hover:border-white/50 transition-colors"
-      title="Track map settings"
-      aria-label="Track map settings"
-    >
-      <SettingsIcon size={14} strokeWidth={2.2} aria-hidden="true" />
-    </button>
-  );
+  const statusBadges = buildStatusBadges({
+    startLights,
+    activeTrackVehicles,
+    trackFlagState,
+    timingSectorFlags,
+    raceLeader: mapShowRaceLeader ? raceLeader : null,
+    lightMode,
+  });
 
   return (
     <div className="relative w-full h-full">
-      {topStatusBadges.length > 0 && (
-        <div className="pointer-events-none absolute top-2 left-1/2 z-20 -translate-x-1/2 flex flex-col items-center gap-1">
-          {topStatusBadges.map((badge) =>
-            badge.lightsLit !== undefined ? (
-              <div
-                key={badge.key}
-                role="img"
-                aria-label={badge.label}
-                className="flex items-center gap-[5px] rounded-sm border p-1.5 shadow-md"
-                style={{ background: badge.bg, borderColor: badge.border }}
-              >
-                {Array.from({ length: START_LIGHT_COUNT }, (_, i) => (
-                  <span
-                    key={i}
-                    className="h-[15px] w-[15px] rounded-full"
-                    style={
-                      i < (badge.lightsLit ?? 0)
-                        ? START_LIGHT_ON_STYLE
-                        : START_LIGHT_OFF_STYLE
-                    }
-                  />
-                ))}
-              </div>
-            ) : (
-              <div
-                key={badge.key}
-                className="border px-2 py-0.5 text-[9px] font-black uppercase tracking-[0.16em] flex items-center gap-1.5 shadow-md rounded-sm"
-                style={{
-                  background: badge.bg,
-                  borderColor: badge.border,
-                  color: badge.text,
-                }}
-              >
-                {badge.driver && (
-                  <DriverHeadshot
-                    driver={badge.driver}
-                    accent={teamColor(badge.driver.team_colour)}
-                    size="xs"
-                  />
-                )}
-                {badge.chequered && (
-                  <span
-                    aria-hidden="true"
-                    className="h-2.5 w-3"
-                    style={CHEQUERED_SWATCH_STYLE}
-                  />
-                )}
-                <span>{badge.label}</span>
-                {badge.chequered && (
-                  <span
-                    aria-hidden="true"
-                    className="h-2.5 w-3"
-                    style={CHEQUERED_SWATCH_STYLE}
-                  />
-                )}
-              </div>
-            ),
-          )}
-        </div>
-      )}
+      <StatusBadges badges={statusBadges} />
 
       <svg
         ref={svgRef}
@@ -1903,551 +603,128 @@ export function TrackMap({
             <rect x="0" y="0" width="2" height="2" fill="#111111" />
             <rect x="2" y="2" width="2" height="2" fill="#111111" />
           </pattern>
-          {trackGeometry && circuitLayout?.sectors
-            ? circuitLayout.sectors.map((sector) => {
-                const { sx: sx1, sy: sy1 } = locationToSvg(
-                  sector.bounds.minX,
-                  sector.bounds.minY,
-                  bounds,
-                  innerW,
-                  innerH,
-                );
-                const { sx: sx2, sy: sy2 } = locationToSvg(
-                  sector.bounds.maxX,
-                  sector.bounds.maxY,
-                  bounds,
-                  innerW,
-                  innerH,
-                );
-                const x = Math.min(sx1, sx2) + PAD;
-                const y = Math.min(sy1, sy2) + PAD;
-                const w = Math.abs(sx2 - sx1);
-                const h = Math.abs(sy2 - sy1);
-                return (
-                  <clipPath
-                    key={`track-sector-clip-${sector.number}`}
-                    id={`track-sector-clip-${sector.number}`}
-                    clipPathUnits="userSpaceOnUse"
-                  >
-                    <rect x={x} y={y} width={w} height={h} />
-                  </clipPath>
-                );
-              })
-            : null}
+          <SectorClipPaths geom={trackGeometry} circuitLayout={circuitLayout} />
         </defs>
+        {/* Paint order matters: ribbon → surface → flags → telemetry →
+            circuit markup → markers → cars. */}
         <g transform={trackTransform}>
-          {trackConditionRibbonOverlay}
-
-          {showEnhancedVisuals &&
-            mapShowElevation &&
-            elevationSegments.map((segment, i) => (
-              <line
-                key={`elev-shadow-${i}`}
-                x1={segment.x1}
-                y1={segment.y1}
-                x2={segment.x2}
-                y2={segment.y2}
-                stroke={segment.color}
-                strokeWidth={14}
-                strokeLinecap="round"
-                opacity={segment.opacity * 0.15}
+          {showEnhancedVisuals && (
+            <TrackConditionRibbon
+              pathData={pathData}
+              timingSectorFlags={timingSectorFlags}
+              circuitLayout={circuitLayout}
+              lightMode={lightMode}
+            />
+          )}
+          {showElevation && (
+            <TintedSegmentLayer
+              segments={elevationSegments}
+              keyPrefix="elev-shadow"
+              strokeWidth={14}
+              opacityScale={0.15}
+            />
+          )}
+          <TrackSurface
+            pathData={pathData}
+            gradientId={trackSurfaceGradientId}
+            lightMode={lightMode}
+          />
+          {trackFlagState && (
+            <TrackFlagColors
+              pathData={pathData}
+              trackFlagState={trackFlagState}
+              timingSectorFlags={timingSectorFlags}
+              circuitLayout={circuitLayout}
+            />
+          )}
+          <SpeedHeatLayer segments={heatSegments} />
+          {showEnhancedVisuals && (
+            <TintedSegmentLayer
+              segments={deltaSegments}
+              keyPrefix="delta"
+              strokeWidth={7.5}
+            />
+          )}
+          {showElevation && (
+            <TintedSegmentLayer
+              segments={elevationSegments}
+              keyPrefix="elev-accent"
+              strokeWidth={2.2}
+            />
+          )}
+          {mapShowMarshalHeatmap && (
+            <MarshalHeatmapLayer
+              pathData={pathData}
+              segments={marshalHeatmapSegments}
+            />
+          )}
+          <CircuitLayoutOverlays
+            geom={trackGeometry}
+            circuitLayout={circuitLayout}
+            hasBaked={hasBaked}
+          />
+          {mapShowMarshalHeatmap && (
+            <MarshalSectorDots
+              geom={trackGeometry}
+              circuitGeom={circuitGeom ?? null}
+            />
+          )}
+          {trackFlagState && (
+            <SectorFlagTints
+              geom={trackGeometry}
+              circuitGeom={circuitGeom ?? null}
+              circuitLayout={circuitLayout}
+              trackFlagState={trackFlagState}
+              timingSectorFlags={timingSectorFlags}
+            />
+          )}
+          <MarshalFlagSegments
+            pathData={pathData}
+            segments={marshalHeatmapSegments}
+            trackFlagState={trackFlagState}
+          />
+          {mapShowCornerNumbers && (
+            <CornerNumbers
+              geom={trackGeometry}
+              circuitGeom={circuitGeom ?? null}
+              rotationDeg={rotationDeg}
+              lightMode={lightMode}
+            />
+          )}
+          {showEnhancedVisuals && (
+            <BrakingHotspots hotspots={brakingHotspots} />
+          )}
+          <StartFinishLine
+            geom={trackGeometry}
+            patternId={finishPatternId}
+            lightMode={lightMode}
+          />
+          {showEnhancedVisuals && (
+            <>
+              <SectorBoundaryMarkers
+                geom={trackGeometry}
+                rotationDeg={rotationDeg}
+                lightMode={lightMode}
               />
-            ))}
+              <DirectionArrows geom={trackGeometry} lightMode={lightMode} />
+            </>
+          )}
 
-          {/* Track surface: layered asphalt body with highlighted edges to read
-              clearly at a glance while staying subtle enough not to overpower the cars. */}
-          <path
-            d={pathData}
-            strokeWidth={20}
-            fill="none"
-            stroke={lightMode ? "rgba(89,101,126,0.22)" : "rgba(0,0,0,0.38)"}
-            strokeLinecap="round"
-            strokeLinejoin="round"
+          <CarLayer
+            geom={trackGeometry}
+            carPositions={carPositions}
+            driverByNumber={driverByNumber}
+            focusDriver={focusDriver}
+            pulseDrivers={pulseDrivers}
+            battlingDrivers={battlingDrivers}
+            activeCompounds={activeCompounds}
+            safetyCarSirenOn={safetyCarSirenOn}
+            rotationDeg={rotationDeg}
+            lightMode={lightMode}
+            showAcronym={mapShowDriverAcronym}
+            showNumberInside={mapShowDriverNumberInside}
+            onSelectDriver={onSelectDriver}
           />
-          <path
-            d={pathData}
-            strokeWidth={16}
-            fill="none"
-            stroke={`url(#${trackSurfaceGradientId})`}
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            strokeOpacity={lightMode ? 0.98 : 0.96}
-          />
-          <path
-            d={pathData}
-            strokeWidth={11}
-            fill="none"
-            stroke={lightMode ? "#bec9dc" : "#313947"}
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            opacity={lightMode ? 0.88 : 0.9}
-          />
-          <path
-            d={pathData}
-            fill="none"
-            stroke={lightMode ? "#93a2bd" : "#5b6475"}
-            strokeWidth={0.9}
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            opacity={0.8}
-          />
-          <path
-            d={pathData}
-            fill="none"
-            stroke={
-              lightMode ? "rgba(255,255,255,0.8)" : "rgba(255,255,255,0.18)"
-            }
-            strokeWidth={1.5}
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          />
-          <path
-            d={pathData}
-            fill="none"
-            stroke={
-              lightMode ? "rgba(255,255,255,0.7)" : "rgba(214,219,232,0.4)"
-            }
-            strokeWidth={0.8}
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            strokeDasharray="1.6 7.5"
-            opacity={0.7}
-          />
-
-          {/* Sector flag colors on track line */}
-          {trackFlagState &&
-            (() => {
-              const globalFlag = trackFlagState.globalFlag;
-
-              // An active track-wide flag paints the whole track. An inactive
-              // one such as CHEQUERED falls through, so sector flags raised
-              // during the cool-down lap are still drawn.
-              if (isActiveTrackFlag(globalFlag)) {
-                const color = FLAG_COLORS[globalFlag] ?? null;
-                if (!color) return null;
-                return (
-                  <g key="track-global-color">
-                    <path
-                      d={pathData}
-                      fill="none"
-                      stroke={color}
-                      strokeWidth={14}
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      opacity={0.25}
-                    />
-                    <path
-                      d={pathData}
-                      fill="none"
-                      stroke={color}
-                      strokeWidth={8}
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      opacity={0.7}
-                    />
-                    <path
-                      d={pathData}
-                      fill="none"
-                      stroke="#ffffff"
-                      strokeWidth={2}
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      opacity={0.18}
-                    />
-                  </g>
-                );
-              }
-
-              // Sector-specific: color only the affected third(s) of the track
-              return (
-                <>
-                  {([1, 2, 3] as const).map((sectorNum) => {
-                    const flag = timingSectorFlags[sectorNum];
-                    if (!flag) return null;
-                    const color = FLAG_COLORS[flag] ?? null;
-                    if (!color) return null;
-                    const sectorClipPath = circuitLayout?.sectors.some(
-                      (s) => s.number === sectorNum,
-                    )
-                      ? `url(#track-sector-clip-${sectorNum})`
-                      : undefined;
-                    return (
-                      <g key={`track-sector-color-${sectorNum}`}>
-                        <path
-                          d={pathData}
-                          fill="none"
-                          stroke={color}
-                          strokeWidth={14}
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          {...(sectorClipPath
-                            ? { clipPath: sectorClipPath }
-                            : {
-                                pathLength: 300,
-                                strokeDasharray: "100 200",
-                                strokeDashoffset: -(sectorNum - 1) * 100,
-                              })}
-                          opacity={0.25}
-                        />
-                        <path
-                          d={pathData}
-                          fill="none"
-                          stroke={color}
-                          strokeWidth={8}
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          {...(sectorClipPath
-                            ? { clipPath: sectorClipPath }
-                            : {
-                                pathLength: 300,
-                                strokeDasharray: "100 200",
-                                strokeDashoffset: -(sectorNum - 1) * 100,
-                              })}
-                          opacity={0.7}
-                        />
-                        <path
-                          d={pathData}
-                          fill="none"
-                          stroke="#ffffff"
-                          strokeWidth={2}
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          {...(sectorClipPath
-                            ? { clipPath: sectorClipPath }
-                            : {
-                                pathLength: 300,
-                                strokeDasharray: "100 200",
-                                strokeDashoffset: -(sectorNum - 1) * 100,
-                              })}
-                          opacity={0.18}
-                        />
-                      </g>
-                    );
-                  })}
-                </>
-              );
-            })()}
-
-          {/* Speed heat overlay — shown when a driver is focused and lap data is loaded.
-          Segments are colored blue (slow) → green → red (fast) by the driver's
-          recorded speed at each track position on their last completed lap. */}
-          {heatSegments.length > 0 &&
-            heatSegments.map((seg, i) => (
-              <line
-                key={i}
-                x1={seg.x1}
-                y1={seg.y1}
-                x2={seg.x2}
-                y2={seg.y2}
-                stroke={speedToColor(seg.speed)}
-                strokeWidth={4}
-                strokeLinecap="round"
-                opacity={0.9}
-              />
-            ))}
-
-          {showEnhancedVisuals &&
-            deltaSegments.length > 0 &&
-            deltaSegments.map((seg, i) => (
-              <line
-                key={`delta-${i}`}
-                x1={seg.x1}
-                y1={seg.y1}
-                x2={seg.x2}
-                y2={seg.y2}
-                stroke={seg.color}
-                strokeWidth={7.5}
-                strokeLinecap="round"
-                opacity={seg.opacity}
-              />
-            ))}
-
-          {showEnhancedVisuals &&
-            mapShowElevation &&
-            elevationSegments.length > 0 &&
-            elevationSegments.map((segment, i) => (
-              <line
-                key={`elev-accent-${i}`}
-                x1={segment.x1}
-                y1={segment.y1}
-                x2={segment.x2}
-                y2={segment.y2}
-                stroke={segment.color}
-                strokeWidth={2.2}
-                strokeLinecap="round"
-                opacity={segment.opacity}
-              />
-            ))}
-
-          {/* Marshal sector heatmap — all ~15-22 individual posts as coloured arc segments */}
-          {mapShowMarshalHeatmap &&
-            marshalHeatmapSegments.map((seg) => (
-              <path
-                key={`mh-${seg.index}`}
-                d={trackGeometry!.pathData}
-                fill="none"
-                stroke={SECTOR_COLORS[seg.sector]}
-                strokeWidth={7}
-                strokeLinecap="butt"
-                pathLength={1}
-                strokeDasharray={`${seg.len.toFixed(4)} ${(1 - seg.len).toFixed(4)}`}
-                strokeDashoffset={`-${seg.arcStart.toFixed(4)}`}
-                opacity={seg.i % 2 === 0 ? 0.72 : 0.38}
-              />
-            ))}
-
-          {/* Sectors + DRS overlays (session-static, memoized) */}
-          {staticOverlays}
-
-          {/* Marshal sector dots (baked geometry only) — shown with heatmap */}
-          {mapShowMarshalHeatmap ? marshalSectorOverlays : null}
-
-          {/* Active flag tint over marshal sectors / sector boxes */}
-          {sectorFlagTints}
-
-          {/* Per-marshal-sector flag overlays using the same style as major sectors. */}
-          {marshalSectorFlagOverlays}
-
-          {/* Corner numbers (baked geometry only) */}
-          {mapShowCornerNumbers ? cornerOverlays : null}
-
-          {showEnhancedVisuals &&
-            brakingHotspots.map((hotspot) => (
-              <g key={hotspot.key}>
-                <circle
-                  cx={hotspot.x}
-                  cy={hotspot.y}
-                  r={hotspot.radius}
-                  fill="#ff6a3d"
-                  opacity={hotspot.opacity}
-                />
-                <circle
-                  cx={hotspot.x}
-                  cy={hotspot.y}
-                  r={Math.max(2.3, hotspot.radius * 0.4)}
-                  fill="#ffd4b8"
-                  opacity={Math.min(0.92, hotspot.opacity + 0.28)}
-                />
-              </g>
-            ))}
-
-          {/* Start/finish */}
-          {startFinishOverlay}
-
-          {showEnhancedVisuals ? sectorBoundaryOverlays : null}
-          {showEnhancedVisuals ? directionArrows : null}
-
-          {/* Car dots — when a driver is focused, dim the rest and enlarge the pick */}
-          {carPositions
-            .slice()
-            .sort(
-              (a, b) =>
-                (a.num === focusDriver ? 1 : 0) -
-                (b.num === focusDriver ? 1 : 0),
-            )
-            .map(({ num, x, y }) => {
-              const driver = driverByNumber.get(num);
-              const specialVehicle = SPECIAL_TRACK_VEHICLES[num];
-              const isSafetyCar = SAFETY_CAR_NUMBERS.has(num);
-              const sirenOn = isSafetyCar && safetyCarSirenOn;
-              const color = specialVehicle
-                ? specialVehicle.fill
-                : teamColor(driver?.team_colour, "#ffffff");
-              const { sx, sy } = locationToSvg(x, y, bounds, innerW, innerH);
-              const focused = focusDriver === num;
-              const dimmed = focusDriver !== null && !focused;
-              const showLabel =
-                (focusDriver === null || focused) && mapShowDriverAcronym;
-              const pulsing = pulseSet.has(num);
-              const isBattling = battlingDrivers?.has(num) ?? false;
-              const compoundInfo = activeCompounds?.get(num);
-              const dotRadius = mapShowDriverNumberInside
-                ? focused
-                  ? 8
-                  : 6.6
-                : focused
-                  ? 6.5
-                  : 4.5;
-              const serviceRadius = focused ? dotRadius + 0.7 : dotRadius + 0.4;
-              const markerStroke = specialVehicle
-                ? specialVehicle.stroke
-                : "#ffffff";
-              const markerTextColor = specialVehicle
-                ? lightMode
-                  ? specialVehicle.text
-                  : (specialVehicle.textDark ?? specialVehicle.text)
-                : "#ffffff";
-              const markerText = specialVehicle
-                ? specialVehicle.shortLabel
-                : String(num);
-              const markerLabel = specialVehicle
-                ? specialVehicle.fullLabel
-                : (driver?.name_acronym ?? num);
-              const labelX = focused ? 10 : 10;
-              const labelY = focused ? -9 : -7;
-              return (
-                <g
-                  key={num}
-                  transform={`translate(${(sx + PAD).toFixed(1)},${(sy + PAD).toFixed(1)})`}
-                  opacity={dimmed ? 0.3 : 1}
-                  onClick={() => {
-                    trackEvent("trackmap_driver_selected", {
-                      driver_number: num,
-                    });
-                    onSelectDriver?.(num);
-                  }}
-                  style={onSelectDriver ? { cursor: "pointer" } : undefined}
-                >
-                  {/* Battle ring: dashed amber ring for cars within 1 s of the car ahead */}
-                  {isBattling && !pulsing && (
-                    <circle
-                      r={focused ? 13 : 8}
-                      fill="none"
-                      stroke="#ffd700"
-                      strokeWidth={1.5}
-                      strokeOpacity={0.75}
-                      strokeDasharray="3 2"
-                    />
-                  )}
-                  {pulsing && (
-                    <circle
-                      r={6}
-                      fill="none"
-                      stroke="#ffffff"
-                      strokeWidth={1.5}
-                    >
-                      <animate
-                        attributeName="r"
-                        from="6"
-                        to="14"
-                        dur="0.8s"
-                        repeatCount="indefinite"
-                      />
-                      <animate
-                        attributeName="stroke-opacity"
-                        from="0.9"
-                        to="0"
-                        dur="0.8s"
-                        repeatCount="indefinite"
-                      />
-                    </circle>
-                  )}
-                  {focused && (
-                    <circle
-                      r={dotRadius + 2.5}
-                      fill="none"
-                      stroke={specialVehicle ? specialVehicle.halo : color}
-                      strokeWidth={1.5}
-                      strokeOpacity={0.5}
-                    />
-                  )}
-                  {specialVehicle && (
-                    <circle
-                      r={serviceRadius + 1.8}
-                      fill="none"
-                      stroke={specialVehicle.stroke}
-                      strokeWidth={1.1}
-                      strokeDasharray="2.2 1.6"
-                      strokeOpacity={0.8}
-                    />
-                  )}
-                  {isSafetyCar && sirenOn && (
-                    <>
-                      <circle
-                        r={serviceRadius + 3.2}
-                        fill="none"
-                        stroke={specialVehicle?.fill ?? "#f5a623"}
-                        strokeWidth={1.2}
-                        strokeOpacity={0.78}
-                      >
-                        <animate
-                          attributeName="r"
-                          values={`${(serviceRadius + 2.4).toFixed(1)};${(serviceRadius + 5.8).toFixed(1)};${(serviceRadius + 2.4).toFixed(1)}`}
-                          dur="0.95s"
-                          repeatCount="indefinite"
-                        />
-                        <animate
-                          attributeName="stroke-opacity"
-                          values="0.85;0.25;0.85"
-                          dur="0.95s"
-                          repeatCount="indefinite"
-                        />
-                      </circle>
-                    </>
-                  )}
-                  {isSafetyCar && !sirenOn && (
-                    <circle
-                      r={serviceRadius + 3.4}
-                      fill="none"
-                      stroke="#9aa4be"
-                      strokeWidth={0.9}
-                      strokeOpacity={0.34}
-                    />
-                  )}
-                  <circle
-                    r={specialVehicle ? serviceRadius : dotRadius}
-                    fill={color}
-                    stroke={markerStroke}
-                    strokeWidth={focused ? 1.6 : 1.2}
-                    strokeOpacity={focused ? 0.9 : 0.78}
-                  />
-                  {(mapShowDriverNumberInside || specialVehicle) && (
-                    <text
-                      x={0}
-                      y={0}
-                      transform={`rotate(${-rotationDeg.toFixed(1)} 0 0)`}
-                      textAnchor="middle"
-                      dominantBaseline="middle"
-                      fontSize={
-                        specialVehicle
-                          ? focused
-                            ? 4.1
-                            : 3.8
-                          : focused
-                            ? num >= 10
-                              ? 5.2
-                              : 5.8
-                            : 4.4
-                      }
-                      fill={markerTextColor}
-                      stroke="rgba(0,0,0,0.58)"
-                      strokeWidth={0.6}
-                      paintOrder="stroke"
-                      fontFamily="Inter, sans-serif"
-                      fontWeight="900"
-                    >
-                      {markerText}
-                    </text>
-                  )}
-                  {/* Compound badge: small dot in tyre-compound colour */}
-                  {compoundInfo && (
-                    <circle
-                      cx={focused ? 8 : 5}
-                      cy={focused ? 8 : 5}
-                      r={focused ? 2.5 : 1.8}
-                      fill={COMPOUND_COLORS[compoundInfo.compound]}
-                      stroke={mapBackground}
-                      strokeWidth={0.5}
-                    />
-                  )}
-                  {showLabel && (
-                    <text
-                      x={labelX}
-                      y={labelY}
-                      textAnchor="start"
-                      transform={`rotate(${-rotationDeg.toFixed(1)} ${labelX.toFixed(1)} ${labelY.toFixed(1)})`}
-                      fontSize={focused ? 9 : 8}
-                      fill={specialVehicle ? markerTextColor : color}
-                      fontFamily="Inter, sans-serif"
-                      fontWeight="900"
-                      letterSpacing="0.04em"
-                    >
-                      {markerLabel}
-                    </text>
-                  )}
-                </g>
-              );
-            })}
         </g>
 
         {/* No-data hint — kept in a separate transformed group so it rotates with track */}
@@ -2469,126 +746,23 @@ export function TrackMap({
         )}
       </svg>
 
-      {(showTrackControls || onOpenSettings) && (
-        <div
-          className="absolute top-2 right-2 z-20 flex flex-col items-end gap-1 p-1"
-          style={{
-            background: overlayBackground,
-            backdropFilter: "blur(4px)",
-          }}
-        >
-          {!showTrackControls && settingsButton}
-          {showTrackControls && (
-            <>
-              <div className="flex items-center gap-1">
-                <button
-                  type="button"
-                  onClick={(e) => {
-                    animateMotion(e.currentTarget, pressMotion());
-                    trackEvent("trackmap_rotation_changed", {
-                      direction: "left",
-                    });
-                    rotateLeft();
-                  }}
-                  className="w-7 h-7 flex items-center justify-center border border-panel text-white/85 hover:text-white hover:border-white/50 transition-colors"
-                  title="Rotate left"
-                >
-                  <RotateCcw size={14} strokeWidth={2.2} aria-hidden="true" />
-                </button>
-                <button
-                  type="button"
-                  onClick={(e) => {
-                    animateMotion(e.currentTarget, pressMotion());
-                    trackEvent("trackmap_rotation_changed", {
-                      direction: "right",
-                    });
-                    rotateRight();
-                  }}
-                  className="w-7 h-7 flex items-center justify-center border border-panel text-white/85 hover:text-white hover:border-white/50 transition-colors"
-                  title="Rotate right"
-                >
-                  <RotateCw size={14} strokeWidth={2.2} aria-hidden="true" />
-                </button>
-                {settingsButton}
-              </div>
-              <div className="flex items-center gap-1">
-                <button
-                  type="button"
-                  onClick={(e) => {
-                    animateMotion(e.currentTarget, pressMotion());
-                    setZoomLevel((z) => {
-                      const next = Math.max(0.6, z - 0.2);
-                      persistZoomLevel(next);
-                      trackEvent("trackmap_zoom_changed", { zoom: next });
-                      return next;
-                    });
-                  }}
-                  className="w-7 h-7 flex items-center justify-center border border-panel text-white/85 hover:text-white hover:border-white/50 transition-colors"
-                  title="Zoom out"
-                >
-                  <ZoomOut size={14} strokeWidth={2.2} aria-hidden="true" />
-                </button>
-                <button
-                  type="button"
-                  onClick={(e) => {
-                    animateMotion(e.currentTarget, pressMotion());
-                    setZoomLevel((z) => {
-                      const next = Math.min(3, z + 0.2);
-                      persistZoomLevel(next);
-                      trackEvent("trackmap_zoom_changed", { zoom: next });
-                      return next;
-                    });
-                  }}
-                  className="w-7 h-7 flex items-center justify-center border border-panel text-white/85 hover:text-white hover:border-white/50 transition-colors"
-                  title="Zoom in"
-                >
-                  <ZoomIn size={14} strokeWidth={2.2} aria-hidden="true" />
-                </button>
-                <button
-                  type="button"
-                  onClick={(e) => {
-                    animateMotion(e.currentTarget, pressMotion());
-                    trackEvent("trackmap_zoom_reset");
-                    setZoomLevel(TRACK_FIT_ZOOM);
-                    persistZoomLevel(TRACK_FIT_ZOOM);
-                  }}
-                  className="w-7 h-7 flex items-center justify-center border border-panel text-white/85 hover:text-white hover:border-white/50 transition-colors"
-                  title="Reset zoom"
-                >
-                  <Search size={14} strokeWidth={2.2} aria-hidden="true" />
-                </button>
-              </div>
-            </>
-          )}
-        </div>
-      )}
+      <TrackControls
+        showTrackControls={showTrackControls}
+        overlayBackground={overlayBackground}
+        onRotateLeft={rotateLeft}
+        onRotateRight={rotateRight}
+        onZoomOut={zoomOut}
+        onZoomIn={zoomIn}
+        onZoomReset={zoomReset}
+        onOpenSettings={onOpenSettings}
+      />
 
-      {focusDriver !== null && heatSegments.length > 0 && heatStats && (
-        <div
-          className="absolute top-2 left-1/2 z-20 -translate-x-1/2 pointer-events-none border border-panel px-2 py-1"
-          style={{
-            background: overlayBackground,
-            backdropFilter: "blur(4px)",
-            minWidth: 186,
-          }}
-        >
-          <div className="flex items-center justify-between text-[8px] font-black uppercase tracking-[0.14em] text-muted">
-            <span>Lap Speed</span>
-            <span>{speedUnit}</span>
-          </div>
-          <div
-            className="mt-1 h-1.5"
-            style={{
-              background:
-                "linear-gradient(90deg, hsl(240,100%,55%) 0%, hsl(120,100%,55%) 50%, hsl(0,100%,55%) 100%)",
-            }}
-          />
-          <div className="mt-1 flex items-center justify-between text-[9px] font-mono tabular-nums text-white">
-            <span>{heatStats.min}</span>
-            <span className="text-muted">AVG {heatStats.avg}</span>
-            <span>{heatStats.max}</span>
-          </div>
-        </div>
+      {focusDriver !== null && heatSegments.length > 0 && heatData.data && (
+        <LapSpeedLegend
+          samples={heatData.data}
+          metricSystem={metricSystem}
+          overlayBackground={overlayBackground}
+        />
       )}
 
       {outline.source === "layout" && (
@@ -2607,349 +781,42 @@ export function TrackMap({
       {/* Bottom-left overlays: track clock + weather */}
       <div className="absolute bottom-2 left-2 z-20 pointer-events-none flex flex-col gap-1">
         {mapShowClock && (
-          <div
-            className={`hidden md:block border border-panel border-l-2 px-2 py-1.5 ${weatherOverlayClass}`}
-            style={{
-              minWidth: 184,
-              backdropFilter: "blur(4px)",
-            }}
-          >
-            <div className="flex items-center gap-1.5 text-[8px] font-black uppercase tracking-[0.14em] text-muted">
-              <Clock3 size={10} strokeWidth={2.2} aria-hidden="true" />
-              Track Time
-            </div>
-            <div className="mt-1.5 grid grid-cols-2 gap-x-3 gap-y-1">
-              <div className="flex items-center justify-between gap-2">
-                <span className="text-[8px] uppercase tracking-[0.12em] text-muted">
-                  Track
-                </span>
-                <span className="text-[10px] font-mono tabular-nums text-white text-right">
-                  {trackClock}
-                </span>
-              </div>
-              <div className="flex items-center justify-between gap-2">
-                <span className="text-[8px] uppercase tracking-[0.12em] text-muted">
-                  Local
-                </span>
-                <span className="text-[10px] font-mono tabular-nums text-white text-right">
-                  {localClock}
-                </span>
-              </div>
-              <span className="col-span-2 text-[7px] uppercase tracking-[0.12em] text-muted">
-                Track timezone: {trackTimeZoneId}
-              </span>
-              <span className="col-span-2 text-[7px] uppercase tracking-[0.12em] text-muted">
-                Local timezone: {browserTimeZone}
-              </span>
-            </div>
-          </div>
+          <TrackClockPanel
+            nowMs={sessionStartMs + Math.max(0, t)}
+            sessionGmtOffset={sessionGmtOffset}
+            lightMode={lightMode}
+            raining={(weatherOverlay?.rainfall ?? 0) > 0}
+          />
         )}
-
-        {weatherOverlay ? (
-          <div
-            className={`hidden md:block border border-panel border-l-2 px-2 py-1.5 ${weatherOverlayClass}`}
-            style={{
-              minWidth: 184,
-              backdropFilter: "blur(4px)",
-            }}
-          >
-            <div className="flex items-center gap-1.5 text-[8px] font-black uppercase tracking-[0.14em] text-muted">
-              <CloudRain size={10} strokeWidth={2.2} aria-hidden="true" />
-              Track Weather
-              {weatherOverlay.rainfall > 0 && (
-                <span className="ml-auto inline-flex items-center rounded-sm bg-sky-600/85 px-1 py-0.5 text-[7px] font-black tracking-[0.12em] text-white">
-                  Rain
-                </span>
-              )}
-            </div>
-            <div className="mt-1.5 grid grid-cols-2 gap-x-3">
-              <div className="space-y-1">
-                <div className="flex items-center justify-between gap-2">
-                  <span className="inline-flex items-center gap-1 text-[8px] uppercase tracking-[0.12em] text-muted">
-                    <Thermometer
-                      size={9}
-                      strokeWidth={2.1}
-                      aria-hidden="true"
-                    />
-                    Track
-                  </span>
-                  <span className="text-[10px] font-mono tabular-nums text-white text-right">
-                    {toDisplayTemperature(
-                      weatherOverlay.track_temperature,
-                      metricSystem,
-                    ).toFixed(1)}{" "}
-                    {tempUnit}
-                  </span>
-                </div>
-                <div className="flex items-center justify-between gap-2">
-                  <span className="inline-flex items-center gap-1 text-[8px] uppercase tracking-[0.12em] text-muted">
-                    <Droplets size={9} strokeWidth={2.1} aria-hidden="true" />
-                    Hum
-                  </span>
-                  <span className="text-[10px] font-mono tabular-nums text-white text-right">
-                    {weatherOverlay.humidity}%
-                  </span>
-                </div>
-                <div className="flex items-center justify-between gap-2">
-                  <span className="inline-flex items-center gap-1 text-[8px] uppercase tracking-[0.12em] text-muted">
-                    <Wind size={9} strokeWidth={2.1} aria-hidden="true" />
-                    Wind
-                  </span>
-                  <span className="text-[10px] font-mono tabular-nums text-white text-right">
-                    {toDisplayWindSpeed(
-                      weatherOverlay.wind_speed,
-                      metricSystem,
-                    ).toFixed(1)}{" "}
-                    {windUnit}
-                  </span>
-                </div>
-              </div>
-              <div className="space-y-1">
-                <div className="flex items-center justify-between gap-2">
-                  <span className="inline-flex items-center gap-1 text-[8px] uppercase tracking-[0.12em] text-muted">
-                    <Thermometer
-                      size={9}
-                      strokeWidth={2.1}
-                      aria-hidden="true"
-                    />
-                    Air
-                  </span>
-                  <span className="text-[10px] font-mono tabular-nums text-white text-right">
-                    {toDisplayTemperature(
-                      weatherOverlay.air_temperature,
-                      metricSystem,
-                    ).toFixed(1)}{" "}
-                    {tempUnit}
-                  </span>
-                </div>
-                <div className="flex items-center justify-between gap-2">
-                  <span className="inline-flex items-center gap-1 text-[8px] uppercase tracking-[0.12em] text-muted">
-                    <Gauge size={9} strokeWidth={2.1} aria-hidden="true" />
-                    Press
-                  </span>
-                  <span className="text-[10px] font-mono tabular-nums text-white text-right">
-                    {weatherOverlay.pressure.toFixed(0)} hPa
-                  </span>
-                </div>
-                <div className="flex items-center justify-between gap-2">
-                  <span className="text-[8px] uppercase tracking-[0.12em] text-muted">
-                    Dir/Rain
-                  </span>
-                  <span className="text-[10px] font-mono tabular-nums text-right">
-                    <span className="text-white">
-                      {windDir(weatherOverlay.wind_direction)}
-                    </span>
-                    <span className="text-muted"> / </span>
-                    <span
-                      className={
-                        weatherOverlay.rainfall > 0
-                          ? "text-[#7dd3fc]"
-                          : "text-muted"
-                      }
-                    >
-                      {weatherOverlay.rainfall > 0 ? "YES" : "NO"}
-                    </span>
-                  </span>
-                </div>
-              </div>
-            </div>
-          </div>
-        ) : null}
+        {weatherOverlay && (
+          <WeatherPanel
+            weather={weatherOverlay}
+            metricSystem={metricSystem}
+            lightMode={lightMode}
+          />
+        )}
       </div>
 
-      {/* Focused-driver HUD — speed / gear / throttle + brake bars */}
-      {showFocusedHud &&
-        hudData &&
-        focusDriver !== null &&
-        (() => {
-          const driver = driverByNumber.get(focusDriver);
-          const color = teamColor(driver?.team_colour);
-          return (
-            <div
-              className="absolute top-2 left-2 pointer-events-none flex flex-col gap-1 px-2 py-1.5"
-              style={{
-                background: hudBackground,
-                backdropFilter: "blur(4px)",
-                minWidth: 100,
-                border: `1px solid ${color}33`,
-              }}
-            >
-              <div className="flex items-baseline gap-2">
-                <span
-                  className="text-[22px] font-black tabular-nums leading-none"
-                  style={{ color }}
-                >
-                  {Math.round(toDisplaySpeed(hudData.speed, metricSystem))}
-                </span>
-                <span className="text-[9px] text-muted uppercase tracking-widest leading-none self-end pb-0.5">
-                  {speedUnit}
-                </span>
-                <span
-                  className="ml-auto text-[18px] font-black tabular-nums leading-none"
-                  style={{ color: hudData.n_gear === 0 ? "#ff5252" : color }}
-                >
-                  {hudData.n_gear === 0 ? "N" : hudData.n_gear}
-                </span>
-              </div>
-              {/* Throttle bar */}
-              <div className="flex items-center gap-1.5">
-                <span className="text-[8px] text-muted w-5 shrink-0">THR</span>
-                <div className="flex-1 h-1.5 bg-panel rounded-sm overflow-hidden">
-                  <div
-                    className="h-full bg-[#39b54a] rounded-sm transition-none"
-                    style={{ width: `${hudData.throttle}%` }}
-                  />
-                </div>
-              </div>
-              {/* Brake bar */}
-              <div className="flex items-center gap-1.5">
-                <span className="text-[8px] text-muted w-5 shrink-0">BRK</span>
-                <div className="flex-1 h-1.5 bg-panel rounded-sm overflow-hidden">
-                  <div
-                    className="h-full bg-f1red rounded-sm transition-none"
-                    style={{ width: `${hudData.brake}%` }}
-                  />
-                </div>
-              </div>
-            </div>
-          );
-        })()}
+      {showFocusedHud && hudData && focusDriver !== null && (
+        <FocusedDriverHud
+          sample={hudData}
+          driver={driverByNumber.get(focusDriver)}
+          metricSystem={metricSystem}
+          lightMode={lightMode}
+        />
+      )}
 
       {/* PNG export — only shown when there is track + car data to capture */}
       {locationIndexes.size > 0 && (
         <div className="absolute bottom-2 right-2 z-20 flex flex-row items-end gap-2">
           {showSectorBox && hasTrackConditionDisplay && (
-            <div
-              className="flex flex-col gap-px"
-              style={{ backdropFilter: "blur(4px)" }}
-            >
-              <div
-                className="px-1.5 py-0.5 text-[8px] font-black uppercase tracking-[0.14em] text-muted text-center"
-                style={{ background: overlayBackground }}
-              >
-                Sectors
-              </div>
-              <div className="flex gap-px">
-                {([1, 2, 3] as const).map((sectorNum) => {
-                  const flag = timingSectorFlags[sectorNum];
-                  const color = flag
-                    ? (flagPalette[flag]?.color ?? "#6b6b7a")
-                    : "#2e2e3a";
-                  return (
-                    <div
-                      key={`sector-chip-${sectorNum}`}
-                      className="flex flex-col items-center justify-center px-2 py-1 border border-panel"
-                      style={{
-                        background: flag ? `${color}22` : overlayBackground,
-                        borderColor: flag
-                          ? `${color}66`
-                          : "rgb(var(--color-panel))",
-                        minWidth: 34,
-                      }}
-                    >
-                      <span
-                        className="w-2 h-2 rounded-full mb-0.5"
-                        style={{ background: color }}
-                      />
-                      <span className="text-[8px] font-black uppercase text-white/70">
-                        S{sectorNum}
-                      </span>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
+            <SectorChips
+              timingSectorFlags={timingSectorFlags}
+              overlayBackground={overlayBackground}
+            />
           )}
           <div className="flex flex-col items-end gap-1">
-            {showCompass && (
-              <div
-                className="w-[46px] h-12 bg-track/85 flex items-center justify-center"
-                title="Compass"
-              >
-                <svg
-                  viewBox="0 0 24 24"
-                  width="46"
-                  height="46"
-                  aria-hidden="true"
-                >
-                  <circle
-                    cx="12"
-                    cy="12"
-                    r="8.5"
-                    fill="none"
-                    stroke="#6b6b7a"
-                    strokeWidth="0.8"
-                  />
-                  <text
-                    x="12"
-                    y="2.8"
-                    textAnchor="middle"
-                    fill="#ffffff"
-                    fontSize="3.2"
-                    fontWeight="900"
-                  >
-                    N
-                  </text>
-                  <text
-                    x="12"
-                    y="23"
-                    textAnchor="middle"
-                    fill="#8c8ca0"
-                    fontSize="2.5"
-                    fontWeight="700"
-                  >
-                    S
-                  </text>
-                  <text
-                    x="1.9"
-                    y="12.9"
-                    textAnchor="middle"
-                    fill="#8c8ca0"
-                    fontSize="2.5"
-                    fontWeight="700"
-                  >
-                    W
-                  </text>
-                  <text
-                    x="22.1"
-                    y="12.9"
-                    textAnchor="middle"
-                    fill="#8c8ca0"
-                    fontSize="2.5"
-                    fontWeight="700"
-                  >
-                    E
-                  </text>
-                  <line
-                    x1="12"
-                    y1="3.7"
-                    x2="12"
-                    y2="20.3"
-                    stroke="#4f5061"
-                    strokeWidth="0.45"
-                  />
-                  <line
-                    x1="3.7"
-                    y1="12"
-                    x2="20.3"
-                    y2="12"
-                    stroke="#4f5061"
-                    strokeWidth="0.45"
-                  />
-                  <g transform={`rotate(${-rotationDeg} 12 12)`}>
-                    <path
-                      d="M12 4.6 L13.8 12 L12 10.6 L10.2 12 Z"
-                      fill="#ff2d4d"
-                    />
-                    <path
-                      d="M12 19.4 L13.4 12 L12 13.1 L10.6 12 Z"
-                      fill="#5f6175"
-                    />
-                    <circle cx="12" cy="12" r="1.1" fill="#d4d4df" />
-                  </g>
-                </svg>
-              </div>
-            )}
+            {showCompass && <Compass rotationDeg={rotationDeg} />}
             {showTrackScreenshot && (
               <button
                 onClick={() => {
