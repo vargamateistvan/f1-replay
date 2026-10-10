@@ -363,8 +363,8 @@ export function UnitSelector({
   onChange: (v: "metric" | "imperial") => void;
 }) {
   return (
-    <div className="flex items-center justify-between gap-4 py-3 border-b border-panel">
-      <div>
+    <div className="flex flex-col items-start gap-2 py-3 border-b border-panel sm:flex-row sm:items-center sm:justify-between sm:gap-4">
+      <div className="min-w-0">
         <div className="text-[13px] text-white/90 leading-tight">Units</div>
         <div className="text-[11px] text-muted mt-0.5 leading-tight">
           Display distances in km or miles, temperature in °C or °F
@@ -664,12 +664,12 @@ export function SettingsBody() {
 
   return (
     <>
-      <div className="flex min-h-0 flex-1 gap-4">
+      <div className="flex min-h-0 flex-1 flex-col md:flex-row md:gap-4">
       <div
         role="tablist"
         aria-label="Settings categories"
-        aria-orientation="vertical"
-        className="flex w-24 shrink-0 flex-col gap-1 self-start border-r border-panel py-3 pr-3 sm:w-28"
+        aria-orientation={isMobileViewport ? "horizontal" : "vertical"}
+        className="sticky top-0 z-10 -mx-4 flex shrink-0 gap-1 overflow-x-auto overscroll-x-contain border-b border-panel bg-track px-4 [scrollbar-width:none] md:static md:mx-0 md:w-28 md:flex-col md:self-start md:overflow-visible md:border-b-0 md:border-r md:bg-transparent md:px-0 md:py-3 md:pr-3"
       >
         {SETTINGS_TABS.map((tab) => {
           const isActive = activeTab === tab.id;
@@ -682,10 +682,10 @@ export function SettingsBody() {
               aria-selected={isActive}
               aria-controls={`${tab.id}-settings-panel`}
               onClick={() => setActiveTab(tab.id)}
-              className={`w-full rounded px-2.5 py-2 text-left text-[10px] font-bold transition-colors focus:outline-none focus-visible:ring-1 focus-visible:ring-f1red ${
+              className={`shrink-0 whitespace-nowrap border-b-2 px-3 py-3 text-[11px] font-bold uppercase tracking-[0.12em] transition-colors focus:outline-none focus-visible:ring-1 focus-visible:ring-f1red md:w-full md:rounded md:border-b-0 md:px-2.5 md:py-2 md:text-left md:text-[10px] md:normal-case md:tracking-normal ${
                 isActive
-                  ? "bg-f1red text-white"
-                  : "text-muted hover:bg-panel hover:text-white"
+                  ? "border-f1red text-white md:bg-f1red"
+                  : "border-transparent text-muted hover:text-white md:hover:bg-panel"
               }`}
             >
               {tab.label}

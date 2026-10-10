@@ -5,7 +5,7 @@ export default function Settings() {
   const navigate = useNavigate();
 
   return (
-    <div className="flex flex-col h-[calc(100dvh-3.5rem)] md:h-full bg-track">
+    <div className="flex flex-1 flex-col bg-track md:h-full">
       {/* Header */}
       <div className="flex items-center gap-3 px-4 py-3 border-b border-panel shrink-0 bg-track">
         <button
@@ -30,8 +30,9 @@ export default function Settings() {
         </span>
       </div>
 
-      {/* Content — inner panels own their scrolling */}
-      <div className="flex min-h-0 flex-1 flex-col px-4 pb-4">
+      {/* Content — on desktop the inner panels own their scrolling; on phones
+          the page scrolls so nothing hides behind the bottom nav. */}
+      <div className="flex flex-1 flex-col px-4 pb-4 md:min-h-0">
         <SettingsBody />
       </div>
     </div>
