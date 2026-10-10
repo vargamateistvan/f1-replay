@@ -31,8 +31,8 @@ const cell = (position: number | null, points: number, status: GridCell["status"
 const cells = new Map<number, (GridCell | null)[]>([
   [1, [cell(1, 25), cell(2, 7), cell(null, 0, "dnf")]],
   [4, [cell(12, 0), null, cell(3, 15)]],
-  [16, [cell(null, 0, "dns"), cell(null, 0, "dsq"), { ...cell(8, 4), fastestLap: true }]],
-  [44, [{ ...cell(2, 18), pole: true, fastestLap: true }, null, { ...cell(5, 10), pole: true }]],
+  [16, [cell(null, 0, "dns"), cell(null, 0, "dsq"), cell(8, 4)]],
+  [44, [{ ...cell(2, 18), pole: true }, null, { ...cell(5, 10), pole: true }]],
 ]);
 
 const standings = [
@@ -71,7 +71,7 @@ describe("ResultsGrid", () => {
   it("distinguishes non-starts and disqualifications", () => {
     render(<ResultsGrid rounds={rounds} standings={standings} cells={cells} />);
     const lec = within(rowFor("LEC")).getAllByRole("cell");
-    expect(lec.map((c) => c.textContent)).toEqual(["DNS", "DSQ", "8F", "4"]);
+    expect(lec.map((c) => c.textContent)).toEqual(["DNS", "DSQ", "8", "4"]);
     expect(lec[0]).toHaveClass("text-f1red/60");
     expect(lec[0]).toHaveAttribute("title", "LEC · Sakhir: DNS (did not start) · 0 pts");
     expect(lec[1]).toHaveClass("bg-f1red");
@@ -85,18 +85,18 @@ describe("ResultsGrid", () => {
     }
   });
 
-  it("marks pole position and fastest lap as superscripts", () => {
+  it("marks pole position as a superscript", () => {
     render(<ResultsGrid rounds={rounds} standings={standings} cells={cells} />);
     const ham = within(rowFor("HAM")).getAllByRole("cell");
-    expect(ham.map((c) => c.textContent)).toEqual(["2PF", "", "5P", "28"]);
-    expect(ham[0].querySelector("sup")).toHaveTextContent("PF");
+    expect(ham.map((c) => c.textContent)).toEqual(["2P", "", "5P", "28"]);
+    expect(ham[0].querySelector("sup")).toHaveTextContent("P");
     expect(ham[0]).toHaveAttribute(
       "title",
-      "HAM · Sakhir: P2 · 18 pts · pole position · fastest lap",
+      "HAM · Sakhir: P2 · 18 pts · pole position",
     );
-    expect(within(rowFor("LEC")).getAllByRole("cell")[2]).toHaveTextContent("8F");
+    expect(within(rowFor("LEC")).getAllByRole("cell")[2]).toHaveTextContent(/^8$/);
     expect(screen.getByText("Pole position")).toBeInTheDocument();
-    expect(screen.getByText("Fastest lap")).toBeInTheDocument();
+    expect(screen.queryByText("Fastest lap")).not.toBeInTheDocument();
   });
 
   it("switches to points scored", () => {

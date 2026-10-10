@@ -65,16 +65,13 @@ function describe(cell: GridCell | null): string {
     cell.status === "finished"
       ? `P${cell.position}`
       : `${STATUS_TEXT[cell.status]} (${STATUS_DESCRIPTION[cell.status].toLowerCase()})`;
-  const extras = [
-    cell.pole ? "pole position" : null,
-    cell.fastestLap ? "fastest lap" : null,
-  ].filter(Boolean);
+  const extras = cell.pole ? ["pole position"] : [];
   return [where, `${cell.points} pts`, ...extras].join(" · ");
 }
 
 function markerText(cell: GridCell | null): string {
   if (!cell) return "";
-  return `${cell.pole ? "P" : ""}${cell.fastestLap ? "F" : ""}`;
+  return cell.pole ? "P" : "";
 }
 
 function Marker({ text }: { text: string }) {
@@ -85,7 +82,6 @@ function Marker({ text }: { text: string }) {
 
 const MARKERS: { mark: string; description: string }[] = [
   { mark: "P", description: "Pole position" },
-  { mark: "F", description: "Fastest lap" },
 ];
 
 const LEGEND: { label: string; tone: string; description?: string }[] = [

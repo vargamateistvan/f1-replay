@@ -1,7 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { SessionResult } from "@/api/types";
 import {
-  fastestLapOf,
   headToHead,
   isMainQualifyingSession,
   maxSessionPoints,
@@ -257,19 +256,18 @@ describe("resultsGrid", () => {
 });
 
 describe("resultsGrid markers", () => {
-  it("flags the pole sitter and fastest lap in the matching round only", () => {
+  it("flags the pole sitter in the matching round only", () => {
     const { cells } = resultsGrid(
       [session(1, "Race", "2025-03-01T00:00:00Z"), session(2, "Race", "2025-03-08T00:00:00Z")],
       [
         [res({ driver_number: 1, position: 1 }), res({ driver_number: 4, position: 2 })],
         [res({ driver_number: 1, position: 2 }), res({ driver_number: 4, position: 1 })],
       ],
-      { pole: new Map([[1, 4]]), fastestLap: new Map([[1, 4], [2, 1]]) },
+      { pole: new Map([[1, 4]]) },
     );
-    expect(cells.get(4)?.[0]).toMatchObject({ pole: true, fastestLap: true });
+    expect(cells.get(4)?.[0]).toMatchObject({ pole: true });
+    expect(cells.get(4)?.[1]).not.toHaveProperty("pole");
     expect(cells.get(1)?.[0]).not.toHaveProperty("pole");
-    expect(cells.get(1)?.[1]).toMatchObject({ fastestLap: true });
-    expect(cells.get(1)?.[1]).not.toHaveProperty("pole");
   });
 });
 
@@ -289,28 +287,5 @@ describe("poleFromQualifying", () => {
       time: null,
     });
     expect(poleFromQualifying([res({ driver_number: 1, position: null })])).toBeNull();
-  });
-});
-
-describe("fastestLapOf", () => {
-  it("picks the quickest timed lap and ignores untimed ones", () => {
-    expect(
-      fastestLapOf([
-        { driver_number: 1, lap_number: 1, lap_duration: null },
-        { driver_number: 1, lap_number: 40, lap_duration: 83.2 },
-        { driver_number: 4, lap_number: 43, lap_duration: 82.167 },
-        { driver_number: 16, lap_number: 50, lap_duration: 82.9 },
-      ]),
-    ).toEqual({ driverNumber: 4, lapNumber: 43, time: 82.167 });
-    expect(fastestLapOf([])).toBeNull();
-  });
-
-  it("skips disqualified drivers", () => {
-    const laps = [
-      { driver_number: 44, lap_number: 30, lap_duration: 95.1 },
-      { driver_number: 4, lap_number: 53, lap_duration: 95.454 },
-    ];
-    expect(fastestLapOf(laps, new Set([44]))).toMatchObject({ driverNumber: 4 });
-    expect(fastestLapOf(laps, new Set([44, 4]))).toBeNull();
   });
 });

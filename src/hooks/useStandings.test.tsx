@@ -361,29 +361,14 @@ describe("useStandings", () => {
       ]);
     });
 
-    it("marks pole and fastest lap on Grand Prix columns when requested", () => {
+    it("marks pole on Grand Prix columns when requested, without lap requests", () => {
       mockData(data);
-      renderHook(() => useStandings(2023));
-      expect(queryKeysFor("fastest-lap")).toEqual([]);
-
-      mockUseQuery.mockClear();
-      mockData({
-        ...data,
-        "fastest-lap:9000": { driverNumber: 44, lapNumber: 51, time: 93.1 },
-        "fastest-lap:9001": { driverNumber: 1, lapNumber: 40, time: 86.7 },
-      });
       const { result: hook } = renderHook(() =>
         useStandings(2023, null, null, { includeResultMarkers: true }),
       );
-      // Sprints (9100) get no markers; 9001 has no qualifying but still loads.
-      expect(queryKeysFor("fastest-lap")).toEqual([
-        ["fastest-lap", 9000],
-        ["fastest-lap", 9001],
-      ]);
+      expect(queryKeysFor("fastest-lap")).toEqual([]);
       const cells = hook.current.resultsGrid.cells;
       expect(cells.get(11)?.[0]).toMatchObject({ pole: true });
-      expect(cells.get(44)?.[0]).toMatchObject({ fastestLap: true });
-      expect(cells.get(1)?.[2]).toMatchObject({ fastestLap: true });
       expect(cells.get(1)?.[0]).not.toHaveProperty("pole");
     });
   });

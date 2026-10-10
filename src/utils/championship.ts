@@ -1,4 +1,4 @@
-import type { Lap, SessionResult } from "@/api/types";
+import type { SessionResult } from "@/api/types";
 import {
   FASTEST_LAP_POINT,
   FASTEST_LAP_POINT_LAST_YEAR,
@@ -96,8 +96,6 @@ export interface GridCell {
   status: GridStatus;
   /** Started from pole (Grand Prix only). */
   pole?: boolean;
-  /** Set the race's fastest lap (Grand Prix only). */
-  fastestLap?: boolean;
 }
 
 /** Driver number per race session key. */
@@ -105,7 +103,6 @@ export type RoundMarkers = Map<number, number>;
 
 export interface GridMarkers {
   pole?: RoundMarkers;
-  fastestLap?: RoundMarkers;
 }
 
 export interface ResultsGrid {
@@ -137,7 +134,6 @@ export function resultsGrid(
     const isSprint = isSprintPointsSession(session);
     const round = new Map<number, GridCell>();
     const pole = markers.pole?.get(session.session_key);
-    const fastest = markers.fastestLap?.get(session.session_key);
     for (const r of result) {
       const cell: GridCell = {
         position: r.position,
@@ -145,7 +141,6 @@ export function resultsGrid(
         status: gridStatus(r),
       };
       if (r.driver_number === pole) cell.pole = true;
-      if (r.driver_number === fastest) cell.fastestLap = true;
       round.set(r.driver_number, cell);
     }
     rounds.push(toRound(session, isSprint));
@@ -180,24 +175,6 @@ export function poleFromQualifying(result: SessionResult[]): PoleLap | null {
     driverNumber: p1.driver_number,
     time: times.length > 0 ? Math.min(...times) : null,
   };
-}
-
-// Disqualified drivers' laps don't count, so `excluded` drivers are skipped.
-export function fastestLapOf(
-  laps: Pick<Lap, "driver_number" | "lap_number" | "lap_duration">[],
-  excluded: ReadonlySet<number> = new Set(),
-): { driverNumber: number; lapNumber: number; time: number } | null {
-  let best: { driverNumber: number; lapNumber: number; time: number } | null =
-    null;
-  for (const lap of laps) {
-    if (excluded.has(lap.driver_number)) continue;
-    const time = lap.lap_duration;
-    if (time === null || !(time > 0)) continue;
-    if (!best || time < best.time) {
-      best = { driverNumber: lap.driver_number, lapNumber: lap.lap_number, time };
-    }
-  }
-  return best;
 }
 
 // ── Title outlook ───────────────────────────────────────────────────────────
