@@ -1081,6 +1081,12 @@ export function SettingsBody({
                   checked={settings.mapShowDriverHud}
                   onChange={toggle("mapShowDriverHud")}
                 />
+                <SettingRow
+                  label="Pit rejoin projection"
+                  description="Where the focused driver would rejoin if they pitted now (races)"
+                  checked={settings.mapShowPitRejoin}
+                  onChange={toggle("mapShowPitRejoin")}
+                />
                 <SectionHeader>Flags & Sectors</SectionHeader>
                 <SettingRow
                   label="Sector flag colouring"

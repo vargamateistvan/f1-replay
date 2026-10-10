@@ -34,6 +34,7 @@ export interface AppSettings {
   mapShowMarshalHeatmap: boolean;
   mapShowCornerNumbers: boolean;
   mapShowElevation: boolean;
+  mapShowPitRejoin: boolean;
   // Leaderboard
   leaderboardTelemetry: boolean;
   timingShowMinisectors: boolean;
@@ -163,6 +164,7 @@ export const SETTINGS_DEFAULTS: AppSettings = {
   mapShowMarshalHeatmap: false,
   mapShowCornerNumbers: false,
   mapShowElevation: false,
+  mapShowPitRejoin: true,
   leaderboardTelemetry: true,
   timingShowMinisectors: true,
   trackerTimingTelemetry: true,

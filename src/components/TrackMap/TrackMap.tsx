@@ -78,11 +78,15 @@ import {
   MarshalSectorDots,
 } from "./layers/CircuitLayers";
 import { CarLayer, type CarPosition } from "./layers/CarLayer";
+import { PitRejoinGhost } from "./layers/PitRejoinGhost";
 import { StatusBadges } from "./overlays/StatusBadges";
 import { TrackControls } from "./overlays/TrackControls";
 import { TrackClockPanel, WeatherPanel } from "./overlays/InfoPanels";
 import { FocusedDriverHud, LapSpeedLegend } from "./overlays/FocusedDriverHud";
 import { Compass, SectorChips } from "./overlays/MapCornerWidgets";
+import { PitRejoinPanel } from "./overlays/PitRejoinPanel";
+import { teamColor } from "@/utils/color";
+import { parsePitLoss, pitLossFor, projectPitRejoin } from "@/utils/pitRejoin";
 
 export type { ActiveTrackVehicles } from "./statusBadges";
 
@@ -111,6 +115,9 @@ interface Props {
   readonly battlingDrivers?: ReadonlySet<number>;
   readonly retiredDrivers?: ReadonlySet<number>;
   readonly focusDriverLap?: number | null;
+  /** Latest gap to leader per driver; enables the pit rejoin projection for
+   * the focused driver when set (races only). */
+  readonly pitRejoinGaps?: ReadonlyMap<number, number> | null;
   readonly weatherOverlay?: Weather | null;
   readonly trackFlagState?: TrackFlagState | null;
   readonly activeTrackVehicles?: ActiveTrackVehicles | null;
@@ -154,6 +161,7 @@ export function TrackMap({
   battlingDrivers,
   retiredDrivers,
   focusDriverLap = null,
+  pitRejoinGaps = null,
   weatherOverlay = null,
   trackFlagState = null,
   activeTrackVehicles = null,
@@ -459,6 +467,11 @@ export function TrackMap({
     [trackGeometry, circuitGeom],
   );
 
+  const pitLoss = useMemo(
+    () => parsePitLoss(circuitGeom?.pitLoss),
+    [circuitGeom],
+  );
+
   // Current-moment car telemetry for the focused driver — binary search on the
   // rolling 5-min window (same source as FocusedTelemetry). O(log n) per tick.
   const hudData = useMemo(
@@ -516,9 +529,12 @@ export function TrackMap({
 
   // Follow-cam: smoothly zooms/pans towards the focused driver. If a focused
   // car sample is temporarily missing, keep the previous camera to avoid snap-back.
+  const focusedPos =
+    focusDriver !== null
+      ? carPositions.find((c) => c.num === focusDriver)
+      : undefined;
   let nextViewTarget: CameraView = { x: 0, y: 0, w: SVG_W, h: SVG_H };
   if (focusDriver !== null) {
-    const focusedPos = carPositions.find((c) => c.num === focusDriver);
     if (focusedPos) {
       const { sx, sy } = projectToSvg(
         trackGeometry,
@@ -555,6 +571,46 @@ export function TrackMap({
   const pivotY = viewY + viewH / 2;
   const zoomTransform = `translate(${pivotX.toFixed(1)} ${pivotY.toFixed(1)}) scale(${zoomLevel.toFixed(2)}) translate(${-pivotX.toFixed(1)} ${-pivotY.toFixed(1)})`;
   const trackTransform = `rotate(${rotationDeg.toFixed(1)} ${pivotX.toFixed(1)} ${pivotY.toFixed(1)}) ${zoomTransform}`;
+
+  // Pit rejoin: rank after adding the circuit's pit loss to the focused car's
+  // gap, and place a ghost where that car was `loss` seconds ago — the cars
+  // around that spot now are the ones it would rejoin among.
+  let pitRejoin: {
+    projection: NonNullable<ReturnType<typeof projectPitRejoin>>;
+    lossS: number;
+    condition: ReturnType<typeof pitLossFor>["condition"];
+    ghost: { sx: number; sy: number } | null;
+  } | null = null;
+  if (pitRejoinGaps && pitLoss && focusDriver !== null && focusedPos) {
+    const loss = pitLossFor(pitLoss, activeTrackVehicles);
+    const projection = projectPitRejoin(
+      pitRejoinGaps,
+      focusDriver,
+      loss.seconds,
+      retiredDrivers,
+    );
+    if (projection) {
+      const idx = locationIndexes.get(focusDriver);
+      const lookBackT = t - loss.seconds * 1000;
+      // interpolateXY clamps outside the index, so require real coverage.
+      const covered =
+        idx != null && idx.times.length > 0 && idx.times[0]! <= lookBackT;
+      const xy = covered ? interpolateXY(idx, lookBackT) : null;
+      pitRejoin = {
+        projection,
+        lossS: loss.seconds,
+        condition: loss.condition,
+        ghost:
+          xy && !isOffTrackPlaceholder(xy)
+            ? projectToSvg(trackGeometry, xy.x, xy.y)
+            : null,
+      };
+    }
+  }
+  const focusColor =
+    focusDriver !== null
+      ? teamColor(driverByNumber.get(focusDriver)?.team_colour, "#ffffff")
+      : "#ffffff";
 
   const hasTrackConditionDisplay =
     isActiveTrackFlag(trackFlagState?.globalFlag) ||
@@ -710,6 +766,16 @@ export function TrackMap({
             </>
           )}
 
+          {pitRejoin?.ghost && (
+            <PitRejoinGhost
+              x={pitRejoin.ghost.sx}
+              y={pitRejoin.ghost.sy}
+              color={focusColor}
+              position={pitRejoin.projection.position}
+              rotationDeg={rotationDeg}
+            />
+          )}
+
           <CarLayer
             geom={trackGeometry}
             carPositions={carPositions}
@@ -797,13 +863,30 @@ export function TrackMap({
         )}
       </div>
 
-      {showFocusedHud && hudData && focusDriver !== null && (
-        <FocusedDriverHud
-          sample={hudData}
-          driver={driverByNumber.get(focusDriver)}
-          metricSystem={metricSystem}
-          lightMode={lightMode}
-        />
+      {/* Top-left: focused-driver HUD + pit rejoin projection */}
+      {((showFocusedHud && hudData) || pitRejoin) && focusDriver !== null && (
+        <div className="absolute top-2 left-2 pointer-events-none flex flex-col gap-1">
+          {showFocusedHud && hudData && (
+            <FocusedDriverHud
+              sample={hudData}
+              driver={driverByNumber.get(focusDriver)}
+              metricSystem={metricSystem}
+              lightMode={lightMode}
+            />
+          )}
+          {pitRejoin && (
+            <PitRejoinPanel
+              projection={pitRejoin.projection}
+              lossS={pitRejoin.lossS}
+              condition={pitRejoin.condition}
+              color={focusColor}
+              background={
+                lightMode ? "rgba(247,249,254,0.94)" : "rgba(21,21,30,0.85)"
+              }
+              driverByNumber={driverByNumber}
+            />
+          )}
+        </div>
       )}
 
       {/* PNG export — only shown when there is track + car data to capture */}

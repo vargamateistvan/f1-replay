@@ -20,7 +20,7 @@ export function FocusedDriverHud({
   const color = teamColor(driver?.team_colour);
   return (
     <div
-      className="absolute top-2 left-2 pointer-events-none flex flex-col gap-1 px-2 py-1.5"
+      className="pointer-events-none flex flex-col gap-1 px-2 py-1.5"
       style={{
         background: lightMode
           ? "rgba(247,249,254,0.94)"

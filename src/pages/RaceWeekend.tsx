@@ -87,6 +87,7 @@ import {
 import { useSettings, type SettingsTabId } from "@/stores/settings";
 import { deriveRetiredDrivers } from "@/utils/retirement";
 import { computeBattlingDrivers } from "@/utils/battles";
+import { latestGapsToLeader } from "@/utils/pitRejoin";
 import { weatherAtSessionTime } from "@/utils/weather";
 import { buildKeyMoments } from "@/components/CommentaryPanels/keyMoments";
 import {
@@ -1189,6 +1190,7 @@ export default function RaceWeekend() {
     mapShowCompoundBadges,
     mapShowBattleRings,
     mapShowDriverHud,
+    mapShowPitRejoin,
     mapShowSectorFlags,
     mapShowRaceLeader,
     mapShowSectorBox,
@@ -1243,6 +1245,22 @@ export default function RaceWeekend() {
     isOpen: isSettingsOpen,
     openHelp,
   } = useSettings();
+
+  // Gap-to-leader snapshot for the focused driver's pit rejoin projection.
+  const pitRejoinGaps = useMemo(() => {
+    if (!isMapVisible || !mapShowPitRejoin || !isRaceSession) return null;
+    if (focusDriver === null || !sessionStartMs) return null;
+    if (!intervals.data?.length) return null;
+    return latestGapsToLeader(intervals.data, sessionStartMs + tSlow);
+  }, [
+    isMapVisible,
+    mapShowPitRejoin,
+    isRaceSession,
+    focusDriver,
+    sessionStartMs,
+    intervals.data,
+    tSlow,
+  ]);
 
   // ── Live car telemetry for the leaderboard (all drivers) ────────────────────
   // Fetched only when the leaderboard view is active AND the setting is on — it's
@@ -1994,6 +2012,7 @@ export default function RaceWeekend() {
       battlingDrivers={mapShowBattleRings ? battlingDrivers : undefined}
       focusDriverLap={focusDriverLap}
       showFocusedHud={mapShowDriverHud}
+      pitRejoinGaps={pitRejoinGaps}
       sharedAllDriverWindow={telemetryEnabled}
       trackFlagState={mapShowSectorFlags ? trackFlagState : null}
       showSectorBox={mapShowSectorBox}
