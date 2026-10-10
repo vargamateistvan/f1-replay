@@ -2,7 +2,11 @@ import { useEffect, useRef, useState } from "react";
 import uPlot from "uplot";
 import "uplot/dist/uPlot.min.css";
 import { ErrorMessage } from "@/components/ErrorMessage";
-import { CORNER_ZONE_COLORS } from "@/constants";
+import {
+  CORNER_ZONE_ACCENT_COLORS,
+  CORNER_ZONE_COLORS,
+  CORNER_ZONE_LABEL_MIN_PX,
+} from "@/constants";
 import {
   cornerSpeedLabel,
   type CornerSpeedClass,
@@ -686,8 +690,8 @@ export function TelemetryChart({
                 title={cornerSpeedLabel(speedClass)}
               >
                 <span
-                  className="h-2 w-2 rounded-sm border border-white/15"
-                  style={{ background: CORNER_ZONE_COLORS[speedClass] }}
+                  className="h-2 w-2 rounded-sm"
+                  style={{ background: CORNER_ZONE_ACCENT_COLORS[speedClass] }}
                 />
                 {cornerSpeedLabel(speedClass)}
               </span>
@@ -702,16 +706,27 @@ export function TelemetryChart({
                 plotBounds,
               );
               if (!placement) return null;
+              const widthPx = placement.width?.endsWith("px")
+                ? parseFloat(placement.width)
+                : 0;
+              const showText = widthPx >= CORNER_ZONE_LABEL_MIN_PX;
 
               return (
                 <div
                   key={`${zone.key}-label`}
-                  className="pointer-events-none absolute bottom-0 top-0 flex items-end justify-center overflow-visible border-l border-r border-t border-white/25"
-                  style={placement}
+                  className="pointer-events-none absolute bottom-0 top-0 flex items-center justify-center overflow-hidden border-b-2"
+                  style={{
+                    ...placement,
+                    background: CORNER_ZONE_COLORS[zone.speedClass],
+                    borderBottomColor: CORNER_ZONE_ACCENT_COLORS[zone.speedClass],
+                  }}
+                  title={cornerSpeedLabel(zone.speedClass)}
                 >
-                  <span className="whitespace-nowrap px-1 text-[8px] font-bold uppercase leading-3 tracking-[0.1em] text-white/70">
-                    {cornerSpeedShortLabel(zone.speedClass)}
-                  </span>
+                  {showText && (
+                    <span className="whitespace-nowrap text-[8px] font-bold uppercase leading-3 tracking-[0.1em] text-white/75">
+                      {cornerSpeedShortLabel(zone.speedClass)}
+                    </span>
+                  )}
                 </div>
               );
             })}

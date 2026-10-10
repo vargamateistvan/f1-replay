@@ -204,6 +204,14 @@ export const CORNER_ZONE_COLORS = {
   medium: "rgba(245, 202, 95, 0.12)",
   high: "rgba(65, 217, 122, 0.12)",
 } as const;
+// Solid accents for the corner label strip above the chart.
+export const CORNER_ZONE_ACCENT_COLORS = {
+  low: "rgba(232, 0, 45, 0.75)",
+  medium: "rgba(245, 202, 95, 0.75)",
+  high: "rgba(65, 217, 122, 0.75)",
+} as const;
+// Narrower corner bands show only their colour bar, no text (avoids overlap on mobile).
+export const CORNER_ZONE_LABEL_MIN_PX = 30;
 
 // OpenF1 /pit `date` marks pit-lane EXIT, so the in-pit window is
 // [date - lane_duration, date]. When lane_duration is missing (e.g. a car
