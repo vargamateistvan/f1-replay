@@ -5,11 +5,7 @@ import {
   type SettingsTabId,
 } from "@/stores/settings";
 import { useMediaQuery } from "@/hooks/useMediaQuery";
-import {
-  useDrivers,
-  useLatestMeeting,
-  useSessions,
-} from "@/hooks/useSession";
+import { useDrivers, useLatestMeeting, useSessions } from "@/hooks/useSession";
 import { useLocationChunks } from "@/hooks/useLocationChunks";
 import { trackEvent } from "@/lib/analytics";
 import {
@@ -141,6 +137,7 @@ const SETTINGS_TABS = [
   { id: "notifications", label: "Alerts" },
   { id: "timing", label: "Timing" },
   { id: "track", label: "Track map" },
+  { id: "telemetry", label: "Telemetry" },
   { id: "interface", label: "Interface" },
 ] as const satisfies readonly { id: SettingsTabId; label: string }[];
 
@@ -178,9 +175,8 @@ function TrackMapPreview() {
         previewDrivers.map((driver, index) => [
           driver.driver_number,
           {
-            compound: (["SOFT", "MEDIUM", "HARD"][
-              index
-            ] ?? "UNKNOWN") as Stint["compound"],
+            compound: (["SOFT", "MEDIUM", "HARD"][index] ??
+              "UNKNOWN") as Stint["compound"],
             age: 12 + index * 5,
           },
         ]),
@@ -188,7 +184,8 @@ function TrackMapPreview() {
     [previewDrivers],
   );
   const battlingDrivers = useMemo(
-    () => new Set(previewDrivers.slice(0, 2).map((driver) => driver.driver_number)),
+    () =>
+      new Set(previewDrivers.slice(0, 2).map((driver) => driver.driver_number)),
     [previewDrivers],
   );
   const previewWeather: Weather | null = session
@@ -218,7 +215,9 @@ function TrackMapPreview() {
         <div>
           <div className="text-[10px] font-bold text-white">Live preview</div>
           <div className="text-[9px] text-muted">
-            {meeting ? `${meeting.meeting_name} track map` : "Loading latest race weekend"}
+            {meeting
+              ? `${meeting.meeting_name} track map`
+              : "Loading latest race weekend"}
           </div>
         </div>
         {(latestMeeting.isError || sessions.isError) && (
@@ -671,494 +670,521 @@ export function SettingsBody({
   return (
     <>
       <div className="flex min-h-0 flex-1 flex-col md:flex-row md:gap-4">
-      <div
-        role="tablist"
-        aria-label="Settings categories"
-        aria-orientation={isMobileViewport ? "horizontal" : "vertical"}
-        className="sticky top-0 z-10 -mx-4 flex shrink-0 gap-1 overflow-x-auto overscroll-x-contain border-b border-panel bg-track px-4 [scrollbar-width:none] md:static md:mx-0 md:w-28 md:flex-col md:self-start md:overflow-visible md:border-b-0 md:border-r md:bg-transparent md:px-0 md:py-3 md:pr-3"
-      >
-        {SETTINGS_TABS.map((tab) => {
-          const isActive = activeTab === tab.id;
-          return (
-            <button
-              key={tab.id}
-              id={`${tab.id}-settings-tab`}
-              role="tab"
-              type="button"
-              aria-selected={isActive}
-              aria-controls={`${tab.id}-settings-panel`}
-              onClick={() => setActiveTab(tab.id)}
-              className={`shrink-0 whitespace-nowrap border-b-2 px-3 py-3 text-[11px] font-bold uppercase tracking-[0.12em] transition-colors focus:outline-none focus-visible:ring-1 focus-visible:ring-f1red md:w-full md:rounded md:border-b-0 md:px-2.5 md:py-2 md:text-left md:text-[10px] md:normal-case md:tracking-normal ${
-                isActive
-                  ? "border-f1red text-white md:bg-f1red"
-                  : "border-transparent text-muted hover:text-white md:hover:bg-panel"
-              }`}
-            >
-              {tab.label}
-            </button>
-          );
-        })}
-      </div>
-
-      <div className="flex min-h-0 min-w-0 flex-1 flex-col">
-      {activeTab === "general" && (
         <div
-          id="general-settings-panel"
-          role="tabpanel"
-          aria-labelledby="general-settings-tab"
-          className="min-h-0 flex-1 overflow-y-auto overscroll-contain pr-1"
+          role="tablist"
+          aria-label="Settings categories"
+          aria-orientation={isMobileViewport ? "horizontal" : "vertical"}
+          className="sticky top-0 z-10 -mx-4 flex shrink-0 gap-1 overflow-x-auto overscroll-x-contain border-b border-panel bg-track px-4 [scrollbar-width:none] md:static md:mx-0 md:w-28 md:flex-col md:self-start md:overflow-visible md:border-b-0 md:border-r md:bg-transparent md:px-0 md:py-3 md:pr-3"
         >
-          <SectionHeader>Appearance</SectionHeader>
-          <SettingRow
-            label="Light mode"
-            description="Switch to a light colour scheme"
-            checked={settings.lightMode}
-            onChange={toggle("lightMode")}
-          />
-          <UnitSelector
-            value={settings.metricSystem}
-            onChange={(v) => updateSetting("metricSystem", v)}
-          />
-        </div>
-      )}
-
-      {activeTab === "playback" && (
-        <div
-          id="playback-settings-panel"
-          role="tabpanel"
-          aria-labelledby="playback-settings-tab"
-          className="min-h-0 flex-1 overflow-y-auto overscroll-contain pr-1"
-        >
-      <SectionHeader>Playback</SectionHeader>
-      <SpeedSelector
-        value={settings.defaultSpeed}
-        onChange={(v) => updateSetting("defaultSpeed", v)}
-      />
-      <SettingRow
-        label="Playback speed controls"
-        description="Show 1x/2x/4x/8x buttons in playback bar"
-        checked={settings.showPlaybackSpeedControls}
-        onChange={toggle("showPlaybackSpeedControls")}
-      />
-      <SettingRow
-        label="Forward event chips"
-        description="Show jump chips (incident, pit, flag, SC, pass, radio)"
-        checked={settings.showPlaybackEventChips}
-        onChange={toggle("showPlaybackEventChips")}
-      />
-      <SettingRow
-        label="Catch-up summary"
-        description="Show missed events after a large scrub forward"
-        checked={settings.catchupSummaryEnabled}
-        onChange={toggle("catchupSummaryEnabled")}
-      />
-      {settings.catchupSummaryEnabled && (
-        <div className="py-2.5 border-b border-panel">
-          <div className="text-[11px] text-muted mb-2 leading-tight">
-            Default visible event types
-          </div>
-          <div className="flex flex-wrap gap-1.5">
-            {CATCHUP_EVENT_TYPE_OPTIONS.map(({ kind, label, color }) => {
-              const active =
-                settings.catchupSummaryDefaultFilters.includes(kind);
-              return (
-                <button
-                  key={kind}
-                  onClick={(e) => {
-                    animateMotion(e.currentTarget, pressMotion());
-                    const current = settings.catchupSummaryDefaultFilters;
-                    const next = active
-                      ? current.filter((k) => k !== kind)
-                      : [...current, kind];
-                    if (next.length > 0)
-                      updateSetting("catchupSummaryDefaultFilters", next);
-                  }}
-                  className={[
-                    "text-[10px] font-bold px-2 py-0.5 rounded-sm border transition-all",
-                    "focus:outline-none focus-visible:ring-1 focus-visible:ring-white/40",
-                    active
-                      ? "border-transparent text-black"
-                      : "border-panel text-muted bg-transparent",
-                  ].join(" ")}
-                  style={
-                    active ? { backgroundColor: color, borderColor: color } : {}
-                  }
-                  aria-pressed={active}
-                >
-                  {label}
-                </button>
-              );
-            })}
-          </div>
-        </div>
-      )}
-        </div>
-      )}
-
-      {activeTab === "notifications" && (
-        <div
-          id="notifications-settings-panel"
-          role="tabpanel"
-          aria-labelledby="notifications-settings-tab"
-          className="min-h-0 flex-1 overflow-y-auto overscroll-contain pr-1"
-        >
-      <SectionHeader>Notifications</SectionHeader>
-      <SettingRow
-        label="Enable notifications"
-        description="Show event toasts during playback"
-        checked={settings.toastsEnabled}
-        onChange={toggle("toastsEnabled")}
-      />
-      <NotificationLimitSelector
-        value={settings.notificationMaxVisible}
-        onChange={(v) => updateSetting("notificationMaxVisible", v)}
-        disabled={!settings.toastsEnabled}
-      />
-      <div className="-mt-2.5 mb-1 text-[10px] text-muted/80 leading-tight border-b border-panel pb-2.5">
-        Controls the number of simultaneous toasts shown in the live stack.
-      </div>
-      <SettingRow
-        label="Auto-play radio messages"
-        description="Automatically play new team radio toasts"
-        checked={settings.toastRadioAutoplay}
-        onChange={toggle("toastRadioAutoplay")}
-        disabled={!settings.toastsEnabled || !settings.toastRadio}
-      />
-      <SettingRow
-        label="Toast sounds"
-        description="Play short sound cues for new notifications"
-        checked={settings.toastSoundsEnabled}
-        onChange={toggle("toastSoundsEnabled")}
-        disabled={!settings.toastsEnabled}
-      />
-      <div className="py-2.5 border-b border-panel">
-        <div className="text-[11px] text-muted mb-2 leading-tight">
-          Default visible event types
-        </div>
-        <div className="flex flex-wrap gap-1.5">
-          {NOTIFICATION_EVENT_TYPE_OPTIONS.map(({ key, label, color }) => {
-            const active = settings[key];
-            const disabled = !settings.toastsEnabled;
+          {SETTINGS_TABS.map((tab) => {
+            const isActive = activeTab === tab.id;
             return (
               <button
-                key={key}
-              onClick={(e) => {
-                animateMotion(e.currentTarget, pressMotion());
-                updateSetting(key, !active as AppSettings[typeof key]);
-              }}
-                disabled={disabled}
-                className={[
-                  "text-[10px] font-bold px-2 py-0.5 rounded-sm border transition-all",
-                  "focus:outline-none focus-visible:ring-1 focus-visible:ring-white/40",
-                  active
-                    ? "border-transparent text-black"
-                    : "border-panel text-muted bg-transparent",
-                  disabled ? "opacity-50 cursor-not-allowed" : "",
-                ].join(" ")}
-                style={
-                  active ? { backgroundColor: color, borderColor: color } : {}
-                }
-                aria-pressed={active}
+                key={tab.id}
+                id={`${tab.id}-settings-tab`}
+                role="tab"
+                type="button"
+                aria-selected={isActive}
+                aria-controls={`${tab.id}-settings-panel`}
+                onClick={() => setActiveTab(tab.id)}
+                className={`shrink-0 whitespace-nowrap border-b-2 px-3 py-3 text-[11px] font-bold uppercase tracking-[0.12em] transition-colors focus:outline-none focus-visible:ring-1 focus-visible:ring-f1red md:w-full md:rounded md:border-b-0 md:px-2.5 md:py-2 md:text-left md:text-[10px] md:normal-case md:tracking-normal ${
+                  isActive
+                    ? "border-f1red text-white md:bg-f1red"
+                    : "border-transparent text-muted hover:text-white md:hover:bg-panel"
+                }`}
               >
-                {label}
+                {tab.label}
               </button>
             );
           })}
         </div>
-      </div>
-        </div>
-      )}
 
-      {activeTab === "timing" && (
-        <div
-          id="timing-settings-panel"
-          role="tabpanel"
-          aria-labelledby="timing-settings-tab"
-          className="min-h-0 flex-1 overflow-y-auto overscroll-contain pr-1"
-        >
-      <SectionHeader>Race Views</SectionHeader>
-      <SettingRow
-        label="Live car telemetry"
-        description="Speed, gear, RPM, throttle, brake & DRS columns"
-        checked={settings.leaderboardTelemetry}
-        onChange={toggle("leaderboardTelemetry")}
-      />
-      <SettingRow
-        label="Timing minisectors"
-        description="Show minisector strips under S1/S2/S3 bars"
-        checked={settings.timingShowMinisectors}
-        onChange={toggle("timingShowMinisectors")}
-      />
-      {!isMobileViewport && (
-        <SettingRow
-          label="Timing box live telemetry"
-          description="Show speed, gear, RPM, throttle, brake & DRS in tracker timing"
-          checked={settings.trackerTimingTelemetry}
-          onChange={toggle("trackerTimingTelemetry")}
-        />
-      )}
-      {!isMobileViewport && (
-        <SettingRow
-          label="Compact telemetry column"
-          description="Show RPM, gear, throttle, brake and DRS in a single tracker column"
-          checked={settings.trackerTimingCompactColumn}
-          onChange={toggle("trackerTimingCompactColumn")}
-          disabled={!settings.trackerTimingTelemetry}
-        />
-      )}
-      {!isMobileViewport && (
-        <div className="py-2.5 border-b border-panel">
-          <div className="text-[13px] text-white/90 leading-tight">
-            Driver tracker columns
-          </div>
-          <div className="text-[11px] text-muted mt-0.5 leading-tight">
-            Pick which leaderboard-style timing columns appear in the tracker
-            table
-          </div>
-          <div className="mt-2 flex flex-wrap gap-1.5">
-            {trackerTimingColumns.map(({ label, active, onToggle }) => (
-              <button
-                key={label}
-                onClick={(e) => {
-                  animateMotion(e.currentTarget, pressMotion());
-                  onToggle();
-                }}
-                className={[
-                  "text-[10px] font-bold px-2 py-0.5 rounded-sm border transition-all",
-                  "focus:outline-none focus-visible:ring-1 focus-visible:ring-white/40",
-                  active
-                    ? "border-f1red bg-f1red text-white"
-                    : "border-panel bg-transparent text-muted hover:border-muted hover:text-white",
-                ].join(" ")}
-                aria-pressed={active}
-              >
-                {label}
-              </button>
-            ))}
-          </div>
-        </div>
-      )}
-      {isMobileViewport && (
-        <div>
-          <SettingRow
-            label="Mobile timing car data"
-            description="Show speed, RPM, gear, DRS, throttle and brake in tracker timing rows on mobile"
-            checked={settings.trackerTimingMobileCarData}
-            onChange={toggle("trackerTimingMobileCarData")}
-          />
-          <div className="py-2.5 border-b border-panel">
-            <div className="text-[13px] text-white/90 leading-tight">
-              Mobile timing columns
+        <div className="flex min-h-0 min-w-0 flex-1 flex-col">
+          {activeTab === "general" && (
+            <div
+              id="general-settings-panel"
+              role="tabpanel"
+              aria-labelledby="general-settings-tab"
+              className="min-h-0 flex-1 overflow-y-auto overscroll-contain pr-1"
+            >
+              <SectionHeader>Appearance</SectionHeader>
+              <SettingRow
+                label="Light mode"
+                description="Switch to a light colour scheme"
+                checked={settings.lightMode}
+                onChange={toggle("lightMode")}
+              />
+              <UnitSelector
+                value={settings.metricSystem}
+                onChange={(v) => updateSetting("metricSystem", v)}
+              />
             </div>
-            <div className="text-[11px] text-muted mt-0.5 leading-tight">
-              Pick which timing columns appear in mobile timing rows
+          )}
+
+          {activeTab === "playback" && (
+            <div
+              id="playback-settings-panel"
+              role="tabpanel"
+              aria-labelledby="playback-settings-tab"
+              className="min-h-0 flex-1 overflow-y-auto overscroll-contain pr-1"
+            >
+              <SectionHeader>Playback</SectionHeader>
+              <SpeedSelector
+                value={settings.defaultSpeed}
+                onChange={(v) => updateSetting("defaultSpeed", v)}
+              />
+              <SettingRow
+                label="Playback speed controls"
+                description="Show 1x/2x/4x/8x buttons in playback bar"
+                checked={settings.showPlaybackSpeedControls}
+                onChange={toggle("showPlaybackSpeedControls")}
+              />
+              <SettingRow
+                label="Forward event chips"
+                description="Show jump chips (incident, pit, flag, SC, pass, radio)"
+                checked={settings.showPlaybackEventChips}
+                onChange={toggle("showPlaybackEventChips")}
+              />
+              <SettingRow
+                label="Catch-up summary"
+                description="Show missed events after a large scrub forward"
+                checked={settings.catchupSummaryEnabled}
+                onChange={toggle("catchupSummaryEnabled")}
+              />
+              {settings.catchupSummaryEnabled && (
+                <div className="py-2.5 border-b border-panel">
+                  <div className="text-[11px] text-muted mb-2 leading-tight">
+                    Default visible event types
+                  </div>
+                  <div className="flex flex-wrap gap-1.5">
+                    {CATCHUP_EVENT_TYPE_OPTIONS.map(
+                      ({ kind, label, color }) => {
+                        const active =
+                          settings.catchupSummaryDefaultFilters.includes(kind);
+                        return (
+                          <button
+                            key={kind}
+                            onClick={(e) => {
+                              animateMotion(e.currentTarget, pressMotion());
+                              const current =
+                                settings.catchupSummaryDefaultFilters;
+                              const next = active
+                                ? current.filter((k) => k !== kind)
+                                : [...current, kind];
+                              if (next.length > 0)
+                                updateSetting(
+                                  "catchupSummaryDefaultFilters",
+                                  next,
+                                );
+                            }}
+                            className={[
+                              "text-[10px] font-bold px-2 py-0.5 rounded-sm border transition-all",
+                              "focus:outline-none focus-visible:ring-1 focus-visible:ring-white/40",
+                              active
+                                ? "border-transparent text-black"
+                                : "border-panel text-muted bg-transparent",
+                            ].join(" ")}
+                            style={
+                              active
+                                ? { backgroundColor: color, borderColor: color }
+                                : {}
+                            }
+                            aria-pressed={active}
+                          >
+                            {label}
+                          </button>
+                        );
+                      },
+                    )}
+                  </div>
+                </div>
+              )}
             </div>
-            <div className="mt-2 flex flex-wrap gap-1.5">
-              {mobileTimingColumns.map(({ label, active, onToggle }) => (
-                <button
-                  key={label}
-                  onClick={(e) => {
-                    animateMotion(e.currentTarget, pressMotion());
-                    onToggle();
-                  }}
-                  className={[
-                    "text-[10px] font-bold px-2 py-0.5 rounded-sm border transition-all",
-                    "focus:outline-none focus-visible:ring-1 focus-visible:ring-white/40",
-                    active
-                      ? "border-f1red bg-f1red text-white"
-                      : "border-panel bg-transparent text-muted hover:border-muted hover:text-white",
-                  ].join(" ")}
-                  aria-pressed={active}
-                >
-                  {label}
-                </button>
-              ))}
+          )}
+
+          {activeTab === "notifications" && (
+            <div
+              id="notifications-settings-panel"
+              role="tabpanel"
+              aria-labelledby="notifications-settings-tab"
+              className="min-h-0 flex-1 overflow-y-auto overscroll-contain pr-1"
+            >
+              <SectionHeader>Notifications</SectionHeader>
+              <SettingRow
+                label="Enable notifications"
+                description="Show event toasts during playback"
+                checked={settings.toastsEnabled}
+                onChange={toggle("toastsEnabled")}
+              />
+              <NotificationLimitSelector
+                value={settings.notificationMaxVisible}
+                onChange={(v) => updateSetting("notificationMaxVisible", v)}
+                disabled={!settings.toastsEnabled}
+              />
+              <div className="-mt-2.5 mb-1 text-[10px] text-muted/80 leading-tight border-b border-panel pb-2.5">
+                Controls the number of simultaneous toasts shown in the live
+                stack.
+              </div>
+              <SettingRow
+                label="Auto-play radio messages"
+                description="Automatically play new team radio toasts"
+                checked={settings.toastRadioAutoplay}
+                onChange={toggle("toastRadioAutoplay")}
+                disabled={!settings.toastsEnabled || !settings.toastRadio}
+              />
+              <SettingRow
+                label="Toast sounds"
+                description="Play short sound cues for new notifications"
+                checked={settings.toastSoundsEnabled}
+                onChange={toggle("toastSoundsEnabled")}
+                disabled={!settings.toastsEnabled}
+              />
+              <div className="py-2.5 border-b border-panel">
+                <div className="text-[11px] text-muted mb-2 leading-tight">
+                  Default visible event types
+                </div>
+                <div className="flex flex-wrap gap-1.5">
+                  {NOTIFICATION_EVENT_TYPE_OPTIONS.map(
+                    ({ key, label, color }) => {
+                      const active = settings[key];
+                      const disabled = !settings.toastsEnabled;
+                      return (
+                        <button
+                          key={key}
+                          onClick={(e) => {
+                            animateMotion(e.currentTarget, pressMotion());
+                            updateSetting(
+                              key,
+                              !active as AppSettings[typeof key],
+                            );
+                          }}
+                          disabled={disabled}
+                          className={[
+                            "text-[10px] font-bold px-2 py-0.5 rounded-sm border transition-all",
+                            "focus:outline-none focus-visible:ring-1 focus-visible:ring-white/40",
+                            active
+                              ? "border-transparent text-black"
+                              : "border-panel text-muted bg-transparent",
+                            disabled ? "opacity-50 cursor-not-allowed" : "",
+                          ].join(" ")}
+                          style={
+                            active
+                              ? { backgroundColor: color, borderColor: color }
+                              : {}
+                          }
+                          aria-pressed={active}
+                        >
+                          {label}
+                        </button>
+                      );
+                    },
+                  )}
+                </div>
+              </div>
             </div>
-          </div>
-        </div>
-      )}
+          )}
 
-      <SectionHeader>Telemetry Charts</SectionHeader>
-      <SettingRow
-        label="Low speed corner bands"
-        description={`Shade corners with an apex below ${CORNER_LOW_SPEED_KMH} km/h on telemetry charts`}
-        checked={settings.telemetryCornerZonesLow}
-        onChange={toggle("telemetryCornerZonesLow")}
-      />
-      <SettingRow
-        label="Medium speed corner bands"
-        description={`Shade corners with a ${CORNER_LOW_SPEED_KMH}–${CORNER_HIGH_SPEED_KMH - 1} km/h apex on telemetry charts`}
-        checked={settings.telemetryCornerZonesMedium}
-        onChange={toggle("telemetryCornerZonesMedium")}
-      />
-      <SettingRow
-        label="High speed corner bands"
-        description={`Shade corners with an apex of ${CORNER_HIGH_SPEED_KMH} km/h or more on telemetry charts`}
-        checked={settings.telemetryCornerZonesHigh}
-        onChange={toggle("telemetryCornerZonesHigh")}
-      />
-        </div>
-      )}
+          {activeTab === "timing" && (
+            <div
+              id="timing-settings-panel"
+              role="tabpanel"
+              aria-labelledby="timing-settings-tab"
+              className="min-h-0 flex-1 overflow-y-auto overscroll-contain pr-1"
+            >
+              <SectionHeader>Race Views</SectionHeader>
+              <SettingRow
+                label="Live car telemetry"
+                description="Speed, gear, RPM, throttle, brake & DRS columns"
+                checked={settings.leaderboardTelemetry}
+                onChange={toggle("leaderboardTelemetry")}
+              />
+              <SettingRow
+                label="Timing minisectors"
+                description="Show minisector strips under S1/S2/S3 bars"
+                checked={settings.timingShowMinisectors}
+                onChange={toggle("timingShowMinisectors")}
+              />
+              {!isMobileViewport && (
+                <SettingRow
+                  label="Timing box live telemetry"
+                  description="Show speed, gear, RPM, throttle, brake & DRS in tracker timing"
+                  checked={settings.trackerTimingTelemetry}
+                  onChange={toggle("trackerTimingTelemetry")}
+                />
+              )}
+              {!isMobileViewport && (
+                <SettingRow
+                  label="Compact telemetry column"
+                  description="Show RPM, gear, throttle, brake and DRS in a single tracker column"
+                  checked={settings.trackerTimingCompactColumn}
+                  onChange={toggle("trackerTimingCompactColumn")}
+                  disabled={!settings.trackerTimingTelemetry}
+                />
+              )}
+              {!isMobileViewport && (
+                <div className="py-2.5 border-b border-panel">
+                  <div className="text-[13px] text-white/90 leading-tight">
+                    Driver tracker columns
+                  </div>
+                  <div className="text-[11px] text-muted mt-0.5 leading-tight">
+                    Pick which leaderboard-style timing columns appear in the
+                    tracker table
+                  </div>
+                  <div className="mt-2 flex flex-wrap gap-1.5">
+                    {trackerTimingColumns.map(({ label, active, onToggle }) => (
+                      <button
+                        key={label}
+                        onClick={(e) => {
+                          animateMotion(e.currentTarget, pressMotion());
+                          onToggle();
+                        }}
+                        className={[
+                          "text-[10px] font-bold px-2 py-0.5 rounded-sm border transition-all",
+                          "focus:outline-none focus-visible:ring-1 focus-visible:ring-white/40",
+                          active
+                            ? "border-f1red bg-f1red text-white"
+                            : "border-panel bg-transparent text-muted hover:border-muted hover:text-white",
+                        ].join(" ")}
+                        aria-pressed={active}
+                      >
+                        {label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+              {isMobileViewport && (
+                <div>
+                  <SettingRow
+                    label="Mobile timing car data"
+                    description="Show speed, RPM, gear, DRS, throttle and brake in tracker timing rows on mobile"
+                    checked={settings.trackerTimingMobileCarData}
+                    onChange={toggle("trackerTimingMobileCarData")}
+                  />
+                  <div className="py-2.5 border-b border-panel">
+                    <div className="text-[13px] text-white/90 leading-tight">
+                      Mobile timing columns
+                    </div>
+                    <div className="text-[11px] text-muted mt-0.5 leading-tight">
+                      Pick which timing columns appear in mobile timing rows
+                    </div>
+                    <div className="mt-2 flex flex-wrap gap-1.5">
+                      {mobileTimingColumns.map(
+                        ({ label, active, onToggle }) => (
+                          <button
+                            key={label}
+                            onClick={(e) => {
+                              animateMotion(e.currentTarget, pressMotion());
+                              onToggle();
+                            }}
+                            className={[
+                              "text-[10px] font-bold px-2 py-0.5 rounded-sm border transition-all",
+                              "focus:outline-none focus-visible:ring-1 focus-visible:ring-white/40",
+                              active
+                                ? "border-f1red bg-f1red text-white"
+                                : "border-panel bg-transparent text-muted hover:border-muted hover:text-white",
+                            ].join(" ")}
+                            aria-pressed={active}
+                          >
+                            {label}
+                          </button>
+                        ),
+                      )}
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
 
-      {activeTab === "track" && (
-        <div
-          id="track-settings-panel"
-          role="tabpanel"
-          aria-labelledby="track-settings-tab"
-          className="flex min-h-0 flex-1 flex-col"
-        >
-      <div className="shrink-0">
-        <SectionHeader>Track Map</SectionHeader>
-        <TrackMapPreview />
-      </div>
-      <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain pr-1">
-        <SectionHeader>Drivers</SectionHeader>
-        <SettingRow
-          label="Driver acronym labels"
-          description="Show 3-letter driver labels next to car dots"
-          checked={settings.mapShowDriverAcronym}
-          onChange={toggle("mapShowDriverAcronym")}
-        />
-        <SettingRow
-          label="Driver number inside dot"
-          description="Show driver number centered in each car dot"
-          checked={settings.mapShowDriverNumberInside}
-          onChange={toggle("mapShowDriverNumberInside")}
-        />
-        <SettingRow
-          label="Race leader badge"
-          description="Show P1 race leader notification and headshot"
-          checked={settings.mapShowRaceLeader}
-          onChange={toggle("mapShowRaceLeader")}
-        />
-        <SettingRow
-          label="Start light sounds"
-          description="Beep as each race start light comes on"
-          checked={settings.mapStartLightsSound}
-          onChange={toggle("mapStartLightsSound")}
-        />
-        <SettingRow
-          label="Tyre compound badges"
-          description="Compound icons on each driver dot"
-          checked={settings.mapShowCompoundBadges}
-          onChange={toggle("mapShowCompoundBadges")}
-        />
-        <SettingRow
-          label="DRS battle rings"
-          description="Highlight drivers within 1s"
-          checked={settings.mapShowBattleRings}
-          onChange={toggle("mapShowBattleRings")}
-        />
-        <SettingRow
-          label="Focused driver HUD"
-          description="Speed, gear and throttle for selected driver"
-          checked={settings.mapShowDriverHud}
-          onChange={toggle("mapShowDriverHud")}
-        />
-        <SectionHeader>Flags & Sectors</SectionHeader>
-        <SettingRow
-          label="Sector flag colouring"
-          description="Tint track sectors on yellow/red flags"
-          checked={settings.mapShowSectorFlags}
-          onChange={toggle("mapShowSectorFlags")}
-        />
-        <SettingRow
-          label="Sector status box"
-          description="Show S1/S2/S3 flag chips near compass"
-          checked={settings.mapShowSectorBox}
-          onChange={toggle("mapShowSectorBox")}
-        />
-        <SettingRow
-          label="Marshal sector heatmap"
-          description="Paint all ~15-22 individual marshal posts as coloured arc segments on the track (S1 red / S2 yellow / S3 blue)"
-          checked={settings.mapShowMarshalHeatmap}
-          onChange={toggle("mapShowMarshalHeatmap")}
-        />
-        <SectionHeader>Circuit Detail</SectionHeader>
-        <SettingRow
-          label="Enhanced track visuals"
-          description="Show finish line, sector markers, ghost delta map, braking hotspots, overtake arcs, condition ribbon, marshal lights and elevation contours"
-          checked={settings.mapShowEnhancedVisuals}
-          onChange={toggle("mapShowEnhancedVisuals")}
-        />
-        <SettingRow
-          label="Corner numbers"
-          description="Show corner numbers next to the track from baked circuit geometry"
-          checked={settings.mapShowCornerNumbers}
-          onChange={toggle("mapShowCornerNumbers")}
-        />
-        <SettingRow
-          label="Elevation heatmap"
-          description="Colour the track ribbon by altitude (blue = low, yellow = high)"
-          checked={settings.mapShowElevation}
-          onChange={toggle("mapShowElevation")}
-        />
-        <SectionHeader>Overlays & Controls</SectionHeader>
-        <SettingRow
-          label="Track controls"
-          description="Show zoom and rotate controls on map"
-          checked={settings.mapShowTrackControls}
-          onChange={toggle("mapShowTrackControls")}
-        />
-        <SettingRow
-          label="Compass overlay"
-          description="Show north indicator in track controls"
-          checked={settings.mapShowCompass}
-          onChange={toggle("mapShowCompass")}
-        />
-        <SettingRow
-          label="Track weather"
-          description="Show weather panel/overlay in track map view"
-          checked={settings.mapShowWeather}
-          onChange={toggle("mapShowWeather")}
-        />
-        <SettingRow
-          label="Track time clock"
-          description="Show session wall-clock time in track map view"
-          checked={settings.mapShowClock}
-          onChange={toggle("mapShowClock")}
-        />
-        <SettingRow
-          label="PNG track snapshot"
-          description="Show download button for track screenshots"
-          checked={settings.trackScreenshotPngEnabled}
-          onChange={toggle("trackScreenshotPngEnabled")}
-        />
-      </div>
-        </div>
-      )}
+          {activeTab === "telemetry" && (
+            <div
+              id="telemetry-settings-panel"
+              role="tabpanel"
+              aria-labelledby="telemetry-settings-tab"
+              className="min-h-0 flex-1 overflow-y-auto overscroll-contain pr-1"
+            >
+              <SectionHeader>Telemetry Charts</SectionHeader>
+              <SettingRow
+                label="Low speed corner bands"
+                description={`Shade corners with an apex below ${CORNER_LOW_SPEED_KMH} km/h on telemetry charts`}
+                checked={settings.telemetryCornerZonesLow}
+                onChange={toggle("telemetryCornerZonesLow")}
+              />
+              <SettingRow
+                label="Medium speed corner bands"
+                description={`Shade corners with a ${CORNER_LOW_SPEED_KMH}–${CORNER_HIGH_SPEED_KMH - 1} km/h apex on telemetry charts`}
+                checked={settings.telemetryCornerZonesMedium}
+                onChange={toggle("telemetryCornerZonesMedium")}
+              />
+              <SettingRow
+                label="High speed corner bands"
+                description={`Shade corners with an apex of ${CORNER_HIGH_SPEED_KMH} km/h or more on telemetry charts`}
+                checked={settings.telemetryCornerZonesHigh}
+                onChange={toggle("telemetryCornerZonesHigh")}
+              />
+            </div>
+          )}
 
-      {activeTab === "interface" && (
-        <div
-          id="interface-settings-panel"
-          role="tabpanel"
-          aria-labelledby="interface-settings-tab"
-          className="min-h-0 flex-1 overflow-y-auto overscroll-contain pr-1"
-        >
-      <SectionHeader>Data & Interface</SectionHeader>
-      <SettingRow
-        label="CSV export buttons"
-        description="Show export controls on Race Control, Team Radio, Overtakes and Weather panels"
-        checked={settings.showCsvExportButtons}
-        onChange={toggle("showCsvExportButtons")}
-      />
-      <SettingRow
-        label="Next race weekend banner"
-        description="Show countdown banner for the next race weekend"
-        checked={settings.showNextRaceWeekendBanner}
-        onChange={toggle("showNextRaceWeekendBanner")}
-      />
+          {activeTab === "track" && (
+            <div
+              id="track-settings-panel"
+              role="tabpanel"
+              aria-labelledby="track-settings-tab"
+              className="flex min-h-0 flex-1 flex-col"
+            >
+              <div className="shrink-0">
+                <SectionHeader>Track Map</SectionHeader>
+                <TrackMapPreview />
+              </div>
+              <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain pr-1">
+                <SectionHeader>Drivers</SectionHeader>
+                <SettingRow
+                  label="Driver acronym labels"
+                  description="Show 3-letter driver labels next to car dots"
+                  checked={settings.mapShowDriverAcronym}
+                  onChange={toggle("mapShowDriverAcronym")}
+                />
+                <SettingRow
+                  label="Driver number inside dot"
+                  description="Show driver number centered in each car dot"
+                  checked={settings.mapShowDriverNumberInside}
+                  onChange={toggle("mapShowDriverNumberInside")}
+                />
+                <SettingRow
+                  label="Race leader badge"
+                  description="Show P1 race leader notification and headshot"
+                  checked={settings.mapShowRaceLeader}
+                  onChange={toggle("mapShowRaceLeader")}
+                />
+                <SettingRow
+                  label="Start light sounds"
+                  description="Beep as each race start light comes on"
+                  checked={settings.mapStartLightsSound}
+                  onChange={toggle("mapStartLightsSound")}
+                />
+                <SettingRow
+                  label="Tyre compound badges"
+                  description="Compound icons on each driver dot"
+                  checked={settings.mapShowCompoundBadges}
+                  onChange={toggle("mapShowCompoundBadges")}
+                />
+                <SettingRow
+                  label="DRS battle rings"
+                  description="Highlight drivers within 1s"
+                  checked={settings.mapShowBattleRings}
+                  onChange={toggle("mapShowBattleRings")}
+                />
+                <SettingRow
+                  label="Focused driver HUD"
+                  description="Speed, gear and throttle for selected driver"
+                  checked={settings.mapShowDriverHud}
+                  onChange={toggle("mapShowDriverHud")}
+                />
+                <SectionHeader>Flags & Sectors</SectionHeader>
+                <SettingRow
+                  label="Sector flag colouring"
+                  description="Tint track sectors on yellow/red flags"
+                  checked={settings.mapShowSectorFlags}
+                  onChange={toggle("mapShowSectorFlags")}
+                />
+                <SettingRow
+                  label="Sector status box"
+                  description="Show S1/S2/S3 flag chips near compass"
+                  checked={settings.mapShowSectorBox}
+                  onChange={toggle("mapShowSectorBox")}
+                />
+                <SettingRow
+                  label="Marshal sector heatmap"
+                  description="Paint all ~15-22 individual marshal posts as coloured arc segments on the track (S1 red / S2 yellow / S3 blue)"
+                  checked={settings.mapShowMarshalHeatmap}
+                  onChange={toggle("mapShowMarshalHeatmap")}
+                />
+                <SectionHeader>Circuit Detail</SectionHeader>
+                <SettingRow
+                  label="Enhanced track visuals"
+                  description="Show finish line, sector markers, ghost delta map, braking hotspots, overtake arcs, condition ribbon, marshal lights and elevation contours"
+                  checked={settings.mapShowEnhancedVisuals}
+                  onChange={toggle("mapShowEnhancedVisuals")}
+                />
+                <SettingRow
+                  label="Corner numbers"
+                  description="Show corner numbers next to the track from baked circuit geometry"
+                  checked={settings.mapShowCornerNumbers}
+                  onChange={toggle("mapShowCornerNumbers")}
+                />
+                <SettingRow
+                  label="Elevation heatmap"
+                  description="Colour the track ribbon by altitude (blue = low, yellow = high)"
+                  checked={settings.mapShowElevation}
+                  onChange={toggle("mapShowElevation")}
+                />
+                <SectionHeader>Overlays & Controls</SectionHeader>
+                <SettingRow
+                  label="Track controls"
+                  description="Show zoom and rotate controls on map"
+                  checked={settings.mapShowTrackControls}
+                  onChange={toggle("mapShowTrackControls")}
+                />
+                <SettingRow
+                  label="Compass overlay"
+                  description="Show north indicator in track controls"
+                  checked={settings.mapShowCompass}
+                  onChange={toggle("mapShowCompass")}
+                />
+                <SettingRow
+                  label="Track weather"
+                  description="Show weather panel/overlay in track map view"
+                  checked={settings.mapShowWeather}
+                  onChange={toggle("mapShowWeather")}
+                />
+                <SettingRow
+                  label="Track time clock"
+                  description="Show session wall-clock time in track map view"
+                  checked={settings.mapShowClock}
+                  onChange={toggle("mapShowClock")}
+                />
+                <SettingRow
+                  label="PNG track snapshot"
+                  description="Show download button for track screenshots"
+                  checked={settings.trackScreenshotPngEnabled}
+                  onChange={toggle("trackScreenshotPngEnabled")}
+                />
+              </div>
+            </div>
+          )}
 
-      <SectionHeader>Support</SectionHeader>
-      <SettingRow
-        label="Buy Me a Coffee button"
-        description="Show the floating support widget"
-        checked={settings.showCoffeeWidget}
-        onChange={toggle("showCoffeeWidget")}
-      />
+          {activeTab === "interface" && (
+            <div
+              id="interface-settings-panel"
+              role="tabpanel"
+              aria-labelledby="interface-settings-tab"
+              className="min-h-0 flex-1 overflow-y-auto overscroll-contain pr-1"
+            >
+              <SectionHeader>Data & Interface</SectionHeader>
+              <SettingRow
+                label="CSV export buttons"
+                description="Show export controls on Race Control, Team Radio, Overtakes and Weather panels"
+                checked={settings.showCsvExportButtons}
+                onChange={toggle("showCsvExportButtons")}
+              />
+              <SettingRow
+                label="Next race weekend banner"
+                description="Show countdown banner for the next race weekend"
+                checked={settings.showNextRaceWeekendBanner}
+                onChange={toggle("showNextRaceWeekendBanner")}
+              />
+
+              <SectionHeader>Support</SectionHeader>
+              <SettingRow
+                label="Buy Me a Coffee button"
+                description="Show the floating support widget"
+                checked={settings.showCoffeeWidget}
+                onChange={toggle("showCoffeeWidget")}
+              />
+            </div>
+          )}
         </div>
-      )}
-      </div>
       </div>
 
       <div className="shrink-0 pt-4 pb-1 flex justify-end">

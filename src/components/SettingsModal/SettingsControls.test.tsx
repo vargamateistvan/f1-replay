@@ -296,6 +296,19 @@ describe("SettingsControls", () => {
     }
   });
 
+  it("keeps telemetry chart settings in their own category", () => {
+    render(<SettingsBody />);
+    fireEvent.click(screen.getByRole("tab", { name: "Timing" }));
+    expect(screen.queryByText("Telemetry Charts")).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("tab", { name: "Telemetry" }));
+    expect(screen.getByRole("tabpanel")).toHaveAttribute(
+      "aria-labelledby",
+      "telemetry-settings-tab",
+    );
+    expect(screen.getByText("Low speed corner bands")).toBeInTheDocument();
+  });
+
   it("opens on the requested category", () => {
     render(<SettingsBody initialTab="track" />);
     expect(screen.getByRole("tab", { name: "Track map" })).toHaveAttribute(
