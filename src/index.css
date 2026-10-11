@@ -11,6 +11,25 @@
   --color-muted:   163 163 163;
 }
 
+/* App-like cursor: arrow over static text, I-beam only where you can type.
+   Buttons/links keep their pointer from preflight / the UA stylesheet. */
+@layer base {
+  body {
+    cursor: default;
+  }
+  input:not([type="button"]):not([type="submit"]):not([type="reset"]):not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="color"]):not([type="file"]),
+  textarea,
+  [contenteditable]:not([contenteditable="false"]) {
+    cursor: text;
+  }
+  select,
+  label[for],
+  summary,
+  [role="button"] {
+    cursor: pointer;
+  }
+}
+
 /* ── Light mode overrides ─────────────────────────────────────────────────── */
 html.light {
   color-scheme: light;
