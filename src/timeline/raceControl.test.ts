@@ -4,6 +4,7 @@ import {
   buildChequeredFlagTimeline,
   buildIncidentWindows,
   buildRaceChapters,
+  buildRaceControlMarkers,
   clusterRaceControlMarkers,
   computeWhatChanged,
   deriveTrackFlagState,
@@ -185,6 +186,28 @@ describe("buildIncidentWindows safety control phases", () => {
         startLap: 5,
       },
     ]);
+  });
+});
+
+describe("buildRaceControlMarkers", () => {
+  it("skips track-limits lap deletions but keeps other warnings", () => {
+    const events = normalizeRaceControl(
+      [
+        rc({
+          category: "Other",
+          date: iso(10),
+          message:
+            "CAR 87 (BEA) TIME 1:42.615 DELETED - TRACK LIMITS AT TURN 6 LAP 55 18:19:37",
+        }),
+        rc({ date: iso(20), flag: "YELLOW", message: "YELLOW IN TRACK SECTOR 4" }),
+      ],
+      START,
+    );
+
+    const markers = buildRaceControlMarkers(events);
+
+    expect(markers).toHaveLength(1);
+    expect(markers[0]!.flag).toBe("YELLOW");
   });
 });
 

@@ -605,11 +605,19 @@ export function normalizeRaceControl(
   return out;
 }
 
+/** Routine lap-time deletions; too frequent to be worth a scrubber marker. */
+const TRACK_LIMITS_RE = /track limits/i;
+
 export function buildRaceControlMarkers(
   events: NormalizedRaceControlEvent[],
 ): RaceControlMarker[] {
   return events
-    .filter((event) => event.ms >= 0 && event.severity !== "info")
+    .filter(
+      (event) =>
+        event.ms >= 0 &&
+        event.severity !== "info" &&
+        !TRACK_LIMITS_RE.test(event.description),
+    )
     .map((event) => ({
       id: event.id,
       ms: event.ms,
