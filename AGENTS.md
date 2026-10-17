@@ -1,6 +1,6 @@
 # F1 Replay — Agent Documentation
 
-> Last updated: 2026-06-19  
+> Last updated: 2026-10-17  
 > Companion document to the existing docs in `docs/`. Provides concise, agent-readable architecture notes, conventions, and guardrails.
 
 ---
@@ -25,6 +25,7 @@
 | Client state      | Zustand v5                                                   |
 | Styling           | Tailwind CSS v3                                              |
 | Charts            | Recharts (standings/gap charts), uPlot (high-freq telemetry) |
+| 3D map            | Mapbox GL JS v3 (lazy chunk, opt-in, needs `VITE_MAPBOX_TOKEN`) |
 | Icons             | Lucide React                                                 |
 | Build             | Vite 6                                                       |
 | Testing           | Vitest + Testing Library + jsdom                             |
@@ -90,9 +91,12 @@ src/
     cornerAnalysis.ts   — Per-corner metrics, lap alignment to timing lines, segment time deltas
     lapContext.ts       — tyreForLap(): compound + tyre age for a driver's lap
     units.ts            — Metric/imperial conversion
+    georef.ts           — F1 frame ↔ WGS84: similarity fit (Umeyama + ICP) and projection for the 3D map
 
   data/
     (circuit geometry and layout data files)
+    circuit-georef.json — Baked F1-frame → lng/lat fit per geometry file (`node scripts/fetch-georef.mjs`)
+    circuitGeoref.ts    — getCircuitGeoref(): lookup matching the resolved geometry year
 
   pages/
     RaceWeekend.tsx     — Main page: track map + leaderboard + timeline
@@ -141,6 +145,7 @@ components/ (render to DOM; read settings from Zustand)
 | Component                                         | Purpose                                                                                  |
 | ------------------------------------------------- | ---------------------------------------------------------------------------------------- |
 | `TrackMap`                                        | Animated SVG track map: driver blobs, sector flags, follow-cam, compass, weather overlay, status badges (start lights, SC/VSC, chequered flag), pit rejoin projection for the focused driver (baked `pitLoss`, races only). `TrackMap.tsx` orchestrates; memoized SVG layers in `layers/`, HTML overlays in `overlays/`, pure derivations in `trackGeometry.ts` / `statusBadges.ts` |
+| `TrackMap3D`                                      | Opt-in Mapbox 3D map (Standard style + terrain): georeferenced centerline, marshal-post flags via feature state, car markers + heading-follow camera driven by its own RAF loop. Pure builders in `mapFeatures.ts`; gate with `availability.ts` (token + WebGL2, desktop only) |
 | `LiveTiming`                                      | Real-time leaderboard: positions, intervals, mini-sectors, telemetry columns             |
 | `PlaybackBar`                                     | Scrubber (race-control, race-start and chequered-flag markers) / speed controls / chips |
 | `RaceControl`                                     | Race control message feed                                                                |
@@ -258,6 +263,12 @@ components/ (render to DOM; read settings from Zustand)
 - `useStandings` only considers finished Race/Sprint sessions, fetches one `session_result` per round (shared `["sessionResult", key]` cache) for wins/podiums and the progression chart, and fetches main-qualifying results only when the Teammates tab is open.
 - Title outlook (`utils/championship.ts`): remaining points = 25 per GP (+1 fastest lap up to `FASTEST_LAP_POINT_LAST_YEAR`) and 8 per Sprint (double the top-two slots for teams). A rival who can only draw level stays a contender (countback).
 
+### 3D map georeferencing (`utils/georef.ts`, `scripts/fetch-georef.mjs`)
+
+- The F1 frame is decimetres, roughly east/north, but each circuit is turned by up to ±2.5° — a fixed transform is 2–7× worse than a per-circuit fit.
+- The bake fits each MultiViewer centerline onto the bacinger/f1-circuits trace (pinned commit): best cyclic shift × direction × Y-flip, then ICP. Fits over 6 m RMS / 25 m max are dropped (3D hidden for that circuit). Current fits: 1.2–5.1 m RMS.
+- Runtime: `[e, n] = scale·R(rotation)·[x, ±y] + t`, then a local equirectangular step to lng/lat. Map bearing for the broadcast view = baked `rotation` + frame rotation.
+
 ### Track map geometry (`hooks/useTrackMap.ts`)
 
 - Preferred: static `circuitGeometry` data keyed by `circuit_key` (pre-processed SVG paths).
@@ -372,3 +383,4 @@ Authentication: optional bearer token via `VITE_OPENF1_API_KEY` env var (`.env.l
 10. **SEO routes** are generated at build time from `seo-routes.json`. Add new deep-linkable pages to this file and run `yarn generate:sitemap`.
 11. **Start-light sounds** play `public/sounds/start-light.mp3` as each light comes on (synthesized beep if it's missing); lights out is silent. Only commit audio you have the rights to. Light pacing is `START_LIGHT_INTERVAL_MS` / `START_LIGHTS_HOLD_MS` in `constants.ts`. The sequence always plays at 1x: the clock drops to 1x when it enters `realTimeWindow` and restores the previous speed at lights out.
 12. **Team radio playback** (panel, toasts, catch-up) must go through `RadioAudio`, which plays the `public/sounds/radio-intro.mp3` chime and starts the clip after `RADIO_INTRO_LEAD_MS`. Don't render a bare `<audio autoPlay>` for radio.
+13. **3D map coordinates**: never hand raw OpenF1 x/y to Mapbox — project with `f1ToLngLat(getCircuitGeoref(...), x, y)`. Re-run `node scripts/fetch-georef.mjs` (Node ≥ 23.6) after `fetch-circuits.mjs` adds or changes geometry; a test fails if a geometry file has no georef. `mapbox-gl` must only be imported from the lazy `TrackMap3D` chunk.

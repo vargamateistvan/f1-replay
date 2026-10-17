@@ -48,7 +48,7 @@ const cacheKey = (circuitKey: number, year: number) => `${circuitKey}-${year}`;
  * 2. Nearest year ≤ requested (most-recent earlier layout).
  * 3. Nearest year overall (future-only data, e.g. brand-new circuit).
  */
-function resolveGeometryYear(
+export function resolveGeometryYear(
   circuitKey: number,
   year?: number | null,
 ): number | null {

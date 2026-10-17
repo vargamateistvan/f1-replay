@@ -105,6 +105,23 @@ export const SECTOR_COLORS: Record<1 | 2 | 3, string> = {
 export const FOLLOW_ZOOM_W = 200;
 export const FOLLOW_ZOOM_H = 134;
 
+// ── 3D track map (Mapbox) ───────────────────────────────────────────────────--
+export const MAP3D_STYLE_URL = "mapbox://styles/mapbox/standard";
+export const MAP3D_TERRAIN_EXAGGERATION = 1.3;
+/** Drawn width of the track ribbon / flag band, in metres on the ground. */
+export const MAP3D_TRACK_WIDTH_M = 14;
+export const MAP3D_FLAG_WIDTH_M = 26;
+export const MAP3D_OVERVIEW_PITCH = 50;
+export const MAP3D_FOLLOW_PITCH = 62;
+export const MAP3D_FOLLOW_ZOOM = 16.6;
+/** Car source refresh interval (ms); the follow camera still moves every frame. */
+export const MAP3D_CAR_UPDATE_MS = 33;
+/** Per-frame lerp factors for the follow camera (higher = snappier). */
+export const MAP3D_FOLLOW_CENTER_ALPHA = 0.3;
+export const MAP3D_FOLLOW_BEARING_ALPHA = 0.08;
+/** Heading is taken from the car's position this long ago → now. */
+export const MAP3D_HEADING_LOOKBACK_MS = 400;
+
 // ── Tyre compound colours ───────────────────────────────────────────────────--
 export const COMPOUND_COLORS = {
   SOFT: "#e8002d",

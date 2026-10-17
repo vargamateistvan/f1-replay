@@ -15,6 +15,8 @@ interface ImportMetaEnv {
   readonly VITE_GA_MEASUREMENT_ID?: string;
   /** Optional release identifier injected at build time (for example 1.4.2). */
   readonly VITE_APP_VERSION?: string;
+  /** Public Mapbox token (pk.…) for the 3D track map; restrict it to the site's URLs. */
+  readonly VITE_MAPBOX_TOKEN?: string;
 }
 
 interface ImportMeta {

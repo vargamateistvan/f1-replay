@@ -35,6 +35,8 @@ export interface AppSettings {
   mapShowCornerNumbers: boolean;
   mapShowElevation: boolean;
   mapShowPitRejoin: boolean;
+  /** Show the Mapbox 3D map instead of the SVG map, when available. */
+  mapView3d: boolean;
   // Leaderboard
   leaderboardTelemetry: boolean;
   timingShowMinisectors: boolean;
@@ -165,6 +167,7 @@ export const SETTINGS_DEFAULTS: AppSettings = {
   mapShowCornerNumbers: false,
   mapShowElevation: false,
   mapShowPitRejoin: true,
+  mapView3d: false,
   leaderboardTelemetry: true,
   timingShowMinisectors: true,
   trackerTimingTelemetry: true,

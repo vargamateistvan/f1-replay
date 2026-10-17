@@ -11,6 +11,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { Settings as SettingsIcon } from "lucide-react";
 import { PlaybackBar } from "@/components/PlaybackBar";
 import type { ActiveTrackVehicles } from "@/components/TrackMap/TrackMap";
+import { isMap3dAvailable } from "@/components/TrackMap3D/availability";
 import LiveTiming from "@/components/LiveTiming/LiveTiming";
 import { WeatherPanel } from "@/components/Weather/WeatherPanel";
 import { QualifyingBanner } from "@/components/QualifyingBanner";
@@ -204,6 +205,12 @@ function isClosedIncidentWindow(
 const TrackMap = lazy(() =>
   import("@/components/TrackMap/TrackMap").then((m) => ({
     default: m.TrackMap,
+  })),
+);
+
+const TrackMap3D = lazy(() =>
+  import("@/components/TrackMap3D/TrackMap3D").then((m) => ({
+    default: m.TrackMap3D,
   })),
 );
 
@@ -1198,6 +1205,7 @@ export default function RaceWeekend() {
     mapShowCompass,
     mapShowWeather,
     mapShowEnhancedVisuals,
+    mapView3d,
     leaderboardTelemetry,
     timingShowMinisectors,
     trackerTimingTelemetry,
@@ -1244,6 +1252,7 @@ export default function RaceWeekend() {
     isHelpOpen,
     isOpen: isSettingsOpen,
     openHelp,
+    setSetting,
   } = useSettings();
 
   // Gap-to-leader snapshot for the focused driver's pit rejoin projection.
@@ -1996,7 +2005,41 @@ export default function RaceWeekend() {
     />
   );
 
-  const trackMap = (
+  // 3D map: opt-in, desktop only, and only with a Mapbox token + WebGL2.
+  const map3dAvailable = !isCompactViewport && isMap3dAvailable();
+  const setMapView3d = useCallback(
+    (enabled: boolean) => {
+      trackEvent("trackmap_view_mode_changed", { mode: enabled ? "3d" : "2d" });
+      setSetting("mapView3d", enabled);
+    },
+    [setSetting],
+  );
+
+  const trackMap = map3dAvailable && mapView3d ? (
+    <TrackMap3D
+      sessionKey={sessionKey}
+      drivers={drivers.data ?? []}
+      locationData={location.data}
+      sessionStartMs={sessionStartMs}
+      sessionGmtOffset={session?.gmt_offset ?? "+00:00"}
+      focusDriver={focusDriver}
+      circuitKey={session?.circuit_key ?? null}
+      year={session?.year ?? null}
+      battlingDrivers={mapShowBattleRings ? battlingDrivers : undefined}
+      retiredDrivers={retiredDrivers}
+      showFocusedHud={mapShowDriverHud}
+      sharedAllDriverWindow={telemetryEnabled}
+      trackFlagState={mapShowSectorFlags ? trackFlagState : null}
+      showTrackControls={mapShowTrackControls}
+      weatherOverlay={mapShowWeather ? weatherAtT : null}
+      activeTrackVehicles={activeTrackVehicles}
+      raceLeader={isRaceSession && mapShowRaceLeader ? raceLeaderDriver : null}
+      lightsOutMs={isRaceSession ? lightsOutMs : null}
+      onSelectDriver={toggleFocus}
+      onOpenSettings={() => openSettingsTab("track")}
+      onExit3d={() => setMapView3d(false)}
+    />
+  ) : (
     <TrackMap
       sessionKey={sessionKey}
       drivers={drivers.data ?? []}
@@ -2030,6 +2073,7 @@ export default function RaceWeekend() {
       onOpenSettings={
         isCompactViewport ? undefined : () => openSettingsTab("track")
       }
+      onEnter3d={map3dAvailable ? () => setMapView3d(true) : undefined}
     />
   );
 

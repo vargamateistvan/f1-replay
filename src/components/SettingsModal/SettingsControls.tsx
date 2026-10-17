@@ -1114,6 +1114,12 @@ export function SettingsBody({
                   onChange={toggle("mapShowEnhancedVisuals")}
                 />
                 <SettingRow
+                  label="3D map (beta)"
+                  description="Mapbox Standard map with 3D buildings and terrain. Desktop only; needs a Mapbox token and WebGL2"
+                  checked={settings.mapView3d}
+                  onChange={toggle("mapView3d")}
+                />
+                <SettingRow
                   label="Corner numbers"
                   description="Show corner numbers next to the track from baked circuit geometry"
                   checked={settings.mapShowCornerNumbers}

@@ -23,6 +23,31 @@ export function buildIndex(
   return { times, xs, ys }
 }
 
+/**
+ * Group raw /location rows by driver into one index each, with times as
+ * session-relative ms. Run once per data change, never per frame.
+ */
+export function buildDriverIndexes(
+  locations: ReadonlyArray<{ date: string; driver_number: number; x: number; y: number }>,
+  sessionStartMs: number,
+): Map<number, LocationIndex> {
+  const byDriver = new Map<number, Array<{ t: number; x: number; y: number }>>()
+  for (const loc of locations) {
+    let arr = byDriver.get(loc.driver_number)
+    if (!arr) {
+      arr = []
+      byDriver.set(loc.driver_number, arr)
+    }
+    arr.push({ t: new Date(loc.date).getTime() - sessionStartMs, x: loc.x, y: loc.y })
+  }
+  const indexes = new Map<number, LocationIndex>()
+  for (const [num, pts] of byDriver) {
+    pts.sort((a, b) => a.t - b.t)
+    indexes.set(num, buildIndex(pts))
+  }
+  return indexes
+}
+
 // ── binary search ────────────────────────────────────────────────────────────
 
 function bisect(times: Float64Array, t: number): number {

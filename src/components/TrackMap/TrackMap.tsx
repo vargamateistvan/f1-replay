@@ -11,7 +11,7 @@ import {
   useTrackOutline,
 } from "@/hooks/useTrackMap";
 import { useMediaQuery } from "@/hooks/useMediaQuery";
-import { buildIndex, interpolateXY } from "@/timeline/interpolate";
+import { buildDriverIndexes, interpolateXY } from "@/timeline/interpolate";
 import {
   isActiveTrackFlag,
   projectToTimingSectors,
@@ -138,6 +138,8 @@ interface Props {
   readonly onSelectDriver?: (driverNumber: number) => void;
   /** When set, shows a shortcut to the track map settings. */
   readonly onOpenSettings?: () => void;
+  /** When set, shows a button that switches to the 3D map. */
+  readonly onEnter3d?: () => void;
 }
 
 /**
@@ -177,6 +179,7 @@ export function TrackMap({
   showEnhancedVisuals = true,
   onSelectDriver,
   onOpenSettings,
+  onEnter3d,
 }: Props) {
   const t = useCoarseTime(100);
   const lightMode = useSettings((s) => s.lightMode);
@@ -302,27 +305,10 @@ export function TrackMap({
 
   // Group location points by driver and build a typed-array index per driver.
   // Rebuilds only when locationData or sessionStartMs changes (not on every frame).
-  const locationIndexes = useMemo(() => {
-    const byDriver = new Map<
-      number,
-      Array<{ t: number; x: number; y: number }>
-    >();
-    for (const loc of locationData) {
-      const relT = new Date(loc.date).getTime() - sessionStartMs;
-      let arr = byDriver.get(loc.driver_number);
-      if (!arr) {
-        arr = [];
-        byDriver.set(loc.driver_number, arr);
-      }
-      arr.push({ t: relT, x: loc.x, y: loc.y });
-    }
-    const indexes = new Map<number, ReturnType<typeof buildIndex>>();
-    for (const [num, pts] of byDriver) {
-      pts.sort((a, b) => a.t - b.t);
-      indexes.set(num, buildIndex(pts));
-    }
-    return indexes;
-  }, [locationData, sessionStartMs]);
+  const locationIndexes = useMemo(
+    () => buildDriverIndexes(locationData, sessionStartMs),
+    [locationData, sessionStartMs],
+  );
 
   const circuitLayout = useMemo(
     () => (circuitShortName ? getCircuitLayout(circuitShortName) : null),
@@ -821,6 +807,7 @@ export function TrackMap({
         onZoomIn={zoomIn}
         onZoomReset={zoomReset}
         onOpenSettings={onOpenSettings}
+        onEnter3d={onEnter3d}
       />
 
       {focusDriver !== null && heatSegments.length > 0 && heatData.data && (

@@ -50,6 +50,7 @@ export const TrackControls = memo(function TrackControls({
   onZoomIn,
   onZoomReset,
   onOpenSettings,
+  onEnter3d,
 }: {
   showTrackControls: boolean;
   overlayBackground: string;
@@ -59,8 +60,10 @@ export const TrackControls = memo(function TrackControls({
   onZoomIn: () => void;
   onZoomReset: () => void;
   onOpenSettings?: () => void;
+  /** When set, shows a button that switches to the 3D map. */
+  onEnter3d?: () => void;
 }) {
-  if (!showTrackControls && !onOpenSettings) return null;
+  if (!showTrackControls && !onOpenSettings && !onEnter3d) return null;
 
   const settingsButton = onOpenSettings && (
     <ControlButton
@@ -72,12 +75,27 @@ export const TrackControls = memo(function TrackControls({
     </ControlButton>
   );
 
+  const enter3dButton = onEnter3d && (
+    <ControlButton
+      title="Switch to 3D map"
+      ariaLabel="Switch to 3D map"
+      onPress={onEnter3d}
+    >
+      <span className="text-[10px] font-black tracking-widest">3D</span>
+    </ControlButton>
+  );
+
   return (
     <div
       className="absolute top-2 right-2 z-20 flex flex-col items-end gap-1 p-1"
       style={{ background: overlayBackground, backdropFilter: "blur(4px)" }}
     >
-      {!showTrackControls && settingsButton}
+      {!showTrackControls && (
+        <div className="flex items-center gap-1">
+          {enter3dButton}
+          {settingsButton}
+        </div>
+      )}
       {showTrackControls && (
         <>
           <div className="flex items-center gap-1">
@@ -87,6 +105,7 @@ export const TrackControls = memo(function TrackControls({
             <ControlButton title="Rotate right" onPress={onRotateRight}>
               <RotateCw size={14} strokeWidth={2.2} aria-hidden="true" />
             </ControlButton>
+            {enter3dButton}
             {settingsButton}
           </div>
           <div className="flex items-center gap-1">
