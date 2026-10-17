@@ -4,7 +4,14 @@ import type { CircuitGeometry } from "@/data/circuitGeometryTypes";
 import { getCircuitGeoref } from "@/data/circuitGeoref";
 import { getPitLane } from "@/data/pitLanes";
 import { lngLatToEnu } from "@/utils/georef";
-import { buildTrackSurface, normals, offsetLine, resample } from "./trackSurface";
+import {
+  buildFlagZones,
+  buildTrackSurface,
+  kerbRuns,
+  normals,
+  offsetLine,
+  resample,
+} from "./trackSurface";
 
 const monaco = monacoJson as CircuitGeometry;
 const geo = getCircuitGeoref(22, 2025)!;
@@ -41,6 +48,62 @@ describe("resample / normals / offsetLine", () => {
   });
 });
 
+describe("normals smoothing", () => {
+  it("averages direction over the span, so a kinked polyline gives a gentle normal", () => {
+    const kinked = resample([{ x: 0, y: 0 }, { x: 50, y: 0 }, { x: 100, y: 10 }], 1, false);
+    const corner = kinked.findIndex((p) => p.x >= 50);
+    const sharp = normals(kinked, false, 1);
+    const smooth = normals(kinked, false, 12);
+    // Just past the kink the 1-sample normal has fully turned; the smoothed
+    // one is still between the two directions.
+    const turned = (n: { x: number; y: number }) => Math.atan2(-n.x, n.y);
+    expect(Math.abs(turned(sharp[corner + 1]!))).toBeCloseTo(Math.atan2(10, 50), 2);
+    expect(Math.abs(turned(smooth[corner + 1]!))).toBeLessThan(Math.atan2(10, 50));
+  });
+});
+
+describe("kerbRuns", () => {
+  it("finds one inside kerb per corner of a square, on the left for an anticlockwise lap", () => {
+    const square = resample(
+      [
+        { x: 0, y: 0 },
+        { x: 400, y: 0 },
+        { x: 400, y: 400 },
+        { x: 0, y: 400 },
+      ],
+      5,
+      true,
+    );
+    const runs = kerbRuns(square, 5);
+    expect(runs).toHaveLength(4);
+    expect(runs.every((r) => r.side === 1)).toBe(true);
+  });
+
+  it("alternates sides through a chicane-like S bend", () => {
+    // Out along an S (left then right), back on a wide loop.
+    const s = resample(
+      [
+        { x: 0, y: 0 },
+        { x: 300, y: 0 },
+        { x: 350, y: 60 },
+        { x: 400, y: 0 },
+        { x: 700, y: 0 },
+        { x: 700, y: -600 },
+        { x: 0, y: -600 },
+      ],
+      5,
+      true,
+    );
+    const sides = kerbRuns(s, 5).map((r) => r.side);
+    expect(sides).toContain(1);
+    expect(sides).toContain(-1);
+  });
+
+  it("finds none on a straight-sided giant loop", () => {
+    expect(kerbRuns([{ x: 0, y: 0 }, { x: 5, y: 0 }], 5)).toEqual([]);
+  });
+});
+
 describe("buildTrackSurface (Monaco)", () => {
   const surface = buildTrackSurface(monaco, geo, getPitLane(22));
   const enu = ([lng, lat]: number[]) => lngLatToEnu(geo.originLng, geo.originLat, lng!, lat!);
@@ -63,10 +126,20 @@ describe("buildTrackSurface (Monaco)", () => {
     expect(best).toBeLessThan(16);
   });
 
-  it("adds kerbs at the corners and a pit lane", () => {
-    expect(surface.kerbsBase.features).toHaveLength(monaco.corners.length * 2);
-    expect(surface.kerbsStripes.features.length).toBeGreaterThan(monaco.corners.length * 4);
+  it("adds kerbs where the track turns and a pit lane", () => {
+    // Monaco has 19 numbered corners; some merge into one long kerb.
+    expect(surface.kerbsBase.features.length).toBeGreaterThan(10);
+    expect(surface.kerbsBase.features.length).toBeLessThan(30);
+    expect(surface.kerbsStripes.features.length).toBeGreaterThan(surface.kerbsBase.features.length * 3);
     expect(surface.pitLane.features).toHaveLength(1);
+  });
+
+  it("paints one flag zone per marshal post, keyed by post number", () => {
+    const zones = buildFlagZones(monaco, geo);
+    expect(zones.features.map((f) => f.id).sort((a, b) => a! - b!)).toEqual(
+      monaco.marshalSectors.map((m) => m.number).sort((a, b) => a - b),
+    );
+    expect(zones.features[0]!.geometry.type).toBe("Polygon");
   });
 
   it("lays a 6 × 3 chequered start grid", () => {

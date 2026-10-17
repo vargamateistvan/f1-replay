@@ -24,6 +24,7 @@ interface P {
 
 export interface PolygonFeature {
   type: "Feature";
+  id?: number;
   properties: Record<string, string | number>;
   geometry: { type: "Polygon"; coordinates: LngLat[][] };
 }
@@ -60,12 +61,16 @@ export function resample(points: readonly P[], step: number, closed: boolean): P
   return out;
 }
 
-/** Unit left-hand normal at each point, from the central-difference tangent. */
-export function normals(pts: readonly P[], closed: boolean): P[] {
+/**
+ * Unit left-hand normal at each point, from the tangent across ±`span`
+ * samples. A wide span (≈ ±12 m) averages out the kinks where the 5 m-spaced
+ * source centerline bends, so offset edges stay smooth.
+ */
+export function normals(pts: readonly P[], closed: boolean, span = 1): P[] {
   const n = pts.length;
   return pts.map((_, i) => {
-    const prev = pts[closed ? (i - 1 + n) % n : Math.max(0, i - 1)]!;
-    const next = pts[closed ? (i + 1) % n : Math.min(n - 1, i + 1)]!;
+    const prev = pts[closed ? (i - span + n * span) % n : Math.max(0, i - span)]!;
+    const next = pts[closed ? (i + span) % n : Math.min(n - 1, i + span)]!;
     const tx = next.x - prev.x;
     const ty = next.y - prev.y;
     const len = Math.hypot(tx, ty) || 1;
@@ -113,14 +118,111 @@ function stripBand(pts: readonly P[], nrm: readonly P[], a: number, b: number, t
   return [[...ring, ring[0]!]];
 }
 
-/** Signed curvature sign at index i: + turning left, - turning right. */
-function turnSign(pts: readonly P[], i: number, span: number): number {
+/**
+ * Kerb runs from the track's own curvature: at every sample, the turn (°)
+ * between the heading over the previous and the next `windowM` metres,
+ * smoothed over ±`smoothM`; where it exceeds `thresholdDeg` the inside of the
+ * turn gets a kerb. Long corners get one continuous kerb and chicanes flip
+ * sides, without relying on a corner list.
+ *
+ * Returns runs of sample indices (inclusive, may wrap past the end) with the
+ * inside side: +1 left, -1 right.
+ */
+export function kerbRuns(
+  pts: readonly P[],
+  stepM: number,
+  { windowM = 40, smoothM = 30, thresholdDeg = 14 } = {},
+): Array<{ from: number; to: number; side: 1 | -1 }> {
   const n = pts.length;
-  const a = pts[(i - span + n) % n]!;
-  const b = pts[i]!;
-  const c = pts[(i + span) % n]!;
-  const cross = (b.x - a.x) * (c.y - b.y) - (b.y - a.y) * (c.x - b.x);
-  return cross >= 0 ? 1 : -1;
+  if (n < 8) return [];
+  const k = Math.max(1, Math.round(windowM / stepM));
+  const at = (i: number) => pts[((i % n) + n) % n]!;
+  const turn = pts.map((_, i) => {
+    const a = at(i - k);
+    const b = at(i);
+    const c = at(i + k);
+    const h1 = Math.atan2(b.y - a.y, b.x - a.x);
+    const h2 = Math.atan2(c.y - b.y, c.x - b.x);
+    return ((((h2 - h1 + 3 * Math.PI) % (2 * Math.PI)) - Math.PI) * 180) / Math.PI;
+  });
+  const m = Math.max(1, Math.round(smoothM / stepM));
+  // Running-window mean over the closed loop.
+  const smooth: number[] = new Array(n);
+  let sum = 0;
+  for (let j = -m; j <= m; j++) sum += turn[((j % n) + n) % n]!;
+  for (let i = 0; i < n; i++) {
+    smooth[i] = sum / (2 * m + 1);
+    sum += turn[(i + m + 1) % n]! - turn[(((i - m) % n) + n) % n]!;
+  }
+  const sideAt = (i: number) => {
+    const v = smooth[((i % n) + n) % n]!;
+    return Math.abs(v) > thresholdDeg ? (Math.sign(v) as 1 | -1) : 0;
+  };
+  // Start scanning at a boundary so a run never straddles the loop seam.
+  let first = 0;
+  while (first < n && sideAt(first) === sideAt(first - 1)) first++;
+  if (first === n) return [];
+  const runs: Array<{ from: number; to: number; side: 1 | -1 }> = [];
+  let i = first;
+  while (i < first + n) {
+    const side = sideAt(i);
+    let j = i;
+    while (j + 1 < first + n && sideAt(j + 1) === side) j++;
+    if (side !== 0) runs.push({ from: i, to: j, side });
+    i = j + 1;
+  }
+  return runs;
+}
+
+/**
+ * One asphalt polygon per marshal post, from the post to the next post in
+ * track order (the last wraps to the first); feature `id` is the post number
+ * so flags can be painted with feature state, like the line version.
+ */
+export function buildFlagZones(geom: CircuitGeometry, geo: CircuitGeoref): PolygonCollection {
+  const toLL = (p: P): LngLat => enuToLngLat(geo.originLng, geo.originLat, p.x, p.y);
+  const center = resample(geom.x.map((x, i) => f1ToEnu(geo, x, geom.y[i]!)), STEP_M, true);
+  const nrm = normals(center, true, Math.round(NORMAL_SPAN_M / STEP_M));
+  const n = center.length;
+  const posts = geom.marshalSectors
+    .map((ms) => {
+      const p = f1ToEnu(geo, ms.trackPosition.x, ms.trackPosition.y);
+      let best = 0;
+      let bestD = Infinity;
+      for (let i = 0; i < n; i++) {
+        const d = (center[i]!.x - p.x) ** 2 + (center[i]!.y - p.y) ** 2;
+        if (d < bestD) {
+          bestD = d;
+          best = i;
+        }
+      }
+      return { number: ms.number, index: best };
+    })
+    .sort((a, b) => a.index - b.index);
+  const half = MAP3D_TRACK_HALF_WIDTH_M;
+  return {
+    type: "FeatureCollection",
+    features: posts.map((post, k) => {
+      const end = posts[(k + 1) % posts.length]!.index;
+      const span = posts.length === 1 ? n : (end - post.index + n) % n;
+      const idx = Array.from({ length: span + 1 }, (_, j) => (post.index + j) % n);
+      return {
+        type: "Feature",
+        id: post.number,
+        properties: { marshal: post.number },
+        geometry: {
+          type: "Polygon",
+          coordinates: stripBand(
+            idx.map((i) => center[i]!),
+            idx.map((i) => nrm[i]!),
+            half,
+            -half,
+            toLL,
+          ),
+        },
+      };
+    }),
+  };
 }
 
 export interface TrackSurface {
@@ -134,9 +236,10 @@ export interface TrackSurface {
 }
 
 const STEP_M = 1;
-/** Kerb extents around each corner apex, in metres along the track. */
-const INSIDE_KERB = [-22, 18] as const;
-const OUTSIDE_KERB = [8, 40] as const;
+/** Edge directions are averaged over ±this many metres. */
+const NORMAL_SPAN_M = 12;
+/** Curvature is sampled at this spacing for kerb detection. */
+const KERB_SAMPLE_M = 5;
 
 export function buildTrackSurface(
   geom: CircuitGeometry,
@@ -149,7 +252,7 @@ export function buildTrackSurface(
     STEP_M,
     true,
   );
-  const nrm = normals(center, true);
+  const nrm = normals(center, true, Math.round(NORMAL_SPAN_M / STEP_M));
   const half = MAP3D_TRACK_HALF_WIDTH_M;
 
   const verge = polygons([loopBand(center, nrm, -(half + MAP3D_VERGE_M), half + MAP3D_VERGE_M, toLL)]);
@@ -163,11 +266,13 @@ export function buildTrackSurface(
       false,
     );
     const pitHalf = MAP3D_PIT_LANE_HALF_WIDTH_M;
-    pit = polygons([stripBand(lane, normals(lane, false), pitHalf, -pitHalf, toLL)]);
+    pit = polygons([
+      stripBand(lane, normals(lane, false, Math.round(NORMAL_SPAN_M / STEP_M)), pitHalf, -pitHalf, toLL),
+    ]);
   }
 
-  // Kerbs: an inside kerb through each apex and an outside kerb on the exit,
-  // as a base strip plus every other 2 m block for the stripes.
+  // Kerbs on the inside of every stretch that turns, as a base strip plus
+  // every other 2 m block for the stripes.
   const n = center.length;
   const kerbBase: LngLat[][][] = [];
   const kerbStripes: LngLat[][][] = [];
@@ -186,21 +291,10 @@ export function buildTrackSurface(
       );
     }
   };
-  for (const corner of geom.corners) {
-    const c = f1ToEnu(geo, corner.trackPosition.x, corner.trackPosition.y);
-    let apex = 0;
-    let best = Infinity;
-    for (let i = 0; i < n; i++) {
-      const d = (center[i]!.x - c.x) ** 2 + (center[i]!.y - c.y) ** 2;
-      if (d < best) {
-        best = d;
-        apex = i;
-      }
-    }
-    const turn = turnSign(center, apex, 15);
-    // Left turn → inside is the left (+normal) side.
-    addKerb(apex + INSIDE_KERB[0] / STEP_M, apex + INSIDE_KERB[1] / STEP_M, turn);
-    addKerb(apex + OUTSIDE_KERB[0] / STEP_M, apex + OUTSIDE_KERB[1] / STEP_M, -turn);
+  const every = Math.round(KERB_SAMPLE_M / STEP_M);
+  const coarse = center.filter((_, i) => i % every === 0);
+  for (const run of kerbRuns(coarse, KERB_SAMPLE_M)) {
+    addKerb(run.from * every, run.to * every + every, run.side);
   }
 
   // Start line: a chequered grid across the track at centerline index 0.

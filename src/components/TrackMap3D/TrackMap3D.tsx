@@ -43,6 +43,7 @@ import {
   MAP3D_HEADING_LOOKBACK_MS,
   MAP3D_OVERVIEW_PITCH,
   MAP3D_STYLE_URL,
+  MAP3D_SURFACE_MIN_ZOOM,
   MAP3D_TERRAIN_EXAGGERATION,
   MAP3D_TRACK_WIDTH_M,
   MAP3D_TRAIL_MS,
@@ -96,7 +97,7 @@ import {
 } from "./atmosphere";
 import { mapboxToken } from "./availability";
 import { addTrackSurfaceLayers, applyTrackPalette, fadeOut } from "./surfaceLayers";
-import { buildTrackSurface } from "./trackSurface";
+import { buildFlagZones, buildTrackSurface } from "./trackSurface";
 import { createFrameProbe, map3dDebugEnabled } from "./frameProbe";
 import {
   chasePose,
@@ -135,6 +136,7 @@ import {
 
 const SRC_TRACK = "map3d-track";
 const SRC_MARSHAL = "map3d-marshal";
+const SRC_FLAG_ZONES = "map3d-flag-zones";
 const SRC_CORNERS = "map3d-corners";
 const SRC_PIT_LANE = "map3d-pit-lane";
 const SRC_DEM = "map3d-dem";
@@ -614,10 +616,15 @@ export function TrackMap3D({
         paint: {
           "line-emissive-strength": 1,
           "line-color": ["coalesce", ["feature-state", "color"], "#000000"],
+          // Zoomed out the flag is a glow along the track; closer in, the
+          // asphalt polygons below take over.
           "line-opacity": [
-            "case",
-            ["boolean", ["feature-state", "active"], false],
-            0.8,
+            "interpolate",
+            ["linear"],
+            ["zoom"],
+            MAP3D_SURFACE_MIN_ZOOM - 0.5,
+            ["case", ["boolean", ["feature-state", "active"], false], 0.8, 0],
+            MAP3D_SURFACE_MIN_ZOOM,
             0,
           ],
           "line-blur": 2,
@@ -652,6 +659,31 @@ export function TrackMap3D({
         map,
         buildTrackSurface(circuitGeom, geo, pitLane),
         lightPresetRef.current,
+        "map3d-flags",
+      );
+      // Flags painted onto the asphalt, one polygon per marshal post.
+      map.addSource(SRC_FLAG_ZONES, { type: "geojson", data: buildFlagZones(circuitGeom, geo) });
+      map.addLayer(
+        {
+          id: "map3d-flag-zones",
+          type: "fill",
+          source: SRC_FLAG_ZONES,
+          slot: "middle",
+          minzoom: MAP3D_SURFACE_MIN_ZOOM - 0.5,
+          paint: {
+            "fill-emissive-strength": 0.8,
+            "fill-color": ["coalesce", ["feature-state", "color"], "#000000"],
+            "fill-opacity": [
+              "interpolate",
+              ["linear"],
+              ["zoom"],
+              MAP3D_SURFACE_MIN_ZOOM - 0.5,
+              0,
+              MAP3D_SURFACE_MIN_ZOOM,
+              ["case", ["boolean", ["feature-state", "active"], false], 0.55, 0],
+            ],
+          },
+        },
         "map3d-flags",
       );
       map.addLayer({
@@ -730,10 +762,11 @@ export function TrackMap3D({
     if (!map || !styleReady || !circuitGeom || !map.getSource(SRC_MARSHAL)) return;
     for (const ms of circuitGeom.marshalSectors) {
       const color = marshalSegmentColor(trackFlagState, ms.number);
-      map.setFeatureState(
-        { source: SRC_MARSHAL, id: ms.number },
-        { active: color !== null, color: color ?? "#000000" },
-      );
+      const state = { active: color !== null, color: color ?? "#000000" };
+      map.setFeatureState({ source: SRC_MARSHAL, id: ms.number }, state);
+      if (map.getSource(SRC_FLAG_ZONES)) {
+        map.setFeatureState({ source: SRC_FLAG_ZONES, id: ms.number }, state);
+      }
     }
   }, [trackFlagState, styleReady, circuitGeom]);
 
