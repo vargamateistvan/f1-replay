@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import mapboxgl from "mapbox-gl";
 import "mapbox-gl/dist/mapbox-gl.css";
 import {
@@ -1046,38 +1046,63 @@ export function TrackMap3D({
     lightMode,
   });
 
-  if (!sessionKey || (token && circuitKey == null)) {
-    return (
-      <div className="flex items-center justify-center w-full h-full text-muted text-sm">
-        {sessionKey ? "Loading track…" : "Select a session to load the track"}
+  const buttonClass =
+    "h-7 min-w-7 px-1.5 flex items-center justify-center border border-panel text-white/85 hover:text-white hover:border-white/50 transition-colors text-[10px] font-black tracking-widest";
+
+  const settingsButton = onOpenSettings && (
+    <button
+      type="button"
+      className={buttonClass}
+      title="Track map settings"
+      aria-label="Track map settings"
+      onClick={onOpenSettings}
+    >
+      <SettingsIcon size={14} strokeWidth={2.2} aria-hidden="true" />
+    </button>
+  );
+  const exitButton = (
+    <button type="button" className={buttonClass} title="Switch to 2D map" onClick={onExit3d}>
+      2D
+    </button>
+  );
+
+  // Loading / unavailable: keep the controls so the user can always switch
+  // back to 2D or open settings.
+  const fallback = (content: ReactNode) => (
+    <div className="relative w-full h-full aspect-[3/2]" data-testid="track-map-3d-fallback">
+      <div className="w-full h-full flex flex-col items-center justify-center gap-3">
+        {content}
       </div>
+      <div
+        className="absolute top-2 right-2 z-20 flex items-center gap-1 p-1"
+        style={{ background: overlayBackground, backdropFilter: "blur(4px)" }}
+      >
+        {exitButton}
+        {settingsButton}
+      </div>
+    </div>
+  );
+
+  if (!sessionKey || (token && circuitKey == null)) {
+    return fallback(
+      <span className="text-muted text-sm">
+        {sessionKey ? "Loading track…" : "Select a session to load the track"}
+      </span>,
     );
   }
 
   if (!token || !geo) {
-    return (
-      <div className="w-full h-full flex flex-col items-center justify-center gap-3">
-        <ErrorMessage
-          message={
-            token
-              ? "3D view isn't available for this circuit yet"
-              : "3D view needs a Mapbox token (VITE_MAPBOX_TOKEN)"
-          }
-          variant="empty"
-        />
-        <button
-          type="button"
-          onClick={onExit3d}
-          className="px-3 py-1 text-xs font-bold uppercase tracking-widest border border-panel text-muted hover:text-white"
-        >
-          Back to 2D
-        </button>
-      </div>
+    return fallback(
+      <ErrorMessage
+        message={
+          token
+            ? "3D view isn't available for this circuit yet"
+            : "3D view needs a Mapbox token (VITE_MAPBOX_TOKEN)"
+        }
+        variant="empty"
+      />,
     );
   }
-
-  const buttonClass =
-    "h-7 min-w-7 px-1.5 flex items-center justify-center border border-panel text-white/85 hover:text-white hover:border-white/50 transition-colors text-[10px] font-black tracking-widest";
 
   return (
     // aspect-[3/2] only applies when the parent gives no definite height (the
@@ -1096,14 +1121,7 @@ export function TrackMap3D({
         className="absolute top-2 right-2 z-20 flex items-center gap-1 p-1"
         style={{ background: overlayBackground, backdropFilter: "blur(4px)" }}
       >
-        <button
-          type="button"
-          className={buttonClass}
-          title="Switch to 2D map"
-          onClick={onExit3d}
-        >
-          2D
-        </button>
+        {exitButton}
         {showTrackControls && (
           <button
             type="button"
@@ -1147,17 +1165,7 @@ export function TrackMap3D({
             <Camera size={14} strokeWidth={2.2} aria-hidden="true" />
           </button>
         )}
-        {onOpenSettings && (
-          <button
-            type="button"
-            className={buttonClass}
-            title="Track map settings"
-            aria-label="Track map settings"
-            onClick={onOpenSettings}
-          >
-            <SettingsIcon size={14} strokeWidth={2.2} aria-hidden="true" />
-          </button>
-        )}
+        {settingsButton}
       </div>
 
       {followSuspended && focusDriver != null && (

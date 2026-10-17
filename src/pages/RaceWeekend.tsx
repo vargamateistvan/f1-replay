@@ -12,6 +12,7 @@ import { Settings as SettingsIcon } from "lucide-react";
 import { PlaybackBar } from "@/components/PlaybackBar";
 import type { ActiveTrackVehicles } from "@/components/TrackMap/TrackMap";
 import { isMap3dAvailable } from "@/components/TrackMap3D/availability";
+import { hasCircuitGeometry } from "@/data/circuitGeometry";
 import LiveTiming from "@/components/LiveTiming/LiveTiming";
 import { WeatherPanel } from "@/components/Weather/WeatherPanel";
 import { QualifyingBanner } from "@/components/QualifyingBanner";
@@ -2005,8 +2006,13 @@ export default function RaceWeekend() {
     />
   );
 
-  // 3D map: opt-in, and only with a Mapbox token + WebGL2.
-  const map3dAvailable = isMap3dAvailable();
+  // 3D map: opt-in, only with a Mapbox token + WebGL2, and only for circuits
+  // with baked geometry (each has a georef). Otherwise the 2D map — with all
+  // its controls — is shown even when 3D is selected.
+  const circuitKeyForMap = session?.circuit_key ?? null;
+  const map3dAvailable =
+    isMap3dAvailable() &&
+    (circuitKeyForMap === null || hasCircuitGeometry(circuitKeyForMap, session?.year));
   const setMapView3d = useCallback(
     (enabled: boolean) => {
       trackEvent("trackmap_view_mode_changed", { mode: enabled ? "3d" : "2d" });

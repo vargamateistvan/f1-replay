@@ -165,7 +165,7 @@ describe("TrackMap3D", () => {
     const { onExit3d } = renderMap();
     expect(screen.getByText(/needs a Mapbox token/i)).toBeInTheDocument();
     expect(FakeMap.instances).toHaveLength(0);
-    fireEvent.click(screen.getByRole("button", { name: /back to 2d/i }));
+    fireEvent.click(screen.getByTitle("Switch to 2D map"));
     expect(onExit3d).toHaveBeenCalled();
   });
 
@@ -173,6 +173,16 @@ describe("TrackMap3D", () => {
     renderMap({ circuitKey: null });
     expect(screen.getByText(/loading track/i)).toBeInTheDocument();
     expect(FakeMap.instances).toHaveLength(0);
+  });
+
+  it("keeps the 2D and settings controls while the map can't be shown", () => {
+    const onOpenSettings = vi.fn();
+    const { onExit3d } = renderMap({ circuitKey: 9999, onOpenSettings });
+    expect(screen.getByText(/isn't available for this circuit/i)).toBeInTheDocument();
+    fireEvent.click(screen.getByLabelText("Track map settings"));
+    expect(onOpenSettings).toHaveBeenCalled();
+    fireEvent.click(screen.getByTitle("Switch to 2D map"));
+    expect(onExit3d).toHaveBeenCalled();
   });
 
   it("builds the circuit layers once the style loads and frames the track", () => {
