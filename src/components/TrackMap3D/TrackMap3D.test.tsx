@@ -27,6 +27,7 @@ const { FakeMap } = vi.hoisted(() => {
     setPaintProperty = vi.fn();
     setRain = vi.fn();
     addModel = vi.fn();
+    resize = vi.fn();
     hasImage = vi.fn(() => false);
     addImage = vi.fn();
     removeImage = vi.fn();

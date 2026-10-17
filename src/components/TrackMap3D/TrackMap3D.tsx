@@ -95,6 +95,8 @@ import {
   type LightPreset,
 } from "./atmosphere";
 import { mapboxToken } from "./availability";
+import { addTrackSurfaceLayers, applyTrackPalette, fadeOut } from "./surfaceLayers";
+import { buildTrackSurface } from "./trackSurface";
 import { createFrameProbe, map3dDebugEnabled } from "./frameProbe";
 import {
   chasePose,
@@ -515,8 +517,15 @@ export function TrackMap3D({
       map.getCanvas().style.cursor = "";
     });
 
+    // Mapbox can keep a canvas size measured mid-layout (tabs, panels settling)
+    // and miss the later change; resize whenever the container does.
+    const resizeObserver =
+      typeof ResizeObserver === "undefined" ? null : new ResizeObserver(() => map.resize());
+    resizeObserver?.observe(container);
+
     const icons = carIconsRef.current;
     return () => {
+      resizeObserver?.disconnect();
       icons.clear();
       map.remove();
       mapRef.current = null;
@@ -531,6 +540,7 @@ export function TrackMap3D({
     if (map.getLayer(LAYER_TRACK_SURFACE)) {
       map.setPaintProperty(LAYER_TRACK_SURFACE, "line-color", ribbonColorFor(lightPreset));
     }
+    applyTrackPalette(map, lightPreset);
   }, [lightPreset, styleReady, circuitGeom]);
 
   useEffect(() => {
@@ -578,7 +588,8 @@ export function TrackMap3D({
         paint: {
           "line-emissive-strength": 1,
           "line-color": ribbonColorFor(lightPresetRef.current),
-          "line-opacity": 0.9,
+          // Line track for zoomed-out views; real-width surface takes over.
+          "line-opacity": fadeOut(0.9),
           "line-width": groundWidthExpression(MAP3D_TRACK_WIDTH_M, lat, 3),
         },
       });
@@ -616,38 +627,33 @@ export function TrackMap3D({
           paint: {
             "line-emissive-strength": 1,
             "line-color": "#e9ecf3",
-            "line-opacity": 0.6,
+            "line-opacity": fadeOut(0.6),
             "line-width": 1.5,
             "line-dasharray": [3, 2],
           },
         });
       }
 
-      // Track edges: thin light lines at ±half the track width, like kerbs.
-      for (const sign of [1, -1] as const) {
-        map.addLayer({
-          id: `map3d-track-edge-${sign > 0 ? "r" : "l"}`,
-          type: "line",
-          source: SRC_TRACK,
-          slot: "middle",
-          layout: { "line-join": "round", "line-cap": "round" },
-          paint: {
-            "line-emissive-strength": 1,
-            "line-color": "#e9ecf3",
-            "line-opacity": 0.55,
-            "line-width": 1.2,
-            "line-offset": groundWidthExpression(MAP3D_TRACK_WIDTH_M / 2, lat, 1.5, sign),
-          },
-        });
-      }
+      // Real-width asphalt, verge, pit lane, kerbs and start grid, under the
+      // flag band and telemetry overlays.
+      addTrackSurfaceLayers(
+        map,
+        buildTrackSurface(circuitGeom, geo, pitLane),
+        lightPresetRef.current,
+        "map3d-flags",
+      );
       map.addLayer({
         id: "map3d-track-line",
         type: "line",
         source: SRC_TRACK,
         slot: "middle",
         layout: { "line-join": "round", "line-cap": "round" },
-        paint: { "line-emissive-strength": 1,
-          "line-color": "#ffffff", "line-opacity": 0.85, "line-width": 2 },
+        paint: {
+          "line-emissive-strength": 1,
+          "line-color": "#ffffff",
+          "line-opacity": fadeOut(0.85),
+          "line-width": 2,
+        },
       });
       map.addLayer({
         id: LAYER_CORNERS,

@@ -4,7 +4,6 @@ import type { CircuitGeometry } from "@/data/circuitGeometryTypes";
 import { getCircuitGeoref } from "@/data/circuitGeoref";
 import { buildHeatSegments } from "@/components/TrackMap/trackGeometry";
 import { buildIndex } from "@/timeline/interpolate";
-import { lngLatToEnu } from "@/utils/georef";
 import {
   buildArcPolyline,
   buildDirectionArrows,
@@ -14,18 +13,12 @@ import {
   heatColors,
   withAlpha,
   buildSectorMarkers,
-  buildStartFinishLine,
   buildTrail,
   trailGradient,
 } from "./trackOverlays";
 
 const monaco = monacoJson as CircuitGeometry;
 const geo = getCircuitGeoref(22, 2025)!;
-const metres = ([a, b]: number[][]) => {
-  const pa = lngLatToEnu(geo.originLng, geo.originLat, a![0]!, a![1]!);
-  const pb = lngLatToEnu(geo.originLng, geo.originLat, b![0]!, b![1]!);
-  return Math.hypot(pb.x - pa.x, pb.y - pa.y);
-};
 
 describe("buildArcPolyline", () => {
   it("carries lng/lat with a 0 → 1 arc, so 2D overlay builders work on it", () => {
@@ -47,11 +40,6 @@ describe("buildArcPolyline", () => {
 });
 
 describe("track markup", () => {
-  it("draws the start/finish line across the track, 18 m long", () => {
-    const line = buildStartFinishLine(monaco, geo);
-    expect(metres(line.geometry.coordinates)).toBeCloseTo(18, 1);
-  });
-
   it("places S1 / S2 ticks with labels off the track", () => {
     const arc = buildArcPolyline(monaco, geo);
     const { ticks, labels } = buildSectorMarkers(monaco, geo, arc);

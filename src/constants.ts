@@ -109,7 +109,31 @@ export const FOLLOW_ZOOM_H = 134;
 export const MAP3D_STYLE_URL = "mapbox://styles/mapbox/standard";
 export const MAP3D_TERRAIN_EXAGGERATION = 1.3;
 /** Drawn width of the track ribbon / flag band, in metres on the ground. */
-export const MAP3D_TRACK_WIDTH_M = 14;
+export const MAP3D_TRACK_WIDTH_M = 15;
+/** Track surface geometry (metres): asphalt half-width, verge, pit lane, kerbs. */
+export const MAP3D_TRACK_HALF_WIDTH_M = 7.5;
+export const MAP3D_VERGE_M = 2.4;
+export const MAP3D_PIT_LANE_HALF_WIDTH_M = 3;
+export const MAP3D_KERB_WIDTH_M = 2.5;
+export const MAP3D_KERB_BLOCK_M = 2;
+/** Kerb base + stripe colours (red/white). */
+export const MAP3D_KERB_COLORS: readonly [string, string] = ["#f2f2f2", "#e2231a"];
+/** Chequered start grid: columns across the track × rows along it, total depth. */
+export const MAP3D_START_GRID_COLUMNS = 6;
+export const MAP3D_START_GRID_ROWS = 3;
+export const MAP3D_START_GRID_DEPTH_M = 7.5;
+/** Below this zoom the track draws as lines; above it as real-width polygons. */
+export const MAP3D_SURFACE_MIN_ZOOM = 13.5;
+/**
+ * Asphalt / verge colours per Standard light preset. Emissive strength rises
+ * at night so the surface still reads without glowing by day.
+ */
+export const MAP3D_TRACK_PALETTE = {
+  dawn: { surface: "#3f434e", casing: "#ffd9a8", casingOpacity: 0.45, emissive: 0.3 },
+  day: { surface: "#4a4d55", casing: "#ffffff", casingOpacity: 0.6, emissive: 0.1 },
+  dusk: { surface: "#3a3d47", casing: "#ffb488", casingOpacity: 0.45, emissive: 0.35 },
+  night: { surface: "#2f333d", casing: "#9aa3b5", casingOpacity: 0.5, emissive: 0.6 },
+} as const;
 export const MAP3D_FLAG_WIDTH_M = 26;
 export const MAP3D_OVERVIEW_PITCH = 50;
 export const MAP3D_FOLLOW_PITCH = 62;
@@ -141,8 +165,13 @@ export const MAP3D_MODEL_MIN_ZOOM = 15;
 export const MAP3D_MODEL_SCALE_FAR = 5;
 export const MAP3D_MODEL_SCALE_NEAR = 2.2;
 export const MAP3D_MODEL_NEAR_ZOOM = 18.5;
-/** Degrees added to a car's compass heading to point the model's nose forward. */
-export const MAP3D_MODEL_HEADING_OFFSET = 0;
+/**
+ * Degrees added to a car's compass heading to point the model's nose forward.
+ * The model's nose is +Z (low front wing; the tall rear wing is at -Z), which
+ * Mapbox renders facing backwards at rotation 0 — verified from chase views
+ * heading east, south and west.
+ */
+export const MAP3D_MODEL_HEADING_OFFSET = 180;
 /** Length and sampling of the focused car's trail on the 3D map. */
 export const MAP3D_TRAIL_MS = 8_000;
 export const MAP3D_TRAIL_STEP_MS = 200;

@@ -14,7 +14,6 @@ import { groundWidthExpression, type FeatureCollection, type LineFeature, type P
 import {
   buildDirectionArrows,
   buildSectorMarkers,
-  buildStartFinishLine,
   drawChevron,
   buildArcLine,
   drawPitGhost,
@@ -27,7 +26,6 @@ export const SRC_HOTSPOTS = "map3d-hotspots";
 export const SRC_GHOST = "map3d-pit-ghost";
 export const SRC_TRAIL = "map3d-trail";
 export const LAYER_TRAIL = "map3d-trail";
-const SRC_START = "map3d-start-finish";
 const SRC_SECTOR_TICKS = "map3d-sector-ticks";
 const SRC_SECTOR_LABELS = "map3d-sector-labels";
 const SRC_ARROWS = "map3d-arrows";
@@ -53,8 +51,6 @@ const TRANSPARENT_GRADIENT: ExpressionSpecification = [
 
 /** Layers shown only with "enhanced track visuals", as on the 2D map. */
 const ENHANCED_LAYERS = [
-  "map3d-start-finish-base",
-  "map3d-start-finish-check",
   "map3d-sector-ticks",
   "map3d-sector-labels",
   "map3d-arrows",
@@ -110,7 +106,6 @@ export function addOverlayLayers(map: MapboxMap, ctx: OverlayContext): void {
   map.addSource(SRC_GHOST, { type: "geojson", data: empty<PointFeature>() });
   // lineMetrics enables `line-progress` for the trail's fade.
   map.addSource(SRC_TRAIL, { type: "geojson", data: empty<LineFeature>(), lineMetrics: true });
-  map.addSource(SRC_START, { type: "geojson", data: buildStartFinishLine(geom, geo) });
   const sectors = buildSectorMarkers(geom, geo, arc);
   map.addSource(SRC_SECTOR_TICKS, { type: "geojson", data: sectors.ticks });
   map.addSource(SRC_SECTOR_LABELS, { type: "geojson", data: sectors.labels });
@@ -136,10 +131,11 @@ export function addOverlayLayers(map: MapboxMap, ctx: OverlayContext): void {
       ctx.segmentsBefore,
     );
   // Same stack as 2D: elevation shadow, speed heat, lap delta, elevation accent.
-  segment(OVERLAY_LAYERS.elevationShadow, 18, 6, 0.15);
-  segment(OVERLAY_LAYERS.heat, 6, 2.5);
-  segment(OVERLAY_LAYERS.delta, 11, 4);
-  segment(OVERLAY_LAYERS.elevation, 3, 1.5);
+  // Narrower than the 15 m asphalt so the surface and kerbs still show.
+  segment(OVERLAY_LAYERS.elevationShadow, 12, 4, 0.15);
+  segment(OVERLAY_LAYERS.heat, 4, 2.5);
+  segment(OVERLAY_LAYERS.delta, 6, 3);
+  segment(OVERLAY_LAYERS.elevation, 2, 1.5);
 
   const markup = (layer: LayerSpecification) =>
     map.addLayer({ ...layer, slot: "top" } as LayerSpecification, ctx.markupBefore);
@@ -177,28 +173,6 @@ export function addOverlayLayers(map: MapboxMap, ctx: OverlayContext): void {
       "circle-radius": ["*", ["max", 2.3, ["*", ["get", "radius"], 0.4]], scale],
       "circle-opacity": ["min", 0.92, ["+", ["get", "opacity"], 0.28]],
       "circle-pitch-alignment": "map",
-    },
-  });
-  markup({
-    id: "map3d-start-finish-base",
-    type: "line",
-    source: SRC_START,
-    paint: {
-      "line-emissive-strength": 1,
-      "line-color": "#f2f4fb",
-      "line-width": 6 * scale,
-    },
-  });
-  markup({
-    id: "map3d-start-finish-check",
-    type: "line",
-    source: SRC_START,
-    paint: {
-      "line-emissive-strength": 1,
-      "line-color": "#111111",
-      "line-width": 6 * scale,
-      // Dashes are in line widths: alternating squares read as a chequer.
-      "line-dasharray": [0.5, 0.5],
     },
   });
   markup({

@@ -74,18 +74,6 @@ function tickAt(
   return { line: [end(1), end(-1)], normal, at: a };
 }
 
-/** Start/finish line across the track at the first centerline point. */
-export function buildStartFinishLine(
-  geom: CircuitGeometry,
-  geo: CircuitGeoref,
-): LineFeature {
-  return {
-    type: "Feature",
-    properties: {},
-    geometry: { type: "LineString", coordinates: tickAt(geom, geo, 0, TICK_HALF_M).line },
-  };
-}
-
 /**
  * S1 / S2 ticks at one and two thirds of the lap (as on the 2D map), plus a
  * label point just off the track for each.
