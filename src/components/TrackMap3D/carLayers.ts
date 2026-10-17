@@ -12,6 +12,13 @@ import { SPECIAL_TRACK_VEHICLES } from "@/components/TrackMap/layers/specialVehi
 import { mapBackgroundColor } from "@/components/TrackMap/trackMapFormat";
 import {
   COMPOUND_COLORS,
+  FOLLOW_ZOOM_W,
+  MAP3D_HEADING_LOOKBACK_MS,
+  MAP3D_MODEL_HEADING_OFFSET,
+  MAP3D_MODEL_MIN_ZOOM,
+  MAP3D_MODEL_NEAR_ZOOM,
+  MAP3D_MODEL_SCALE_FAR,
+  MAP3D_MODEL_SCALE_NEAR,
   SAFETY_CAR_NUMBERS,
   TRACK_FIT_ZOOM,
   TRACK_SVG_H,
@@ -21,7 +28,7 @@ import { isOffTrackPlaceholder } from "@/hooks/useTrackMap";
 import { interpolateXY, type LocationIndex } from "@/timeline/interpolate";
 import { teamColor } from "@/utils/color";
 import { type CircuitGeoref, f1ToLngLat } from "@/utils/georef";
-import type { FeatureCollection, PointFeature } from "./mapFeatures";
+import { headingDeg, type FeatureCollection, type PointFeature } from "./mapFeatures";
 
 const LABEL_X = 10;
 const BATTLE_COLOR = "#ffd700";
@@ -30,6 +37,9 @@ const PULSE_PERIOD_MS = 800;
 const SIREN_PERIOD_MS = 950;
 
 export const CAR_SOURCE = "map3d-cars";
+/** Id the CC0 car model (public/models/f1-car.glb) is registered under. */
+export const CAR_MODEL_ID = "map3d-f1-car";
+export const CAR_MODEL_LAYER = "map3d-car-models";
 /** Clickable car dot layer. */
 export const CAR_DOT_LAYER = "map3d-cars";
 const PULSE_LAYER = "map3d-car-pulse";
@@ -52,10 +62,17 @@ export interface CarFeatureInput {
   lightMode: boolean;
 }
 
-/** Pixels per SVG unit on the 2D map for a panel of this size. */
-export function carScaleFor(width: number, height: number): number {
+/** Pixels per SVG unit on the 2D map for a panel of this size (and follow state). */
+export function carScaleFor(
+  width: number,
+  height: number,
+  following = false,
+): number {
   if (width <= 0 || height <= 0) return 1;
-  return Math.min(width / TRACK_SVG_W, height / TRACK_SVG_H) * TRACK_FIT_ZOOM;
+  const fit = Math.min(width / TRACK_SVG_W, height / TRACK_SVG_H) * TRACK_FIT_ZOOM;
+  // The 2D follow camera narrows the viewBox to FOLLOW_ZOOM_W, which enlarges
+  // every marker by the same factor.
+  return following ? fit * (TRACK_SVG_W / FOLLOW_ZOOM_W) : fit;
 }
 
 /**
@@ -72,9 +89,15 @@ export function buildCarFeatures(
     if (input.retiredDrivers?.has(num)) continue;
     const pos = interpolateXY(idx, t);
     if (!pos || isOffTrackPlaceholder(pos)) continue;
+    const prev = interpolateXY(idx, t - MAP3D_HEADING_LOOKBACK_MS);
+    const heading = prev ? (headingDeg(geo, prev, pos) ?? 0) : 0;
     features.push({
       type: "Feature",
-      properties: carStyle(num, input),
+      properties: {
+        ...carStyle(num, input),
+        // Model yaw (degrees); the model layer reads it as [x, y, z].
+        rotation: [0, 0, heading + MAP3D_MODEL_HEADING_OFFSET],
+      },
       geometry: { type: "Point", coordinates: f1ToLngLat(geo, pos.x, pos.y) },
     });
   }
@@ -413,6 +436,38 @@ export function buildCarLayers(scale: number, nowMs = 0): LayerSpecification[] {
       },
     },
     {
+      id: CAR_MODEL_LAYER,
+      type: "model",
+      minzoom: MAP3D_MODEL_MIN_ZOOM,
+      layout: { "model-id": CAR_MODEL_ID },
+      paint: {
+        "model-type": "common-3d",
+        "model-rotation": ["get", "rotation"],
+        "model-scale": [
+          "interpolate",
+          ["linear"],
+          ["zoom"],
+          MAP3D_MODEL_MIN_ZOOM + 1,
+          ["literal", [MAP3D_MODEL_SCALE_FAR, MAP3D_MODEL_SCALE_FAR, MAP3D_MODEL_SCALE_FAR]],
+          MAP3D_MODEL_NEAR_ZOOM,
+          ["literal", [MAP3D_MODEL_SCALE_NEAR, MAP3D_MODEL_SCALE_NEAR, MAP3D_MODEL_SCALE_NEAR]],
+        ],
+        "model-color": prop("color"),
+        "model-color-mix-intensity": 0.7,
+        "model-emissive-strength": 0.4,
+        "model-opacity": [
+          "interpolate",
+          ["linear"],
+          ["zoom"],
+          MAP3D_MODEL_MIN_ZOOM,
+          0,
+          MAP3D_MODEL_MIN_ZOOM + 0.6,
+          prop("opacity"),
+        ],
+        "model-cast-shadows": true,
+      },
+    },
+    {
       id: CAR_DOT_LAYER,
       type: "symbol",
       layout: {
@@ -422,7 +477,16 @@ export function buildCarLayers(scale: number, nowMs = 0): LayerSpecification[] {
         "icon-rotation-alignment": "viewport",
       },
       paint: {
-        "icon-opacity": prop("opacity"),
+        // Hand over to the 3D model as it fades in.
+        "icon-opacity": [
+          "interpolate",
+          ["linear"],
+          ["zoom"],
+          MAP3D_MODEL_MIN_ZOOM,
+          prop("opacity"),
+          MAP3D_MODEL_MIN_ZOOM + 0.6,
+          0,
+        ],
         "icon-occlusion-opacity": prop("opacity"),
         "icon-emissive-strength": 1,
       },

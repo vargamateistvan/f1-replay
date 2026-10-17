@@ -1,6 +1,10 @@
 import { describe, expect, it, vi } from "vitest";
 import type { Driver } from "@/api/types";
-import { COMPOUND_COLORS } from "@/constants";
+import {
+  COMPOUND_COLORS,
+  MAP3D_MODEL_HEADING_OFFSET,
+  MAP3D_MODEL_MIN_ZOOM,
+} from "@/constants";
 import { buildIndex } from "@/timeline/interpolate";
 import type { CircuitGeoref } from "@/utils/georef";
 import {
@@ -8,6 +12,8 @@ import {
   buildCarFeatures,
   buildCarLayers,
   CAR_DOT_LAYER,
+  CAR_MODEL_ID,
+  CAR_MODEL_LAYER,
   carIconExtent,
   carScaleFor,
   carStyle,
@@ -29,6 +35,13 @@ const unitGeo: CircuitGeoref = {
   ty: 0,
   rmsM: 0,
   maxM: 0,
+};
+
+type Spec = {
+  type: string;
+  minzoom?: number;
+  layout: Record<string, unknown>;
+  paint: Record<string, unknown>;
 };
 
 const driver = (n: number, acronym: string) =>
@@ -55,6 +68,10 @@ describe("carScaleFor", () => {
     expect(carScaleFor(600, 400)).toBeCloseTo(1.15);
     expect(carScaleFor(530, 624)).toBeCloseTo((530 / 600) * 1.15);
     expect(carScaleFor(0, 400)).toBe(1);
+  });
+
+  it("enlarges markers by the 2D follow camera's zoom while following", () => {
+    expect(carScaleFor(600, 400, true)).toBeCloseTo(1.15 * 3);
   });
 });
 
@@ -252,23 +269,51 @@ describe("car icons", () => {
 describe("buildCarLayers", () => {
   it("draws cars as occlusion-proof icons under team-coloured Inter labels", () => {
     const layers = buildCarLayers(2);
-    const ids = layers.map((l) => l.id);
-    expect(ids).toEqual([
+    const byId = new Map(layers.map((l) => [l.id, l as unknown as Spec]));
+    expect(layers.map((l) => l.id)).toEqual([
       "map3d-car-pulse",
       "map3d-car-siren",
+      CAR_MODEL_LAYER,
       CAR_DOT_LAYER,
       "map3d-car-labels",
     ]);
 
-    const dot = layers[2] as { type: string; layout: Record<string, unknown>; paint: Record<string, unknown> };
+    const dot = byId.get(CAR_DOT_LAYER)!;
     expect(dot.type).toBe("symbol");
     expect(dot.layout["icon-image"]).toEqual(["get", "icon"]);
     expect(dot.paint["icon-occlusion-opacity"]).toEqual(["get", "opacity"]);
 
-    const labels = layers[3] as { layout: Record<string, unknown>; paint: Record<string, unknown> };
+    const labels = byId.get("map3d-car-labels")!;
     expect(labels.layout["text-font"]).toEqual(["Inter Black"]);
     expect(labels.layout["text-size"]).toEqual(["*", ["get", "labelSize"], 2]);
     expect(labels.paint["text-color"]).toEqual(["get", "labelColor"]);
+  });
+
+  it("swaps icons for team-tinted 3D models when zoomed in", () => {
+    const byId = new Map(buildCarLayers(1).map((l) => [l.id, l as unknown as Spec]));
+    const model = byId.get(CAR_MODEL_LAYER)!;
+    expect(model.type).toBe("model");
+    expect(model.minzoom).toBe(MAP3D_MODEL_MIN_ZOOM);
+    expect(model.layout["model-id"]).toBe(CAR_MODEL_ID);
+    expect(model.paint["model-rotation"]).toEqual(["get", "rotation"]);
+    expect(model.paint["model-color"]).toEqual(["get", "color"]);
+    // The icon fades out over the same zoom range the model fades in.
+    const iconOpacity = byId.get(CAR_DOT_LAYER)!.paint["icon-opacity"] as unknown[];
+    expect(iconOpacity.slice(0, 4)).toEqual(["interpolate", ["linear"], ["zoom"], MAP3D_MODEL_MIN_ZOOM]);
+  });
+
+  it("gives every car a model yaw from its heading", () => {
+    const { features } = buildCarFeatures(
+      unitGeo,
+      1000,
+      input({
+        indexes: new Map([
+          [1, buildIndex([{ t: 0, x: 0, y: 0.5 }, { t: 1000, x: 100, y: 0.5 }])],
+        ]),
+      }),
+    );
+    // Heading east → yaw 90° (plus the model's nose offset).
+    expect(features[0]!.properties.rotation).toEqual([0, 0, 90 + MAP3D_MODEL_HEADING_OFFSET]);
   });
 });
 

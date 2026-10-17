@@ -2005,8 +2005,8 @@ export default function RaceWeekend() {
     />
   );
 
-  // 3D map: opt-in, desktop only, and only with a Mapbox token + WebGL2.
-  const map3dAvailable = !isCompactViewport && isMap3dAvailable();
+  // 3D map: opt-in, and only with a Mapbox token + WebGL2.
+  const map3dAvailable = isMap3dAvailable();
   const setMapView3d = useCallback(
     (enabled: boolean) => {
       trackEvent("trackmap_view_mode_changed", { mode: enabled ? "3d" : "2d" });
@@ -2034,12 +2034,18 @@ export default function RaceWeekend() {
       sharedAllDriverWindow={telemetryEnabled}
       trackFlagState={mapShowSectorFlags ? trackFlagState : null}
       showTrackControls={mapShowTrackControls}
+      showEnhancedVisuals={mapShowEnhancedVisuals}
+      focusDriverLap={focusDriverLap}
+      pitRejoinGaps={pitRejoinGaps}
+      showTrackScreenshot={trackScreenshotPngEnabled}
       weatherOverlay={mapShowWeather ? weatherAtT : null}
       activeTrackVehicles={activeTrackVehicles}
       raceLeader={isRaceSession && mapShowRaceLeader ? raceLeaderDriver : null}
       lightsOutMs={isRaceSession ? lightsOutMs : null}
       onSelectDriver={toggleFocus}
-      onOpenSettings={() => openSettingsTab("track")}
+      onOpenSettings={
+        isCompactViewport ? undefined : () => openSettingsTab("track")
+      }
       onExit3d={() => setMapView3d(false)}
     />
   ) : (

@@ -5,7 +5,9 @@ import {
   parsePitLoss,
   pitLossFor,
   projectPitRejoin,
+  pitRejoinView,
 } from "./pitRejoin";
+import { buildIndex } from "@/timeline/interpolate";
 
 function iv(
   driver_number: number,
@@ -147,5 +149,41 @@ describe("projectPitRejoin", () => {
         21,
       ),
     ).toBeNull();
+  });
+});
+
+describe("pitRejoinView", () => {
+  const gaps = new Map([
+    [1, 0],
+    [16, 5],
+    [44, 21],
+    [4, 30],
+  ]);
+  const loss = { normal: 20, vsc: 12, sc: 10 };
+  const index = buildIndex([
+    { t: 0, x: 100, y: 0 },
+    { t: 60_000, x: 700, y: 0 },
+  ]);
+
+  it("ranks the focused car after its pit loss and places the ghost where it was", () => {
+    const view = pitRejoinView({ gaps, pitLoss: loss, track: null, focusDriver: 16, index, t: 30_000 })!;
+    expect(view.lossS).toBe(20);
+    expect(view.condition).toBe("normal");
+    expect(view.projection.position).toBe(3);
+    // 20 s before t = 30 s → 10 s into the trace.
+    expect(view.ghost).toEqual({ x: 200, y: 0 });
+  });
+
+  it("uses the VSC loss under a VSC and drops the ghost without trace coverage", () => {
+    const view = pitRejoinView({ gaps, pitLoss: loss, track: { vsc: true }, focusDriver: 16, index, t: 5_000 })!;
+    expect(view.condition).toBe("vsc");
+    expect(view.ghost).toBeNull();
+  });
+
+  it("is null without a focus, gaps or pit loss", () => {
+    const base = { gaps, pitLoss: loss, track: null, focusDriver: 16, index, t: 30_000 };
+    expect(pitRejoinView({ ...base, focusDriver: null })).toBeNull();
+    expect(pitRejoinView({ ...base, gaps: null })).toBeNull();
+    expect(pitRejoinView({ ...base, pitLoss: null })).toBeNull();
   });
 });

@@ -1115,9 +1115,15 @@ export function SettingsBody({
                 />
                 <SettingRow
                   label="3D map (beta)"
-                  description="Mapbox Standard map with 3D buildings and terrain. Desktop only; needs a Mapbox token and WebGL2"
+                  description="Mapbox Standard map with 3D buildings, terrain and 3D cars. Needs a Mapbox token and WebGL2"
                   checked={settings.mapView3d}
                   onChange={toggle("mapView3d")}
+                />
+                <SettingRow
+                  label="3D map: session time of day"
+                  description="Light the 3D map like the circuit at that moment (night races look like night). Off: follow the app's light/dark theme"
+                  checked={settings.mapView3dSessionLighting}
+                  onChange={toggle("mapView3dSessionLighting")}
                 />
                 <SettingRow
                   label="Corner numbers"

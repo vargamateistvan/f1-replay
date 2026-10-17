@@ -189,11 +189,17 @@ dimension** instead of relying on the built-in App version report:
   - Params: `rotation`
   - Trigger: reset rotation button
 - `trackmap_snapshot_export`
-  - Params: `format`
+  - Params: `format`, `view` (`3d` from the 3D map; absent for 2D)
   - Trigger: PNG export click
 - `trackmap_view_mode_changed`
   - Params: `mode` (`2d` | `3d`)
   - Trigger: 3D button on the 2D map / 2D button on the 3D map
+- `trackmap3d_camera_mode_changed`
+  - Params: `mode` (`follow` | `chase` | `orbit`)
+  - Trigger: camera button on the 3D map
+- `trackmap3d_map_load`
+  - Params: `circuit_key`
+  - Trigger: a Mapbox map instance is created (each is a billed map load). The map is kept across sessions at the same circuit.
 - `trackmap3d_recenter`
   - Trigger: fit-track / follow-car button, or "Resume follow" after panning the 3D map
 

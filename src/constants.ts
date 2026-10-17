@@ -114,6 +114,8 @@ export const MAP3D_FLAG_WIDTH_M = 26;
 export const MAP3D_OVERVIEW_PITCH = 50;
 export const MAP3D_FOLLOW_PITCH = 62;
 export const MAP3D_FOLLOW_ZOOM = 16.6;
+/** Per-frame budget for the 3D map's own work (see ?debug=map3d). */
+export const MAP3D_FRAME_BUDGET_MS = 4;
 /** Car source refresh interval (ms); the follow camera still moves every frame. */
 export const MAP3D_CAR_UPDATE_MS = 33;
 /** Per-frame lerp factors for the follow camera (higher = snappier). */
@@ -121,6 +123,33 @@ export const MAP3D_FOLLOW_CENTER_ALPHA = 0.3;
 export const MAP3D_FOLLOW_BEARING_ALPHA = 0.08;
 /** Heading is taken from the car's position this long ago → now. */
 export const MAP3D_HEADING_LOOKBACK_MS = 400;
+/** Chase camera: metres behind / above the car, and how far ahead it looks. */
+export const MAP3D_CHASE_BACK_M = 45;
+export const MAP3D_CHASE_UP_M = 14;
+export const MAP3D_CHASE_AHEAD_M = 15;
+/** Per-frame smoothing of the chase camera's eye position. */
+export const MAP3D_CHASE_ALPHA = 0.18;
+/** Orbit camera turn rate (degrees of bearing per real second). */
+export const MAP3D_ORBIT_DEG_PER_S = 6;
+/** 3D car models appear from this zoom; below it the 2D-style icons show. */
+export const MAP3D_MODEL_MIN_ZOOM = 15;
+/**
+ * Model scale by zoom: the CC0 model is ~2.56 m long, so 5 ≈ a 13 m car
+ * (exaggerated to read at follow zoom), easing to ~true size (2.2 ≈ 5.6 m)
+ * by chase-camera zoom.
+ */
+export const MAP3D_MODEL_SCALE_FAR = 5;
+export const MAP3D_MODEL_SCALE_NEAR = 2.2;
+export const MAP3D_MODEL_NEAR_ZOOM = 18.5;
+/** Degrees added to a car's compass heading to point the model's nose forward. */
+export const MAP3D_MODEL_HEADING_OFFSET = 0;
+/** Length and sampling of the focused car's trail on the 3D map. */
+export const MAP3D_TRAIL_MS = 8_000;
+export const MAP3D_TRAIL_STEP_MS = 200;
+/** Sun elevation (°) at or above which the 3D map uses the "day" preset. */
+export const MAP3D_SUN_DAY_DEG = 6;
+/** Sun elevation (°) at or below which it uses "night" (civil twilight ends ≈ -6°). */
+export const MAP3D_SUN_NIGHT_DEG = -6;
 
 // ── Tyre compound colours ───────────────────────────────────────────────────--
 export const COMPOUND_COLORS = {

@@ -86,7 +86,7 @@ import { FocusedDriverHud, LapSpeedLegend } from "./overlays/FocusedDriverHud";
 import { Compass, SectorChips } from "./overlays/MapCornerWidgets";
 import { PitRejoinPanel } from "./overlays/PitRejoinPanel";
 import { teamColor } from "@/utils/color";
-import { parsePitLoss, pitLossFor, projectPitRejoin } from "@/utils/pitRejoin";
+import { parsePitLoss, pitRejoinView } from "@/utils/pitRejoin";
 
 export type { ActiveTrackVehicles } from "./statusBadges";
 
@@ -561,38 +561,23 @@ export function TrackMap({
   // Pit rejoin: rank after adding the circuit's pit loss to the focused car's
   // gap, and place a ghost where that car was `loss` seconds ago — the cars
   // around that spot now are the ones it would rejoin among.
-  let pitRejoin: {
-    projection: NonNullable<ReturnType<typeof projectPitRejoin>>;
-    lossS: number;
-    condition: ReturnType<typeof pitLossFor>["condition"];
-    ghost: { sx: number; sy: number } | null;
-  } | null = null;
-  if (pitRejoinGaps && pitLoss && focusDriver !== null && focusedPos) {
-    const loss = pitLossFor(pitLoss, activeTrackVehicles);
-    const projection = projectPitRejoin(
-      pitRejoinGaps,
-      focusDriver,
-      loss.seconds,
-      retiredDrivers,
-    );
-    if (projection) {
-      const idx = locationIndexes.get(focusDriver);
-      const lookBackT = t - loss.seconds * 1000;
-      // interpolateXY clamps outside the index, so require real coverage.
-      const covered =
-        idx != null && idx.times.length > 0 && idx.times[0]! <= lookBackT;
-      const xy = covered ? interpolateXY(idx, lookBackT) : null;
-      pitRejoin = {
-        projection,
-        lossS: loss.seconds,
-        condition: loss.condition,
-        ghost:
-          xy && !isOffTrackPlaceholder(xy)
-            ? projectToSvg(trackGeometry, xy.x, xy.y)
-            : null,
-      };
-    }
-  }
+  const rejoinView = focusedPos
+    ? pitRejoinView({
+        gaps: pitRejoinGaps,
+        pitLoss,
+        track: activeTrackVehicles,
+        focusDriver,
+        excluded: retiredDrivers,
+        index: focusDriver !== null ? locationIndexes.get(focusDriver) : undefined,
+        t,
+      })
+    : null;
+  const pitRejoin = rejoinView && {
+    ...rejoinView,
+    ghost: rejoinView.ghost
+      ? projectToSvg(trackGeometry, rejoinView.ghost.x, rejoinView.ghost.y)
+      : null,
+  };
   const focusColor =
     focusDriver !== null
       ? teamColor(driverByNumber.get(focusDriver)?.team_colour, "#ffffff")

@@ -27,6 +27,13 @@ export interface TrackGeometry {
   normArc: number[];
 }
 
+/**
+ * The part of a track geometry the per-segment overlays need: ordered points
+ * plus their normalized arc position. The 3D map passes lng/lat in `sx`/`sy`
+ * (with arc length measured in metres), so the overlays below serve both maps.
+ */
+export type ArcPolyline = Pick<TrackGeometry, "svgPts" | "normArc">;
+
 export interface TrackSegment {
   x1: number;
   y1: number;
@@ -186,7 +193,7 @@ export function nearestSvgPointIndex(
 
 /** Call `fn` with each outline segment's midpoint arc position (0–1). */
 function mapOutlineSegments<T>(
-  geom: TrackGeometry,
+  geom: ArcPolyline,
   fn: (segment: TrackSegment, midNorm: number) => T,
 ): T[] {
   const { svgPts, normArc } = geom;
@@ -199,7 +206,7 @@ function mapOutlineSegments<T>(
 
 /** Colour each outline segment by the lap's recorded speed at that distance. */
 export function buildHeatSegments(
-  geom: TrackGeometry | null,
+  geom: ArcPolyline | null,
   samples: readonly TelemetrySample[] | null | undefined,
 ): SpeedSegment[] {
   if (!geom || !samples?.length) return [];
@@ -213,7 +220,7 @@ export function buildHeatSegments(
 
 /** Elevation tint from a reference driver's GPS z-values (baked geometry only). */
 export function buildElevationSegments(
-  geom: TrackGeometry | null,
+  geom: ArcPolyline | null,
   locationData: readonly Location[],
   referenceDriver: number | null,
   lightMode: boolean,
@@ -278,7 +285,7 @@ export function buildElevationSegments(
 
 /** Green where the current lap is ahead of the reference lap, red where behind. */
 export function buildDeltaSegments(
-  geom: TrackGeometry | null,
+  geom: ArcPolyline | null,
   currentSamples: TelemetrySample[] | null | undefined,
   referenceSamples: TelemetrySample[] | null | undefined,
 ): TintedSegment[] {
@@ -308,7 +315,7 @@ export function buildDeltaSegments(
 
 /** Peak-brake points of each hard braking zone on the lap (max 8). */
 export function buildBrakingHotspots(
-  geom: TrackGeometry | null,
+  geom: ArcPolyline | null,
   samples: readonly TelemetrySample[] | null | undefined,
 ): BrakingHotspot[] {
   if (!geom || !samples?.length) return [];

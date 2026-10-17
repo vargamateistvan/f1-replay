@@ -18,14 +18,14 @@ export type LngLat = [number, number];
 export interface LineFeature {
   type: "Feature";
   id?: number;
-  properties: Record<string, string | number | boolean>;
+  properties: Record<string, string | number | boolean | number[]>;
   geometry: { type: "LineString"; coordinates: LngLat[] };
 }
 
 export interface PointFeature {
   type: "Feature";
   id?: number;
-  properties: Record<string, string | number | boolean>;
+  properties: Record<string, string | number | boolean | number[]>;
   geometry: { type: "Point"; coordinates: LngLat };
 }
 
@@ -49,6 +49,21 @@ export function buildTrackLine(
     type: "Feature",
     properties: {},
     geometry: { type: "LineString", coordinates: coords },
+  };
+}
+
+/** A baked pit-lane path as an open LineString. */
+export function buildPitLaneLine(
+  lane: { x: readonly number[]; y: readonly number[] },
+  geo: CircuitGeoref,
+): LineFeature {
+  return {
+    type: "Feature",
+    properties: {},
+    geometry: {
+      type: "LineString",
+      coordinates: lane.x.map((x, i) => f1ToLngLat(geo, x, lane.y[i]!)),
+    },
   };
 }
 
@@ -152,18 +167,20 @@ const WEB_MERCATOR_MPP_Z0 = (2 * Math.PI * 6_378_137) / 512;
 
 /**
  * Mapbox `line-width` expression that draws a line `metres` wide on the
- * ground at latitude `lat`, never thinner than `minPx`. (`zoom` may only feed
+ * ground at latitude `lat`, never thinner than `minPx`. With `sign` -1 it
+ * doubles as a `line-offset` to the other side of the line. (`zoom` may only feed
  * a top-level interpolate, so the clamp is baked into the stops.)
  */
 export function groundWidthExpression(
   metres: number,
   lat: number,
   minPx: number,
+  sign: 1 | -1 = 1,
 ): ExpressionSpecification {
   const stops: number[] = [];
   for (let z = 8; z <= 22; z += 2) {
     const mpp = (WEB_MERCATOR_MPP_Z0 * Math.cos((lat * Math.PI) / 180)) / 2 ** z;
-    stops.push(z, Math.max(minPx, Number((metres / mpp).toFixed(2))));
+    stops.push(z, sign * Math.max(minPx, Number((metres / mpp).toFixed(2))));
   }
   return [
     "interpolate",

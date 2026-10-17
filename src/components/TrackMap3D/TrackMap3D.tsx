@@ -1,7 +1,15 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import mapboxgl from "mapbox-gl";
 import "mapbox-gl/dist/mapbox-gl.css";
-import { Crosshair, Maximize, Settings as SettingsIcon } from "lucide-react";
+import {
+  Camera,
+  Crosshair,
+  Maximize,
+  Navigation,
+  Orbit,
+  Settings as SettingsIcon,
+  Video,
+} from "lucide-react";
 import type { Driver, Location, Weather } from "@/api/types";
 import { ErrorMessage } from "@/components/ErrorMessage";
 import { StatusBadges } from "@/components/TrackMap/overlays/StatusBadges";
@@ -10,14 +18,23 @@ import {
   WeatherPanel,
 } from "@/components/TrackMap/overlays/InfoPanels";
 import { FocusedDriverHud } from "@/components/TrackMap/overlays/FocusedDriverHud";
+import { PitRejoinPanel } from "@/components/TrackMap/overlays/PitRejoinPanel";
 import {
   buildStatusBadges,
   type ActiveTrackVehicles,
 } from "@/components/TrackMap/statusBadges";
-import { carDataAt } from "@/components/TrackMap/trackGeometry";
+import {
+  buildBrakingHotspots,
+  buildDeltaSegments,
+  buildElevationSegments,
+  buildHeatSegments,
+  carDataAt,
+} from "@/components/TrackMap/trackGeometry";
 import { overlayBackgroundColor } from "@/components/TrackMap/trackMapFormat";
 import {
   MAP3D_CAR_UPDATE_MS,
+  MAP3D_CHASE_ALPHA,
+  MAP3D_FRAME_BUDGET_MS,
   MAP3D_FLAG_WIDTH_M,
   MAP3D_FOLLOW_BEARING_ALPHA,
   MAP3D_FOLLOW_CENTER_ALPHA,
@@ -28,8 +45,12 @@ import {
   MAP3D_STYLE_URL,
   MAP3D_TERRAIN_EXAGGERATION,
   MAP3D_TRACK_WIDTH_M,
+  MAP3D_TRAIL_MS,
+  MAP3D_TRAIL_STEP_MS,
 } from "@/constants";
 import { getCircuitGeoref } from "@/data/circuitGeoref";
+import { getPitLane } from "@/data/pitLanes";
+import { useCarDataForLap } from "@/hooks/useCarDataForLap";
 import { useCarDataWindow } from "@/hooks/useCarDataWindow";
 import { useCircuitGeometry } from "@/hooks/useCircuitGeometry";
 import { useCoarseTime } from "@/hooks/useCoarseTime";
@@ -45,13 +66,50 @@ import {
   type TrackFlagState,
 } from "@/timeline/raceControl";
 import { startLightsState } from "@/timeline/startLights";
-import { f1ToLngLat } from "@/utils/georef";
+import { teamColor } from "@/utils/color";
+import { enuToLngLat, f1ToEnu, f1ToLngLat } from "@/utils/georef";
+import { parsePitLoss, pitRejoinView } from "@/utils/pitRejoin";
+import {
+  addOverlayLayers,
+  ensureGhostIcon,
+  setOverlayGradients,
+  setOverlayVisibility,
+  SRC_GHOST,
+  SRC_HOTSPOTS,
+  SRC_TRAIL,
+  LAYER_TRAIL,
+} from "./overlayLayers";
+import {
+  buildArcPolyline,
+  buildHotspotPoints,
+  buildTrail,
+  gradientFromSegments,
+  heatColors,
+  trailGradient,
+} from "./trackOverlays";
+import {
+  isBrightPreset,
+  lightPresetAt,
+  lightPresetForTheme,
+  rainFor,
+  type LightPreset,
+} from "./atmosphere";
 import { mapboxToken } from "./availability";
+import { createFrameProbe, map3dDebugEnabled } from "./frameProbe";
+import {
+  chasePose,
+  frameAlpha,
+  nextCameraMode,
+  orbitBearing,
+  type CameraMode,
+} from "./cameraModes";
+import { exportMapSnapshot } from "./exportSnapshot3d";
 import {
   animatedCarPaint,
   buildCarFeatures,
   buildCarLayers,
   CAR_DOT_LAYER,
+  CAR_MODEL_ID,
   CAR_SOURCE,
   carScaleFor,
   clearCarIcons,
@@ -62,6 +120,7 @@ import {
   broadcastBearing,
   buildCornerPoints,
   buildMarshalSectorLines,
+  buildPitLaneLine,
   buildTrackLine,
   groundWidthExpression,
   headingDeg,
@@ -75,15 +134,38 @@ import {
 const SRC_TRACK = "map3d-track";
 const SRC_MARSHAL = "map3d-marshal";
 const SRC_CORNERS = "map3d-corners";
+const SRC_PIT_LANE = "map3d-pit-lane";
 const SRC_DEM = "map3d-dem";
 const LAYER_TRACK_SURFACE = "map3d-track-surface";
 const LAYER_CORNERS = "map3d-corners";
 const FIT_PADDING = 48;
 
-/** Standard style light preset matching the app theme. */
-const lightPresetFor = (lightMode: boolean) => (lightMode ? "day" : "night");
-/** Track ribbon fill; must stand out from Standard's grey roads in both presets. */
-const ribbonColorFor = (lightMode: boolean) => (lightMode ? "#1f2633" : "#3a4458");
+const CAMERA_LABELS: Record<CameraMode, string> = {
+  follow: "follow",
+  chase: "chase",
+  orbit: "orbit",
+};
+
+/**
+ * Standard style options: keep place names for orientation, drop what
+ * competes with the track (POIs, transit, route shields, the Monaco–France
+ * border, footpaths).
+ */
+const BASEMAP_CONFIG = {
+  showPointOfInterestLabels: false,
+  showTransitLabels: false,
+  showPedestrianRoads: false,
+  showRoadLabels: false,
+  showAdminBoundaries: false,
+} as const;
+
+/** Phones skip 3D trees: the biggest GPU cost in dense street circuits. */
+const COMPACT_BASEMAP_CONFIG = { show3dTrees: false } as const;
+
+
+/** Track ribbon fill; must stand out from Standard's grey roads in every preset. */
+const ribbonColorFor = (preset: LightPreset) =>
+  isBrightPreset(preset) ? "#1f2633" : "#3a4458";
 
 /** Style setters typed by name; our property names come from built specs. */
 interface StyleSetters {
@@ -135,6 +217,12 @@ interface Props {
   readonly trackFlagState?: TrackFlagState | null;
   readonly activeTrackVehicles?: ActiveTrackVehicles | null;
   readonly showTrackControls?: boolean;
+  readonly showEnhancedVisuals?: boolean;
+  readonly showTrackScreenshot?: boolean;
+  /** Focused driver's current lap; drives speed heat / delta / braking overlays. */
+  readonly focusDriverLap?: number | null;
+  /** Latest gap to leader per driver; enables the pit rejoin ghost (races only). */
+  readonly pitRejoinGaps?: ReadonlyMap<number, number> | null;
   readonly showFocusedHud?: boolean;
   readonly sharedAllDriverWindow?: boolean;
   readonly raceLeader?: Driver | null;
@@ -169,6 +257,10 @@ export function TrackMap3D({
   trackFlagState = null,
   activeTrackVehicles = null,
   showTrackControls = true,
+  showTrackScreenshot = true,
+  showEnhancedVisuals = true,
+  focusDriverLap = null,
+  pitRejoinGaps = null,
   showFocusedHud = true,
   sharedAllDriverWindow = false,
   raceLeader = null,
@@ -185,6 +277,8 @@ export function TrackMap3D({
   const mapStartLightsSound = useSettings((s) => s.mapStartLightsSound);
   const mapShowClock = useSettings((s) => s.mapShowClock);
   const mapShowDriverAcronym = useSettings((s) => s.mapShowDriverAcronym);
+  const mapShowElevation = useSettings((s) => s.mapShowElevation);
+  const sessionLighting = useSettings((s) => s.mapView3dSessionLighting);
   const mapShowDriverNumberInside = useSettings(
     (s) => s.mapShowDriverNumberInside,
   );
@@ -198,6 +292,17 @@ export function TrackMap3D({
   const geo = useMemo(() => getCircuitGeoref(circuitKey, year), [circuitKey, year]);
   const { data: circuitGeom } = useCircuitGeometry(circuitKey, year);
 
+  // Light preset: the sun at the circuit at the playhead's instant (night
+  // races look like night), or the app theme when that's turned off.
+  const lightPreset: LightPreset =
+    sessionLighting && geo && sessionStartMs > 0
+      ? lightPresetAt(sessionStartMs + t, geo.originLat, geo.originLng)
+      : lightPresetForTheme(lightMode);
+  const circuitKeyRef = useRef(circuitKey);
+  circuitKeyRef.current = circuitKey;
+  const lightPresetRef = useRef(lightPreset);
+  lightPresetRef.current = lightPreset;
+
   const indexes = useMemo(
     () => buildDriverIndexes(locationData, sessionStartMs),
     [locationData, sessionStartMs],
@@ -205,6 +310,59 @@ export function TrackMap3D({
   const driverByNumber = useMemo(
     () => new Map(drivers.map((d) => [d.driver_number, d])),
     [drivers],
+  );
+
+  // ── Telemetry overlays (same data and builders as the 2D map) ─────────────
+  const arc = useMemo(
+    () => (circuitGeom && geo ? buildArcPolyline(circuitGeom, geo) : null),
+    [circuitGeom, geo],
+  );
+  const heatData = useCarDataForLap(sessionKey, focusDriver, focusDriverLap ?? null);
+  const referenceHeatData = useCarDataForLap(
+    sessionKey,
+    focusDriver,
+    focusDriverLap != null && focusDriverLap > 1 ? focusDriverLap - 1 : null,
+  );
+  const showElevation = showEnhancedVisuals && mapShowElevation;
+  const overlayGradients = useMemo(() => {
+    if (!arc) return { heat: null, delta: null, elevation: null };
+    return {
+      heat: gradientFromSegments(arc, heatColors(buildHeatSegments(arc, heatData.data))),
+      delta: showEnhancedVisuals
+        ? gradientFromSegments(
+            arc,
+            buildDeltaSegments(arc, heatData.data, referenceHeatData.data),
+          )
+        : null,
+      elevation: showElevation
+        ? gradientFromSegments(
+            arc,
+            buildElevationSegments(
+              arc,
+              locationData,
+              focusDriver ?? drivers[0]?.driver_number ?? null,
+              lightMode,
+            ),
+          )
+        : null,
+    };
+  }, [
+    arc,
+    heatData.data,
+    referenceHeatData.data,
+    showEnhancedVisuals,
+    showElevation,
+    locationData,
+    focusDriver,
+    drivers,
+    lightMode,
+  ]);
+  const hotspots = useMemo(
+    () =>
+      buildHotspotPoints(
+        showEnhancedVisuals ? buildBrakingHotspots(arc, heatData.data) : [],
+      ),
+    [arc, heatData.data, showEnhancedVisuals],
   );
 
   const trackLine = useMemo(
@@ -260,6 +418,21 @@ export function TrackMap3D({
   // Car icon images already added to the map (see ensureCarIcons).
   const carIconsRef = useRef(new Set<string>());
 
+  /** Re-derive the car scale from the panel size and follow state. */
+  const syncCarScale = useCallback(
+    (map: mapboxgl.Map, following: boolean, force = false) => {
+      const container = containerRef.current;
+      if (!container) return;
+      const next = carScaleFor(container.clientWidth, container.clientHeight, following);
+      if (!force && Math.abs(next - carScaleRef.current) < 0.01) return;
+      carScaleRef.current = next;
+      clearCarIcons(map, carIconsRef.current);
+      liveRef.current.dirty = true;
+      if (map.getLayer(CAR_DOT_LAYER)) applyCarLayers(map, next);
+    },
+    [],
+  );
+
   const onSelectRef = useRef(onSelectDriver);
   useEffect(() => {
     onSelectRef.current = onSelectDriver;
@@ -267,6 +440,13 @@ export function TrackMap3D({
 
   // Follow-camera state, owned by the RAF loop.
   const followRef = useRef({ suspended: false, approaching: true });
+  const [cameraMode, setCameraMode] = useState<CameraMode>("follow");
+  const cameraModeRef = useRef<CameraMode>(cameraMode);
+  // Chase camera smoothing state (local metres), reset on mode/focus change.
+  const chaseRef = useRef<{ eye: { x: number; y: number } | null; heading: number | null }>({
+    eye: null,
+    heading: null,
+  });
 
   // ── Map lifecycle: one map per circuit ────────────────────────────────────
   useEffect(() => {
@@ -278,10 +458,9 @@ export function TrackMap3D({
       style: MAP3D_STYLE_URL,
       config: {
         basemap: {
-          lightPreset: lightPresetFor(useSettings.getState().lightMode),
-          showPointOfInterestLabels: false,
-          showTransitLabels: false,
-          showPedestrianRoads: false,
+          lightPreset: lightPresetRef.current,
+          ...BASEMAP_CONFIG,
+          ...(window.matchMedia?.("(max-width: 767px)").matches ? COMPACT_BASEMAP_CONFIG : {}),
         },
       },
       center: [geo.originLng, geo.originLat],
@@ -290,6 +469,8 @@ export function TrackMap3D({
       antialias: true,
     });
     mapRef.current = map;
+    // Each Map instance is a billed Mapbox map load.
+    trackEvent("trackmap3d_map_load", { circuit_key: circuitKeyRef.current ?? -1 });
 
     map.on("style.load", () => {
       if (!map.getSource(SRC_DEM)) {
@@ -301,6 +482,11 @@ export function TrackMap3D({
         });
       }
       map.setTerrain({ source: SRC_DEM, exaggeration: MAP3D_TERRAIN_EXAGGERATION });
+      // CC0 car model by Kenney (public/models/LICENSE-kenney-car-kit.txt).
+      map.addModel(
+        CAR_MODEL_ID,
+        new URL(`${import.meta.env.BASE_URL}models/f1-car.glb`, window.location.href).href,
+      );
       setStyleReady(true);
     });
 
@@ -315,15 +501,8 @@ export function TrackMap3D({
     map.on("rotatestart", suspendFollow);
     map.on("pitchstart", suspendFollow);
 
-    carScaleRef.current = carScaleFor(container.clientWidth, container.clientHeight);
-    map.on("resize", () => {
-      const next = carScaleFor(container.clientWidth, container.clientHeight);
-      if (Math.abs(next - carScaleRef.current) < 0.01) return;
-      carScaleRef.current = next;
-      clearCarIcons(map, carIconsRef.current);
-      liveRef.current.dirty = true;
-      if (map.getLayer(CAR_DOT_LAYER)) applyCarLayers(map, next);
-    });
+    syncCarScale(map, liveRef.current.focusDriver != null, true);
+    map.on("resize", () => syncCarScale(map, liveRef.current.focusDriver != null));
 
     map.on("click", CAR_DOT_LAYER, (e) => {
       const num = Number(e.features?.[0]?.properties?.num);
@@ -343,19 +522,34 @@ export function TrackMap3D({
       mapRef.current = null;
       setStyleReady(false);
     };
-  }, [geo, token]);
+  }, [geo, token, syncCarScale]);
 
   useEffect(() => {
     const map = mapRef.current;
     if (!map || !styleReady) return;
-    map.setConfigProperty("basemap", "lightPreset", lightPresetFor(lightMode));
+    map.setConfigProperty("basemap", "lightPreset", lightPreset);
     if (map.getLayer(LAYER_TRACK_SURFACE)) {
-      map.setPaintProperty(LAYER_TRACK_SURFACE, "line-color", ribbonColorFor(lightMode));
+      map.setPaintProperty(LAYER_TRACK_SURFACE, "line-color", ribbonColorFor(lightPreset));
     }
+  }, [lightPreset, styleReady, circuitGeom]);
+
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || !styleReady) return;
     // Compound badge outlines and safety car text follow the theme.
     clearCarIcons(map, carIconsRef.current);
     liveRef.current.dirty = true;
-  }, [lightMode, styleReady, circuitGeom]);
+  }, [lightMode, styleReady]);
+
+  const rain = rainFor(weatherOverlay);
+  const rainKey = rain ? `${rain.density.toFixed(2)}|${rain.intensity.toFixed(2)}` : "dry";
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || !styleReady) return;
+    map.setRain(rain ? { density: rain.density, intensity: rain.intensity } : null);
+    // rainKey captures `rain`; the object itself is new every render.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [rainKey, styleReady]);
 
   // ── Static circuit layers ─────────────────────────────────────────────────
   useEffect(() => {
@@ -383,7 +577,7 @@ export function TrackMap3D({
         layout: { "line-join": "round", "line-cap": "round" },
         paint: {
           "line-emissive-strength": 1,
-          "line-color": ribbonColorFor(useSettings.getState().lightMode),
+          "line-color": ribbonColorFor(lightPresetRef.current),
           "line-opacity": 0.9,
           "line-width": groundWidthExpression(MAP3D_TRACK_WIDTH_M, lat, 3),
         },
@@ -407,6 +601,45 @@ export function TrackMap3D({
           "line-width": groundWidthExpression(MAP3D_FLAG_WIDTH_M, lat, 6),
         },
       });
+      const pitLane = getPitLane(circuitKey);
+      if (pitLane) {
+        map.addSource(SRC_PIT_LANE, {
+          type: "geojson",
+          data: buildPitLaneLine(pitLane, geo),
+        });
+        map.addLayer({
+          id: "map3d-pit-lane",
+          type: "line",
+          source: SRC_PIT_LANE,
+          slot: "middle",
+          layout: { "line-join": "round", "line-cap": "butt" },
+          paint: {
+            "line-emissive-strength": 1,
+            "line-color": "#e9ecf3",
+            "line-opacity": 0.6,
+            "line-width": 1.5,
+            "line-dasharray": [3, 2],
+          },
+        });
+      }
+
+      // Track edges: thin light lines at ±half the track width, like kerbs.
+      for (const sign of [1, -1] as const) {
+        map.addLayer({
+          id: `map3d-track-edge-${sign > 0 ? "r" : "l"}`,
+          type: "line",
+          source: SRC_TRACK,
+          slot: "middle",
+          layout: { "line-join": "round", "line-cap": "round" },
+          paint: {
+            "line-emissive-strength": 1,
+            "line-color": "#e9ecf3",
+            "line-opacity": 0.55,
+            "line-width": 1.2,
+            "line-offset": groundWidthExpression(MAP3D_TRACK_WIDTH_M / 2, lat, 1.5, sign),
+          },
+        });
+      }
       map.addLayer({
         id: "map3d-track-line",
         type: "line",
@@ -436,6 +669,18 @@ export function TrackMap3D({
         },
       });
       applyCarLayers(map, carScaleRef.current);
+      if (arc) {
+        const container = containerRef.current;
+        addOverlayLayers(map, {
+          geom: circuitGeom,
+          geo,
+          arc,
+          lightMode: useSettings.getState().lightMode,
+          scale: carScaleFor(container?.clientWidth ?? 0, container?.clientHeight ?? 0),
+          segmentsBefore: "map3d-flags",
+          markupBefore: "map3d-car-pulse",
+        });
+      }
     }
 
     if (bounds) {
@@ -474,6 +719,20 @@ export function TrackMap3D({
     }
   }, [trackFlagState, styleReady, circuitGeom]);
 
+  // ── Overlay data + visibility ─────────────────────────────────────────────
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || !styleReady) return;
+    setOverlayGradients(map, overlayGradients);
+    (map.getSource(SRC_HOTSPOTS) as mapboxgl.GeoJSONSource | undefined)?.setData(hotspots);
+  }, [overlayGradients, hotspots, styleReady, arc]);
+
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || !styleReady) return;
+    setOverlayVisibility(map, { enhanced: showEnhancedVisuals });
+  }, [showEnhancedVisuals, styleReady, arc]);
+
   // ── Camera: overview when nothing is focused ──────────────────────────────
   const fitOverview = useCallback(
     (duration: number) => {
@@ -491,7 +750,10 @@ export function TrackMap3D({
 
   useEffect(() => {
     followRef.current = { suspended: false, approaching: true };
+    chaseRef.current = { eye: null, heading: null };
     setFollowSuspended(false);
+    // Markers grow while following, as the 2D follow camera's zoom does.
+    if (mapRef.current) syncCarScale(mapRef.current, focusDriver != null);
     if (focusDriver == null && styleReady) fitOverview(1200);
     // Re-run only on focus changes, not when the overview callback changes.
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -503,10 +765,19 @@ export function TrackMap3D({
     if (!map || !styleReady || !geo) return;
     let raf = 0;
     let lastCarUpdate = -Infinity;
+    let lastTrailUpdate = -Infinity;
+    let lastFrame = performance.now();
     let lastT = Number.NaN;
 
-    const frame = (now: number) => {
-      raf = requestAnimationFrame(frame);
+    const probe = map3dDebugEnabled()
+      ? createFrameProbe(2000, (s) =>
+          console.info(
+            `[map3d] ${s.frames} frames · work avg ${s.avgMs.toFixed(2)} ms · max ${s.maxMs.toFixed(2)} ms (budget ${MAP3D_FRAME_BUDGET_MS} ms)`,
+          ),
+        )
+      : null;
+
+    const step = (now: number) => {
       const { t: playhead } = useTimeline.getState();
       const live = liveRef.current;
 
@@ -525,6 +796,17 @@ export function TrackMap3D({
         }
       }
 
+      // Focused car's trail, refreshed at ~10 Hz.
+      if (now - lastTrailUpdate >= 100) {
+        lastTrailUpdate = now;
+        const trailSource = map.getSource(SRC_TRAIL) as mapboxgl.GeoJSONSource | undefined;
+        const idx = live.focusDriver != null ? live.indexes.get(live.focusDriver) : undefined;
+        const trail = idx
+          ? buildTrail(idx, playhead, geo, MAP3D_TRAIL_MS, MAP3D_TRAIL_STEP_MS)
+          : null;
+        trailSource?.setData({ type: "FeatureCollection", features: trail ? [trail] : [] });
+      }
+
       // Pulse / siren rings animate like the 2D SVG <animate> rings.
       if (live.pulseDrivers?.size || live.safetyCarSirenOn) {
         const style = map as unknown as StyleSetters;
@@ -534,33 +816,93 @@ export function TrackMap3D({
       }
 
       const follow = followRef.current;
-      if (live.focusDriver == null || follow.suspended) return;
+      const mode = cameraModeRef.current;
+      // Raw frame time drives the smoothing (slow frames catch up more); the
+      // orbit uses a capped one so a stall doesn't spin the map.
+      const frameMs = now - lastFrame;
+      const dt = Math.min(100, frameMs);
+      lastFrame = now;
+      if (follow.suspended) return;
+
+      if (live.focusDriver == null) {
+        // Nothing to follow: orbit circles the overview, other modes hold still.
+        if (mode === "orbit") map.jumpTo({ bearing: orbitBearing(map.getBearing(), dt) });
+        return;
+      }
       const idx = live.indexes.get(live.focusDriver);
       if (!idx) return;
-      const pos = interpolateXY(idx, playhead);
+      // Aim at the instant the car markers were last drawn, not the live
+      // playhead: markers update at ~30 Hz through a worker, and at high
+      // playback speeds the gap is long enough for the chase camera to pass
+      // the car it's chasing.
+      const camT = Number.isNaN(lastT) ? playhead : lastT;
+      const pos = interpolateXY(idx, camT);
       if (!pos || isOffTrackPlaceholder(pos)) return;
-      const prev = interpolateXY(idx, playhead - MAP3D_HEADING_LOOKBACK_MS);
+      const prev = interpolateXY(idx, camT - MAP3D_HEADING_LOOKBACK_MS);
       const [lng, lat] = f1ToLngLat(geo, pos.x, pos.y);
-      const center = map.getCenter();
-      const bearing = map.getBearing();
       const heading = prev ? headingDeg(geo, prev, pos) : null;
 
+      if (mode === "chase") {
+        const chase = chaseRef.current;
+        chase.heading =
+          heading === null
+            ? chase.heading
+            : chase.heading === null
+              ? heading
+              : lerpAngleDeg(
+                  chase.heading,
+                  heading,
+                  frameAlpha(MAP3D_FOLLOW_BEARING_ALPHA * 2, frameMs),
+                );
+        if (chase.heading === null) return;
+        const pose = chasePose(f1ToEnu(geo, pos.x, pos.y), chase.heading);
+        const eyeAlpha = frameAlpha(MAP3D_CHASE_ALPHA, frameMs);
+        chase.eye = chase.eye
+          ? {
+              x: chase.eye.x + (pose.eye.x - chase.eye.x) * eyeAlpha,
+              y: chase.eye.y + (pose.eye.y - chase.eye.y) * eyeAlpha,
+            }
+          : pose.eye;
+        const eye = enuToLngLat(geo.originLng, geo.originLat, chase.eye.x, chase.eye.y);
+        const target = enuToLngLat(geo.originLng, geo.originLat, pose.target.x, pose.target.y);
+        const carGround = map.queryTerrainElevation([lng, lat]) ?? 0;
+        const eyeGround = map.queryTerrainElevation(eye) ?? 0;
+        const cam = map.getFreeCameraOptions();
+        cam.position = mapboxgl.MercatorCoordinate.fromLngLat(
+          eye,
+          Math.max(carGround, eyeGround) + pose.up,
+        );
+        cam.lookAtPoint(target, undefined, carGround);
+        map.setFreeCameraOptions(cam);
+        return;
+      }
+
+      const center = map.getCenter();
+      const bearing = map.getBearing();
+      const centerAlpha = frameAlpha(MAP3D_FOLLOW_CENTER_ALPHA, frameMs);
       const camera: mapboxgl.CameraOptions = {
         center: [
-          center.lng + (lng - center.lng) * MAP3D_FOLLOW_CENTER_ALPHA,
-          center.lat + (lat - center.lat) * MAP3D_FOLLOW_CENTER_ALPHA,
+          center.lng + (lng - center.lng) * centerAlpha,
+          center.lat + (lat - center.lat) * centerAlpha,
         ],
         bearing:
-          heading === null
-            ? bearing
-            : lerpAngleDeg(bearing, heading, MAP3D_FOLLOW_BEARING_ALPHA),
+          mode === "orbit"
+            ? orbitBearing(bearing, dt)
+            : heading === null
+              ? bearing
+              : lerpAngleDeg(
+                  bearing,
+                  heading,
+                  frameAlpha(MAP3D_FOLLOW_BEARING_ALPHA, frameMs),
+                ),
       };
       // Ease zoom/pitch in when follow starts, then leave them to the user.
       if (follow.approaching) {
         const zoom = map.getZoom();
         const pitch = map.getPitch();
-        camera.zoom = zoom + (MAP3D_FOLLOW_ZOOM - zoom) * 0.08;
-        camera.pitch = pitch + (MAP3D_FOLLOW_PITCH - pitch) * 0.08;
+        const approach = frameAlpha(0.08, frameMs);
+        camera.zoom = zoom + (MAP3D_FOLLOW_ZOOM - zoom) * approach;
+        camera.pitch = pitch + (MAP3D_FOLLOW_PITCH - pitch) * approach;
         if (
           Math.abs(MAP3D_FOLLOW_ZOOM - zoom) < 0.02 &&
           Math.abs(MAP3D_FOLLOW_PITCH - pitch) < 0.5
@@ -569,6 +911,13 @@ export function TrackMap3D({
         }
       }
       map.jumpTo(camera);
+    };
+    const frame = (now: number) => {
+      raf = requestAnimationFrame(frame);
+      if (!probe) return step(now);
+      const start = performance.now();
+      step(now);
+      probe(performance.now() - start);
     };
     raf = requestAnimationFrame(frame);
     return () => cancelAnimationFrame(raf);
@@ -580,6 +929,16 @@ export function TrackMap3D({
     setFollowSuspended(false);
     if (focusDriver == null) fitOverview(800);
   }, [focusDriver, fitOverview]);
+
+  const cycleCameraMode = useCallback(() => {
+    const next = nextCameraMode(cameraModeRef.current);
+    trackEvent("trackmap3d_camera_mode_changed", { mode: next });
+    cameraModeRef.current = next;
+    followRef.current = { suspended: false, approaching: true };
+    chaseRef.current = { eye: null, heading: null };
+    setFollowSuspended(false);
+    setCameraMode(next);
+  }, []);
 
   // ── HTML overlays (same data as the 2D map) ───────────────────────────────
   const overlayBackground = overlayBackgroundColor(lightMode);
@@ -594,6 +953,58 @@ export function TrackMap3D({
     () => (focusDriver === null ? null : carDataAt(hudRawData, sessionStartMs + t)),
     [hudRawData, sessionStartMs, t, focusDriver],
   );
+
+  const pitLoss = useMemo(() => parsePitLoss(circuitGeom?.pitLoss), [circuitGeom]);
+  const pitRejoin = useMemo(
+    () =>
+      pitRejoinView({
+        gaps: pitRejoinGaps,
+        pitLoss,
+        track: activeTrackVehicles,
+        focusDriver,
+        excluded: retiredDrivers,
+        index: focusDriver !== null ? indexes.get(focusDriver) : undefined,
+        t,
+      }),
+    [pitRejoinGaps, pitLoss, activeTrackVehicles, focusDriver, retiredDrivers, indexes, t],
+  );
+  const focusColor =
+    focusDriver !== null
+      ? teamColor(driverByNumber.get(focusDriver)?.team_colour, "#ffffff")
+      : "#ffffff";
+
+  useEffect(() => {
+    const map = mapRef.current;
+    const source = map?.getSource(SRC_GHOST) as mapboxgl.GeoJSONSource | undefined;
+    if (!map || !source || !geo) return;
+    const ghost = pitRejoin?.ghost;
+    if (ghost) {
+      const container = containerRef.current;
+      ensureGhostIcon(
+        map,
+        focusColor,
+        carScaleFor(container?.clientWidth ?? 0, container?.clientHeight ?? 0),
+      );
+    }
+    source.setData({
+      type: "FeatureCollection",
+      features: ghost
+        ? [
+            {
+              type: "Feature",
+              properties: { color: focusColor, position: pitRejoin.projection.position },
+              geometry: { type: "Point", coordinates: f1ToLngLat(geo, ghost.x, ghost.y) },
+            },
+          ]
+        : [],
+    });
+  }, [pitRejoin, focusColor, geo, styleReady]);
+
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || !styleReady || !map.getLayer(LAYER_TRAIL)) return;
+    map.setPaintProperty(LAYER_TRAIL, "line-gradient", trailGradient(focusColor));
+  }, [focusColor, styleReady, arc]);
 
   const totalMarshalPosts = Math.max(
     circuitGeom?.marshalSectors?.length ?? 0,
@@ -651,7 +1062,12 @@ export function TrackMap3D({
     "h-7 min-w-7 px-1.5 flex items-center justify-center border border-panel text-white/85 hover:text-white hover:border-white/50 transition-colors text-[10px] font-black tracking-widest";
 
   return (
-    <div className="relative w-full h-full overflow-hidden" data-testid="track-map-3d">
+    // aspect-[3/2] only applies when the parent gives no definite height (the
+    // phone layout): the 2D map's SVG gets that from its viewBox, a div doesn't.
+    <div
+      className="relative w-full h-full aspect-[3/2] overflow-hidden"
+      data-testid="track-map-3d"
+    >
       {/* mapbox-gl.css forces `position: relative` on the container, so size it
           by flow (w/h-full), not by absolute insets. */}
       <div ref={containerRef} className="w-full h-full" />
@@ -683,6 +1099,34 @@ export function TrackMap3D({
             ) : (
               <Maximize size={14} strokeWidth={2.2} aria-hidden="true" />
             )}
+          </button>
+        )}
+        {showTrackControls && (
+          <button
+            type="button"
+            className={buttonClass}
+            title={`Camera: ${CAMERA_LABELS[cameraMode]} (click to change)`}
+            aria-label={`Camera mode: ${CAMERA_LABELS[cameraMode]}`}
+            onClick={cycleCameraMode}
+          >
+            {cameraMode === "follow" && <Navigation size={14} strokeWidth={2.2} aria-hidden="true" />}
+            {cameraMode === "chase" && <Video size={14} strokeWidth={2.2} aria-hidden="true" />}
+            {cameraMode === "orbit" && <Orbit size={14} strokeWidth={2.2} aria-hidden="true" />}
+          </button>
+        )}
+        {showTrackScreenshot && (
+          <button
+            type="button"
+            className={buttonClass}
+            title="Download map snapshot as PNG"
+            aria-label="Download map snapshot as PNG"
+            onClick={() => {
+              if (!mapRef.current) return;
+              trackEvent("trackmap_snapshot_export", { format: "png", view: "3d" });
+              exportMapSnapshot(mapRef.current);
+            }}
+          >
+            <Camera size={14} strokeWidth={2.2} aria-hidden="true" />
           </button>
         )}
         {onOpenSettings && (
@@ -728,14 +1172,26 @@ export function TrackMap3D({
         )}
       </div>
 
-      {showFocusedHud && hudData && focusDriver !== null && (
-        <div className="absolute top-2 left-2 z-20 pointer-events-none">
-          <FocusedDriverHud
-            sample={hudData}
-            driver={driverByNumber.get(focusDriver)}
-            metricSystem={metricSystem}
-            lightMode={lightMode}
-          />
+      {((showFocusedHud && hudData) || pitRejoin) && focusDriver !== null && (
+        <div className="absolute top-2 left-2 z-20 pointer-events-none flex flex-col gap-1">
+          {showFocusedHud && hudData && (
+            <FocusedDriverHud
+              sample={hudData}
+              driver={driverByNumber.get(focusDriver)}
+              metricSystem={metricSystem}
+              lightMode={lightMode}
+            />
+          )}
+          {pitRejoin && (
+            <PitRejoinPanel
+              projection={pitRejoin.projection}
+              lossS={pitRejoin.lossS}
+              condition={pitRejoin.condition}
+              color={focusColor}
+              background={lightMode ? "rgba(247,249,254,0.94)" : "rgba(21,21,30,0.85)"}
+              driverByNumber={driverByNumber}
+            />
+          )}
         </div>
       )}
     </div>

@@ -37,6 +37,8 @@ export interface AppSettings {
   mapShowPitRejoin: boolean;
   /** Show the Mapbox 3D map instead of the SVG map, when available. */
   mapView3d: boolean;
+  /** 3D map lighting follows the sun at the circuit at the playhead (else the app theme). */
+  mapView3dSessionLighting: boolean;
   // Leaderboard
   leaderboardTelemetry: boolean;
   timingShowMinisectors: boolean;
@@ -168,6 +170,7 @@ export const SETTINGS_DEFAULTS: AppSettings = {
   mapShowElevation: false,
   mapShowPitRejoin: true,
   mapView3d: false,
+  mapView3dSessionLighting: true,
   leaderboardTelemetry: true,
   timingShowMinisectors: true,
   trackerTimingTelemetry: true,

@@ -44,4 +44,23 @@ describe("useCoarseTime", () => {
     unmount();
     expect(unsubscribe).toHaveBeenCalled();
   });
+
+  it("delivers the last throttled value once the interval passes (paused seek)", () => {
+    vi.useFakeTimers();
+    vi.spyOn(Date, "now").mockImplementation(() => nowMs);
+    nowMs = 1_000;
+    const { result } = renderHook(() => useCoarseTime(500));
+
+    act(() => subscriber?.({ t: 0 }));
+    // A deep-link restore lands inside the throttle window, then the clock
+    // stays paused: no later update would carry it through.
+    nowMs = 1_010;
+    act(() => subscriber?.({ t: 420_000 }));
+    expect(result.current).toBe(0);
+
+    nowMs = 1_500;
+    act(() => vi.advanceTimersByTime(490));
+    expect(result.current).toBe(420_000);
+    vi.useRealTimers();
+  });
 });

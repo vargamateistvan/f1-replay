@@ -1,5 +1,6 @@
 import type { Interval } from "@/api/types";
 import type { PitLoss } from "@/data/circuitGeometryTypes";
+import { interpolateXY, type LocationIndex } from "@/timeline/interpolate";
 import { parseIntervalSeconds } from "@/utils/intervals";
 
 export interface PitLossSeconds {
@@ -121,4 +122,43 @@ export function projectPitRejoin(
     }
   }
   return { position: carsAhead + 1, ahead, behind };
+}
+
+export interface PitRejoinView {
+  projection: PitRejoinProjection;
+  lossS: number;
+  condition: PitLossCondition;
+  /** Where the focused car was `lossS` ago (F1 frame), or null without coverage. */
+  ghost: { x: number; y: number } | null;
+}
+
+/**
+ * Pit rejoin for the focused car, shared by the 2D and 3D maps: rank after
+ * adding the circuit's pit loss to its gap, and place a ghost where the car
+ * was `loss` seconds ago — the cars around that spot now are the ones it would
+ * rejoin among.
+ */
+export function pitRejoinView(args: {
+  gaps: ReadonlyMap<number, number> | null | undefined;
+  pitLoss: PitLossSeconds | null;
+  track: { safetyCar?: boolean; vsc?: boolean } | null | undefined;
+  focusDriver: number | null;
+  excluded?: ReadonlySet<number>;
+  /** Focused car's location index: session-relative ms + F1 x/y. */
+  index: LocationIndex | undefined;
+  t: number;
+}): PitRejoinView | null {
+  const { gaps, pitLoss, focusDriver, index, t } = args;
+  if (!gaps || !pitLoss || focusDriver === null) return null;
+  const loss = pitLossFor(pitLoss, args.track);
+  const projection = projectPitRejoin(gaps, focusDriver, loss.seconds, args.excluded);
+  if (!projection) return null;
+
+  const lookBackT = t - loss.seconds * 1000;
+  // interpolateXY clamps outside the index, so require real coverage.
+  const covered = index != null && index.times.length > 0 && index.times[0]! <= lookBackT;
+  const xy = covered ? interpolateXY(index, lookBackT) : null;
+  // x = y = 0 is OpenF1's "not on track" placeholder (see isOffTrackPlaceholder).
+  const ghost = xy && !(xy.x === 0 && xy.y === 0) ? xy : null;
+  return { projection, lossS: loss.seconds, condition: loss.condition, ghost };
 }

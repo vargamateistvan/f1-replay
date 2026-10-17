@@ -112,6 +112,12 @@ describe("groundWidthExpression", () => {
     expect(at(20)).toBeCloseTo(187.6, 0);
     expect(at(22) / at(20)).toBeCloseTo(4, 2);
   });
+
+  it("mirrors to a negative line-offset with sign -1", () => {
+    const right = groundWidthExpression(7, 0, 1.5).slice(3) as number[];
+    const left = groundWidthExpression(7, 0, 1.5, -1).slice(3) as number[];
+    left.forEach((v, i) => expect(v).toBe(i % 2 === 0 ? right[i] : -right[i]!));
+  });
 });
 
 describe("headingDeg / broadcastBearing / lerpAngleDeg", () => {

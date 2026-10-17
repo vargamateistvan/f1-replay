@@ -92,11 +92,14 @@ src/
     lapContext.ts       — tyreForLap(): compound + tyre age for a driver's lap
     units.ts            — Metric/imperial conversion
     georef.ts           — F1 frame ↔ WGS84: similarity fit (Umeyama + ICP) and projection for the 3D map
+    pitLane.ts          — Pit-lane path extraction from a GPS trace (used by scripts/fetch-pit-lanes.mjs)
 
   data/
     (circuit geometry and layout data files)
     circuit-georef.json — Baked F1-frame → lng/lat fit per geometry file (`node scripts/fetch-georef.mjs`)
     circuitGeoref.ts    — getCircuitGeoref(): lookup matching the resolved geometry year
+    pit-lanes.json      — Baked pit-lane paths (F1 frame) per circuit_key (`node --use-system-ca scripts/fetch-pit-lanes.mjs`)
+    pitLanes.ts         — getPitLane(circuitKey)
 
   pages/
     RaceWeekend.tsx     — Main page: track map + leaderboard + timeline
@@ -145,7 +148,7 @@ components/ (render to DOM; read settings from Zustand)
 | Component                                         | Purpose                                                                                  |
 | ------------------------------------------------- | ---------------------------------------------------------------------------------------- |
 | `TrackMap`                                        | Animated SVG track map: driver blobs, sector flags, follow-cam, compass, weather overlay, status badges (start lights, SC/VSC, chequered flag), pit rejoin projection for the focused driver (baked `pitLoss`, races only). `TrackMap.tsx` orchestrates; memoized SVG layers in `layers/`, HTML overlays in `overlays/`, pure derivations in `trackGeometry.ts` / `statusBadges.ts` |
-| `TrackMap3D`                                      | Opt-in Mapbox 3D map (Standard style + terrain): georeferenced centerline, marshal-post flags via feature state, car markers + heading-follow camera driven by its own RAF loop. Pure builders in `mapFeatures.ts`; gate with `availability.ts` (token + WebGL2, desktop only) |
+| `TrackMap3D`                                      | Opt-in Mapbox 3D map (Standard style + terrain), desktop and mobile. `TrackMap3D.tsx` owns the map and one RAF loop (cars, trail, camera); pure builders: `mapFeatures.ts` (track, flags), `carLayers.ts` (2D-identical car icons drawn on canvas + CC0 3D models), `trackOverlays.ts` (start/finish, S1/S2, arrows, heat/delta/elevation gradients, pit ghost, trail), `atmosphere.ts` (sun-based light preset, rain), `cameraModes.ts` (follow / chase / orbit). Layers in `overlayLayers.ts`; gate with `availability.ts` (token + WebGL2). `?debug=map3d` logs per-frame cost |
 | `LiveTiming`                                      | Real-time leaderboard: positions, intervals, mini-sectors, telemetry columns             |
 | `PlaybackBar`                                     | Scrubber (race-control, race-start and chequered-flag markers) / speed controls / chips |
 | `RaceControl`                                     | Race control message feed                                                                |
@@ -269,6 +272,15 @@ components/ (render to DOM; read settings from Zustand)
 - The bake fits each MultiViewer centerline onto the bacinger/f1-circuits trace (pinned commit): best cyclic shift × direction × Y-flip, then ICP. Fits over 6 m RMS / 25 m max are dropped (3D hidden for that circuit). Current fits: 1.2–5.1 m RMS.
 - Runtime: `[e, n] = scale·R(rotation)·[x, ±y] + t`, then a local equirectangular step to lng/lat. Map bearing for the broadcast view = baked `rotation` + frame rotation.
 
+### 3D map rendering (`components/TrackMap3D/`)
+
+- Cars match the 2D `CarMarker`: every size is in 2D SVG units × the 2D map's own px/unit (`carScaleFor`, ×3 while following like the 2D follow cam). Icons are canvas-drawn per look (`ensureCarIcons`) and rendered as symbols so 3D buildings never hide them; from zoom 15 a team-tinted 3D model takes over.
+- The camera aims at the instant car markers were last drawn (`lastT`), not the live playhead — the GeoJSON worker lags, and at 16× the chase camera would otherwise overtake its car. Smoothing uses `frameAlpha` so slow devices don't trail.
+- Telemetry overlays reuse the 2D builders via `buildArcPolyline` (lng/lat in `svgPts`) and render as one `line-gradient` line each (no per-segment joints).
+- Lighting follows the sun at the circuit (`lightPresetAt`, setting `mapView3dSessionLighting`), so night races are night even in light theme.
+- Each `new mapboxgl.Map` is a billed load (`trackmap3d_map_load`); the map is kept while the circuit stays the same.
+- The car model is Kenney's CC0 Car Kit `race.glb` with its texture packed in: `public/models/f1-car.glb` (licence alongside).
+
 ### Track map geometry (`hooks/useTrackMap.ts`)
 
 - Preferred: static `circuitGeometry` data keyed by `circuit_key` (pre-processed SVG paths).
@@ -383,4 +395,5 @@ Authentication: optional bearer token via `VITE_OPENF1_API_KEY` env var (`.env.l
 10. **SEO routes** are generated at build time from `seo-routes.json`. Add new deep-linkable pages to this file and run `yarn generate:sitemap`.
 11. **Start-light sounds** play `public/sounds/start-light.mp3` as each light comes on (synthesized beep if it's missing); lights out is silent. Only commit audio you have the rights to. Light pacing is `START_LIGHT_INTERVAL_MS` / `START_LIGHTS_HOLD_MS` in `constants.ts`. The sequence always plays at 1x: the clock drops to 1x when it enters `realTimeWindow` and restores the previous speed at lights out.
 12. **Team radio playback** (panel, toasts, catch-up) must go through `RadioAudio`, which plays the `public/sounds/radio-intro.mp3` chime and starts the clip after `RADIO_INTRO_LEAD_MS`. Don't render a bare `<audio autoPlay>` for radio.
-13. **3D map coordinates**: never hand raw OpenF1 x/y to Mapbox — project with `f1ToLngLat(getCircuitGeoref(...), x, y)`. Re-run `node scripts/fetch-georef.mjs` (Node ≥ 23.6) after `fetch-circuits.mjs` adds or changes geometry; a test fails if a geometry file has no georef. `mapbox-gl` must only be imported from the lazy `TrackMap3D` chunk.
+13. **3D map coordinates**: never hand raw OpenF1 x/y to Mapbox — project with `f1ToLngLat(getCircuitGeoref(...), x, y)`. Re-run `node scripts/fetch-georef.mjs` and `node --use-system-ca scripts/fetch-pit-lanes.mjs` (Node ≥ 23.8) after `fetch-circuits.mjs` adds or changes geometry; a test fails if a geometry file has no georef. `mapbox-gl` must only be imported from the lazy `TrackMap3D` chunk (type-only imports elsewhere are fine).
+14. **Coarse time is trailing-edge**: `useCoarseTime` now delivers the last value after a throttled burst. Before, a paused seek (e.g. restoring `?t=`) could leave every `tSlow`-driven panel (flags, badges) stuck at t = 0.

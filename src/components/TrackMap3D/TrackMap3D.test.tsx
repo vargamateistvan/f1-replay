@@ -25,6 +25,8 @@ const { FakeMap } = vi.hoisted(() => {
     setConfigProperty = vi.fn();
     setLayoutProperty = vi.fn();
     setPaintProperty = vi.fn();
+    setRain = vi.fn();
+    addModel = vi.fn();
     hasImage = vi.fn(() => false);
     addImage = vi.fn();
     removeImage = vi.fn();
@@ -84,6 +86,9 @@ vi.mock("./availability", () => ({ mapboxToken: vi.fn(() => "pk.test") }));
 
 vi.mock("@/hooks/useCircuitGeometry", () => ({
   useCircuitGeometry: vi.fn(() => ({ data: monacoJson, isPending: false })),
+}));
+vi.mock("@/hooks/useCarDataForLap", () => ({
+  useCarDataForLap: vi.fn(() => ({ data: [] })),
 }));
 vi.mock("@/hooks/useCarDataWindow", () => ({
   useCarDataWindow: vi.fn(() => ({ data: [] })),
