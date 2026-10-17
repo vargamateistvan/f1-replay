@@ -4,25 +4,16 @@
  * it is unit-testable without WebGL.
  */
 import type { ExpressionSpecification } from "mapbox-gl";
-import type { Driver } from "@/api/types";
-import { SPECIAL_TRACK_VEHICLES } from "@/components/TrackMap/layers/specialVehicles";
 import type { CircuitGeometry } from "@/data/circuitGeometryTypes";
 import { FLAG_COLORS } from "@/constants";
-import { isOffTrackPlaceholder } from "@/hooks/useTrackMap";
-import { interpolateXY, type LocationIndex } from "@/timeline/interpolate";
 import {
   isActiveTrackFlag,
   resolveFlagForMarshalPost,
   type TrackFlagState,
 } from "@/timeline/raceControl";
-import { teamColor } from "@/utils/color";
-import {
-  type CircuitGeoref,
-  f1ToEnu,
-  f1ToLngLat,
-} from "@/utils/georef";
+import { type CircuitGeoref, f1ToEnu, f1ToLngLat } from "@/utils/georef";
 
-type LngLat = [number, number];
+export type LngLat = [number, number];
 
 export interface LineFeature {
   type: "Feature";
@@ -211,49 +202,6 @@ export function broadcastBearing(
   const rotation = Number.isFinite(geom?.rotation) ? geom!.rotation : 0;
   const frameDeg = ((geo.flipY ? -1 : 1) * geo.rotation * 180) / Math.PI;
   return (((rotation + frameDeg) % 360) + 360) % 360;
-}
-
-export interface CarFeatureInput {
-  indexes: ReadonlyMap<number, LocationIndex>;
-  driverByNumber: ReadonlyMap<number, Driver>;
-  focusDriver: number | null;
-  battlingDrivers?: ReadonlySet<number>;
-  retiredDrivers?: ReadonlySet<number>;
-}
-
-/**
- * Car markers at playhead `t` (session-relative ms). Off-track placeholders
- * (x = y = 0) and retired cars are dropped, as on the 2D map.
- */
-export function buildCarFeatures(
-  geo: CircuitGeoref,
-  t: number,
-  input: CarFeatureInput,
-): FeatureCollection<PointFeature> {
-  const features: PointFeature[] = [];
-  for (const [num, idx] of input.indexes) {
-    if (input.retiredDrivers?.has(num)) continue;
-    const pos = interpolateXY(idx, t);
-    if (!pos || isOffTrackPlaceholder(pos)) continue;
-
-    const driver = input.driverByNumber.get(num);
-    const special = SPECIAL_TRACK_VEHICLES[num];
-    const focused = num === input.focusDriver;
-    features.push({
-      type: "Feature",
-      properties: {
-        num,
-        label: special?.shortLabel ?? driver?.name_acronym ?? String(num),
-        color: special?.fill ?? teamColor(driver?.team_colour, "#9ca3af"),
-        focused,
-        battling: input.battlingDrivers?.has(num) ?? false,
-        // Draw order: focused car on top, special vehicles above the field.
-        order: focused ? 2 : special ? 1 : 0,
-      },
-      geometry: { type: "Point", coordinates: f1ToLngLat(geo, pos.x, pos.y) },
-    });
-  }
-  return { type: "FeatureCollection", features };
 }
 
 /** Shortest-path angular lerp in degrees. */

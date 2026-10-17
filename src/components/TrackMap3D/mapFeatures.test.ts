@@ -1,14 +1,11 @@
 import { describe, expect, it } from "vitest";
-import type { Driver } from "@/api/types";
 import monacoJson from "@/data/circuit-geometry/22-2025.json";
 import type { CircuitGeometry } from "@/data/circuitGeometryTypes";
 import { getCircuitGeoref } from "@/data/circuitGeoref";
-import { buildIndex } from "@/timeline/interpolate";
 import type { TrackFlagState } from "@/timeline/raceControl";
 import type { CircuitGeoref } from "@/utils/georef";
 import {
   broadcastBearing,
-  buildCarFeatures,
   buildCornerPoints,
   buildMarshalSectorLines,
   buildTrackLine,
@@ -135,48 +132,5 @@ describe("headingDeg / broadcastBearing / lerpAngleDeg", () => {
     expect(lerpAngleDeg(350, 10, 0.5)).toBeCloseTo(0);
     expect(lerpAngleDeg(10, 350, 0.5)).toBeCloseTo(0);
     expect(lerpAngleDeg(90, 180, 0.5)).toBeCloseTo(135);
-  });
-});
-
-describe("buildCarFeatures", () => {
-  const driver = (n: number, acronym: string) =>
-    ({ driver_number: n, name_acronym: acronym, team_colour: "3671C6" }) as Driver;
-
-  const track = (x: number, y: number) =>
-    buildIndex([
-      { t: 0, x, y },
-      { t: 1000, x: x + 100, y },
-    ]);
-
-  it("interpolates, labels and orders cars; drops retired and off-track ones", () => {
-    const indexes = new Map([
-      [1, track(1000, 1000)],
-      [16, track(2000, 2000)],
-      [44, track(3000, 3000)], // retired
-      [55, buildIndex([{ t: 0, x: 0, y: 0 }])], // in the garage
-      [241, track(4000, 4000)], // safety car
-    ]);
-    const { features } = buildCarFeatures(unitGeo, 500, {
-      indexes,
-      driverByNumber: new Map([
-        [1, driver(1, "VER")],
-        [16, driver(16, "LEC")],
-      ]),
-      focusDriver: 16,
-      retiredDrivers: new Set([44]),
-    });
-
-    const byNum = new Map(features.map((f) => [f.properties.num, f]));
-    expect([...byNum.keys()].sort((a, b) => Number(a) - Number(b))).toEqual([1, 16, 241]);
-    expect(byNum.get(1)!.properties).toMatchObject({
-      label: "VER",
-      color: "#3671C6",
-      focused: false,
-      order: 0,
-    });
-    expect(byNum.get(16)!.properties).toMatchObject({ focused: true, order: 2 });
-    expect(byNum.get(241)!.properties).toMatchObject({ label: "SC", order: 1 });
-    // Halfway between x=1000 and x=1100 metres east of 0,0.
-    expect(byNum.get(1)!.geometry.coordinates[0]).toBeCloseTo(1050 / 111_319.49, 6);
   });
 });

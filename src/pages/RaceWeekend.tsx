@@ -2027,6 +2027,9 @@ export default function RaceWeekend() {
       year={session?.year ?? null}
       battlingDrivers={mapShowBattleRings ? battlingDrivers : undefined}
       retiredDrivers={retiredDrivers}
+      pulseDrivers={pulseDrivers}
+      activeCompounds={mapShowCompoundBadges ? activeCompounds : undefined}
+      safetyCarSirenOn={safetyCarSirenOn}
       showFocusedHud={mapShowDriverHud}
       sharedAllDriverWindow={telemetryEnabled}
       trackFlagState={mapShowSectorFlags ? trackFlagState : null}

@@ -48,8 +48,18 @@ import { startLightsState } from "@/timeline/startLights";
 import { f1ToLngLat } from "@/utils/georef";
 import { mapboxToken } from "./availability";
 import {
-  broadcastBearing,
+  animatedCarPaint,
   buildCarFeatures,
+  buildCarLayers,
+  CAR_DOT_LAYER,
+  CAR_SOURCE,
+  carScaleFor,
+  clearCarIcons,
+  ensureCarIcons,
+  type CarFeatureInput,
+} from "./carLayers";
+import {
+  broadcastBearing,
   buildCornerPoints,
   buildMarshalSectorLines,
   buildTrackLine,
@@ -58,7 +68,6 @@ import {
   lerpAngleDeg,
   marshalSegmentColor,
   trackBounds,
-  type CarFeatureInput,
   type FeatureCollection,
   type PointFeature,
 } from "./mapFeatures";
@@ -66,9 +75,7 @@ import {
 const SRC_TRACK = "map3d-track";
 const SRC_MARSHAL = "map3d-marshal";
 const SRC_CORNERS = "map3d-corners";
-const SRC_CARS = "map3d-cars";
 const SRC_DEM = "map3d-dem";
-const LAYER_CARS = "map3d-cars";
 const LAYER_TRACK_SURFACE = "map3d-track-surface";
 const LAYER_CORNERS = "map3d-corners";
 const FIT_PADDING = 48;
@@ -77,6 +84,33 @@ const FIT_PADDING = 48;
 const lightPresetFor = (lightMode: boolean) => (lightMode ? "day" : "night");
 /** Track ribbon fill; must stand out from Standard's grey roads in both presets. */
 const ribbonColorFor = (lightMode: boolean) => (lightMode ? "#1f2633" : "#3a4458");
+
+/** Style setters typed by name; our property names come from built specs. */
+interface StyleSetters {
+  setPaintProperty(layer: string, name: string, value: unknown): void;
+  setLayoutProperty(layer: string, name: string, value: unknown): void;
+}
+
+/** Add the car layers, or restyle them in place after a resize / theme change. */
+function applyCarLayers(map: mapboxgl.Map, scale: number) {
+  const style = map as unknown as StyleSetters;
+  for (const layer of buildCarLayers(scale, performance.now())) {
+    if (!map.getLayer(layer.id)) {
+      map.addLayer(layer);
+      continue;
+    }
+    const { paint = {}, layout = {} } = layer as {
+      paint?: Record<string, unknown>;
+      layout?: Record<string, unknown>;
+    };
+    for (const [key, value] of Object.entries(paint)) {
+      style.setPaintProperty(layer.id, key, value);
+    }
+    for (const [key, value] of Object.entries(layout)) {
+      style.setLayoutProperty(layer.id, key, value);
+    }
+  }
+}
 
 const emptyCollection = (): FeatureCollection<PointFeature> => ({
   type: "FeatureCollection",
@@ -94,6 +128,9 @@ interface Props {
   readonly year?: number | null;
   readonly battlingDrivers?: ReadonlySet<number>;
   readonly retiredDrivers?: ReadonlySet<number>;
+  readonly pulseDrivers?: readonly number[];
+  readonly activeCompounds?: CarFeatureInput["activeCompounds"];
+  readonly safetyCarSirenOn?: boolean;
   readonly weatherOverlay?: Weather | null;
   readonly trackFlagState?: TrackFlagState | null;
   readonly activeTrackVehicles?: ActiveTrackVehicles | null;
@@ -125,6 +162,9 @@ export function TrackMap3D({
   year = null,
   battlingDrivers,
   retiredDrivers,
+  pulseDrivers,
+  activeCompounds,
+  safetyCarSirenOn = false,
   weatherOverlay = null,
   trackFlagState = null,
   activeTrackVehicles = null,
@@ -144,6 +184,10 @@ export function TrackMap3D({
   const mapShowRaceLeader = useSettings((s) => s.mapShowRaceLeader);
   const mapStartLightsSound = useSettings((s) => s.mapStartLightsSound);
   const mapShowClock = useSettings((s) => s.mapShowClock);
+  const mapShowDriverAcronym = useSettings((s) => s.mapShowDriverAcronym);
+  const mapShowDriverNumberInside = useSettings(
+    (s) => s.mapShowDriverNumberInside,
+  );
 
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<mapboxgl.Map | null>(null);
@@ -175,24 +219,46 @@ export function TrackMap3D({
 
   // Inputs the RAF loop reads each frame. Synced after commit; `dirty` forces a
   // car redraw even when the playhead is paused.
-  const liveRef = useRef<CarFeatureInput & { dirty: boolean }>({
+  const pulseSet = useMemo(() => new Set(pulseDrivers ?? []), [pulseDrivers]);
+  const carInput: CarFeatureInput = {
     indexes,
     driverByNumber,
     focusDriver,
     battlingDrivers,
     retiredDrivers,
+    pulseDrivers: pulseSet,
+    activeCompounds,
+    safetyCarSirenOn,
+    showAcronym: mapShowDriverAcronym,
+    showNumberInside: mapShowDriverNumberInside,
+    lightMode,
+  };
+  const liveRef = useRef<CarFeatureInput & { dirty: boolean }>({
+    ...carInput,
     dirty: true,
   });
   useEffect(() => {
-    liveRef.current = {
-      indexes,
-      driverByNumber,
-      focusDriver,
-      battlingDrivers,
-      retiredDrivers,
-      dirty: true,
-    };
-  }, [indexes, driverByNumber, focusDriver, battlingDrivers, retiredDrivers]);
+    liveRef.current = { ...carInput, dirty: true };
+    // carInput is rebuilt every render; sync only when one of its parts changes.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [
+    indexes,
+    driverByNumber,
+    focusDriver,
+    battlingDrivers,
+    retiredDrivers,
+    pulseSet,
+    activeCompounds,
+    safetyCarSirenOn,
+    mapShowDriverAcronym,
+    mapShowDriverNumberInside,
+    lightMode,
+  ]);
+
+  // Pixels per 2D SVG unit for this panel, so cars match the 2D map's size.
+  const carScaleRef = useRef(1);
+  // Car icon images already added to the map (see ensureCarIcons).
+  const carIconsRef = useRef(new Set<string>());
 
   const onSelectRef = useRef(onSelectDriver);
   useEffect(() => {
@@ -249,18 +315,30 @@ export function TrackMap3D({
     map.on("rotatestart", suspendFollow);
     map.on("pitchstart", suspendFollow);
 
-    map.on("click", LAYER_CARS, (e) => {
+    carScaleRef.current = carScaleFor(container.clientWidth, container.clientHeight);
+    map.on("resize", () => {
+      const next = carScaleFor(container.clientWidth, container.clientHeight);
+      if (Math.abs(next - carScaleRef.current) < 0.01) return;
+      carScaleRef.current = next;
+      clearCarIcons(map, carIconsRef.current);
+      liveRef.current.dirty = true;
+      if (map.getLayer(CAR_DOT_LAYER)) applyCarLayers(map, next);
+    });
+
+    map.on("click", CAR_DOT_LAYER, (e) => {
       const num = Number(e.features?.[0]?.properties?.num);
       if (Number.isFinite(num)) onSelectRef.current?.(num);
     });
-    map.on("mouseenter", LAYER_CARS, () => {
+    map.on("mouseenter", CAR_DOT_LAYER, () => {
       map.getCanvas().style.cursor = "pointer";
     });
-    map.on("mouseleave", LAYER_CARS, () => {
+    map.on("mouseleave", CAR_DOT_LAYER, () => {
       map.getCanvas().style.cursor = "";
     });
 
+    const icons = carIconsRef.current;
     return () => {
+      icons.clear();
       map.remove();
       mapRef.current = null;
       setStyleReady(false);
@@ -274,6 +352,9 @@ export function TrackMap3D({
     if (map.getLayer(LAYER_TRACK_SURFACE)) {
       map.setPaintProperty(LAYER_TRACK_SURFACE, "line-color", ribbonColorFor(lightMode));
     }
+    // Compound badge outlines and safety car text follow the theme.
+    clearCarIcons(map, carIconsRef.current);
+    liveRef.current.dirty = true;
   }, [lightMode, styleReady, circuitGeom]);
 
   // ── Static circuit layers ─────────────────────────────────────────────────
@@ -292,7 +373,7 @@ export function TrackMap3D({
         type: "geojson",
         data: buildCornerPoints(circuitGeom, geo),
       });
-      map.addSource(SRC_CARS, { type: "geojson", data: emptyCollection() });
+      map.addSource(CAR_SOURCE, { type: "geojson", data: emptyCollection() });
 
       map.addLayer({
         id: LAYER_TRACK_SURFACE,
@@ -354,56 +435,7 @@ export function TrackMap3D({
           "text-halo-width": 1.5,
         },
       });
-      map.addLayer({
-        id: "map3d-car-rings",
-        type: "circle",
-        source: SRC_CARS,
-        slot: "top",
-        filter: ["any", ["get", "focused"], ["get", "battling"]],
-        paint: {
-          "circle-radius": ["case", ["get", "focused"], 15, 11],
-          "circle-emissive-strength": 1,
-          "circle-color": "rgba(0,0,0,0)",
-          "circle-stroke-width": 2,
-          "circle-stroke-color": ["case", ["get", "focused"], "#ffffff", "#f5d400"],
-          "circle-stroke-opacity": 0.85,
-        },
-      });
-      map.addLayer({
-        id: LAYER_CARS,
-        type: "circle",
-        source: SRC_CARS,
-        slot: "top",
-        layout: { "circle-sort-key": ["get", "order"] },
-        paint: {
-          "circle-radius": ["case", ["get", "focused"], 9, 6.5],
-          "circle-emissive-strength": 1,
-          "circle-color": ["get", "color"],
-          "circle-stroke-width": 1.5,
-          "circle-stroke-color": "#ffffff",
-        },
-      });
-      map.addLayer({
-        id: "map3d-car-labels",
-        type: "symbol",
-        source: SRC_CARS,
-        slot: "top",
-        layout: {
-          "text-field": ["get", "label"],
-          "text-size": ["case", ["get", "focused"], 13, 11],
-          "text-offset": [0, -1.5],
-          "text-allow-overlap": true,
-          "text-ignore-placement": true,
-          "symbol-sort-key": ["get", "order"],
-        },
-        paint: {
-          "text-emissive-strength": 1,
-          "text-occlusion-opacity": 1,
-          "text-color": "#ffffff",
-          "text-halo-color": "rgba(0,0,0,0.85)",
-          "text-halo-width": 1.5,
-        },
-      });
+      applyCarLayers(map, carScaleRef.current);
     }
 
     if (bounds) {
@@ -482,12 +514,22 @@ export function TrackMap3D({
         now - lastCarUpdate >= MAP3D_CAR_UPDATE_MS &&
         (playhead !== lastT || live.dirty)
       ) {
-        const source = map.getSource(SRC_CARS) as mapboxgl.GeoJSONSource | undefined;
+        const source = map.getSource(CAR_SOURCE) as mapboxgl.GeoJSONSource | undefined;
         if (source) {
-          source.setData(buildCarFeatures(geo, playhead, live));
+          const cars = buildCarFeatures(geo, playhead, live);
+          ensureCarIcons(map, cars, carScaleRef.current, live.lightMode, carIconsRef.current);
+          source.setData(cars);
           lastT = playhead;
           lastCarUpdate = now;
           live.dirty = false;
+        }
+      }
+
+      // Pulse / siren rings animate like the 2D SVG <animate> rings.
+      if (live.pulseDrivers?.size || live.safetyCarSirenOn) {
+        const style = map as unknown as StyleSetters;
+        for (const [layer, key, value] of animatedCarPaint(carScaleRef.current, now)) {
+          style.setPaintProperty(layer, key, value);
         }
       }
 
