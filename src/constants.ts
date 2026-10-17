@@ -107,7 +107,8 @@ export const FOLLOW_ZOOM_H = 134;
 
 // ── 3D track map (Mapbox) ───────────────────────────────────────────────────--
 export const MAP3D_STYLE_URL = "mapbox://styles/mapbox/standard";
-export const MAP3D_TERRAIN_EXAGGERATION = 1.3;
+/** True-scale elevation when the 3D terrain setting is on. */
+export const MAP3D_TERRAIN_EXAGGERATION = 1;
 /** Drawn width of the track ribbon / flag band, in metres on the ground. */
 export const MAP3D_TRACK_WIDTH_M = 15;
 /** Track surface geometry (metres): asphalt half-width, verge, pit lane, kerbs. */

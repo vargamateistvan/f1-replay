@@ -180,7 +180,9 @@ describe("TrackMap3D", () => {
     expect(map).toBeDefined();
     act(() => map!.emit("style.load"));
 
-    expect(map!.setTerrain).toHaveBeenCalled();
+    // Terrain is opt-in (setting off in this mock): flattened, no DEM source.
+    expect(map!.setTerrain).toHaveBeenCalledWith(null);
+    expect(map!.sources.has("map3d-dem")).toBe(false);
     expect([...map!.layers.keys()]).toEqual(
       expect.arrayContaining(["map3d-track-surface", "map3d-flags", "map3d-cars", "map3d-corners"]),
     );

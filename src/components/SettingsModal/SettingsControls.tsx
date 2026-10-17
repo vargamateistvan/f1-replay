@@ -1126,6 +1126,12 @@ export function SettingsBody({
                   onChange={toggle("mapView3dSessionLighting")}
                 />
                 <SettingRow
+                  label="3D map: terrain"
+                  description="Show hills and elevation (e.g. Spa, COTA). Street-level detail looks softer with it on"
+                  checked={settings.mapView3dTerrain}
+                  onChange={toggle("mapView3dTerrain")}
+                />
+                <SettingRow
                   label="Corner numbers"
                   description="Show corner numbers next to the track from baked circuit geometry"
                   checked={settings.mapShowCornerNumbers}

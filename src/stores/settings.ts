@@ -39,6 +39,8 @@ export interface AppSettings {
   mapView3d: boolean;
   /** 3D map lighting follows the sun at the circuit at the playhead (else the app theme). */
   mapView3dSessionLighting: boolean;
+  /** 3D map: drape everything over Mapbox terrain (elevation). */
+  mapView3dTerrain: boolean;
   // Leaderboard
   leaderboardTelemetry: boolean;
   timingShowMinisectors: boolean;
@@ -171,6 +173,7 @@ export const SETTINGS_DEFAULTS: AppSettings = {
   mapShowPitRejoin: true,
   mapView3d: false,
   mapView3dSessionLighting: true,
+  mapView3dTerrain: false,
   leaderboardTelemetry: true,
   timingShowMinisectors: true,
   trackerTimingTelemetry: true,

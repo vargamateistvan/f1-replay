@@ -281,6 +281,7 @@ export function TrackMap3D({
   const mapShowDriverAcronym = useSettings((s) => s.mapShowDriverAcronym);
   const mapShowElevation = useSettings((s) => s.mapShowElevation);
   const sessionLighting = useSettings((s) => s.mapView3dSessionLighting);
+  const terrainEnabled = useSettings((s) => s.mapView3dTerrain);
   const mapShowDriverNumberInside = useSettings(
     (s) => s.mapShowDriverNumberInside,
   );
@@ -475,15 +476,6 @@ export function TrackMap3D({
     trackEvent("trackmap3d_map_load", { circuit_key: circuitKeyRef.current ?? -1 });
 
     map.on("style.load", () => {
-      if (!map.getSource(SRC_DEM)) {
-        map.addSource(SRC_DEM, {
-          type: "raster-dem",
-          url: "mapbox://mapbox.mapbox-terrain-dem-v1",
-          tileSize: 512,
-          maxzoom: 14,
-        });
-      }
-      map.setTerrain({ source: SRC_DEM, exaggeration: MAP3D_TERRAIN_EXAGGERATION });
       // CC0 car model by Kenney (public/models/LICENSE-kenney-car-kit.txt).
       map.addModel(
         CAR_MODEL_ID,
@@ -550,6 +542,26 @@ export function TrackMap3D({
     clearCarIcons(map, carIconsRef.current);
     liveRef.current.dirty = true;
   }, [lightMode, styleReady]);
+
+  // Terrain is opt-in: the DEM is ~10 m per cell, so at street zoom buildings
+  // and the draped track wobble over it. Off means no DEM tiles are fetched.
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || !styleReady) return;
+    if (!terrainEnabled) {
+      map.setTerrain(null);
+      return;
+    }
+    if (!map.getSource(SRC_DEM)) {
+      map.addSource(SRC_DEM, {
+        type: "raster-dem",
+        url: "mapbox://mapbox.mapbox-terrain-dem-v1",
+        tileSize: 512,
+        maxzoom: 14,
+      });
+    }
+    map.setTerrain({ source: SRC_DEM, exaggeration: MAP3D_TERRAIN_EXAGGERATION });
+  }, [terrainEnabled, styleReady]);
 
   const rain = rainFor(weatherOverlay);
   const rainKey = rain ? `${rain.density.toFixed(2)}|${rain.intensity.toFixed(2)}` : "dry";
