@@ -46,6 +46,10 @@ const { FakeMap } = vi.hoisted(() => {
       else this.handlers.push({ type, layer: layerOrFn, fn: fn! });
       return this;
     }
+    off(type: string, fn: Handler) {
+      this.handlers = this.handlers.filter((h) => !(h.type === type && h.fn === fn));
+      return this;
+    }
     emit(type: string, e: unknown = {}, layer?: string) {
       if (type === "style.load") this.styleLoaded = true;
       for (const h of this.handlers) if (h.type === type && h.layer === layer) h.fn(e);

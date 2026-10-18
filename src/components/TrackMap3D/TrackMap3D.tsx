@@ -34,7 +34,6 @@ import {
 } from "@/components/TrackMap/trackGeometry";
 import { overlayBackgroundColor } from "@/components/TrackMap/trackMapFormat";
 import {
-  MAP3D_CAR_UPDATE_MS,
   MAP3D_CHASE_ALPHA,
   MAP3D_ONBOARD_ALPHA,
   MAP3D_ONBOARD_HEADING_MS,
@@ -123,6 +122,13 @@ import {
 } from "./surfaceLayers";
 import { buildFlagZones, buildSectorZones, buildTrackSurface } from "./trackSurface";
 import { createFrameProbe, map3dDebugEnabled } from "./frameProbe";
+import {
+  cameraTime,
+  canSendCars,
+  createCarSync,
+  markCarsSent,
+  markCarsShown,
+} from "./carSync";
 import {
   CAMERA_MODES,
   CAMERA_MODES_WITH_TV,
@@ -946,7 +952,6 @@ export function TrackMap3D({
     const map = mapRef.current;
     if (!map || !styleReady || !geo) return;
     let raf = 0;
-    let lastCarUpdate = -Infinity;
     let lastTrailUpdate = -Infinity;
     let lastFrame = performance.now();
     let lastT = Number.NaN;
@@ -959,21 +964,37 @@ export function TrackMap3D({
         )
       : null;
 
+    // A tile of the car source finished loading: the update in flight is on
+    // screen. Under ?debug=map3d, log the car update rate and latency.
+    const carSync = createCarSync();
+    let carStats = { updates: 0, latencyMs: 0, since: performance.now() };
+    const onCarData = (e: mapboxgl.MapSourceDataEvent) => {
+      if (e.sourceId !== CAR_SOURCE || !e.tile || !e.isSourceLoaded) return;
+      const now = performance.now();
+      const latency = markCarsShown(carSync, now);
+      if (latency === null || !probe) return;
+      carStats.updates += 1;
+      carStats.latencyMs += latency;
+      if (now - carStats.since >= 2000) {
+        console.info(
+          `[map3d] cars ${((carStats.updates * 1000) / (now - carStats.since)).toFixed(1)} updates/s · latency avg ${(carStats.latencyMs / carStats.updates).toFixed(1)} ms`,
+        );
+        carStats = { updates: 0, latencyMs: 0, since: now };
+      }
+    };
+
     const step = (now: number) => {
       const { t: playhead } = useTimeline.getState();
       const live = liveRef.current;
 
-      if (
-        now - lastCarUpdate >= MAP3D_CAR_UPDATE_MS &&
-        (playhead !== lastT || live.dirty)
-      ) {
+      if ((playhead !== lastT || live.dirty) && canSendCars(carSync, now)) {
         const source = map.getSource(CAR_SOURCE) as mapboxgl.GeoJSONSource | undefined;
         if (source) {
           const cars = buildCarFeatures(geo, playhead, live);
           ensureCarIcons(map, cars, carScaleRef.current, live.lightMode, carIconsRef.current);
           source.setData(cars);
+          markCarsSent(carSync, playhead, now);
           lastT = playhead;
-          lastCarUpdate = now;
           live.dirty = false;
         }
       }
@@ -1021,11 +1042,11 @@ export function TrackMap3D({
       }
       const idx = live.indexes.get(target);
       if (!idx) return;
-      // Aim at the instant the car markers were last drawn, not the live
-      // playhead: markers update at ~30 Hz through a worker, and at high
-      // playback speeds the gap is long enough for the chase camera to pass
-      // the car it's chasing.
-      const camT = Number.isNaN(lastT) ? playhead : lastT;
+      // Aim at the instant the cars on screen show, not the live playhead or
+      // the last update sent: car updates take a couple of worker round trips
+      // to land, and a camera ahead of them makes the followed car shake (at
+      // 16× the chase camera would even pass it).
+      const camT = cameraTime(carSync, playhead);
       const pos = interpolateXY(idx, camT);
       if (!pos || isOffTrackPlaceholder(pos)) return;
       const onboard = mode === "onboard";
@@ -1135,7 +1156,11 @@ export function TrackMap3D({
       probe(performance.now() - start);
     };
     raf = requestAnimationFrame(frame);
-    return () => cancelAnimationFrame(raf);
+    map.on("sourcedata", onCarData);
+    return () => {
+      cancelAnimationFrame(raf);
+      map.off("sourcedata", onCarData);
+    };
   }, [styleReady, geo]);
 
   const recenter = useCallback(() => {

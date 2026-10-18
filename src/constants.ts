@@ -166,8 +166,12 @@ export const MAP3D_FOLLOW_PITCH = 62;
 export const MAP3D_FOLLOW_ZOOM = 16.6;
 /** Per-frame budget for the 3D map's own work (see ?debug=map3d). */
 export const MAP3D_FRAME_BUDGET_MS = 4;
-/** Car source refresh interval (ms); the follow camera still moves every frame. */
-export const MAP3D_CAR_UPDATE_MS = 33;
+/**
+ * Cars are re-sent as soon as the previous update is on screen (see
+ * TrackMap3D/carSync.ts); an update with no tile event (e.g. no car in view)
+ * is given up on after this long.
+ */
+export const MAP3D_CAR_SYNC_TIMEOUT_MS = 120;
 /** Per-frame lerp factors for the follow camera (higher = snappier). */
 export const MAP3D_FOLLOW_CENTER_ALPHA = 0.3;
 export const MAP3D_FOLLOW_BEARING_ALPHA = 0.08;
