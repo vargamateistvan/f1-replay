@@ -4,13 +4,15 @@ import {
   chasePose,
   frameAlpha,
   nextCameraMode,
+  onboardPose,
   orbitBearing,
 } from "./cameraModes";
 
 describe("nextCameraMode", () => {
-  it("cycles follow → chase → orbit → follow", () => {
+  it("cycles follow → chase → onboard → orbit → follow", () => {
     expect(nextCameraMode("follow")).toBe("chase");
-    expect(nextCameraMode("chase")).toBe("orbit");
+    expect(nextCameraMode("chase")).toBe("onboard");
+    expect(nextCameraMode("onboard")).toBe("orbit");
     expect(nextCameraMode("orbit")).toBe("follow");
   });
 
@@ -52,5 +54,18 @@ describe("frameAlpha", () => {
     // Two 60 fps frames of 0.3 each leave 0.49 of the gap.
     expect(frameAlpha(0.3, 2000 / 60)).toBeCloseTo(1 - 0.49);
     expect(frameAlpha(0.3, 0)).toBe(0);
+  });
+});
+
+describe("onboardPose", () => {
+  it("sits closer and lower than chase, looking further ahead", () => {
+    const car = { x: 0, y: 0 };
+    const chase = chasePose(car, 90);
+    const onboard = onboardPose(car, 90);
+    // Heading east: eye behind (west, -x), target ahead (east, +x).
+    expect(onboard.eye.x).toBeLessThan(0);
+    expect(onboard.eye.x).toBeGreaterThan(chase.eye.x);
+    expect(onboard.up).toBeLessThan(chase.up);
+    expect(onboard.target.x).toBeGreaterThan(chase.target.x);
   });
 });

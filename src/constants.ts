@@ -156,6 +156,16 @@ export const MAP3D_CHASE_UP_M = 14;
 export const MAP3D_CHASE_AHEAD_M = 15;
 /** Per-frame smoothing of the chase camera's eye position. */
 export const MAP3D_CHASE_ALPHA = 0.18;
+/**
+ * Onboard (T-cam) camera: just above and behind the car, looking far down the
+ * road. Tighter smoothing than chase, and a heading centred on the camera
+ * instant (± this lookaround) so it points into corners instead of lagging.
+ */
+export const MAP3D_ONBOARD_BACK_M = 7;
+export const MAP3D_ONBOARD_UP_M = 3;
+export const MAP3D_ONBOARD_AHEAD_M = 45;
+export const MAP3D_ONBOARD_ALPHA = 0.45;
+export const MAP3D_ONBOARD_HEADING_MS = 250;
 /** Orbit camera turn rate (degrees of bearing per real second). */
 export const MAP3D_ORBIT_DEG_PER_S = 6;
 /**

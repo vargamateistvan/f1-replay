@@ -4,6 +4,7 @@
  *
  * - follow: top-down-ish chase that turns with the car (map center + bearing)
  * - chase:  low "TV chase" camera behind the car (Mapbox free camera)
+ * - onboard: T-cam just above and behind the car (free camera, see onboardPose)
  * - orbit:  slowly circle the focused car, or the track when none is focused
  * - tv:     auto-director (timeline/director.ts) cuts between storylines,
  *           using chase or follow per shot; races only
@@ -12,12 +13,15 @@ import {
   MAP3D_CHASE_AHEAD_M,
   MAP3D_CHASE_BACK_M,
   MAP3D_CHASE_UP_M,
+  MAP3D_ONBOARD_AHEAD_M,
+  MAP3D_ONBOARD_BACK_M,
+  MAP3D_ONBOARD_UP_M,
   MAP3D_ORBIT_DEG_PER_S,
 } from "@/constants";
 
-export type CameraMode = "follow" | "chase" | "orbit" | "tv";
+export type CameraMode = "follow" | "chase" | "onboard" | "orbit" | "tv";
 
-export const CAMERA_MODES: readonly CameraMode[] = ["follow", "chase", "orbit"];
+export const CAMERA_MODES: readonly CameraMode[] = ["follow", "chase", "onboard", "orbit"];
 /** Modes when the auto-director has data (race sessions). */
 export const CAMERA_MODES_WITH_TV: readonly CameraMode[] = [...CAMERA_MODES, "tv"];
 
@@ -55,6 +59,15 @@ export function chasePose(
     up,
     target: { x: car.x + dir.x * ahead, y: car.y + dir.y * ahead },
   };
+}
+
+/** Onboard (T-cam) pose: `chasePose` with the eye tucked in over the car. */
+export function onboardPose(car: Enu, headingDeg: number) {
+  return chasePose(car, headingDeg, {
+    back: MAP3D_ONBOARD_BACK_M,
+    up: MAP3D_ONBOARD_UP_M,
+    ahead: MAP3D_ONBOARD_AHEAD_M,
+  });
 }
 
 /** Orbit bearing after `dtMs`, wrapped to [0, 360). */

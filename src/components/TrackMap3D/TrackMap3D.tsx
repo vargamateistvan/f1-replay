@@ -4,6 +4,7 @@ import "mapbox-gl/dist/mapbox-gl.css";
 import {
   Camera,
   Crosshair,
+  Gauge,
   Maximize,
   Navigation,
   Orbit,
@@ -35,6 +36,8 @@ import { overlayBackgroundColor } from "@/components/TrackMap/trackMapFormat";
 import {
   MAP3D_CAR_UPDATE_MS,
   MAP3D_CHASE_ALPHA,
+  MAP3D_ONBOARD_ALPHA,
+  MAP3D_ONBOARD_HEADING_MS,
   MAP3D_FRAME_BUDGET_MS,
   MAP3D_FLAG_WIDTH_M,
   MAP3D_FOLLOW_BEARING_ALPHA,
@@ -125,10 +128,13 @@ import {
   chasePose,
   frameAlpha,
   nextCameraMode,
+  onboardPose,
   orbitBearing,
   type CameraMode,
 } from "./cameraModes";
 import { exportMapSnapshot } from "./exportSnapshot3d";
+import { MiniMap } from "./MiniMap";
+import { buildMiniMapProjection } from "./miniMapProjection";
 import {
   animatedCarPaint,
   buildCarFeatures,
@@ -165,10 +171,15 @@ const SRC_DEM = "map3d-dem";
 const LAYER_TRACK_SURFACE = "map3d-track-surface";
 const LAYER_CORNERS = "map3d-corners";
 const FIT_PADDING = 48;
+/** Minimap longest side (px): desktop / phone. */
+const MINIMAP_SIZE = 150;
+const MINIMAP_SIZE_COMPACT = 96;
+const MINIMAP_PAD = 8;
 
 const CAMERA_LABELS: Record<CameraMode, string> = {
   follow: "follow",
   chase: "chase",
+  onboard: "onboard",
   orbit: "orbit",
   tv: "TV director",
 };
@@ -415,6 +426,15 @@ export function TrackMap3D({
     () => (geo ? broadcastBearing(circuitGeom ?? null, geo) : 0),
     [circuitGeom, geo],
   );
+  const miniMap = useMemo(() => {
+    if (!circuitGeom) return null;
+    const compact = window.matchMedia?.("(max-width: 767px)").matches ?? false;
+    return buildMiniMapProjection(
+      circuitGeom,
+      compact ? MINIMAP_SIZE_COMPACT : MINIMAP_SIZE,
+      MINIMAP_PAD,
+    );
+  }, [circuitGeom]);
 
   // Inputs the RAF loop reads each frame. Synced after commit; `dirty` forces a
   // car redraw even when the playhead is paused.
@@ -977,13 +997,20 @@ export function TrackMap3D({
       const camT = Number.isNaN(lastT) ? playhead : lastT;
       const pos = interpolateXY(idx, camT);
       if (!pos || isOffTrackPlaceholder(pos)) return;
-      const prev = interpolateXY(idx, camT - MAP3D_HEADING_LOOKBACK_MS);
+      const onboard = mode === "onboard";
+      // Onboard looks into the corner: heading over a window centred on camT
+      // (the location index clamps at its end, so live data still works).
+      const prev = interpolateXY(
+        idx,
+        camT - (onboard ? MAP3D_ONBOARD_HEADING_MS : MAP3D_HEADING_LOOKBACK_MS),
+      );
+      const next = onboard ? interpolateXY(idx, camT + MAP3D_ONBOARD_HEADING_MS) : pos;
       const [lng, lat] = f1ToLngLat(geo, pos.x, pos.y);
-      const heading = prev ? headingDeg(geo, prev, pos) : null;
+      const heading = prev && next ? headingDeg(geo, prev, next) : null;
       const cutNow = directorCutRef.current;
       directorCutRef.current = false;
 
-      if (mode === "chase") {
+      if (mode === "chase" || onboard) {
         const chase = chaseRef.current;
         chase.heading =
           heading === null
@@ -993,11 +1020,17 @@ export function TrackMap3D({
               : lerpAngleDeg(
                   chase.heading,
                   heading,
-                  frameAlpha(MAP3D_FOLLOW_BEARING_ALPHA * 2, frameMs),
+                  frameAlpha(
+                    onboard ? MAP3D_ONBOARD_ALPHA : MAP3D_FOLLOW_BEARING_ALPHA * 2,
+                    frameMs,
+                  ),
                 );
         if (chase.heading === null) return;
-        const pose = chasePose(f1ToEnu(geo, pos.x, pos.y), chase.heading);
-        const eyeAlpha = frameAlpha(MAP3D_CHASE_ALPHA, frameMs);
+        const carEnu = f1ToEnu(geo, pos.x, pos.y);
+        const pose = onboard
+          ? onboardPose(carEnu, chase.heading)
+          : chasePose(carEnu, chase.heading);
+        const eyeAlpha = frameAlpha(onboard ? MAP3D_ONBOARD_ALPHA : MAP3D_CHASE_ALPHA, frameMs);
         chase.eye = chase.eye
           ? {
               x: chase.eye.x + (pose.eye.x - chase.eye.x) * eyeAlpha,
@@ -1140,6 +1173,24 @@ export function TrackMap3D({
 
   // ── HTML overlays (same data as the 2D map) ───────────────────────────────
   const overlayBackground = overlayBackgroundColor(lightMode);
+  const directorCaption =
+    cameraMode === "tv" && directorShot
+      ? shotCaption(directorShot, (n) => driverByNumber.get(n)?.name_acronym ?? String(n))
+      : null;
+  // Close-up cameras lose the big picture, so they get the minimap.
+  const closeUp =
+    cameraMode === "tv" ||
+    ((cameraMode === "chase" || cameraMode === "onboard") && focusDriver != null);
+  const inShot = useMemo(() => {
+    const cars = new Set<number>();
+    if (cameraMode === "tv" && directorShot) {
+      cars.add(directorShot.driver);
+      if (directorShot.other != null) cars.add(directorShot.other);
+    } else if (focusDriver != null) {
+      cars.add(focusDriver);
+    }
+    return cars;
+  }, [cameraMode, directorShot, focusDriver]);
   const { data: hudRawData } = useCarDataWindow(
     sessionKey,
     showFocusedHud ? focusDriver : null,
@@ -1307,23 +1358,6 @@ export function TrackMap3D({
 
       <StatusBadges badges={statusBadges} />
 
-      {cameraMode === "tv" && directorShot && (
-        <div
-          className="pointer-events-none absolute top-2 left-2 z-20 flex items-center gap-1.5 px-2 py-1 text-[10px] font-black uppercase tracking-widest text-white border border-panel"
-          style={{ background: overlayBackground, backdropFilter: "blur(4px)" }}
-          role="status"
-          aria-live="polite"
-        >
-          <Tv size={12} strokeWidth={2.4} aria-hidden="true" />
-          <span>
-            {shotCaption(
-              directorShot,
-              (n) => driverByNumber.get(n)?.name_acronym ?? String(n),
-            )}
-          </span>
-        </div>
-      )}
-
       <div
         className="absolute top-2 right-2 z-20 flex items-center gap-1 p-1"
         style={{ background: overlayBackground, backdropFilter: "blur(4px)" }}
@@ -1354,6 +1388,7 @@ export function TrackMap3D({
           >
             {cameraMode === "follow" && <Navigation size={14} strokeWidth={2.2} aria-hidden="true" />}
             {cameraMode === "chase" && <Video size={14} strokeWidth={2.2} aria-hidden="true" />}
+            {cameraMode === "onboard" && <Gauge size={14} strokeWidth={2.2} aria-hidden="true" />}
             {cameraMode === "orbit" && <Orbit size={14} strokeWidth={2.2} aria-hidden="true" />}
             {cameraMode === "tv" && <Tv size={14} strokeWidth={2.2} aria-hidden="true" />}
           </button>
@@ -1387,6 +1422,21 @@ export function TrackMap3D({
         </button>
       )}
 
+      {miniMap && closeUp && (
+        <div className="absolute bottom-9 right-2 z-20 pointer-events-none">
+          <MiniMap
+            projection={miniMap}
+            indexes={indexes}
+            driverByNumber={driverByNumber}
+            t={t}
+            highlight={inShot}
+            retiredDrivers={retiredDrivers}
+            background={overlayBackground}
+            lightMode={lightMode}
+          />
+        </div>
+      )}
+
       {/* Lifted clear of the Mapbox logo in the bottom-left corner. */}
       <div className="absolute bottom-9 left-2 z-20 pointer-events-none flex flex-col gap-1">
         {mapShowClock && (
@@ -1406,9 +1456,20 @@ export function TrackMap3D({
         )}
       </div>
 
-      {((showFocusedHud && hudData) || pitRejoin) && focusDriver !== null && (
+      {(directorCaption || (showFocusedHud && hudData) || pitRejoin) && (
         <div className="absolute top-2 left-2 z-20 pointer-events-none flex flex-col gap-1">
-          {showFocusedHud && hudData && (
+          {directorCaption && (
+            <div
+              className="self-start flex items-center gap-1.5 px-2 py-1 text-[10px] font-black uppercase tracking-widest text-white border border-panel"
+              style={{ background: overlayBackground, backdropFilter: "blur(4px)" }}
+              role="status"
+              aria-live="polite"
+            >
+              <Tv size={12} strokeWidth={2.4} aria-hidden="true" />
+              <span>{directorCaption}</span>
+            </div>
+          )}
+          {focusDriver !== null && showFocusedHud && hudData && (
             <FocusedDriverHud
               sample={hudData}
               driver={driverByNumber.get(focusDriver)}
@@ -1416,7 +1477,7 @@ export function TrackMap3D({
               lightMode={lightMode}
             />
           )}
-          {pitRejoin && (
+          {focusDriver !== null && pitRejoin && (
             <PitRejoinPanel
               projection={pitRejoin.projection}
               lossS={pitRejoin.lossS}
