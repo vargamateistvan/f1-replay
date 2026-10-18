@@ -6,6 +6,7 @@ import {
   nextCameraMode,
   onboardPose,
   orbitBearing,
+  parseCameraMode,
 } from "./cameraModes";
 
 describe("nextCameraMode", () => {
@@ -67,5 +68,14 @@ describe("onboardPose", () => {
     expect(onboard.eye.x).toBeGreaterThan(chase.eye.x);
     expect(onboard.up).toBeLessThan(chase.up);
     expect(onboard.target.x).toBeGreaterThan(chase.target.x);
+  });
+});
+
+describe("parseCameraMode", () => {
+  it("accepts known modes and falls back to follow", () => {
+    expect(parseCameraMode("onboard")).toBe("onboard");
+    expect(parseCameraMode("tv")).toBe("tv");
+    expect(parseCameraMode("drone")).toBe("follow");
+    expect(parseCameraMode(null)).toBe("follow");
   });
 });

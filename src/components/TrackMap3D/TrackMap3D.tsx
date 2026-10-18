@@ -108,6 +108,7 @@ import {
   isBrightPreset,
   lightPresetAt,
   lightPresetForTheme,
+  rainFogFor,
   rainFor,
   type LightPreset,
 } from "./atmosphere";
@@ -271,6 +272,9 @@ interface Props {
   readonly lightsOutMs?: number | null;
   /** Auto-director inputs (races only); enables the "TV" camera mode. */
   readonly director?: DirectorData | null;
+  /** Camera mode to start in (e.g. from `?cam=`); later changes are reported. */
+  readonly initialCameraMode?: CameraMode;
+  readonly onCameraModeChange?: (mode: CameraMode) => void;
   readonly onSelectDriver?: (driverNumber: number) => void;
   readonly onOpenSettings?: () => void;
   /** Switch back to the 2D map. */
@@ -311,6 +315,8 @@ export function TrackMap3D({
   raceLeader = null,
   lightsOutMs = null,
   director = null,
+  initialCameraMode = "follow",
+  onCameraModeChange,
   onSelectDriver,
   onOpenSettings,
   onExit3d,
@@ -352,6 +358,10 @@ export function TrackMap3D({
       : lightPresetForTheme(lightMode);
   const circuitKeyRef = useRef(circuitKey);
   circuitKeyRef.current = circuitKey;
+  // Wet asphalt follows the weather-effects setting, like the rain itself.
+  const wetTrack = weatherEffectsEnabled && ((weather ?? weatherOverlay)?.rainfall ?? 0) > 0;
+  const wetTrackRef = useRef(wetTrack);
+  wetTrackRef.current = wetTrack;
   const lightPresetRef = useRef(lightPreset);
   lightPresetRef.current = lightPreset;
 
@@ -501,7 +511,9 @@ export function TrackMap3D({
 
   // Follow-camera state, owned by the RAF loop.
   const followRef = useRef({ suspended: false, approaching: true });
-  const [cameraMode, setCameraMode] = useState<CameraMode>("follow");
+  const [cameraMode, setCameraMode] = useState<CameraMode>(initialCameraMode);
+  const onCameraModeChangeRef = useRef(onCameraModeChange);
+  onCameraModeChangeRef.current = onCameraModeChange;
   const cameraModeRef = useRef<CameraMode>(cameraMode);
   const cameraModes = director ? CAMERA_MODES_WITH_TV : CAMERA_MODES;
   // TV camera: the director's pick, read by the RAF loop. `directorCut` makes
@@ -606,8 +618,8 @@ export function TrackMap3D({
     if (map.getLayer(LAYER_TRACK_SURFACE)) {
       map.setPaintProperty(LAYER_TRACK_SURFACE, "line-color", ribbonColorFor(lightPreset));
     }
-    applyTrackPalette(map, lightPreset);
-  }, [lightPreset, styleReady, circuitGeom]);
+    applyTrackPalette(map, lightPreset, wetTrack);
+  }, [lightPreset, wetTrack, styleReady, circuitGeom]);
 
   useEffect(() => {
     const map = mapRef.current;
@@ -651,13 +663,27 @@ export function TrackMap3D({
 
   const rain = rainFor(weatherEffectsEnabled ? (weather ?? weatherOverlay) : null);
   const rainKey = rain ? `${rain.density.toFixed(2)}|${rain.intensity.toFixed(2)}` : "dry";
+  // The style's own fog, saved the first time rain haze replaces it.
+  const styleFogRef = useRef<{ saved: boolean; fog: mapboxgl.FogSpecification | null }>({
+    saved: false,
+    fog: null,
+  });
   useEffect(() => {
     const map = mapRef.current;
     if (!map || !styleReady) return;
     map.setRain(rain ? { density: rain.density, intensity: rain.intensity } : null);
+    const haze = rainFogFor(lightPreset, rain);
+    const saved = styleFogRef.current;
+    if (haze) {
+      if (!saved.saved) styleFogRef.current = { saved: true, fog: map.getFog() ?? null };
+      map.setFog(haze);
+    } else if (saved.saved) {
+      map.setFog(saved.fog);
+      styleFogRef.current = { saved: false, fog: null };
+    }
     // rainKey captures `rain`; the object itself is new every render.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [rainKey, styleReady]);
+  }, [rainKey, lightPreset, styleReady]);
 
   // ── Static circuit layers ─────────────────────────────────────────────────
   useEffect(() => {
@@ -746,6 +772,7 @@ export function TrackMap3D({
         lightPresetRef.current,
         "map3d-flags",
       );
+      if (wetTrackRef.current) applyTrackPalette(map, lightPresetRef.current, true);
       // The 2D map's sector flag colours: condition ribbon + sector paint.
       sectorZones = buildSectorZones(circuitGeom, geo);
       // Flags painted onto the asphalt, one polygon per marshal post.
@@ -903,6 +930,7 @@ export function TrackMap3D({
     if (focusDriver != null && cameraModeRef.current === "tv") {
       cameraModeRef.current = "follow";
       setCameraMode("follow");
+      onCameraModeChangeRef.current?.("follow");
     }
     if (mapRef.current) syncCarScale(mapRef.current, followingRef.current());
     if (!followingRef.current() && styleReady) fitOverview(1200);
@@ -1125,6 +1153,7 @@ export function TrackMap3D({
       setDirectorShot(null);
       setFollowSuspended(false);
       setCameraMode(next);
+      onCameraModeChangeRef.current?.(next);
       const map = mapRef.current;
       if (!map) return;
       syncCarScale(map, followingRef.current());
@@ -1139,14 +1168,15 @@ export function TrackMap3D({
     applyCameraMode(next);
   }, [applyCameraMode, cameraModes]);
 
-  // The TV mode needs director data; drop back to follow when it goes away.
-  useEffect(() => {
-    if (!director && cameraModeRef.current === "tv") applyCameraMode("follow");
-  }, [director, applyCameraMode]);
-
   // Director: re-pick at the coarse playhead; the RAF loop reads the result.
   useEffect(() => {
-    if (cameraMode !== "tv" || !director) return;
+    if (cameraMode !== "tv") return;
+    if (!director) {
+      // No data (yet, or a non-race session): TV follows the focused car.
+      if (directorRef.current.shot) setDirectorShot(null);
+      directorRef.current = INITIAL_DIRECTOR_STATE;
+      return;
+    }
     const positions = positionsAt(director.positions, sessionStartMs + t);
     let leader: number | null = null;
     for (const [driver, position] of positions) if (position === 1) leader = driver;

@@ -1,10 +1,15 @@
 /**
  * Session-time lighting and weather for the 3D map: the Standard style's
  * light preset follows the sun at the circuit at the playhead's instant, so
- * night races look like night, and OpenF1 rainfall turns on Mapbox rain.
+ * night races look like night, and OpenF1 rainfall turns on Mapbox rain,
+ * rain haze (fog) and a wet asphalt palette.
  */
+import type { FogSpecification } from "mapbox-gl";
 import type { Weather } from "@/api/types";
 import {
+  MAP3D_RAIN_FOG,
+  MAP3D_RAIN_FOG_RANGE_HEAVY,
+  MAP3D_RAIN_FOG_RANGE_LIGHT,
   MAP3D_SUN_DAY_DEG,
   MAP3D_SUN_NIGHT_DEG,
 } from "@/constants";
@@ -70,6 +75,29 @@ export function lightPresetForTheme(lightMode: boolean): LightPreset {
 /** Bright presets need dark map ink; dark ones need light ink. */
 export function isBrightPreset(preset: LightPreset): boolean {
   return preset === "day" || preset === "dawn";
+}
+
+/**
+ * Rain haze for `setFog`, or null when dry (keep the style's own fog).
+ * Heavier rain (`intensity` from `rainFor`, 0.6–1) pulls the fog closer.
+ */
+export function rainFogFor(
+  preset: LightPreset,
+  rain: { intensity: number } | null,
+): FogSpecification | null {
+  if (!rain) return null;
+  const c = MAP3D_RAIN_FOG[preset];
+  const k = Math.max(0, Math.min(1, (rain.intensity - 0.6) / 0.4));
+  const [l0, l1] = MAP3D_RAIN_FOG_RANGE_LIGHT;
+  const [h0, h1] = MAP3D_RAIN_FOG_RANGE_HEAVY;
+  return {
+    range: [l0 + (h0 - l0) * k, l1 + (h1 - l1) * k],
+    color: c.color,
+    "high-color": c.high,
+    "space-color": c.space,
+    "horizon-blend": 0.12 + 0.1 * k,
+    "star-intensity": 0,
+  };
 }
 
 /**

@@ -10,6 +10,7 @@ import {
   MAP3D_SURFACE_MIN_ZOOM,
   MAP3D_TRACK_HALF_WIDTH_M,
   MAP3D_TRACK_PALETTE,
+  MAP3D_TRACK_WET_PALETTE,
 } from "@/constants";
 import { isActiveTrackFlag, type TimingSectorFlags } from "@/timeline/raceControl";
 import type { LightPreset } from "./atmosphere";
@@ -53,13 +54,14 @@ export function fadeOut(opacity: number): ExpressionSpecification {
 }
 
 /** Fill colour, opacity and emissive strength for each surface layer. */
-export function surfacePaint(preset: LightPreset) {
+export function surfacePaint(preset: LightPreset, wet = false) {
   const p = MAP3D_TRACK_PALETTE[preset];
+  const asphalt = wet ? MAP3D_TRACK_WET_PALETTE[preset] : p;
   const [kerbBase, kerbStripe] = MAP3D_KERB_COLORS;
   return {
     [LAYERS.verge]: { color: p.casing, opacity: p.casingOpacity, emissive: p.emissive },
-    [LAYERS.pitLane]: { color: p.surface, opacity: 1, emissive: p.emissive },
-    [LAYERS.track]: { color: p.surface, opacity: 1, emissive: p.emissive },
+    [LAYERS.pitLane]: { color: asphalt.surface, opacity: 1, emissive: asphalt.emissive },
+    [LAYERS.track]: { color: asphalt.surface, opacity: 1, emissive: asphalt.emissive },
     [LAYERS.kerbsBase]: { color: kerbBase, opacity: 1, emissive: p.emissive },
     [LAYERS.kerbsStripes]: { color: kerbStripe, opacity: 1, emissive: p.emissive },
     [LAYERS.startBase]: { color: "#ffffff", opacity: 1, emissive: p.emissive },
@@ -106,8 +108,8 @@ export function addTrackSurfaceLayers(
 }
 
 /** Recolour the surface for a new light preset. */
-export function applyTrackPalette(map: MapboxMap, preset: LightPreset): void {
-  for (const [id, p] of Object.entries(surfacePaint(preset))) {
+export function applyTrackPalette(map: MapboxMap, preset: LightPreset, wet = false): void {
+  for (const [id, p] of Object.entries(surfacePaint(preset, wet))) {
     if (!map.getLayer(id)) continue;
     map.setPaintProperty(id, "fill-color", p.color);
     map.setPaintProperty(id, "fill-opacity", fadeIn(p.opacity));

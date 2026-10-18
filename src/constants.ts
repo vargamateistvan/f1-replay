@@ -137,6 +137,29 @@ export const MAP3D_TRACK_PALETTE = {
   dusk: { surface: "#3a3d47", casing: "#ffb488", casingOpacity: 0.45, emissive: 0.35 },
   night: { surface: "#2f333d", casing: "#9aa3b5", casingOpacity: 0.5, emissive: 0.6 },
 } as const;
+/**
+ * Asphalt while it rains: darker, with more emissive so floodlights read as
+ * a wet sheen at night. Verge and kerbs keep the dry palette.
+ */
+export const MAP3D_TRACK_WET_PALETTE = {
+  dawn: { surface: "#2c2f38", emissive: 0.35 },
+  day: { surface: "#33363d", emissive: 0.15 },
+  dusk: { surface: "#282a33", emissive: 0.4 },
+  night: { surface: "#22252d", emissive: 0.75 },
+} as const;
+/**
+ * Rain haze (Mapbox fog) per light preset. Only applied while raining; the
+ * Standard style's own fog is restored when it dries up. Range is in km-ish
+ * fog units: [start, end] moves closer as rain gets heavier.
+ */
+export const MAP3D_RAIN_FOG = {
+  dawn: { color: "#8f8c95", high: "#5c5b6b", space: "#2a2a35" },
+  day: { color: "#a3abb5", high: "#717c8a", space: "#4a5361" },
+  dusk: { color: "#7f7a86", high: "#4d4a5a", space: "#1f1d28" },
+  night: { color: "#1c2028", high: "#0e1118", space: "#05070b" },
+} as const;
+export const MAP3D_RAIN_FOG_RANGE_LIGHT: readonly [number, number] = [0.6, 6];
+export const MAP3D_RAIN_FOG_RANGE_HEAVY: readonly [number, number] = [0.2, 2.5];
 export const MAP3D_FLAG_WIDTH_M = 26;
 export const MAP3D_OVERVIEW_PITCH = 50;
 export const MAP3D_FOLLOW_PITCH = 62;

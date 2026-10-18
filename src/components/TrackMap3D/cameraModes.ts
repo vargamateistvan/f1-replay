@@ -25,6 +25,13 @@ export const CAMERA_MODES: readonly CameraMode[] = ["follow", "chase", "onboard"
 /** Modes when the auto-director has data (race sessions). */
 export const CAMERA_MODES_WITH_TV: readonly CameraMode[] = [...CAMERA_MODES, "tv"];
 
+/** `?cam=` value → camera mode (anything unknown → follow). */
+export function parseCameraMode(raw: string | null | undefined): CameraMode {
+  return raw && (CAMERA_MODES_WITH_TV as readonly string[]).includes(raw)
+    ? (raw as CameraMode)
+    : "follow";
+}
+
 export function nextCameraMode(
   mode: CameraMode,
   modes: readonly CameraMode[] = CAMERA_MODES,

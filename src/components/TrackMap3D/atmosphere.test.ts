@@ -3,6 +3,7 @@ import {
   isBrightPreset,
   lightPresetAt,
   lightPresetForTheme,
+  rainFogFor,
   rainFor,
   sunElevationDeg,
 } from "./atmosphere";
@@ -53,5 +54,27 @@ describe("rainFor", () => {
     const heavy = rainFor({ rainfall: 1, humidity: 100 })!;
     expect(heavy.density).toBeGreaterThan(light.density);
     expect(heavy.intensity).toBeCloseTo(1);
+  });
+});
+
+describe("rainFogFor", () => {
+  it("keeps the style's fog when dry", () => {
+    expect(rainFogFor("day", null)).toBeNull();
+  });
+
+  it("pulls the haze closer as rain gets heavier", () => {
+    const light = rainFogFor("day", { intensity: 0.6 })!;
+    const heavy = rainFogFor("day", { intensity: 1 })!;
+    const [lightStart, lightEnd] = light.range as [number, number];
+    const [heavyStart, heavyEnd] = heavy.range as [number, number];
+    expect(heavyEnd).toBeLessThan(lightEnd);
+    expect(heavyStart).toBeLessThan(lightStart);
+    expect(heavy["horizon-blend"]).toBeGreaterThan(light["horizon-blend"] as number);
+  });
+
+  it("darkens the haze at night and hides stars", () => {
+    const night = rainFogFor("night", { intensity: 0.8 })!;
+    expect(night.color).not.toBe(rainFogFor("day", { intensity: 0.8 })!.color);
+    expect(night["star-intensity"]).toBe(0);
   });
 });

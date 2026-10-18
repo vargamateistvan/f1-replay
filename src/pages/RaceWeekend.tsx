@@ -12,6 +12,7 @@ import { Settings as SettingsIcon } from "lucide-react";
 import { PlaybackBar } from "@/components/PlaybackBar";
 import type { ActiveTrackVehicles } from "@/components/TrackMap/TrackMap";
 import { isMap3dAvailable } from "@/components/TrackMap3D/availability";
+import { parseCameraMode } from "@/components/TrackMap3D/cameraModes";
 import { hasCircuitGeometry } from "@/data/circuitGeometry";
 import LiveTiming from "@/components/LiveTiming/LiveTiming";
 import { WeatherPanel } from "@/components/Weather/WeatherPanel";
@@ -298,6 +299,8 @@ export default function RaceWeekend() {
     : "rc";
 
   const [focusDriver] = useNumberParam("focus", null);
+  // 3D camera mode, so a shared link opens the same view (with ?focus= and ?t=).
+  const [camParam, setCamParam] = useStringParam<string>("cam", "follow");
   const [compareDriver] = useNumberParam("compare", null);
   const [, setSearchParams] = useSearchParams();
 
@@ -2071,6 +2074,8 @@ export default function RaceWeekend() {
       raceLeader={isRaceSession && mapShowRaceLeader ? raceLeaderDriver : null}
       lightsOutMs={isRaceSession ? lightsOutMs : null}
       director={director}
+      initialCameraMode={parseCameraMode(camParam)}
+      onCameraModeChange={setCamParam}
       onSelectDriver={toggleFocus}
       onOpenSettings={
         isCompactViewport ? undefined : () => openSettingsTab("track")
