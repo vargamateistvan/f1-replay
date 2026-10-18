@@ -8,6 +8,7 @@ import {
   Navigation,
   Orbit,
   Settings as SettingsIcon,
+  Tv,
   Video,
 } from "lucide-react";
 import type { Driver, Location, Weather } from "@/api/types";
@@ -61,6 +62,18 @@ import { isOffTrackPlaceholder } from "@/hooks/useTrackMap";
 import { trackEvent } from "@/lib/analytics";
 import { useSettings } from "@/stores/settings";
 import { useTimeline } from "@/timeline/clock";
+import {
+  INITIAL_DIRECTOR_STATE,
+  battlePairs,
+  cameraForShot,
+  pickShot,
+  positionsAt,
+  sameShot,
+  shotCaption,
+  type DirectorData,
+  type DirectorShot,
+  type DirectorState,
+} from "@/timeline/director";
 import { buildDriverIndexes, interpolateXY } from "@/timeline/interpolate";
 import {
   projectToTimingSectors,
@@ -107,6 +120,8 @@ import {
 import { buildFlagZones, buildSectorZones, buildTrackSurface } from "./trackSurface";
 import { createFrameProbe, map3dDebugEnabled } from "./frameProbe";
 import {
+  CAMERA_MODES,
+  CAMERA_MODES_WITH_TV,
   chasePose,
   frameAlpha,
   nextCameraMode,
@@ -155,6 +170,7 @@ const CAMERA_LABELS: Record<CameraMode, string> = {
   follow: "follow",
   chase: "chase",
   orbit: "orbit",
+  tv: "TV director",
 };
 
 /**
@@ -242,6 +258,8 @@ interface Props {
   readonly sharedAllDriverWindow?: boolean;
   readonly raceLeader?: Driver | null;
   readonly lightsOutMs?: number | null;
+  /** Auto-director inputs (races only); enables the "TV" camera mode. */
+  readonly director?: DirectorData | null;
   readonly onSelectDriver?: (driverNumber: number) => void;
   readonly onOpenSettings?: () => void;
   /** Switch back to the 2D map. */
@@ -281,6 +299,7 @@ export function TrackMap3D({
   sharedAllDriverWindow = false,
   raceLeader = null,
   lightsOutMs = null,
+  director = null,
   onSelectDriver,
   onOpenSettings,
   onExit3d,
@@ -464,6 +483,16 @@ export function TrackMap3D({
   const followRef = useRef({ suspended: false, approaching: true });
   const [cameraMode, setCameraMode] = useState<CameraMode>("follow");
   const cameraModeRef = useRef<CameraMode>(cameraMode);
+  const cameraModes = director ? CAMERA_MODES_WITH_TV : CAMERA_MODES;
+  // TV camera: the director's pick, read by the RAF loop. `directorCut` makes
+  // the next frame jump straight to the new car (a broadcast cut, not a pan).
+  const directorRef = useRef<DirectorState>(INITIAL_DIRECTOR_STATE);
+  const directorCutRef = useRef(false);
+  const [directorShot, setDirectorShot] = useState<DirectorShot | null>(null);
+  /** Whether the camera tracks a car (focused, or the TV director's pick). */
+  const followingRef = useRef(
+    () => liveRef.current.focusDriver != null || cameraModeRef.current === "tv",
+  );
   // Chase camera smoothing state (local metres), reset on mode/focus change.
   const chaseRef = useRef<{ eye: { x: number; y: number } | null; heading: number | null }>({
     eye: null,
@@ -512,7 +541,7 @@ export function TrackMap3D({
     // Any hand-driven camera move pauses the follow camera until "recenter".
     const suspendFollow = (e: object) => {
       const byUser = "originalEvent" in e && e.originalEvent != null;
-      if (!byUser || liveRef.current.focusDriver == null) return;
+      if (!byUser || !followingRef.current()) return;
       followRef.current.suspended = true;
       setFollowSuspended(true);
     };
@@ -520,8 +549,8 @@ export function TrackMap3D({
     map.on("rotatestart", suspendFollow);
     map.on("pitchstart", suspendFollow);
 
-    syncCarScale(map, liveRef.current.focusDriver != null, true);
-    map.on("resize", () => syncCarScale(map, liveRef.current.focusDriver != null));
+    syncCarScale(map, followingRef.current(), true);
+    map.on("resize", () => syncCarScale(map, followingRef.current()));
 
     map.on("click", CAR_DOT_LAYER, (e) => {
       const num = Number(e.features?.[0]?.properties?.num);
@@ -850,8 +879,13 @@ export function TrackMap3D({
     chaseRef.current = { eye: null, heading: null };
     setFollowSuspended(false);
     // Markers grow while following, as the 2D follow camera's zoom does.
-    if (mapRef.current) syncCarScale(mapRef.current, focusDriver != null);
-    if (focusDriver == null && styleReady) fitOverview(1200);
+    // Picking a car while the director runs means "watch this one".
+    if (focusDriver != null && cameraModeRef.current === "tv") {
+      cameraModeRef.current = "follow";
+      setCameraMode("follow");
+    }
+    if (mapRef.current) syncCarScale(mapRef.current, followingRef.current());
+    if (!followingRef.current() && styleReady) fitOverview(1200);
     // Re-run only on focus changes, not when the overview callback changes.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [focusDriver]);
@@ -913,7 +947,15 @@ export function TrackMap3D({
       }
 
       const follow = followRef.current;
-      const mode = cameraModeRef.current;
+      // TV mode follows the director's car with the camera that suits the shot.
+      const shot = cameraModeRef.current === "tv" ? directorRef.current.shot : null;
+      const mode =
+        cameraModeRef.current === "tv"
+          ? shot
+            ? cameraForShot(shot.kind)
+            : "follow"
+          : cameraModeRef.current;
+      const target = shot?.driver ?? live.focusDriver;
       // Raw frame time drives the smoothing (slow frames catch up more); the
       // orbit uses a capped one so a stall doesn't spin the map.
       const frameMs = now - lastFrame;
@@ -921,12 +963,12 @@ export function TrackMap3D({
       lastFrame = now;
       if (follow.suspended) return;
 
-      if (live.focusDriver == null) {
+      if (target == null) {
         // Nothing to follow: orbit circles the overview, other modes hold still.
         if (mode === "orbit") map.jumpTo({ bearing: orbitBearing(map.getBearing(), dt) });
         return;
       }
-      const idx = live.indexes.get(live.focusDriver);
+      const idx = live.indexes.get(target);
       if (!idx) return;
       // Aim at the instant the car markers were last drawn, not the live
       // playhead: markers update at ~30 Hz through a worker, and at high
@@ -938,6 +980,8 @@ export function TrackMap3D({
       const prev = interpolateXY(idx, camT - MAP3D_HEADING_LOOKBACK_MS);
       const [lng, lat] = f1ToLngLat(geo, pos.x, pos.y);
       const heading = prev ? headingDeg(geo, prev, pos) : null;
+      const cutNow = directorCutRef.current;
+      directorCutRef.current = false;
 
       if (mode === "chase") {
         const chase = chaseRef.current;
@@ -974,6 +1018,16 @@ export function TrackMap3D({
         return;
       }
 
+      if (cutNow) {
+        map.jumpTo({
+          center: [lng, lat],
+          bearing: heading ?? map.getBearing(),
+          zoom: MAP3D_FOLLOW_ZOOM,
+          pitch: MAP3D_FOLLOW_PITCH,
+        });
+        follow.approaching = false;
+        return;
+      }
       const center = map.getCenter();
       const bearing = map.getBearing();
       const centerAlpha = frameAlpha(MAP3D_FOLLOW_CENTER_ALPHA, frameMs);
@@ -1024,18 +1078,65 @@ export function TrackMap3D({
     trackEvent("trackmap3d_recenter");
     followRef.current = { suspended: false, approaching: true };
     setFollowSuspended(false);
-    if (focusDriver == null) fitOverview(800);
-  }, [focusDriver, fitOverview]);
+    if (!followingRef.current()) fitOverview(800);
+  }, [fitOverview]);
+
+  const applyCameraMode = useCallback(
+    (next: CameraMode) => {
+      const wasFollowing = followingRef.current();
+      cameraModeRef.current = next;
+      followRef.current = { suspended: false, approaching: true };
+      chaseRef.current = { eye: null, heading: null };
+      directorRef.current = INITIAL_DIRECTOR_STATE;
+      directorCutRef.current = next === "tv";
+      setDirectorShot(null);
+      setFollowSuspended(false);
+      setCameraMode(next);
+      const map = mapRef.current;
+      if (!map) return;
+      syncCarScale(map, followingRef.current());
+      if (wasFollowing && !followingRef.current()) fitOverview(800);
+    },
+    [syncCarScale, fitOverview],
+  );
 
   const cycleCameraMode = useCallback(() => {
-    const next = nextCameraMode(cameraModeRef.current);
+    const next = nextCameraMode(cameraModeRef.current, cameraModes);
     trackEvent("trackmap3d_camera_mode_changed", { mode: next });
-    cameraModeRef.current = next;
-    followRef.current = { suspended: false, approaching: true };
+    applyCameraMode(next);
+  }, [applyCameraMode, cameraModes]);
+
+  // The TV mode needs director data; drop back to follow when it goes away.
+  useEffect(() => {
+    if (!director && cameraModeRef.current === "tv") applyCameraMode("follow");
+  }, [director, applyCameraMode]);
+
+  // Director: re-pick at the coarse playhead; the RAF loop reads the result.
+  useEffect(() => {
+    if (cameraMode !== "tv" || !director) return;
+    const positions = positionsAt(director.positions, sessionStartMs + t);
+    let leader: number | null = null;
+    for (const [driver, position] of positions) if (position === 1) leader = driver;
+    const prev = directorRef.current;
+    const next = pickShot(
+      director.cues,
+      {
+        t,
+        battles: battlePairs(positions, director.battling, retiredDrivers),
+        leader,
+        excluded: retiredDrivers,
+      },
+      prev,
+      performance.now(),
+    );
+    directorRef.current = next;
+    if (sameShot(prev.shot, next.shot)) return;
+    // A new shot is a hard cut, unless the viewer has taken the camera.
     chaseRef.current = { eye: null, heading: null };
-    setFollowSuspended(false);
-    setCameraMode(next);
-  }, []);
+    directorCutRef.current = true;
+    setDirectorShot(next.shot);
+    if (next.shot) trackEvent("trackmap3d_director_cut", { kind: next.shot.kind });
+  }, [cameraMode, director, t, sessionStartMs, retiredDrivers]);
 
   // ── HTML overlays (same data as the 2D map) ───────────────────────────────
   const overlayBackground = overlayBackgroundColor(lightMode);
@@ -1206,6 +1307,23 @@ export function TrackMap3D({
 
       <StatusBadges badges={statusBadges} />
 
+      {cameraMode === "tv" && directorShot && (
+        <div
+          className="pointer-events-none absolute top-2 left-2 z-20 flex items-center gap-1.5 px-2 py-1 text-[10px] font-black uppercase tracking-widest text-white border border-panel"
+          style={{ background: overlayBackground, backdropFilter: "blur(4px)" }}
+          role="status"
+          aria-live="polite"
+        >
+          <Tv size={12} strokeWidth={2.4} aria-hidden="true" />
+          <span>
+            {shotCaption(
+              directorShot,
+              (n) => driverByNumber.get(n)?.name_acronym ?? String(n),
+            )}
+          </span>
+        </div>
+      )}
+
       <div
         className="absolute top-2 right-2 z-20 flex items-center gap-1 p-1"
         style={{ background: overlayBackground, backdropFilter: "blur(4px)" }}
@@ -1237,6 +1355,7 @@ export function TrackMap3D({
             {cameraMode === "follow" && <Navigation size={14} strokeWidth={2.2} aria-hidden="true" />}
             {cameraMode === "chase" && <Video size={14} strokeWidth={2.2} aria-hidden="true" />}
             {cameraMode === "orbit" && <Orbit size={14} strokeWidth={2.2} aria-hidden="true" />}
+            {cameraMode === "tv" && <Tv size={14} strokeWidth={2.2} aria-hidden="true" />}
           </button>
         )}
         {showTrackScreenshot && (
@@ -1257,7 +1376,7 @@ export function TrackMap3D({
         {settingsButton}
       </div>
 
-      {followSuspended && focusDriver != null && (
+      {followSuspended && (focusDriver != null || cameraMode === "tv") && (
         <button
           type="button"
           onClick={recenter}

@@ -1,11 +1,26 @@
 import { describe, expect, it } from "vitest";
-import { chasePose, frameAlpha, nextCameraMode, orbitBearing } from "./cameraModes";
+import {
+  CAMERA_MODES_WITH_TV,
+  chasePose,
+  frameAlpha,
+  nextCameraMode,
+  orbitBearing,
+} from "./cameraModes";
 
 describe("nextCameraMode", () => {
   it("cycles follow → chase → orbit → follow", () => {
     expect(nextCameraMode("follow")).toBe("chase");
     expect(nextCameraMode("chase")).toBe("orbit");
     expect(nextCameraMode("orbit")).toBe("follow");
+  });
+
+  it("adds tv after orbit when the director is available", () => {
+    expect(nextCameraMode("orbit", CAMERA_MODES_WITH_TV)).toBe("tv");
+    expect(nextCameraMode("tv", CAMERA_MODES_WITH_TV)).toBe("follow");
+  });
+
+  it("falls back to follow from tv when it's no longer offered", () => {
+    expect(nextCameraMode("tv")).toBe("follow");
   });
 });
 

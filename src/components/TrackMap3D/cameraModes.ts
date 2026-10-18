@@ -5,6 +5,8 @@
  * - follow: top-down-ish chase that turns with the car (map center + bearing)
  * - chase:  low "TV chase" camera behind the car (Mapbox free camera)
  * - orbit:  slowly circle the focused car, or the track when none is focused
+ * - tv:     auto-director (timeline/director.ts) cuts between storylines,
+ *           using chase or follow per shot; races only
  */
 import {
   MAP3D_CHASE_AHEAD_M,
@@ -13,12 +15,17 @@ import {
   MAP3D_ORBIT_DEG_PER_S,
 } from "@/constants";
 
-export type CameraMode = "follow" | "chase" | "orbit";
+export type CameraMode = "follow" | "chase" | "orbit" | "tv";
 
 export const CAMERA_MODES: readonly CameraMode[] = ["follow", "chase", "orbit"];
+/** Modes when the auto-director has data (race sessions). */
+export const CAMERA_MODES_WITH_TV: readonly CameraMode[] = [...CAMERA_MODES, "tv"];
 
-export function nextCameraMode(mode: CameraMode): CameraMode {
-  return CAMERA_MODES[(CAMERA_MODES.indexOf(mode) + 1) % CAMERA_MODES.length]!;
+export function nextCameraMode(
+  mode: CameraMode,
+  modes: readonly CameraMode[] = CAMERA_MODES,
+): CameraMode {
+  return modes[(modes.indexOf(mode) + 1) % modes.length]!;
 }
 
 interface Enu {

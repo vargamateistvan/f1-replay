@@ -37,6 +37,11 @@ import {
 } from "@/hooks/useSession";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useTimeline } from "@/timeline/clock";
+import {
+  buildDirectorCues,
+  buildPositionIndex,
+  type DirectorData,
+} from "@/timeline/director";
 import { startLightsWindow } from "@/timeline/startLights";
 import { useCoarseTime } from "@/hooks/useCoarseTime";
 import { useMediaQuery } from "@/hooks/useMediaQuery";
@@ -1025,6 +1030,22 @@ export default function RaceWeekend() {
     if (!intervals.data?.length || !sessionStartMs) return new Set<number>();
     return computeBattlingDrivers(intervals.data, sessionStartMs + tSlow, 1.0);
   }, [intervals.data, sessionStartMs, tSlow, isMapVisible]);
+
+  // TV camera inputs for the 3D map (races only).
+  const directorBase = useMemo(() => {
+    if (!isRaceSession || !sessionStartMs) return null;
+    return {
+      cues: buildDirectorCues(overtakes.data ?? [], pits.data ?? [], sessionStartMs),
+      positions: buildPositionIndex(positions.data ?? []),
+    };
+  }, [isRaceSession, sessionStartMs, overtakes.data, pits.data, positions.data]);
+  const director = useMemo(
+    (): DirectorData | null =>
+      directorBase && directorBase.positions.size > 0
+        ? { ...directorBase, battling: battlingDrivers }
+        : null,
+    [directorBase, battlingDrivers],
+  );
 
   const retiredDrivers = useMemo((): ReadonlySet<number> => {
     return deriveRetiredDrivers({
@@ -2049,6 +2070,7 @@ export default function RaceWeekend() {
       activeTrackVehicles={activeTrackVehicles}
       raceLeader={isRaceSession && mapShowRaceLeader ? raceLeaderDriver : null}
       lightsOutMs={isRaceSession ? lightsOutMs : null}
+      director={director}
       onSelectDriver={toggleFocus}
       onOpenSettings={
         isCompactViewport ? undefined : () => openSettingsTab("track")

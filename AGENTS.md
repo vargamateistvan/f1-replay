@@ -282,6 +282,7 @@ components/ (render to DOM; read settings from Zustand)
 - The map container has its own ResizeObserver → `map.resize()`; Mapbox alone can keep a canvas size measured mid-layout.
 - Telemetry overlays reuse the 2D builders via `buildArcPolyline` (lng/lat in `svgPts`) and render as one `line-gradient` line each (no per-segment joints).
 - Lighting follows the sun at the circuit (`lightPresetAt`, setting `mapView3dSessionLighting`), so night races are night even in light theme.
+- TV camera (races only): `timeline/director.ts` picks the shot — overtake (cut 10 s before it's recorded) > pit stop > front-most battle (< 1 s) > leader — and `TrackMap3D` follows it with chase (overtake/battle) or follow (pit/leader), cutting instead of panning. Shots are held ≥ `DIRECTOR_MIN_SHOT_MS` of *wall-clock* time (so 16× doesn't strobe) and long battle/leader shots rotate after `DIRECTOR_MAX_SHOT_MS`. It never changes the app's focused driver (no extra car-data fetches); picking a car switches back to follow.
 - Each `new mapboxgl.Map` is a billed load (`trackmap3d_map_load`); the map is kept while the circuit stays the same.
 - The car model is Kenney's CC0 Car Kit `race.glb` with its texture packed in: `public/models/f1-car.glb` (licence alongside).
 

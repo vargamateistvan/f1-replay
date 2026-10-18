@@ -158,6 +158,20 @@ export const MAP3D_CHASE_AHEAD_M = 15;
 export const MAP3D_CHASE_ALPHA = 0.18;
 /** Orbit camera turn rate (degrees of bearing per real second). */
 export const MAP3D_ORBIT_DEG_PER_S = 6;
+/**
+ * Auto-director ("TV" camera, timeline/director.ts). Shot lengths are real
+ * (wall-clock) ms so fast playback doesn't strobe; cue windows are session ms.
+ */
+export const DIRECTOR_MIN_SHOT_MS = 4_000;
+export const DIRECTOR_MAX_SHOT_MS = 15_000;
+/** Cut to an overtake this long before it is recorded, and stay a bit after. */
+export const DIRECTOR_OVERTAKE_LEAD_MS = 10_000;
+export const DIRECTOR_OVERTAKE_AFTER_MS = 4_000;
+/** Pit cue: from just before pit entry until shortly after the lane exit. */
+export const DIRECTOR_PIT_LEAD_MS = 3_000;
+export const DIRECTOR_PIT_AFTER_MS = 3_000;
+/** Lane time assumed when OpenF1 has none for a stop. */
+export const DIRECTOR_PIT_FALLBACK_LANE_MS = 22_000;
 /** 3D car models appear from this zoom; below it the 2D-style icons show. */
 export const MAP3D_MODEL_MIN_ZOOM = 15;
 /**
