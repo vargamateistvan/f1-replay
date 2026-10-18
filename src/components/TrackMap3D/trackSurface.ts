@@ -40,6 +40,29 @@ const polygons = (rings: LngLat[][][]): PolygonCollection => ({
   })),
 });
 
+/**
+ * Drop trailing points of a closed loop that run past its start (baked
+ * centerlines often overshoot the line by a few metres). Closing such a loop
+ * makes it double back on itself at the seam, which folds the offset edges.
+ */
+export function trimLoopOverlap(points: readonly P[], withinM = 50): P[] {
+  if (points.length < 4) return [...points];
+  const p0 = points[0]!;
+  const p1 = points[1]!;
+  const tx = p1.x - p0.x;
+  const ty = p1.y - p0.y;
+  let end = points.length;
+  while (end > 3) {
+    const p = points[end - 1]!;
+    const dx = p.x - p0.x;
+    const dy = p.y - p0.y;
+    // Ahead of the start along the opening direction, and close to it.
+    if (dx * tx + dy * ty > 0 && Math.hypot(dx, dy) < withinM) end--;
+    else break;
+  }
+  return points.slice(0, end);
+}
+
 /** Resample a polyline at `step` metres (closed loops wrap back to the start). */
 export function resample(points: readonly P[], step: number, closed: boolean): P[] {
   const pts = closed ? [...points, points[0]!] : [...points];
@@ -79,6 +102,40 @@ export function normals(pts: readonly P[], closed: boolean, span = 1): P[] {
 }
 
 /**
+ * Cut the small loops an offset edge forms where it crosses itself (the
+ * outside of a hairpin tighter than the offset): when segment i and a later
+ * segment j within `window` samples cross, everything between them is
+ * replaced by the crossing point. Without this the strip polygons self-
+ * intersect and Mapbox fills them wrongly.
+ */
+export function removeLoops(points: readonly P[], window = 80): P[] {
+  const pts = [...points];
+  const hit = (a: P, b: P, c: P, d: P): P | null => {
+    const rx = b.x - a.x;
+    const ry = b.y - a.y;
+    const sx = d.x - c.x;
+    const sy = d.y - c.y;
+    const den = rx * sy - ry * sx;
+    if (den === 0) return null;
+    const t = ((c.x - a.x) * sy - (c.y - a.y) * sx) / den;
+    const u = ((c.x - a.x) * ry - (c.y - a.y) * rx) / den;
+    if (t <= 0 || t >= 1 || u <= 0 || u >= 1) return null;
+    return { x: a.x + t * rx, y: a.y + t * ry };
+  };
+  for (let i = 0; i < pts.length - 3; i++) {
+    for (let j = Math.min(pts.length - 2, i + window); j >= i + 2; j--) {
+      const x = hit(pts[i]!, pts[i + 1]!, pts[j]!, pts[j + 1]!);
+      if (x) {
+        // Keep the outermost crossing so nested loops go in one cut.
+        pts.splice(i + 1, j - i, x);
+        break;
+      }
+    }
+  }
+  return pts;
+}
+
+/**
  * Offset a resampled polyline by `d` metres along its left normal (negative =
  * right). Points that would run backwards — the inside of a corner tighter
  * than `|d|` — are dropped so the ring doesn't fold over itself.
@@ -99,15 +156,33 @@ export function offsetLine(
     }
     out.push(p);
   }
-  return out;
+  return removeLoops(out);
 }
 
-/** Ring of a closed band between offsets `a` and `b` (as a polygon with a hole). */
-function loopBand(pts: readonly P[], nrm: readonly P[], a: number, b: number, toLL: (p: P) => LngLat) {
-  const close = (ring: LngLat[]) => [...ring, ring[0]!];
-  const outer = offsetLine(pts, nrm, Math.max(a, b)).map(toLL);
-  const inner = offsetLine(pts, nrm, Math.min(a, b)).map(toLL).reverse();
-  return [close(outer), close(inner)];
+/**
+ * A closed band between offsets `a` and `b` along a loop, as a chain of
+ * simple strip polygons `chunk` samples long that share their end edges.
+ *
+ * Not one ring-with-a-hole: on a circuit that crosses itself (Suzuka's
+ * figure of eight) or folds at a hairpin, those rings self-intersect and
+ * Mapbox's triangulation fills the gaps between the lobes solid.
+ */
+function loopStrips(
+  pts: readonly P[],
+  nrm: readonly P[],
+  a: number,
+  b: number,
+  chunk: number,
+  toLL: (p: P) => LngLat,
+): LngLat[][][] {
+  const n = pts.length;
+  const out: LngLat[][][] = [];
+  for (let start = 0; start < n; start += chunk) {
+    const idx: number[] = [];
+    for (let k = start; k <= Math.min(start + chunk, n); k++) idx.push(k % n);
+    out.push(stripBand(idx.map((i) => pts[i]!), idx.map((i) => nrm[i]!), a, b, toLL));
+  }
+  return out;
 }
 
 /** Closed polygon for an open band between offsets `a` and `b`. */
@@ -181,7 +256,11 @@ export function kerbRuns(
  */
 export function buildFlagZones(geom: CircuitGeometry, geo: CircuitGeoref): PolygonCollection {
   const toLL = (p: P): LngLat => enuToLngLat(geo.originLng, geo.originLat, p.x, p.y);
-  const center = resample(geom.x.map((x, i) => f1ToEnu(geo, x, geom.y[i]!)), STEP_M, true);
+  const center = resample(
+    trimLoopOverlap(geom.x.map((x, i) => f1ToEnu(geo, x, geom.y[i]!))),
+    STEP_M,
+    true,
+  );
   const nrm = normals(center, true, Math.round(NORMAL_SPAN_M / STEP_M));
   const n = center.length;
   const posts = geom.marshalSectors
@@ -238,6 +317,8 @@ export interface TrackSurface {
 const STEP_M = 1;
 /** Edge directions are averaged over ±this many metres. */
 const NORMAL_SPAN_M = 12;
+/** Length of each asphalt / verge strip polygon. */
+const STRIP_CHUNK_M = 50;
 /** Curvature is sampled at this spacing for kerb detection. */
 const KERB_SAMPLE_M = 5;
 
@@ -248,15 +329,21 @@ export function buildTrackSurface(
 ): TrackSurface {
   const toLL = (p: P): LngLat => enuToLngLat(geo.originLng, geo.originLat, p.x, p.y);
   const center = resample(
-    geom.x.map((x, i) => f1ToEnu(geo, x, geom.y[i]!)),
+    trimLoopOverlap(geom.x.map((x, i) => f1ToEnu(geo, x, geom.y[i]!))),
     STEP_M,
     true,
   );
   const nrm = normals(center, true, Math.round(NORMAL_SPAN_M / STEP_M));
   const half = MAP3D_TRACK_HALF_WIDTH_M;
 
-  const verge = polygons([loopBand(center, nrm, -(half + MAP3D_VERGE_M), half + MAP3D_VERGE_M, toLL)]);
-  const track = polygons([loopBand(center, nrm, -half, half, toLL)]);
+  const chunk = Math.round(STRIP_CHUNK_M / STEP_M);
+  // Verge as two bands outside the asphalt (not one wide band under it), so
+  // the translucent casing never doubles up where pieces meet.
+  const verge = polygons([
+    ...loopStrips(center, nrm, half, half + MAP3D_VERGE_M, chunk, toLL),
+    ...loopStrips(center, nrm, -half, -(half + MAP3D_VERGE_M), chunk, toLL),
+  ]);
+  const track = polygons(loopStrips(center, nrm, half, -half, chunk, toLL));
 
   let pit: PolygonCollection = polygons([]);
   if (pitLane && pitLane.x.length > 1) {

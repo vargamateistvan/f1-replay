@@ -10,7 +10,9 @@ import {
   kerbRuns,
   normals,
   offsetLine,
+  removeLoops,
   resample,
+  trimLoopOverlap,
 } from "./trackSurface";
 
 const monaco = monacoJson as CircuitGeometry;
@@ -34,6 +36,37 @@ describe("resample / normals / offsetLine", () => {
     expect(n[3]).toEqual({ x: -0, y: 1 });
     const left = offsetLine(line, n, 2);
     expect(left.every((p) => p.y === 2)).toBe(true);
+  });
+
+  it("trims a closed centerline whose end overshoots its start", () => {
+    // Heading east from (0,0); the last two points run past the start.
+    const loop = [
+      { x: 0, y: 0 },
+      { x: 100, y: 0 },
+      { x: 100, y: 100 },
+      { x: -50, y: 100 },
+      { x: -50, y: 0 },
+      { x: -10, y: 0 },
+      { x: 5, y: 0 },
+      { x: 12, y: 0 },
+    ];
+    expect(trimLoopOverlap(loop)).toEqual(loop.slice(0, 6));
+    // A clean loop is left alone.
+    expect(trimLoopOverlap(loop.slice(0, 6))).toEqual(loop.slice(0, 6));
+  });
+
+  it("cuts the loop an edge forms where it crosses itself", () => {
+    // Right, up, back left across the first leg, then on: a small swallowtail.
+    const loop = removeLoops([
+      { x: 0, y: 0 },
+      { x: 10, y: 0 },
+      { x: 10, y: 4 },
+      { x: 5, y: -2 },
+      { x: 5, y: -10 },
+    ]);
+    expect(loop).toHaveLength(4);
+    expect(loop[1]!.x).toBeCloseTo(6.667, 2);
+    expect(loop[1]!.y).toBeCloseTo(0, 6);
   });
 
   it("drops points that would fold back inside a tight corner", () => {
@@ -104,26 +137,68 @@ describe("kerbRuns", () => {
   });
 });
 
+/** True when two non-adjacent edges of the closed ring cross (earcut can't fill it). */
+function selfIntersects(ring: number[][]): boolean {
+  const n = ring.length - 1; // last point repeats the first
+  const cross = (a: number[], b: number[], c: number[]) =>
+    (b[0]! - a[0]!) * (c[1]! - a[1]!) - (b[1]! - a[1]!) * (c[0]! - a[0]!);
+  for (let i = 0; i < n; i++) {
+    const a = ring[i]!;
+    const b = ring[i + 1]!;
+    for (let j = i + 2; j < n; j++) {
+      if (i === 0 && j === n - 1) continue; // shares the closing vertex
+      const c = ring[j]!;
+      const d = ring[j + 1]!;
+      if (
+        cross(a, b, c) * cross(a, b, d) < 0 &&
+        cross(c, d, a) * cross(c, d, b) < 0
+      ) {
+        return true;
+      }
+    }
+  }
+  return false;
+}
+
+// Every baked 2025 circuit, including Suzuka's figure of eight and Monaco's
+// Loews hairpin.
+const CIRCUIT_KEYS_2025 = Object.keys(import.meta.glob("@/data/circuit-geometry/*-2025.json"))
+  .map((path) => Number(path.match(/(\d+)-2025\.json$/)![1]))
+  .sort((a, b) => a - b);
+
+describe.each(CIRCUIT_KEYS_2025)("buildTrackSurface draws only simple polygons — circuit %i", (key) => {
+  it("never produces a self-crossing ring (Mapbox would fill the gaps black)", async () => {
+    const { loadCircuitGeometry } = await import("@/data/circuitGeometry");
+    const g = (await loadCircuitGeometry(key, 2025))!;
+    const s = buildTrackSurface(g, getCircuitGeoref(key, 2025)!, getPitLane(key));
+    for (const f of [...s.track.features, ...s.verge.features]) {
+      for (const ring of f.geometry.coordinates) {
+        expect(selfIntersects(ring)).toBe(false);
+      }
+    }
+  });
+});
+
 describe("buildTrackSurface (Monaco)", () => {
   const surface = buildTrackSurface(monaco, geo, getPitLane(22));
   const enu = ([lng, lat]: number[]) => lngLatToEnu(geo.originLng, geo.originLat, lng!, lat!);
 
-  it("builds track and verge as polygons with a hole", () => {
-    expect(surface.track.features).toHaveLength(1);
-    expect(surface.track.features[0]!.geometry.coordinates).toHaveLength(2);
-    expect(surface.verge.features[0]!.geometry.coordinates).toHaveLength(2);
+  it("builds track and verge as simple strips (no holes)", () => {
+    expect(surface.track.features.length).toBeGreaterThan(10);
+    for (const f of [...surface.track.features, ...surface.verge.features]) {
+      expect(f.geometry.coordinates).toHaveLength(1);
+    }
   });
 
   it("makes the track 15 m wide", () => {
-    const [outer, inner] = surface.track.features[0]!.geometry.coordinates;
-    const a = enu(outer![0]!);
-    let best = Infinity;
-    for (const p of inner!) {
-      const b = enu(p);
-      best = Math.min(best, Math.hypot(a.x - b.x, a.y - b.y));
-    }
-    expect(best).toBeGreaterThan(14);
-    expect(best).toBeLessThan(16);
+    // A strip ring runs down the left edge and back up the right one, so its
+    // first point faces the last point before closing across the track.
+    const [ring] = surface.track.features[3]!.geometry.coordinates;
+    const left = enu(ring![0]!);
+    const right = enu(ring![ring!.length - 2]!);
+    const width = Math.hypot(left.x - right.x, left.y - right.y);
+    expect(width).toBeGreaterThan(14);
+    expect(width).toBeLessThan(16);
   });
 
   it("adds kerbs where the track turns and a pit lane", () => {
