@@ -95,8 +95,10 @@ export function EventPicker({
         aria-controls={open ? panelId : undefined}
         aria-label="Choose event and session"
         title="Choose event and session"
-        className={`group min-w-0 h-7 flex items-center gap-2 -ml-1.5 px-1.5 rounded-sm transition-colors hover:bg-black/15 ${
-          open ? "bg-black/20" : ""
+        className={`group min-w-0 h-7 flex items-center gap-2 pl-2 pr-1 rounded-md border transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70 ${
+          open
+            ? "bg-black/15 border-white/25"
+            : "bg-black/[0.06] border-white/10 hover:bg-black/15 hover:border-white/25"
         }`}
       >
         {live && (
@@ -138,12 +140,14 @@ export function EventPicker({
             Select session
           </span>
         )}
-        <ChevronDown
-          aria-hidden="true"
-          className={`h-3.5 w-3.5 shrink-0 text-white/70 transition-transform group-hover:text-white ${
-            open ? "rotate-180" : ""
-          }`}
-        />
+        <span className="ml-0.5 h-5 w-5 shrink-0 flex items-center justify-center rounded bg-white/[0.07] transition-colors group-hover:bg-white/15">
+          <ChevronDown
+            aria-hidden="true"
+            className={`h-3.5 w-3.5 text-white/75 transition-transform group-hover:text-white ${
+              open ? "rotate-180" : ""
+            }`}
+          />
+        </span>
       </button>
 
       {open && (
