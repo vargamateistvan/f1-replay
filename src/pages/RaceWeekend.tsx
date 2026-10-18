@@ -2045,6 +2045,7 @@ export default function RaceWeekend() {
       pitRejoinGaps={pitRejoinGaps}
       showTrackScreenshot={trackScreenshotPngEnabled}
       weatherOverlay={mapShowWeather ? weatherAtT : null}
+      weather={weatherAtT}
       activeTrackVehicles={activeTrackVehicles}
       raceLeader={isRaceSession && mapShowRaceLeader ? raceLeaderDriver : null}
       lightsOutMs={isRaceSession ? lightsOutMs : null}

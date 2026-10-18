@@ -107,15 +107,25 @@ vi.mock("@/timeline/clock", () => {
   return { useTimeline };
 });
 
-vi.mock("@/stores/settings", () => {
-  const settings = {
+// Mutable so a test can flip a setting; reset in beforeEach.
+const { settings, DEFAULT_SETTINGS } = vi.hoisted(() => {
+  const DEFAULT_SETTINGS = {
     lightMode: false,
     metricSystem: "metric",
     mapShowCornerNumbers: true,
     mapShowRaceLeader: true,
     mapStartLightsSound: false,
     mapShowClock: false,
+    mapView3dFlagColors: true,
+    mapView3dSectorRibbon: true,
+    mapView3dWeatherEffects: true,
+    mapView3dBuildings: true,
+    mapView3dCarModels: true,
   };
+  return { settings: { ...DEFAULT_SETTINGS }, DEFAULT_SETTINGS };
+});
+
+vi.mock("@/stores/settings", () => {
   const useSettings = Object.assign(
     vi.fn((selector: (s: typeof settings) => unknown) => selector(settings)),
     { getState: () => settings },
@@ -159,6 +169,7 @@ describe("TrackMap3D", () => {
   beforeEach(() => {
     FakeMap.instances = [];
     vi.mocked(mapboxToken).mockReturnValue("pk.test");
+    Object.assign(settings, DEFAULT_SETTINGS);
   });
 
   it("explains the missing token and offers a way back to 2D", () => {
@@ -239,6 +250,39 @@ describe("TrackMap3D", () => {
     // Exactly the timing sector holding the flagged post turns yellow.
     const sectorStates = [1, 2, 3].map((n) => map!.featureState.get(`map3d-sector-paint:${n}`));
     expect(sectorStates.filter((st) => st?.active)).toEqual([{ active: true, color: "#f5d400" }]);
+  });
+
+  it("leaves the track unpainted when flag colours are off", () => {
+    settings.mapView3dFlagColors = false;
+    const vsc: TrackFlagState = {
+      globalFlag: "VIRTUAL_SC",
+      marshalFlags: {},
+      maxMarshalSector: 0,
+      updatedAtMs: 0,
+    };
+    const { map } = renderMap({ trackFlagState: vsc });
+    act(() => map!.emit("style.load"));
+    const post = monaco.marshalSectors[0]!.number;
+    expect(map!.featureState.get(`map3d-marshal:${post}`)).toMatchObject({ active: false });
+    for (const sector of [1, 2, 3]) {
+      expect(map!.featureState.get(`map3d-sector-paint:${sector}`)).toMatchObject({ active: false });
+    }
+  });
+
+  it("applies the 3D buildings, car models and ribbon settings", () => {
+    settings.mapView3dBuildings = false;
+    settings.mapView3dCarModels = false;
+    settings.mapView3dSectorRibbon = false;
+    const { map } = renderMap();
+    expect(map!.options.config).toMatchObject({ basemap: { show3dObjects: false } });
+    act(() => map!.emit("style.load"));
+    expect(map!.setConfigProperty).toHaveBeenCalledWith("basemap", "show3dObjects", false);
+    // Models hidden; markers keep their plain opacity instead of fading out.
+    expect(map!.layers.get("map3d-car-models")).toMatchObject({ layout: { visibility: "none" } });
+    expect(
+      (map!.layers.get("map3d-cars") as { paint: Record<string, unknown> }).paint["icon-opacity"],
+    ).toEqual(["get", "opacity"]);
+    expect(map!.setLayoutProperty).toHaveBeenCalledWith("map3d-sector-ribbon", "visibility", "none");
   });
 
   it("selects a driver when their marker is clicked", () => {

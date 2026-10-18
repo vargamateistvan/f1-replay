@@ -1114,24 +1114,6 @@ export function SettingsBody({
                   onChange={toggle("mapShowEnhancedVisuals")}
                 />
                 <SettingRow
-                  label="3D map (beta)"
-                  description="Mapbox Standard map with 3D buildings, terrain and 3D cars. Needs a Mapbox token and WebGL2"
-                  checked={settings.mapView3d}
-                  onChange={toggle("mapView3d")}
-                />
-                <SettingRow
-                  label="3D map: session time of day"
-                  description="Light the 3D map like the circuit at that moment (night races look like night). Off: follow the app's light/dark theme"
-                  checked={settings.mapView3dSessionLighting}
-                  onChange={toggle("mapView3dSessionLighting")}
-                />
-                <SettingRow
-                  label="3D map: terrain"
-                  description="Show hills and elevation (e.g. Spa, COTA). Street-level detail looks softer with it on"
-                  checked={settings.mapView3dTerrain}
-                  onChange={toggle("mapView3dTerrain")}
-                />
-                <SettingRow
                   label="Corner numbers"
                   description="Show corner numbers next to the track from baked circuit geometry"
                   checked={settings.mapShowCornerNumbers}
@@ -1142,6 +1124,66 @@ export function SettingsBody({
                   description="Colour the track ribbon by altitude (blue = low, yellow = high)"
                   checked={settings.mapShowElevation}
                   onChange={toggle("mapShowElevation")}
+                />
+                <SectionHeader>3D Map</SectionHeader>
+                <SettingRow
+                  label="3D map (beta)"
+                  description="Mapbox Standard map with 3D buildings and 3D cars. Needs a Mapbox token and WebGL2"
+                  checked={settings.mapView3d}
+                  onChange={toggle("mapView3d")}
+                />
+                <SettingRow
+                  label="Flag colours on track"
+                  description={
+                    settings.mapShowSectorFlags
+                      ? "Paint yellow, red and safety car flags onto the track: the flagged marshal posts and timing sectors"
+                      : "Turn on Sector flag colouring (Flags & Sectors) to use this"
+                  }
+                  checked={settings.mapView3dFlagColors}
+                  onChange={toggle("mapView3dFlagColors")}
+                  disabled={!settings.mapView3d || !settings.mapShowSectorFlags}
+                />
+                <SettingRow
+                  label="Sector condition ribbon"
+                  description="Band along each timing sector: green when clear, the flag colour when flagged"
+                  checked={settings.mapView3dSectorRibbon}
+                  onChange={toggle("mapView3dSectorRibbon")}
+                  disabled={!settings.mapView3d}
+                />
+                <SettingRow
+                  label="Weather effects"
+                  description="Rain on the map when it rained at the circuit at that moment"
+                  checked={settings.mapView3dWeatherEffects}
+                  onChange={toggle("mapView3dWeatherEffects")}
+                  disabled={!settings.mapView3d}
+                />
+                <SettingRow
+                  label="Session time-of-day lighting"
+                  description="Light the map like the circuit's local time at that moment (night races look like night). Off: follow the app's light/dark theme"
+                  checked={settings.mapView3dSessionLighting}
+                  onChange={toggle("mapView3dSessionLighting")}
+                  disabled={!settings.mapView3d}
+                />
+                <SettingRow
+                  label="3D buildings and trees"
+                  description="Show buildings, trees and landmarks around the circuit"
+                  checked={settings.mapView3dBuildings}
+                  onChange={toggle("mapView3dBuildings")}
+                  disabled={!settings.mapView3d}
+                />
+                <SettingRow
+                  label="3D car models"
+                  description="Swap car markers for 3D cars when zoomed in. Off: keep the 2D-style markers at every zoom"
+                  checked={settings.mapView3dCarModels}
+                  onChange={toggle("mapView3dCarModels")}
+                  disabled={!settings.mapView3d}
+                />
+                <SettingRow
+                  label="Terrain"
+                  description="Show hills and elevation (e.g. Spa, COTA). Street-level detail looks softer with it on"
+                  checked={settings.mapView3dTerrain}
+                  onChange={toggle("mapView3dTerrain")}
+                  disabled={!settings.mapView3d}
                 />
                 <SectionHeader>Overlays & Controls</SectionHeader>
                 <SettingRow
@@ -1158,13 +1200,13 @@ export function SettingsBody({
                 />
                 <SettingRow
                   label="Track weather"
-                  description="Show weather panel/overlay in track map view"
+                  description="Show the weather panel on the 2D and 3D track maps"
                   checked={settings.mapShowWeather}
                   onChange={toggle("mapShowWeather")}
                 />
                 <SettingRow
                   label="Track time clock"
-                  description="Show session wall-clock time in track map view"
+                  description="Show the circuit's local time and yours on the 2D and 3D track maps"
                   checked={settings.mapShowClock}
                   onChange={toggle("mapShowClock")}
                 />

@@ -393,7 +393,11 @@ export function clearCarIcons(host: CarIconHost, cache: Set<string>): void {
  * labels. Icons and labels are symbols so 3D buildings and trees never hide a
  * car, matching the always-on-top 2D markers.
  */
-export function buildCarLayers(scale: number, nowMs = 0): LayerSpecification[] {
+export function buildCarLayers(
+  scale: number,
+  nowMs = 0,
+  { models = true }: { models?: boolean } = {},
+): LayerSpecification[] {
   const pulse = pulseFrame(nowMs);
   const siren = sirenFrame(nowMs);
   const symbol = {
@@ -439,7 +443,7 @@ export function buildCarLayers(scale: number, nowMs = 0): LayerSpecification[] {
       id: CAR_MODEL_LAYER,
       type: "model",
       minzoom: MAP3D_MODEL_MIN_ZOOM,
-      layout: { "model-id": CAR_MODEL_ID },
+      layout: { "model-id": CAR_MODEL_ID, visibility: models ? "visible" : "none" },
       paint: {
         "model-type": "common-3d",
         "model-rotation": ["get", "rotation"],
@@ -477,16 +481,18 @@ export function buildCarLayers(scale: number, nowMs = 0): LayerSpecification[] {
         "icon-rotation-alignment": "viewport",
       },
       paint: {
-        // Hand over to the 3D model as it fades in.
-        "icon-opacity": [
-          "interpolate",
-          ["linear"],
-          ["zoom"],
-          MAP3D_MODEL_MIN_ZOOM,
-          prop("opacity"),
-          MAP3D_MODEL_MIN_ZOOM + 0.6,
-          0,
-        ],
+        // Hand over to the 3D model as it fades in (unless models are off).
+        "icon-opacity": models
+          ? [
+              "interpolate",
+              ["linear"],
+              ["zoom"],
+              MAP3D_MODEL_MIN_ZOOM,
+              prop("opacity"),
+              MAP3D_MODEL_MIN_ZOOM + 0.6,
+              0,
+            ]
+          : prop("opacity"),
         "icon-occlusion-opacity": prop("opacity"),
         "icon-emissive-strength": 1,
       },

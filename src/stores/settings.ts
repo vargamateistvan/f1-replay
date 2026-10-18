@@ -41,6 +41,16 @@ export interface AppSettings {
   mapView3dSessionLighting: boolean;
   /** 3D map: drape everything over Mapbox terrain (elevation). */
   mapView3dTerrain: boolean;
+  /** 3D map: paint flags (marshal posts + flagged sectors) onto the track. */
+  mapView3dFlagColors: boolean;
+  /** 3D map: per-sector condition ribbon (green when clear, flag colour when flagged). */
+  mapView3dSectorRibbon: boolean;
+  /** 3D map: rain from the session's weather data. */
+  mapView3dWeatherEffects: boolean;
+  /** 3D map: Standard style 3D buildings, trees and landmarks. */
+  mapView3dBuildings: boolean;
+  /** 3D map: 3D car models when zoomed in (off = 2D-style markers at every zoom). */
+  mapView3dCarModels: boolean;
   // Leaderboard
   leaderboardTelemetry: boolean;
   timingShowMinisectors: boolean;
@@ -174,6 +184,11 @@ export const SETTINGS_DEFAULTS: AppSettings = {
   mapView3d: false,
   mapView3dSessionLighting: true,
   mapView3dTerrain: false,
+  mapView3dFlagColors: true,
+  mapView3dSectorRibbon: true,
+  mapView3dWeatherEffects: true,
+  mapView3dBuildings: true,
+  mapView3dCarModels: true,
   leaderboardTelemetry: true,
   timingShowMinisectors: true,
   trackerTimingTelemetry: true,

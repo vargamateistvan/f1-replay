@@ -187,7 +187,8 @@ interface StyleSetters {
 /** Add the car layers, or restyle them in place after a resize / theme change. */
 function applyCarLayers(map: mapboxgl.Map, scale: number) {
   const style = map as unknown as StyleSetters;
-  for (const layer of buildCarLayers(scale, performance.now())) {
+  const models = useSettings.getState().mapView3dCarModels;
+  for (const layer of buildCarLayers(scale, performance.now(), { models })) {
     if (!map.getLayer(layer.id)) {
       map.addLayer(layer);
       continue;
@@ -224,7 +225,10 @@ interface Props {
   readonly pulseDrivers?: readonly number[];
   readonly activeCompounds?: CarFeatureInput["activeCompounds"];
   readonly safetyCarSirenOn?: boolean;
+  /** Weather panel data (null when the panel setting is off). */
   readonly weatherOverlay?: Weather | null;
+  /** Weather at the playhead for map effects (rain), independent of the panel. */
+  readonly weather?: Weather | null;
   readonly trackFlagState?: TrackFlagState | null;
   readonly activeTrackVehicles?: ActiveTrackVehicles | null;
   readonly showTrackControls?: boolean;
@@ -265,6 +269,7 @@ export function TrackMap3D({
   activeCompounds,
   safetyCarSirenOn = false,
   weatherOverlay = null,
+  weather = null,
   trackFlagState = null,
   activeTrackVehicles = null,
   showTrackControls = true,
@@ -291,6 +296,11 @@ export function TrackMap3D({
   const mapShowElevation = useSettings((s) => s.mapShowElevation);
   const sessionLighting = useSettings((s) => s.mapView3dSessionLighting);
   const terrainEnabled = useSettings((s) => s.mapView3dTerrain);
+  const flagColorsEnabled = useSettings((s) => s.mapView3dFlagColors);
+  const sectorRibbonEnabled = useSettings((s) => s.mapView3dSectorRibbon);
+  const weatherEffectsEnabled = useSettings((s) => s.mapView3dWeatherEffects);
+  const buildingsEnabled = useSettings((s) => s.mapView3dBuildings);
+  const carModelsEnabled = useSettings((s) => s.mapView3dCarModels);
   const mapShowDriverNumberInside = useSettings(
     (s) => s.mapShowDriverNumberInside,
   );
@@ -472,6 +482,7 @@ export function TrackMap3D({
         basemap: {
           lightPreset: lightPresetRef.current,
           ...BASEMAP_CONFIG,
+          show3dObjects: useSettings.getState().mapView3dBuildings,
           ...(window.matchMedia?.("(max-width: 767px)").matches ? COMPACT_BASEMAP_CONFIG : {}),
         },
       },
@@ -572,7 +583,19 @@ export function TrackMap3D({
     map.setTerrain({ source: SRC_DEM, exaggeration: MAP3D_TERRAIN_EXAGGERATION });
   }, [terrainEnabled, styleReady]);
 
-  const rain = rainFor(weatherOverlay);
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || !styleReady) return;
+    map.setConfigProperty("basemap", "show3dObjects", buildingsEnabled);
+  }, [buildingsEnabled, styleReady]);
+
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || !styleReady || !map.getLayer(CAR_DOT_LAYER)) return;
+    applyCarLayers(map, carScaleRef.current);
+  }, [carModelsEnabled, styleReady]);
+
+  const rain = rainFor(weatherEffectsEnabled ? (weather ?? weatherOverlay) : null);
   const rainKey = rain ? `${rain.density.toFixed(2)}|${rain.intensity.toFixed(2)}` : "dry";
   useEffect(() => {
     const map = mapRef.current;
@@ -776,15 +799,16 @@ export function TrackMap3D({
   useEffect(() => {
     const map = mapRef.current;
     if (!map || !styleReady || !circuitGeom || !map.getSource(SRC_MARSHAL)) return;
+    const painted = flagColorsEnabled ? trackFlagState : null;
     for (const ms of circuitGeom.marshalSectors) {
-      const color = marshalSegmentColor(trackFlagState, ms.number);
+      const color = marshalSegmentColor(painted, ms.number);
       const state = { active: color !== null, color: color ?? "#000000" };
       map.setFeatureState({ source: SRC_MARSHAL, id: ms.number }, state);
       if (map.getSource(SRC_FLAG_ZONES)) {
         map.setFeatureState({ source: SRC_FLAG_ZONES, id: ms.number }, state);
       }
     }
-  }, [trackFlagState, styleReady, circuitGeom]);
+  }, [trackFlagState, flagColorsEnabled, styleReady, circuitGeom]);
 
   // ── Overlay data + visibility ─────────────────────────────────────────────
   useEffect(() => {
@@ -798,8 +822,8 @@ export function TrackMap3D({
     const map = mapRef.current;
     if (!map || !styleReady) return;
     setOverlayVisibility(map, { enhanced: showEnhancedVisuals });
-    setSectorRibbonVisibility(map, showEnhancedVisuals);
-  }, [showEnhancedVisuals, styleReady, arc]);
+    setSectorRibbonVisibility(map, sectorRibbonEnabled);
+  }, [showEnhancedVisuals, sectorRibbonEnabled, styleReady, arc]);
 
   // ── Camera: overview when nothing is focused ──────────────────────────────
   const fitOverview = useCallback(
@@ -1088,8 +1112,11 @@ export function TrackMap3D({
   useEffect(() => {
     const map = mapRef.current;
     if (!map || !styleReady) return;
-    applySectorFlags(map, timingSectorFlags);
-  }, [timingSectorFlags, styleReady, circuitGeom]);
+    applySectorFlags(
+      map,
+      flagColorsEnabled ? timingSectorFlags : { 1: null, 2: null, 3: null },
+    );
+  }, [timingSectorFlags, flagColorsEnabled, styleReady, circuitGeom]);
 
   const startLights = startLightsState(t, lightsOutMs);
   useStartLightsSound(startLights, mapStartLightsSound && lightsOutMs != null);
