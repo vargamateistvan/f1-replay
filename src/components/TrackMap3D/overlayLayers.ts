@@ -84,6 +84,8 @@ export interface OverlayContext {
   geom: CircuitGeometry;
   geo: CircuitGeoref;
   arc: ArcPolyline;
+  /** Lap fractions where sectors 2 and 3 start (S1/S2 markers go there). */
+  sectorBoundaries?: [number, number];
   lightMode: boolean;
   /** Pixels per 2D SVG unit (unfollowed), so markup matches 2D sizes. */
   scale: number;
@@ -106,7 +108,7 @@ export function addOverlayLayers(map: MapboxMap, ctx: OverlayContext): void {
   map.addSource(SRC_GHOST, { type: "geojson", data: empty<PointFeature>() });
   // lineMetrics enables `line-progress` for the trail's fade.
   map.addSource(SRC_TRAIL, { type: "geojson", data: empty<LineFeature>(), lineMetrics: true });
-  const sectors = buildSectorMarkers(geom, geo, arc);
+  const sectors = buildSectorMarkers(geom, geo, arc, ctx.sectorBoundaries);
   map.addSource(SRC_SECTOR_TICKS, { type: "geojson", data: sectors.ticks });
   map.addSource(SRC_SECTOR_LABELS, { type: "geojson", data: sectors.labels });
   map.addSource(SRC_ARROWS, { type: "geojson", data: buildDirectionArrows(geom, geo) });

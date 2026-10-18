@@ -8,6 +8,7 @@ import {
   MAP3D_KERB_BLOCK_M,
   MAP3D_KERB_WIDTH_M,
   MAP3D_PIT_LANE_HALF_WIDTH_M,
+  MAP3D_SECTOR_RIBBON_M,
   MAP3D_START_GRID_COLUMNS,
   MAP3D_START_GRID_DEPTH_M,
   MAP3D_START_GRID_ROWS,
@@ -15,7 +16,8 @@ import {
   MAP3D_VERGE_M,
 } from "@/constants";
 import { type CircuitGeoref, enuToLngLat, f1ToEnu } from "@/utils/georef";
-import type { FeatureCollection, LngLat } from "./mapFeatures";
+import { timingSectorForMarshalPost } from "@/timeline/raceControl";
+import type { FeatureCollection, LineFeature, LngLat } from "./mapFeatures";
 
 interface P {
   x: number;
@@ -135,10 +137,15 @@ export function removeLoops(points: readonly P[], window = 80): P[] {
   return pts;
 }
 
+/** Share of the local turning radius an inside offset may use. */
+const INSIDE_RADIUS_SHARE = 0.9;
+
 /**
  * Offset a resampled polyline by `d` metres along its left normal (negative =
- * right). Points that would run backwards — the inside of a corner tighter
- * than `|d|` — are dropped so the ring doesn't fold over itself.
+ * right). Toward the inside of a bend the offset is capped at 90 % of the
+ * local turning radius (from how fast the normals turn), so the inside edge
+ * of a hairpin tighter than `|d|` never crosses past the turn's centre. Any
+ * point that would still run backwards is dropped and leftover loops are cut.
  */
 export function offsetLine(
   pts: readonly P[],
@@ -146,8 +153,21 @@ export function offsetLine(
   d: number,
 ): P[] {
   const out: P[] = [];
+  const last = pts.length - 1;
   for (let i = 0; i < pts.length; i++) {
-    const p = { x: pts[i]!.x + nrm[i]!.x * d, y: pts[i]!.y + nrm[i]!.y * d };
+    let di = d;
+    const a = nrm[Math.max(0, i - 1)]!;
+    const b = nrm[Math.min(last, i + 1)]!;
+    const pa = pts[Math.max(0, i - 1)]!;
+    const pb = pts[Math.min(last, i + 1)]!;
+    const ds = Math.hypot(pb.x - pa.x, pb.y - pa.y);
+    // Signed turn of the normal (+ = turning left); the inside is that side.
+    const turn = Math.atan2(a.x * b.y - a.y * b.x, a.x * b.x + a.y * b.y);
+    if (ds > 0 && turn * d > 0) {
+      const radius = ds / Math.abs(turn);
+      di = Math.sign(d) * Math.min(Math.abs(d), INSIDE_RADIUS_SHARE * radius);
+    }
+    const p = { x: pts[i]!.x + nrm[i]!.x * di, y: pts[i]!.y + nrm[i]!.y * di };
     const prev = out[out.length - 1];
     if (prev && i > 0) {
       const tx = pts[i]!.x - pts[i - 1]!.x;
@@ -180,17 +200,57 @@ function loopStrips(
   for (let start = 0; start < n; start += chunk) {
     const idx: number[] = [];
     for (let k = start; k <= Math.min(start + chunk, n); k++) idx.push(k % n);
-    out.push(stripBand(idx.map((i) => pts[i]!), idx.map((i) => nrm[i]!), a, b, toLL));
+    out.push(...stripPolygons(idx.map((i) => pts[i]!), idx.map((i) => nrm[i]!), a, b, toLL));
   }
   return out;
 }
 
 /** Closed polygon for an open band between offsets `a` and `b`. */
-function stripBand(pts: readonly P[], nrm: readonly P[], a: number, b: number, toLL: (p: P) => LngLat) {
-  const left = offsetLine(pts, nrm, a).map(toLL);
-  const right = offsetLine(pts, nrm, b).map(toLL).reverse();
-  const ring = [...left, ...right];
-  return [[...ring, ring[0]!]];
+/** True when two non-adjacent edges of the (implicitly closed) ring cross. */
+export function ringSelfIntersects(ring: readonly P[]): boolean {
+  const n = ring.length;
+  const cross = (a: P, b: P, c: P) => (b.x - a.x) * (c.y - a.y) - (b.y - a.y) * (c.x - a.x);
+  for (let i = 0; i < n; i++) {
+    const a = ring[i]!;
+    const b = ring[(i + 1) % n]!;
+    for (let j = i + 2; j < n; j++) {
+      if (i === 0 && j === n - 1) continue; // shares the closing vertex
+      const c = ring[j]!;
+      const d = ring[(j + 1) % n]!;
+      if (cross(a, b, c) * cross(a, b, d) < 0 && cross(c, d, a) * cross(c, d, b) < 0) return true;
+    }
+  }
+  return false;
+}
+
+/**
+ * Polygons for the band between offsets `a` and `b` along an open run —
+ * normally one strip. A strip whose ring would cross itself (an edge curling
+ * behind the strip's end in a very tight corner) is split in half and
+ * retried, so Mapbox only ever gets simple polygons; a piece too small to
+ * split that still crosses is dropped.
+ */
+function stripPolygons(
+  pts: readonly P[],
+  nrm: readonly P[],
+  a: number,
+  b: number,
+  toLL: (p: P) => LngLat,
+  depth = 0,
+): LngLat[][][] {
+  const ring = [...offsetLine(pts, nrm, a), ...offsetLine(pts, nrm, b).reverse()];
+  if (ring.length < 3) return [];
+  if (ringSelfIntersects(ring)) {
+    if (pts.length <= 3 || depth >= 8) return [];
+    const mid = Math.floor(pts.length / 2);
+    return [
+      ...stripPolygons(pts.slice(0, mid + 1), nrm.slice(0, mid + 1), a, b, toLL, depth + 1),
+      ...stripPolygons(pts.slice(mid), nrm.slice(mid), a, b, toLL, depth + 1),
+    ];
+  }
+  const ll = ring.map(toLL);
+  // One polygon with a single closed ring.
+  return [[[...ll, ll[0]!]]];
 }
 
 /**
@@ -281,26 +341,164 @@ export function buildFlagZones(geom: CircuitGeometry, geo: CircuitGeoref): Polyg
   const half = MAP3D_TRACK_HALF_WIDTH_M;
   return {
     type: "FeatureCollection",
-    features: posts.map((post, k) => {
+    // A post's stretch may come out as several pieces; they share its id.
+    features: posts.flatMap((post, k) => {
       const end = posts[(k + 1) % posts.length]!.index;
       const span = posts.length === 1 ? n : (end - post.index + n) % n;
       const idx = Array.from({ length: span + 1 }, (_, j) => (post.index + j) % n);
-      return {
+      return stripPolygons(
+        idx.map((i) => center[i]!),
+        idx.map((i) => nrm[i]!),
+        half,
+        -half,
+        toLL,
+      ).map((coordinates): PolygonFeature => ({
         type: "Feature",
         id: post.number,
         properties: { marshal: post.number },
-        geometry: {
-          type: "Polygon",
-          coordinates: stripBand(
-            idx.map((i) => center[i]!),
-            idx.map((i) => nrm[i]!),
-            half,
-            -half,
-            toLL,
-          ),
-        },
-      };
+        geometry: { type: "Polygon", coordinates },
+      }));
     }),
+  };
+}
+
+/** The baked centerline resampled at 1 m in local metres, with smoothed normals. */
+function sampledCenterline(geom: CircuitGeometry, geo: CircuitGeoref) {
+  const center = resample(
+    trimLoopOverlap(geom.x.map((x, i) => f1ToEnu(geo, x, geom.y[i]!))),
+    STEP_M,
+    true,
+  );
+  const nrm = normals(center, true, Math.round(NORMAL_SPAN_M / STEP_M));
+  const toLL = (p: P): LngLat => enuToLngLat(geo.originLng, geo.originLat, p.x, p.y);
+  return { center, nrm, toLL };
+}
+
+/**
+ * Timing sector (1–3) of every 1 m centerline sample. With marshal posts,
+ * each post's stretch takes the sector the flag logic maps that post to
+ * (`timingSectorForMarshalPost`), so sector colour changes exactly where the
+ * flagged posts are; otherwise the lap is split into equal thirds.
+ */
+export function sectorOfSamples(
+  geom: CircuitGeometry,
+  center: readonly P[],
+  geo: CircuitGeoref,
+): Array<1 | 2 | 3> {
+  const n = center.length;
+  const thirds = () =>
+    center.map((_, i) => (Math.min(3, Math.floor((3 * i) / n) + 1) as 1 | 2 | 3));
+  if (geom.marshalSectors.length < 3) return thirds();
+  const total = Math.max(
+    geom.marshalSectors.length,
+    ...geom.marshalSectors.map((m) => m.number),
+  );
+  const posts = geom.marshalSectors
+    .map((ms) => {
+      const p = f1ToEnu(geo, ms.trackPosition.x, ms.trackPosition.y);
+      let best = 0;
+      let bestD = Infinity;
+      for (let i = 0; i < n; i++) {
+        const d = (center[i]!.x - p.x) ** 2 + (center[i]!.y - p.y) ** 2;
+        if (d < bestD) {
+          bestD = d;
+          best = i;
+        }
+      }
+      return { index: best, sector: timingSectorForMarshalPost(ms.number, total) };
+    })
+    .sort((a, b) => a.index - b.index);
+  const out = new Array<1 | 2 | 3>(n);
+  posts.forEach((post, k) => {
+    const end = posts[(k + 1) % posts.length]!.index;
+    const span = (end - post.index + n) % n || n;
+    for (let j = 0; j < span; j++) out[(post.index + j) % n] = post.sector;
+  });
+  return out;
+}
+
+/** Contiguous runs of equal sector along the loop (a run may wrap the seam). */
+function sectorRuns(sectors: readonly (1 | 2 | 3)[]): Array<{ sector: 1 | 2 | 3; from: number; to: number }> {
+  const n = sectors.length;
+  let first = 0;
+  while (first < n && sectors[first] === sectors[(first - 1 + n) % n]) first++;
+  if (first === n) return [{ sector: sectors[0]!, from: 0, to: n }];
+  const runs: Array<{ sector: 1 | 2 | 3; from: number; to: number }> = [];
+  let i = first;
+  while (i < first + n) {
+    const sector = sectors[i % n]!;
+    let j = i;
+    while (j + 1 < first + n && sectors[(j + 1) % n] === sector) j++;
+    // Include the next sample so neighbouring runs meet without a gap.
+    runs.push({ sector, from: i, to: j + 1 });
+    i = j + 1;
+  }
+  return runs;
+}
+
+export interface SectorZones {
+  /** Asphalt-width bands, one or more strips per sector (feature id = sector). */
+  paint: PolygonCollection;
+  /** Wider bands under the asphalt for the always-on condition ribbon. */
+  ribbon: PolygonCollection;
+  /** Centerline per sector for the zoomed-out glow (feature id = sector). */
+  lines: FeatureCollection<LineFeature>;
+  /** Lap fractions (0–1) where sector 2 and sector 3 begin. */
+  boundaries: [number, number];
+}
+
+/**
+ * Timing-sector geometry for the 2D map's sector flag colours: the condition
+ * ribbon (green → flag colour per sector), sector paint on the asphalt, and a
+ * low-zoom line glow. Feature ids are the sector number so one feature-state
+ * write recolours every strip of that sector.
+ */
+export function buildSectorZones(geom: CircuitGeometry, geo: CircuitGeoref): SectorZones {
+  const { center, nrm, toLL } = sampledCenterline(geom, geo);
+  const n = center.length;
+  const sectors = sectorOfSamples(geom, center, geo);
+  const half = MAP3D_TRACK_HALF_WIDTH_M;
+  const ribbonHalf = half + MAP3D_SECTOR_RIBBON_M;
+  const chunk = Math.round(STRIP_CHUNK_M / STEP_M);
+  const paint: PolygonFeature[] = [];
+  const ribbon: PolygonFeature[] = [];
+  const lines: LineFeature[] = [];
+  for (const run of sectorRuns(sectors)) {
+    const idx: number[] = [];
+    for (let k = run.from; k <= run.to; k++) idx.push(k % n);
+    const pts = idx.map((i) => center[i]!);
+    const nr = idx.map((i) => nrm[i]!);
+    for (let s = 0; s < pts.length - 1; s += chunk) {
+      const e = Math.min(pts.length, s + chunk + 1);
+      const slicePts = pts.slice(s, e);
+      const sliceNrm = nr.slice(s, e);
+      const feature = (coordinates: LngLat[][]): PolygonFeature => ({
+        type: "Feature",
+        id: run.sector,
+        properties: { sector: run.sector },
+        geometry: { type: "Polygon", coordinates },
+      });
+      paint.push(...stripPolygons(slicePts, sliceNrm, half, -half, toLL).map(feature));
+      ribbon.push(
+        ...stripPolygons(slicePts, sliceNrm, ribbonHalf, -ribbonHalf, toLL).map(feature),
+      );
+    }
+    lines.push({
+      type: "Feature",
+      id: run.sector,
+      properties: { sector: run.sector },
+      geometry: { type: "LineString", coordinates: pts.map(toLL) },
+    });
+  }
+  const startOf = (s: 2 | 3) => {
+    const i = sectors.findIndex((v, k) => v === s && sectors[(k - 1 + n) % n] !== s);
+    return i < 0 ? (s === 2 ? 1 / 3 : 2 / 3) : i / n;
+  };
+  return {
+    paint: { type: "FeatureCollection", features: paint },
+    ribbon: { type: "FeatureCollection", features: ribbon },
+    lines: { type: "FeatureCollection", features: lines },
+    boundaries: [startOf(2), startOf(3)],
   };
 }
 
@@ -353,9 +551,9 @@ export function buildTrackSurface(
       false,
     );
     const pitHalf = MAP3D_PIT_LANE_HALF_WIDTH_M;
-    pit = polygons([
-      stripBand(lane, normals(lane, false, Math.round(NORMAL_SPAN_M / STEP_M)), pitHalf, -pitHalf, toLL),
-    ]);
+    pit = polygons(
+      stripPolygons(lane, normals(lane, false, Math.round(NORMAL_SPAN_M / STEP_M)), pitHalf, -pitHalf, toLL),
+    );
   }
 
   // Kerbs on the inside of every stretch that turns, as a base strip plus
@@ -370,11 +568,11 @@ export function buildTrackSurface(
     const nr = idx.map((i) => nrm[i]!);
     const inner = side * half;
     const outer = side * (half + MAP3D_KERB_WIDTH_M);
-    kerbBase.push(stripBand(pts, nr, inner, outer, toLL));
+    kerbBase.push(...stripPolygons(pts, nr, inner, outer, toLL));
     const block = Math.max(1, Math.round(MAP3D_KERB_BLOCK_M / STEP_M));
     for (let s = 0; s + block < pts.length; s += block * 2) {
       kerbStripes.push(
-        stripBand(pts.slice(s, s + block + 1), nr.slice(s, s + block + 1), inner, outer, toLL),
+        ...stripPolygons(pts.slice(s, s + block + 1), nr.slice(s, s + block + 1), inner, outer, toLL),
       );
     }
   };

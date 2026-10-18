@@ -17,7 +17,8 @@ const { FakeMap } = vi.hoisted(() => {
     options: Record<string, unknown>;
     sources = new Map<string, { data?: unknown; setData: (d: unknown) => void }>();
     layers = new Map<string, Record<string, unknown>>();
-    featureState = new Map<string | number, Record<string, unknown>>();
+    // Keyed "source:id", as Mapbox scopes feature state per source.
+    featureState = new Map<string, Record<string, unknown>>();
     handlers: Array<{ type: string; layer?: string; fn: Handler }> = [];
     fitBounds = vi.fn();
     jumpTo = vi.fn();
@@ -58,8 +59,8 @@ const { FakeMap } = vi.hoisted(() => {
     getLayer(id: string) {
       return this.layers.get(id);
     }
-    setFeatureState(target: { id: string | number }, state: Record<string, unknown>) {
-      this.featureState.set(target.id, state);
+    setFeatureState(target: { source: string; id: string | number }, state: Record<string, unknown>) {
+      this.featureState.set(`${target.source}:${target.id}`, state);
     }
     getCanvas() {
       return document.createElement("canvas");
@@ -212,7 +213,14 @@ describe("TrackMap3D", () => {
     act(() => map!.emit("style.load"));
     const flagged = monaco.marshalSectors[2]!.number;
     const other = monaco.marshalSectors[3]!.number;
-    expect(map!.featureState.get(flagged)).toEqual({ active: false, color: "#000000" });
+    expect(map!.featureState.get(`map3d-marshal:${flagged}`)).toEqual({ active: false, color: "#000000" });
+    // Sector ribbon starts clear (green), like the 2D condition ribbon.
+    for (const sector of [1, 2, 3]) {
+      expect(map!.featureState.get(`map3d-sector-ribbon:${sector}`)).toEqual({
+        active: false,
+        color: "#39b54a",
+      });
+    }
 
     rerender(
       <TrackMap3D
@@ -226,8 +234,11 @@ describe("TrackMap3D", () => {
         onExit3d={vi.fn()}
       />,
     );
-    expect(map!.featureState.get(flagged)).toEqual({ active: true, color: "#f5d400" });
-    expect(map!.featureState.get(other)).toMatchObject({ active: false });
+    expect(map!.featureState.get(`map3d-marshal:${flagged}`)).toEqual({ active: true, color: "#f5d400" });
+    expect(map!.featureState.get(`map3d-marshal:${other}`)).toMatchObject({ active: false });
+    // Exactly the timing sector holding the flagged post turns yellow.
+    const sectorStates = [1, 2, 3].map((n) => map!.featureState.get(`map3d-sector-paint:${n}`));
+    expect(sectorStates.filter((st) => st?.active)).toEqual([{ active: true, color: "#f5d400" }]);
   });
 
   it("selects a driver when their marker is clicked", () => {

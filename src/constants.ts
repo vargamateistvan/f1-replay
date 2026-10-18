@@ -114,6 +114,8 @@ export const MAP3D_TRACK_WIDTH_M = 15;
 /** Track surface geometry (metres): asphalt half-width, verge, pit lane, kerbs. */
 export const MAP3D_TRACK_HALF_WIDTH_M = 7.5;
 export const MAP3D_VERGE_M = 2.4;
+/** The sector condition ribbon shows this far beyond each asphalt edge (2D's 20-unit ribbon). */
+export const MAP3D_SECTOR_RIBBON_M = 4;
 export const MAP3D_PIT_LANE_HALF_WIDTH_M = 3;
 export const MAP3D_KERB_WIDTH_M = 2.5;
 export const MAP3D_KERB_BLOCK_M = 2;

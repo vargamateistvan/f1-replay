@@ -75,19 +75,20 @@ function tickAt(
 }
 
 /**
- * S1 / S2 ticks at one and two thirds of the lap (as on the 2D map), plus a
- * label point just off the track for each.
+ * S1 / S2 ticks where sectors 2 and 3 begin (`boundaries`, lap fractions;
+ * thirds by default as on the 2D map), plus a label point just off the track.
  */
 export function buildSectorMarkers(
   geom: CircuitGeometry,
   geo: CircuitGeoref,
   arc: ArcPolyline,
+  boundaries: [number, number] = [1 / 3, 2 / 3],
 ): { ticks: FeatureCollection<LineFeature>; labels: FeatureCollection<PointFeature> } {
   const ticks: LineFeature[] = [];
   const labels: PointFeature[] = [];
   for (const [target, label] of [
-    [1 / 3, "S1"],
-    [2 / 3, "S2"],
+    [boundaries[0], "S1"],
+    [boundaries[1], "S2"],
   ] as const) {
     const idx = Math.max(0, arc.normArc.findIndex((v) => v >= target) - 1);
     const tick = tickAt(geom, geo, idx, TICK_HALF_M * 0.9);

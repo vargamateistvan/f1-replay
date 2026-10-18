@@ -4,12 +4,17 @@
  */
 import type { ExpressionSpecification, Map as MapboxMap } from "mapbox-gl";
 import {
+  FLAG_COLORS,
   MAP3D_KERB_COLORS,
+  MAP3D_SECTOR_RIBBON_M,
   MAP3D_SURFACE_MIN_ZOOM,
+  MAP3D_TRACK_HALF_WIDTH_M,
   MAP3D_TRACK_PALETTE,
 } from "@/constants";
+import { isActiveTrackFlag, type TimingSectorFlags } from "@/timeline/raceControl";
 import type { LightPreset } from "./atmosphere";
-import type { TrackSurface } from "./trackSurface";
+import { groundWidthExpression } from "./mapFeatures";
+import type { SectorZones, TrackSurface } from "./trackSurface";
 
 const LAYERS = {
   verge: "map3d-surface-verge",
@@ -107,5 +112,138 @@ export function applyTrackPalette(map: MapboxMap, preset: LightPreset): void {
     map.setPaintProperty(id, "fill-color", p.color);
     map.setPaintProperty(id, "fill-opacity", fadeIn(p.opacity));
     map.setPaintProperty(id, "fill-emissive-strength", p.emissive);
+  }
+}
+
+const SECTOR_SOURCES = {
+  ribbon: "map3d-sector-ribbon",
+  paint: "map3d-sector-paint",
+  lines: "map3d-sector-lines",
+} as const;
+const SECTOR_RIBBON_LAYERS = ["map3d-sector-ribbon", "map3d-sector-ribbon-line"] as const;
+
+const isActive: ExpressionSpecification = ["boolean", ["feature-state", "active"], false];
+const stateColor: ExpressionSpecification = [
+  "coalesce",
+  ["feature-state", "color"],
+  FLAG_COLORS.CLEAR!,
+];
+
+/**
+ * The 2D map's sector flag colours, per timing sector:
+ * - condition ribbon (enhanced visuals): a band under the asphalt, green when
+ *   clear and the flag colour when flagged (2D opacity 0.24 / 0.5);
+ * - sector paint: a wash over the asphalt of a flagged sector;
+ * - zoomed out, both as wide lines along the centerline.
+ * Feature ids are the sector number (see `buildSectorZones`).
+ */
+export function addSectorLayers(
+  map: MapboxMap,
+  zones: SectorZones,
+  lat: number,
+  layout: { ribbonBefore: string; ribbonLineBefore: string; paintBefore: string },
+): void {
+  map.addSource(SECTOR_SOURCES.ribbon, { type: "geojson", data: zones.ribbon });
+  map.addSource(SECTOR_SOURCES.paint, { type: "geojson", data: zones.paint });
+  map.addSource(SECTOR_SOURCES.lines, { type: "geojson", data: zones.lines });
+  const ribbonOpacity: ExpressionSpecification = ["case", isActive, 0.5, 0.24];
+  const paintOpacity: ExpressionSpecification = ["case", isActive, 0.35, 0];
+
+  map.addLayer(
+    {
+      id: "map3d-sector-ribbon",
+      type: "fill",
+      source: SECTOR_SOURCES.ribbon,
+      slot: "middle",
+      minzoom: MAP3D_SURFACE_MIN_ZOOM - 0.5,
+      paint: {
+        "fill-emissive-strength": 0.8,
+        "fill-color": stateColor,
+        "fill-opacity": [
+          "interpolate",
+          ["linear"],
+          ["zoom"],
+          MAP3D_SURFACE_MIN_ZOOM - 0.5,
+          0,
+          MAP3D_SURFACE_MIN_ZOOM,
+          ribbonOpacity,
+        ],
+      },
+    },
+    layout.ribbonBefore,
+  );
+  map.addLayer(
+    {
+      id: "map3d-sector-ribbon-line",
+      type: "line",
+      source: SECTOR_SOURCES.lines,
+      slot: "middle",
+      layout: { "line-join": "round", "line-cap": "butt" },
+      paint: {
+        "line-emissive-strength": 0.8,
+        "line-color": stateColor,
+        "line-opacity": [
+          "interpolate",
+          ["linear"],
+          ["zoom"],
+          MAP3D_SURFACE_MIN_ZOOM - 0.5,
+          ribbonOpacity,
+          MAP3D_SURFACE_MIN_ZOOM,
+          0,
+        ],
+        "line-width": groundWidthExpression(
+          2 * (MAP3D_TRACK_HALF_WIDTH_M + MAP3D_SECTOR_RIBBON_M),
+          lat,
+          5,
+        ),
+      },
+    },
+    layout.ribbonLineBefore,
+  );
+  map.addLayer(
+    {
+      id: "map3d-sector-paint",
+      type: "fill",
+      source: SECTOR_SOURCES.paint,
+      slot: "middle",
+      minzoom: MAP3D_SURFACE_MIN_ZOOM - 0.5,
+      paint: {
+        "fill-emissive-strength": 0.8,
+        "fill-color": stateColor,
+        "fill-opacity": [
+          "interpolate",
+          ["linear"],
+          ["zoom"],
+          MAP3D_SURFACE_MIN_ZOOM - 0.5,
+          0,
+          MAP3D_SURFACE_MIN_ZOOM,
+          paintOpacity,
+        ],
+      },
+    },
+    layout.paintBefore,
+  );
+}
+
+/** Recolour the three sectors from the projected timing-sector flags. */
+export function applySectorFlags(map: MapboxMap, flags: TimingSectorFlags): void {
+  if (!map.getSource(SECTOR_SOURCES.paint)) return;
+  for (const sector of [1, 2, 3] as const) {
+    const flag = flags[sector];
+    const active = isActiveTrackFlag(flag);
+    const color = (active && flag ? FLAG_COLORS[flag] : null) ?? FLAG_COLORS.CLEAR!;
+    for (const source of Object.values(SECTOR_SOURCES)) {
+      map.setFeatureState(
+        { source, id: sector },
+        { active: active && color !== FLAG_COLORS.CLEAR, color },
+      );
+    }
+  }
+}
+
+/** The always-on ribbon follows "enhanced track visuals", as in 2D. */
+export function setSectorRibbonVisibility(map: MapboxMap, visible: boolean): void {
+  for (const id of SECTOR_RIBBON_LAYERS) {
+    if (map.getLayer(id)) map.setLayoutProperty(id, "visibility", visible ? "visible" : "none");
   }
 }

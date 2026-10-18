@@ -6,6 +6,7 @@ import { getPitLane } from "@/data/pitLanes";
 import { lngLatToEnu } from "@/utils/georef";
 import {
   buildFlagZones,
+  buildSectorZones,
   buildTrackSurface,
   kerbRuns,
   normals,
@@ -176,7 +177,17 @@ describe.each(LATEST_LAYOUTS)("buildTrackSurface draws only simple polygons — 
     const { loadCircuitGeometry } = await import("@/data/circuitGeometry");
     const g = (await loadCircuitGeometry(key, year))!;
     const s = buildTrackSurface(g, getCircuitGeoref(key, year)!, getPitLane(key));
-    for (const f of [...s.track.features, ...s.verge.features]) {
+    const geoRef = getCircuitGeoref(key, year)!;
+    const sectors = buildSectorZones(g, geoRef);
+    for (const f of [
+      ...s.track.features,
+      ...s.verge.features,
+      ...s.pitLane.features,
+      ...s.kerbsBase.features,
+      ...sectors.paint.features,
+      ...sectors.ribbon.features,
+      ...buildFlagZones(g, geoRef).features,
+    ]) {
       for (const ring of f.geometry.coordinates) {
         expect(selfIntersects(ring)).toBe(false);
       }
@@ -225,5 +236,40 @@ describe("buildTrackSurface (Monaco)", () => {
   it("lays a 6 × 3 chequered start grid", () => {
     expect(surface.startBase.features).toHaveLength(1);
     expect(surface.startSquares.features).toHaveLength(9);
+  });
+});
+
+describe("buildSectorZones", () => {
+  it("splits Monaco into sectors 1 → 2 → 3 at its marshal posts", () => {
+    const zones = buildSectorZones(monaco, geo);
+    const [s2, s3] = zones.boundaries;
+    expect(s2).toBeGreaterThan(0.15);
+    expect(s3).toBeGreaterThan(s2);
+    expect(s3).toBeLessThan(0.9);
+    // One centerline run per sector, in lap order.
+    expect(zones.lines.features.map((f) => f.id).sort()).toEqual([1, 2, 3]);
+    expect(new Set(zones.paint.features.map((f) => f.id))).toEqual(new Set([1, 2, 3]));
+    // The wider ribbon may be split into a few more pieces in tight corners.
+    expect(zones.ribbon.features.length).toBeGreaterThanOrEqual(zones.paint.features.length);
+    for (const f of [...zones.paint.features, ...zones.ribbon.features]) {
+      expect(selfIntersects(f.geometry.coordinates[0]!)).toBe(false);
+    }
+  });
+
+  it("uses equal thirds where there are no marshal posts (GPS-baked venues)", () => {
+    const zones = buildSectorZones({ ...monaco, marshalSectors: [] }, geo);
+    expect(zones.boundaries[0]).toBeCloseTo(1 / 3, 2);
+    expect(zones.boundaries[1]).toBeCloseTo(2 / 3, 2);
+  });
+
+  it("makes the ribbon wider than the asphalt", () => {
+    const zones = buildSectorZones(monaco, geo);
+    const width = (ring: number[][]) => {
+      const a = lngLatToEnu(geo.originLng, geo.originLat, ring[0]![0]!, ring[0]![1]!);
+      const b = lngLatToEnu(geo.originLng, geo.originLat, ring.at(-2)![0]!, ring.at(-2)![1]!);
+      return Math.hypot(a.x - b.x, a.y - b.y);
+    };
+    expect(width(zones.paint.features[2]!.geometry.coordinates[0]!)).toBeCloseTo(15, 0);
+    expect(width(zones.ribbon.features[2]!.geometry.coordinates[0]!)).toBeCloseTo(23, 0);
   });
 });

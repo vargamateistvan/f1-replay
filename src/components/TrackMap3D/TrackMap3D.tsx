@@ -96,8 +96,15 @@ import {
   type LightPreset,
 } from "./atmosphere";
 import { mapboxToken } from "./availability";
-import { addTrackSurfaceLayers, applyTrackPalette, fadeOut } from "./surfaceLayers";
-import { buildFlagZones, buildTrackSurface } from "./trackSurface";
+import {
+  addSectorLayers,
+  addTrackSurfaceLayers,
+  applySectorFlags,
+  applyTrackPalette,
+  fadeOut,
+  setSectorRibbonVisibility,
+} from "./surfaceLayers";
+import { buildFlagZones, buildSectorZones, buildTrackSurface } from "./trackSurface";
 import { createFrameProbe, map3dDebugEnabled } from "./frameProbe";
 import {
   chasePose,
@@ -581,6 +588,7 @@ export function TrackMap3D({
     if (!map || !styleReady || !circuitGeom || !geo || !trackLine) return;
     const lat = geo.originLat;
 
+    let sectorZones: ReturnType<typeof buildSectorZones> | null = null;
     if (!map.getSource(SRC_TRACK)) {
       map.addSource(SRC_TRACK, { type: "geojson", data: trackLine });
       map.addSource(SRC_MARSHAL, {
@@ -661,6 +669,8 @@ export function TrackMap3D({
         lightPresetRef.current,
         "map3d-flags",
       );
+      // The 2D map's sector flag colours: condition ribbon + sector paint.
+      sectorZones = buildSectorZones(circuitGeom, geo);
       // Flags painted onto the asphalt, one polygon per marshal post.
       map.addSource(SRC_FLAG_ZONES, { type: "geojson", data: buildFlagZones(circuitGeom, geo) });
       map.addLayer(
@@ -686,6 +696,11 @@ export function TrackMap3D({
         },
         "map3d-flags",
       );
+      addSectorLayers(map, sectorZones, lat, {
+        ribbonBefore: "map3d-surface-track",
+        ribbonLineBefore: LAYER_TRACK_SURFACE,
+        paintBefore: "map3d-flag-zones",
+      });
       map.addLayer({
         id: "map3d-track-line",
         type: "line",
@@ -725,6 +740,7 @@ export function TrackMap3D({
           geom: circuitGeom,
           geo,
           arc,
+          sectorBoundaries: sectorZones?.boundaries,
           lightMode: useSettings.getState().lightMode,
           scale: carScaleFor(container?.clientWidth ?? 0, container?.clientHeight ?? 0),
           segmentsBefore: "map3d-flags",
@@ -782,6 +798,7 @@ export function TrackMap3D({
     const map = mapRef.current;
     if (!map || !styleReady) return;
     setOverlayVisibility(map, { enhanced: showEnhancedVisuals });
+    setSectorRibbonVisibility(map, showEnhancedVisuals);
   }, [showEnhancedVisuals, styleReady, arc]);
 
   // ── Camera: overview when nothing is focused ──────────────────────────────
@@ -1066,6 +1083,13 @@ export function TrackMap3D({
     () => projectToTimingSectors(trackFlagState, totalMarshalPosts),
     [trackFlagState, totalMarshalPosts],
   );
+
+  // Sector flag colours (ribbon + sector paint), like the 2D map.
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || !styleReady) return;
+    applySectorFlags(map, timingSectorFlags);
+  }, [timingSectorFlags, styleReady, circuitGeom]);
 
   const startLights = startLightsState(t, lightsOutMs);
   useStartLightsSound(startLights, mapStartLightsSound && lightsOutMs != null);
