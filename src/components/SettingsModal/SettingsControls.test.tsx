@@ -5,6 +5,8 @@ import { SettingsBody } from "@/components/SettingsModal/SettingsControls";
 const state = vi.hoisted(() => ({
   setSetting: vi.fn(),
   reset: vi.fn(),
+  mapView3d: false,
+  available3d: true,
 }));
 
 vi.mock("@/stores/settings", () => ({
@@ -89,6 +91,9 @@ vi.mock("@/stores/settings", () => ({
     mapShowRaceLeader: true,
     mapShowEnhancedVisuals: true,
     trackScreenshotPngEnabled: true,
+    mapView3d: state.mapView3d,
+    mapView3dTerrain: false,
+    mapView3dSessionLighting: true,
     showCsvExportButtons: false,
     showNextRaceWeekendBanner: true,
     showCoffeeWidget: true,
@@ -130,6 +135,20 @@ vi.mock("@/hooks/useLocationChunks", () => ({
   useLocationChunks: () => ({ data: [] }),
 }));
 
+vi.mock("@/components/TrackMap3D/availability", () => ({
+  isMap3dAvailable: () => state.available3d,
+}));
+
+vi.mock("@/data/circuitGeometry", () => ({
+  hasCircuitGeometry: () => true,
+}));
+
+vi.mock("@/components/TrackMap3D/TrackMap3D", () => ({
+  TrackMap3D: ({ circuitKey }: { circuitKey: number }) => (
+    <div role="img" aria-label={`circuit ${circuitKey} 3D track map`} />
+  ),
+}));
+
 vi.mock("@/components/TrackMap/TrackMap", () => ({
   TrackMap: ({
     circuitShortName,
@@ -159,6 +178,8 @@ describe("SettingsControls", () => {
   beforeEach(() => {
     state.setSetting.mockReset();
     state.reset.mockReset();
+    state.mapView3d = false;
+    state.available3d = true;
   });
 
   it("updates key settings and supports reset", () => {
@@ -287,13 +308,60 @@ describe("SettingsControls", () => {
     fireEvent.click(screen.getByRole("tab", { name: "Track map" }));
 
     for (const group of [
-      "Drivers",
+      "Cars",
       "Flags & Sectors",
-      "Circuit Detail",
+      "Track Detail",
       "Overlays & Controls",
+      "Sound",
     ]) {
       expect(screen.getByText(group)).toBeInTheDocument();
     }
+  });
+
+  it("shows only the 2D map's settings in the 2D view", () => {
+    render(<SettingsBody initialTab="track" />);
+    expect(screen.getByRole("radio", { name: "2D map" })).toHaveAttribute("aria-checked", "true");
+    expect(screen.getByText("Compass overlay")).toBeInTheDocument();
+    expect(screen.getByText("Marshal sector heatmap")).toBeInTheDocument();
+    expect(screen.queryByText("Terrain")).not.toBeInTheDocument();
+    expect(screen.queryByText("Light & Weather")).not.toBeInTheDocument();
+  });
+
+  it("switches the map view from the settings", () => {
+    render(<SettingsBody initialTab="track" />);
+    fireEvent.click(screen.getByRole("radio", { name: "3D map" }));
+    expect(state.setSetting).toHaveBeenCalledWith("mapView3d", true);
+  });
+
+  it("previews the 3D map and lists its settings in the 3D view", async () => {
+    state.mapView3d = true;
+    render(<SettingsBody initialTab="track" />);
+    expect(screen.getByRole("radio", { name: "3D map" })).toHaveAttribute("aria-checked", "true");
+    expect(await screen.findByRole("img", { name: "circuit 1 3D track map" })).toBeInTheDocument();
+    expect(screen.getByText("Live preview · 3D")).toBeInTheDocument();
+    for (const label of [
+      "3D car models",
+      "Flag colours on track",
+      "Sector condition ribbon",
+      "3D buildings and trees",
+      "Terrain",
+      "Session time-of-day lighting",
+      "Weather effects",
+    ]) {
+      expect(screen.getByText(label)).toBeInTheDocument();
+    }
+    // 2D-only controls are hidden.
+    expect(screen.queryByText("Compass overlay")).not.toBeInTheDocument();
+    expect(screen.queryByText("Sector status box")).not.toBeInTheDocument();
+  });
+
+  it("explains why the 3D map can't be picked without a token or WebGL2", () => {
+    state.available3d = false;
+    state.mapView3d = true;
+    render(<SettingsBody initialTab="track" />);
+    expect(screen.getByRole("radio", { name: "3D map" })).toBeDisabled();
+    expect(screen.getByRole("radio", { name: "2D map" })).toHaveAttribute("aria-checked", "true");
+    expect(screen.getByText(/needs a Mapbox token/i)).toBeInTheDocument();
   });
 
   it("keeps telemetry chart settings in their own category", () => {
