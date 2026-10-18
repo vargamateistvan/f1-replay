@@ -226,7 +226,6 @@ describe("Nav", () => {
     expect(screen.queryByText(/VITE_OPENF1_API_KEY/)).not.toBeInTheDocument();
     expect(screen.getAllByText("Live").length).toBeGreaterThan(0);
 
-    openPicker();
     fireEvent.click(screen.getByRole("button", { name: "Latest" }));
     await waitFor(() => expect(state.setSearchParams).toHaveBeenCalled());
     const [updater] = state.setSearchParams.mock.calls[0] as [
@@ -321,7 +320,6 @@ describe("Nav", () => {
     ];
 
     render(<Nav />);
-    openPicker();
     fireEvent.click(screen.getByRole("button", { name: "Latest" }));
 
     await waitFor(() => expect(state.setSearchParams).toHaveBeenCalled());
@@ -362,7 +360,6 @@ describe("Nav", () => {
     ];
 
     render(<Nav />);
-    openPicker();
     fireEvent.click(screen.getByRole("button", { name: "Latest" }));
 
     await waitFor(() => expect(state.setSearchParams).toHaveBeenCalled());

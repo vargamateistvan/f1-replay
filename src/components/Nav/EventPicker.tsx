@@ -150,6 +150,19 @@ export function EventPicker({
         </span>
       </button>
 
+      <button
+        type="button"
+        onClick={() => {
+          onLatest();
+          setOpen(false);
+        }}
+        disabled={isSelectingLatest}
+        title="Jump to the latest event and session"
+        className="ml-1.5 h-7 px-2 shrink-0 rounded-md border border-white/10 bg-black/[0.06] text-white/80 text-[9px] font-black uppercase tracking-widest transition-colors hover:bg-black/15 hover:border-white/25 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70 disabled:opacity-40 disabled:cursor-not-allowed"
+      >
+        Latest
+      </button>
+
       {open && (
         <div
           id={panelId}
@@ -180,18 +193,6 @@ export function EventPicker({
             {(meetingsPending || sessionsPending) && (
               <span className="mb-1.5 text-muted text-[9px]">Loading…</span>
             )}
-
-            <button
-              type="button"
-              onClick={() => {
-                onLatest();
-                setOpen(false);
-              }}
-              disabled={isSelectingLatest}
-              className="ml-auto h-7 px-2.5 text-[9px] font-black uppercase tracking-widest rounded-sm transition-colors bg-panel text-muted hover:text-white hover:bg-track disabled:opacity-40 disabled:cursor-not-allowed light:bg-white light:text-slate-600 light:border light:border-slate-300 light:hover:text-slate-900 light:hover:bg-slate-100"
-            >
-              Latest
-            </button>
           </div>
 
           <label className="flex flex-col gap-1 min-w-0">
