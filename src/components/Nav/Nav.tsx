@@ -4,7 +4,6 @@ import {
   useLocation,
   useNavigate,
 } from "react-router-dom";
-import { ErrorMessage } from "@/components/ErrorMessage";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import {
@@ -17,7 +16,7 @@ import { api } from "@/api/endpoints";
 import type { Meeting, Session } from "@/api/types";
 import { isAuthError } from "@/api/client";
 import { isSessionLive } from "@/utils/live";
-import { YEARS, DEFAULT_YEAR, CURRENT_SEASON_STALE_MS } from "@/constants";
+import { DEFAULT_YEAR, CURRENT_SEASON_STALE_MS } from "@/constants";
 import { useNumberParam, useStringParam } from "@/hooks/useSearchParamState";
 import { AppLogo } from "@/components/AppLogo";
 import { LiveDataNotice } from "@/components/LiveDataNotice";
@@ -39,14 +38,8 @@ import {
   Settings as SettingsIcon,
   Maximize,
   Minimize,
-  ChevronDown,
 } from "lucide-react";
-import {
-  PICKER_BAR,
-  PICKER_CHEVRON,
-  PICKER_FIELD_LABEL,
-  PICKER_SELECT,
-} from "./pickerStyles";
+import { EventPicker } from "./EventPicker";
 
 export type MainView = "leaderboard" | "tracker" | "commentary";
 
@@ -56,10 +49,6 @@ const VIEW_TABS: { id: MainView; label: string }[] = [
   { id: "commentary", label: "Commentary" },
 ];
 const VALID_VIEWS = new Set<MainView>(["leaderboard", "tracker", "commentary"]);
-
-const SELECT = PICKER_SELECT;
-
-const FIELD_LABEL = PICKER_FIELD_LABEL;
 
 const TRACK_FACTS_ENABLED = false;
 // How old cached calendar/alias data may be before the Latest button refetches.
@@ -439,6 +428,55 @@ export function Nav() {
     setSelectLatestSessionOnLoad(true);
   }
 
+  function onMeetingSelect(raw: string) {
+    if (raw === "") {
+      resetPlaybackToStart();
+      setSearchParams(
+        (prev) => {
+          const next = new URLSearchParams(prev);
+          next.delete("meeting");
+          next.delete("session");
+          clearReplayTimeParam(next);
+          return next;
+        },
+        { replace: true },
+      );
+      return;
+    }
+    const val = Number(raw);
+    if (!Number.isFinite(val) || val <= 0) return;
+    onMeeting(val);
+  }
+
+  function onSessionSelect(raw: string) {
+    if (raw === "") {
+      resetPlaybackToStart();
+      setSearchParams(
+        (prev) => {
+          const next = new URLSearchParams(prev);
+          next.delete("session");
+          clearReplayTimeParam(next);
+          return next;
+        },
+        { replace: true },
+      );
+      return;
+    }
+    const val = Number(raw);
+    if (!Number.isFinite(val) || val <= 0) return;
+    resetPlaybackToStart();
+    setSearchParams(
+      (prev) => {
+        const next = new URLSearchParams(prev);
+        next.set("session", String(val));
+        clearReplayTimeParam(next);
+        return next;
+      },
+      { replace: true },
+    );
+    trackEvent("nav_session_changed", { session_key: val });
+  }
+
   // Resolves "the latest event" from three independent sources and picks the
   // most recently started one. OpenF1's `meeting_key=latest` /
   // `session_key=latest` aliases are convenient but can lag (or be served
@@ -650,45 +688,70 @@ export function Nav() {
           </span>
         </button>
 
-        <div className="mr-auto min-w-0 flex items-center gap-2 overflow-hidden">
-          {live && (
-            <span
-              className="w-1.5 h-1.5 rounded-full bg-white/75 shrink-0"
-              aria-hidden="true"
+        <div className="mr-auto min-w-0 flex items-center gap-2">
+          {isMainRoute || isTelemetryRoute ? (
+            <EventPicker
+              year={year}
+              meetingKey={meetingKey}
+              sessionKey={sessionKey}
+              selectedMeeting={selectedMeeting}
+              countryFlagUrl={selectedCountryFlagUrl}
+              sessionLabel={sessionLabel}
+              live={live}
+              meetings={startedMeetings}
+              sessions={startedSessions}
+              meetingsPending={meetings.isPending}
+              sessionsPending={sessions.isPending}
+              meetingsFailed={meetings.isError && !authFailed}
+              sessionsFailed={sessions.isError && !authFailed}
+              isSelectingLatest={isSelectingLatest}
+              onYear={onYear}
+              onMeeting={onMeetingSelect}
+              onSession={onSessionSelect}
+              onLatest={() => void selectLatestEvent("manual")}
             />
-          )}
-          {selectedMeeting ? (
+          ) : (
             <>
-              {selectedCountryFlagUrl && (
-                <img
-                  src={selectedCountryFlagUrl}
-                  alt={`${selectedMeeting.country_name} flag`}
-                  className="h-3.5 w-5 object-cover rounded-[2px] border border-white/30 shrink-0"
-                  loading="lazy"
-                  referrerPolicy="no-referrer"
+              {live && (
+                <span
+                  className="w-1.5 h-1.5 rounded-full bg-white/75 shrink-0"
+                  aria-hidden="true"
                 />
               )}
-              <span className="min-w-0 text-white text-[10px] sm:text-[11px] font-bold uppercase tracking-wide truncate sm:max-w-[160px] lg:max-w-[240px]">
-                {selectedMeeting.meeting_name}
-              </span>
-              <span className="hidden sm:inline text-white/70 text-[11px] font-bold uppercase tracking-widest shrink-0">
-                {selectedMeeting.year}
-              </span>
-              {sessionLabel && (
-                <span className="hidden sm:inline text-white/70 text-[11px] font-bold uppercase tracking-widest shrink-0">
-                  · {sessionLabel}
-                </span>
-              )}
-              {selectedMeeting.is_cancelled && (
-                <span className="bg-white text-f1red text-[9px] font-bold uppercase tracking-widest px-1.5 py-0.5 rounded-sm shrink-0">
-                  Cancelled
+              {selectedMeeting ? (
+                <>
+                  {selectedCountryFlagUrl && (
+                    <img
+                      src={selectedCountryFlagUrl}
+                      alt={`${selectedMeeting.country_name} flag`}
+                      className="h-3.5 w-5 object-cover rounded-[2px] border border-white/30 shrink-0"
+                      loading="lazy"
+                      referrerPolicy="no-referrer"
+                    />
+                  )}
+                  <span className="min-w-0 text-white text-[10px] sm:text-[11px] font-bold uppercase tracking-wide truncate sm:max-w-[160px] lg:max-w-[240px]">
+                    {selectedMeeting.meeting_name}
+                  </span>
+                  <span className="hidden sm:inline text-white/70 text-[11px] font-bold uppercase tracking-widest shrink-0">
+                    {selectedMeeting.year}
+                  </span>
+                  {sessionLabel && (
+                    <span className="hidden sm:inline text-white/70 text-[11px] font-bold uppercase tracking-widest shrink-0">
+                      · {sessionLabel}
+                    </span>
+                  )}
+                  {selectedMeeting.is_cancelled && (
+                    <span className="bg-white text-f1red text-[9px] font-bold uppercase tracking-widest px-1.5 py-0.5 rounded-sm shrink-0">
+                      Cancelled
+                    </span>
+                  )}
+                </>
+              ) : (
+                <span className="hidden sm:inline text-white/80 text-[11px] font-bold tracking-widest uppercase truncate">
+                  {headerLabel}
                 </span>
               )}
             </>
-          ) : (
-            <span className="hidden sm:inline text-white/80 text-[11px] font-bold tracking-widest uppercase truncate">
-              {headerLabel}
-            </span>
           )}
         </div>
 
@@ -955,175 +1018,6 @@ export function Nav() {
 
       {/* ── Auth failure banner (OpenF1 gates access during live sessions) */}
       <LiveDataNotice error={authError} />
-
-      {/* ── Dark sub-bar: session pickers (main + telemetry routes) */}
-      {(isMainRoute || isTelemetryRoute) && (
-        <div className={PICKER_BAR}>
-          <div
-            className="grid grid-cols-[4.75rem_minmax(0,1fr)_auto] items-end gap-x-2 gap-y-1.5 py-1.5 pl-[max(0.75rem,env(safe-area-inset-left))] pr-[max(0.75rem,env(safe-area-inset-right))] sm:flex sm:flex-wrap sm:items-center sm:gap-1.5 sm:pl-[max(0.5rem,env(safe-area-inset-left))] sm:pr-[max(0.5rem,env(safe-area-inset-right))] light:!bg-white"
-          >
-            {live && (
-              <span className="hidden sm:flex items-center gap-1 bg-f1red text-white text-[9px] font-black uppercase tracking-widest px-2 py-0.5 shrink-0">
-                <span className="w-1.5 h-1.5 rounded-full bg-white" />
-                Live
-              </span>
-            )}
-
-            <div className="contents sm:flex sm:flex-1 sm:flex-wrap sm:items-center sm:gap-x-3 sm:gap-y-1 sm:rounded-md sm:px-2 sm:min-w-[220px]">
-              <label className="col-start-1 row-start-1 flex flex-col gap-1 sm:flex-row sm:items-center sm:gap-1 shrink-0">
-                <span className={FIELD_LABEL}>Year</span>
-                <span className="relative inline-block">
-                  <select
-                    aria-label="Season year"
-                    value={year}
-                    onChange={(e) => onYear(Number(e.target.value))}
-                    className={`${SELECT} w-[4.75rem]`}
-                  >
-                    {YEARS.map((y) => (
-                      <option key={y} value={y}>
-                        {y}
-                      </option>
-                    ))}
-                  </select>
-                  <ChevronDown
-                    aria-hidden="true"
-                    className={PICKER_CHEVRON}
-                  />
-                </span>
-              </label>
-
-              <label className="col-start-2 col-span-2 row-start-1 flex flex-col gap-1 min-w-0 sm:flex-row sm:items-center sm:gap-1 sm:flex-[2_1_140px]">
-                <span className={`${FIELD_LABEL} shrink-0`}>Event</span>
-                {meetings.isError && !authFailed ? (
-                  <ErrorMessage message="Failed to load events" compact />
-                ) : (
-                  <span className="relative min-w-0 flex-1">
-                    <select
-                      aria-label="Event"
-                      value={meetingKey ?? ""}
-                      onChange={(e) => {
-                        const raw = e.target.value;
-                        if (raw === "") {
-                          resetPlaybackToStart();
-                          setSearchParams(
-                            (prev) => {
-                              const next = new URLSearchParams(prev);
-                              next.delete("meeting");
-                              next.delete("session");
-                              clearReplayTimeParam(next);
-                              return next;
-                            },
-                            { replace: true },
-                          );
-                          return;
-                        }
-
-                        const val = Number(raw);
-                        if (!Number.isFinite(val) || val <= 0) return;
-                        onMeeting(val);
-                      }}
-                      disabled={meetings.isPending}
-                      className={SELECT}
-                    >
-                      <option value="">— event —</option>
-                      {startedMeetings.map((m) => (
-                        <option key={m.meeting_key} value={m.meeting_key}>
-                          {m.location} — {m.meeting_name}
-                        </option>
-                      ))}
-                    </select>
-                    <ChevronDown
-                      aria-hidden="true"
-                      className={PICKER_CHEVRON}
-                    />
-                  </span>
-                )}
-              </label>
-
-              <label className="col-start-1 col-span-2 row-start-2 flex flex-col gap-1 min-w-0 sm:flex-row sm:items-center sm:gap-1 sm:flex-[1_1_120px]">
-                <span className={`${FIELD_LABEL} shrink-0`}>Session</span>
-                {sessions.isError && !authFailed ? (
-                  <ErrorMessage message="Failed to load sessions" compact />
-                ) : (
-                  <span className="relative min-w-0 flex-1">
-                    <select
-                      aria-label="Session"
-                      value={sessionKey ?? ""}
-                      onChange={(e) => {
-                        const raw = e.target.value;
-                        if (raw === "") {
-                          resetPlaybackToStart();
-                          setSearchParams(
-                            (prev) => {
-                              const next = new URLSearchParams(prev);
-                              next.delete("session");
-                              clearReplayTimeParam(next);
-                              return next;
-                            },
-                            { replace: true },
-                          );
-                          return;
-                        }
-
-                        const val = Number(raw);
-                        if (!Number.isFinite(val) || val <= 0) return;
-                        resetPlaybackToStart();
-                        setSearchParams(
-                          (prev) => {
-                            const next = new URLSearchParams(prev);
-                            next.set("session", String(val));
-                            clearReplayTimeParam(next);
-                            return next;
-                          },
-                          { replace: true },
-                        );
-                        trackEvent("nav_session_changed", { session_key: val });
-                      }}
-                      disabled={sessions.isPending || !meetingKey}
-                      className={SELECT}
-                    >
-                      <option value="">— session —</option>
-                      {startedSessions.map((s) => (
-                        <option key={s.session_key} value={s.session_key}>
-                          {s.session_name}
-                        </option>
-                      ))}
-                    </select>
-                    <ChevronDown
-                      aria-hidden="true"
-                      className={PICKER_CHEVRON}
-                    />
-                  </span>
-                )}
-              </label>
-            </div>
-
-            <div className="col-start-3 row-start-2 flex items-center justify-end gap-1.5">
-              {live && (
-                <span className="sm:hidden flex h-7 items-center gap-1 bg-f1red text-white text-[9px] font-black uppercase tracking-widest px-2 shrink-0">
-                  <span className="w-1.5 h-1.5 rounded-full bg-white" />
-                  Live
-                </span>
-              )}
-
-              {(meetings.isPending || sessions.isPending) && (
-                <span className="text-muted text-[9px] shrink-0">Loading…</span>
-              )}
-
-              <button
-                type="button"
-                onClick={() => {
-                  void selectLatestEvent("manual");
-                }}
-                disabled={isSelectingLatest}
-                className="h-7 sm:h-6 px-2.5 sm:px-2 text-[9px] font-black uppercase tracking-widest rounded-sm transition-colors bg-panel text-muted hover:text-white hover:bg-track disabled:opacity-40 disabled:cursor-not-allowed light:bg-white light:text-slate-600 light:border light:border-slate-300 light:hover:text-slate-900 light:hover:bg-slate-100"
-              >
-                Latest
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
 
       {TRACK_FACTS_ENABLED && showCircuitFacts && selectedMeeting && (
         <div

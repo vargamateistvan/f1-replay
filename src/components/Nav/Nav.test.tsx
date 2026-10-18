@@ -128,6 +128,12 @@ vi.mock("@/api/circuitFactsLookup", () => ({
   fetchCircuitFactsFromApi: vi.fn(),
 }));
 
+function openPicker() {
+  fireEvent.click(
+    screen.getByRole("button", { name: "Choose event and session" }),
+  );
+}
+
 describe("Nav", () => {
   beforeEach(() => {
     state.searchParams = new URLSearchParams(
@@ -220,6 +226,7 @@ describe("Nav", () => {
     expect(screen.queryByText(/VITE_OPENF1_API_KEY/)).not.toBeInTheDocument();
     expect(screen.getAllByText("Live").length).toBeGreaterThan(0);
 
+    openPicker();
     fireEvent.click(screen.getByRole("button", { name: "Latest" }));
     await waitFor(() => expect(state.setSearchParams).toHaveBeenCalled());
     const [updater] = state.setSearchParams.mock.calls[0] as [
@@ -314,6 +321,7 @@ describe("Nav", () => {
     ];
 
     render(<Nav />);
+    openPicker();
     fireEvent.click(screen.getByRole("button", { name: "Latest" }));
 
     await waitFor(() => expect(state.setSearchParams).toHaveBeenCalled());
@@ -354,6 +362,7 @@ describe("Nav", () => {
     ];
 
     render(<Nav />);
+    openPicker();
     fireEvent.click(screen.getByRole("button", { name: "Latest" }));
 
     await waitFor(() => expect(state.setSearchParams).toHaveBeenCalled());
@@ -368,6 +377,7 @@ describe("Nav", () => {
   it("clears the replay time when selecting a different session", () => {
     render(<Nav />);
 
+    openPicker();
     fireEvent.change(screen.getByLabelText("Session"), {
       target: { value: "101" },
     });
@@ -382,5 +392,31 @@ describe("Nav", () => {
 
     expect(next.get("session")).toBe("101");
     expect(next.has("t")).toBe(false);
+  });
+
+  it("keeps the picker closed until the navbar event is clicked", () => {
+    render(<Nav />);
+    const trigger = screen.getByRole("button", {
+      name: "Choose event and session",
+    });
+    expect(trigger).toHaveTextContent("Australian Grand Prix");
+    expect(trigger).toHaveTextContent("RACE");
+    expect(screen.queryByLabelText("Event")).not.toBeInTheDocument();
+
+    fireEvent.click(trigger);
+    expect(trigger).toHaveAttribute("aria-expanded", "true");
+    expect(screen.getByLabelText("Event")).toHaveValue("22");
+
+    fireEvent.keyDown(window, { key: "Escape" });
+    expect(screen.queryByLabelText("Event")).not.toBeInTheDocument();
+  });
+
+  it("closes the picker after choosing a session", () => {
+    render(<Nav />);
+    openPicker();
+    fireEvent.change(screen.getByLabelText("Session"), {
+      target: { value: "101" },
+    });
+    expect(screen.queryByLabelText("Session")).not.toBeInTheDocument();
   });
 });
