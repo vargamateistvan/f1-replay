@@ -1570,7 +1570,7 @@
 
 "@types/geojson@^7946.0.16":
   version "7946.0.16"
-  resolved "https://zscaler.prod-artifactory.lmi.tools/artifactory/api/npm/npmjs/@types/geojson/-/geojson-7946.0.16.tgz#8ebe53d69efada7044454e3305c19017d97ced2a"
+  resolved "https://registry.yarnpkg.com/@types/geojson/-/geojson-7946.0.16.tgz#8ebe53d69efada7044454e3305c19017d97ced2a"
   integrity sha512-6C8nqWur3j98U6+lXDfTUWIfgvZU+EumvpHKcYjujKH7woYyLj2sUmff0tRhrqM7BohUw7Pz3ZB1jj2gW9Fvmg==
 
 "@types/json-schema@^7.0.15":
@@ -3114,7 +3114,7 @@ make-dir@^4.0.0:
 
 mapbox-gl@^3:
   version "3.33.0"
-  resolved "https://zscaler.prod-artifactory.lmi.tools/artifactory/api/npm/npmjs/mapbox-gl/-/mapbox-gl-3.33.0.tgz#1b38dd38b6d371d037469598e3089a27e61b88bd"
+  resolved "https://registry.yarnpkg.com/mapbox-gl/-/mapbox-gl-3.33.0.tgz#1b38dd38b6d371d037469598e3089a27e61b88bd"
   integrity sha512-2HpIrVedccHedolZyMVG/7FXdpgmsLTENgEDsX71x3/gKDGfYMf1FCRY0prntknkn/JXcraUKXlBTv7vkr0EXg==
 
 mdn-data@2.27.1:
