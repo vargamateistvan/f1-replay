@@ -20,6 +20,8 @@ const { FakeMap } = vi.hoisted(() => {
     // Keyed "source:id", as Mapbox scopes feature state per source.
     featureState = new Map<string, Record<string, unknown>>();
     handlers: Array<{ type: string; layer?: string; fn: Handler }> = [];
+    // Like Mapbox, style edits throw until "style.load" has fired.
+    styleLoaded = false;
     fitBounds = vi.fn();
     jumpTo = vi.fn();
     setTerrain = vi.fn();
@@ -45,9 +47,14 @@ const { FakeMap } = vi.hoisted(() => {
       return this;
     }
     emit(type: string, e: unknown = {}, layer?: string) {
+      if (type === "style.load") this.styleLoaded = true;
       for (const h of this.handlers) if (h.type === type && h.layer === layer) h.fn(e);
     }
+    checkLoaded() {
+      if (!this.styleLoaded) throw new Error("Style is not done loading");
+    }
     addSource(id: string, spec: { data?: unknown }) {
+      this.checkLoaded();
       const source = { data: spec.data, setData: vi.fn((d: unknown) => (source.data = d)) };
       this.sources.set(id, source);
     }
@@ -55,6 +62,7 @@ const { FakeMap } = vi.hoisted(() => {
       return this.sources.get(id);
     }
     addLayer(layer: Record<string, unknown>) {
+      this.checkLoaded();
       this.layers.set(layer.id as string, layer);
     }
     getLayer(id: string) {
@@ -308,6 +316,33 @@ describe("TrackMap3D", () => {
     const [control, position] = map!.addControl.mock.calls[0]!;
     expect((control as { options: unknown }).options).toEqual({ compact: true });
     expect(position).toBe("bottom-right");
+  });
+
+  it("waits for the new map's style before building layers on a circuit change", () => {
+    const { map: first, rerender } = renderMap();
+    act(() => first!.emit("style.load"));
+
+    // A different geometry year swaps the georef, so the map is replaced.
+    rerender(
+      <TrackMap3D
+        sessionKey={1}
+        drivers={[lec]}
+        locationData={locations}
+        sessionStartMs={0}
+        circuitKey={22}
+        year={2024}
+        onExit3d={vi.fn()}
+      />,
+    );
+    const second = FakeMap.instances[FakeMap.instances.length - 1]!;
+    expect(second).not.toBe(first);
+    expect(first!.remove).toHaveBeenCalled();
+    expect(second.layers.size).toBe(0);
+
+    act(() => second.emit("style.load"));
+    expect([...second.layers.keys()]).toEqual(
+      expect.arrayContaining(["map3d-track-surface", "map3d-cars"]),
+    );
   });
 
   it("removes the map on unmount", () => {

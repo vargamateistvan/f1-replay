@@ -554,7 +554,6 @@ export function TrackMap3D({
       // Replaced below by the compact control.
       attributionControl: false,
     });
-    mapRef.current = map;
     // Mapbox's terms and OpenStreetMap's licence require visible attribution;
     // the compact control keeps it to an ⓘ button that expands on click.
     map.addControl(new mapboxgl.AttributionControl({ compact: true }), "bottom-right");
@@ -567,6 +566,10 @@ export function TrackMap3D({
         CAR_MODEL_ID,
         new URL(`${import.meta.env.BASE_URL}models/f1-car.glb`, window.location.href).href,
       );
+      // Published only now: on a circuit change, effects in the same commit
+      // still see the old `styleReady`, and would edit an unloaded style
+      // ("Style is not done loading") if they could reach this map.
+      mapRef.current = map;
       setStyleReady(true);
     });
 
