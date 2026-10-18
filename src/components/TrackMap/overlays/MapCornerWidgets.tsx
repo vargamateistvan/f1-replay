@@ -55,13 +55,22 @@ export const SectorChips = memo(function SectorChips({
 /** Compass rose; the needle counter-rotates with the map so it keeps pointing north. */
 export const Compass = memo(function Compass({
   rotationDeg,
+  onReset,
 }: {
   rotationDeg: number;
+  /** When set, the compass is a button that restores the default rotation. */
+  onReset?: () => void;
 }) {
+  const Tag = onReset ? "button" : "div";
   return (
-    <div
-      className="w-[46px] h-12 bg-track/85 flex items-center justify-center"
-      title="Compass"
+    <Tag
+      {...(onReset
+        ? { type: "button" as const, onClick: onReset, "aria-label": "Reset map rotation" }
+        : {})}
+      className={`w-[46px] h-12 bg-track/85 flex items-center justify-center${
+        onReset ? " border border-transparent hover:border-white/40 transition-colors" : ""
+      }`}
+      title={onReset ? "Compass · click to reset rotation" : "Compass"}
     >
       <svg viewBox="0 0 24 24" width="46" height="46" aria-hidden="true">
         <circle
@@ -123,6 +132,6 @@ export const Compass = memo(function Compass({
           <circle cx="12" cy="12" r="1.1" fill="#d4d4df" />
         </g>
       </svg>
-    </div>
+    </Tag>
   );
 });

@@ -1,27 +1,29 @@
-import { memo } from "react";
+import { Fragment, memo } from "react";
 import type { MouseEvent, ReactNode } from "react";
 import {
+  Camera,
+  Maximize,
   RotateCcw,
   RotateCw,
-  Search,
   Settings as SettingsIcon,
   ZoomIn,
   ZoomOut,
 } from "lucide-react";
 import { animateMotion, pressMotion } from "@/lib/motion";
 
+/** Same button as the 3D map's toolbar, so both maps share one control bar look. */
 const BUTTON_CLASS =
-  "w-7 h-7 flex items-center justify-center border border-panel text-white/85 hover:text-white hover:border-white/50 transition-colors";
+  "h-7 min-w-7 px-1.5 flex items-center justify-center border border-panel text-white/85 hover:text-white hover:border-white/50 transition-colors text-[10px] font-black tracking-widest disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:border-panel";
 
 function ControlButton({
   title,
-  ariaLabel,
   onPress,
+  disabled,
   children,
 }: {
   title: string;
-  ariaLabel?: string;
   onPress: () => void;
+  disabled?: boolean;
   children: ReactNode;
 }) {
   return (
@@ -33,14 +35,21 @@ function ControlButton({
       }}
       className={BUTTON_CLASS}
       title={title}
-      aria-label={ariaLabel}
+      aria-label={title}
+      disabled={disabled}
     >
       {children}
     </button>
   );
 }
 
-/** Top-right rotate / zoom / settings buttons. */
+const icon = { size: 14, strokeWidth: 2.2, "aria-hidden": true } as const;
+
+/**
+ * Top-right toolbar in the 3D map's button style, two rows: view switch ·
+ * snapshot + settings on top (always shown, as in 3D), rotate · zoom/fit
+ * below (only with "Track controls" on).
+ */
 export const TrackControls = memo(function TrackControls({
   showTrackControls,
   overlayBackground,
@@ -48,7 +57,10 @@ export const TrackControls = memo(function TrackControls({
   onRotateRight,
   onZoomOut,
   onZoomIn,
-  onZoomReset,
+  onResetView,
+  viewModified = false,
+  onSnapshot,
+  snapshotDisabled = false,
   onOpenSettings,
   onEnter3d,
 }: {
@@ -58,69 +70,96 @@ export const TrackControls = memo(function TrackControls({
   onRotateRight: () => void;
   onZoomOut: () => void;
   onZoomIn: () => void;
-  onZoomReset: () => void;
+  /** Back to the fitted zoom and the circuit's broadcast rotation. */
+  onResetView: () => void;
+  /** Zoom or rotation differs from the fitted view (highlights the fit button). */
+  viewModified?: boolean;
+  /** When set, shows the PNG snapshot button. */
+  onSnapshot?: () => void;
+  snapshotDisabled?: boolean;
   onOpenSettings?: () => void;
   /** When set, shows a button that switches to the 3D map. */
   onEnter3d?: () => void;
 }) {
-  if (!showTrackControls && !onOpenSettings && !onEnter3d) return null;
+  // Row 1: always-on buttons (view switch · snapshot + settings).
+  const top: ReactNode[] = [];
+  if (onEnter3d) {
+    top.push(
+      <ControlButton key="3d" title="Switch to 3D map" onPress={onEnter3d}>
+        3D
+      </ControlButton>,
+    );
+  }
+  if (onSnapshot || onOpenSettings) {
+    top.push(
+      <Fragment key="tools">
+        {onSnapshot && (
+          <ControlButton
+            title={snapshotDisabled ? "Snapshot available once cars are on track" : "Download map snapshot as PNG"}
+            onPress={onSnapshot}
+            disabled={snapshotDisabled}
+          >
+            <Camera {...icon} />
+          </ControlButton>
+        )}
+        {onOpenSettings && (
+          <ControlButton title="Track map settings" onPress={onOpenSettings}>
+            <SettingsIcon {...icon} />
+          </ControlButton>
+        )}
+      </Fragment>,
+    );
+  }
 
-  const settingsButton = onOpenSettings && (
-    <ControlButton
-      title="Track map settings"
-      ariaLabel="Track map settings"
-      onPress={onOpenSettings}
-    >
-      <SettingsIcon size={14} strokeWidth={2.2} aria-hidden="true" />
-    </ControlButton>
-  );
+  // Row 2: navigation (rotate · zoom/fit), hidden with "Track controls" off.
+  const bottom: ReactNode[] = showTrackControls
+    ? [
+        <Fragment key="rotate">
+          <ControlButton title="Rotate left" onPress={onRotateLeft}>
+            <RotateCcw {...icon} />
+          </ControlButton>
+          <ControlButton title="Rotate right" onPress={onRotateRight}>
+            <RotateCw {...icon} />
+          </ControlButton>
+        </Fragment>,
+        <Fragment key="zoom">
+          <ControlButton title="Zoom out" onPress={onZoomOut}>
+            <ZoomOut {...icon} />
+          </ControlButton>
+          <ControlButton
+            title={viewModified ? "Fit track (reset zoom and rotation)" : "Fit track"}
+            onPress={onResetView}
+          >
+            <Maximize {...icon} className={viewModified ? "text-f1red" : undefined} />
+          </ControlButton>
+          <ControlButton title="Zoom in" onPress={onZoomIn}>
+            <ZoomIn {...icon} />
+          </ControlButton>
+        </Fragment>,
+      ]
+    : [];
+  if (!top.length && !bottom.length) return null;
 
-  const enter3dButton = onEnter3d && (
-    <ControlButton
-      title="Switch to 3D map"
-      ariaLabel="Switch to 3D map"
-      onPress={onEnter3d}
-    >
-      <span className="text-[10px] font-black tracking-widest">3D</span>
-    </ControlButton>
+  const row = (groups: ReactNode[]) => (
+    <div className="flex items-center justify-end gap-1">
+      {groups.map((group, i) => (
+        <Fragment key={i}>
+          {i > 0 && <span className="mx-0.5 h-4 w-px bg-white/15" aria-hidden="true" />}
+          {group}
+        </Fragment>
+      ))}
+    </div>
   );
 
   return (
     <div
       className="absolute top-2 right-2 z-20 flex flex-col items-end gap-1 p-1"
       style={{ background: overlayBackground, backdropFilter: "blur(4px)" }}
+      role="toolbar"
+      aria-label="Track map controls"
     >
-      {!showTrackControls && (
-        <div className="flex items-center gap-1">
-          {enter3dButton}
-          {settingsButton}
-        </div>
-      )}
-      {showTrackControls && (
-        <>
-          <div className="flex items-center gap-1">
-            <ControlButton title="Rotate left" onPress={onRotateLeft}>
-              <RotateCcw size={14} strokeWidth={2.2} aria-hidden="true" />
-            </ControlButton>
-            <ControlButton title="Rotate right" onPress={onRotateRight}>
-              <RotateCw size={14} strokeWidth={2.2} aria-hidden="true" />
-            </ControlButton>
-            {enter3dButton}
-            {settingsButton}
-          </div>
-          <div className="flex items-center gap-1">
-            <ControlButton title="Zoom out" onPress={onZoomOut}>
-              <ZoomOut size={14} strokeWidth={2.2} aria-hidden="true" />
-            </ControlButton>
-            <ControlButton title="Zoom in" onPress={onZoomIn}>
-              <ZoomIn size={14} strokeWidth={2.2} aria-hidden="true" />
-            </ControlButton>
-            <ControlButton title="Reset zoom" onPress={onZoomReset}>
-              <Search size={14} strokeWidth={2.2} aria-hidden="true" />
-            </ControlButton>
-          </div>
-        </>
-      )}
+      {top.length > 0 && row(top)}
+      {bottom.length > 0 && row(bottom)}
     </div>
   );
 });

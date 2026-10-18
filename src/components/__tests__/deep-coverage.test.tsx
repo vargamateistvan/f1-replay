@@ -435,15 +435,17 @@ describe("deep component coverage", () => {
     expect(screen.getByText("Safety Car")).toBeInTheDocument();
     expect(screen.getByText("Medical Car")).toBeInTheDocument();
     expect(screen.getByText("Fallback layout")).toBeInTheDocument();
-    expect(screen.getByText("↓ PNG")).toBeInTheDocument();
+    expect(screen.getByTitle("Download map snapshot as PNG")).toBeInTheDocument();
 
     fireEvent.click(screen.getByTitle("Zoom in"));
     fireEvent.click(screen.getByTitle("Zoom out"));
-    fireEvent.click(screen.getByTitle("Reset zoom"));
+    fireEvent.click(screen.getByTitle(/^Fit track/));
     fireEvent.click(screen.getByTitle("Rotate left"));
     fireEvent.click(screen.getByTitle("Rotate right"));
+    // Rotated away from the broadcast view: the compass can restore it.
+    fireEvent.click(screen.getByLabelText("Reset map rotation"));
 
-    fireEvent.click(screen.getByText("↓ PNG"));
+    fireEvent.click(screen.getByTitle("Download map snapshot as PNG"));
     fireEvent.click(screen.getAllByText("VER")[0]!);
 
     expect(onSelectDriver).toHaveBeenCalled();

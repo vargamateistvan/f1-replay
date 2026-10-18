@@ -339,7 +339,7 @@ export function TrackMapSettings({
         {row(
           "mapShowTrackControls",
           "Track controls",
-          is3d ? "2D switch, recenter and camera mode buttons" : "Zoom and rotate buttons",
+          is3d ? "Recenter and camera mode buttons" : "Rotate, zoom and fit-track buttons",
         )}
         {!is3d && row("mapShowCompass", "Compass overlay", "North indicator next to the track controls")}
         {row("trackScreenshotPngEnabled", "PNG track snapshot", "Button to download the map as an image")}

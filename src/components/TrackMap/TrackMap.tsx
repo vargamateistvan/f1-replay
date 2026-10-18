@@ -388,6 +388,24 @@ export function TrackMap({
     setZoomLevel(TRACK_FIT_ZOOM);
     persistZoomLevel(TRACK_FIT_ZOOM);
   }, [persistZoomLevel]);
+  const resetRotation = useCallback(() => {
+    trackEvent("trackmap_rotation_reset");
+    setRotationDeg(defaultRotationDeg);
+  }, [defaultRotationDeg]);
+  // Fit = the 3D map's "fit track": fitted zoom and broadcast rotation.
+  const resetView = useCallback(() => {
+    zoomReset();
+    setRotationDeg(defaultRotationDeg);
+  }, [zoomReset, defaultRotationDeg]);
+  const viewModified =
+    Math.abs(zoomLevel - TRACK_FIT_ZOOM) > 1e-6 ||
+    Math.abs(normalizeDeg(rotationDeg - defaultRotationDeg)) > 1e-6;
+  const hasCars = locationIndexes.size > 0;
+  const takeSnapshot = useCallback(() => {
+    if (!svgRef.current) return;
+    trackEvent("trackmap_snapshot_export", { format: "png" });
+    exportTrackSnapshot(svgRef.current);
+  }, []);
 
   // Fetch telemetry for the focused driver's last completed lap.
   // Only fires when a driver is focused and a lap number is known; result is
@@ -790,7 +808,10 @@ export function TrackMap({
         onRotateRight={rotateRight}
         onZoomOut={zoomOut}
         onZoomIn={zoomIn}
-        onZoomReset={zoomReset}
+        onResetView={resetView}
+        viewModified={viewModified}
+        onSnapshot={showTrackScreenshot ? takeSnapshot : undefined}
+        snapshotDisabled={!hasCars}
         onOpenSettings={onOpenSettings}
         onEnter3d={onEnter3d}
       />
@@ -861,8 +882,8 @@ export function TrackMap({
         </div>
       )}
 
-      {/* PNG export — only shown when there is track + car data to capture */}
-      {locationIndexes.size > 0 && (
+      {/* Sector chips + compass (click the compass to restore the rotation). */}
+      {hasCars && (
         <div className="absolute bottom-2 right-2 z-20 flex flex-row items-end gap-2">
           {showSectorBox && hasTrackConditionDisplay && (
             <SectorChips
@@ -870,22 +891,7 @@ export function TrackMap({
               overlayBackground={overlayBackground}
             />
           )}
-          <div className="flex flex-col items-end gap-1">
-            {showCompass && <Compass rotationDeg={rotationDeg} />}
-            {showTrackScreenshot && (
-              <button
-                onClick={() => {
-                  if (!svgRef.current) return;
-                  trackEvent("trackmap_snapshot_export", { format: "png" });
-                  exportTrackSnapshot(svgRef.current);
-                }}
-                className="px-2 py-0.5 text-[9px] font-bold uppercase tracking-widest bg-track/80 border border-panel text-muted hover:text-white hover:border-white/30 transition-colors backdrop-blur-sm"
-                title="Download track snapshot as PNG"
-              >
-                ↓ PNG
-              </button>
-            )}
-          </div>
+          {showCompass && <Compass rotationDeg={rotationDeg} onReset={resetRotation} />}
         </div>
       )}
     </div>
