@@ -42,6 +42,7 @@ const BACINGER_IDS = {
   7: "be-1925", // Spa-Francorchamps
   9: "us-2012", // Austin
   10: "au-1953", // Melbourne
+  12: "my-1999", // Kuala Lumpur (Sepang)
   14: "br-1940", // Interlagos
   15: "es-1991", // Catalunya
   19: "at-1969", // Spielberg
@@ -60,6 +61,7 @@ const BACINGER_IDS = {
   150: "qa-2004", // Losail
   151: "us-2022", // Miami
   152: "us-2023", // Las Vegas
+  153: "es-2026", // Madring
 };
 
 const round = (v, digits) => Number(v.toFixed(digits));

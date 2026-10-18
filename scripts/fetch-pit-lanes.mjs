@@ -4,7 +4,9 @@
  * pit lane) and writes src/data/pit-lanes.json, keyed by circuit_key.
  *
  * Run after fetch-circuits.mjs (Node ≥ 23.6 — it imports .ts utils directly):
- *   node scripts/fetch-pit-lanes.mjs
+ *   node --use-system-ca scripts/fetch-pit-lanes.mjs [--all]
+ *
+ * Without --all, circuits that already have a pit lane are kept as they are.
  *
  * Paced for OpenF1's free tier (3 req/s, 30 req/min). Commit the JSON.
  *
@@ -12,7 +14,7 @@
  * trust a TLS-inspecting proxy's CA: add `--use-system-ca` (Node ≥ 23.8).
  */
 
-import { readdirSync, readFileSync, writeFileSync } from "fs";
+import { existsSync, readdirSync, readFileSync, writeFileSync } from "fs";
 import { join, dirname } from "path";
 import { fileURLToPath } from "url";
 import { extractPitLane } from "../src/utils/pitLane.ts";
@@ -22,7 +24,8 @@ const GEOMETRY_DIR = join(__dirname, "../src/data/circuit-geometry");
 const OUT_PATH = join(__dirname, "../src/data/pit-lanes.json");
 const OPENF1 = "https://api.openf1.org/v1";
 const REQUEST_GAP_MS = 2_200;
-const RACE_YEARS = [2025, 2024, 2023];
+/** Seasons to take a race from, in order of preference (newest venues last). */
+const RACE_YEARS = [2025, 2024, 2023, 2026];
 /** Stops to try per circuit before giving up. */
 const MAX_ATTEMPTS = 3;
 /** Window either side of the stop's `date` (OpenF1's isn't the entry time). */
@@ -39,6 +42,8 @@ async function get(path) {
       await new Promise((r) => setTimeout(r, 10_000 * (attempt + 1)));
       continue;
     }
+    // OpenF1 answers 404 (not []) when a filter matches nothing.
+    if (res.status === 404) return [];
     if (!res.ok) throw new Error(`HTTP ${res.status} for ${path}`);
     return res.json();
   }
@@ -103,8 +108,11 @@ async function pitLaneFor(circuitKey, geom) {
 }
 
 async function main() {
-  const out = {};
+  // Only fill circuits without a pit lane unless --all is passed.
+  const rebuildAll = process.argv.includes("--all");
+  const out = !rebuildAll && existsSync(OUT_PATH) ? JSON.parse(readFileSync(OUT_PATH, "utf8")) : {};
   for (const [circuitKey, { name }] of latestGeometries()) {
+    if (out[circuitKey]) continue;
     const geom = JSON.parse(readFileSync(join(GEOMETRY_DIR, name), "utf8"));
     try {
       const lane = await pitLaneFor(circuitKey, geom);

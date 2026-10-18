@@ -160,17 +160,22 @@ function selfIntersects(ring: number[][]): boolean {
   return false;
 }
 
-// Every baked 2025 circuit, including Suzuka's figure of eight and Monaco's
-// Loews hairpin.
-const CIRCUIT_KEYS_2025 = Object.keys(import.meta.glob("@/data/circuit-geometry/*-2025.json"))
-  .map((path) => Number(path.match(/(\d+)-2025\.json$/)![1]))
-  .sort((a, b) => a - b);
+// The latest baked layout of every circuit, including Suzuka's figure of
+// eight, Monaco's Loews hairpin and the GPS-baked venues (Madring, KL).
+const LATEST_LAYOUTS = (() => {
+  const latest = new Map<number, number>();
+  for (const path of Object.keys(import.meta.glob("@/data/circuit-geometry/*.json"))) {
+    const [, key, year] = path.match(/(\d+)-(\d+)\.json$/)!.map(Number) as [number, number, number];
+    latest.set(key, Math.max(latest.get(key) ?? 0, year));
+  }
+  return [...latest].sort((a, b) => a[0] - b[0]);
+})();
 
-describe.each(CIRCUIT_KEYS_2025)("buildTrackSurface draws only simple polygons — circuit %i", (key) => {
+describe.each(LATEST_LAYOUTS)("buildTrackSurface draws only simple polygons — circuit %i (%i)", (key, year) => {
   it("never produces a self-crossing ring (Mapbox would fill the gaps black)", async () => {
     const { loadCircuitGeometry } = await import("@/data/circuitGeometry");
-    const g = (await loadCircuitGeometry(key, 2025))!;
-    const s = buildTrackSurface(g, getCircuitGeoref(key, 2025)!, getPitLane(key));
+    const g = (await loadCircuitGeometry(key, year))!;
+    const s = buildTrackSurface(g, getCircuitGeoref(key, year)!, getPitLane(key));
     for (const f of [...s.track.features, ...s.verge.features]) {
       for (const ring of f.geometry.coordinates) {
         expect(selfIntersects(ring)).toBe(false);
