@@ -13,6 +13,10 @@ import App from "./App.tsx";
 import { appVersion } from "@/lib/appVersion";
 import { runWhenIdle } from "@/lib/idle";
 import { loadSentry, Sentry } from "@/lib/sentry";
+import {
+  isCrossOriginFrameError,
+  isIgnorableWindowError,
+} from "@/utils/ignorableErrors";
 
 const sentryDsn =
   import.meta.env.VITE_SENTRY_DSN ||
@@ -30,13 +34,6 @@ const shouldInitializeSentry =
   import.meta.env.PROD &&
   typeof globalThis.location !== "undefined" &&
   !isLocalhostHost(globalThis.location.hostname);
-
-function isCrossOriginFrameError(value: unknown): boolean {
-  const message = value instanceof Error ? value.message : String(value);
-  return /blocked a frame with origin|cross-origin frame|secure connection to the server cannot be made|certificate for this server is invalid/i.test(
-    message,
-  );
-}
 
 if (shouldInitializeSentry && sentryDsn) {
   // The SDK loads in parallel with the first render; early calls are queued.
@@ -136,7 +133,7 @@ if (typeof globalThis.window !== "undefined") {
   // Intercept all errors
   globalThis.addEventListener("error", (event) => {
     const msg = event.error?.message || event.message || "Unknown error";
-    if (isCrossOriginFrameError(event.error ?? msg)) {
+    if (isIgnorableWindowError(event)) {
       event.preventDefault();
       return true;
     }

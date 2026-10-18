@@ -1,11 +1,9 @@
 import { useEffect, useState } from "react";
-
-function isCrossOriginFrameError(value: unknown): boolean {
-  const message = value instanceof Error ? value.message : String(value);
-  return /blocked a frame with origin|cross-origin frame|secure connection to the server cannot be made|certificate for this server is invalid/i.test(
-    message,
-  );
-}
+import {
+  isCrossOriginFrameError,
+  isIgnorableWindowError,
+  isOpaqueScriptError,
+} from "@/utils/ignorableErrors";
 
 export function ErrorDisplay() {
   const [errors, setErrors] = useState<string[]>([]);
@@ -16,7 +14,15 @@ export function ErrorDisplay() {
       const stored = sessionStorage.getItem("__app_errors");
       if (stored) {
         const parsed = JSON.parse(stored);
-        setErrors(parsed.map((e: { msg?: string }) => e.msg || String(e)));
+        setErrors(
+          parsed
+            .map((e: { msg?: string }) => e.msg || String(e))
+            // Entries saved before opaque "Script error." was filtered out.
+            .filter(
+              (msg: string) =>
+                !isOpaqueScriptError({ message: msg.replace(/^Error: /, "") }),
+            ),
+        );
       }
     } catch (e) {
       console.error("Failed to load stored errors:", e);
@@ -24,7 +30,7 @@ export function ErrorDisplay() {
 
     // Listen for new errors
     const handleError = (event: ErrorEvent) => {
-      if (isCrossOriginFrameError(event.error ?? event.message)) {
+      if (isIgnorableWindowError(event)) {
         event.preventDefault();
         return;
       }
