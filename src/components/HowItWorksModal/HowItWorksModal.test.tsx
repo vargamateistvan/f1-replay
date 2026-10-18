@@ -69,4 +69,12 @@ describe("HowItWorksModal", () => {
       screen.getByText(/session or race is complete/i),
     ).toBeInTheDocument();
   });
+
+  it("explains the 3D map cameras and TV mode", () => {
+    state.isHelpOpen = true;
+    render(<HowItWorksModal />);
+    expect(screen.getByText("🗺️ 3D Track Map")).toBeInTheDocument();
+    expect(screen.getByText("TV Mode:")).toBeInTheDocument();
+    expect(screen.getByText(/auto-director cuts between overtakes/)).toBeInTheDocument();
+  });
 });

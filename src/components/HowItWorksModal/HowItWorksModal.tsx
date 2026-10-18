@@ -254,6 +254,49 @@ export function HowItWorksModal() {
               </ul>
             </section>
 
+            {/* 3D map */}
+            <section>
+              <h3 className="text-[13px] font-bold text-white uppercase tracking-widest mb-2">
+                🗺️ 3D Track Map
+              </h3>
+              <p className="text-[12px] leading-relaxed mb-2">
+                Switch the track map to 3D with its 3D button (or in Settings →
+                Track map). Needs WebGL2; available for circuits with mapped
+                geometry.
+              </p>
+              <ul className="text-[12px] leading-relaxed space-y-1.5 ml-3">
+                <li>
+                  <strong className="text-white">Real Circuit:</strong>{" "}
+                  Full-width asphalt, kerbs, pit lane and start grid on a real
+                  map, with flags painted on the track
+                </li>
+                <li>
+                  <strong className="text-white">Light &amp; Weather:</strong>{" "}
+                  Lighting follows the sun at the circuit (night races are
+                  night); rain brings a wet track and haze
+                </li>
+                <li>
+                  <strong className="text-white">Cameras:</strong> The camera
+                  button cycles follow, chase (behind the car), onboard (T-cam)
+                  and orbit; close-up cameras show a minimap of the whole field
+                </li>
+                <li>
+                  <strong className="text-white">TV Mode:</strong> In races, an
+                  auto-director cuts between overtakes, pit stops, the closest
+                  battle and the leader. Click any car to take over
+                </li>
+                <li>
+                  <strong className="text-white">Take the Camera:</strong> Drag,
+                  rotate or tilt to look around; Resume follow picks the car
+                  back up
+                </li>
+                <li>
+                  <strong className="text-white">Share a View:</strong> The URL
+                  keeps the time, focused driver and camera mode
+                </li>
+              </ul>
+            </section>
+
             {/* Timing colours */}
             <section>
               <h3 className="text-[13px] font-bold text-white uppercase tracking-widest mb-2">
@@ -429,6 +472,11 @@ export function HowItWorksModal() {
                   <strong className="text-white">Track Map:</strong> Show/hide
                   focused HUD, leaderboard, tyre badges, battle rings, sector
                   flags, and heatmap overlays
+                </li>
+                <li>
+                  <strong className="text-white">3D Map:</strong> 2D or 3D
+                  view, flag colours on track, sector ribbon, weather effects,
+                  session-time lighting, buildings, car models and terrain
                 </li>
                 <li>
                   <strong className="text-white">Playback Speed:</strong> Set

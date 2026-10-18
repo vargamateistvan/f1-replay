@@ -12,6 +12,7 @@ The app features a broadcast-style experience with:
 
 - **Interactive Race Playback** — scrub through sessions with fine-grained control
 - **Live Track Map** — watch cars move across the circuit in real-time with position overlays, focus-follow camera, and lap heatmap overlays
+- **3D Track Map** — opt-in Mapbox 3D view with a real-width track, flags painted on the asphalt, session-time lighting and rain, chase / onboard / orbit cameras, and an auto-director TV mode
 - **Telemetry Visualization** — high-frequency speed, throttle, brake, RPM, gear, and DRS data with multi-driver comparison
 - **Tire Strategy Analysis** — pit stops, compound changes, tire age tracking, and stint longevity
 - **Track Information** — circuit layout, turn names, DRS zones, and real-time sector performance
@@ -58,6 +59,20 @@ The app features a broadcast-style experience with:
 - **Driver Spotlight** — focus on a single driver, auto-follow radio and key events
 - **Session Info Bar** — always-visible race clock, weather, flags, and track status
 - **Error Pages** — dedicated not-found and crash screens integrated with routing/error boundaries
+
+### 3D Track Map
+
+An opt-in alternative to the 2D map (the 3D button on the map, or **Settings → Track map → 3D map**). It needs a Mapbox token (see [Enable the 3D map](#optional-enable-the-3d-map)) and WebGL2, and is shown for circuits with baked, georeferenced geometry.
+
+- **Real track surface** — real-width asphalt, verges, pit lane, red/white kerbs and the start grid on the Mapbox Standard basemap, with optional 3D buildings and terrain
+- **Flags on track** — marshal-post flags painted onto the asphalt, plus sector condition ribbons matching the 2D map
+- **Session-time lighting** — the light follows the sun at the circuit at the replay's moment, so night races look like night
+- **Weather** — rain, a wet (darker, reflective) track surface and rain haze when OpenF1 reports rainfall
+- **Cars** — the same markers as the 2D map, with team-tinted 3D car models when zoomed in
+- **Telemetry overlays** — speed heat, lap delta, braking and elevation gradients on the track for the focused driver
+- **Camera modes** — follow, chase (TV-style behind the car), onboard (T-cam), orbit, and **TV** (races): an auto-director that cuts between overtakes (a few seconds before they happen), pit stops, the front-most battle and the leader, with a caption for each shot
+- **Minimap** — a whole-field overview inset in the close-up cameras
+- **Shareable views** — the camera is kept in the URL (`?cam=`), so with `?focus=` and `?t=` a link opens the same car, camera and moment
 - **Responsive Mobile Layout** — mobile navigation, optimized touch controls
 
 ## Tech Stack
@@ -71,6 +86,7 @@ The app features a broadcast-style experience with:
 | **Data Fetching**    | TanStack React Query 5 (with persistence)                 |
 | **Charts**           | uPlot (high-frequency telemetry), Recharts 3 (standings)  |
 | **Track Rendering**  | Custom SVG from OpenF1 location data                      |
+| **3D Map**           | Mapbox GL JS 3 (opt-in, lazy-loaded chunk)                |
 | **Routing**          | React Router 6 (BrowserRouter + static host SPA fallback) |
 | **Testing**          | Vitest, React Testing Library, jsdom                      |
 | **Linting**          | ESLint 9, TypeScript strict mode                          |
@@ -122,6 +138,16 @@ VITE_OPENF1_MQTT_USERNAME=your_email_or_any_non_empty_string
 # Optional; defaults to OpenF1 public WSS endpoint
 VITE_OPENF1_MQTT_WSS_URL=wss://mqtt.openf1.org:8084/mqtt
 ```
+
+### Optional: Enable the 3D Map
+
+The 3D track map uses Mapbox GL JS. Create a token at [mapbox.com](https://account.mapbox.com/) and add it to `.env.local`:
+
+```bash
+VITE_MAPBOX_TOKEN=pk.your_public_token
+```
+
+Without a token (or without WebGL2) the 3D option is disabled and the 2D map is used. Each 3D map load counts against your Mapbox quota; the map is reused while the circuit stays the same.
 
 ### Optional: Enable Google Analytics 4
 
@@ -186,6 +212,14 @@ yarn preview
 - **Track Heatmap** — overlay lap-based pace heatmap for focused runs
 - **Focused HUD Controls** — tune what appears in focused track-map mode from Settings
 
+### 3D Map Cameras
+
+- **Switch to 3D** — use the 3D button on the track map (or Settings → Track map)
+- **Cycle cameras** — the camera button steps through follow → chase → onboard → orbit (→ TV in races)
+- **TV mode** — sit back: the director picks the action; click any car to take over and follow it
+- **Take the camera** — drag, rotate or tilt the map to pause following; **Resume follow** picks it back up
+- **Share** — copy the URL; it keeps the session, time, focused driver and camera mode
+
 ## How It Works
 
 F1 Replay is built as a time-synced pipeline where every panel reads from the same
@@ -216,6 +250,7 @@ session clock.
 - Track geometry is generated from location data and circuit metadata.
 - Car positions are interpolated at the current playhead time and rendered as SVG markers.
 - Overlays (focus-follow camera, battle rings, flags, SC/VSC/formation badges, mini leaderboard, compounds) are derived from live replay state.
+- The 3D map (`src/components/TrackMap3D/`) projects the same positions onto real-world coordinates with a per-circuit fit (`src/utils/georef.ts`) and drives cars and cameras from one animation loop; the TV camera's shot selection is a pure function in `src/timeline/director.ts`.
 
 6. Telemetry and analysis
 
