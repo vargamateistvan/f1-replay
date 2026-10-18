@@ -490,8 +490,13 @@ export function TrackMap3D({
       zoom: 14,
       pitch: MAP3D_OVERVIEW_PITCH,
       antialias: true,
+      // Replaced below by the compact control.
+      attributionControl: false,
     });
     mapRef.current = map;
+    // Mapbox's terms and OpenStreetMap's licence require visible attribution;
+    // the compact control keeps it to an ⓘ button that expands on click.
+    map.addControl(new mapboxgl.AttributionControl({ compact: true }), "bottom-right");
     // Each Map instance is a billed Mapbox map load.
     trackEvent("trackmap3d_map_load", { circuit_key: circuitKeyRef.current ?? -1 });
 

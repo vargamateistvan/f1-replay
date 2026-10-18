@@ -29,6 +29,7 @@ const { FakeMap } = vi.hoisted(() => {
     setRain = vi.fn();
     addModel = vi.fn();
     resize = vi.fn();
+    addControl = vi.fn();
     hasImage = vi.fn(() => false);
     addImage = vi.fn();
     removeImage = vi.fn();
@@ -81,7 +82,15 @@ const { FakeMap } = vi.hoisted(() => {
   return { FakeMap };
 });
 
-vi.mock("mapbox-gl", () => ({ default: { Map: FakeMap, accessToken: "" } }));
+vi.mock("mapbox-gl", () => ({
+  default: {
+    Map: FakeMap,
+    accessToken: "",
+    AttributionControl: class {
+      constructor(public options: unknown) {}
+    },
+  },
+}));
 vi.mock("mapbox-gl/dist/mapbox-gl.css", () => ({}));
 
 vi.mock("./availability", () => ({ mapboxToken: vi.fn(() => "pk.test") }));
@@ -291,6 +300,14 @@ describe("TrackMap3D", () => {
       map!.emit("click", { features: [{ properties: { num: 16 } }] }, "map3d-cars"),
     );
     expect(onSelectDriver).toHaveBeenCalledWith(16);
+  });
+
+  it("keeps the required attribution, in compact form", () => {
+    const { map } = renderMap();
+    expect(map!.options.attributionControl).toBe(false);
+    const [control, position] = map!.addControl.mock.calls[0]!;
+    expect((control as { options: unknown }).options).toEqual({ compact: true });
+    expect(position).toBe("bottom-right");
   });
 
   it("removes the map on unmount", () => {
