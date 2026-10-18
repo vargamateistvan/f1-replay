@@ -2184,6 +2184,7 @@ export default function RaceWeekend() {
           <SessionInfoBar
             laps={laps.data ?? []}
             raceControl={raceControl.data ?? []}
+            drivers={drivers.data ?? []}
             sessionTimeMs={t}
             sessionStartMs={sessionStartMs}
             qualiPhase={qualiPhase}
@@ -2242,6 +2243,7 @@ export default function RaceWeekend() {
           <SessionInfoBar
             laps={laps.data ?? []}
             raceControl={raceControl.data ?? []}
+            drivers={drivers.data ?? []}
             sessionTimeMs={t}
             sessionStartMs={sessionStartMs}
             qualiPhase={qualiPhase}
@@ -2633,6 +2635,7 @@ export default function RaceWeekend() {
           <SessionInfoBar
             laps={laps.data ?? []}
             raceControl={raceControl.data ?? []}
+            drivers={drivers.data ?? []}
             sessionTimeMs={t}
             sessionStartMs={sessionStartMs}
             qualiPhase={qualiPhase}

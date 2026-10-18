@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { SessionInfoBar } from "@/components/SessionInfoBar";
-import type { Lap, RaceControl } from "@/api/types";
+import type { Driver, Lap, RaceControl } from "@/api/types";
 
 const state = vi.hoisted(() => ({
   lightMode: false,
@@ -142,5 +142,54 @@ describe("SessionInfoBar", () => {
     expect(screen.getByText("Countdown")).toBeInTheDocument();
     expect(screen.getByText("58:20")).toBeInTheDocument();
     expect(screen.queryByText("Lap")).not.toBeInTheDocument();
+  });
+
+  it("styles the latest race control message like the commentary feed", () => {
+    const sessionStartMs = Date.parse("2024-01-01T00:00:00.000Z");
+
+    render(
+      <SessionInfoBar
+        laps={[] as Lap[]}
+        raceControl={
+          [
+            {
+              date: "2024-01-01T00:00:10.000Z",
+              flag: "YELLOW",
+              lap_number: 3,
+              message: "YELLOW IN TRACK SECTOR 4",
+            },
+            {
+              date: "2024-01-01T00:00:20.000Z",
+              category: "Other",
+              flag: null,
+              driver_number: 44,
+              lap_number: 4,
+              message: "5 SECOND TIME PENALTY FOR CAR 44 (HAM)",
+            },
+            {
+              date: "2024-01-01T00:05:00.000Z",
+              flag: "RED",
+              lap_number: 9,
+              message: "RED FLAG",
+            },
+          ] as RaceControl[]
+        }
+        drivers={
+          [
+            { driver_number: 44, name_acronym: "HAM", team_colour: "E8002D" },
+          ] as Driver[]
+        }
+        sessionTimeMs={30_000}
+        sessionStartMs={sessionStartMs}
+      />,
+    );
+
+    expect(
+      screen.getByText("5 SECOND TIME PENALTY FOR CAR 44 (HAM)"),
+    ).toBeInTheDocument();
+    expect(screen.queryByText("RED FLAG")).not.toBeInTheDocument();
+    expect(screen.getByText("L4")).toBeInTheDocument();
+    expect(screen.getByText("Penalty")).toHaveClass("bg-red-500/25");
+    expect(screen.getByText("HAM")).toHaveStyle({ color: "#E8002D" });
   });
 });

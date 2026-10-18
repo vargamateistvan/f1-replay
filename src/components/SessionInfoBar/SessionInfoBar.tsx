@@ -1,15 +1,23 @@
 import { useEffect, useMemo, useState } from "react";
-import type { Lap, RaceControl } from "@/api/types";
+import type { Driver, Lap, RaceControl } from "@/api/types";
 import { useSettings } from "@/stores/settings";
+import { teamColor } from "@/utils/color";
 import { toDisplayTemperature, temperatureUnitLabel } from "@/utils/units";
 import {
-  deriveTrackFlagState,
-  hasAnyMarshalYellow,
+  normalizeRaceControl,
+  type NormalizedRaceControlEvent,
 } from "@/timeline/raceControl";
+import { COMMENTARY_BADGE_CLASS } from "@/components/CommentaryPanels/commentaryList";
+import {
+  raceControlEventAccent,
+  raceControlEventBadge,
+} from "@/components/RaceControl/eventStyle";
 
 interface Props {
   laps: Lap[];
   raceControl: RaceControl[];
+  /** Resolves the driver named in the latest message (acronym + team colour). */
+  drivers?: Driver[];
   sessionTimeMs: number;
   sessionStartMs: number;
   qualiPhase?: string | null;
@@ -24,53 +32,13 @@ interface Props {
   onJumpToSessionTime?: (sessionTimeMs: number) => void;
 }
 
-interface TrackStatus {
-  label: string;
-  bg: string;
-  color: string;
-}
-
-const FLAG_STATUS: Record<string, TrackStatus> = {
-  FORMATION_LAP: { label: "FORMATION LAP", bg: "#1c1c2e", color: "#c8c8ff" },
-  GREEN: { label: "GREEN FLAG", bg: "#39b54a", color: "#000" },
-  CLEAR: { label: "TRACK CLEAR", bg: "#39b54a", color: "#000" },
-  YELLOW: { label: "YELLOW FLAG", bg: "#f5d400", color: "#000" },
-  DOUBLE_YELLOW: { label: "DBL YELLOW", bg: "#f5d400", color: "#000" },
-  RED: { label: "RED FLAG", bg: "#e8002d", color: "#fff" },
-  SAFETY_CAR: { label: "SAFETY CAR", bg: "#f5a623", color: "#000" },
-  VIRTUAL_SAFETY_CAR: { label: "VSC", bg: "#f5a623", color: "#000" },
-  CHEQUERED: { label: "CHEQUERED", bg: "#e8e8e8", color: "#000" },
-  BLACK_AND_WHITE: { label: "B&W FLAG", bg: "#888", color: "#000" },
-};
-
-function deriveStatus(
-  entries: RaceControl[],
-  sessionStartMs: number,
-  currentT: number,
-): TrackStatus {
-  if (!sessionStartMs) return FLAG_STATUS.GREEN;
-  const state = deriveTrackFlagState(entries, sessionStartMs, currentT);
-  if (!state) return FLAG_STATUS.GREEN;
-
-  const flag = state.globalFlag;
-  if (flag && FLAG_STATUS[flag]) {
-    return FLAG_STATUS[flag];
-  }
-
-  if (hasAnyMarshalYellow(state)) {
-    return FLAG_STATUS.YELLOW;
-  }
-
-  return FLAG_STATUS.GREEN;
-}
-
 function deriveLatestMessage(
-  entries: RaceControl[],
-  currentT: number,
-): RaceControl | null {
-  let last: RaceControl | null = null;
-  for (const e of entries) {
-    if (new Date(e.date).getTime() > currentT) break;
+  events: NormalizedRaceControlEvent[],
+  sessionTimeMs: number,
+): NormalizedRaceControlEvent | null {
+  let last: NormalizedRaceControlEvent | null = null;
+  for (const e of events) {
+    if (e.ms > sessionTimeMs) break;
     last = e;
   }
   return last;
@@ -98,6 +66,7 @@ function fmtTemp(
 export function SessionInfoBar({
   laps,
   raceControl,
+  drivers = [],
   sessionTimeMs,
   sessionStartMs,
   qualiPhase = null,
@@ -118,11 +87,7 @@ export function SessionInfoBar({
   const [lapError, setLapError] = useState<string | null>(null);
   const currentT = sessionStartMs + sessionTimeMs;
 
-  const formationStatus = useMemo<TrackStatus>(() => {
-    return lightMode
-      ? { label: "FORMATION LAP", bg: "#e8ecf8", color: "#4a5575" }
-      : FLAG_STATUS["FORMATION_LAP"];
-  }, [lightMode]);
+  const formationLapColor = lightMode ? "#4a5575" : "#c8c8ff";
 
   const currentLap = useMemo(() => {
     let max = 0;
@@ -164,14 +129,22 @@ export function SessionInfoBar({
       ? sessionTimeMs >= 0 && sessionTimeMs < lightsOutMs
       : false;
 
-  const status = useMemo(() => {
-    if (isFormationLap) return formationStatus;
-    return deriveStatus(raceControl, sessionStartMs, currentT);
-  }, [formationStatus, isFormationLap, raceControl, sessionStartMs, currentT]);
-  const latestMsg = useMemo(
-    () => deriveLatestMessage(raceControl, currentT),
-    [raceControl, currentT],
+  const normalizedRaceControl = useMemo(
+    () => normalizeRaceControl(raceControl, sessionStartMs),
+    [raceControl, sessionStartMs],
   );
+  const latestMsg = useMemo(
+    () => deriveLatestMessage(normalizedRaceControl, sessionTimeMs),
+    [normalizedRaceControl, sessionTimeMs],
+  );
+  const latestMsgDriver =
+    latestMsg?.driverNumber != null
+      ? drivers.find((d) => d.driver_number === latestMsg.driverNumber)
+      : undefined;
+  const latestMsgBadge = latestMsg ? raceControlEventBadge(latestMsg) : null;
+  const latestMsgAccent = latestMsg
+    ? raceControlEventAccent(latestMsg, latestMsgDriver?.team_colour)
+    : null;
   let lapDisplay: string | number = "—";
   if (isFormationLap) {
     lapDisplay = "F";
@@ -265,24 +238,12 @@ export function SessionInfoBar({
             onClick={() => setIsLapDialogOpen(true)}
             className="tabular-nums text-[13px] font-black transition-colors hover:text-f1red"
             style={{
-              color: isFormationLap ? formationStatus.color : undefined,
+              color: isFormationLap ? formationLapColor : undefined,
             }}
             title={`Jump to lap (1-${selectableLapMax})`}
           >
             {lapDisplay}
           </button>
-        </div>
-      )}
-
-      {/* Track status badge - hide during formation lap since lap display shows 'F' */}
-      {!isFormationLap && (
-        <div className="flex shrink-0 items-center justify-center border-r border-panel px-2.5 py-2 sm:justify-start sm:px-4">
-          <span
-            className="px-2 py-0.5 text-center text-[9px] font-black tracking-widest"
-            style={{ background: status.bg, color: status.color }}
-          >
-            {status.label}
-          </span>
         </div>
       )}
 
@@ -329,13 +290,34 @@ export function SessionInfoBar({
       )}
 
       {/* Latest RC message */}
-      {latestMsg && (
-        <div className="hidden min-w-0 flex-1 items-center gap-2 px-4 py-2 sm:flex">
-          {latestMsg.lap_number !== null && (
-            <span className="text-muted shrink-0">L{latestMsg.lap_number}</span>
+      {latestMsg && latestMsgBadge && (
+        <div className="relative hidden min-w-0 flex-1 items-center gap-2 px-4 py-2 sm:flex">
+          {latestMsgAccent && (
+            <span
+              aria-hidden="true"
+              className="absolute inset-y-0 left-0 w-[4px]"
+              style={latestMsgAccent}
+            />
+          )}
+          {latestMsg.lapNumber !== null && (
+            <span className="text-muted shrink-0">L{latestMsg.lapNumber}</span>
+          )}
+          <span
+            className={`${COMMENTARY_BADGE_CLASS} ${latestMsgBadge.className}`}
+            style={latestMsgBadge.style}
+          >
+            {latestMsgBadge.label}
+          </span>
+          {latestMsgDriver && (
+            <span
+              className="shrink-0 font-black"
+              style={{ color: teamColor(latestMsgDriver.team_colour) }}
+            >
+              {latestMsgDriver.name_acronym}
+            </span>
           )}
           <span className="text-white/70 truncate normal-case tracking-normal font-medium">
-            {latestMsg.message}
+            {latestMsg.description}
           </span>
         </div>
       )}

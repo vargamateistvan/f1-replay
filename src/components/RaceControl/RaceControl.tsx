@@ -1,16 +1,13 @@
 import { useEffect, useMemo, useState } from "react";
-import type { CSSProperties } from "react";
 import type { RaceControl as RaceControlEntry, Driver } from "@/api/types";
 import { downloadEndpointCsv } from "@/api/client";
 import { useSettings } from "@/stores/settings";
 import { teamColor } from "@/utils/color";
 import {
   normalizeRaceControl,
-  toFlagKey,
   groupEventsByLap,
   groupEventsByPhase,
   deriveTrackFlagState,
-  type RaceControlSeverity,
   type RaceControlKind,
 } from "@/timeline/raceControl";
 import { isPracticeSession } from "@/utils/session";
@@ -28,25 +25,12 @@ import {
   formatSessionElapsedTime,
 } from "@/components/CommentaryPanels/commentaryList";
 import { CommentaryJumpButton } from "@/components/CommentaryPanels/CommentaryJumpButton";
-import {
-  DEFAULT_FLAG_CONFIG,
-  FLAG_CONFIG,
-  flagAccentStyle,
-  type FlagVisualConfig,
-} from "./flagConfig";
+import { DEFAULT_FLAG_CONFIG, FLAG_CONFIG } from "./flagConfig";
+import { raceControlEventAccent, raceControlEventBadge } from "./eventStyle";
 
 // ─── Visual config ───────────────────────────────────────────────────────────
 
 const DEFAULT_CONFIG = DEFAULT_FLAG_CONFIG;
-
-const SEVERITY_BADGE: Record<
-  RaceControlSeverity,
-  { label: string; cls: string }
-> = {
-  info: { label: "Info", cls: "bg-track text-white/80" },
-  warning: { label: "Warn", cls: "bg-amber-500/20 text-amber-300" },
-  critical: { label: "Critical", cls: "bg-red-500/20 text-red-300" },
-};
 
 // ─── Kind filter groups ───────────────────────────────────────────────────────
 
@@ -88,17 +72,6 @@ const FLAG_BANNER_PRIORITY = [
 function flagBannerPriority(flagKey: string): number {
   const index = FLAG_BANNER_PRIORITY.indexOf(flagKey);
   return index === -1 ? FLAG_BANNER_PRIORITY.length : index;
-}
-
-function eventAccentBorderStyle(
-  flag: string | null,
-  cfg: FlagVisualConfig,
-  teamColour?: string,
-): CSSProperties | null {
-  if (!flag) {
-    return teamColour ? { backgroundColor: teamColor(teamColour) } : null;
-  }
-  return flagAccentStyle(cfg);
 }
 
 // ─── Props ────────────────────────────────────────────────────────────────────
@@ -411,10 +384,6 @@ export function RaceControlFeed({
               {/* Events in this lap/phase — reverse so newest is first within the group */}
               <div className={COMMENTARY_GROUP_ITEMS_CLASS}>
                 {[...group.events].reverse().map((e) => {
-                  const cfg = FLAG_CONFIG[toFlagKey(e.flag)] ?? DEFAULT_CONFIG;
-                  const hasFlagConfig =
-                    Boolean(e.flag) && cfg !== DEFAULT_CONFIG;
-                  const severity = SEVERITY_BADGE[e.severity];
                   const isPenaltyEntry = e.kind === "penalty";
                   const eventDriver =
                     e.driverNumber !== null
@@ -423,17 +392,7 @@ export function RaceControlFeed({
                   const eventTime = formatSessionElapsedTime(
                     Math.max(0, e.ms),
                   );
-                  const badgeLabel = e.flag
-                    ? cfg.label || e.flag
-                    : isPenaltyEntry
-                      ? "Penalty"
-                      : severity.label;
-                  const badgeStyle = hasFlagConfig
-                    ? {
-                        backgroundColor: cfg.badgeBg,
-                        color: cfg.badgeText,
-                      }
-                    : undefined;
+                  const badge = raceControlEventBadge(e);
                   // `!` keeps the row tone from being overridden by the
                   // shared even: zebra-stripe background.
                   const rowToneClass = isPenaltyEntry
@@ -441,9 +400,8 @@ export function RaceControlFeed({
                     : eventDriver
                       ? "!bg-track/50 hover:!bg-white/[0.04]"
                       : "";
-                  const accentBorderStyle = eventAccentBorderStyle(
-                    e.flag,
-                    cfg,
+                  const accentBorderStyle = raceControlEventAccent(
+                    e,
                     eventDriver?.team_colour,
                   );
                   return (
@@ -467,16 +425,10 @@ export function RaceControlFeed({
                         </div>
                         <div className={COMMENTARY_META_CLASS}>
                           <span
-                            className={`${COMMENTARY_BADGE_CLASS} ${
-                              hasFlagConfig
-                                ? ""
-                                : isPenaltyEntry
-                                  ? "bg-red-500/25 text-red-200"
-                                  : severity.cls
-                            }`}
-                            style={badgeStyle}
+                            className={`${COMMENTARY_BADGE_CLASS} ${badge.className}`}
+                            style={badge.style}
                           >
-                            {badgeLabel}
+                            {badge.label}
                           </span>
                           {eventDriver && (
                             <span

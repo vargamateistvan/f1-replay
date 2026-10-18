@@ -172,6 +172,10 @@ const LATEST_LAYOUTS = (() => {
   return [...latest].sort((a, b) => a[0] - b[0]);
 })();
 
+// Whole-circuit build plus an O(n²) crossing scan per ring: well under a
+// second alone, but the default 5 s can run out under full-suite load.
+const LAYOUT_TEST_TIMEOUT_MS = 30_000;
+
 describe.each(LATEST_LAYOUTS)("buildTrackSurface draws only simple polygons — circuit %i (%i)", (key, year) => {
   it("never produces a self-crossing ring (Mapbox would fill the gaps black)", async () => {
     const { loadCircuitGeometry } = await import("@/data/circuitGeometry");
@@ -192,7 +196,7 @@ describe.each(LATEST_LAYOUTS)("buildTrackSurface draws only simple polygons — 
         expect(selfIntersects(ring)).toBe(false);
       }
     }
-  });
+  }, LAYOUT_TEST_TIMEOUT_MS);
 });
 
 describe("buildTrackSurface (Monaco)", () => {
