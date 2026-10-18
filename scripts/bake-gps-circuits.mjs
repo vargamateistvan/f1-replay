@@ -1,12 +1,15 @@
 /**
  * Build-time bake for circuits MultiViewer has no geometry for (new venues
- * such as Madring): derives the centerline from the fastest clean race lap's
- * GPS trace on OpenF1 and writes src/data/circuit-geometry/{key}-{year}.json
+ * such as Madring): derives the centerline from the fastest clean lap's GPS
+ * trace on OpenF1 — from the newest finished session of any kind, so a new
+ * venue is covered from its first practice — and writes
+ * src/data/circuit-geometry/{key}-{year}.json
  * in the same shape as fetch-circuits.mjs (with `source: "openf1-gps"` and no
  * corners or marshal sectors).
  *
- * Only circuits from the given season's races with no baked file at all are
- * written. Run after fetch-circuits.mjs, then fetch-georef.mjs and
+ * Only circuits from the given season's sessions with no baked file at all
+ * are written. Once MultiViewer publishes official geometry, fetch-circuits
+ * overwrites the GPS file with it. Run after fetch-circuits.mjs, then fetch-georef.mjs and
  * fetch-pit-lanes.mjs:
  *   node --use-system-ca scripts/bake-gps-circuits.mjs [year]
  *
@@ -75,15 +78,21 @@ async function main() {
       .filter(Boolean)
       .map(Number),
   );
-  const races = (await get(`/sessions?year=${year}&session_name=Race`)).filter(
-    (s) => !s.is_cancelled && Date.parse(s.date_end) < Date.now(),
-  );
+  // Finished sessions of every kind, newest first: the most recent running
+  // has the cleanest racing line.
+  const sessions = (await get(`/sessions?year=${year}`))
+    .filter((s) => !s.is_cancelled && Date.parse(s.date_end) < Date.now())
+    .sort((a, b) => Date.parse(b.date_start) - Date.parse(a.date_start));
   let written = 0;
-  for (const session of races) {
+  const tried = new Set();
+  for (const session of sessions) {
     if (baked.has(session.circuit_key)) continue;
+    tried.add(session.circuit_key);
     const trace = await lapTrace(session);
     if (!trace) {
-      console.warn(`  SKIP ${session.circuit_key} ${session.circuit_short_name}: no clean lap trace`);
+      console.warn(
+        `  no clean lap in ${session.circuit_short_name} ${session.session_name}; trying an earlier session`,
+      );
       continue;
     }
     const geometry = {
@@ -103,8 +112,11 @@ async function main() {
     baked.add(session.circuit_key);
     written++;
     console.log(
-      `  ${session.circuit_key} ${session.circuit_short_name}: ${trace.x.length} pts from #${trace.lap.driver_number} lap ${trace.lap.lap_number} (${trace.lap.lap_duration}s) → ${out}`,
+      `  ${session.circuit_key} ${session.circuit_short_name} (${session.session_name}): ${trace.x.length} pts from #${trace.lap.driver_number} lap ${trace.lap.lap_number} (${trace.lap.lap_duration}s) → ${out}`,
     );
+  }
+  for (const key of tried) {
+    if (!baked.has(key)) console.warn(`  SKIP ${key}: no session with a clean lap trace yet`);
   }
   console.log(`\nDone: ${written} written. Next: fetch-georef.mjs, fetch-pit-lanes.mjs.`);
 }

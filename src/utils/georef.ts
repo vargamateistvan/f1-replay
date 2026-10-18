@@ -32,6 +32,8 @@ export interface CircuitGeoref {
   /** Fit quality: RMS / max distance (m) from the baked centerline to the reference trace. */
   rmsM: number;
   maxM: number;
+  /** bacinger/f1-circuits trace the fit was made against (bake provenance). */
+  referenceId?: string;
 }
 
 export interface SimilarityFit {

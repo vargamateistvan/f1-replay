@@ -1,15 +1,36 @@
-name: Update Circuit Geometry
+name: Update Circuit Data
 
-# Runs on the 1st of every month at 06:00 UTC — after the MultiViewer API
-# has had time to publish data for any newly-confirmed calendar additions.
-# Also triggerable manually from the Actions tab.
+# Keeps everything the 2D/3D track maps need in step with the calendar:
+#   1. fetch-circuits      — official geometry from MultiViewer (replaces any
+#                            GPS-baked file once MultiViewer has the venue)
+#   2. bake-gps-circuits   — geometry for venues MultiViewer lacks, from the
+#                            newest session's fastest clean lap (works from FP1)
+#   3. fetch-georef        — 3D-map georeference, matched automatically against
+#                            the latest bacinger/f1-circuits traces
+#   4. fetch-pit-lanes     — pit-lane paths for circuits that don't have one
+#
+# Runs every Monday 06:00 UTC (the morning after a race weekend) and on demand.
+# Changes land as a pull request; checks run here because PRs opened with the
+# workflow token don't trigger other workflows. Merging the PR deploys.
+#
+# Needs: Settings → Actions → General → "Allow GitHub Actions to create and
+# approve pull requests".
 on:
   schedule:
-    - cron: "0 6 1 * *"
+    - cron: "0 6 * * 1"
   workflow_dispatch:
 
 permissions:
   contents: write
+  pull-requests: write
+
+concurrency:
+  group: update-circuits
+  cancel-in-progress: false
+
+env:
+  BRANCH: bot/update-circuits
+  DATA_PATHS: src/data/circuit-geometry/ src/data/circuit-georef.json src/data/pit-lanes.json
 
 jobs:
   update-circuits:
@@ -21,79 +42,87 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 24
+          cache: yarn
 
-      - name: Fetch circuit geometry
+      - name: Install dependencies
+        run: yarn install --frozen-lockfile
+
+      - name: Fetch official circuit geometry (MultiViewer)
         run: node scripts/fetch-circuits.mjs
+
+      - name: Bake missing circuits from OpenF1 GPS
+        run: node scripts/bake-gps-circuits.mjs "$(date -u +%Y)"
+
+      - name: Georeference circuits for the 3D map
+        run: node scripts/fetch-georef.mjs --latest
+
+      - name: Bake missing pit lanes
+        run: node scripts/fetch-pit-lanes.mjs
 
       - name: Check for changes
         id: diff
         run: |
-          if git diff --quiet src/data/circuit-geometry/; then
+          git add -N $DATA_PATHS
+          if git diff --quiet -- $DATA_PATHS; then
             echo "changed=false" >> "$GITHUB_OUTPUT"
           else
             echo "changed=true" >> "$GITHUB_OUTPUT"
-            
-            # Get added and modified files
-            ADDED=$(git diff --name-only --diff-filter=A src/data/circuit-geometry/ | wc -l)
-            MODIFIED=$(git diff --name-only --diff-filter=M src/data/circuit-geometry/ | wc -l)
-            TOTAL=$((ADDED + MODIFIED))
-            
-            echo "added=$ADDED" >> "$GITHUB_OUTPUT"
-            echo "modified=$MODIFIED" >> "$GITHUB_OUTPUT"
-            echo "total=$TOTAL" >> "$GITHUB_OUTPUT"
-            
-            # Save file lists for later use
-            git diff --name-only --diff-filter=A src/data/circuit-geometry/ > /tmp/added.txt 2>/dev/null || true
-            git diff --name-only --diff-filter=M src/data/circuit-geometry/ > /tmp/modified.txt 2>/dev/null || true
+            git diff --stat -- $DATA_PATHS | tail -1
           fi
 
-      - name: Commit and push updated geometry
+      # The data feeds tests (every geometry needs a georef; every surface must
+      # be drawable), so a bad bake fails here instead of reaching main.
+      - name: Type-check
         if: steps.diff.outputs.changed == 'true'
+        run: yarn tsc -b
+
+      - name: Test
+        if: steps.diff.outputs.changed == 'true'
+        run: yarn test
+
+      - name: Open or update pull request
+        if: steps.diff.outputs.changed == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
           git config user.name  "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add src/data/circuit-geometry/
-          git commit -m "chore(circuits): update baked geometry [skip ci]"
-          git push
 
-          # Build summary
-          echo "## 🏁 Circuit Geometry Updated" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "✅ Successfully updated circuit geometry" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "### Summary" >> $GITHUB_STEP_SUMMARY
-          echo "- **Total files**: ${{ steps.diff.outputs.total }}" >> $GITHUB_STEP_SUMMARY
-          echo "- **Added**: ${{ steps.diff.outputs.added }}" >> $GITHUB_STEP_SUMMARY
-          echo "- **Modified**: ${{ steps.diff.outputs.modified }}" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
+          ADDED=$(git diff --name-only --diff-filter=A -- src/data/circuit-geometry/ | sed 's|.*/||;s|\.json||' | tr '\n' ' ')
+          MODIFIED=$(git diff --name-only --diff-filter=M -- src/data/circuit-geometry/ | sed 's|.*/||;s|\.json||' | tr '\n' ' ')
 
-          if [ -s /tmp/added.txt ]; then
-            echo "### New Circuits 🆕" >> $GITHUB_STEP_SUMMARY
-            echo "" >> $GITHUB_STEP_SUMMARY
-            cat /tmp/added.txt | sed 's|src/data/circuit-geometry/||;s|\.json||' | while read file; do
-              CIRCUIT_KEY=$(echo "$file" | cut -d'-' -f1)
-              YEAR=$(echo "$file" | cut -d'-' -f2)
-              echo "- Circuit \`$CIRCUIT_KEY\` (Year: $YEAR)" >> $GITHUB_STEP_SUMMARY
-            done
-            echo "" >> $GITHUB_STEP_SUMMARY
+          git checkout -B "$BRANCH"
+          git add $DATA_PATHS
+          git commit -m "chore(circuits): update baked circuit data"
+          git push --force origin "$BRANCH"
+
+          {
+            echo "Automated weekly refresh of the baked circuit data."
+            echo
+            echo "- **New geometry**: ${ADDED:-none}"
+            echo "- **Updated geometry**: ${MODIFIED:-none}"
+            echo "- Georeference / pit lanes: see the diff"
+            echo
+            echo "Type-check and tests passed in the update job."
+          } > /tmp/pr-body.md
+
+          if gh pr view "$BRANCH" --json state -q .state 2>/dev/null | grep -q OPEN; then
+            gh pr edit "$BRANCH" --body-file /tmp/pr-body.md
+          else
+            gh pr create --base main --head "$BRANCH" \
+              --title "chore(circuits): update baked circuit data" \
+              --body-file /tmp/pr-body.md
           fi
 
-          if [ -s /tmp/modified.txt ]; then
-            echo "### Updated Circuits 📝" >> $GITHUB_STEP_SUMMARY
-            echo "" >> $GITHUB_STEP_SUMMARY
-            cat /tmp/modified.txt | sed 's|src/data/circuit-geometry/||;s|\.json||' | while read file; do
-              CIRCUIT_KEY=$(echo "$file" | cut -d'-' -f1)
-              YEAR=$(echo "$file" | cut -d'-' -f2)
-              echo "- Circuit \`$CIRCUIT_KEY\` (Year: $YEAR)" >> $GITHUB_STEP_SUMMARY
-            done
-            echo "" >> $GITHUB_STEP_SUMMARY
-          fi
+          {
+            echo "## 🏁 Circuit data updated"
+            echo
+            cat /tmp/pr-body.md
+          } >> "$GITHUB_STEP_SUMMARY"
 
       - name: No changes summary
         if: steps.diff.outputs.changed == 'false'
         run: |
-          echo "## 🏁 Circuit Geometry Check" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "ℹ️ No changes detected in circuit geometry" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "The circuit data is up-to-date." >> $GITHUB_STEP_SUMMARY
+          echo "## 🏁 Circuit data check" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "ℹ️ No changes: geometry, georeferences and pit lanes are up to date." >> "$GITHUB_STEP_SUMMARY"

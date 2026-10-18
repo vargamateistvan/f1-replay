@@ -24,7 +24,7 @@ const GEOMETRY_DIR = join(__dirname, "../src/data/circuit-geometry");
 const OUT_PATH = join(__dirname, "../src/data/pit-lanes.json");
 const OPENF1 = "https://api.openf1.org/v1";
 const REQUEST_GAP_MS = 2_200;
-/** Seasons to take a race from, in order of preference (newest venues last). */
+/** Seasons to take a session from, in order of preference (newest venues last). */
 const RACE_YEARS = [2025, 2024, 2023, 2026];
 /** Stops to try per circuit before giving up. */
 const MAX_ATTEMPTS = 3;
@@ -66,11 +66,16 @@ const iso = (ms) => new Date(ms).toISOString();
 
 async function pitLaneFor(circuitKey, geom) {
   for (const year of RACE_YEARS) {
-    const sessions = await get(
-      `/sessions?circuit_key=${circuitKey}&year=${year}&session_name=Race`,
-    );
-    const session = sessions.find((s) => !s.is_cancelled);
-    if (!session) continue;
+    // Races first (most stops), then any other finished session, newest
+    // first — so a new venue gets a pit lane from its first practice.
+    const sessions = (await get(`/sessions?circuit_key=${circuitKey}&year=${year}`))
+      .filter((s) => !s.is_cancelled && Date.parse(s.date_end) < Date.now())
+      .sort(
+        (a, b) =>
+          Number(b.session_name === "Race") - Number(a.session_name === "Race") ||
+          Date.parse(b.date_start) - Date.parse(a.date_start),
+      );
+    for (const session of sessions) {
 
     const pits = (await get(`/pit?session_key=${session.session_key}`)).filter(
       (p) => p.lane_duration > 10 && p.lane_duration < 60,
@@ -102,6 +107,7 @@ async function pitLaneFor(circuitKey, geom) {
           y: lane.map((p) => p.y),
         };
       }
+    }
     }
   }
   return null;
