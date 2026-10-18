@@ -46,9 +46,9 @@ function ControlButton({
 const icon = { size: 14, strokeWidth: 2.2, "aria-hidden": true } as const;
 
 /**
- * Top-right toolbar in the 3D map's button style, two rows: view switch ·
- * snapshot + settings on top (always shown, as in 3D), rotate · zoom/fit
- * below (only with "Track controls" on).
+ * Top-right toolbar in the 3D map's button style, three rows: view switch ·
+ * snapshot + settings (always shown, as in 3D), then rotate, then zoom/fit
+ * (both only with "Track controls" on).
  */
 export const TrackControls = memo(function TrackControls({
   showTrackControls,
@@ -111,8 +111,8 @@ export const TrackControls = memo(function TrackControls({
     );
   }
 
-  // Row 2: navigation (rotate · zoom/fit), hidden with "Track controls" off.
-  const bottom: ReactNode[] = showTrackControls
+  // Rows 2–3: rotate, then zoom/fit; hidden with "Track controls" off.
+  const rotate: ReactNode[] = showTrackControls
     ? [
         <Fragment key="rotate">
           <ControlButton title="Rotate left" onPress={onRotateLeft}>
@@ -122,6 +122,10 @@ export const TrackControls = memo(function TrackControls({
             <RotateCw {...icon} />
           </ControlButton>
         </Fragment>,
+      ]
+    : [];
+  const zoom: ReactNode[] = showTrackControls
+    ? [
         <Fragment key="zoom">
           <ControlButton title="Zoom out" onPress={onZoomOut}>
             <ZoomOut {...icon} />
@@ -138,7 +142,7 @@ export const TrackControls = memo(function TrackControls({
         </Fragment>,
       ]
     : [];
-  if (!top.length && !bottom.length) return null;
+  if (!top.length && !rotate.length) return null;
 
   const row = (groups: ReactNode[]) => (
     <div className="flex items-center justify-end gap-1">
@@ -159,7 +163,8 @@ export const TrackControls = memo(function TrackControls({
       aria-label="Track map controls"
     >
       {top.length > 0 && row(top)}
-      {bottom.length > 0 && row(bottom)}
+      {rotate.length > 0 && row(rotate)}
+      {zoom.length > 0 && row(zoom)}
     </div>
   );
 });
