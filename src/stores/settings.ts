@@ -53,6 +53,8 @@ export interface AppSettings {
   mapView3dCarModels: boolean;
   /** 3D map: colour the focused car's trail by speed (else its team colour). */
   mapView3dSpeedTrail: boolean;
+  /** 3D map: ribbon + interval between cars battling within 1 s (races). */
+  mapView3dBattleGaps: boolean;
   // Leaderboard
   leaderboardTelemetry: boolean;
   timingShowMinisectors: boolean;
@@ -192,6 +194,7 @@ export const SETTINGS_DEFAULTS: AppSettings = {
   mapView3dBuildings: true,
   mapView3dCarModels: true,
   mapView3dSpeedTrail: true,
+  mapView3dBattleGaps: true,
   leaderboardTelemetry: true,
   timingShowMinisectors: true,
   trackerTimingTelemetry: true,

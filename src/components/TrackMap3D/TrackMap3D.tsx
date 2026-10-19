@@ -49,6 +49,7 @@ import {
   MAP3D_SURFACE_MIN_ZOOM,
   MAP3D_TERRAIN_EXAGGERATION,
   MAP3D_TRACK_WIDTH_M,
+  MAP3D_GAP_RIBBON_MAX_M,
   MAP3D_TRAIL_MS,
   MAP3D_TRAIL_SPEED_MAX_GAP_MS,
   MAP3D_TRAIL_STEP_MS,
@@ -73,6 +74,7 @@ import {
   positionsAt,
   sameShot,
   shotCaption,
+  type BattleGap,
   type DirectorData,
   type DirectorShot,
   type DirectorState,
@@ -93,11 +95,14 @@ import {
   setOverlayVisibility,
   SRC_GHOST,
   SRC_HOTSPOTS,
+  SRC_GAP_LABELS,
+  SRC_GAP_RIBBONS,
   SRC_TRAIL,
   LAYER_TRAIL,
 } from "./overlayLayers";
 import {
   buildArcPolyline,
+  buildGapRibbons,
   buildHotspotPoints,
   buildTrailPath,
   gradientFromSegments,
@@ -283,6 +288,8 @@ interface Props {
   readonly lightsOutMs?: number | null;
   /** Auto-director inputs (races only); enables the "TV" camera mode. */
   readonly director?: DirectorData | null;
+  /** Battles within 1 s with their interval, for the gap ribbons (races only). */
+  readonly battleGaps?: readonly BattleGap[] | null;
   /** Camera mode to start in (e.g. from `?cam=`); later changes are reported. */
   readonly initialCameraMode?: CameraMode;
   readonly onCameraModeChange?: (mode: CameraMode) => void;
@@ -326,6 +333,7 @@ export function TrackMap3D({
   raceLeader = null,
   lightsOutMs = null,
   director = null,
+  battleGaps = null,
   initialCameraMode = "follow",
   onCameraModeChange,
   onSelectDriver,
@@ -349,6 +357,7 @@ export function TrackMap3D({
   const buildingsEnabled = useSettings((s) => s.mapView3dBuildings);
   const carModelsEnabled = useSettings((s) => s.mapView3dCarModels);
   const speedTrailEnabled = useSettings((s) => s.mapView3dSpeedTrail);
+  const battleGapsEnabled = useSettings((s) => s.mapView3dBattleGaps);
   const mapShowDriverNumberInside = useSettings(
     (s) => s.mapShowDriverNumberInside,
   );
@@ -501,6 +510,23 @@ export function TrackMap3D({
     speedAt: null,
     color: "#ffffff",
   });
+
+  // Battle gap ribbons for the RAF loop: the battles to draw (empty = none)
+  // and the centerline in local metres to draw them along.
+  const gapRibbonsRef = useRef<{ gaps: readonly BattleGap[]; center: Array<{ x: number; y: number }> }>({
+    gaps: [],
+    center: [],
+  });
+  const gapCenter = useMemo(
+    () => (circuitGeom && geo ? circuitGeom.x.map((x, i) => f1ToEnu(geo, x, circuitGeom.y[i]!)) : []),
+    [circuitGeom, geo],
+  );
+  useEffect(() => {
+    gapRibbonsRef.current = {
+      gaps: battleGapsEnabled && battleGaps ? battleGaps : [],
+      center: gapCenter,
+    };
+  }, [battleGapsEnabled, battleGaps, gapCenter]);
 
   // Pixels per 2D SVG unit for this panel, so cars match the 2D map's size.
   const carScaleRef = useRef(1);
@@ -965,6 +991,7 @@ export function TrackMap3D({
     if (!map || !styleReady || !geo) return;
     let raf = 0;
     let lastTrailUpdate = -Infinity;
+    let gapRibbonsShown = false;
     let lastFrame = performance.now();
     let lastT = Number.NaN;
 
@@ -1027,6 +1054,20 @@ export function TrackMap3D({
         const { speedAt, color } = trailStyleRef.current;
         if (path && speedAt && map.getLayer(LAYER_TRAIL)) {
           map.setPaintProperty(LAYER_TRAIL, "line-gradient", trailSpeedGradient(path, speedAt, color));
+        }
+
+        // Battle gap ribbons move with the cars, so they refresh with the trail.
+        const { gaps, center } = gapRibbonsRef.current;
+        if (gaps.length > 0 || gapRibbonsShown) {
+          const carAt = (driver: number) => {
+            const i = live.indexes.get(driver);
+            const p = i ? interpolateXY(i, playhead) : null;
+            return p && !isOffTrackPlaceholder(p) ? f1ToEnu(geo, p.x, p.y) : null;
+          };
+          const ribbons = buildGapRibbons(gaps, carAt, center, geo, MAP3D_GAP_RIBBON_MAX_M, live.focusDriver);
+          (map.getSource(SRC_GAP_RIBBONS) as mapboxgl.GeoJSONSource | undefined)?.setData(ribbons.lines);
+          (map.getSource(SRC_GAP_LABELS) as mapboxgl.GeoJSONSource | undefined)?.setData(ribbons.labels);
+          gapRibbonsShown = gaps.length > 0;
         }
       }
 

@@ -10,6 +10,7 @@
 import type { ExpressionSpecification } from "mapbox-gl";
 import type { CarData } from "@/api/types";
 import type { CircuitGeometry } from "@/data/circuitGeometryTypes";
+import type { BattleGap } from "@/timeline/director";
 import { interpolateXY, type LocationIndex } from "@/timeline/interpolate";
 import type {
   ArcPolyline,
@@ -403,4 +404,89 @@ export function trailSpeedGradient(
   });
   if (stops.length < 4) return trailGradient(fallbackHex);
   return ["interpolate", ["linear"], ["line-progress"], ...stops] as ExpressionSpecification;
+}
+
+type Enu = { x: number; y: number };
+
+/**
+ * Battle gap ribbons: for each battle, the stretch of centerline from the
+ * chaser to the car ahead (both cars' real positions at the ends), plus a
+ * label with the interval at the ribbon's middle. Positions and centerline
+ * are local metres (`f1ToEnu`); the centerline is in lap order. With a
+ * focused car only its own battles show. A battle whose ribbon would be
+ * longer than `maxLengthM` (a car in the pits, or data out of step) is left
+ * out; cars side by side get a straight link.
+ */
+export function buildGapRibbons(
+  gaps: readonly BattleGap[],
+  carAt: (driver: number) => Enu | null,
+  center: readonly Enu[],
+  geo: CircuitGeoref,
+  maxLengthM: number,
+  focus: number | null,
+): { lines: FeatureCollection<LineFeature>; labels: FeatureCollection<PointFeature> } {
+  const lines: LineFeature[] = [];
+  const labels: PointFeature[] = [];
+  const n = center.length;
+  const toLL = (p: Enu): LngLat => enuToLngLat(geo.originLng, geo.originLat, p.x, p.y);
+  const nearest = (p: Enu) => {
+    let best = 0;
+    let bestD = Infinity;
+    for (let i = 0; i < n; i++) {
+      const d = (center[i]!.x - p.x) ** 2 + (center[i]!.y - p.y) ** 2;
+      if (d < bestD) {
+        bestD = d;
+        best = i;
+      }
+    }
+    return best;
+  };
+
+  for (const { chaser, ahead, gap } of gaps) {
+    if (focus !== null && chaser !== focus && ahead !== focus) continue;
+    const a = carAt(chaser);
+    const b = carAt(ahead);
+    if (!a || !b || n < 2) continue;
+    const i = nearest(a);
+    const j = nearest(b);
+    const pts: Enu[] = [a];
+    // Walk forward unless the car "ahead" snapped behind (side by side).
+    if ((j - i + n) % n < n / 2) {
+      for (let k = (i + 1) % n; k !== (j + 1) % n; k = (k + 1) % n) pts.push(center[k]!);
+    }
+    pts.push(b);
+
+    const cum = [0];
+    for (let k = 1; k < pts.length; k++) {
+      cum.push(cum[k - 1]! + Math.hypot(pts[k]!.x - pts[k - 1]!.x, pts[k]!.y - pts[k - 1]!.y));
+    }
+    const length = cum[cum.length - 1]!;
+    if (length > maxLengthM) continue;
+
+    lines.push({
+      type: "Feature",
+      properties: {},
+      geometry: { type: "LineString", coordinates: pts.map(toLL) },
+    });
+    // Label at half the ribbon's length.
+    const half = length / 2;
+    let k = 1;
+    while (k < pts.length - 1 && cum[k]! < half) k++;
+    const span = cum[k]! - cum[k - 1]! || 1;
+    const u = (half - cum[k - 1]!) / span;
+    const p0 = pts[k - 1]!;
+    const p1 = pts[k]!;
+    labels.push({
+      type: "Feature",
+      properties: { label: `${gap.toFixed(1)}s` },
+      geometry: {
+        type: "Point",
+        coordinates: toLL({ x: p0.x + (p1.x - p0.x) * u, y: p0.y + (p1.y - p0.y) * u }),
+      },
+    });
+  }
+  return {
+    lines: { type: "FeatureCollection", features: lines },
+    labels: { type: "FeatureCollection", features: labels },
+  };
 }

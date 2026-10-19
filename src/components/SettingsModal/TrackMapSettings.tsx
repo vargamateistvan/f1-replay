@@ -282,6 +282,12 @@ export function TrackMapSettings({
             "Speed-coloured trail",
             "Colour the focused car's trail by speed (blue slow → red fast). Off: team colour",
           )}
+        {is3d &&
+          row(
+            "mapView3dBattleGaps",
+            "Battle gap ribbons",
+            "Mark the track between cars within 1 s and show the gap (races). Focused car: its battles only",
+          )}
         {row("mapShowDriverHud", "Focused driver HUD", "Speed, gear and throttle for the selected driver")}
         {row("mapShowPitRejoin", "Pit rejoin projection", "Where the focused driver would rejoin if they pitted now (races)")}
         {row("mapShowRaceLeader", "Race leader badge", "Show the P1 race leader badge with headshot")}

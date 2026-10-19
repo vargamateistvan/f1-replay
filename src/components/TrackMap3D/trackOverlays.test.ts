@@ -5,6 +5,7 @@ import type { CircuitGeometry } from "@/data/circuitGeometryTypes";
 import { getCircuitGeoref } from "@/data/circuitGeoref";
 import { buildHeatSegments } from "@/components/TrackMap/trackGeometry";
 import { buildIndex } from "@/timeline/interpolate";
+import { lngLatToEnu } from "@/utils/georef";
 import {
   buildArcPolyline,
   buildDirectionArrows,
@@ -14,6 +15,7 @@ import {
   heatColors,
   withAlpha,
   buildSectorMarkers,
+  buildGapRibbons,
   buildTrailPath,
   speedLookup,
   trailFeature,
@@ -206,5 +208,72 @@ describe("speed-coloured trail", () => {
       const parked = { coords: [[7.42, 43.73], [7.42, 43.73]] as [number, number][], times: [0, 1] };
       expect(trailSpeedGradient(parked, () => 100, "#E80020")).toEqual(trailGradient("#E80020"));
     });
+  });
+});
+
+describe("buildGapRibbons", () => {
+  // A 2 km straight-sided loop: out along y = 0, back along y = 50.
+  const center = [
+    ...Array.from({ length: 200 }, (_, i) => ({ x: i * 5, y: 0 })),
+    ...Array.from({ length: 200 }, (_, i) => ({ x: 1000 - i * 5, y: 50 })),
+  ];
+  const cars = new Map([
+    [1, { x: 152, y: 1 }],
+    [4, { x: 101, y: -1 }],
+    [16, { x: 400, y: 0 }],
+    [44, { x: 390, y: 0 }],
+  ]);
+  const carAt = (d: number) => cars.get(d) ?? null;
+  const enu = ([lng, lat]: number[]) => lngLatToEnu(geo.originLng, geo.originLat, lng!, lat!);
+  const build = (gaps: Parameters<typeof buildGapRibbons>[0], focus: number | null = null, max = 250) =>
+    buildGapRibbons(gaps, carAt, center, geo, max, focus);
+
+  it("runs along the track from the chaser to the car ahead, gap label in the middle", () => {
+    const { lines, labels } = build([{ chaser: 4, ahead: 1, gap: 0.43 }]);
+    const coords = lines.features[0]!.geometry.coordinates.map(enu);
+    expect(coords[0]!.x).toBeCloseTo(101, 3);
+    expect(coords.at(-1)!.x).toBeCloseTo(152, 3);
+    // Centerline points in between, in order.
+    expect(coords.length).toBeGreaterThan(5);
+    for (let i = 1; i < coords.length; i++) expect(coords[i]!.x).toBeGreaterThan(coords[i - 1]!.x);
+    expect(labels.features[0]!.properties.label).toBe("0.4s");
+    expect(enu(labels.features[0]!.geometry.coordinates).x).toBeCloseTo(126.5, 0);
+  });
+
+  it("links cars side by side directly instead of going round the lap", () => {
+    // 44 is "ahead" on the timing screen but a few metres behind on track.
+    const { lines } = build([{ chaser: 16, ahead: 44, gap: 0.1 }]);
+    expect(lines.features[0]!.geometry.coordinates).toHaveLength(2);
+  });
+
+  it("drops ribbons longer than the limit", () => {
+    expect(build([{ chaser: 4, ahead: 1, gap: 0.4 }], null, 30).lines.features).toHaveLength(0);
+  });
+
+  it("shows only the focused car's battles", () => {
+    const gaps = [
+      { chaser: 4, ahead: 1, gap: 0.4 },
+      { chaser: 16, ahead: 44, gap: 0.1 },
+    ];
+    expect(build(gaps, 1).lines.features).toHaveLength(1);
+    expect(build(gaps, 4).lines.features).toHaveLength(1);
+    expect(build(gaps, 33).lines.features).toHaveLength(0);
+    expect(build(gaps).lines.features).toHaveLength(2);
+  });
+
+  it("wraps across the start/finish line", () => {
+    const wrap = new Map([
+      [7, { x: 10, y: 50 }],
+      [8, { x: 15, y: 0 }],
+    ]);
+    const { lines } = buildGapRibbons(
+      [{ chaser: 7, ahead: 8, gap: 0.5 }],
+      (d) => wrap.get(d) ?? null,
+      center,
+      geo,
+      250,
+      null,
+    );
+    expect(lines.features).toHaveLength(1);
   });
 });

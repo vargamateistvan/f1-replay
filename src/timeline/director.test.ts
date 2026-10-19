@@ -11,6 +11,7 @@ import {
 } from "@/constants";
 import {
   INITIAL_DIRECTOR_STATE,
+  battleGaps,
   battlePairs,
   buildDirectorCues,
   buildPositionIndex,
@@ -260,5 +261,19 @@ describe("shotCaption", () => {
     expect(shotCaption({ kind: "leader", driver: 81, other: null, position: 1 }, acr)).toBe(
       "Leader · PIA",
     );
+  });
+});
+
+describe("battleGaps", () => {
+  it("labels each battle with the chaser's interval, dropping unknown ones", () => {
+    expect(
+      battleGaps(
+        [
+          { chaser: 4, ahead: 1, position: 2 },
+          { chaser: 16, ahead: 44, position: 5 },
+        ],
+        new Map([[4, 0.42]]),
+      ),
+    ).toEqual([{ chaser: 4, ahead: 1, gap: 0.42 }]);
   });
 });

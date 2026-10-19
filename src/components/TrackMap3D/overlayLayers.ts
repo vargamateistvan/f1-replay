@@ -8,6 +8,7 @@ import type {
   LayerSpecification,
   Map as MapboxMap,
 } from "mapbox-gl";
+import { MAP3D_GAP_RIBBON_COLOR } from "@/constants";
 import type { CircuitGeometry } from "@/data/circuitGeometryTypes";
 import type { CircuitGeoref } from "@/utils/georef";
 import { groundWidthExpression, type FeatureCollection, type LineFeature, type PointFeature } from "./mapFeatures";
@@ -26,6 +27,8 @@ export const SRC_HOTSPOTS = "map3d-hotspots";
 export const SRC_GHOST = "map3d-pit-ghost";
 export const SRC_TRAIL = "map3d-trail";
 export const LAYER_TRAIL = "map3d-trail";
+export const SRC_GAP_RIBBONS = "map3d-gap-ribbons";
+export const SRC_GAP_LABELS = "map3d-gap-labels";
 const SRC_SECTOR_TICKS = "map3d-sector-ticks";
 const SRC_SECTOR_LABELS = "map3d-sector-labels";
 const SRC_ARROWS = "map3d-arrows";
@@ -108,6 +111,8 @@ export function addOverlayLayers(map: MapboxMap, ctx: OverlayContext): void {
   map.addSource(SRC_GHOST, { type: "geojson", data: empty<PointFeature>() });
   // lineMetrics enables `line-progress` for the trail's fade.
   map.addSource(SRC_TRAIL, { type: "geojson", data: empty<LineFeature>(), lineMetrics: true });
+  map.addSource(SRC_GAP_RIBBONS, { type: "geojson", data: empty<LineFeature>() });
+  map.addSource(SRC_GAP_LABELS, { type: "geojson", data: empty<PointFeature>() });
   const sectors = buildSectorMarkers(geom, geo, arc, ctx.sectorBoundaries);
   map.addSource(SRC_SECTOR_TICKS, { type: "geojson", data: sectors.ticks });
   map.addSource(SRC_SECTOR_LABELS, { type: "geojson", data: sectors.labels });
@@ -151,6 +156,39 @@ export function addOverlayLayers(map: MapboxMap, ctx: OverlayContext): void {
       "line-emissive-strength": 1,
       "line-width": 3 * scale,
       "line-gradient": trailGradient("#ffffff"),
+    },
+  });
+  // Battle gaps: ribbon along the track between the two cars, interval on it.
+  markup({
+    id: SRC_GAP_RIBBONS,
+    type: "line",
+    source: SRC_GAP_RIBBONS,
+    layout: { "line-cap": "round", "line-join": "round" },
+    paint: {
+      "line-emissive-strength": 1,
+      "line-color": MAP3D_GAP_RIBBON_COLOR,
+      "line-width": 2.5 * scale,
+      "line-opacity": 0.85,
+    },
+  });
+  markup({
+    id: SRC_GAP_LABELS,
+    type: "symbol",
+    source: SRC_GAP_LABELS,
+    layout: {
+      "text-field": ["get", "label"],
+      "text-font": ["Inter Black"],
+      "text-size": 6 * scale,
+      "text-letter-spacing": 0.04,
+      "text-allow-overlap": true,
+      "text-ignore-placement": true,
+    },
+    paint: {
+      "text-emissive-strength": 1,
+      "text-occlusion-opacity": 1,
+      "text-color": MAP3D_GAP_RIBBON_COLOR,
+      "text-halo-color": "rgba(0,0,0,0.7)",
+      "text-halo-width": 1,
     },
   });
   markup({

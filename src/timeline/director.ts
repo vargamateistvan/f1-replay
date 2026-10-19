@@ -156,6 +156,26 @@ export function battlePairs(
   return pairs.sort((a, b) => a.position - b.position);
 }
 
+/** A battle with the chaser's interval to the car ahead (s). */
+export interface BattleGap {
+  readonly chaser: number;
+  readonly ahead: number;
+  readonly gap: number;
+}
+
+/** Battles labelled with their interval; pairs without one are dropped. */
+export function battleGaps(
+  pairs: readonly BattlePair[],
+  intervalSeconds: ReadonlyMap<number, number>,
+): BattleGap[] {
+  const out: BattleGap[] = [];
+  for (const { chaser, ahead } of pairs) {
+    const gap = intervalSeconds.get(chaser);
+    if (gap !== undefined) out.push({ chaser, ahead, gap });
+  }
+  return out;
+}
+
 export interface DirectorContext {
   /** Session-relative playhead (ms). */
   readonly t: number;

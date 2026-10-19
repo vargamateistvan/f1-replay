@@ -282,6 +282,12 @@ export const MAP3D_CAR_SHADOW_DROP = 1.6;
 /** Length and sampling of the focused car's trail on the 3D map. */
 export const MAP3D_TRAIL_MS = 8_000;
 export const MAP3D_TRAIL_STEP_MS = 200;
+/**
+ * Battle gap ribbons: centerline from chaser to the car ahead, gold like the
+ * battle rings. Longer ribbons than this are dropped (pit stops, stale data).
+ */
+export const MAP3D_GAP_RIBBON_COLOR = "#ffd700";
+export const MAP3D_GAP_RIBBON_MAX_M = 250;
 /** Speed-coloured trail: car-data gaps longer than this show the team colour. */
 export const MAP3D_TRAIL_SPEED_MAX_GAP_MS = 1_000;
 /** Sun elevation (°) at or above which the 3D map uses the "day" preset. */
