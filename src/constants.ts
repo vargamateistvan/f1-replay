@@ -288,6 +288,8 @@ export const MAP3D_TRAIL_STEP_MS = 200;
  */
 export const MAP3D_GAP_RIBBON_COLOR = "#ffd700";
 export const MAP3D_GAP_RIBBON_MAX_M = 250;
+/** TV director: each cut fades in from black over this long (skipped for reduced motion). */
+export const MAP3D_DIRECTOR_FADE_MS = 250;
 /** Speed-coloured trail: car-data gaps longer than this show the team colour. */
 export const MAP3D_TRAIL_SPEED_MAX_GAP_MS = 1_000;
 /** Sun elevation (°) at or above which the 3D map uses the "day" preset. */

@@ -49,6 +49,7 @@ import {
   MAP3D_SURFACE_MIN_ZOOM,
   MAP3D_TERRAIN_EXAGGERATION,
   MAP3D_TRACK_WIDTH_M,
+  MAP3D_DIRECTOR_FADE_MS,
   MAP3D_GAP_RIBBON_MAX_M,
   MAP3D_TRAIL_MS,
   MAP3D_TRAIL_SPEED_MAX_GAP_MS,
@@ -564,6 +565,18 @@ export function TrackMap3D({
   // the next frame jump straight to the new car (a broadcast cut, not a pan).
   const directorRef = useRef<DirectorState>(INITIAL_DIRECTOR_STATE);
   const directorCutRef = useRef(false);
+  // Black veil over the map that each director cut flashes and fades out, so
+  // cuts read like a broadcast's. Driven on the DOM node: no re-renders.
+  const cutFadeRef = useRef<HTMLDivElement>(null);
+  const flashCut = useCallback(() => {
+    const el = cutFadeRef.current;
+    if (!el || window.matchMedia?.("(prefers-reduced-motion: reduce)").matches) return;
+    el.style.transition = "none";
+    el.style.opacity = "1";
+    void el.offsetWidth; // commit the black frame before fading out
+    el.style.transition = `opacity ${MAP3D_DIRECTOR_FADE_MS}ms ease-out`;
+    el.style.opacity = "0";
+  }, []);
   const [directorShot, setDirectorShot] = useState<DirectorShot | null>(null);
   /** Whether the camera tracks a car (focused, or the TV director's pick). */
   const followingRef = useRef(
@@ -1287,8 +1300,12 @@ export function TrackMap3D({
     chaseRef.current = { eye: null, heading: null };
     directorCutRef.current = true;
     setDirectorShot(next.shot);
-    if (next.shot) trackEvent("trackmap3d_director_cut", { kind: next.shot.kind });
-  }, [cameraMode, director, t, sessionStartMs, retiredDrivers]);
+    if (next.shot) {
+      // The RAF loop makes the cut on its next frame, under the black veil.
+      flashCut();
+      trackEvent("trackmap3d_director_cut", { kind: next.shot.kind });
+    }
+  }, [cameraMode, director, t, sessionStartMs, retiredDrivers, flashCut]);
 
   // ── HTML overlays (same data as the 2D map) ───────────────────────────────
   const overlayBackground = overlayBackgroundColor(lightMode);
@@ -1488,6 +1505,13 @@ export function TrackMap3D({
       {/* mapbox-gl.css forces `position: relative` on the container, so size it
           by flow (w/h-full), not by absolute insets. */}
       <div ref={containerRef} className="w-full h-full" />
+      <div
+        ref={cutFadeRef}
+        aria-hidden="true"
+        data-testid="director-cut-fade"
+        className="absolute inset-0 z-10 bg-black pointer-events-none"
+        style={{ opacity: 0 }}
+      />
 
       <StatusBadges badges={statusBadges} />
 
