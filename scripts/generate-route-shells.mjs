@@ -9,6 +9,15 @@ const SITE_NAME = "F1 Replay";
 const DIST_DIR = resolve(process.cwd(), "dist");
 const INDEX_HTML_PATH = resolve(DIST_DIR, "index.html");
 
+function escapeHtml(value) {
+  return value
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
 function escapeRegExp(value) {
   return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
@@ -19,7 +28,7 @@ function setMetaByName(html, name, value) {
     `<meta\\s+name=[\"']${escapedName}[\"']\\s+content=[\"'][^\"']*[\"']\\s*\\/>`,
     "i",
   );
-  const nextTag = `<meta name=\"${name}\" content=\"${value}\" />`;
+  const nextTag = `<meta name=\"${name}\" content=\"${escapeHtml(value)}\" />`;
   if (re.test(html)) return html.replace(re, nextTag);
   return html.replace("</head>", `  ${nextTag}\n</head>`);
 }
@@ -30,7 +39,7 @@ function setMetaByProperty(html, property, value) {
     `<meta\\s+property=[\"']${escapedProperty}[\"']\\s+content=[\"'][^\"']*[\"']\\s*\\/>`,
     "i",
   );
-  const nextTag = `<meta property=\"${property}\" content=\"${value}\" />`;
+  const nextTag = `<meta property=\"${property}\" content=\"${escapeHtml(value)}\" />`;
   if (re.test(html)) return html.replace(re, nextTag);
   return html.replace("</head>", `  ${nextTag}\n</head>`);
 }
@@ -55,9 +64,19 @@ function setAlternateHreflang(html, hreflang, href) {
 
 function setTitle(html, title) {
   if (/<title>[\s\S]*?<\/title>/i.test(html)) {
-    return html.replace(/<title>[\s\S]*?<\/title>/i, `<title>${title}</title>`);
+    return html.replace(
+      /<title>[\s\S]*?<\/title>/i,
+      `<title>${escapeHtml(title)}</title>`,
+    );
   }
-  return html.replace("</head>", `  <title>${title}</title>\n</head>`);
+  return html.replace("</head>", `  <title>${escapeHtml(title)}</title>\n</head>`);
+}
+
+// Crawlable h1/p inside #root (see index.html) for crawlers that don't run JS.
+function setShellText(html, id, tag, text) {
+  const re = new RegExp(`<${tag}\\s+id=["']${id}["'][^>]*>[\\s\\S]*?<\\/${tag}>`, "i");
+  if (!re.test(html)) throw new Error(`index.html is missing #${id}`);
+  return html.replace(re, `<${tag} id="${id}">${escapeHtml(text)}</${tag}>`);
 }
 
 function collectBreadcrumbs(routePath, routes) {
@@ -94,7 +113,7 @@ function buildRouteSchemas(route, routes) {
       },
       primaryImageOfPage: {
         "@type": "ImageObject",
-        url: `${SITE_URL}/og-cover.svg`,
+        url: `${SITE_URL}/og-cover.png`,
       },
     },
   ];
@@ -136,14 +155,14 @@ function buildRouteSchemas(route, routes) {
 function setWebPageJsonLd(html, route, routes) {
   const jsonLd = buildRouteSchemas(route, routes);
 
-  const scriptTag = `  <script id=\"prerender-route-jsonld\" type=\"application/ld+json\">${JSON.stringify(jsonLd)}</script>`;
+  const scriptTag = `  <script id=\"route-jsonld\" type=\"application/ld+json\">${JSON.stringify(jsonLd)}</script>`;
   if (
-    /<script\s+id=[\"']prerender-route-jsonld[\"'][\s\S]*?<\/script>/i.test(
+    /<script\s+id=[\"']route-jsonld[\"'][\s\S]*?<\/script>/i.test(
       html,
     )
   ) {
     return html.replace(
-      /<script\s+id=[\"']prerender-route-jsonld[\"'][\s\S]*?<\/script>/i,
+      /<script\s+id=[\"']route-jsonld[\"'][\s\S]*?<\/script>/i,
       scriptTag,
     );
   }
@@ -170,6 +189,7 @@ function renderRouteShell(indexHtml, route, routes) {
   html = setMetaByProperty(html, "og:description", route.description);
   html = setMetaByProperty(html, "og:url", canonical);
   html = setMetaByProperty(html, "og:locale", "en_US");
+  html = setMetaByProperty(html, "og:image:type", "image/png");
   html = setMetaByProperty(html, "og:image:width", "1200");
   html = setMetaByProperty(html, "og:image:height", "630");
   html = setMetaByProperty(html, "og:image:alt", DEFAULT_IMAGE_ALT);
@@ -177,6 +197,8 @@ function renderRouteShell(indexHtml, route, routes) {
   html = setAlternateHreflang(html, "en", canonical);
   html = setAlternateHreflang(html, "x-default", canonical);
   html = setWebPageJsonLd(html, route, routes);
+  html = setShellText(html, "shell-title", "h1", route.title);
+  html = setShellText(html, "shell-description", "p", route.description);
 
   return html;
 }

@@ -308,7 +308,7 @@ describe("component coverage boost", () => {
         .querySelector('meta[property="og:title"]')
         ?.getAttribute("content"),
     ).toBe("F1 Telemetry Comparison | Lap-by-Lap Driver Analysis");
-    expect(document.getElementById("route-seo-jsonld")?.textContent).toContain(
+    expect(document.getElementById("route-jsonld")?.textContent).toContain(
       "https://schema.org",
     );
 

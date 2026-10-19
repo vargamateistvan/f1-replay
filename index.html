@@ -11,6 +11,7 @@
 
   <meta charset="UTF-8" />
   <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
   <!-- Warm up the driver/flag image CDN. The API origin preconnect is injected at build time (vite.config.ts). -->
   <link rel="preconnect" href="https://media.formula1.com" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
@@ -33,7 +34,8 @@
   <meta property="og:url" content="https://f1replay.app/" />
   <meta property="og:site_name" content="F1 Replay" />
   <meta property="og:locale" content="en_US" />
-  <meta property="og:image" content="https://f1replay.app/og-cover.svg" />
+  <meta property="og:image" content="https://f1replay.app/og-cover.png" />
+  <meta property="og:image:type" content="image/png" />
   <meta property="og:image:width" content="1200" />
   <meta property="og:image:height" content="630" />
   <meta property="og:image:alt" content="F1 Replay app preview showing telemetry, strategy, and live timing" />
@@ -42,7 +44,7 @@
   <meta name="twitter:title" content="F1 Replay | Formula 1 Race Replay, Telemetry, Strategy & Live Timing" />
   <meta name="twitter:description"
     content="Interactive Formula 1 replay platform with telemetry, strategy, timing, race control, team radio, and weather data." />
-  <meta name="twitter:image" content="https://f1replay.app/og-cover.svg" />
+  <meta name="twitter:image" content="https://f1replay.app/og-cover.png" />
   <meta name="twitter:image:alt" content="F1 Replay app preview showing telemetry, strategy, and live timing" />
 
   <script type="application/ld+json">
@@ -58,21 +60,29 @@
       }
     }
   </script>
-  <script type="application/ld+json">
-    {
-      "@context": "https://schema.org",
-      "@type": "SoftwareApplication",
-      "name": "F1 Replay",
-      "applicationCategory": "SportsApplication",
-      "operatingSystem": "Web",
-      "url": "https://f1replay.app/",
-      "description": "Interactive Formula 1 race replay with synchronized telemetry, strategy, and timing insights.",
-      "offers": {
-        "@type": "Offer",
-        "price": "0",
-        "priceCurrency": "USD"
+  <!-- Per-route schemas: replaced by the route shells at build time and by RouteSeo at runtime. -->
+  <script id="route-jsonld" type="application/ld+json">
+    [
+      {
+        "@context": "https://schema.org",
+        "@type": "WebPage",
+        "name": "F1 Replay | Formula 1 Race Replay, Telemetry, Strategy & Live Timing",
+        "url": "https://f1replay.app/",
+        "inLanguage": "en",
+        "isPartOf": { "@type": "WebSite", "name": "F1 Replay", "url": "https://f1replay.app" },
+        "primaryImageOfPage": { "@type": "ImageObject", "url": "https://f1replay.app/og-cover.png" }
+      },
+      {
+        "@context": "https://schema.org",
+        "@type": "SoftwareApplication",
+        "name": "F1 Replay",
+        "applicationCategory": "SportsApplication",
+        "operatingSystem": "Web",
+        "url": "https://f1replay.app/",
+        "description": "Interactive Formula 1 race replay with synchronized telemetry, strategy, and timing insights.",
+        "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" }
       }
-    }
+    ]
   </script>
   <script>
     // Decode the SPA redirect format used by 404.html on static hosts (GitHub Pages).
@@ -101,6 +111,16 @@
         <polygon points="12,10 12,22 23,16" fill="#E8002D" />
       </svg>
       Loading F1 Replay
+    </div>
+    <!-- Crawlable summary for non-JS crawlers; route shells rewrite the h1/p per page. React replaces all of it. -->
+    <div class="sr-only">
+      <h1 id="shell-title">F1 Replay | Formula 1 Race Replay, Telemetry, Strategy &amp; Live Timing</h1>
+      <p id="shell-description">Relive Formula 1 sessions with synchronized telemetry, strategy timelines, live timing, race control, weather, and track map visualizations.</p>
+      <nav aria-label="Site">
+        <a href="/">Race replay</a>
+        <a href="/telemetry">Telemetry comparison</a>
+        <a href="/standings">Championship standings</a>
+      </nav>
     </div>
   </div>
   <script type="module" src="/src/main.tsx"></script>

@@ -1,4 +1,4 @@
-import { useEffect, useMemo } from "react";
+import { useMemo } from "react";
 import { Link, useLocation, useNavigate, useParams } from "react-router-dom";
 import { ArrowLeft, ChevronDown } from "lucide-react";
 import { useStandings } from "@/hooks/useStandings";
@@ -23,6 +23,7 @@ import {
   constructorSeasonStats,
 } from "@/utils/constructorProfile";
 import { DEFAULT_YEAR } from "@/constants";
+import { usePageSeo } from "@/hooks/usePageSeo";
 import {
   PICKER_BAR,
   PICKER_CHEVRON,
@@ -111,9 +112,16 @@ export default function ConstructorProfile() {
       }));
   }, [standing, constructorStandings, constructorProgression]);
 
-  useEffect(() => {
-    if (standing) document.title = `${standing.name} ${year} Season | F1 Replay`;
-  }, [standing, year]);
+  usePageSeo(
+    standing
+      ? {
+          title: `${standing.name} ${year} F1 Season | Constructor Results & Points | F1 Replay`,
+          description: `${standing.name}'s ${year} Formula 1 constructors' season: P${standing.position} on ${standing.points} points with ${standing.wins} wins. Per-car round results, points by round and driver line-up.`,
+          canonicalPath: `/standings/team/${encodeURIComponent(teamName)}${year !== DEFAULT_YEAR ? `?year=${year}` : ""}`,
+          breadcrumb: standing.name,
+        }
+      : null,
+  );
 
   return (
     <div className="flex flex-col md:h-full md:overflow-hidden bg-track">

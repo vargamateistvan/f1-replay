@@ -724,6 +724,7 @@ export default function Standings() {
 
   return (
     <div className="flex flex-col md:h-full md:overflow-hidden bg-track">
+      <h1 className="sr-only">{`F1 ${year} championship standings: drivers and constructors`}</h1>
       {isLoading && (
         <div className="border-b border-panel bg-surface px-4 py-1 font-mono text-xs text-muted">
           Loading sessions…

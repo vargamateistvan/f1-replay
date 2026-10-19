@@ -2176,6 +2176,7 @@ export default function RaceWeekend() {
 
   return (
     <div className="relative flex flex-col overflow-x-clip pb-[calc(9.25rem+env(safe-area-inset-bottom))] sm:pb-[calc(7.5rem+env(safe-area-inset-bottom))] md:h-full md:min-h-0 md:flex-1 md:overflow-hidden md:pb-0">
+      <h1 className="sr-only">F1 Replay: Formula 1 race replay with live timing, track map and telemetry</h1>
       {isLoadingEventSession && (
         <div className="absolute inset-0 z-40 flex items-center justify-center bg-[#0b0c12]/86 backdrop-blur-sm">
           <div className="mx-4 w-full max-w-sm rounded border border-panel bg-surface px-4 py-4 text-center shadow-2xl">

@@ -1518,6 +1518,7 @@ export default function Telemetry() {
 
   return (
     <div className="relative flex flex-col md:h-full md:overflow-hidden">
+      <h1 className="sr-only">F1 telemetry comparison: lap-by-lap driver analysis</h1>
       {isLoadingEventSession && (
         <div className="absolute inset-0 z-40 flex items-center justify-center bg-black/80 backdrop-blur-sm">
           <div className="mx-4 w-full max-w-sm rounded border border-panel bg-surface px-4 py-4 text-center shadow-2xl">

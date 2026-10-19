@@ -1,4 +1,4 @@
-import { useEffect, useMemo } from "react";
+import { useMemo } from "react";
 import { Link, useLocation, useNavigate, useParams } from "react-router-dom";
 import { ArrowLeft, ChevronDown } from "lucide-react";
 import { useStandings } from "@/hooks/useStandings";
@@ -22,6 +22,7 @@ import {
 } from "@/utils/driverProfile";
 import { constructorPath } from "@/utils/constructorProfile";
 import { DEFAULT_YEAR } from "@/constants";
+import { usePageSeo } from "@/hooks/usePageSeo";
 import {
   PICKER_BAR,
   PICKER_CHEVRON,
@@ -110,9 +111,16 @@ export default function DriverProfile() {
     }));
   }, [standing, teammateStanding, leader, driverProgression]);
 
-  useEffect(() => {
-    if (standing) document.title = `${standing.fullName} ${year} Season | F1 Replay`;
-  }, [standing, year]);
+  usePageSeo(
+    standing
+      ? {
+          title: `${standing.fullName} ${year} F1 Season | Results & Points | F1 Replay`,
+          description: `${standing.fullName}'s ${year} Formula 1 season with ${standing.team}: P${standing.position} in the championship on ${standing.points} points, ${standing.wins} wins and ${standing.podiums} podiums. Round-by-round results, qualifying and teammate head-to-head.`,
+          canonicalPath: `/standings/driver/${driverNumber}${year !== DEFAULT_YEAR ? `?year=${year}` : ""}`,
+          breadcrumb: standing.fullName,
+        }
+      : null,
+  );
 
   const backTo = `/standings${search}`;
 
