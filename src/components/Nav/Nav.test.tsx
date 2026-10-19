@@ -416,4 +416,24 @@ describe("Nav", () => {
     });
     expect(screen.queryByLabelText("Session")).not.toBeInTheDocument();
   });
+
+  it("shows a season select in the top bar on standings routes", async () => {
+    state.pathname = "/standings/driver/1";
+    render(<Nav />);
+
+    const select = screen.getByRole("combobox", { name: "Season year" });
+    expect(select).toHaveValue("2025");
+    // The event picker is for replay routes only.
+    expect(screen.queryByRole("button", { name: "Latest" })).not.toBeInTheDocument();
+
+    fireEvent.change(select, { target: { value: "2024" } });
+    await waitFor(() => expect(state.setSearchParams).toHaveBeenCalled());
+    const [updater] = state.setSearchParams.mock.calls.at(-1) as [
+      (params: URLSearchParams) => URLSearchParams,
+    ];
+    const next = updater(state.searchParams);
+    expect(next.get("year")).toBe("2024");
+    expect(next.has("meeting")).toBe(false);
+    expect(next.has("session")).toBe(false);
+  });
 });

@@ -127,7 +127,6 @@ export default function DriverProfile() {
             <ArrowLeft aria-hidden="true" className="h-3 w-3" />
             Standings
           </Link>
-          <span className={PICKER_FIELD_LABEL}>{year}</span>
           {driverStandings.length > 0 && (
             <label className="flex items-center gap-1">
               <span className={PICKER_FIELD_LABEL}>Driver</span>

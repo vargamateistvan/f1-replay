@@ -1,5 +1,5 @@
-// Shared by the race/telemetry session picker in Nav and the Standings year
-// picker so every page's picker bar looks the same.
+// Shared by the race/telemetry session picker in Nav and the driver/team
+// profile pickers so every page's picker bar looks the same.
 
 export const PICKER_BAR =
   "border-b border-panel bg-[linear-gradient(180deg,#11131b,#0f1118)] light:!bg-white light:!bg-none light:border-slate-300/80";

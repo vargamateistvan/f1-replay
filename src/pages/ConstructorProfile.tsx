@@ -126,7 +126,6 @@ export default function ConstructorProfile() {
             <ArrowLeft aria-hidden="true" className="h-3 w-3" />
             Standings
           </Link>
-          <span className={PICKER_FIELD_LABEL}>{year}</span>
           {constructorStandings.length > 0 && (
             <label className="flex items-center gap-1">
               <span className={PICKER_FIELD_LABEL}>Team</span>

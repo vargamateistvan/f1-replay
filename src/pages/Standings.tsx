@@ -34,18 +34,10 @@ import { TeammateComparison } from "@/components/TeammateComparison/TeammateComp
 import { ResultsGrid } from "@/components/ResultsGrid/ResultsGrid";
 import type { TitleOutlook } from "@/utils/championship";
 import { constructorPath } from "@/utils/constructorProfile";
-import { Link, useLocation, useSearchParams } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 import { useNumberParam, useStringParam } from "@/hooks/useSearchParamState";
 import { useMediaQuery } from "@/hooks/useMediaQuery";
-import { replaceHistorySearchParams } from "@/utils/url";
-import { YEARS, DEFAULT_YEAR } from "@/constants";
-import { ChevronDown } from "lucide-react";
-import {
-  PICKER_BAR,
-  PICKER_CHEVRON,
-  PICKER_FIELD_LABEL,
-  PICKER_SELECT,
-} from "@/components/Nav/pickerStyles";
+import { DEFAULT_YEAR } from "@/constants";
 
 type Tab = "drivers" | "constructors" | "results" | "teammates";
 type ChartView = "totals" | "progression";
@@ -549,26 +541,10 @@ function ChartHeader({
 
 // ── Page ──────────────────────────────────────────────────────────────────────
 export default function Standings() {
-  const [, setSearchParams] = useSearchParams();
   const [yearParam] = useNumberParam("year", DEFAULT_YEAR);
   const year = yearParam ?? DEFAULT_YEAR;
   const [meetingKey] = useNumberParam("meeting", null);
   const [sessionKey] = useNumberParam("session", null);
-  // meeting/session belong to the previous year; drop them in the same update
-  // so the new year's latest race drives the standings.
-  const setYear = (next: number) => {
-    setSearchParams(
-      (prev) => {
-        const p = new URLSearchParams(prev);
-        p.set("year", String(next));
-        p.delete("meeting");
-        p.delete("session");
-        replaceHistorySearchParams(p);
-        return p;
-      },
-      { replace: true },
-    );
-  };
   const [tabParam, setTab] = useStringParam<Tab>("tab", "drivers");
   const tab: Tab = TABS.includes(tabParam) ? tabParam : "drivers";
   const [chartParam, setChartView] = useStringParam<ChartView>(
@@ -748,33 +724,11 @@ export default function Standings() {
 
   return (
     <div className="flex flex-col md:h-full md:overflow-hidden bg-track">
-      {/* Picker bar — same styles as the race pages' session picker */}
-      <div className={PICKER_BAR}>
-        <div className="flex flex-wrap items-center gap-x-3 gap-y-1 py-1.5 pl-[max(0.75rem,env(safe-area-inset-left))] pr-[max(0.75rem,env(safe-area-inset-right))] sm:px-4">
-          <label className="flex items-center gap-1">
-            <span className={PICKER_FIELD_LABEL}>Year</span>
-            <span className="relative inline-block">
-              <select
-                aria-label="Season year"
-                value={year}
-                onChange={(e) => setYear(Number(e.target.value))}
-                className={`${PICKER_SELECT} w-[4.75rem]`}
-              >
-                {YEARS.map((y) => (
-                  <option key={y} value={y}>
-                    {y}
-                  </option>
-                ))}
-              </select>
-              <ChevronDown aria-hidden="true" className={PICKER_CHEVRON} />
-            </span>
-          </label>
-
-          {isLoading && (
-            <span className={PICKER_FIELD_LABEL}>Loading sessions…</span>
-          )}
+      {isLoading && (
+        <div className="border-b border-panel bg-surface px-4 py-1 font-mono text-xs text-muted">
+          Loading sessions…
         </div>
-      </div>
+      )}
 
       {/* Sub-tabs — same pattern as the Commentary tabs */}
       <div

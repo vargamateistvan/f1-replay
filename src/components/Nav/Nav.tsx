@@ -16,7 +16,7 @@ import { api } from "@/api/endpoints";
 import type { Meeting, Session } from "@/api/types";
 import { isAuthError } from "@/api/client";
 import { isSessionLive } from "@/utils/live";
-import { DEFAULT_YEAR, CURRENT_SEASON_STALE_MS } from "@/constants";
+import { DEFAULT_YEAR, CURRENT_SEASON_STALE_MS, YEARS } from "@/constants";
 import { useNumberParam, useStringParam } from "@/hooks/useSearchParamState";
 import { AppLogo } from "@/components/AppLogo";
 import { LiveDataNotice } from "@/components/LiveDataNotice";
@@ -35,6 +35,7 @@ import {
 import { replaceHistorySearchParams, toSafeExternalUrl } from "@/utils/url";
 import { trackEvent } from "@/lib/analytics";
 import {
+  ChevronDown,
   Settings as SettingsIcon,
   Maximize,
   Minimize,
@@ -654,6 +655,7 @@ export function Nav() {
   const navigate = useNavigate();
   const isMainRoute = location.pathname === "/";
   const isTelemetryRoute = location.pathname === "/telemetry";
+  const isStandingsRoute = location.pathname.startsWith("/standings");
 
   function viewHref(id: MainView) {
     const params = new URLSearchParams(searchParams);
@@ -710,6 +712,27 @@ export function Nav() {
               onSession={onSessionSelect}
               onLatest={() => void selectLatestEvent("manual")}
             />
+          ) : isStandingsRoute ? (
+            // Standings only need a season; meeting/session are cleared on change.
+            <label className="relative inline-flex items-center">
+              <span className="sr-only">Season year</span>
+              <select
+                aria-label="Season year"
+                value={year}
+                onChange={(e) => onYear(Number(e.target.value))}
+                className="h-7 appearance-none cursor-pointer rounded-md border border-white/10 bg-black/[0.06] pl-2 pr-6 text-[11px] font-bold uppercase tracking-widest text-white transition-colors hover:border-white/25 hover:bg-black/15 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70 [&>option]:bg-surface [&>option]:text-white light:[&>option]:bg-white light:[&>option]:text-black"
+              >
+                {YEARS.map((y) => (
+                  <option key={y} value={y}>
+                    {y} season
+                  </option>
+                ))}
+              </select>
+              <ChevronDown
+                aria-hidden="true"
+                className="pointer-events-none absolute right-1.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-white/75"
+              />
+            </label>
           ) : (
             <>
               {live && (
