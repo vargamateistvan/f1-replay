@@ -19,6 +19,7 @@ import {
   TELEMETRY_RPM_BAR_MAX,
   TELEMETRY_RPM_HIGH,
   TELEMETRY_RPM_SHIFT,
+  TELEMETRY_SPEED_BAR_MAX_KMH,
 } from "@/constants";
 import { deriveFinishedDrivers } from "@/utils/finish";
 import { deriveRetiredDrivers } from "@/utils/retirement";
@@ -390,6 +391,39 @@ function revColor(rpm: number): string {
   return THROTTLE_COLOR;
 }
 
+function MeterBar({ pct, color }: { pct: number; color: string }) {
+  return (
+    <span className="block h-[3px] overflow-hidden bg-panel">
+      <span
+        className="block h-full transition-[width] duration-150 ease-out motion-reduce:transition-none"
+        style={{ width: `${Math.max(0, Math.min(100, pct))}%`, background: color }}
+      />
+    </span>
+  );
+}
+
+function GearChip({ gear, sizeClass }: { gear: number; sizeClass: string }) {
+  const neutral = gear === 0;
+  return (
+    <span
+      className={`flex shrink-0 items-center justify-center border font-mono font-black tabular-nums leading-none ${sizeClass} ${
+        neutral
+          ? "border-[#f5a623]/60 text-[#f5a623]"
+          : "border-panel bg-panel/60 text-white"
+      }`}
+      title={neutral ? "Neutral" : `Gear ${gear}`}
+    >
+      {neutral ? "N" : gear}
+    </span>
+  );
+}
+
+function drsBadgeClass(open: boolean): string {
+  return open
+    ? "bg-[#39d743] text-black shadow-[0_0_6px_rgba(57,215,67,0.6)]"
+    : "border border-panel text-muted";
+}
+
 /** Fixed-width parts (speed 2.5rem · gear 1rem · rpm 2.75rem · pedals · DRS
  *  1.75rem) so the column width only depends on whether DRS is shown. */
 function CombinedTelemetry({
@@ -405,7 +439,6 @@ function CombinedTelemetry({
 }) {
   const rpm = Math.max(0, Math.round(car.rpm));
   const revPct = Math.min(100, (rpm / TELEMETRY_RPM_BAR_MAX) * 100);
-  const neutral = car.n_gear === 0;
   const drsOpen = (car.drs ?? 0) >= 10;
   return (
     <span className="flex items-center gap-1.5 whitespace-nowrap font-mono tabular-nums leading-none">
@@ -415,16 +448,7 @@ function CombinedTelemetry({
           {speedUnit}
         </span>
       </span>
-      <span
-        className={`flex h-4 w-4 shrink-0 items-center justify-center border text-[10px] font-black ${
-          neutral
-            ? "border-[#f5a623]/60 text-[#f5a623]"
-            : "border-panel bg-panel/60 text-white"
-        }`}
-        title={neutral ? "Neutral" : `Gear ${car.n_gear}`}
-      >
-        {neutral ? "N" : car.n_gear}
-      </span>
+      <GearChip gear={car.n_gear} sizeClass="h-4 w-4 text-[10px]" />
       <span
         role="img"
         aria-label={`${rpm} rpm`}
@@ -435,21 +459,12 @@ function CombinedTelemetry({
           {rpm}
           <span className="ml-0.5 text-[7px] text-muted">rpm</span>
         </span>
-        <span className="block h-[3px] overflow-hidden bg-panel">
-          <span
-            className="block h-full transition-[width] duration-150 ease-out motion-reduce:transition-none"
-            style={{ width: `${revPct}%`, background: revColor(rpm) }}
-          />
-        </span>
+        <MeterBar pct={revPct} color={revColor(rpm)} />
       </span>
       <PedalTrace throttle={car.throttle} brake={car.brake} />
       {showDrs && (
         <span
-          className={`w-7 shrink-0 py-[3px] text-center text-[8px] font-black uppercase tracking-[0.08em] transition-colors duration-150 motion-reduce:transition-none ${
-            drsOpen
-              ? "bg-[#39d743] text-black shadow-[0_0_6px_rgba(57,215,67,0.6)]"
-              : "border border-panel text-muted"
-          }`}
+          className={`w-7 shrink-0 py-[3px] text-center text-[8px] font-black uppercase tracking-[0.08em] transition-colors duration-150 motion-reduce:transition-none ${drsBadgeClass(drsOpen)}`}
           title={`DRS raw value ${car.drs ?? 0}`}
         >
           DRS
@@ -1967,7 +1982,7 @@ export function LiveTiming({
                   )}
                   {columns.gear && (
                     <th
-                      className={`${headerCellClass} ${gearColumnClass} text-center w-6`}
+                      className={`${headerCellClass} ${gearColumnClass} text-center w-8`}
                     >
                       Gear
                     </th>
@@ -2554,25 +2569,58 @@ export function LiveTiming({
                       {/* Speed */}
                       {columns.speed && (
                         <td
-                          className={`${speedColumnClass} ${rowCellPad} align-middle ${telemetryPadClass} text-right font-mono text-[12px] tabular-nums text-white`}
+                          className={`${speedColumnClass} ${rowCellPad} align-middle ${telemetryPadClass} text-right font-mono text-[12px] font-bold tabular-nums leading-none text-white`}
                         >
-                          {speedValue ?? "—"}
+                          {car && speedValue !== null ? (
+                            <span className="flex flex-col gap-[3px]">
+                              {speedValue}
+                              <MeterBar
+                                pct={
+                                  (car.speed / TELEMETRY_SPEED_BAR_MAX_KMH) *
+                                  100
+                                }
+                                color="#38bdf8"
+                              />
+                            </span>
+                          ) : (
+                            <span className="text-muted">—</span>
+                          )}
                         </td>
                       )}
                       {/* Gear */}
                       {columns.gear && (
                         <td
-                          className={`${gearColumnClass} ${rowCellPad} align-middle ${telemetryCenterPadClass} text-center font-mono text-[12px] tabular-nums text-white/90`}
+                          className={`${gearColumnClass} ${rowCellPad} align-middle ${telemetryCenterPadClass} text-center`}
                         >
-                          {car ? (car.n_gear === 0 ? "N" : car.n_gear) : "—"}
+                          {car ? (
+                            <GearChip
+                              gear={car.n_gear}
+                              sizeClass="mx-auto h-5 w-5 text-[11px]"
+                            />
+                          ) : (
+                            <span className="text-muted">—</span>
+                          )}
                         </td>
                       )}
                       {/* RPM */}
                       {columns.rpm && (
                         <td
-                          className={`${rpmColumnClass} ${rowCellPad} align-middle ${telemetryPadClass} text-right font-mono text-[10px] tabular-nums text-muted`}
+                          className={`${rpmColumnClass} ${rowCellPad} align-middle ${telemetryPadClass} text-right font-mono text-[10px] tabular-nums leading-none text-white/80`}
                         >
-                          {car ? Math.round(car.rpm) : "—"}
+                          {car ? (
+                            <span
+                              className="flex flex-col gap-[3px]"
+                              title={`${Math.round(car.rpm)} rpm`}
+                            >
+                              {Math.round(car.rpm)}
+                              <MeterBar
+                                pct={(car.rpm / TELEMETRY_RPM_BAR_MAX) * 100}
+                                color={revColor(car.rpm)}
+                              />
+                            </span>
+                          ) : (
+                            <span className="text-muted">—</span>
+                          )}
                         </td>
                       )}
                       {/* Throttle / brake mini bars */}
@@ -2600,11 +2648,9 @@ export function LiveTiming({
                         >
                           {car ? (
                             <span
-                              className={`mx-auto flex min-w-[2rem] items-center justify-center px-1 py-0.5 text-center leading-none text-[9px] font-black uppercase tracking-[0.08em] ${
-                                (car.drs ?? 0) >= 10
-                                  ? "bg-[#39d743] text-black"
-                                  : "bg-panel text-muted"
-                              }`}
+                              className={`mx-auto flex min-w-[2rem] items-center justify-center px-1 py-0.5 text-center leading-none text-[9px] font-black uppercase tracking-[0.08em] transition-colors duration-150 motion-reduce:transition-none ${drsBadgeClass(
+                                (car.drs ?? 0) >= 10,
+                              )}`}
                               title={`DRS raw value ${car.drs ?? 0}`}
                             >
                               {(car.drs ?? 0) >= 10 ? "ON" : "OFF"}

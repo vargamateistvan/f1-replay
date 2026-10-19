@@ -415,6 +415,8 @@ export const TELEMETRY_RPM_BAR_MAX = 13_000;
 export const TELEMETRY_RPM_SHIFT = 11_800;
 /** RPM from which the rev bar turns amber. */
 export const TELEMETRY_RPM_HIGH = 10_500;
+/** Speed (km/h) at which the leaderboard speed bar is full. */
+export const TELEMETRY_SPEED_BAR_MAX_KMH = 350;
 
 // ── Deferred loading ──────────────────────────────────────────────────────────
 /** Max wait (ms) for an idle period before running deferred non-critical work. */

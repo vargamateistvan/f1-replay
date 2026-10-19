@@ -1302,7 +1302,7 @@ describe("LiveTiming", () => {
     expect(screen.getByText("Speed").closest("th")?.className).toContain(
       "w-[3rem]",
     );
-    expect(screen.getByText("Gear").closest("th")?.className).toContain("w-6");
+    expect(screen.getByText("Gear").closest("th")?.className).toContain("w-8");
 
     const rpmHeader = screen.getAllByText("RPM")[0]?.closest("th");
     expect(rpmHeader?.className).toContain("hidden");
