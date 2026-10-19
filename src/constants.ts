@@ -120,7 +120,10 @@ export const MAP3D_PIT_LANE_HALF_WIDTH_M = 3;
 export const MAP3D_KERB_WIDTH_M = 2.5;
 export const MAP3D_KERB_BLOCK_M = 2;
 /** Kerb base + stripe colours (red/white). */
-export const MAP3D_KERB_COLORS: readonly [string, string] = ["#f2f2f2", "#e2231a"];
+export const MAP3D_KERB_COLORS: readonly [string, string] = [
+  "#f2f2f2",
+  "#e2231a",
+];
 /** Chequered start grid: columns across the track × rows along it, total depth. */
 export const MAP3D_START_GRID_COLUMNS = 6;
 export const MAP3D_START_GRID_ROWS = 3;
@@ -132,10 +135,30 @@ export const MAP3D_SURFACE_MIN_ZOOM = 13.5;
  * at night so the surface still reads without glowing by day.
  */
 export const MAP3D_TRACK_PALETTE = {
-  dawn: { surface: "#3f434e", casing: "#ffd9a8", casingOpacity: 0.45, emissive: 0.3 },
-  day: { surface: "#4a4d55", casing: "#ffffff", casingOpacity: 0.6, emissive: 0.1 },
-  dusk: { surface: "#3a3d47", casing: "#ffb488", casingOpacity: 0.45, emissive: 0.35 },
-  night: { surface: "#2f333d", casing: "#9aa3b5", casingOpacity: 0.5, emissive: 0.6 },
+  dawn: {
+    surface: "#3f434e",
+    casing: "#ffd9a8",
+    casingOpacity: 0.45,
+    emissive: 0.3,
+  },
+  day: {
+    surface: "#4a4d55",
+    casing: "#ffffff",
+    casingOpacity: 0.6,
+    emissive: 0.1,
+  },
+  dusk: {
+    surface: "#3a3d47",
+    casing: "#ffb488",
+    casingOpacity: 0.45,
+    emissive: 0.35,
+  },
+  night: {
+    surface: "#2f333d",
+    casing: "#9aa3b5",
+    casingOpacity: 0.5,
+    emissive: 0.6,
+  },
 } as const;
 /**
  * Asphalt while it rains: darker, with more emissive so floodlights read as
@@ -163,7 +186,7 @@ export const MAP3D_RAIN_FOG_RANGE_HEAVY: readonly [number, number] = [0.2, 2.5];
 export const MAP3D_FLAG_WIDTH_M = 26;
 export const MAP3D_OVERVIEW_PITCH = 50;
 export const MAP3D_FOLLOW_PITCH = 62;
-export const MAP3D_FOLLOW_ZOOM = 16.6;
+export const MAP3D_FOLLOW_ZOOM = 20.6;
 /** Per-frame budget for the 3D map's own work (see ?debug=map3d). */
 export const MAP3D_FRAME_BUDGET_MS = 4;
 /**
