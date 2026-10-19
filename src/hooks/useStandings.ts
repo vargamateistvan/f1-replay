@@ -315,6 +315,7 @@ export function useStandings(
           driverInfo.fullName.get(d.driver_number) ??
           `Driver ${d.driver_number}`,
         team: driverInfo.team.get(d.driver_number) ?? "—",
+        constructorName: teamOf(d.driver_number) ?? undefined,
         color: driverInfo.color.get(d.driver_number) ?? "#888",
         points: d.points_current,
         wins: tally.wins.get(d.driver_number) ?? 0,
@@ -328,7 +329,14 @@ export function useStandings(
       remaining.driver,
     );
     return rows.map((r) => ({ ...r, title: outlook.get(r.driverNumber) }));
-  }, [championshipDriversQ.data, driverByNumber, driverInfo, tally, remaining]);
+  }, [
+    championshipDriversQ.data,
+    driverByNumber,
+    driverInfo,
+    tally,
+    remaining,
+    teamOf,
+  ]);
 
   const constructorStandings = useMemo<ConstructorStanding[]>(() => {
     const rows = [...(championshipTeamsQ.data ?? [])]

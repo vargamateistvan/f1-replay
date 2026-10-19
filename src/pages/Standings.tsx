@@ -33,6 +33,7 @@ import { TitleOutlookBanner } from "@/components/TitleOutlook/TitleOutlookBanner
 import { TeammateComparison } from "@/components/TeammateComparison/TeammateComparison";
 import { ResultsGrid } from "@/components/ResultsGrid/ResultsGrid";
 import type { TitleOutlook } from "@/utils/championship";
+import { constructorPath } from "@/utils/constructorProfile";
 import { Link, useLocation, useSearchParams } from "react-router-dom";
 import { useNumberParam, useStringParam } from "@/hooks/useSearchParamState";
 import { useMediaQuery } from "@/hooks/useMediaQuery";
@@ -363,6 +364,7 @@ function DriverChart({ standings }: { standings: DriverStanding[] }) {
 
 // ── Constructor standings ─────────────────────────────────────────────────────
 function ConstructorTable({ standings }: { standings: ConstructorStanding[] }) {
+  const { search } = useLocation();
   if (standings.length === 0)
     return (
       <div className="min-h-32">
@@ -412,18 +414,22 @@ function ConstructorTable({ standings }: { standings: ConstructorStanding[] }) {
                 )}
               </td>
               <td className="py-3 px-3">
-                <span className="flex items-center gap-2">
+                <Link
+                  to={`${constructorPath(s.name)}${search}`}
+                  aria-label={`${s.name} team profile`}
+                  className="group flex items-center gap-2"
+                >
                   <span
                     className="w-[3px] h-4 shrink-0"
                     style={{ background: s.color }}
                   />
                   <span
-                    className="font-black text-xs"
+                    className="font-black text-xs group-hover:underline"
                     style={{ color: s.color }}
                   >
                     {s.name}
                   </span>
-                </span>
+                </Link>
               </td>
               <td className="py-3 px-3 text-right font-mono tabular-nums font-bold text-sm">
                 {s.points}

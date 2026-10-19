@@ -34,6 +34,7 @@ const RaceWeekend = lazy(() => import("@/pages/RaceWeekend"));
 const Telemetry = lazy(() => import("@/pages/Telemetry"));
 const Standings = lazy(() => import("@/pages/Standings"));
 const DriverProfile = lazy(() => import("@/pages/DriverProfile"));
+const ConstructorProfile = lazy(() => import("@/pages/ConstructorProfile"));
 const Settings = lazy(() => import("@/pages/Settings"));
 const Privacy = lazy(() => import("@/pages/Privacy"));
 const Terms = lazy(() => import("@/pages/Terms"));
@@ -181,6 +182,10 @@ export function AppRouter() {
                 <Route
                   path="/standings/driver/:driverNumber"
                   element={<DriverProfile />}
+                />
+                <Route
+                  path="/standings/team/:teamName"
+                  element={<ConstructorProfile />}
                 />
                 <Route path="/settings" element={<Settings />} />
                 <Route path="/privacy" element={<Privacy />} />

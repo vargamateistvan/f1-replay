@@ -20,6 +20,7 @@ import {
   driverSeasonStats,
   finishDistribution,
 } from "@/utils/driverProfile";
+import { constructorPath } from "@/utils/constructorProfile";
 import { DEFAULT_YEAR } from "@/constants";
 import {
   PICKER_BAR,
@@ -195,7 +196,16 @@ export default function DriverProfile() {
               </div>
               <div className="mt-0.5 flex flex-wrap items-center gap-x-2 text-xs text-muted">
                 <span className="h-3 w-[3px]" style={{ background: standing.color }} />
-                <span>{standing.team}</span>
+                {standing.constructorName ? (
+                  <Link
+                    to={`${constructorPath(standing.constructorName)}${search}`}
+                    className="hover:text-white hover:underline"
+                  >
+                    {standing.team}
+                  </Link>
+                ) : (
+                  <span>{standing.team}</span>
+                )}
                 <span aria-hidden="true">·</span>
                 <span>{year} season</span>
                 {standing.title && (

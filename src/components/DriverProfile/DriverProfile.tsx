@@ -4,8 +4,9 @@ import {
   type DriverSeasonStats,
   type FinishBucket,
 } from "@/utils/driverProfile";
-import { cellTone } from "@/components/ResultsGrid/ResultsGrid";
+import { cellTone } from "@/components/ResultsGrid/cellTone";
 import { ErrorMessage } from "@/components/ErrorMessage";
+import { finishText, fmt } from "./format";
 
 const SECTION_TITLE =
   "mb-3 text-[10px] font-bold uppercase tracking-[0.12em] text-muted";
@@ -13,10 +14,6 @@ const SECTION_TITLE =
 const HEAD =
   "sticky top-0 bg-track py-2 text-[10px] font-bold uppercase tracking-widest text-muted shadow-[inset_0_-1px_0_rgb(var(--color-panel))]";
 
-function fmt(value: number | null, digits = 1): string {
-  if (value === null) return "–";
-  return Number.isInteger(value) ? String(value) : value.toFixed(digits);
-}
 
 function signed(value: number | null): string {
   if (value === null) return "–";
@@ -25,7 +22,7 @@ function signed(value: number | null): string {
 
 // ── Stat tiles ────────────────────────────────────────────────────────────────
 
-function StatTile({
+export function StatTile({
   label,
   value,
   hint,
@@ -171,15 +168,6 @@ export function FinishDistribution({
 
 // ── Round-by-round results ────────────────────────────────────────────────────
 
-const STATUS_TEXT: Record<Exclude<GridCell["status"], "finished">, string> = {
-  dnf: "DNF",
-  dns: "DNS",
-  dsq: "DSQ",
-};
-
-function finishText(cell: GridCell): string {
-  return cell.status === "finished" ? `P${cell.position}` : STATUS_TEXT[cell.status];
-}
 
 export function SeasonResults({
   rounds,

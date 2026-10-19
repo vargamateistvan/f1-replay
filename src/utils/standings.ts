@@ -10,6 +10,8 @@ export interface DriverStanding {
   acronym: string;
   fullName: string;
   team: string;
+  /** Canonical team name (latest team), as used by the constructor standings. */
+  constructorName?: string;
   color: string;
   points: number;
   wins: number;

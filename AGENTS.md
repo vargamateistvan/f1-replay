@@ -87,6 +87,7 @@ src/
     standings.ts        — computeStandings(), completed-session + wins/podiums tallies
     championship.ts     — Points progression, per-race results grid, title-outlook maths, teammate head-to-heads
     driverProfile.ts    — driverSeasonStats(), finishDistribution(), championshipPositions() for the driver profile
+    constructorProfile.ts — constructorSeasonStats() (all cars per round), round points, constructorPath()
     telemetry.ts        — resampleToAxis, computeDelta, smooth (signal processing)
     corners.ts          — buildCornerZones(): braking→exit corner zones for telemetry charts
     cornerAnalysis.ts   — Per-corner metrics, lap alignment to timing lines, segment time deltas
@@ -107,6 +108,7 @@ src/
     Telemetry.tsx       — Lap telemetry comparison page
     Standings.tsx       — Season championship standings page
     DriverProfile.tsx   — /standings/driver/:driverNumber — one driver's season (keeps ?year/&session)
+    ConstructorProfile.tsx — /standings/team/:teamName (canonical name, `constructorPath()`) — one team's season
     Settings.tsx        — Redirect to settings modal
     NotFound.tsx, AppCrash.tsx
 
@@ -186,6 +188,7 @@ components/ (render to DOM; read settings from Zustand)
 | `TeammateComparison`                              | Qualifying / race / points head-to-heads per team (Standings → Teammates)                |
 | `ResultsGrid`                                     | Drivers × rounds finishing positions/points, colour-coded (Standings → Results)          |
 | `DriverProfile`                                   | Driver profile page pieces: stat tiles, finish distribution, round-by-round results (quali → finish → championship position) |
+| `ConstructorProfile`                              | Team profile page pieces: stat tiles (1-2s, double points…), driver line-up with points share, per-car round results |
 
 ---
 
