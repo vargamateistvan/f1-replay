@@ -50,6 +50,7 @@ import {
   MAP3D_TERRAIN_EXAGGERATION,
   MAP3D_TRACK_WIDTH_M,
   MAP3D_TRAIL_MS,
+  MAP3D_TRAIL_SPEED_MAX_GAP_MS,
   MAP3D_TRAIL_STEP_MS,
 } from "@/constants";
 import { getCircuitGeoref } from "@/data/circuitGeoref";
@@ -98,10 +99,13 @@ import {
 import {
   buildArcPolyline,
   buildHotspotPoints,
-  buildTrail,
+  buildTrailPath,
   gradientFromSegments,
   heatColors,
+  speedLookup,
+  trailFeature,
   trailGradient,
+  trailSpeedGradient,
 } from "./trackOverlays";
 import {
   isBrightPreset,
@@ -344,6 +348,7 @@ export function TrackMap3D({
   const weatherEffectsEnabled = useSettings((s) => s.mapView3dWeatherEffects);
   const buildingsEnabled = useSettings((s) => s.mapView3dBuildings);
   const carModelsEnabled = useSettings((s) => s.mapView3dCarModels);
+  const speedTrailEnabled = useSettings((s) => s.mapView3dSpeedTrail);
   const mapShowDriverNumberInside = useSettings(
     (s) => s.mapShowDriverNumberInside,
   );
@@ -490,6 +495,12 @@ export function TrackMap3D({
     mapShowDriverNumberInside,
     lightMode,
   ]);
+  // Focused car's trail colouring for the RAF loop: speed lookup (null = team
+  // colour only) and the team colour for samples without car data.
+  const trailStyleRef = useRef<{ speedAt: ((t: number) => number | null) | null; color: string }>({
+    speedAt: null,
+    color: "#ffffff",
+  });
 
   // Pixels per 2D SVG unit for this panel, so cars match the 2D map's size.
   const carScaleRef = useRef(1);
@@ -1005,10 +1016,18 @@ export function TrackMap3D({
         lastTrailUpdate = now;
         const trailSource = map.getSource(SRC_TRAIL) as mapboxgl.GeoJSONSource | undefined;
         const idx = live.focusDriver != null ? live.indexes.get(live.focusDriver) : undefined;
-        const trail = idx
-          ? buildTrail(idx, playhead, geo, MAP3D_TRAIL_MS, MAP3D_TRAIL_STEP_MS)
+        const path = idx
+          ? buildTrailPath(idx, playhead, geo, MAP3D_TRAIL_MS, MAP3D_TRAIL_STEP_MS)
           : null;
-        trailSource?.setData({ type: "FeatureCollection", features: trail ? [trail] : [] });
+        trailSource?.setData({
+          type: "FeatureCollection",
+          features: path ? [trailFeature(path)] : [],
+        });
+        // Speed colours move with the car, so the gradient follows each refresh.
+        const { speedAt, color } = trailStyleRef.current;
+        if (path && speedAt && map.getLayer(LAYER_TRAIL)) {
+          map.setPaintProperty(LAYER_TRAIL, "line-gradient", trailSpeedGradient(path, speedAt, color));
+        }
       }
 
       // Pulse / siren rings animate like the 2D SVG <animate> rings.
@@ -1250,9 +1269,10 @@ export function TrackMap3D({
     }
     return cars;
   }, [cameraMode, directorShot, focusDriver]);
+  // One focused-car window feeds both the HUD and the speed-coloured trail.
   const { data: hudRawData } = useCarDataWindow(
     sessionKey,
-    showFocusedHud ? focusDriver : null,
+    showFocusedHud || speedTrailEnabled ? focusDriver : null,
     sessionStartMs,
     chunkIndexFor(t),
     { sharedAllDriverWindow },
@@ -1308,11 +1328,24 @@ export function TrackMap3D({
     });
   }, [pitRejoin, focusColor, geo, styleReady]);
 
+  // Speed trail: the RAF loop recolours the trail on each refresh from this.
+  const trailSpeedAt = useMemo(
+    () =>
+      speedTrailEnabled && focusDriver !== null && hudRawData.length > 0
+        ? speedLookup(hudRawData, sessionStartMs, MAP3D_TRAIL_SPEED_MAX_GAP_MS)
+        : null,
+    [speedTrailEnabled, focusDriver, hudRawData, sessionStartMs],
+  );
+  useEffect(() => {
+    trailStyleRef.current = { speedAt: trailSpeedAt, color: focusColor };
+  }, [trailSpeedAt, focusColor]);
+
   useEffect(() => {
     const map = mapRef.current;
     if (!map || !styleReady || !map.getLayer(LAYER_TRAIL)) return;
+    // Team colour until (or unless) the loop paints speed.
     map.setPaintProperty(LAYER_TRAIL, "line-gradient", trailGradient(focusColor));
-  }, [focusColor, styleReady, arc]);
+  }, [focusColor, trailSpeedAt, styleReady, arc]);
 
   const totalMarshalPosts = Math.max(
     circuitGeom?.marshalSectors?.length ?? 0,

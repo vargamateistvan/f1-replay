@@ -51,6 +51,8 @@ export interface AppSettings {
   mapView3dBuildings: boolean;
   /** 3D map: 3D car models when zoomed in (off = 2D-style markers at every zoom). */
   mapView3dCarModels: boolean;
+  /** 3D map: colour the focused car's trail by speed (else its team colour). */
+  mapView3dSpeedTrail: boolean;
   // Leaderboard
   leaderboardTelemetry: boolean;
   timingShowMinisectors: boolean;
@@ -189,6 +191,7 @@ export const SETTINGS_DEFAULTS: AppSettings = {
   mapView3dWeatherEffects: true,
   mapView3dBuildings: true,
   mapView3dCarModels: true,
+  mapView3dSpeedTrail: true,
   leaderboardTelemetry: true,
   timingShowMinisectors: true,
   trackerTimingTelemetry: true,

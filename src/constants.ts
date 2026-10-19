@@ -282,6 +282,8 @@ export const MAP3D_CAR_SHADOW_DROP = 1.6;
 /** Length and sampling of the focused car's trail on the 3D map. */
 export const MAP3D_TRAIL_MS = 8_000;
 export const MAP3D_TRAIL_STEP_MS = 200;
+/** Speed-coloured trail: car-data gaps longer than this show the team colour. */
+export const MAP3D_TRAIL_SPEED_MAX_GAP_MS = 1_000;
 /** Sun elevation (°) at or above which the 3D map uses the "day" preset. */
 export const MAP3D_SUN_DAY_DEG = 6;
 /** Sun elevation (°) at or below which it uses "night" (civil twilight ends ≈ -6°). */
