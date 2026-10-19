@@ -1414,7 +1414,7 @@ describe("LiveTiming", () => {
   });
 
   it.each([
-    { drs: 12, drsColumn: true, width: "w-[12.5rem]", hasDrs: true },
+    { drs: 12, drsColumn: true, width: "w-[13rem]", hasDrs: true },
     { drs: null, drsColumn: true, width: "w-[11rem]", hasDrs: false },
     { drs: 12, drsColumn: false, width: "w-[11rem]", hasDrs: false },
   ])(

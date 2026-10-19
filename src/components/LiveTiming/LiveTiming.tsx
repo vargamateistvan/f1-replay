@@ -1561,9 +1561,11 @@ export function LiveTiming({
   const pedalHeaderWidthClass = compactDriverColumn ? "w-[5rem]" : "w-[6rem]";
   const drsHeaderWidthClass = compactDriverColumn ? "w-[2.5rem]" : "w-[3rem]";
   const showCombinedDrs = showDrs && columns.drs;
+  // Fixed-width parts (see the combined telemetry cell): 7ch speed + 1.5rem
+  // gear + 9ch rpm + pedal bars, plus the 1.75rem DRS badge when shown.
   const combinedTelemetryWidthClass = showCombinedDrs
-    ? "w-[12.5rem]"
-    : "w-[11rem]";
+    ? "w-[13rem] min-w-[13rem]"
+    : "w-[11rem] min-w-[11rem]";
   const pedalBarsWidthClass = compactDriverColumn
     ? "w-[4.5rem]"
     : "w-[5.25rem]";
@@ -2452,22 +2454,22 @@ export function LiveTiming({
                   {/* Live car telemetry — combined single column */}
                   {showTelemetry && combinedTelemetryColumn && (
                     <td
-                      className={`${rowCellPad} align-middle px-2 hidden sm:table-cell`}
+                      className={`${rowCellPad} align-middle px-2 hidden sm:table-cell ${combinedTelemetryWidthClass}`}
                     >
                       {car ? (
-                        <span className="flex items-center gap-1.5 font-mono tabular-nums leading-tight text-[10px]">
-                          <span className="text-white/90">
+                        <span className="flex items-center gap-1.5 whitespace-nowrap font-mono tabular-nums leading-tight text-[10px]">
+                          <span className="w-[7ch] shrink-0 text-white/90">
                             {speedDisplay}
                             <span className="text-muted">
                               {" "}
                               {speedUnitCompact}
                             </span>
                           </span>
-                          <span className="w-6 text-center font-bold text-white/90">
+                          <span className="w-6 shrink-0 text-center font-bold text-white/90">
                             {car.n_gear === 0 ? "N" : car.n_gear}
                           </span>
-                          <span className="text-muted">
-                            <span className="inline-block w-9 text-right">
+                          <span className="w-[9ch] shrink-0 text-muted">
+                            <span className="inline-block w-[5ch] text-right">
                               {Math.round(car.rpm)}
                             </span>{" "}
                             rpm
@@ -2478,7 +2480,7 @@ export function LiveTiming({
                           />
                           {showCombinedDrs && (
                             <span
-                              className={`ml-auto px-1 py-0.5 text-[8px] font-black uppercase tracking-[0.08em] ${
+                              className={`ml-auto w-7 shrink-0 py-0.5 text-center text-[8px] font-black uppercase tracking-[0.08em] ${
                                 (car.drs ?? 0) >= 10
                                   ? "bg-[#39d743] text-black"
                                   : "bg-panel text-muted"
