@@ -249,6 +249,15 @@ export const MAP3D_MODEL_NEAR_ZOOM = 18.5;
  * heading east, south and west.
  */
 export const MAP3D_MODEL_HEADING_OFFSET = 180;
+/**
+ * Soft ground shadow under the 2D-style car icons (the 3D models cast their
+ * own): radius as a multiple of the dot radius, blur, opacity, and how far it
+ * sits below the icon on screen (2D SVG units) so the icon reads as lifted.
+ */
+export const MAP3D_CAR_SHADOW_RADIUS = 1.25;
+export const MAP3D_CAR_SHADOW_BLUR = 0.7;
+export const MAP3D_CAR_SHADOW_OPACITY = 0.45;
+export const MAP3D_CAR_SHADOW_DROP = 1.6;
 /** Length and sampling of the focused car's trail on the 3D map. */
 export const MAP3D_TRAIL_MS = 8_000;
 export const MAP3D_TRAIL_STEP_MS = 200;
