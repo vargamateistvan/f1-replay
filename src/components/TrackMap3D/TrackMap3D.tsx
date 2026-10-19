@@ -177,7 +177,8 @@ const SRC_PIT_LANE = "map3d-pit-lane";
 const SRC_DEM = "map3d-dem";
 const LAYER_TRACK_SURFACE = "map3d-track-surface";
 const LAYER_CORNERS = "map3d-corners";
-const FIT_PADDING = 4;
+/** Overview fit: clear the control bar on top and the Mapbox logo below. */
+const FIT_PADDING = { top: 48, bottom: 40, left: 12, right: 12 };
 /** Minimap longest side (px): desktop / phone. */
 const MINIMAP_SIZE = 150;
 const MINIMAP_SIZE_COMPACT = 96;

@@ -186,7 +186,7 @@ export const MAP3D_RAIN_FOG_RANGE_HEAVY: readonly [number, number] = [0.2, 2.5];
 export const MAP3D_FLAG_WIDTH_M = 26;
 export const MAP3D_OVERVIEW_PITCH = 50;
 export const MAP3D_FOLLOW_PITCH = 62;
-export const MAP3D_FOLLOW_ZOOM = 20.6;
+export const MAP3D_FOLLOW_ZOOM = 17.5;
 /** Per-frame budget for the 3D map's own work (see ?debug=map3d). */
 export const MAP3D_FRAME_BUDGET_MS = 4;
 /**
