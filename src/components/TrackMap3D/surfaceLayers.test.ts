@@ -27,4 +27,11 @@ describe("surfacePaint", () => {
     expect(kerbs.length).toBeGreaterThan(0);
     for (const id of kerbs) expect(wet[id]).toEqual(dry[id]);
   });
+
+  it("darkens the gravel when wet", () => {
+    expect(surfacePaint("day")["map3d-surface-runoff"]!.color).toBe(MAP3D_TRACK_PALETTE.day.gravel);
+    expect(surfacePaint("day", true)["map3d-surface-runoff"]!.color).toBe(
+      MAP3D_TRACK_WET_PALETTE.day.gravel,
+    );
+  });
 });

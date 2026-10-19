@@ -5,6 +5,7 @@
 import type { ExpressionSpecification, Map as MapboxMap } from "mapbox-gl";
 import {
   FLAG_COLORS,
+  MAP3D_EDGE_LINE_COLOR,
   MAP3D_KERB_COLORS,
   MAP3D_SECTOR_RIBBON_M,
   MAP3D_SURFACE_MIN_ZOOM,
@@ -18,9 +19,11 @@ import { groundWidthExpression } from "./mapFeatures";
 import type { SectorZones, TrackSurface } from "./trackSurface";
 
 const LAYERS = {
+  runoff: "map3d-surface-runoff",
   verge: "map3d-surface-verge",
   pitLane: "map3d-surface-pit-lane",
   track: "map3d-surface-track",
+  edgeLines: "map3d-surface-edge-lines",
   kerbsBase: "map3d-surface-kerbs-base",
   kerbsStripes: "map3d-surface-kerbs-stripes",
   startBase: "map3d-surface-start-base",
@@ -59,9 +62,15 @@ export function surfacePaint(preset: LightPreset, wet = false) {
   const asphalt = wet ? MAP3D_TRACK_WET_PALETTE[preset] : p;
   const [kerbBase, kerbStripe] = MAP3D_KERB_COLORS;
   return {
+    [LAYERS.runoff]: {
+      color: wet ? MAP3D_TRACK_WET_PALETTE[preset].gravel : p.gravel,
+      opacity: 1,
+      emissive: p.emissive,
+    },
     [LAYERS.verge]: { color: p.casing, opacity: p.casingOpacity, emissive: p.emissive },
     [LAYERS.pitLane]: { color: asphalt.surface, opacity: 1, emissive: asphalt.emissive },
     [LAYERS.track]: { color: asphalt.surface, opacity: 1, emissive: asphalt.emissive },
+    [LAYERS.edgeLines]: { color: MAP3D_EDGE_LINE_COLOR, opacity: 0.9, emissive: p.emissive },
     [LAYERS.kerbsBase]: { color: kerbBase, opacity: 1, emissive: p.emissive },
     [LAYERS.kerbsStripes]: { color: kerbStripe, opacity: 1, emissive: p.emissive },
     [LAYERS.startBase]: { color: "#ffffff", opacity: 1, emissive: p.emissive },
@@ -98,9 +107,11 @@ export function addTrackSurfaceLayers(
     );
   };
   // Bottom to top.
+  add("runoff");
   add("verge");
   add("pitLane");
   add("track");
+  add("edgeLines");
   add("kerbsBase");
   add("kerbsStripes");
   add("startBase");

@@ -1,13 +1,18 @@
 /**
  * Ground-truth track surface for the 3D map: real-width asphalt, verge and
- * pit-lane polygons, striped kerbs at the corners and a chequered start grid,
- * all built by offsetting the baked centerline in local metres.
+ * pit-lane polygons, white edge lines, striped kerbs and gravel run-off at the
+ * corners and a chequered start grid, all built by offsetting the baked
+ * centerline in local metres.
  */
 import type { CircuitGeometry } from "@/data/circuitGeometryTypes";
 import {
+  MAP3D_EDGE_LINE_M,
   MAP3D_KERB_BLOCK_M,
   MAP3D_KERB_WIDTH_M,
+  MAP3D_NO_RUNOFF_CIRCUITS,
   MAP3D_PIT_LANE_HALF_WIDTH_M,
+  MAP3D_RUNOFF_EXTEND_M,
+  MAP3D_RUNOFF_M,
   MAP3D_SECTOR_RIBBON_M,
   MAP3D_START_GRID_COLUMNS,
   MAP3D_START_GRID_DEPTH_M,
@@ -309,6 +314,43 @@ export function kerbRuns(
   return runs;
 }
 
+type SideRun = { from: number; to: number; side: 1 | -1 };
+
+/**
+ * Sample ranges for the gravel outside each corner: the opposite side of every
+ * kerb run, widened by `extend` samples each way, with ranges on the same side
+ * merged so a band never overlaps itself between close corners. Indices are
+ * on a closed loop of `n` samples and may run past `n` (wrapping).
+ */
+export function runoffRuns(kerbs: readonly SideRun[], n: number, extend: number): SideRun[] {
+  const out: SideRun[] = [];
+  for (const side of [1, -1] as const) {
+    const covered = new Uint8Array(n);
+    for (const k of kerbs) {
+      if (k.side !== -side) continue;
+      for (let i = k.from - extend; i <= k.to + extend; i++) covered[((i % n) + n) % n] = 1;
+    }
+    // Start at an uncovered sample so a range never straddles the loop seam.
+    const first = covered.indexOf(0);
+    if (first < 0) {
+      if (kerbs.length) out.push({ from: 0, to: n - 1, side });
+      continue;
+    }
+    let i = first;
+    while (i < first + n) {
+      if (!covered[i % n]) {
+        i++;
+        continue;
+      }
+      let j = i;
+      while (j + 1 < first + n && covered[(j + 1) % n]) j++;
+      out.push({ from: i, to: j, side });
+      i = j + 1;
+    }
+  }
+  return out;
+}
+
 /**
  * One asphalt polygon per marshal post, from the post to the next post in
  * track order (the last wraps to the first); feature `id` is the post number
@@ -503,8 +545,11 @@ export function buildSectorZones(geom: CircuitGeometry, geo: CircuitGeoref): Sec
 }
 
 export interface TrackSurface {
+  /** Gravel outside the corners (empty on street circuits). */
+  runoff: PolygonCollection;
   verge: PolygonCollection;
   track: PolygonCollection;
+  edgeLines: PolygonCollection;
   pitLane: PolygonCollection;
   kerbsBase: PolygonCollection;
   kerbsStripes: PolygonCollection;
@@ -542,6 +587,11 @@ export function buildTrackSurface(
     ...loopStrips(center, nrm, -half, -(half + MAP3D_VERGE_M), chunk, toLL),
   ]);
   const track = polygons(loopStrips(center, nrm, half, -half, chunk, toLL));
+  const edge = MAP3D_EDGE_LINE_M;
+  const edgeLines = polygons([
+    ...loopStrips(center, nrm, half - edge, half, chunk, toLL),
+    ...loopStrips(center, nrm, -(half - edge), -half, chunk, toLL),
+  ]);
 
   let pit: PolygonCollection = polygons([]);
   if (pitLane && pitLane.x.length > 1) {
@@ -561,11 +611,13 @@ export function buildTrackSurface(
   const n = center.length;
   const kerbBase: LngLat[][][] = [];
   const kerbStripes: LngLat[][][] = [];
-  const addKerb = (from: number, to: number, side: number) => {
+  const along = (from: number, to: number) => {
     const idx: number[] = [];
     for (let k = from; k <= to; k++) idx.push(((k % n) + n) % n);
-    const pts = idx.map((i) => center[i]!);
-    const nr = idx.map((i) => nrm[i]!);
+    return { pts: idx.map((i) => center[i]!), nr: idx.map((i) => nrm[i]!) };
+  };
+  const addKerb = (from: number, to: number, side: number) => {
+    const { pts, nr } = along(from, to);
     const inner = side * half;
     const outer = side * (half + MAP3D_KERB_WIDTH_M);
     kerbBase.push(...stripPolygons(pts, nr, inner, outer, toLL));
@@ -578,8 +630,25 @@ export function buildTrackSurface(
   };
   const every = Math.round(KERB_SAMPLE_M / STEP_M);
   const coarse = center.filter((_, i) => i % every === 0);
-  for (const run of kerbRuns(coarse, KERB_SAMPLE_M)) {
-    addKerb(run.from * every, run.to * every + every, run.side);
+  const kerbs = kerbRuns(coarse, KERB_SAMPLE_M).map((run) => ({
+    from: run.from * every,
+    to: run.to * every + every,
+    side: run.side,
+  }));
+  for (const run of kerbs) addKerb(run.from, run.to, run.side);
+
+  // Gravel beyond the verge on the outside of each corner, in strip-sized
+  // pieces like the asphalt; street circuits have walls instead.
+  const runoff: LngLat[][][] = [];
+  if (!MAP3D_NO_RUNOFF_CIRCUITS.has(geom.circuitKey)) {
+    const inner = half + MAP3D_VERGE_M;
+    const outer = inner + MAP3D_RUNOFF_M;
+    for (const run of runoffRuns(kerbs, n, Math.round(MAP3D_RUNOFF_EXTEND_M / STEP_M))) {
+      for (let s = run.from; s < run.to; s += chunk) {
+        const { pts, nr } = along(s, Math.min(s + chunk, run.to));
+        runoff.push(...stripPolygons(pts, nr, run.side * inner, run.side * outer, toLL));
+      }
+    }
   }
 
   // Start line: a chequered grid across the track at centerline index 0.
@@ -611,8 +680,10 @@ export function buildTrackSurface(
   }
 
   return {
+    runoff: polygons(runoff),
     verge,
     track,
+    edgeLines,
     pitLane: pit,
     kerbsBase: polygons(kerbBase),
     kerbsStripes: polygons(kerbStripes),

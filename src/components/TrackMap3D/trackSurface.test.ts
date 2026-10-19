@@ -1,5 +1,7 @@
 import { describe, expect, it } from "vitest";
+import silverstoneJson from "@/data/circuit-geometry/2-2025.json";
 import monacoJson from "@/data/circuit-geometry/22-2025.json";
+import { MAP3D_EDGE_LINE_M, MAP3D_TRACK_HALF_WIDTH_M } from "@/constants";
 import type { CircuitGeometry } from "@/data/circuitGeometryTypes";
 import { getCircuitGeoref } from "@/data/circuitGeoref";
 import { getPitLane } from "@/data/pitLanes";
@@ -13,6 +15,7 @@ import {
   offsetLine,
   removeLoops,
   resample,
+  runoffRuns,
   trimLoopOverlap,
 } from "./trackSurface";
 
@@ -186,6 +189,8 @@ describe.each(LATEST_LAYOUTS)("buildTrackSurface draws only simple polygons — 
     for (const f of [
       ...s.track.features,
       ...s.verge.features,
+      ...s.runoff.features,
+      ...s.edgeLines.features,
       ...s.pitLane.features,
       ...s.kerbsBase.features,
       ...sectors.paint.features,
@@ -240,6 +245,72 @@ describe("buildTrackSurface (Monaco)", () => {
   it("lays a 6 × 3 chequered start grid", () => {
     expect(surface.startBase.features).toHaveLength(1);
     expect(surface.startSquares.features).toHaveLength(9);
+  });
+});
+
+describe("runoffRuns", () => {
+  it("puts gravel on the outside of each kerb, widened both ways", () => {
+    expect(runoffRuns([{ from: 100, to: 120, side: 1 }], 1000, 30)).toEqual([
+      { from: 70, to: 150, side: -1 },
+    ]);
+  });
+
+  it("merges close corners on the same side so the band never overlaps itself", () => {
+    const runs = runoffRuns(
+      [
+        { from: 100, to: 120, side: -1 },
+        { from: 160, to: 180, side: -1 },
+        { from: 500, to: 520, side: -1 },
+      ],
+      1000,
+      30,
+    );
+    expect(runs).toEqual([
+      { from: 70, to: 210, side: 1 },
+      { from: 470, to: 550, side: 1 },
+    ]);
+  });
+
+  it("keeps a corner across the loop seam in one piece", () => {
+    const runs = runoffRuns([{ from: 990, to: 1005, side: 1 }], 1000, 10);
+    expect(runs).toHaveLength(1);
+    expect(runs[0]!.to - runs[0]!.from).toBe(35);
+  });
+
+  it("gives chicanes gravel on both sides", () => {
+    const sides = runoffRuns(
+      [
+        { from: 100, to: 120, side: 1 },
+        { from: 125, to: 145, side: -1 },
+      ],
+      1000,
+      30,
+    ).map((r) => r.side);
+    expect(sides.sort()).toEqual([-1, 1]);
+  });
+});
+
+describe("buildTrackSurface run-off and markings", () => {
+  const silverstone = silverstoneJson as CircuitGeometry;
+  const ssGeo = getCircuitGeoref(2, 2025)!;
+  const surface = buildTrackSurface(silverstone, ssGeo, getPitLane(2));
+
+  it("lays gravel outside the corners of a permanent circuit", () => {
+    expect(surface.runoff.features.length).toBeGreaterThan(10);
+  });
+
+  it("leaves street circuits (walls) without gravel", () => {
+    expect(buildTrackSurface(monaco, geo, getPitLane(22)).runoff.features).toHaveLength(0);
+  });
+
+  it("paints a white line just inside each asphalt edge", () => {
+    expect(surface.edgeLines.features.length).toBe(surface.track.features.length * 2);
+    const [ring] = surface.edgeLines.features[3]!.geometry.coordinates;
+    const enu = ([lng, lat]: number[]) => lngLatToEnu(ssGeo.originLng, ssGeo.originLat, lng!, lat!);
+    const a = enu(ring![0]!);
+    const b = enu(ring![ring!.length - 2]!);
+    expect(Math.hypot(a.x - b.x, a.y - b.y)).toBeCloseTo(MAP3D_EDGE_LINE_M, 1);
+    expect(MAP3D_EDGE_LINE_M).toBeLessThan(MAP3D_TRACK_HALF_WIDTH_M);
   });
 });
 
