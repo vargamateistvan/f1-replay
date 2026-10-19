@@ -33,7 +33,7 @@ import { TitleOutlookBanner } from "@/components/TitleOutlook/TitleOutlookBanner
 import { TeammateComparison } from "@/components/TeammateComparison/TeammateComparison";
 import { ResultsGrid } from "@/components/ResultsGrid/ResultsGrid";
 import type { TitleOutlook } from "@/utils/championship";
-import { useSearchParams } from "react-router-dom";
+import { Link, useLocation, useSearchParams } from "react-router-dom";
 import { useNumberParam, useStringParam } from "@/hooks/useSearchParamState";
 import { useMediaQuery } from "@/hooks/useMediaQuery";
 import { replaceHistorySearchParams } from "@/utils/url";
@@ -183,6 +183,7 @@ function useChartBarReveal(
 
 // ── Driver standings ──────────────────────────────────────────────────────────
 function DriverTable({ standings }: { standings: DriverStanding[] }) {
+  const { search } = useLocation();
   if (standings.length === 0)
     return (
       <div className="min-h-32">
@@ -239,7 +240,11 @@ function DriverTable({ standings }: { standings: DriverStanding[] }) {
                 )}
               </td>
               <td className="py-3 px-3">
-                <span className="flex items-center gap-2">
+                <Link
+                  to={`/standings/driver/${s.driverNumber}${search}`}
+                  aria-label={`${s.fullName} driver profile`}
+                  className="group flex items-center gap-2"
+                >
                   <DriverHeadshot
                     driver={s.driver}
                     accent={s.color}
@@ -256,12 +261,14 @@ function DriverTable({ standings }: { standings: DriverStanding[] }) {
                     {s.acronym}
                   </span>
                   <span className="hidden sm:flex flex-col leading-tight">
-                    <span className="text-muted text-xs">{s.fullName}</span>
+                    <span className="text-muted text-xs group-hover:text-white group-hover:underline">
+                      {s.fullName}
+                    </span>
                     <span className="hidden md:block text-muted/70 text-[10px]">
                       {s.team}
                     </span>
                   </span>
-                </span>
+                </Link>
               </td>
               <td className="py-3 px-3 text-muted text-xs hidden sm:table-cell md:hidden">
                 {s.team}

@@ -96,6 +96,8 @@ export interface GridCell {
   status: GridStatus;
   /** Started from pole (Grand Prix only). */
   pole?: boolean;
+  /** Main qualifying position (Grand Prix only, when loaded). */
+  qualifying?: number;
 }
 
 /** Driver number per race session key. */
@@ -103,6 +105,8 @@ export type RoundMarkers = Map<number, number>;
 
 export interface GridMarkers {
   pole?: RoundMarkers;
+  /** Qualifying position per driver, keyed by race session key. */
+  qualifying?: Map<number, Map<number, number>>;
 }
 
 export interface ResultsGrid {
@@ -134,6 +138,7 @@ export function resultsGrid(
     const isSprint = isSprintPointsSession(session);
     const round = new Map<number, GridCell>();
     const pole = markers.pole?.get(session.session_key);
+    const qualifying = markers.qualifying?.get(session.session_key);
     for (const r of result) {
       const cell: GridCell = {
         position: r.position,
@@ -141,6 +146,8 @@ export function resultsGrid(
         status: gridStatus(r),
       };
       if (r.driver_number === pole) cell.pole = true;
+      const qualified = qualifying?.get(r.driver_number);
+      if (qualified !== undefined) cell.qualifying = qualified;
       round.set(r.driver_number, cell);
     }
     rounds.push(toRound(session, isSprint));
@@ -162,6 +169,15 @@ export interface PoleLap {
   driverNumber: number;
   /** Best qualifying time in seconds, or null when unknown. */
   time: number | null;
+}
+
+// Classified qualifying position per driver.
+export function qualifyingPositions(result: SessionResult[]): Map<number, number> {
+  const out = new Map<number, number>();
+  for (const r of result) {
+    if (r.position !== null) out.set(r.driver_number, r.position);
+  }
+  return out;
 }
 
 // Pole sitter = qualifying P1 (grid penalties don't move pole), with the

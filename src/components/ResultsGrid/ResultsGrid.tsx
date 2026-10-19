@@ -42,7 +42,7 @@ const STATUS_TONE: Record<Status, string> = {
 
 // Podiums keep their medal colours; everything else uses the app palette
 // (panel tiles, muted text, F1 red) so the grid matches the standings tables.
-function cellTone(cell: GridCell | null): string {
+export function cellTone(cell: GridCell | null): string {
   if (!cell) return "text-muted/40";
   if (cell.status !== "finished") return STATUS_TONE[cell.status];
   if (cell.position === 1) return "bg-amber-300 text-black font-black";

@@ -167,7 +167,7 @@ export function MobileNav() {
           className={btn(
             showMore ||
               location.pathname === "/telemetry" ||
-              location.pathname === "/standings" ||
+              location.pathname.startsWith("/standings") ||
               location.pathname === "/settings",
           )}
           aria-expanded={showMore}

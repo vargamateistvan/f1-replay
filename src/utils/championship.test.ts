@@ -6,6 +6,7 @@ import {
   maxSessionPoints,
   pointsProgression,
   poleFromQualifying,
+  qualifyingPositions,
   remainingPoints,
   resultsGrid,
   teammatePairs,
@@ -287,5 +288,30 @@ describe("poleFromQualifying", () => {
       time: null,
     });
     expect(poleFromQualifying([res({ driver_number: 1, position: null })])).toBeNull();
+  });
+});
+
+describe("qualifyingPositions", () => {
+  it("maps classified drivers to their position", () => {
+    const out = qualifyingPositions([
+      res({ driver_number: 1, position: 2 }),
+      res({ driver_number: 44, position: 1 }),
+      res({ driver_number: 16, position: null }),
+    ]);
+    expect([...out]).toEqual([
+      [1, 2],
+      [44, 1],
+    ]);
+  });
+});
+
+describe("resultsGrid qualifying marker", () => {
+  it("attaches qualifying positions to race cells", () => {
+    const grid = resultsGrid(
+      [{ session_key: 10, session_type: "Race", session_name: "Race", date_start: "2024-03-02T15:00:00Z" }],
+      [[res({ driver_number: 1, position: 3, session_key: 10 })]],
+      { qualifying: new Map([[10, new Map([[1, 5]])]]) },
+    );
+    expect(grid.cells.get(1)?.[0]?.qualifying).toBe(5);
   });
 });

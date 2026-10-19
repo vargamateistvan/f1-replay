@@ -19,6 +19,7 @@ import {
   isMainQualifyingSession,
   poleFromQualifying,
   pointsProgression,
+  qualifyingPositions,
   remainingPoints,
   resultsGrid,
   teammatePairs,
@@ -50,7 +51,7 @@ export interface TeammateComparison {
 export interface StandingsOptions {
   /** Fetch qualifying results for the teammate comparison (one request per round). */
   includeQualifying?: boolean;
-  /** Fetch pole positions for the results grid (one qualifying request per round). */
+  /** Fetch pole and qualifying positions for the results grid (one qualifying request per round). */
   includeResultMarkers?: boolean;
 }
 
@@ -188,16 +189,14 @@ export function useStandings(
     [markerRaceIndexes, pointsSessions],
   );
 
-  // Per race: null while its qualifying is loading or when unknown.
-  const polePerRace = useMemo(() => {
+  // Per race: its main qualifying result, undefined while loading or unknown.
+  const qualifyingPerRace = useMemo(() => {
     const qualifyingIndex = new Map(
       qualifyingSessions.map((s, i) => [s.meeting_key, i]),
     );
     return markerRaces.map((race) => {
       const i = qualifyingIndex.get(race.meeting_key);
-      if (i === undefined) return null;
-      const result = qualifyingResults.data[i];
-      return result ? poleFromQualifying(result) : null;
+      return i === undefined ? undefined : qualifyingResults.data[i];
     });
   }, [markerRaces, qualifyingSessions, qualifyingResults]);
 
@@ -370,12 +369,16 @@ export function useStandings(
 
   const grid = useMemo<ResultsGrid>(() => {
     const pole: RoundMarkers = new Map();
+    const qualifying = new Map<number, Map<number, number>>();
     markerRaces.forEach((race, i) => {
-      const poleLap = polePerRace[i];
+      const result = qualifyingPerRace[i];
+      if (!result) return;
+      const poleLap = poleFromQualifying(result);
       if (poleLap) pole.set(race.session_key, poleLap.driverNumber);
+      qualifying.set(race.session_key, qualifyingPositions(result));
     });
-    return resultsGrid(pointsSessions, results.data, { pole });
-  }, [pointsSessions, results.data, markerRaces, polePerRace]);
+    return resultsGrid(pointsSessions, results.data, { pole, qualifying });
+  }, [pointsSessions, results.data, markerRaces, qualifyingPerRace]);
 
   const teammates = useMemo<TeammateComparison[]>(() => {
     const standingByNumber = new Map(
