@@ -2,6 +2,9 @@ import { describe, expect, it, vi } from "vitest";
 import type { Driver } from "@/api/types";
 import {
   COMPOUND_COLORS,
+  MAP3D_CAR_SHADOW_DROP,
+  MAP3D_CAR_SHADOW_OPACITY,
+  MAP3D_CAR_SHADOW_RADIUS,
   MAP3D_MODEL_HEADING_OFFSET,
   MAP3D_MODEL_MIN_ZOOM,
 } from "@/constants";
@@ -12,6 +15,7 @@ import {
   buildCarFeatures,
   buildCarLayers,
   CAR_DOT_LAYER,
+  CAR_SHADOW_LAYER,
   CAR_MODEL_ID,
   CAR_MODEL_LAYER,
   carIconExtent,
@@ -271,6 +275,7 @@ describe("buildCarLayers", () => {
     const layers = buildCarLayers(2);
     const byId = new Map(layers.map((l) => [l.id, l as unknown as Spec]));
     expect(layers.map((l) => l.id)).toEqual([
+      CAR_SHADOW_LAYER,
       "map3d-car-pulse",
       "map3d-car-siren",
       CAR_MODEL_LAYER,
@@ -314,6 +319,39 @@ describe("buildCarLayers", () => {
     );
     // Heading east → yaw 90° (plus the model's nose offset).
     expect(features[0]!.properties.rotation).toEqual([0, 0, 90 + MAP3D_MODEL_HEADING_OFFSET]);
+  });
+
+  it("lays a ground shadow under each icon, sized from the dot radius", () => {
+    const shadow = new Map(buildCarLayers(2).map((l) => [l.id, l as unknown as Spec])).get(
+      CAR_SHADOW_LAYER,
+    )!;
+    expect(shadow.type).toBe("circle");
+    expect(shadow.paint["circle-pitch-alignment"]).toBe("map");
+    expect(shadow.paint["circle-radius"]).toEqual([
+      "*",
+      ["get", "radius"],
+      MAP3D_CAR_SHADOW_RADIUS * 2,
+    ]);
+    expect(shadow.paint["circle-translate"]).toEqual([0, MAP3D_CAR_SHADOW_DROP * 2]);
+  });
+
+  it("fades the shadow out with the icon as the model (with its own shadow) takes over", () => {
+    const opacity = (models: boolean) =>
+      new Map(buildCarLayers(1, 0, { models }).map((l) => [l.id, l as unknown as Spec])).get(
+        CAR_SHADOW_LAYER,
+      )!.paint["circle-opacity"];
+    const dimmed = ["*", MAP3D_CAR_SHADOW_OPACITY, ["get", "opacity"]];
+    // Zoom stays the outermost expression, as Mapbox requires.
+    expect(opacity(true)).toEqual([
+      "interpolate",
+      ["linear"],
+      ["zoom"],
+      MAP3D_MODEL_MIN_ZOOM,
+      dimmed,
+      MAP3D_MODEL_MIN_ZOOM + 0.6,
+      0,
+    ]);
+    expect(opacity(false)).toEqual(dimmed);
   });
 });
 

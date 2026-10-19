@@ -49,7 +49,10 @@ import {
   MAP3D_SURFACE_MIN_ZOOM,
   MAP3D_TERRAIN_EXAGGERATION,
   MAP3D_TRACK_WIDTH_M,
+  MAP3D_DIRECTOR_FADE_MS,
+  MAP3D_GAP_RIBBON_MAX_M,
   MAP3D_TRAIL_MS,
+  MAP3D_TRAIL_SPEED_MAX_GAP_MS,
   MAP3D_TRAIL_STEP_MS,
 } from "@/constants";
 import { getCircuitGeoref } from "@/data/circuitGeoref";
@@ -72,6 +75,7 @@ import {
   positionsAt,
   sameShot,
   shotCaption,
+  type BattleGap,
   type DirectorData,
   type DirectorShot,
   type DirectorState,
@@ -92,16 +96,22 @@ import {
   setOverlayVisibility,
   SRC_GHOST,
   SRC_HOTSPOTS,
+  SRC_GAP_LABELS,
+  SRC_GAP_RIBBONS,
   SRC_TRAIL,
   LAYER_TRAIL,
 } from "./overlayLayers";
 import {
   buildArcPolyline,
+  buildGapRibbons,
   buildHotspotPoints,
-  buildTrail,
+  buildTrailPath,
   gradientFromSegments,
   heatColors,
+  speedLookup,
+  trailFeature,
   trailGradient,
+  trailSpeedGradient,
 } from "./trackOverlays";
 import {
   isBrightPreset,
@@ -177,7 +187,8 @@ const SRC_PIT_LANE = "map3d-pit-lane";
 const SRC_DEM = "map3d-dem";
 const LAYER_TRACK_SURFACE = "map3d-track-surface";
 const LAYER_CORNERS = "map3d-corners";
-const FIT_PADDING = 4;
+/** Overview fit: clear the control bar on top and the Mapbox logo below. */
+const FIT_PADDING = { top: 48, bottom: 40, left: 12, right: 12 };
 /** Minimap longest side (px): desktop / phone. */
 const MINIMAP_SIZE = 150;
 const MINIMAP_SIZE_COMPACT = 96;
@@ -278,6 +289,8 @@ interface Props {
   readonly lightsOutMs?: number | null;
   /** Auto-director inputs (races only); enables the "TV" camera mode. */
   readonly director?: DirectorData | null;
+  /** Battles within 1 s with their interval, for the gap ribbons (races only). */
+  readonly battleGaps?: readonly BattleGap[] | null;
   /** Camera mode to start in (e.g. from `?cam=`); later changes are reported. */
   readonly initialCameraMode?: CameraMode;
   readonly onCameraModeChange?: (mode: CameraMode) => void;
@@ -321,6 +334,7 @@ export function TrackMap3D({
   raceLeader = null,
   lightsOutMs = null,
   director = null,
+  battleGaps = null,
   initialCameraMode = "follow",
   onCameraModeChange,
   onSelectDriver,
@@ -343,6 +357,8 @@ export function TrackMap3D({
   const weatherEffectsEnabled = useSettings((s) => s.mapView3dWeatherEffects);
   const buildingsEnabled = useSettings((s) => s.mapView3dBuildings);
   const carModelsEnabled = useSettings((s) => s.mapView3dCarModels);
+  const speedTrailEnabled = useSettings((s) => s.mapView3dSpeedTrail);
+  const battleGapsEnabled = useSettings((s) => s.mapView3dBattleGaps);
   const mapShowDriverNumberInside = useSettings(
     (s) => s.mapShowDriverNumberInside,
   );
@@ -489,6 +505,29 @@ export function TrackMap3D({
     mapShowDriverNumberInside,
     lightMode,
   ]);
+  // Focused car's trail colouring for the RAF loop: speed lookup (null = team
+  // colour only) and the team colour for samples without car data.
+  const trailStyleRef = useRef<{ speedAt: ((t: number) => number | null) | null; color: string }>({
+    speedAt: null,
+    color: "#ffffff",
+  });
+
+  // Battle gap ribbons for the RAF loop: the battles to draw (empty = none)
+  // and the centerline in local metres to draw them along.
+  const gapRibbonsRef = useRef<{ gaps: readonly BattleGap[]; center: Array<{ x: number; y: number }> }>({
+    gaps: [],
+    center: [],
+  });
+  const gapCenter = useMemo(
+    () => (circuitGeom && geo ? circuitGeom.x.map((x, i) => f1ToEnu(geo, x, circuitGeom.y[i]!)) : []),
+    [circuitGeom, geo],
+  );
+  useEffect(() => {
+    gapRibbonsRef.current = {
+      gaps: battleGapsEnabled && battleGaps ? battleGaps : [],
+      center: gapCenter,
+    };
+  }, [battleGapsEnabled, battleGaps, gapCenter]);
 
   // Pixels per 2D SVG unit for this panel, so cars match the 2D map's size.
   const carScaleRef = useRef(1);
@@ -526,6 +565,18 @@ export function TrackMap3D({
   // the next frame jump straight to the new car (a broadcast cut, not a pan).
   const directorRef = useRef<DirectorState>(INITIAL_DIRECTOR_STATE);
   const directorCutRef = useRef(false);
+  // Black veil over the map that each director cut flashes and fades out, so
+  // cuts read like a broadcast's. Driven on the DOM node: no re-renders.
+  const cutFadeRef = useRef<HTMLDivElement>(null);
+  const flashCut = useCallback(() => {
+    const el = cutFadeRef.current;
+    if (!el || window.matchMedia?.("(prefers-reduced-motion: reduce)").matches) return;
+    el.style.transition = "none";
+    el.style.opacity = "1";
+    void el.offsetWidth; // commit the black frame before fading out
+    el.style.transition = `opacity ${MAP3D_DIRECTOR_FADE_MS}ms ease-out`;
+    el.style.opacity = "0";
+  }, []);
   const [directorShot, setDirectorShot] = useState<DirectorShot | null>(null);
   /** Whether the camera tracks a car (focused, or the TV director's pick). */
   const followingRef = useRef(
@@ -953,6 +1004,7 @@ export function TrackMap3D({
     if (!map || !styleReady || !geo) return;
     let raf = 0;
     let lastTrailUpdate = -Infinity;
+    let gapRibbonsShown = false;
     let lastFrame = performance.now();
     let lastT = Number.NaN;
 
@@ -1004,10 +1056,32 @@ export function TrackMap3D({
         lastTrailUpdate = now;
         const trailSource = map.getSource(SRC_TRAIL) as mapboxgl.GeoJSONSource | undefined;
         const idx = live.focusDriver != null ? live.indexes.get(live.focusDriver) : undefined;
-        const trail = idx
-          ? buildTrail(idx, playhead, geo, MAP3D_TRAIL_MS, MAP3D_TRAIL_STEP_MS)
+        const path = idx
+          ? buildTrailPath(idx, playhead, geo, MAP3D_TRAIL_MS, MAP3D_TRAIL_STEP_MS)
           : null;
-        trailSource?.setData({ type: "FeatureCollection", features: trail ? [trail] : [] });
+        trailSource?.setData({
+          type: "FeatureCollection",
+          features: path ? [trailFeature(path)] : [],
+        });
+        // Speed colours move with the car, so the gradient follows each refresh.
+        const { speedAt, color } = trailStyleRef.current;
+        if (path && speedAt && map.getLayer(LAYER_TRAIL)) {
+          map.setPaintProperty(LAYER_TRAIL, "line-gradient", trailSpeedGradient(path, speedAt, color));
+        }
+
+        // Battle gap ribbons move with the cars, so they refresh with the trail.
+        const { gaps, center } = gapRibbonsRef.current;
+        if (gaps.length > 0 || gapRibbonsShown) {
+          const carAt = (driver: number) => {
+            const i = live.indexes.get(driver);
+            const p = i ? interpolateXY(i, playhead) : null;
+            return p && !isOffTrackPlaceholder(p) ? f1ToEnu(geo, p.x, p.y) : null;
+          };
+          const ribbons = buildGapRibbons(gaps, carAt, center, geo, MAP3D_GAP_RIBBON_MAX_M, live.focusDriver);
+          (map.getSource(SRC_GAP_RIBBONS) as mapboxgl.GeoJSONSource | undefined)?.setData(ribbons.lines);
+          (map.getSource(SRC_GAP_LABELS) as mapboxgl.GeoJSONSource | undefined)?.setData(ribbons.labels);
+          gapRibbonsShown = gaps.length > 0;
+        }
       }
 
       // Pulse / siren rings animate like the 2D SVG <animate> rings.
@@ -1226,8 +1300,12 @@ export function TrackMap3D({
     chaseRef.current = { eye: null, heading: null };
     directorCutRef.current = true;
     setDirectorShot(next.shot);
-    if (next.shot) trackEvent("trackmap3d_director_cut", { kind: next.shot.kind });
-  }, [cameraMode, director, t, sessionStartMs, retiredDrivers]);
+    if (next.shot) {
+      // The RAF loop makes the cut on its next frame, under the black veil.
+      flashCut();
+      trackEvent("trackmap3d_director_cut", { kind: next.shot.kind });
+    }
+  }, [cameraMode, director, t, sessionStartMs, retiredDrivers, flashCut]);
 
   // ── HTML overlays (same data as the 2D map) ───────────────────────────────
   const overlayBackground = overlayBackgroundColor(lightMode);
@@ -1249,9 +1327,10 @@ export function TrackMap3D({
     }
     return cars;
   }, [cameraMode, directorShot, focusDriver]);
+  // One focused-car window feeds both the HUD and the speed-coloured trail.
   const { data: hudRawData } = useCarDataWindow(
     sessionKey,
-    showFocusedHud ? focusDriver : null,
+    showFocusedHud || speedTrailEnabled ? focusDriver : null,
     sessionStartMs,
     chunkIndexFor(t),
     { sharedAllDriverWindow },
@@ -1307,11 +1386,24 @@ export function TrackMap3D({
     });
   }, [pitRejoin, focusColor, geo, styleReady]);
 
+  // Speed trail: the RAF loop recolours the trail on each refresh from this.
+  const trailSpeedAt = useMemo(
+    () =>
+      speedTrailEnabled && focusDriver !== null && hudRawData.length > 0
+        ? speedLookup(hudRawData, sessionStartMs, MAP3D_TRAIL_SPEED_MAX_GAP_MS)
+        : null,
+    [speedTrailEnabled, focusDriver, hudRawData, sessionStartMs],
+  );
+  useEffect(() => {
+    trailStyleRef.current = { speedAt: trailSpeedAt, color: focusColor };
+  }, [trailSpeedAt, focusColor]);
+
   useEffect(() => {
     const map = mapRef.current;
     if (!map || !styleReady || !map.getLayer(LAYER_TRAIL)) return;
+    // Team colour until (or unless) the loop paints speed.
     map.setPaintProperty(LAYER_TRAIL, "line-gradient", trailGradient(focusColor));
-  }, [focusColor, styleReady, arc]);
+  }, [focusColor, trailSpeedAt, styleReady, arc]);
 
   const totalMarshalPosts = Math.max(
     circuitGeom?.marshalSectors?.length ?? 0,
@@ -1413,6 +1505,13 @@ export function TrackMap3D({
       {/* mapbox-gl.css forces `position: relative` on the container, so size it
           by flow (w/h-full), not by absolute insets. */}
       <div ref={containerRef} className="w-full h-full" />
+      <div
+        ref={cutFadeRef}
+        aria-hidden="true"
+        data-testid="director-cut-fade"
+        className="absolute inset-0 z-10 bg-black pointer-events-none"
+        style={{ opacity: 0 }}
+      />
 
       <StatusBadges badges={statusBadges} />
 

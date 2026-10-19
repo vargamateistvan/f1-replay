@@ -39,8 +39,12 @@ import {
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useTimeline } from "@/timeline/clock";
 import {
+  battleGaps as labelBattleGaps,
+  battlePairs,
   buildDirectorCues,
   buildPositionIndex,
+  positionsAt,
+  type BattleGap,
   type DirectorData,
 } from "@/timeline/director";
 import { startLightsWindow } from "@/timeline/startLights";
@@ -94,7 +98,7 @@ import {
 } from "@/constants";
 import { useSettings, type SettingsTabId } from "@/stores/settings";
 import { deriveRetiredDrivers } from "@/utils/retirement";
-import { computeBattlingDrivers } from "@/utils/battles";
+import { battlingFrom, latestIntervalSeconds } from "@/utils/battles";
 import { latestGapsToLeader } from "@/utils/pitRejoin";
 import { weatherAtSessionTime } from "@/utils/weather";
 import { buildKeyMoments } from "@/components/CommentaryPanels/keyMoments";
@@ -1027,12 +1031,17 @@ export default function RaceWeekend() {
     return result;
   }, [timedLaps, stints.data, tSlow, isMapVisible]);
 
-  // Cars within 1.0 s of the car ahead → highlight DRS battle on the map.
-  const battlingDrivers = useMemo(() => {
-    if (!isMapVisible) return new Set<number>();
-    if (!intervals.data?.length || !sessionStartMs) return new Set<number>();
-    return computeBattlingDrivers(intervals.data, sessionStartMs + tSlow, 1.0);
+  // Each car's latest interval to the car ahead (s), parsed once for the
+  // battle rings and the 3D gap ribbons.
+  const intervalSeconds = useMemo(() => {
+    if (!isMapVisible || !intervals.data?.length || !sessionStartMs) return null;
+    return latestIntervalSeconds(intervals.data, sessionStartMs + tSlow);
   }, [intervals.data, sessionStartMs, tSlow, isMapVisible]);
+  // Cars within 1.0 s of the car ahead → highlight DRS battle on the map.
+  const battlingDrivers = useMemo(
+    () => (intervalSeconds ? battlingFrom(intervalSeconds, 1.0) : new Set<number>()),
+    [intervalSeconds],
+  );
 
   // TV camera inputs for the 3D map (races only).
   const directorBase = useMemo(() => {
@@ -1066,6 +1075,17 @@ export default function RaceWeekend() {
     tSlow,
     isRaceSession,
   ]);
+
+  // 3D gap ribbons: who each battling car is chasing, and by how much.
+  const battleGaps = useMemo((): BattleGap[] | null => {
+    if (!director || !intervalSeconds) return null;
+    const pairs = battlePairs(
+      positionsAt(director.positions, sessionStartMs + tSlow),
+      battlingDrivers,
+      retiredDrivers,
+    );
+    return labelBattleGaps(pairs, intervalSeconds);
+  }, [director, intervalSeconds, battlingDrivers, retiredDrivers, sessionStartMs, tSlow]);
 
   // Track all race leader (P1) transition events.
   const raceLeaderEvents = useMemo(() => {
@@ -2074,6 +2094,7 @@ export default function RaceWeekend() {
       raceLeader={isRaceSession && mapShowRaceLeader ? raceLeaderDriver : null}
       lightsOutMs={isRaceSession ? lightsOutMs : null}
       director={director}
+      battleGaps={battleGaps}
       initialCameraMode={parseCameraMode(camParam)}
       onCameraModeChange={setCamParam}
       onSelectDriver={toggleFocus}

@@ -13,6 +13,10 @@ import { mapBackgroundColor } from "@/components/TrackMap/trackMapFormat";
 import {
   COMPOUND_COLORS,
   FOLLOW_ZOOM_W,
+  MAP3D_CAR_SHADOW_BLUR,
+  MAP3D_CAR_SHADOW_DROP,
+  MAP3D_CAR_SHADOW_OPACITY,
+  MAP3D_CAR_SHADOW_RADIUS,
   MAP3D_HEADING_LOOKBACK_MS,
   MAP3D_MODEL_HEADING_OFFSET,
   MAP3D_MODEL_MIN_ZOOM,
@@ -42,6 +46,7 @@ export const CAR_MODEL_ID = "map3d-f1-car";
 export const CAR_MODEL_LAYER = "map3d-car-models";
 /** Clickable car dot layer. */
 export const CAR_DOT_LAYER = "map3d-cars";
+export const CAR_SHADOW_LAYER = "map3d-car-shadows";
 const PULSE_LAYER = "map3d-car-pulse";
 const SIREN_LAYER = "map3d-car-siren";
 
@@ -413,8 +418,39 @@ export function buildCarLayers(
     "circle-pitch-scale": "viewport",
     "circle-emissive-strength": 1,
   };
+  // Icons (and their shadows) hand over to the 3D model as it fades in,
+  // unless models are off. Zoom must stay the outermost expression.
+  const iconOpacity = (opacity: unknown) =>
+    models
+      ? [
+          "interpolate",
+          ["linear"],
+          ["zoom"],
+          MAP3D_MODEL_MIN_ZOOM,
+          opacity,
+          MAP3D_MODEL_MIN_ZOOM + 0.6,
+          0,
+        ]
+      : opacity;
 
   const layers: Record<string, unknown>[] = [
+    {
+      // Lies flat on the ground under the upright icon, so the car reads as
+      // sitting on the track rather than floating over it.
+      id: CAR_SHADOW_LAYER,
+      type: "circle",
+      paint: {
+        "circle-color": "#000000",
+        "circle-radius": ["*", prop("radius"), MAP3D_CAR_SHADOW_RADIUS * scale],
+        "circle-blur": MAP3D_CAR_SHADOW_BLUR,
+        "circle-opacity": iconOpacity(["*", MAP3D_CAR_SHADOW_OPACITY, prop("opacity")]),
+        "circle-pitch-alignment": "map",
+        "circle-pitch-scale": "viewport",
+        "circle-translate": [0, MAP3D_CAR_SHADOW_DROP * scale],
+        "circle-translate-anchor": "viewport",
+        "circle-emissive-strength": 0,
+      },
+    },
     {
       id: PULSE_LAYER,
       type: "circle",
@@ -481,18 +517,7 @@ export function buildCarLayers(
         "icon-rotation-alignment": "viewport",
       },
       paint: {
-        // Hand over to the 3D model as it fades in (unless models are off).
-        "icon-opacity": models
-          ? [
-              "interpolate",
-              ["linear"],
-              ["zoom"],
-              MAP3D_MODEL_MIN_ZOOM,
-              prop("opacity"),
-              MAP3D_MODEL_MIN_ZOOM + 0.6,
-              0,
-            ]
-          : prop("opacity"),
+        "icon-opacity": iconOpacity(prop("opacity")),
         "icon-occlusion-opacity": prop("opacity"),
         "icon-emissive-strength": 1,
       },

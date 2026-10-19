@@ -124,6 +124,22 @@ export const MAP3D_KERB_COLORS: readonly [string, string] = [
   "#f2f2f2",
   "#e2231a",
 ];
+/**
+ * Gravel run-off on the outside of each corner: band width beyond the verge,
+ * and how far it reaches before and after the corner.
+ */
+export const MAP3D_RUNOFF_M = 18;
+export const MAP3D_RUNOFF_EXTEND_M = 30;
+/**
+ * Street circuits (walls, not gravel) that get no run-off: Monaco, Singapore,
+ * Baku, Jeddah, Miami, Las Vegas, Madring. Keyed by circuit_key.
+ */
+export const MAP3D_NO_RUNOFF_CIRCUITS: ReadonlySet<number> = new Set([
+  22, 61, 144, 149, 151, 152, 153,
+]);
+/** Painted white track-limit line along each asphalt edge (width, colour). */
+export const MAP3D_EDGE_LINE_M = 0.4;
+export const MAP3D_EDGE_LINE_COLOR = "#f4f4f4";
 /** Chequered start grid: columns across the track × rows along it, total depth. */
 export const MAP3D_START_GRID_COLUMNS = 6;
 export const MAP3D_START_GRID_ROWS = 3;
@@ -131,8 +147,8 @@ export const MAP3D_START_GRID_DEPTH_M = 7.5;
 /** Below this zoom the track draws as lines; above it as real-width polygons. */
 export const MAP3D_SURFACE_MIN_ZOOM = 13.5;
 /**
- * Asphalt / verge colours per Standard light preset. Emissive strength rises
- * at night so the surface still reads without glowing by day.
+ * Asphalt / verge / gravel colours per Standard light preset. Emissive
+ * strength rises at night so the surface still reads without glowing by day.
  */
 export const MAP3D_TRACK_PALETTE = {
   dawn: {
@@ -140,35 +156,40 @@ export const MAP3D_TRACK_PALETTE = {
     casing: "#ffd9a8",
     casingOpacity: 0.45,
     emissive: 0.3,
+    gravel: "#b9a07e",
   },
   day: {
     surface: "#4a4d55",
     casing: "#ffffff",
     casingOpacity: 0.6,
     emissive: 0.1,
+    gravel: "#c8b58e",
   },
   dusk: {
     surface: "#3a3d47",
     casing: "#ffb488",
     casingOpacity: 0.45,
     emissive: 0.35,
+    gravel: "#a48c74",
   },
   night: {
     surface: "#2f333d",
     casing: "#9aa3b5",
     casingOpacity: 0.5,
     emissive: 0.6,
+    gravel: "#5e5a52",
   },
 } as const;
 /**
  * Asphalt while it rains: darker, with more emissive so floodlights read as
- * a wet sheen at night. Verge and kerbs keep the dry palette.
+ * a wet sheen at night; gravel darkens too. Verge and kerbs keep the dry
+ * palette.
  */
 export const MAP3D_TRACK_WET_PALETTE = {
-  dawn: { surface: "#2c2f38", emissive: 0.35 },
-  day: { surface: "#33363d", emissive: 0.15 },
-  dusk: { surface: "#282a33", emissive: 0.4 },
-  night: { surface: "#22252d", emissive: 0.75 },
+  dawn: { surface: "#2c2f38", emissive: 0.35, gravel: "#8f7b60" },
+  day: { surface: "#33363d", emissive: 0.15, gravel: "#9e8d6c" },
+  dusk: { surface: "#282a33", emissive: 0.4, gravel: "#7d6a57" },
+  night: { surface: "#22252d", emissive: 0.75, gravel: "#46433d" },
 } as const;
 /**
  * Rain haze (Mapbox fog) per light preset. Only applied while raining; the
@@ -186,7 +207,7 @@ export const MAP3D_RAIN_FOG_RANGE_HEAVY: readonly [number, number] = [0.2, 2.5];
 export const MAP3D_FLAG_WIDTH_M = 26;
 export const MAP3D_OVERVIEW_PITCH = 50;
 export const MAP3D_FOLLOW_PITCH = 62;
-export const MAP3D_FOLLOW_ZOOM = 20.6;
+export const MAP3D_FOLLOW_ZOOM = 17.5;
 /** Per-frame budget for the 3D map's own work (see ?debug=map3d). */
 export const MAP3D_FRAME_BUDGET_MS = 4;
 /**
@@ -249,9 +270,28 @@ export const MAP3D_MODEL_NEAR_ZOOM = 18.5;
  * heading east, south and west.
  */
 export const MAP3D_MODEL_HEADING_OFFSET = 180;
+/**
+ * Soft ground shadow under the 2D-style car icons (the 3D models cast their
+ * own): radius as a multiple of the dot radius, blur, opacity, and how far it
+ * sits below the icon on screen (2D SVG units) so the icon reads as lifted.
+ */
+export const MAP3D_CAR_SHADOW_RADIUS = 1.25;
+export const MAP3D_CAR_SHADOW_BLUR = 0.7;
+export const MAP3D_CAR_SHADOW_OPACITY = 0.45;
+export const MAP3D_CAR_SHADOW_DROP = 1.6;
 /** Length and sampling of the focused car's trail on the 3D map. */
 export const MAP3D_TRAIL_MS = 8_000;
 export const MAP3D_TRAIL_STEP_MS = 200;
+/**
+ * Battle gap ribbons: centerline from chaser to the car ahead, gold like the
+ * battle rings. Longer ribbons than this are dropped (pit stops, stale data).
+ */
+export const MAP3D_GAP_RIBBON_COLOR = "#ffd700";
+export const MAP3D_GAP_RIBBON_MAX_M = 250;
+/** TV director: each cut fades in from black over this long (skipped for reduced motion). */
+export const MAP3D_DIRECTOR_FADE_MS = 250;
+/** Speed-coloured trail: car-data gaps longer than this show the team colour. */
+export const MAP3D_TRAIL_SPEED_MAX_GAP_MS = 1_000;
 /** Sun elevation (°) at or above which the 3D map uses the "day" preset. */
 export const MAP3D_SUN_DAY_DEG = 6;
 /** Sun elevation (°) at or below which it uses "night" (civil twilight ends ≈ -6°). */

@@ -8,7 +8,9 @@
  * centerline in lng/lat (`buildArcPolyline`).
  */
 import type { ExpressionSpecification } from "mapbox-gl";
+import type { CarData } from "@/api/types";
 import type { CircuitGeometry } from "@/data/circuitGeometryTypes";
+import type { BattleGap } from "@/timeline/director";
 import { interpolateXY, type LocationIndex } from "@/timeline/interpolate";
 import type {
   ArcPolyline,
@@ -276,26 +278,44 @@ export function drawPitGhost(
  * the last `windowMs` before `t`. Null when there's not enough trace (or the
  * car is off track) to draw a line.
  */
-export function buildTrail(
+/** The focused car's recent path: lng/lat points and each one's session time (ms). */
+export interface TrailPath {
+  coords: LngLat[];
+  times: number[];
+}
+
+export function buildTrailPath(
   idx: LocationIndex,
   t: number,
   geo: CircuitGeoref,
   windowMs: number,
   stepMs: number,
-): LineFeature | null {
+): TrailPath | null {
   if (idx.times.length < 2) return null;
   const first = idx.times[0]!;
   const coords: LngLat[] = [];
-  for (let s = Math.max(first, t - windowMs); s <= t; s += stepMs) {
+  const times: number[] = [];
+  const add = (s: number) => {
     const p = interpolateXY(idx, s);
-    if (!p || (p.x === 0 && p.y === 0)) continue;
+    if (!p || (p.x === 0 && p.y === 0)) return;
     coords.push(f1ToLngLat(geo, p.x, p.y));
-  }
-  const now = interpolateXY(idx, t);
-  if (now && !(now.x === 0 && now.y === 0)) coords.push(f1ToLngLat(geo, now.x, now.y));
+    times.push(s);
+  };
+  for (let s = Math.max(first, t - windowMs); s <= t; s += stepMs) add(s);
+  add(t);
   if (coords.length < 2) return null;
-  return { type: "Feature", properties: {}, geometry: { type: "LineString", coordinates: coords } };
+  return { coords, times };
 }
+
+export function trailFeature(path: TrailPath): LineFeature {
+  return {
+    type: "Feature",
+    properties: {},
+    geometry: { type: "LineString", coordinates: path.coords },
+  };
+}
+
+const TRAIL_ALPHA = 0.9;
 
 /** `line-gradient` fading from transparent (oldest) to `hex` (the car). */
 export function trailGradient(hex: string): ExpressionSpecification {
@@ -309,6 +329,164 @@ export function trailGradient(hex: string): ExpressionSpecification {
     0,
     `rgba(${rgb},0)`,
     1,
-    `rgba(${rgb},0.9)`,
+    `rgba(${rgb},${TRAIL_ALPHA})`,
   ] as ExpressionSpecification;
+}
+
+/**
+ * Speed (km/h) at a session time (ms), linearly interpolated between the
+ * car-data samples around it; null where those are more than `maxGapMs`
+ * apart, or beyond the fetched window. Dates are parsed once, here, so the
+ * returned lookup is cheap enough for the trail's 10 Hz refresh.
+ */
+export function speedLookup(
+  rows: readonly CarData[],
+  sessionStartMs: number,
+  maxGapMs: number,
+): (t: number) => number | null {
+  const n = rows.length;
+  const times = new Float64Array(n);
+  const speeds = new Float32Array(n);
+  rows.forEach((r, i) => {
+    times[i] = Date.parse(r.date) - sessionStartMs;
+    speeds[i] = r.speed;
+  });
+  return (t) => {
+    if (n === 0 || t < times[0]! - maxGapMs || t > times[n - 1]! + maxGapMs) return null;
+    let lo = 0;
+    let hi = n;
+    while (lo < hi) {
+      const mid = (lo + hi) >> 1;
+      if (times[mid]! < t) lo = mid + 1;
+      else hi = mid;
+    }
+    if (lo === 0) return speeds[0]!;
+    if (lo === n) return speeds[n - 1]!;
+    const a = times[lo - 1]!;
+    const b = times[lo]!;
+    if (b - a > maxGapMs) return null;
+    const u = b > a ? (t - a) / (b - a) : 0;
+    return speeds[lo - 1]! + (speeds[lo]! - speeds[lo - 1]!) * u;
+  };
+}
+
+/**
+ * `line-gradient` for the trail coloured by speed (the 2D speed-heat
+ * colours), fading in from the tail like `trailGradient`. Each point's stop
+ * sits at its share of the trail's length (`line-progress` is by distance,
+ * and the points are evenly spaced in time). Points without car data take
+ * `fallbackHex`.
+ */
+export function trailSpeedGradient(
+  path: TrailPath,
+  speedAt: (t: number) => number | null,
+  fallbackHex: string,
+): ExpressionSpecification {
+  const { coords, times } = path;
+  const cosLat = Math.cos((coords[0]![1] * Math.PI) / 180);
+  const cum = [0];
+  for (let i = 1; i < coords.length; i++) {
+    const [x0, y0] = coords[i - 1]!;
+    const [x1, y1] = coords[i]!;
+    cum.push(cum[i - 1]! + Math.hypot((x1 - x0) * cosLat, y1 - y0));
+  }
+  const total = cum[cum.length - 1]!;
+  if (!(total > 0)) return trailGradient(fallbackHex);
+  const stops: Array<number | string> = [];
+  let last = -1;
+  coords.forEach((_, i) => {
+    const p = cum[i]! / total;
+    if (p <= last) return; // stops must strictly increase (stationary car)
+    last = p;
+    const speed = speedAt(times[i]!);
+    const color = speed === null ? fallbackHex : speedToColor(speed);
+    stops.push(p, withAlpha(color, TRAIL_ALPHA * p));
+  });
+  if (stops.length < 4) return trailGradient(fallbackHex);
+  return ["interpolate", ["linear"], ["line-progress"], ...stops] as ExpressionSpecification;
+}
+
+type Enu = { x: number; y: number };
+
+/**
+ * Battle gap ribbons: for each battle, the stretch of centerline from the
+ * chaser to the car ahead (both cars' real positions at the ends), plus a
+ * label with the interval at the ribbon's middle. Positions and centerline
+ * are local metres (`f1ToEnu`); the centerline is in lap order. With a
+ * focused car only its own battles show. A battle whose ribbon would be
+ * longer than `maxLengthM` (a car in the pits, or data out of step) is left
+ * out; cars side by side get a straight link.
+ */
+export function buildGapRibbons(
+  gaps: readonly BattleGap[],
+  carAt: (driver: number) => Enu | null,
+  center: readonly Enu[],
+  geo: CircuitGeoref,
+  maxLengthM: number,
+  focus: number | null,
+): { lines: FeatureCollection<LineFeature>; labels: FeatureCollection<PointFeature> } {
+  const lines: LineFeature[] = [];
+  const labels: PointFeature[] = [];
+  const n = center.length;
+  const toLL = (p: Enu): LngLat => enuToLngLat(geo.originLng, geo.originLat, p.x, p.y);
+  const nearest = (p: Enu) => {
+    let best = 0;
+    let bestD = Infinity;
+    for (let i = 0; i < n; i++) {
+      const d = (center[i]!.x - p.x) ** 2 + (center[i]!.y - p.y) ** 2;
+      if (d < bestD) {
+        bestD = d;
+        best = i;
+      }
+    }
+    return best;
+  };
+
+  for (const { chaser, ahead, gap } of gaps) {
+    if (focus !== null && chaser !== focus && ahead !== focus) continue;
+    const a = carAt(chaser);
+    const b = carAt(ahead);
+    if (!a || !b || n < 2) continue;
+    const i = nearest(a);
+    const j = nearest(b);
+    const pts: Enu[] = [a];
+    // Walk forward unless the car "ahead" snapped behind (side by side).
+    if ((j - i + n) % n < n / 2) {
+      for (let k = (i + 1) % n; k !== (j + 1) % n; k = (k + 1) % n) pts.push(center[k]!);
+    }
+    pts.push(b);
+
+    const cum = [0];
+    for (let k = 1; k < pts.length; k++) {
+      cum.push(cum[k - 1]! + Math.hypot(pts[k]!.x - pts[k - 1]!.x, pts[k]!.y - pts[k - 1]!.y));
+    }
+    const length = cum[cum.length - 1]!;
+    if (length > maxLengthM) continue;
+
+    lines.push({
+      type: "Feature",
+      properties: {},
+      geometry: { type: "LineString", coordinates: pts.map(toLL) },
+    });
+    // Label at half the ribbon's length.
+    const half = length / 2;
+    let k = 1;
+    while (k < pts.length - 1 && cum[k]! < half) k++;
+    const span = cum[k]! - cum[k - 1]! || 1;
+    const u = (half - cum[k - 1]!) / span;
+    const p0 = pts[k - 1]!;
+    const p1 = pts[k]!;
+    labels.push({
+      type: "Feature",
+      properties: { label: `${gap.toFixed(1)}s` },
+      geometry: {
+        type: "Point",
+        coordinates: toLL({ x: p0.x + (p1.x - p0.x) * u, y: p0.y + (p1.y - p0.y) * u }),
+      },
+    });
+  }
+  return {
+    lines: { type: "FeatureCollection", features: lines },
+    labels: { type: "FeatureCollection", features: labels },
+  };
 }

@@ -3,6 +3,8 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { Driver, Location } from "@/api/types";
 import monacoJson from "@/data/circuit-geometry/22-2025.json";
 import type { CircuitGeometry } from "@/data/circuitGeometryTypes";
+import { MAP3D_DIRECTOR_FADE_MS } from "@/constants";
+import { buildPositionIndex } from "@/timeline/director";
 import type { TrackFlagState } from "@/timeline/raceControl";
 import { mapboxToken } from "./availability";
 import { TrackMap3D } from "./TrackMap3D";
@@ -347,6 +349,37 @@ describe("TrackMap3D", () => {
     expect([...second.layers.keys()]).toEqual(
       expect.arrayContaining(["map3d-track-surface", "map3d-cars"]),
     );
+  });
+
+  describe("director cut fade", () => {
+    const director = {
+      cues: [],
+      positions: buildPositionIndex([
+        { date: new Date(0).toISOString(), driver_number: 16, meeting_key: 1, position: 1, session_key: 1 },
+      ]),
+      battling: new Set<number>(),
+    };
+
+    it("flashes black and fades out when the TV director cuts to a shot", () => {
+      renderMap({ director, initialCameraMode: "tv" });
+      const veil = screen.getByTestId("director-cut-fade");
+      expect(veil.style.transition).toBe(`opacity ${MAP3D_DIRECTOR_FADE_MS}ms ease-out`);
+      expect(veil.style.opacity).toBe("0");
+    });
+
+    it("leaves the picture alone outside TV mode", () => {
+      renderMap({ director, initialCameraMode: "follow" });
+      expect(screen.getByTestId("director-cut-fade").style.transition).toBe("");
+    });
+
+    it("skips the fade for reduced motion", () => {
+      const matchMedia = vi.spyOn(window, "matchMedia").mockImplementation(
+        (query: string) => ({ matches: query.includes("reduced-motion") }) as MediaQueryList,
+      );
+      renderMap({ director, initialCameraMode: "tv" });
+      expect(screen.getByTestId("director-cut-fade").style.transition).toBe("");
+      matchMedia.mockRestore();
+    });
   });
 
   it("removes the map on unmount", () => {
