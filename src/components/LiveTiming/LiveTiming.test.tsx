@@ -1414,9 +1414,9 @@ describe("LiveTiming", () => {
   });
 
   it.each([
-    { drs: 12, drsColumn: true, width: "w-[13rem]", hasDrs: true },
-    { drs: null, drsColumn: true, width: "w-[11rem]", hasDrs: false },
-    { drs: 12, drsColumn: false, width: "w-[11rem]", hasDrs: false },
+    { drs: 12, drsColumn: true, width: "w-[12rem]", hasDrs: true },
+    { drs: null, drsColumn: true, width: "w-[10rem]", hasDrs: false },
+    { drs: 12, drsColumn: false, width: "w-[10rem]", hasDrs: false },
   ])(
     "sizes the combined telemetry column to $width when drs=$drs and drs column=$drsColumn",
     ({ drs, drsColumn, width, hasDrs }) => {

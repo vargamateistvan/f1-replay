@@ -407,6 +407,15 @@ export const CORNER_ZONE_LABEL_MIN_PX = 30;
 // leaving the garage at session start) assume this much pit-lane time.
 export const PIT_LANE_FALLBACK_MS = 30_000;
 
+// ── Leaderboard telemetry ─────────────────────────────────────────────────────
+/** RPM at which the combined telemetry rev bar is full (just above a typical
+ *  race-engine peak). */
+export const TELEMETRY_RPM_BAR_MAX = 13_000;
+/** RPM from which the rev bar turns red (shift light). */
+export const TELEMETRY_RPM_SHIFT = 11_800;
+/** RPM from which the rev bar turns amber. */
+export const TELEMETRY_RPM_HIGH = 10_500;
+
 // ── Deferred loading ──────────────────────────────────────────────────────────
 /** Max wait (ms) for an idle period before running deferred non-critical work. */
 export const IDLE_CALLBACK_TIMEOUT_MS = 4_000;

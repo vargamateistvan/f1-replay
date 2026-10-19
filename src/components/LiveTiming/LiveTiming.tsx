@@ -14,7 +14,12 @@ import type {
 } from "@/api/types";
 import { teamColor } from "@/utils/color";
 import { laneDuration } from "@/utils/pit";
-import { PIT_LANE_FALLBACK_MS } from "@/constants";
+import {
+  PIT_LANE_FALLBACK_MS,
+  TELEMETRY_RPM_BAR_MAX,
+  TELEMETRY_RPM_HIGH,
+  TELEMETRY_RPM_SHIFT,
+} from "@/constants";
 import { deriveFinishedDrivers } from "@/utils/finish";
 import { deriveRetiredDrivers } from "@/utils/retirement";
 import { useSettings } from "@/stores/settings";
@@ -375,6 +380,81 @@ function PedalTrace({ throttle, brake }: { throttle: number; brake: number }) {
           style={{ height: `${t}%`, background: THROTTLE_COLOR }}
         />
       </span>
+    </span>
+  );
+}
+
+function revColor(rpm: number): string {
+  if (rpm >= TELEMETRY_RPM_SHIFT) return BRAKE_COLOR;
+  if (rpm >= TELEMETRY_RPM_HIGH) return "#f5a623";
+  return THROTTLE_COLOR;
+}
+
+/** Fixed-width parts (speed 2.5rem · gear 1rem · rpm 2.75rem · pedals · DRS
+ *  1.75rem) so the column width only depends on whether DRS is shown. */
+function CombinedTelemetry({
+  car,
+  speed,
+  speedUnit,
+  showDrs,
+}: {
+  car: CarData;
+  speed: string;
+  speedUnit: string;
+  showDrs: boolean;
+}) {
+  const rpm = Math.max(0, Math.round(car.rpm));
+  const revPct = Math.min(100, (rpm / TELEMETRY_RPM_BAR_MAX) * 100);
+  const neutral = car.n_gear === 0;
+  const drsOpen = (car.drs ?? 0) >= 10;
+  return (
+    <span className="flex items-center gap-1.5 whitespace-nowrap font-mono tabular-nums leading-none">
+      <span className="flex w-10 shrink-0 items-baseline justify-end gap-0.5">
+        <span className="text-[12px] font-bold text-white">{speed}</span>
+        <span className="text-[7px] font-semibold tracking-[0.06em] text-muted">
+          {speedUnit}
+        </span>
+      </span>
+      <span
+        className={`flex h-4 w-4 shrink-0 items-center justify-center border text-[10px] font-black ${
+          neutral
+            ? "border-[#f5a623]/60 text-[#f5a623]"
+            : "border-panel bg-panel/60 text-white"
+        }`}
+        title={neutral ? "Neutral" : `Gear ${car.n_gear}`}
+      >
+        {neutral ? "N" : car.n_gear}
+      </span>
+      <span
+        role="img"
+        aria-label={`${rpm} rpm`}
+        title={`${rpm} rpm`}
+        className="flex w-11 shrink-0 flex-col gap-[3px]"
+      >
+        <span className="text-right text-[9px] text-white/80">
+          {rpm}
+          <span className="ml-0.5 text-[7px] text-muted">rpm</span>
+        </span>
+        <span className="block h-[3px] overflow-hidden bg-panel">
+          <span
+            className="block h-full transition-[width] duration-150 ease-out motion-reduce:transition-none"
+            style={{ width: `${revPct}%`, background: revColor(rpm) }}
+          />
+        </span>
+      </span>
+      <PedalTrace throttle={car.throttle} brake={car.brake} />
+      {showDrs && (
+        <span
+          className={`w-7 shrink-0 py-[3px] text-center text-[8px] font-black uppercase tracking-[0.08em] transition-colors duration-150 motion-reduce:transition-none ${
+            drsOpen
+              ? "bg-[#39d743] text-black shadow-[0_0_6px_rgba(57,215,67,0.6)]"
+              : "border border-panel text-muted"
+          }`}
+          title={`DRS raw value ${car.drs ?? 0}`}
+        >
+          DRS
+        </span>
+      )}
     </span>
   );
 }
@@ -1561,11 +1641,11 @@ export function LiveTiming({
   const pedalHeaderWidthClass = compactDriverColumn ? "w-[5rem]" : "w-[6rem]";
   const drsHeaderWidthClass = compactDriverColumn ? "w-[2.5rem]" : "w-[3rem]";
   const showCombinedDrs = showDrs && columns.drs;
-  // Fixed-width parts (see the combined telemetry cell): 7ch speed + 1.5rem
-  // gear + 9ch rpm + pedal bars, plus the 1.75rem DRS badge when shown.
+  // Sized to CombinedTelemetry's fixed-width parts (~9.6rem, ~11.75rem with
+  // the DRS badge) so the badge sits right after the pedal bars.
   const combinedTelemetryWidthClass = showCombinedDrs
-    ? "w-[13rem] min-w-[13rem]"
-    : "w-[11rem] min-w-[11rem]";
+    ? "w-[12rem] min-w-[12rem]"
+    : "w-[10rem] min-w-[10rem]";
   const pedalBarsWidthClass = compactDriverColumn
     ? "w-[4.5rem]"
     : "w-[5.25rem]";
@@ -2457,40 +2537,12 @@ export function LiveTiming({
                       className={`${rowCellPad} align-middle px-2 hidden sm:table-cell ${combinedTelemetryWidthClass}`}
                     >
                       {car ? (
-                        <span className="flex items-center gap-1.5 whitespace-nowrap font-mono tabular-nums leading-tight text-[10px]">
-                          <span className="w-[7ch] shrink-0 text-white/90">
-                            {speedDisplay}
-                            <span className="text-muted">
-                              {" "}
-                              {speedUnitCompact}
-                            </span>
-                          </span>
-                          <span className="w-6 shrink-0 text-center font-bold text-white/90">
-                            {car.n_gear === 0 ? "N" : car.n_gear}
-                          </span>
-                          <span className="w-[9ch] shrink-0 text-muted">
-                            <span className="inline-block w-[5ch] text-right">
-                              {Math.round(car.rpm)}
-                            </span>{" "}
-                            rpm
-                          </span>
-                          <PedalTrace
-                            throttle={car.throttle}
-                            brake={car.brake}
-                          />
-                          {showCombinedDrs && (
-                            <span
-                              className={`ml-auto w-7 shrink-0 py-0.5 text-center text-[8px] font-black uppercase tracking-[0.08em] ${
-                                (car.drs ?? 0) >= 10
-                                  ? "bg-[#39d743] text-black"
-                                  : "bg-panel text-muted"
-                              }`}
-                              title={`DRS raw value ${car.drs ?? 0}`}
-                            >
-                              DRS
-                            </span>
-                          )}
-                        </span>
+                        <CombinedTelemetry
+                          car={car}
+                          speed={speedDisplay}
+                          speedUnit={speedUnitCompact}
+                          showDrs={showCombinedDrs}
+                        />
                       ) : (
                         <span className="block text-center text-muted">—</span>
                       )}
