@@ -244,8 +244,8 @@ export default function DriverProfile() {
             position={standing.position}
           />
 
-          <div className="grid border-t border-panel md:grid-cols-[minmax(320px,440px)_minmax(0,1fr)]">
-            <div className="border-b border-panel md:border-b-0 md:border-r">
+          <div className="grid grid-cols-[minmax(0,1fr)] border-t border-panel md:grid-cols-[minmax(320px,440px)_minmax(0,1fr)]">
+            <div className="min-w-0 border-b border-panel md:border-b-0 md:border-r">
               <SeasonResults
                 rounds={resultsGrid.rounds}
                 cells={row}

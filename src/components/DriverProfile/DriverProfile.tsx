@@ -17,8 +17,7 @@ const SECTION_TITLE =
   "mb-3 text-[10px] font-bold uppercase tracking-[0.12em] text-muted";
 
 const HEAD =
-  "sticky top-0 bg-track py-2 text-[10px] font-bold uppercase tracking-widest text-muted shadow-[inset_0_-1px_0_rgb(var(--color-panel))]";
-
+  "sticky top-0 bg-track py-2 text-[10px] font-bold uppercase tracking-wider text-muted shadow-[inset_0_-1px_0_rgb(var(--color-panel))]";
 
 function signed(value: number | null): string {
   if (value === null) return "–";
@@ -67,7 +66,11 @@ export function DriverStatTiles({
 }>) {
   return (
     <div className="grid grid-cols-2 gap-px bg-panel sm:grid-cols-5 2xl:grid-cols-10">
-      <StatTile label="Position" value={`P${position}`} hint={`${points} pts`} />
+      <StatTile
+        label="Position"
+        value={`P${position}`}
+        hint={`${points} pts`}
+      />
       <StatTile
         label="Wins"
         value={String(stats.wins)}
@@ -87,12 +90,16 @@ export function DriverStatTiles({
       <StatTile
         label="Avg quali"
         value={fmt(stats.averageQualifying)}
-        hint={stats.bestQualifying ? `best P${stats.bestQualifying}` : undefined}
+        hint={
+          stats.bestQualifying ? `best P${stats.bestQualifying}` : undefined
+        }
       />
       <StatTile
         label="Pts / race"
         value={fmt(stats.pointsPerRace)}
-        hint={stats.sprintPoints ? `+${stats.sprintPoints} sprint pts` : undefined}
+        hint={
+          stats.sprintPoints ? `+${stats.sprintPoints} sprint pts` : undefined
+        }
       />
       <StatTile
         label="Places gained"
@@ -164,7 +171,9 @@ export function FinishDistribution({
           <div className="mt-2 flex flex-wrap gap-x-3 gap-y-1 text-[10px] text-muted">
             {FINISH_BUCKETS.map((b) => (
               <span key={b} className="flex items-center gap-1.5">
-                <span className={`h-2.5 w-2.5 border border-panel ${BUCKET_TONE[b]}`} />
+                <span
+                  className={`h-2.5 w-2.5 border border-panel ${BUCKET_TONE[b]}`}
+                />
                 {BUCKET_LABEL[b]}
                 <span className="font-mono font-bold text-white tabular-nums">
                   {counts[b]}
@@ -179,7 +188,6 @@ export function FinishDistribution({
 }
 
 // ── Round-by-round results ────────────────────────────────────────────────────
-
 
 export function SeasonResults({
   rounds,
@@ -211,73 +219,88 @@ export function SeasonResults({
   }
 
   return (
-    <table className="w-full border-collapse">
-      <thead>
-        <tr>
-          <th scope="col" className={`${HEAD} px-3 text-left`}>
-            Round
-          </th>
-          <th scope="col" className={`${HEAD} px-2 text-right`} title="Qualifying position">
-            Quali
-          </th>
-          <th scope="col" className={`${HEAD} px-2 text-center`}>
-            Finish
-          </th>
-          <th scope="col" className={`${HEAD} px-2 text-right`}>
-            Pts
-          </th>
-          <th scope="col" className={`${HEAD} px-2 text-right`}>
-            Total
-          </th>
-          <th scope="col" className={`${HEAD} px-3 text-right`} title="Championship position after the round">
-            Champ
-          </th>
-        </tr>
-      </thead>
-      <tbody>
-        {rounds.map((round, i) => {
-          const cell = cells[i] ?? null;
-          return (
-            <tr
-              key={round.sessionKey}
-              data-standing-row
-              className="border-b border-panel"
+    <div className="max-md:overflow-x-auto">
+      <table className="w-full border-collapse">
+        <thead>
+          <tr>
+            <th scope="col" className={`${HEAD} px-2 sm:px-3 text-left`}>
+              Round
+            </th>
+            <th
+              scope="col"
+              className={`${HEAD} px-1.5 sm:px-2 text-right`}
+              title="Qualifying position"
             >
-              <th scope="row" className="px-3 py-2 text-left text-xs font-normal">
-                <MaybeLink
-                  to={raceHref?.(round)}
-                  title={`Watch ${round.label} on the tracker`}
-                  className={`hover:underline ${round.isSprint ? "text-muted italic" : "font-bold"}`}
+              Quali
+            </th>
+            <th scope="col" className={`${HEAD} px-1.5 sm:px-2 text-center`}>
+              Finish
+            </th>
+            <th scope="col" className={`${HEAD} px-1.5 sm:px-2 text-right`}>
+              Pts
+            </th>
+            <th scope="col" className={`${HEAD} px-1.5 sm:px-2 text-right`}>
+              Total
+            </th>
+            <th
+              scope="col"
+              className={`${HEAD} px-2 sm:px-3 text-right`}
+              title="Championship position after the round"
+            >
+              Champ
+            </th>
+          </tr>
+        </thead>
+        <tbody>
+          {rounds.map((round, i) => {
+            const cell = cells[i] ?? null;
+            return (
+              <tr
+                key={round.sessionKey}
+                data-standing-row
+                className="border-b border-panel"
+              >
+                <th
+                  scope="row"
+                  className="px-2 sm:px-3 py-2 text-left text-xs font-normal"
                 >
-                  {round.label}
-                </MaybeLink>
-              </th>
-              <td className="px-2 py-2 text-right font-mono text-xs tabular-nums text-muted">
-                {cell?.qualifying !== undefined ? `P${cell.qualifying}` : ""}
-                {cell?.pole && (
-                  <sup className="ml-px text-[8px] font-bold text-amber-300">P</sup>
-                )}
-              </td>
-              <td className="px-2 py-1.5 text-center">
-                <span
-                  className={`inline-block min-w-[2.75rem] px-1 py-0.5 font-mono text-xs tabular-nums ${cellTone(cell)}`}
-                >
-                  {cell ? finishText(cell) : "—"}
-                </span>
-              </td>
-              <td className="px-2 py-2 text-right font-mono text-xs tabular-nums">
-                {cell && cell.points > 0 ? cell.points : "–"}
-              </td>
-              <td className="px-2 py-2 text-right font-mono text-xs font-bold tabular-nums">
-                {totals[i] ?? "–"}
-              </td>
-              <td className="px-3 py-2 text-right font-mono text-xs tabular-nums text-muted">
-                {positions[i] != null ? `P${positions[i]}` : "–"}
-              </td>
-            </tr>
-          );
-        })}
-      </tbody>
-    </table>
+                  <MaybeLink
+                    to={raceHref?.(round)}
+                    title={`Watch ${round.label} on the tracker`}
+                    className={`block max-w-[6.5rem] truncate hover:underline sm:max-w-none ${round.isSprint ? "text-muted italic" : "font-bold"}`}
+                  >
+                    {round.label}
+                  </MaybeLink>
+                </th>
+                <td className="px-1.5 sm:px-2 py-2 text-right font-mono text-xs tabular-nums text-muted">
+                  {cell?.qualifying !== undefined ? `P${cell.qualifying}` : ""}
+                  {cell?.pole && (
+                    <sup className="ml-px text-[8px] font-bold text-amber-300">
+                      P
+                    </sup>
+                  )}
+                </td>
+                <td className="px-1.5 sm:px-2 py-1.5 text-center">
+                  <span
+                    className={`inline-block min-w-[2.75rem] px-1 py-0.5 font-mono text-xs tabular-nums ${cellTone(cell)}`}
+                  >
+                    {cell ? finishText(cell) : "—"}
+                  </span>
+                </td>
+                <td className="px-1.5 sm:px-2 py-2 text-right font-mono text-xs tabular-nums">
+                  {cell && cell.points > 0 ? cell.points : "–"}
+                </td>
+                <td className="px-1.5 sm:px-2 py-2 text-right font-mono text-xs font-bold tabular-nums">
+                  {totals[i] ?? "–"}
+                </td>
+                <td className="px-2 sm:px-3 py-2 text-right font-mono text-xs tabular-nums text-muted">
+                  {positions[i] != null ? `P${positions[i]}` : "–"}
+                </td>
+              </tr>
+            );
+          })}
+        </tbody>
+      </table>
+    </div>
   );
 }

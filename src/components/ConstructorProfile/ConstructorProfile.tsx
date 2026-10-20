@@ -18,7 +18,7 @@ const SECTION_TITLE =
   "mb-3 text-[10px] font-bold uppercase tracking-[0.12em] text-muted";
 
 const HEAD =
-  "sticky top-0 bg-track py-2 text-[10px] font-bold uppercase tracking-widest text-muted shadow-[inset_0_-1px_0_rgb(var(--color-panel))]";
+  "sticky top-0 bg-track py-2 text-[10px] font-bold uppercase tracking-wider text-muted shadow-[inset_0_-1px_0_rgb(var(--color-panel))]";
 
 // ── Stat tiles ────────────────────────────────────────────────────────────────
 
@@ -162,11 +162,11 @@ export function ConstructorResults({
   }
 
   return (
-    <div className="overflow-x-auto">
+    <div className="max-md:overflow-x-auto">
       <table className="w-full border-collapse">
         <thead>
           <tr>
-            <th scope="col" className={`${HEAD} px-3 text-left`}>
+            <th scope="col" className={`${HEAD} px-2 sm:px-3 text-left`}>
               Round
             </th>
             {drivers.map((d) => (
@@ -174,20 +174,20 @@ export function ConstructorResults({
                 key={d.driverNumber}
                 scope="col"
                 title={d.fullName}
-                className={`${HEAD} px-2 text-center`}
+                className={`${HEAD} px-1.5 sm:px-2 text-center`}
               >
                 {d.acronym}
               </th>
             ))}
-            <th scope="col" className={`${HEAD} px-2 text-right`}>
+            <th scope="col" className={`${HEAD} px-1.5 sm:px-2 text-right`}>
               Pts
             </th>
-            <th scope="col" className={`${HEAD} px-2 text-right`}>
+            <th scope="col" className={`${HEAD} px-1.5 sm:px-2 text-right`}>
               Total
             </th>
             <th
               scope="col"
-              className={`${HEAD} px-3 text-right`}
+              className={`${HEAD} px-2 sm:px-3 text-right`}
               title="Championship position after the round"
             >
               Champ
@@ -201,11 +201,11 @@ export function ConstructorResults({
               data-standing-row
               className="border-b border-panel"
             >
-              <th scope="row" className="px-3 py-2 text-left text-xs font-normal">
+              <th scope="row" className="px-2 sm:px-3 py-2 text-left text-xs font-normal">
                 <MaybeLink
                   to={raceHref?.(round)}
                   title={`Watch ${round.label} on the tracker`}
-                  className={`hover:underline ${round.isSprint ? "text-muted italic" : "font-bold"}`}
+                  className={`block max-w-[6.5rem] truncate hover:underline sm:max-w-none ${round.isSprint ? "text-muted italic" : "font-bold"}`}
                 >
                   {round.label}
                 </MaybeLink>
@@ -213,7 +213,7 @@ export function ConstructorResults({
               {rows.map((row, d) => {
                 const cell = row[i] ?? null;
                 return (
-                  <td key={drivers[d].driverNumber} className="px-2 py-1.5 text-center">
+                  <td key={drivers[d].driverNumber} className="px-1.5 sm:px-2 py-1.5 text-center">
                     <MaybeLink
                       to={cell ? raceHref?.(round, drivers[d].driverNumber) : undefined}
                       title={
@@ -231,13 +231,13 @@ export function ConstructorResults({
                   </td>
                 );
               })}
-              <td className="px-2 py-2 text-right font-mono text-xs tabular-nums">
+              <td className="px-1.5 sm:px-2 py-2 text-right font-mono text-xs tabular-nums">
                 {roundPoints[i] ? roundPoints[i] : "–"}
               </td>
-              <td className="px-2 py-2 text-right font-mono text-xs font-bold tabular-nums">
+              <td className="px-1.5 sm:px-2 py-2 text-right font-mono text-xs font-bold tabular-nums">
                 {totals[i] ?? "–"}
               </td>
-              <td className="px-3 py-2 text-right font-mono text-xs tabular-nums text-muted">
+              <td className="px-2 sm:px-3 py-2 text-right font-mono text-xs tabular-nums text-muted">
                 {positions[i] != null ? `P${positions[i]}` : "–"}
               </td>
             </tr>
