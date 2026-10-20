@@ -254,10 +254,7 @@ export const SETTINGS_DEFAULTS: AppSettings = {
   showPlaybackEventChips: true,
   catchupSummaryEnabled: true,
   catchupSummaryDefaultFilters: [
-    "pit",
-    "flag",
     "penalty",
-    "overtake",
     "fastest_lap",
     "investigation",
     "radio",
