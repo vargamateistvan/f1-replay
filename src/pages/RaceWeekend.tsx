@@ -2383,41 +2383,46 @@ export default function RaceWeekend() {
 
             {/* Phone layout: tab-switched (md:hidden) */}
             <div className="md:hidden flex flex-col w-full">
-              {/* Tab chips */}
-              <div
-                data-motion-tab-strip
-                className="sticky top-0 z-20 flex w-full border-b border-panel shrink-0 bg-track/95 backdrop-blur"
-              >
-                <div className="grid grid-cols-5 flex-1 min-w-0">
-                  {(
-                    [
-                      ["timing", "Timing"],
-                      ["map", "Track"],
-                      ["strategy", "Tyre Strategy"],
-                      ["chart", "Chart"],
-                      ["gap", "Gap"],
-                    ] as [TrackerTab, string][]
-                  ).map(([tab, label]) => (
-                    <button
-                      key={tab}
-                      onClick={() => {
-                        trackEvent("raceweekend_tracker_tab_changed", {
-                          tab,
-                          source: "mobile",
-                        });
-                        setTrackerTab(tab);
-                      }}
-                      className={`w-full px-1.5 py-2 text-[10px] font-bold uppercase tracking-wider border-b-2 -mb-px transition-colors ${
-                        activeTrackerTab === tab
-                          ? "text-white border-f1red bg-surface"
-                          : "text-muted border-transparent hover:text-white"
-                      }`}
-                    >
-                      {label}
-                    </button>
-                  ))}
+              {/* Pinned header: tab chips + race control ticker */}
+              <div className="sticky top-0 z-20 flex flex-col bg-track/95 backdrop-blur">
+                <div
+                  data-motion-tab-strip
+                  className="flex w-full border-b border-panel shrink-0"
+                >
+                  <div className="grid grid-cols-5 flex-1 min-w-0">
+                    {(
+                      [
+                        ["timing", "Timing"],
+                        ["map", "Track"],
+                        ["strategy", "Tyre Strategy"],
+                        ["chart", "Chart"],
+                        ["gap", "Gap"],
+                      ] as [TrackerTab, string][]
+                    ).map(([tab, label]) => (
+                      <button
+                        key={tab}
+                        onClick={() => {
+                          trackEvent("raceweekend_tracker_tab_changed", {
+                            tab,
+                            source: "mobile",
+                          });
+                          setTrackerTab(tab);
+                        }}
+                        className={`w-full px-1.5 py-2 text-[10px] font-bold uppercase tracking-wider border-b-2 -mb-px transition-colors ${
+                          activeTrackerTab === tab
+                            ? "text-white border-f1red bg-surface"
+                            : "text-muted border-transparent hover:text-white"
+                        }`}
+                      >
+                        {label}
+                      </button>
+                    ))}
+                  </div>
+                  {trackerSettingsButton}
                 </div>
-                {trackerSettingsButton}
+                {(activeTrackerTab === "timing" ||
+                  activeTrackerTab === "map") &&
+                  mobileRaceControlTicker}
               </div>
 
               {/* Tab content */}
@@ -2428,7 +2433,6 @@ export default function RaceWeekend() {
               >
                 {activeTrackerTab === "timing" && (
                   <>
-                    {mobileRaceControlTicker}
                     {/* Timing tower */}
                     <div className="flex flex-col md:flex-1 md:min-h-0 md:overflow-hidden">
                       {positions.isError ? (
@@ -2473,7 +2477,6 @@ export default function RaceWeekend() {
                     data-motion-card
                     className="min-h-[80vw] bg-[#10101a] flex flex-col md:flex-1 md:min-w-0"
                   >
-                    {mobileRaceControlTicker}
                     <div className="relative flex-1 min-h-[64vw]">
                       {drivers.isError ? (
                         <ErrorMessage message="Failed to load driver data" />
