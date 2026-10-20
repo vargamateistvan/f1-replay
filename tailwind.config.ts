@@ -24,6 +24,20 @@ export default {
         "flag-yellow": "#f5d400",
         "flag-sc": "#f5a623",
       },
+      keyframes: {
+        "rc-ticker-in": {
+          "0%": { opacity: "0", transform: "translateY(60%)" },
+          "100%": { opacity: "1", transform: "translateY(0)" },
+        },
+        "rc-ticker-flash": {
+          "0%": { opacity: "0.35" },
+          "100%": { opacity: "0" },
+        },
+      },
+      animation: {
+        "rc-ticker-in": "rc-ticker-in 320ms cubic-bezier(0.2, 0.8, 0.2, 1) both",
+        "rc-ticker-flash": "rc-ticker-flash 1.6s ease-out both",
+      },
       fontFamily: {
         sans: ["Inter", "system-ui", "sans-serif"],
         mono: ["JetBrains Mono", "Fira Mono", "monospace"],

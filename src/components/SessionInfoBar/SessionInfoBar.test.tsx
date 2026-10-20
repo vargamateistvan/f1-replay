@@ -192,4 +192,59 @@ describe("SessionInfoBar", () => {
     expect(screen.getByText("Penalty")).toHaveClass("bg-red-500/25");
     expect(screen.getByText("HAM")).toHaveStyle({ color: "#E8002D" });
   });
+
+  it("shows message age and same-instant count, and replays from the message on click", () => {
+    const sessionStartMs = Date.parse("2024-01-01T00:00:00.000Z");
+    const onJumpToSessionTime = vi.fn();
+    const raceControl = [
+      {
+        date: "2024-01-01T00:01:00.000Z",
+        flag: "GREEN",
+        lap_number: 2,
+        message: "GREEN LIGHT - PIT EXIT OPEN",
+      },
+      {
+        date: "2024-01-01T00:01:00.000Z",
+        flag: null,
+        lap_number: 2,
+        message: "DRS ENABLED",
+      },
+    ] as RaceControl[];
+
+    const { rerender } = render(
+      <SessionInfoBar
+        laps={[] as Lap[]}
+        raceControl={raceControl}
+        sessionTimeMs={72_000}
+        sessionStartMs={sessionStartMs}
+        onJumpToSessionTime={onJumpToSessionTime}
+      />,
+    );
+
+    expect(screen.getByText("GREEN LIGHT - PIT EXIT OPEN")).toHaveClass("text-white/90");
+    expect(screen.getByText("12s ago")).toBeInTheDocument();
+    expect(screen.getByText("+1")).toBeInTheDocument();
+
+    fireEvent.click(
+      screen.getByRole("button", {
+        name: "Replay from race control message: GREEN LIGHT - PIT EXIT OPEN",
+      }),
+    );
+    expect(onJumpToSessionTime).toHaveBeenCalledWith(60_000);
+
+    rerender(
+      <SessionInfoBar
+        laps={[] as Lap[]}
+        raceControl={raceControl}
+        sessionTimeMs={60_000 + 5 * 60_000}
+        sessionStartMs={sessionStartMs}
+      />,
+    );
+
+    expect(screen.getByText("5m ago")).toBeInTheDocument();
+    expect(screen.getByText("GREEN LIGHT - PIT EXIT OPEN")).toHaveClass("text-white/60");
+    expect(
+      screen.queryByRole("button", { name: /Replay from race control/ }),
+    ).not.toBeInTheDocument();
+  });
 });

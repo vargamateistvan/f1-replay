@@ -1,17 +1,12 @@
 import { useEffect, useMemo, useState } from "react";
 import type { Driver, Lap, RaceControl } from "@/api/types";
 import { useSettings } from "@/stores/settings";
-import { teamColor } from "@/utils/color";
 import { toDisplayTemperature, temperatureUnitLabel } from "@/utils/units";
 import {
   normalizeRaceControl,
   type NormalizedRaceControlEvent,
 } from "@/timeline/raceControl";
-import { COMMENTARY_BADGE_CLASS } from "@/components/CommentaryPanels/commentaryList";
-import {
-  raceControlEventAccent,
-  raceControlEventBadge,
-} from "@/components/RaceControl/eventStyle";
+import { RaceControlTicker } from "./RaceControlTicker";
 
 interface Props {
   laps: Lap[];
@@ -35,13 +30,15 @@ interface Props {
 function deriveLatestMessage(
   events: NormalizedRaceControlEvent[],
   sessionTimeMs: number,
-): NormalizedRaceControlEvent | null {
+): { event: NormalizedRaceControlEvent; sameTimeCount: number } | null {
   let last: NormalizedRaceControlEvent | null = null;
+  let sameTimeCount = 0;
   for (const e of events) {
     if (e.ms > sessionTimeMs) break;
+    sameTimeCount = last !== null && e.ms === last.ms ? sameTimeCount + 1 : 0;
     last = e;
   }
-  return last;
+  return last ? { event: last, sameTimeCount } : null;
 }
 
 function fmtElapsed(ms: number): string {
@@ -138,13 +135,9 @@ export function SessionInfoBar({
     [normalizedRaceControl, sessionTimeMs],
   );
   const latestMsgDriver =
-    latestMsg?.driverNumber != null
-      ? drivers.find((d) => d.driver_number === latestMsg.driverNumber)
+    latestMsg?.event.driverNumber != null
+      ? drivers.find((d) => d.driver_number === latestMsg.event.driverNumber)
       : undefined;
-  const latestMsgBadge = latestMsg ? raceControlEventBadge(latestMsg) : null;
-  const latestMsgAccent = latestMsg
-    ? raceControlEventAccent(latestMsg, latestMsgDriver?.team_colour)
-    : null;
   let lapDisplay: string | number = "—";
   if (isFormationLap) {
     lapDisplay = "F";
@@ -290,36 +283,15 @@ export function SessionInfoBar({
       )}
 
       {/* Latest RC message */}
-      {latestMsg && latestMsgBadge && (
-        <div className="relative hidden min-w-0 flex-1 items-center gap-2 px-4 py-2 sm:flex">
-          {latestMsgAccent && (
-            <span
-              aria-hidden="true"
-              className="absolute inset-y-0 left-0 w-[4px]"
-              style={latestMsgAccent}
-            />
-          )}
-          {latestMsg.lapNumber !== null && (
-            <span className="text-muted shrink-0">L{latestMsg.lapNumber}</span>
-          )}
-          <span
-            className={`${COMMENTARY_BADGE_CLASS} ${latestMsgBadge.className}`}
-            style={latestMsgBadge.style}
-          >
-            {latestMsgBadge.label}
-          </span>
-          {latestMsgDriver && (
-            <span
-              className="shrink-0 font-black"
-              style={{ color: teamColor(latestMsgDriver.team_colour) }}
-            >
-              {latestMsgDriver.name_acronym}
-            </span>
-          )}
-          <span className="text-white/70 truncate normal-case tracking-normal font-medium">
-            {latestMsg.description}
-          </span>
-        </div>
+      {latestMsg && (
+        <RaceControlTicker
+          key={latestMsg.event.id}
+          event={latestMsg.event}
+          sameTimeCount={latestMsg.sameTimeCount}
+          driver={latestMsgDriver}
+          sessionTimeMs={sessionTimeMs}
+          onJumpToSessionTime={onJumpToSessionTime}
+        />
       )}
 
       {isLapDialogOpen && (

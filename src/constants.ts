@@ -429,3 +429,7 @@ export const COFFEE_WIDGET_MIN_WIDTH_PX = 768;
 export const QUERY_PERSIST_MAX_AGE_MS = 30 * 24 * 60 * 60 * 1000;
 /** Min gap between sweeps that delete expired persisted queries. */
 export const QUERY_PERSIST_GC_INTERVAL_MS = 24 * 60 * 60 * 1000;
+
+// ── Race control ticker (session info bar) ────────────────────────────────────
+/** A race control message counts as "new" (pulse dot, entrance flash) for this long. */
+export const RC_TICKER_FRESH_MS = 30_000;
