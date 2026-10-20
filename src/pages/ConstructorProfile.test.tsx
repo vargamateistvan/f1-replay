@@ -43,7 +43,7 @@ const team = (name: string, position: number, points: number) => ({
 });
 
 const rounds: ProgressionRound[] = [
-  { sessionKey: 1, label: "Sakhir", code: "BRN", isSprint: false },
+  { sessionKey: 1, meetingKey: 1229, label: "Sakhir", code: "BRN", isSprint: false },
   { sessionKey: 2, label: "Jeddah", code: "KSA", isSprint: false },
 ];
 
@@ -144,5 +144,17 @@ describe("ConstructorProfile page", () => {
     expect(
       screen.getByText("No 2024 championship entry for Nope"),
     ).toBeInTheDocument();
+  });
+
+  it("links rounds to the replay and each car to that driver", () => {
+    setup("/standings/team/Red%20Bull%20Racing?year=2024");
+    expect(screen.getByRole("link", { name: "Sakhir" })).toHaveAttribute(
+      "href",
+      "/?year=2024&meeting=1229&session=1&view=tracker",
+    );
+    expect(screen.getByTitle("Watch PER in Sakhir")).toHaveAttribute(
+      "href",
+      "/?year=2024&meeting=1229&session=1&view=tracker&focus=11",
+    );
   });
 });

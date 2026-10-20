@@ -34,7 +34,7 @@ const standing = (
 });
 
 const rounds: ProgressionRound[] = [
-  { sessionKey: 1, label: "Sakhir", code: "BRN", isSprint: false },
+  { sessionKey: 1, meetingKey: 1229, label: "Sakhir", code: "BRN", isSprint: false },
   { sessionKey: 2, label: "Jeddah", code: "KSA", isSprint: false },
 ];
 
@@ -126,5 +126,15 @@ describe("DriverProfile page", () => {
     expect(
       screen.getByText("No 2024 championship entry for driver #99"),
     ).toBeInTheDocument();
+  });
+
+  it("links rounds to the replay focused on the driver", () => {
+    setup("/standings/driver/1?year=2024");
+    expect(screen.getByRole("link", { name: "Sakhir" })).toHaveAttribute(
+      "href",
+      "/?year=2024&meeting=1229&session=1&view=tracker&focus=1",
+    );
+    // No meeting key → no link.
+    expect(screen.queryByRole("link", { name: "Jeddah" })).not.toBeInTheDocument();
   });
 });

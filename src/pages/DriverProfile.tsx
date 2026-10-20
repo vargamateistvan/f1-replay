@@ -23,6 +23,7 @@ import {
 } from "@/utils/driverProfile";
 import { constructorPath } from "@/utils/constructorProfile";
 import { DEFAULT_YEAR } from "@/constants";
+import { roundReplayPath } from "@/utils/url";
 import { usePageSeo } from "@/hooks/usePageSeo";
 import {
   PICKER_BAR,
@@ -251,6 +252,7 @@ export default function DriverProfile() {
                 totals={driverProgression.totals.get(driverNumber) ?? []}
                 positions={positions}
                 loading={isFetching}
+                raceHref={(round) => roundReplayPath(year, round, driverNumber)}
               />
             </div>
 

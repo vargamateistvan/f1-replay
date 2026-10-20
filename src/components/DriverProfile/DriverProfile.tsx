@@ -1,4 +1,8 @@
-import type { GridCell, ProgressionRound } from "@/utils/championship";
+import type {
+  GridCell,
+  ProgressionRound,
+  RaceHref,
+} from "@/utils/championship";
 import {
   FINISH_BUCKETS,
   type DriverSeasonStats,
@@ -6,6 +10,7 @@ import {
 } from "@/utils/driverProfile";
 import { cellTone } from "@/components/ResultsGrid/cellTone";
 import { ErrorMessage } from "@/components/ErrorMessage";
+import { MaybeLink } from "@/components/MaybeLink";
 import { finishText, fmt } from "./format";
 
 const SECTION_TITLE =
@@ -182,6 +187,7 @@ export function SeasonResults({
   totals,
   positions,
   loading,
+  raceHref,
 }: Readonly<{
   rounds: ProgressionRound[];
   cells: (GridCell | null)[];
@@ -190,6 +196,8 @@ export function SeasonResults({
   /** Championship position after each round. */
   positions: (number | null)[];
   loading?: boolean;
+  /** Replay link per round (the page focuses its driver). */
+  raceHref?: RaceHref;
 }>) {
   if (rounds.length === 0) {
     return (
@@ -236,9 +244,13 @@ export function SeasonResults({
               className="border-b border-panel"
             >
               <th scope="row" className="px-3 py-2 text-left text-xs font-normal">
-                <span className={round.isSprint ? "text-muted italic" : "font-bold"}>
+                <MaybeLink
+                  to={raceHref?.(round)}
+                  title={`Watch ${round.label} on the tracker`}
+                  className={`hover:underline ${round.isSprint ? "text-muted italic" : "font-bold"}`}
+                >
                   {round.label}
-                </span>
+                </MaybeLink>
               </th>
               <td className="px-2 py-2 text-right font-mono text-xs tabular-nums text-muted">
                 {cell?.qualifying !== undefined ? `P${cell.qualifying}` : ""}

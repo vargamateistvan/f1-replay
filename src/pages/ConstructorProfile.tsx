@@ -23,6 +23,7 @@ import {
   constructorSeasonStats,
 } from "@/utils/constructorProfile";
 import { DEFAULT_YEAR } from "@/constants";
+import { roundReplayPath } from "@/utils/url";
 import { usePageSeo } from "@/hooks/usePageSeo";
 import {
   PICKER_BAR,
@@ -239,6 +240,7 @@ export default function ConstructorProfile() {
                 totals={constructorProgression.totals.get(teamName) ?? []}
                 positions={positions}
                 loading={isFetching}
+                raceHref={(round, n) => roundReplayPath(year, round, n)}
               />
             </div>
 

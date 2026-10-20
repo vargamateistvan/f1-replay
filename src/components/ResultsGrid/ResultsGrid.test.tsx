@@ -135,4 +135,28 @@ describe("ResultsGrid", () => {
     render(<ResultsGrid rounds={rounds} standings={standings} cells={cells} />);
     expect(screen.queryByRole("link")).not.toBeInTheDocument();
   });
+
+  it("links round headers and result cells to the replay", () => {
+    const linked = rounds.map((r) => ({ ...r, meetingKey: 100 + r.sessionKey }));
+    render(
+      <MemoryRouter>
+        <ResultsGrid
+          rounds={linked}
+          standings={standings}
+          cells={cells}
+          raceHref={(round, n) =>
+            `/?session=${round.sessionKey}${n === undefined ? "" : `&focus=${n}`}`
+          }
+        />
+      </MemoryRouter>,
+    );
+    expect(screen.getByRole("link", { name: "BRN" })).toHaveAttribute(
+      "href",
+      "/?session=1",
+    );
+    // HAM's Sakhir cell (P2 from pole) focuses HAM; his missing sprint has no link.
+    const ham = rowFor("HAM");
+    const hamLinks = within(ham).getAllByRole("link").map((a) => a.getAttribute("href"));
+    expect(hamLinks).toEqual(["/?session=1&focus=44", "/?session=3&focus=44"]);
+  });
 });

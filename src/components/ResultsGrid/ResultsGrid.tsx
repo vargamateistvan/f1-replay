@@ -1,5 +1,9 @@
 import { useState } from "react";
-import type { GridCell, ProgressionRound } from "@/utils/championship";
+import type {
+  GridCell,
+  ProgressionRound,
+  RaceHref,
+} from "@/utils/championship";
 import type { DriverStanding } from "@/utils/standings";
 import { ErrorMessage } from "@/components/ErrorMessage";
 import { DriverHeadshot } from "@/components/DriverHeadshot";
@@ -21,6 +25,8 @@ interface Props {
   readonly loading?: boolean;
   /** Driver profile links; names render as plain text without them. */
   readonly driverHref?: (driverNumber: number) => string;
+  /** Replay links: column headers open the race, cells focus that driver. */
+  readonly raceHref?: RaceHref;
 }
 
 type Status = Exclude<GridCell["status"], "finished">;
@@ -104,6 +110,7 @@ export function ResultsGrid({
   cells,
   loading,
   driverHref,
+  raceHref,
 }: Props) {
   const [mode, setMode] = useState<Mode>("position");
 
@@ -193,7 +200,12 @@ export function ResultsGrid({
                     round.isSprint ? "text-muted/70" : "text-muted"
                   }`}
                 >
-                  <span className="block">{round.code}</span>
+                  <MaybeLink
+                    to={raceHref?.(round)}
+                    className="block hover:text-white hover:underline"
+                  >
+                    {round.code}
+                  </MaybeLink>
                   {round.isSprint && (
                     <span className="block text-[8px] text-muted/70">S</span>
                   )}
@@ -250,8 +262,13 @@ export function ResultsGrid({
                           round.isSprint ? "text-[10px] italic" : ""
                         }`}
                       >
-                        {cellText(cell, mode)}
-                        {markerText(cell) && <Marker text={markerText(cell)} />}
+                        <MaybeLink
+                          to={cell ? raceHref?.(round, d.driverNumber) : undefined}
+                          className="block hover:underline"
+                        >
+                          {cellText(cell, mode)}
+                          {markerText(cell) && <Marker text={markerText(cell)} />}
+                        </MaybeLink>
                       </td>
                     );
                   })}

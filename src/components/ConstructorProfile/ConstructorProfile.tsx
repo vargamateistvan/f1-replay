@@ -1,11 +1,16 @@
 import { Link } from "react-router-dom";
-import type { GridCell, ProgressionRound } from "@/utils/championship";
+import type {
+  GridCell,
+  ProgressionRound,
+  RaceHref,
+} from "@/utils/championship";
 import type { ConstructorSeasonStats } from "@/utils/constructorProfile";
 import { driverPath } from "@/utils/driverProfile";
 import type { DriverStanding } from "@/utils/standings";
 import { cellTone } from "@/components/ResultsGrid/cellTone";
 import { ErrorMessage } from "@/components/ErrorMessage";
 import { DriverHeadshot } from "@/components/DriverHeadshot";
+import { MaybeLink } from "@/components/MaybeLink";
 import { StatTile } from "@/components/DriverProfile/DriverProfile";
 import { finishText, fmt } from "@/components/DriverProfile/format";
 
@@ -130,6 +135,7 @@ export function ConstructorResults({
   totals,
   positions,
   loading,
+  raceHref,
 }: Readonly<{
   rounds: ProgressionRound[];
   drivers: DriverStanding[];
@@ -141,6 +147,8 @@ export function ConstructorResults({
   /** Championship position after each round. */
   positions: (number | null)[];
   loading?: boolean;
+  /** Replay links: the round label opens the race, a driver's cell focuses them. */
+  raceHref?: RaceHref;
 }>) {
   if (rounds.length === 0) {
     return (
@@ -194,22 +202,32 @@ export function ConstructorResults({
               className="border-b border-panel"
             >
               <th scope="row" className="px-3 py-2 text-left text-xs font-normal">
-                <span className={round.isSprint ? "text-muted italic" : "font-bold"}>
+                <MaybeLink
+                  to={raceHref?.(round)}
+                  title={`Watch ${round.label} on the tracker`}
+                  className={`hover:underline ${round.isSprint ? "text-muted italic" : "font-bold"}`}
+                >
                   {round.label}
-                </span>
+                </MaybeLink>
               </th>
               {rows.map((row, d) => {
                 const cell = row[i] ?? null;
                 return (
                   <td key={drivers[d].driverNumber} className="px-2 py-1.5 text-center">
-                    <span
-                      className={`inline-block min-w-[2.75rem] px-1 py-0.5 font-mono text-xs tabular-nums ${cellTone(cell)}`}
+                    <MaybeLink
+                      to={cell ? raceHref?.(round, drivers[d].driverNumber) : undefined}
+                      title={
+                        cell
+                          ? `Watch ${drivers[d].acronym} in ${round.label}`
+                          : undefined
+                      }
+                      className={`inline-block min-w-[2.75rem] px-1 py-0.5 font-mono text-xs tabular-nums hover:ring-1 hover:ring-white/40 ${cellTone(cell)}`}
                     >
                       {cell ? finishText(cell) : "—"}
                       {cell?.pole && (
                         <sup className="ml-px text-[8px] font-bold">P</sup>
                       )}
-                    </span>
+                    </MaybeLink>
                   </td>
                 );
               })}

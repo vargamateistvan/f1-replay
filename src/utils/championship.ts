@@ -26,6 +26,8 @@ interface RoundSession {
 
 export interface ProgressionRound {
   sessionKey: number;
+  /** For links to the replay; absent when the session lacks it. */
+  meetingKey?: number;
   label: string;
   /** Short column header, e.g. country code. */
   code: string;
@@ -36,11 +38,18 @@ function toRound(session: RoundSession, isSprint: boolean): ProgressionRound {
   const base = session.circuit_short_name ?? session.country_code ?? "?";
   return {
     sessionKey: session.session_key,
+    ...(session.meeting_key === undefined ? {} : { meetingKey: session.meeting_key }),
     label: isSprint ? `${base} (S)` : base,
     code: (session.country_code ?? base.slice(0, 3)).toUpperCase(),
     isSprint,
   };
 }
+
+/** Replay link for a round, optionally focused on a driver; undefined = no link. */
+export type RaceHref = (
+  round: ProgressionRound,
+  driverNumber?: number,
+) => string | undefined;
 
 export interface PointsProgression<K> {
   rounds: ProgressionRound[];

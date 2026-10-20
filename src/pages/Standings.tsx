@@ -39,6 +39,7 @@ import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useNumberParam, useStringParam } from "@/hooks/useSearchParamState";
 import { useMediaQuery } from "@/hooks/useMediaQuery";
 import { DEFAULT_YEAR } from "@/constants";
+import { roundReplayPath } from "@/utils/url";
 
 type Tab = "drivers" | "constructors" | "results" | "teammates";
 type ChartView = "totals" | "progression";
@@ -835,6 +836,7 @@ export default function Standings() {
             standings={driverStandings}
             loading={isFetching}
             driverHref={driverHref}
+            raceHref={(round, n) => roundReplayPath(year, round, n)}
           />
         </div>
       ) : tab === "teammates" ? (
