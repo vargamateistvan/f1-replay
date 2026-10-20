@@ -15,7 +15,6 @@ import { isMap3dAvailable } from "@/components/TrackMap3D/availability";
 import { parseCameraMode } from "@/components/TrackMap3D/cameraModes";
 import { hasCircuitGeometry } from "@/data/circuitGeometry";
 import LiveTiming from "@/components/LiveTiming/LiveTiming";
-import { WeatherPanel } from "@/components/Weather/WeatherPanel";
 import { QualifyingBanner } from "@/components/QualifyingBanner";
 import { SessionInfoBar } from "@/components/SessionInfoBar";
 import { ErrorMessage } from "@/components/ErrorMessage";
@@ -2454,23 +2453,6 @@ export default function RaceWeekend() {
                     data-motion-card
                     className="min-h-[80vw] bg-[#10101a] flex flex-col md:flex-1 md:min-w-0"
                   >
-                    {mapShowWeather && (
-                      <div className="shrink-0 border-b border-panel">
-                        {weather.isError ? (
-                          <ErrorMessage
-                            message="Failed to load weather"
-                            compact
-                          />
-                        ) : (
-                          <WeatherPanel
-                            entries={weather.data ?? []}
-                            sessionKey={sessionKey}
-                            sessionTimeMs={t}
-                            sessionStartMs={sessionStartMs}
-                          />
-                        )}
-                      </div>
-                    )}
                     <div className="relative flex-1 min-h-[64vw]">
                       {drivers.isError ? (
                         <ErrorMessage message="Failed to load driver data" />
