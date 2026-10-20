@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useState } from "react";
+import { ChevronsRight, Crown } from "lucide-react";
 import type { Overtake, Driver, Lap } from "@/api/types";
 import { downloadEndpointCsv } from "@/api/client";
+import { COMMENTARY_FRESH_MS } from "@/constants";
 import { useSettings } from "@/stores/settings";
 import { teamColor } from "@/utils/color";
 import { buildLapLookup, lapNumberAtMs } from "@/utils/lapLookup";
@@ -10,16 +12,26 @@ import {
   COMMENTARY_BADGE_CLASS,
   COMMENTARY_FEED_SCROLL_CLASS,
   COMMENTARY_GROUP_CLASS,
-  COMMENTARY_GROUP_HEADER_CLASS,
   COMMENTARY_GROUP_ITEMS_CLASS,
   COMMENTARY_META_CLASS,
   COMMENTARY_ROW_CLASS,
   COMMENTARY_TIME_CLASS,
+  COMMENTARY_FRESH_ROW_CLASS,
   COMMENTARY_TITLE_CLASS,
   commentaryGroupLabel,
   formatSessionElapsedTime,
+  isFreshCommentaryItem,
 } from "@/components/CommentaryPanels/commentaryList";
 import { CommentaryJumpButton } from "@/components/CommentaryPanels/CommentaryJumpButton";
+import {
+  CommentaryGroupHeader,
+  CommentarySummary,
+  DriverChip,
+  FreshTag,
+  type CommentaryStat,
+} from "@/components/CommentaryPanels/CommentaryBits";
+
+const LEAD_GOLD = "#f5c518";
 
 interface Props {
   readonly entries: Overtake[];
@@ -100,6 +112,42 @@ export function OvertakeFeed({
   );
   const hasMore = visible.length < visibleAll.length;
 
+  const summaryStats = useMemo((): CommentaryStat[] => {
+    const byDriver = new Map<number, number>();
+    let leadChanges = 0;
+    for (const { entry } of visibleAll) {
+      const num = entry.overtaking_driver_number;
+      byDriver.set(num, (byDriver.get(num) ?? 0) + 1);
+      if (entry.position === 1) leadChanges++;
+    }
+    const stats: CommentaryStat[] = [
+      { key: "passes", label: "Passes", value: visibleAll.length },
+    ];
+    let top: [number, number] | null = null;
+    for (const pair of byDriver) {
+      if (!top || pair[1] > top[1]) top = pair;
+    }
+    // A single pass each isn't a "most" — only show a clear leader.
+    if (top && top[1] >= 2) {
+      stats.push({
+        key: "top",
+        label: "Most passes",
+        value: `×${top[1]}`,
+        accent: "#39b54a",
+        detail: (
+          <DriverChip driver={driverByNumber.get(top[0])} driverNumber={top[0]} />
+        ),
+      });
+    }
+    stats.push({
+      key: "lead",
+      label: "For the lead",
+      value: leadChanges,
+      accent: leadChanges > 0 ? LEAD_GOLD : undefined,
+    });
+    return stats;
+  }, [visibleAll, driverByNumber]);
+
   const lapGroups = useMemo<LapGroup[]>(() => {
     const isQualifying = sessionType?.toLowerCase().includes("qualifying");
     const isPractice = sessionType ? isPracticeSession(sessionType) : false;
@@ -155,38 +203,58 @@ export function OvertakeFeed({
           </button>
         </div>
       )}
+      <CommentarySummary stats={summaryStats} />
       {lapGroups.map((group, groupIndex) => (
         <div
           key={`${group.lapNumber ?? "session"}-${groupIndex}`}
           className={COMMENTARY_GROUP_CLASS}
         >
-          <div className={COMMENTARY_GROUP_HEADER_CLASS}>
-            {commentaryGroupLabel(sessionType, group.lapNumber)}
-          </div>
+          <CommentaryGroupHeader
+            label={commentaryGroupLabel(sessionType, group.lapNumber)}
+            count={group.entries.length}
+          />
           <div className={COMMENTARY_GROUP_ITEMS_CLASS}>
             {group.entries.map(({ entry: e, dateMs }) => {
               const over = driverByNumber.get(e.overtaking_driver_number);
               const under = driverByNumber.get(e.overtaken_driver_number);
               const overColor = teamColor(over?.team_colour);
-              const underColor = teamColor(under?.team_colour);
               const ms = dateMs - sessionStartMs;
+              const isLead = e.position === 1;
+              const isFresh = isFreshCommentaryItem(
+                sessionTimeMs - ms,
+                showAllItems,
+                COMMENTARY_FRESH_MS,
+              );
               return (
                 <div
                   key={`${e.overtaking_driver_number}-${e.overtaken_driver_number}-${e.date}-${e.position ?? "na"}`}
-                  className={COMMENTARY_ROW_CLASS}
+                  className={`${COMMENTARY_ROW_CLASS} ${
+                    isLead ? "!bg-[#f5c518]/10" : ""
+                  } ${isFresh ? COMMENTARY_FRESH_ROW_CLASS : ""}`}
                   style={{ borderLeft: `6px solid ${overColor}` }}
                 >
                   <span className={COMMENTARY_TIME_CLASS}>
                     {formatSessionElapsedTime(ms)}
                   </span>
                   <div className="min-w-0 flex-1">
-                    <div className={COMMENTARY_TITLE_CLASS}>
-                      <span style={{ color: overColor }}>
-                        {over?.name_acronym ?? e.overtaking_driver_number}
-                      </span>{" "}
-                      <span className="text-white/55">passed</span>{" "}
-                      <span style={{ color: underColor }}>
-                        {under?.name_acronym ?? e.overtaken_driver_number}
+                    <div
+                      className={`${COMMENTARY_TITLE_CLASS} flex items-center gap-1.5`}
+                    >
+                      <DriverChip
+                        driver={over}
+                        driverNumber={e.overtaking_driver_number}
+                      />
+                      <ChevronsRight
+                        size={14}
+                        strokeWidth={2.5}
+                        className="shrink-0 text-f1-green"
+                        aria-label="passed"
+                      />
+                      <span className="opacity-70">
+                        <DriverChip
+                          driver={under}
+                          driverNumber={e.overtaken_driver_number}
+                        />
                       </span>
                     </div>
                     <div className={COMMENTARY_META_CLASS}>
@@ -195,7 +263,26 @@ export function OvertakeFeed({
                       >
                         Pass
                       </span>
-                      {e.position !== null && <span>for P{e.position}</span>}
+                      {isLead && (
+                        <span
+                          className={`${COMMENTARY_BADGE_CLASS} gap-1 text-black`}
+                          style={{ backgroundColor: LEAD_GOLD }}
+                        >
+                          <Crown
+                            size={10}
+                            strokeWidth={3}
+                            className="shrink-0"
+                            aria-hidden="true"
+                          />
+                          Lead
+                        </span>
+                      )}
+                      {e.position !== null && (
+                        <span className="font-mono font-bold tabular-nums text-white/80">
+                          for P{e.position}
+                        </span>
+                      )}
+                      {isFresh && <FreshTag />}
                     </div>
                   </div>
                   {onJump && (

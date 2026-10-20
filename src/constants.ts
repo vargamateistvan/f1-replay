@@ -429,3 +429,11 @@ export const COFFEE_WIDGET_MIN_WIDTH_PX = 768;
 export const QUERY_PERSIST_MAX_AGE_MS = 30 * 24 * 60 * 60 * 1000;
 /** Min gap between sweeps that delete expired persisted queries. */
 export const QUERY_PERSIST_GC_INTERVAL_MS = 24 * 60 * 60 * 1000;
+
+// ── Commentary feeds (race control, radio, pits, overtakes) ───────────────────
+/** Items this recent (session time behind the playhead) are highlighted as new. */
+export const COMMENTARY_FRESH_MS = 20_000;
+/** Stationary pit stops at or under this many seconds are shown as quick. */
+export const PIT_STOP_QUICK_S = 2.5;
+/** Stationary pit stops over this many seconds are shown as slow. */
+export const PIT_STOP_SLOW_S = 4;

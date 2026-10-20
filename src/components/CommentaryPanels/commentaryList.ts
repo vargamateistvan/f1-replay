@@ -41,3 +41,19 @@ export function commentaryGroupLabel(
   if (lapNumber !== null) return `Lap ${lapNumber}`;
   return "Session";
 }
+
+/** Extra row classes for an item the playhead crossed moments ago. */
+export const COMMENTARY_FRESH_ROW_CLASS =
+  "shadow-[inset_0_0_0_1px_rgba(255,255,255,0.12)] motion-safe:animate-rc-enter";
+
+/**
+ * True when an item `ageMs` behind the playhead should be highlighted as new.
+ * Never in "All" mode, where nothing has just happened.
+ */
+export function isFreshCommentaryItem(
+  ageMs: number,
+  showAllItems: boolean,
+  freshMs: number,
+): boolean {
+  return !showAllItems && ageMs >= 0 && ageMs <= freshMs;
+}

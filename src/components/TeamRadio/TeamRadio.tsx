@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useState } from "react";
-import { Play, Square } from "lucide-react";
+import { Play, Radio, Square } from "lucide-react";
 import type { TeamRadio as TeamRadioEntry, Driver, Lap } from "@/api/types";
 import { downloadEndpointCsv } from "@/api/client";
+import { COMMENTARY_FRESH_MS } from "@/constants";
 import { useSettings } from "@/stores/settings";
 import { useAudioProgress } from "@/hooks/useAudioProgress";
 import { teamColor } from "@/utils/color";
@@ -14,16 +15,24 @@ import {
   COMMENTARY_BADGE_CLASS,
   COMMENTARY_FEED_SCROLL_CLASS,
   COMMENTARY_GROUP_CLASS,
-  COMMENTARY_GROUP_HEADER_CLASS,
   COMMENTARY_GROUP_ITEMS_CLASS,
   COMMENTARY_META_CLASS,
   COMMENTARY_ROW_CLASS,
   COMMENTARY_TIME_CLASS,
+  COMMENTARY_FRESH_ROW_CLASS,
   COMMENTARY_TITLE_CLASS,
   commentaryGroupLabel,
   formatSessionElapsedTime,
+  isFreshCommentaryItem,
 } from "@/components/CommentaryPanels/commentaryList";
 import { CommentaryJumpButton } from "@/components/CommentaryPanels/CommentaryJumpButton";
+import {
+  CommentaryGroupHeader,
+  CommentarySummary,
+  DriverChip,
+  FreshTag,
+  type CommentaryStat,
+} from "@/components/CommentaryPanels/CommentaryBits";
 
 interface Props {
   readonly entries: TeamRadioEntry[];
@@ -111,6 +120,33 @@ export function TeamRadioFeed({
   );
   const hasMore = visible.length < visibleAll.length;
 
+  const summaryStats = useMemo((): CommentaryStat[] => {
+    const byDriver = new Map<number, number>();
+    for (const { entry } of visibleAll) {
+      byDriver.set(entry.driver_number, (byDriver.get(entry.driver_number) ?? 0) + 1);
+    }
+    const stats: CommentaryStat[] = [
+      { key: "clips", label: "Clips", value: visibleAll.length },
+      { key: "drivers", label: "Drivers heard", value: byDriver.size },
+    ];
+    let top: [number, number] | null = null;
+    for (const pair of byDriver) {
+      if (!top || pair[1] > top[1]) top = pair;
+    }
+    if (top && top[1] >= 2) {
+      stats.push({
+        key: "top",
+        label: "Most heard",
+        value: `×${top[1]}`,
+        accent: "#4da6ff",
+        detail: (
+          <DriverChip driver={driverByNumber.get(top[0])} driverNumber={top[0]} />
+        ),
+      });
+    }
+    return stats;
+  }, [visibleAll, driverByNumber]);
+
   const lapGroups = useMemo<LapGroup[]>(() => {
     const isQualifying = sessionType?.toLowerCase().includes("qualifying");
     const isPractice = sessionType ? isPracticeSession(sessionType) : false;
@@ -178,14 +214,16 @@ export function TeamRadioFeed({
           </button>
         </div>
       )}
+      <CommentarySummary stats={summaryStats} />
       {lapGroups.map((group, groupIndex) => (
         <div
           key={`${group.lapNumber ?? "session"}-${groupIndex}`}
           className={COMMENTARY_GROUP_CLASS}
         >
-          <div className={COMMENTARY_GROUP_HEADER_CLASS}>
-            {commentaryGroupLabel(sessionType, group.lapNumber)}
-          </div>
+          <CommentaryGroupHeader
+            label={commentaryGroupLabel(sessionType, group.lapNumber)}
+            count={group.entries.length}
+          />
           <div className={COMMENTARY_GROUP_ITEMS_CLASS}>
             {group.entries.map(({ entry: e, dateMs: entryMs }) => (
               <RadioRow
@@ -194,6 +232,11 @@ export function TeamRadioFeed({
                 entryMs={entryMs}
                 sessionStartMs={sessionStartMs}
                 driver={driverByNumber.get(e.driver_number)}
+                isFresh={isFreshCommentaryItem(
+                  sessionTimeMs - (entryMs - sessionStartMs),
+                  showAllItems,
+                  COMMENTARY_FRESH_MS,
+                )}
                 playing={playing}
                 onPlay={play}
                 onEnded={() => setPlaying(null)}
@@ -223,6 +266,7 @@ function RadioRow({
   entryMs,
   sessionStartMs,
   driver,
+  isFresh,
   playing,
   onPlay,
   onEnded,
@@ -232,6 +276,7 @@ function RadioRow({
   entryMs: number;
   sessionStartMs: number;
   driver: Driver | undefined;
+  isFresh: boolean;
   playing: string | null;
   onPlay: (url: string) => void;
   onEnded: () => void;
@@ -245,23 +290,33 @@ function RadioRow({
 
   return (
     <div
-      className={COMMENTARY_ROW_CLASS}
+      className={`${COMMENTARY_ROW_CLASS} ${
+        isPlaying ? "!bg-f1red/10" : ""
+      } ${isFresh ? COMMENTARY_FRESH_ROW_CLASS : ""}`}
       style={{ borderLeft: `6px solid ${color}` }}
     >
       <span className={COMMENTARY_TIME_CLASS}>
         {fmtSessionTime(entryMs, sessionStartMs)}
       </span>
       <div className="flex-1 min-w-0">
-        <div className={COMMENTARY_TITLE_CLASS}>
-          Team radio for{" "}
-          <span style={{ color }}>
-            {driver?.name_acronym ?? e.driver_number}
-          </span>
+        <div className={`${COMMENTARY_TITLE_CLASS} flex items-center gap-1.5`}>
+          <span className="text-white/55">Team radio</span>
+          <DriverChip driver={driver} driverNumber={e.driver_number} />
+          {isPlaying && <OnAirBars />}
         </div>
         <div className={COMMENTARY_META_CLASS}>
-          <span className={`${COMMENTARY_BADGE_CLASS} bg-[#4da6ff] text-black`}>
+          <span
+            className={`${COMMENTARY_BADGE_CLASS} gap-1 bg-[#4da6ff] text-black`}
+          >
+            <Radio size={10} strokeWidth={3} className="shrink-0" aria-hidden="true" />
             Radio
           </span>
+          {isPlaying && (
+            <span className="text-[8px] font-black uppercase tracking-widest text-f1red">
+              On air
+            </span>
+          )}
+          {isFresh && <FreshTag />}
         </div>
       </div>
       <div className="shrink-0 flex items-center gap-1.5">
@@ -314,5 +369,20 @@ function RadioRow({
         )}
       </div>
     </div>
+  );
+}
+
+/** Little bouncing level meter shown while a clip plays. */
+function OnAirBars() {
+  return (
+    <span aria-hidden="true" className="flex h-3 items-end gap-[2px]">
+      {[0, 150, 300, 450].map((delay) => (
+        <span
+          key={delay}
+          className="w-[2px] origin-bottom rounded-full bg-f1red motion-safe:animate-radio-bar"
+          style={{ height: "100%", animationDelay: `${delay}ms` }}
+        />
+      ))}
+    </span>
   );
 }

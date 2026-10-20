@@ -1,6 +1,12 @@
 import { useEffect, useMemo, useState } from "react";
+import { Timer, Trophy } from "lucide-react";
 import type { Driver, Pit, Stint } from "@/api/types";
 import { downloadEndpointCsv } from "@/api/client";
+import {
+  COMMENTARY_FRESH_MS,
+  PIT_STOP_QUICK_S,
+  PIT_STOP_SLOW_S,
+} from "@/constants";
 import { TyreBadge } from "@/components/LiveTiming/TyreBadge";
 import { useSettings } from "@/stores/settings";
 import { teamColor } from "@/utils/color";
@@ -11,16 +17,32 @@ import {
   COMMENTARY_BADGE_CLASS,
   COMMENTARY_FEED_SCROLL_CLASS,
   COMMENTARY_GROUP_CLASS,
-  COMMENTARY_GROUP_HEADER_CLASS,
   COMMENTARY_GROUP_ITEMS_CLASS,
   COMMENTARY_META_CLASS,
   COMMENTARY_ROW_CLASS,
   COMMENTARY_TIME_CLASS,
+  COMMENTARY_FRESH_ROW_CLASS,
   COMMENTARY_TITLE_CLASS,
   commentaryGroupLabel,
   formatSessionElapsedTime,
+  isFreshCommentaryItem,
 } from "@/components/CommentaryPanels/commentaryList";
 import { CommentaryJumpButton } from "@/components/CommentaryPanels/CommentaryJumpButton";
+import {
+  CommentaryGroupHeader,
+  CommentarySummary,
+  DriverChip,
+  FreshTag,
+  type CommentaryStat,
+} from "@/components/CommentaryPanels/CommentaryBits";
+
+/** Text colour for a stationary stop time: quick, normal or slow. */
+function stopTimeClass(entry: Pit, stop: number): string {
+  if (entry.stop_duration === null) return "text-white/90";
+  if (stop <= PIT_STOP_QUICK_S) return "text-f1-green";
+  if (stop > PIT_STOP_SLOW_S) return "text-red-400";
+  return "text-white/90";
+}
 
 interface Props {
   readonly entries: Pit[];
@@ -103,6 +125,50 @@ export function PitFeed({
   );
   const hasMore = visible.length < visibleAll.length;
 
+  // Fastest stop so far (no spoilers past the playhead unless "All").
+  const fastest = useMemo(() => {
+    let best: { entry: Pit; stop: number } | null = null;
+    for (const { entry } of visibleAll) {
+      const stop = pitStopTime(entry);
+      if (stop === null || stop <= 0) continue;
+      if (!best || stop < best.stop) best = { entry, stop };
+    }
+    return best;
+  }, [visibleAll]);
+
+  const summaryStats = useMemo((): CommentaryStat[] => {
+    const stops = visibleAll
+      .map(({ entry }) => pitStopTime(entry))
+      .filter((s): s is number => s !== null && s > 0);
+    const stats: CommentaryStat[] = [
+      { key: "stops", label: "Stops", value: visibleAll.length },
+    ];
+    if (fastest) {
+      stats.push({
+        key: "fastest",
+        label: "Fastest",
+        value: `${formatPitDuration(fastest.stop) ?? "--"}s`,
+        accent: "#9b59f5",
+        detail: (
+          <DriverChip
+            driver={driverByNumber.get(fastest.entry.driver_number)}
+            driverNumber={fastest.entry.driver_number}
+          />
+        ),
+      });
+    }
+    if (stops.length > 1) {
+      const avg = stops.reduce((sum, s) => sum + s, 0) / stops.length;
+      stats.push({
+        key: "average",
+        label: "Average",
+        value: `${formatPitDuration(avg) ?? "--"}s`,
+        detail: `${stops.length} timed`,
+      });
+    }
+    return stats;
+  }, [visibleAll, fastest, driverByNumber]);
+
   const lapGroups = useMemo<LapGroup[]>(() => {
     const isQualifying = sessionType?.toLowerCase().includes("qualifying");
     const isPractice = sessionType ? isPracticeSession(sessionType) : false;
@@ -159,14 +225,17 @@ export function PitFeed({
         </div>
       )}
 
+      <CommentarySummary stats={summaryStats} />
+
       {lapGroups.map((group, groupIndex) => (
         <div
           key={`${group.lapNumber ?? "session"}-${groupIndex}`}
           className={COMMENTARY_GROUP_CLASS}
         >
-          <div className={COMMENTARY_GROUP_HEADER_CLASS}>
-            {commentaryGroupLabel(sessionType, group.lapNumber)}
-          </div>
+          <CommentaryGroupHeader
+            label={commentaryGroupLabel(sessionType, group.lapNumber)}
+            count={group.entries.length}
+          />
           <div className={COMMENTARY_GROUP_ITEMS_CLASS}>
             {group.entries.map(({ entry, dateMs }, idx) => {
               const driver = driverByNumber.get(entry.driver_number);
@@ -177,32 +246,66 @@ export function PitFeed({
               const nextStint = stintsByDriver
                 .get(entry.driver_number)
                 ?.find((stint) => stint.lap_start > entry.lap_number);
+              const isFastest = fastest?.entry === entry;
+              const isFresh = isFreshCommentaryItem(
+                sessionTimeMs - ms,
+                showAllItems,
+                COMMENTARY_FRESH_MS,
+              );
 
               return (
                 <div
                   key={`${entry.driver_number}-${entry.lap_number}-${entry.date}-${idx}`}
-                  className={COMMENTARY_ROW_CLASS}
+                  className={`${COMMENTARY_ROW_CLASS} ${
+                    isFastest ? "!bg-f1-purple/10" : ""
+                  } ${isFresh ? COMMENTARY_FRESH_ROW_CLASS : ""}`}
                   style={{ borderLeft: `6px solid ${color}` }}
                 >
                   <span className={COMMENTARY_TIME_CLASS}>
                     {formatSessionElapsedTime(ms)}
                   </span>
                   <div className="min-w-0 flex-1">
-                    <div className={COMMENTARY_TITLE_CLASS}>
-                      Pit stop for{" "}
-                      <span style={{ color }}>
-                        {driver?.name_acronym ?? entry.driver_number}
-                      </span>
+                    <div
+                      className={`${COMMENTARY_TITLE_CLASS} flex items-center gap-1.5`}
+                    >
+                      <span className="text-white/55">Pit stop</span>
+                      <DriverChip
+                        driver={driver}
+                        driverNumber={entry.driver_number}
+                      />
+                      {stop !== null && (
+                        <span
+                          className={`ml-auto font-mono text-[12px] font-black tabular-nums ${
+                            isFastest ? "text-f1-purple" : stopTimeClass(entry, stop)
+                          }`}
+                        >
+                          {formatPitDuration(stop) ?? "--"}s
+                        </span>
+                      )}
                     </div>
                     <div className={COMMENTARY_META_CLASS}>
                       <span
-                        className={`${COMMENTARY_BADGE_CLASS} bg-[#f5a623] text-black`}
+                        className={`${COMMENTARY_BADGE_CLASS} gap-1 bg-[#f5a623] text-black`}
                       >
+                        <Timer
+                          size={10}
+                          strokeWidth={3}
+                          className="shrink-0"
+                          aria-hidden="true"
+                        />
                         Pit
                       </span>
-                      {stop !== null && (
-                        <span className="font-mono tabular-nums text-white/90">
-                          Stop {formatPitDuration(stop) ?? "--:--:---"}
+                      {isFastest && (
+                        <span
+                          className={`${COMMENTARY_BADGE_CLASS} gap-1 bg-f1-purple text-white`}
+                        >
+                          <Trophy
+                            size={10}
+                            strokeWidth={3}
+                            className="shrink-0"
+                            aria-hidden="true"
+                          />
+                          Fastest
                         </span>
                       )}
                       {lane !== null && (
@@ -225,6 +328,7 @@ export function PitFeed({
                           </span>
                         </div>
                       )}
+                      {isFresh && <FreshTag />}
                     </div>
                   </div>
                   {onJump && (

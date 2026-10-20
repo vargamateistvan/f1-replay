@@ -331,4 +331,63 @@ describe("RaceControl", () => {
     expect(borderStrip?.getAttribute("style")).toContain("data:image/svg+xml");
     expect(borderStrip?.getAttribute("style")).toContain("background-size: 12px 12px");
   });
+  it("marks just-crossed messages as new, shows track status and highlights search hits", () => {
+    const start = Date.parse("2024-01-01T00:00:00.000Z");
+    const entries = [
+      {
+        category: "Other",
+        date: "2024-01-01T00:00:10.000Z",
+        driver_number: 16,
+        flag: null,
+        lap_number: 1,
+        meeting_key: 1,
+        message: "CAR 16 (LEC) TIME 1:32.100 DELETED - TRACK LIMITS AT TURN 4",
+        qualifying_phase: null,
+        scope: null,
+        sector: null,
+        session_key: 99,
+      },
+      {
+        category: "SafetyCar",
+        date: "2024-01-01T00:01:00.000Z",
+        driver_number: null,
+        flag: null,
+        lap_number: 2,
+        meeting_key: 1,
+        message: "SAFETY CAR DEPLOYED",
+        qualifying_phase: null,
+        scope: "Track",
+        sector: null,
+        session_key: 99,
+      },
+    ] as RaceControl[];
+
+    const { rerender } = render(
+      <RaceControlFeed
+        entries={entries}
+        sessionTimeMs={15_000}
+        sessionStartMs={start}
+        drivers={drivers}
+      />,
+    );
+    expect(screen.getByRole("status")).toHaveTextContent("Track clear");
+    expect(screen.getByText("New")).toBeInTheDocument();
+
+    rerender(
+      <RaceControlFeed
+        entries={entries}
+        sessionTimeMs={150_000}
+        sessionStartMs={start}
+        drivers={drivers}
+      />,
+    );
+    expect(screen.queryByText("New")).not.toBeInTheDocument();
+    expect(screen.getByRole("status")).toHaveTextContent(/safety car/i);
+    expect(screen.getByRole("status")).toHaveTextContent("for 01:30");
+
+    fireEvent.change(screen.getByPlaceholderText("Search…"), {
+      target: { value: "turn 4" },
+    });
+    expect(screen.getByText("TURN 4").tagName).toBe("MARK");
+  });
 });
