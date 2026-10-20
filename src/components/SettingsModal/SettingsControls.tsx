@@ -825,7 +825,11 @@ export function SettingsBody({
               aria-labelledby="track-settings-tab"
               className="flex min-h-0 flex-1 flex-col"
             >
-              <TrackMapSettings settings={settings} toggle={toggle} />
+              <TrackMapSettings
+                settings={settings}
+                toggle={toggle}
+                setViewMode={(mode) => updateSetting("mapViewMode", mode)}
+              />
             </div>
           )}
 

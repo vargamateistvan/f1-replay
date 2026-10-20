@@ -96,9 +96,14 @@ import {
   RACE_LEADER_NOTIFICATION_MS,
   START_LIGHTS_SEQUENCE_MS,
 } from "@/constants";
-import { useSettings, type SettingsTabId } from "@/stores/settings";
+import {
+  useSettings,
+  type MapViewMode,
+  type SettingsTabId,
+} from "@/stores/settings";
 import { deriveRetiredDrivers } from "@/utils/retirement";
 import { battlingFrom, latestIntervalSeconds } from "@/utils/battles";
+import { latestIntervalRows } from "@/utils/intervals";
 import { latestGapsToLeader } from "@/utils/pitRejoin";
 import { weatherAtSessionTime } from "@/utils/weather";
 import { buildKeyMoments } from "@/components/CommentaryPanels/keyMoments";
@@ -216,6 +221,12 @@ function isClosedIncidentWindow(
 const TrackMap = lazy(() =>
   import("@/components/TrackMap/TrackMap").then((m) => ({
     default: m.TrackMap,
+  })),
+);
+
+const TrackRing = lazy(() =>
+  import("@/components/TrackRing/TrackRing").then((m) => ({
+    default: m.TrackRing,
   })),
 );
 
@@ -1110,6 +1121,17 @@ export default function RaceWeekend() {
     return events;
   }, [positions.data, sessionStartMs]);
 
+  // Who leads at the playhead (ring view's LEAD label; OpenF1 can report
+  // several cars at 0 s to the leader during a pit cycle).
+  const currentLeaderNumber = useMemo(() => {
+    let leader: number | null = null;
+    for (const ev of raceLeaderEvents) {
+      if (ev.ms > tSlow) break;
+      leader = ev.driverNumber;
+    }
+    return leader;
+  }, [raceLeaderEvents, tSlow]);
+
   const raceLeaderDriver = useMemo(() => {
     if (
       !isMapVisible ||
@@ -1250,7 +1272,7 @@ export default function RaceWeekend() {
     mapShowCompass,
     mapShowWeather,
     mapShowEnhancedVisuals,
-    mapView3d,
+    mapViewMode,
     leaderboardTelemetry,
     timingShowMinisectors,
     trackerTimingTelemetry,
@@ -1300,6 +1322,12 @@ export default function RaceWeekend() {
     setSetting,
   } = useSettings();
 
+  // Ring view gap labels: each car's latest interval row (races only).
+  const ringIntervalRows = useMemo(() => {
+    if (!isMapVisible || mapViewMode !== "ring" || !isRaceSession) return null;
+    if (!intervals.data?.length || !sessionStartMs) return null;
+    return latestIntervalRows(intervals.data, sessionStartMs + tSlow);
+  }, [isMapVisible, mapViewMode, isRaceSession, intervals.data, sessionStartMs, tSlow]);
   // Gap-to-leader snapshot for the focused driver's pit rejoin projection.
   const pitRejoinGaps = useMemo(() => {
     if (!isMapVisible || !mapShowPitRejoin || !isRaceSession) return null;
@@ -2057,15 +2085,54 @@ export default function RaceWeekend() {
   const map3dAvailable =
     isMap3dAvailable() &&
     (circuitKeyForMap === null || hasCircuitGeometry(circuitKeyForMap, session?.year));
-  const setMapView3d = useCallback(
-    (enabled: boolean) => {
-      trackEvent("trackmap_view_mode_changed", { mode: enabled ? "3d" : "2d" });
-      setSetting("mapView3d", enabled);
+  const setMapViewMode = useCallback(
+    (mode: MapViewMode) => {
+      trackEvent("trackmap_view_mode_changed", { mode });
+      setSetting("mapViewMode", mode);
     },
     [setSetting],
   );
+  const enter2d = useCallback(() => setMapViewMode("2d"), [setMapViewMode]);
+  const enter3d = useCallback(() => setMapViewMode("3d"), [setMapViewMode]);
+  const enterRing = useCallback(() => setMapViewMode("ring"), [setMapViewMode]);
 
-  const trackMap = map3dAvailable && mapView3d ? (
+  const trackMap = mapViewMode === "ring" ? (
+    <TrackRing
+      sessionKey={sessionKey}
+      drivers={drivers.data ?? []}
+      locationData={location.data}
+      sessionStartMs={sessionStartMs}
+      sessionGmtOffset={session?.gmt_offset ?? "+00:00"}
+      focusDriver={focusDriver}
+      pulseDrivers={pulseDrivers}
+      circuitShortName={session?.circuit_short_name}
+      circuitKey={session?.circuit_key ?? null}
+      year={session?.year ?? null}
+      activeCompounds={mapShowCompoundBadges ? activeCompounds : undefined}
+      battlingDrivers={mapShowBattleRings ? battlingDrivers : undefined}
+      showFocusedHud={mapShowDriverHud}
+      sharedAllDriverWindow={telemetryEnabled}
+      trackFlagState={mapShowSectorFlags ? trackFlagState : null}
+      showSectorBox={mapShowSectorBox}
+      showTrackScreenshot={trackScreenshotPngEnabled}
+      weatherOverlay={mapShowWeather ? weatherAtT : null}
+      activeTrackVehicles={activeTrackVehicles}
+      safetyCarSirenOn={safetyCarSirenOn}
+      retiredDrivers={retiredDrivers}
+      raceLeader={isRaceSession && mapShowRaceLeader ? raceLeaderDriver : null}
+      lightsOutMs={isRaceSession ? lightsOutMs : null}
+      onSelectDriver={toggleFocus}
+      onOpenSettings={
+        isCompactViewport ? undefined : () => openSettingsTab("track")
+      }
+      lapLabel={isRaceSession ? commentaryLapLabel : null}
+      intervalRows={ringIntervalRows}
+      leaderNumber={isRaceSession ? currentLeaderNumber : null}
+      pitRejoinGaps={pitRejoinGaps}
+      onEnter2d={enter2d}
+      onEnter3d={map3dAvailable ? enter3d : undefined}
+    />
+  ) : map3dAvailable && mapViewMode === "3d" ? (
     <TrackMap3D
       sessionKey={sessionKey}
       drivers={drivers.data ?? []}
@@ -2101,7 +2168,7 @@ export default function RaceWeekend() {
       onOpenSettings={
         isCompactViewport ? undefined : () => openSettingsTab("track")
       }
-      onExit3d={() => setMapView3d(false)}
+      onExit3d={enter2d}
     />
   ) : (
     <TrackMap
@@ -2137,7 +2204,8 @@ export default function RaceWeekend() {
       onOpenSettings={
         isCompactViewport ? undefined : () => openSettingsTab("track")
       }
-      onEnter3d={map3dAvailable ? () => setMapView3d(true) : undefined}
+      onEnter3d={map3dAvailable ? enter3d : undefined}
+      onEnterRing={enterRing}
     />
   );
 

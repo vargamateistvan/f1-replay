@@ -6,7 +6,7 @@ import { hasCircuitGeometry } from "@/data/circuitGeometry";
 import { useLocationChunks } from "@/hooks/useLocationChunks";
 import { useDrivers, useLatestMeeting, useSessions } from "@/hooks/useSession";
 import { trackEvent } from "@/lib/analytics";
-import type { AppSettings } from "@/stores/settings";
+import type { AppSettings, MapViewMode } from "@/stores/settings";
 import type { TrackFlagState } from "@/timeline/raceControl";
 import { SectionHeader, SettingRow } from "./SettingsPrimitives";
 
@@ -15,8 +15,13 @@ const TrackMap3D = lazy(() =>
   import("@/components/TrackMap3D/TrackMap3D").then((m) => ({ default: m.TrackMap3D })),
 );
 
+// Ring preview is lazy too, so the settings chunk doesn't carry it.
+const TrackRing = lazy(() =>
+  import("@/components/TrackRing/TrackRing").then((m) => ({ default: m.TrackRing })),
+);
+
 type Toggle = (key: keyof AppSettings) => (value: boolean) => void;
-type MapView = "2d" | "3d";
+type MapView = MapViewMode;
 
 /** Latest race weekend's data plus a few staged extras, so every setting is visible. */
 function usePreviewData() {
@@ -122,6 +127,7 @@ function ViewSwitch({
     <div role="radiogroup" aria-label="Map view" className="flex border border-panel">
       {option("2d", "2D map")}
       {option("3d", "3D map", !available3d)}
+      {option("ring", "Ring")}
     </div>
   );
 }
@@ -168,6 +174,25 @@ function TrackMapPreview({
         Loading latest track…
       </div>
     );
+  } else if (view === "ring") {
+    body = (
+      <Suspense
+        fallback={
+          <div className="flex h-full items-center justify-center text-[10px] text-muted">
+            Loading ring view…
+          </div>
+        }
+      >
+        <TrackRing
+          {...common}
+          circuitShortName={session.circuit_short_name}
+          trackFlagState={
+            settings.mapShowSectorFlags || settings.mapShowSectorBox ? data.trackFlagState : null
+          }
+          showSectorBox={settings.mapShowSectorBox}
+        />
+      </Suspense>
+    );
   } else if (view === "3d" && supports3d) {
     body = (
       <Suspense
@@ -199,7 +224,7 @@ function TrackMapPreview({
       <div className="flex items-center justify-between gap-3 border-b border-panel px-3 py-2">
         <div>
           <div className="text-[10px] font-bold text-white">
-            Live preview{view === "3d" ? " · 3D" : ""}
+            Live preview{view === "3d" ? " · 3D" : view === "ring" ? " · Ring" : ""}
           </div>
           <div className="text-[9px] text-muted">
             {data.meeting ? `${data.meeting.meeting_name} track map` : "Loading latest race weekend"}
@@ -222,17 +247,22 @@ function TrackMapPreview({
 export function TrackMapSettings({
   settings,
   toggle,
+  setViewMode,
 }: {
   settings: AppSettings;
   toggle: Toggle;
+  setViewMode: (mode: MapViewMode) => void;
 }) {
   const available3d = isMap3dAvailable();
-  const view: MapView = settings.mapView3d && available3d ? "3d" : "2d";
+  const view: MapView =
+    settings.mapViewMode === "3d" && !available3d ? "2d" : settings.mapViewMode;
   const is3d = view === "3d";
+  const isRing = view === "ring";
+  const is2d = view === "2d";
   const setView = (next: MapView) => {
     if (next === view) return;
     trackEvent("trackmap_view_mode_changed", { mode: next, source: "settings" });
-    toggle("mapView3d")(next === "3d");
+    setViewMode(next);
   };
 
   const row = (
@@ -265,6 +295,17 @@ export function TrackMapSettings({
         <TrackMapPreview view={view} settings={settings} onExit3d={() => setView("2d")} />
       </div>
       <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain pr-1">
+        {isRing && (
+          <>
+            <SectionHeader>Ring</SectionHeader>
+            {row(
+              "mapRingTimeScale",
+              "Space by lap time",
+              "A full turn is a reference lap: gaps read as angles and slow corners take more of the circle. Off: spaced by distance",
+            )}
+            {row("mapRingReverse", "Anticlockwise", "Run the lap anticlockwise round the dial")}
+          </>
+        )}
         <SectionHeader>Cars</SectionHeader>
         {row("mapShowDriverAcronym", "Driver acronym labels", "Show 3-letter driver labels next to cars")}
         {row("mapShowDriverNumberInside", "Driver number inside dot", "Show the driver number centred in each car marker")}
@@ -289,7 +330,7 @@ export function TrackMapSettings({
             "Mark the track between cars within 1 s and show the gap (races). Focused car: its battles only",
           )}
         {row("mapShowDriverHud", "Focused driver HUD", "Speed, gear and throttle for the selected driver")}
-        {row("mapShowPitRejoin", "Pit rejoin projection", "Where the focused driver would rejoin if they pitted now (races)")}
+        {!isRing && row("mapShowPitRejoin", "Pit rejoin projection", "Where the focused driver would rejoin if they pitted now (races)")}
         {row("mapShowRaceLeader", "Race leader badge", "Show the P1 race leader badge with headshot")}
 
         <SectionHeader>Flags & Sectors</SectionHeader>
@@ -310,7 +351,7 @@ export function TrackMapSettings({
             "Band along each timing sector: green when clear, the flag colour when flagged",
           )}
         {!is3d && row("mapShowSectorBox", "Sector status box", "S1/S2/S3 flag chips next to the compass")}
-        {!is3d &&
+        {is2d &&
           row(
             "mapShowMarshalHeatmap",
             "Marshal sector heatmap",
@@ -318,13 +359,18 @@ export function TrackMapSettings({
           )}
 
         <SectionHeader>Track Detail</SectionHeader>
+        {!isRing &&
+          row(
+            "mapShowEnhancedVisuals",
+            "Enhanced track visuals",
+            "Start/finish line, sector markers, direction arrows, lap delta and braking hotspots",
+          )}
         {row(
-          "mapShowEnhancedVisuals",
-          "Enhanced track visuals",
-          "Start/finish line, sector markers, direction arrows, lap delta and braking hotspots",
+          "mapShowCornerNumbers",
+          "Corner numbers",
+          isRing ? "Corner numbers inside the ring (ticks are always shown)" : "Corner numbers next to the track",
         )}
-        {row("mapShowCornerNumbers", "Corner numbers", "Corner numbers next to the track")}
-        {row("mapShowElevation", "Elevation heatmap", "Colour the track by altitude (blue = low, yellow = high)")}
+        {!isRing && row("mapShowElevation", "Elevation heatmap", "Colour the track by altitude (blue = low, yellow = high)")}
         {is3d && row("mapView3dBuildings", "3D buildings and trees", "Buildings, trees and landmarks around the circuit")}
         {is3d &&
           row(
@@ -348,12 +394,13 @@ export function TrackMapSettings({
         <SectionHeader>Overlays & Controls</SectionHeader>
         {row("mapShowWeather", "Track weather", "Weather panel on the map")}
         {row("mapShowClock", "Track time clock", "The circuit's local time and yours")}
-        {row(
-          "mapShowTrackControls",
-          "Track controls",
-          is3d ? "Recenter and camera mode buttons" : "Rotate, zoom and fit-track buttons",
-        )}
-        {!is3d && row("mapShowCompass", "Compass overlay", "North indicator next to the track controls")}
+        {!isRing &&
+          row(
+            "mapShowTrackControls",
+            "Track controls",
+            is3d ? "Recenter and camera mode buttons" : "Rotate, zoom and fit-track buttons",
+          )}
+        {is2d && row("mapShowCompass", "Compass overlay", "North indicator next to the track controls")}
         {row("trackScreenshotPngEnabled", "PNG track snapshot", "Button to download the map as an image")}
 
         <SectionHeader>Sound</SectionHeader>

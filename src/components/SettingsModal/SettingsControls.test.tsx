@@ -5,7 +5,7 @@ import { SettingsBody } from "@/components/SettingsModal/SettingsControls";
 const state = vi.hoisted(() => ({
   setSetting: vi.fn(),
   reset: vi.fn(),
-  mapView3d: false,
+  mapViewMode: "2d" as "2d" | "3d" | "ring",
   available3d: true,
 }));
 
@@ -91,7 +91,7 @@ vi.mock("@/stores/settings", () => ({
     mapShowRaceLeader: true,
     mapShowEnhancedVisuals: true,
     trackScreenshotPngEnabled: true,
-    mapView3d: state.mapView3d,
+    mapViewMode: state.mapViewMode,
     mapView3dTerrain: false,
     mapView3dSessionLighting: true,
     showCsvExportButtons: false,
@@ -149,6 +149,12 @@ vi.mock("@/components/TrackMap3D/TrackMap3D", () => ({
   ),
 }));
 
+vi.mock("@/components/TrackRing/TrackRing", () => ({
+  TrackRing: ({ circuitKey }: { circuitKey: number }) => (
+    <div role="img" aria-label={`circuit ${circuitKey} ring view`} />
+  ),
+}));
+
 vi.mock("@/components/TrackMap/TrackMap", () => ({
   TrackMap: ({
     circuitShortName,
@@ -178,7 +184,7 @@ describe("SettingsControls", () => {
   beforeEach(() => {
     state.setSetting.mockReset();
     state.reset.mockReset();
-    state.mapView3d = false;
+    state.mapViewMode = "2d";
     state.available3d = true;
   });
 
@@ -330,11 +336,13 @@ describe("SettingsControls", () => {
   it("switches the map view from the settings", () => {
     render(<SettingsBody initialTab="track" />);
     fireEvent.click(screen.getByRole("radio", { name: "3D map" }));
-    expect(state.setSetting).toHaveBeenCalledWith("mapView3d", true);
+    expect(state.setSetting).toHaveBeenCalledWith("mapViewMode", "3d");
+    fireEvent.click(screen.getByRole("radio", { name: "Ring" }));
+    expect(state.setSetting).toHaveBeenCalledWith("mapViewMode", "ring");
   });
 
   it("previews the 3D map and lists its settings in the 3D view", async () => {
-    state.mapView3d = true;
+    state.mapViewMode = "3d";
     render(<SettingsBody initialTab="track" />);
     expect(screen.getByRole("radio", { name: "3D map" })).toHaveAttribute("aria-checked", "true");
     expect(await screen.findByRole("img", { name: "circuit 1 3D track map" })).toBeInTheDocument();
@@ -355,9 +363,22 @@ describe("SettingsControls", () => {
     expect(screen.queryByText("Sector status box")).not.toBeInTheDocument();
   });
 
+  it("previews the ring view and hides settings it doesn't use", async () => {
+    state.mapViewMode = "ring";
+    render(<SettingsBody initialTab="track" />);
+    expect(screen.getByRole("radio", { name: "Ring" })).toHaveAttribute("aria-checked", "true");
+    expect(await screen.findByRole("img", { name: "circuit 1 ring view" })).toBeInTheDocument();
+    expect(screen.getByText("Live preview · Ring")).toBeInTheDocument();
+    expect(screen.getByText("Corner numbers")).toBeInTheDocument();
+    expect(screen.getByText("Sector status box")).toBeInTheDocument();
+    for (const label of ["Compass overlay", "Enhanced track visuals", "Elevation heatmap", "Track controls", "Terrain"]) {
+      expect(screen.queryByText(label)).not.toBeInTheDocument();
+    }
+  });
+
   it("explains why the 3D map can't be picked without a token or WebGL2", () => {
     state.available3d = false;
-    state.mapView3d = true;
+    state.mapViewMode = "3d";
     render(<SettingsBody initialTab="track" />);
     expect(screen.getByRole("radio", { name: "3D map" })).toBeDisabled();
     expect(screen.getByRole("radio", { name: "2D map" })).toHaveAttribute("aria-checked", "true");

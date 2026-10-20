@@ -2,6 +2,7 @@ import { Fragment, memo } from "react";
 import type { MouseEvent, ReactNode } from "react";
 import {
   Camera,
+  CircleDot,
   Maximize,
   RotateCcw,
   RotateCw,
@@ -15,15 +16,26 @@ import { animateMotion, pressMotion } from "@/lib/motion";
 const BUTTON_CLASS =
   "h-7 min-w-7 px-1.5 flex items-center justify-center border border-panel text-white/85 hover:text-white hover:border-white/50 transition-colors text-[10px] font-black tracking-widest disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:border-panel";
 
+export interface TrackControlButton {
+  key: string;
+  title: string;
+  icon: ReactNode;
+  onPress: () => void;
+  /** Toggle state: highlighted and announced as pressed. */
+  active?: boolean;
+}
+
 function ControlButton({
   title,
   onPress,
   disabled,
+  active,
   children,
 }: {
   title: string;
   onPress: () => void;
   disabled?: boolean;
+  active?: boolean;
   children: ReactNode;
 }) {
   return (
@@ -33,9 +45,10 @@ function ControlButton({
         animateMotion(e.currentTarget, pressMotion());
         onPress();
       }}
-      className={BUTTON_CLASS}
+      className={active ? `${BUTTON_CLASS} !border-f1red text-white` : BUTTON_CLASS}
       title={title}
       aria-label={title}
+      aria-pressed={active}
       disabled={disabled}
     >
       {children}
@@ -62,7 +75,10 @@ export const TrackControls = memo(function TrackControls({
   onSnapshot,
   snapshotDisabled = false,
   onOpenSettings,
+  onEnter2d,
   onEnter3d,
+  onEnterRing,
+  extraButtons,
 }: {
   showTrackControls: boolean;
   overlayBackground: string;
@@ -78,16 +94,49 @@ export const TrackControls = memo(function TrackControls({
   onSnapshot?: () => void;
   snapshotDisabled?: boolean;
   onOpenSettings?: () => void;
+  /** When set, shows a button that switches to the 2D map. */
+  onEnter2d?: () => void;
   /** When set, shows a button that switches to the 3D map. */
   onEnter3d?: () => void;
+  /** When set, shows a button that switches to the ring (lap progress) view. */
+  onEnterRing?: () => void;
+  /** View-specific toggles, shown after the view switch. */
+  extraButtons?: readonly TrackControlButton[];
 }) {
   // Row 1: always-on buttons (view switch · snapshot + settings).
   const top: ReactNode[] = [];
+  const views: ReactNode[] = [];
+  if (onEnter2d) {
+    views.push(
+      <ControlButton key="2d" title="Switch to 2D map" onPress={onEnter2d}>
+        2D
+      </ControlButton>,
+    );
+  }
   if (onEnter3d) {
-    top.push(
+    views.push(
       <ControlButton key="3d" title="Switch to 3D map" onPress={onEnter3d}>
         3D
       </ControlButton>,
+    );
+  }
+  if (onEnterRing) {
+    views.push(
+      <ControlButton key="ring" title="Switch to ring view (lap progress)" onPress={onEnterRing}>
+        <CircleDot {...icon} />
+      </ControlButton>,
+    );
+  }
+  if (views.length) top.push(<Fragment key="views">{views}</Fragment>);
+  if (extraButtons?.length) {
+    top.push(
+      <Fragment key="extra">
+        {extraButtons.map((b) => (
+          <ControlButton key={b.key} title={b.title} onPress={b.onPress} active={b.active}>
+            {b.icon}
+          </ControlButton>
+        ))}
+      </Fragment>,
     );
   }
   if (onSnapshot || onOpenSettings) {

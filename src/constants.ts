@@ -59,6 +59,33 @@ export const TRACK_SVG_PAD = 24;
 // Slightly enlarge the fit so the track uses the available map area while
 // leaving enough room for the ribbon, markers, and labels.
 export const TRACK_FIT_ZOOM = 1.15;
+// ── Ring view (circular lap-progress tracker) ───────────────────────────────--
+/** Ring view SVG viewport; the ring is centred in it. */
+export const RING_SVG_W = 460;
+export const RING_SVG_H = 400;
+/** Radius of the track ring (SVG units). */
+export const RING_RADIUS = 128;
+/** Radius of the inner pit-lane arc. */
+export const RING_PIT_RADIUS = 92;
+/** Radius at which driver labels sit, outside the ring. */
+export const RING_LABEL_RADIUS = 168;
+/** Minimum spacing between ring labels, as a fraction of the lap. */
+export const RING_LABEL_MIN_GAP = 0.036;
+/** Time-based ring: laps within this share of the fastest form the reference lap. */
+export const RING_REF_LAP_SPREAD = 0.07;
+/** Time-based ring: distance grid points in the reference lap profile. */
+export const RING_REF_LAP_GRID = 240;
+/** Time-based ring: plausible reference lap duration range (ms). */
+export const RING_REF_LAP_MIN_MS = 40_000;
+export const RING_REF_LAP_MAX_MS = 240_000;
+/** Time-based ring: how much location history to scan for full laps (ms). */
+export const RING_REF_TRACE_WINDOW_MS = 300_000;
+/** Time-based ring: how often the reference lap is rebuilt (playhead ms). */
+export const RING_REF_REFRESH_MS = 20_000;
+/** Outline segments searched either side of a car's last match before a full scan. */
+export const RING_SEARCH_WINDOW = 24;
+/** Metres off the centerline at which a car counts as off the racing line (pit/garage). */
+export const RING_OFF_TRACK_M = 25;
 // Duration (ms) to show the race leader notification badge on the track map after a lead change.
 export const RACE_LEADER_NOTIFICATION_MS = 5_000;
 // Lap used to derive the track outline (a clean early lap; falls back to lap 3, then any).

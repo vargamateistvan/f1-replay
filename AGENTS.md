@@ -89,6 +89,7 @@ src/
     driverProfile.ts    — driverSeasonStats(), finishDistribution(), championshipPositions() for the driver profile
     constructorProfile.ts — constructorSeasonStats() (all cars per round), round points, constructorPath()
     telemetry.ts        — resampleToAxis, computeDelta, smooth (signal processing)
+    lapProgress.ts      — Lap fraction by projecting onto an outline (windowed search), ring arcs, ring label layout
     corners.ts          — buildCornerZones(): braking→exit corner zones for telemetry charts
     cornerAnalysis.ts   — Per-corner metrics, lap alignment to timing lines, segment time deltas
     lapContext.ts       — tyreForLap(): compound + tyre age for a driver's lap
@@ -152,6 +153,7 @@ components/ (render to DOM; read settings from Zustand)
 | Component                                         | Purpose                                                                                  |
 | ------------------------------------------------- | ---------------------------------------------------------------------------------------- |
 | `TrackMap`                                        | Animated SVG track map: driver blobs, sector flags, follow-cam, compass, weather overlay, status badges (start lights, SC/VSC, chequered flag), pit rejoin projection for the focused driver (baked `pitLoss`, races only). `TrackMap.tsx` orchestrates; memoized SVG layers in `layers/`, HTML overlays in `overlays/`, pure derivations in `trackGeometry.ts` / `statusBadges.ts` |
+| `TrackRing`                                       | Ring view (third map mode, `mapViewMode: "ring"`): every circuit as a dial spaced by lap time (reference lap profile, `lapTimeProfile.ts`), start/finish at 12 o'clock; gap labels, pit window for the focused car, pit-lane cars on an inner arc, lap/status/reference lap in the centre. Pure model in `ringModel.ts` (lap/pit paths, sector boundaries, corner ticks, `placeCar`, `toDisplay`, `layoutRingCars`, `formatRingGap`); SVG layers in `RingLayers.tsx`. Reuses the 2D map's outline, overlays and toolbar (`extraButtons` for gap mode / time spacing / flip) |
 | `TrackMap3D`                                      | Opt-in Mapbox 3D map (Standard style, optional terrain), desktop and mobile. `TrackMap3D.tsx` owns the map and one RAF loop (cars, trail, camera); pure builders: `mapFeatures.ts` (track, flags), `trackSurface.ts` (asphalt/verge/kerb/pit/start-grid polygons; layers in `surfaceLayers.ts`), `carLayers.ts` (2D-identical car icons drawn on canvas + CC0 3D models), `trackOverlays.ts` (start/finish, S1/S2, arrows, heat/delta/elevation gradients, pit ghost, trail), `atmosphere.ts` (sun-based light preset, rain), `cameraModes.ts` (follow / chase / orbit). Layers in `overlayLayers.ts`; gate with `availability.ts` (token + WebGL2). `?debug=map3d` logs per-frame cost |
 | `LiveTiming`                                      | Real-time leaderboard: positions, intervals, mini-sectors, telemetry columns             |
 | `PlaybackBar`                                     | Scrubber (race-control, race-start and chequered-flag markers) / speed controls / chips |
@@ -272,6 +274,20 @@ components/ (render to DOM; read settings from Zustand)
 - Handles Sprint sessions with a separate `SPRINT_POINTS` table.
 - `useStandings` only considers finished Race/Sprint sessions, fetches one `session_result` per round (shared `["sessionResult", key]` cache) for wins/podiums and the progression chart, and fetches main-qualifying results only when the Teammates tab is open.
 - Title outlook (`utils/championship.ts`): remaining points = 25 per GP (+1 fastest lap up to `FASTEST_LAP_POINT_LAST_YEAR`) and 8 per Sprint (double the top-two slots for teams). A rival who can only draw level stays a contender (countback).
+
+### Ring view (`utils/lapProgress.ts`, `components/TrackRing/`)
+
+Inspired by MultiViewer's "Circle of Doom": a dial spaced by **time**, so the angle between two cars is their gap and a pit stop is a fixed slice of the circle.
+
+- Each car's interpolated position is projected onto the nearest outline *segment* (not vertex) of the 2D map's outline → lap (distance) fraction 0–1. The last matched segment per car is the next search hint (±`RING_SEARCH_WINDOW` segments), which also keeps cars on their own stretch where a track crosses itself; a match further than `RING_OFF_TRACK_M` falls back to a full scan.
+- Time spacing (`mapRingTimeScale`, default on; `lapTimeProfile.ts`): every `RING_REF_REFRESH_MS` of playhead, each car's last `RING_REF_TRACE_WINDOW_MS` is traced and its latest full lap (two start-line crossings, no pit samples or data gaps) kept; laps within `RING_REF_LAP_SPREAD` of the fastest are averaged into a distance → time-fraction profile. A much slower new profile (safety car) doesn't replace the last good one nearby in time. Before the first full lap the dial is spaced by distance. `toDisplay` / `displayArc` (`ringModel.ts`) apply the profile and the flip (`mapRingReverse`) to everything drawn: cars, corners, sectors, pit lane.
+- Pit lane: a car more than 5 m off the line and closer to the baked pit-lane path (`data/pitLanes.ts`) than to the track goes on the inner arc, at `entry + laneFraction × span`. Without a baked path, cars > `RING_OFF_TRACK_M` off the line drop to a dashed inner circle. Never on the coarse `layout` fallback outline (not to scale).
+- Races: labels carry the gap to the car ahead or the leader (`mapRingGapMode`, toolbar toggle; `formatRingGap`). Only `RaceWeekend`'s current leader (position timeline) reads LEAD — OpenF1 reports several cars at 0 s during pit cycles, and those stale zeros are also dropped before the pit rejoin projection.
+- Pit window (focused car, races, `mapShowPitRejoin`): ghost at the car's time fraction − pit loss / reference lap, with the projected position from `pitRejoinView`.
+- Centre: lap counter, track status chip, reference lap time.
+- Labels are spread with 1D cluster merging (`layoutRingLabels`), cut at the widest empty stretch so 12 o'clock isn't special; pit cars' labels go inside.
+- Sector 2/3 start at their first marshal post (as the 3D map), equal thirds without posts.
+- `mapViewMode` (`"2d" | "3d" | "ring"`) replaced the `mapView3d` boolean; `migrateSettings` (persist v1) maps old values.
 
 ### 3D map georeferencing (`utils/georef.ts`, `scripts/fetch-georef.mjs`)
 

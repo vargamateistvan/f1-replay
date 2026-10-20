@@ -140,6 +140,8 @@ interface Props {
   readonly onOpenSettings?: () => void;
   /** When set, shows a button that switches to the 3D map. */
   readonly onEnter3d?: () => void;
+  /** When set, shows a button that switches to the ring view. */
+  readonly onEnterRing?: () => void;
 }
 
 /**
@@ -180,6 +182,7 @@ export function TrackMap({
   onSelectDriver,
   onOpenSettings,
   onEnter3d,
+  onEnterRing,
 }: Props) {
   const t = useCoarseTime(100);
   const lightMode = useSettings((s) => s.lightMode);
@@ -814,6 +817,7 @@ export function TrackMap({
         snapshotDisabled={!hasCars}
         onOpenSettings={onOpenSettings}
         onEnter3d={onEnter3d}
+        onEnterRing={onEnterRing}
       />
 
       {focusDriver !== null && heatSegments.length > 0 && heatData.data && (

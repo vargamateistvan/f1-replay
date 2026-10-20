@@ -2,6 +2,8 @@ import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import type { CornerSpeedClass } from "@/utils/corners";
 
+export type MapViewMode = "2d" | "3d" | "ring";
+
 // All user-configurable preferences. These are persisted to localStorage.
 export interface AppSettings {
   // Notifications
@@ -35,8 +37,14 @@ export interface AppSettings {
   mapShowCornerNumbers: boolean;
   mapShowElevation: boolean;
   mapShowPitRejoin: boolean;
-  /** Show the Mapbox 3D map instead of the SVG map, when available. */
-  mapView3d: boolean;
+  /** Track map view: SVG map, Mapbox 3D map (when available), or the lap-progress ring. */
+  mapViewMode: MapViewMode;
+  /** Ring view: space the circle by lap time (reference lap) instead of distance. */
+  mapRingTimeScale: boolean;
+  /** Ring view: label gaps to the car ahead or to the leader. */
+  mapRingGapMode: "interval" | "leader";
+  /** Ring view: run the lap anticlockwise. */
+  mapRingReverse: boolean;
   /** 3D map lighting follows the sun at the circuit at the playhead (else the app theme). */
   mapView3dSessionLighting: boolean;
   /** 3D map: drape everything over Mapbox terrain (elevation). */
@@ -185,7 +193,10 @@ export const SETTINGS_DEFAULTS: AppSettings = {
   mapShowCornerNumbers: false,
   mapShowElevation: false,
   mapShowPitRejoin: true,
-  mapView3d: false,
+  mapViewMode: "2d",
+  mapRingTimeScale: true,
+  mapRingGapMode: "interval",
+  mapRingReverse: false,
   mapView3dSessionLighting: true,
   mapView3dTerrain: false,
   mapView3dFlagColors: true,
@@ -257,6 +268,21 @@ export const SETTINGS_DEFAULTS: AppSettings = {
   metricSystem: "metric",
 };
 
+/**
+ * v0 → v1: the `mapView3d` boolean became `mapViewMode` (adds the ring view).
+ * Unknown fields are kept; missing ones are filled from the defaults on merge.
+ */
+export function migrateSettings(persisted: unknown, version: number): AppSettings {
+  const state = { ...(persisted as Record<string, unknown> | null) };
+  if (version < 1) {
+    if (state.mapViewMode === undefined) {
+      state.mapViewMode = state.mapView3d === true ? "3d" : "2d";
+    }
+    delete state.mapView3d;
+  }
+  return state as unknown as AppSettings;
+}
+
 export const useSettings = create<SettingsStore>()(
   persist(
     (set) => ({
@@ -273,6 +299,8 @@ export const useSettings = create<SettingsStore>()(
     }),
     {
       name: "f1-replay-settings",
+      version: 1,
+      migrate: migrateSettings,
       // Only persist the AppSettings fields, not the modal state or actions.
       partialize: (state) => {
         const {
