@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { render, screen } from "@testing-library/react";
+import { MemoryRouter } from "react-router-dom";
 import { TitleOutlookBanner, type TitleEntry } from "./TitleOutlookBanner";
 
 const remaining = { races: 2, sprints: 1, driver: 58, team: 101 };
@@ -63,5 +64,25 @@ describe("TitleOutlookBanner", () => {
       <TitleOutlookBanner scope="driver" remaining={null} entries={[]} />,
     );
     expect(container).toBeEmptyDOMElement();
+  });
+
+  it("links entries that carry an href", () => {
+    render(
+      <MemoryRouter>
+        <TitleOutlookBanner
+          scope="driver"
+          remaining={remaining}
+          entries={[
+            { ...entry("NOR", 300, "leader"), href: "/standings/driver/4" },
+            entry("PIA", 280, "contender"),
+          ]}
+        />
+      </MemoryRouter>,
+    );
+    expect(screen.getByRole("link", { name: "NOR" })).toHaveAttribute(
+      "href",
+      "/standings/driver/4",
+    );
+    expect(screen.queryByRole("link", { name: "PIA" })).not.toBeInTheDocument();
   });
 });

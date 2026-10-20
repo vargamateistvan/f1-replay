@@ -8,7 +8,7 @@ import {
   Cell,
   ResponsiveContainer,
 } from "recharts";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   useStandings,
   type DriverStanding,
@@ -34,7 +34,8 @@ import { TeammateComparison } from "@/components/TeammateComparison/TeammateComp
 import { ResultsGrid } from "@/components/ResultsGrid/ResultsGrid";
 import type { TitleOutlook } from "@/utils/championship";
 import { constructorPath } from "@/utils/constructorProfile";
-import { Link, useLocation } from "react-router-dom";
+import { driverPath } from "@/utils/driverProfile";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useNumberParam, useStringParam } from "@/hooks/useSearchParamState";
 import { useMediaQuery } from "@/hooks/useMediaQuery";
 import { DEFAULT_YEAR } from "@/constants";
@@ -234,7 +235,7 @@ function DriverTable({ standings }: { standings: DriverStanding[] }) {
               </td>
               <td className="py-3 px-3">
                 <Link
-                  to={`/standings/driver/${s.driverNumber}${search}`}
+                  to={`${driverPath(s.driverNumber)}${search}`}
                   aria-label={`${s.fullName} driver profile`}
                   className="group flex items-center gap-2"
                 >
@@ -298,7 +299,13 @@ function DriverTable({ standings }: { standings: DriverStanding[] }) {
   );
 }
 
-function DriverChart({ standings }: { standings: DriverStanding[] }) {
+function DriverChart({
+  standings,
+  onSelect,
+}: {
+  standings: DriverStanding[];
+  onSelect: (driver: DriverStanding) => void;
+}) {
   const maxPts = standings[0]?.points ?? 1;
   const isMobileViewport = useMediaQuery("(max-width: 767px)");
   const [chartRoot, setChartRoot] = useState<HTMLDivElement | null>(null);
@@ -343,7 +350,12 @@ function DriverChart({ standings }: { standings: DriverStanding[] }) {
             cursor={{ fill: "rgb(var(--color-panel) / 0.2)" }}
             content={<DriverTooltip />}
           />
-          <Bar dataKey="points" radius={[0, 3, 3, 0]}>
+          <Bar
+            dataKey="points"
+            radius={[0, 3, 3, 0]}
+            className="cursor-pointer"
+            onClick={(_, index) => onSelect(standings[index])}
+          >
             {standings.map((s) => (
               <Cell key={s.driverNumber} fill={s.color} />
             ))}
@@ -452,7 +464,13 @@ function ConstructorTable({ standings }: { standings: ConstructorStanding[] }) {
   );
 }
 
-function ConstructorChart({ standings }: { standings: ConstructorStanding[] }) {
+function ConstructorChart({
+  standings,
+  onSelect,
+}: {
+  standings: ConstructorStanding[];
+  onSelect: (team: ConstructorStanding) => void;
+}) {
   const maxPts = standings[0]?.points ?? 1;
   const [chartRoot, setChartRoot] = useState<HTMLDivElement | null>(null);
   useChartBarReveal(chartRoot, standings.length > 0, [
@@ -492,7 +510,12 @@ function ConstructorChart({ standings }: { standings: ConstructorStanding[] }) {
             cursor={{ fill: "#1e2d4a33" }}
             content={<ConstructorTooltip />}
           />
-          <Bar dataKey="points" radius={[0, 3, 3, 0]}>
+          <Bar
+            dataKey="points"
+            radius={[0, 3, 3, 0]}
+            className="cursor-pointer"
+            onClick={(_, index) => onSelect(standings[index])}
+          >
             {standings.map((s) => (
               <Cell key={s.name} fill={s.color} />
             ))}
@@ -545,6 +568,17 @@ export default function Standings() {
   const year = yearParam ?? DEFAULT_YEAR;
   const [meetingKey] = useNumberParam("meeting", null);
   const [sessionKey] = useNumberParam("session", null);
+  const { search } = useLocation();
+  const navigate = useNavigate();
+  // Profile links keep the year/session/tab so "back" returns to this view.
+  const driverHref = useCallback(
+    (driverNumber: number) => `${driverPath(driverNumber)}${search}`,
+    [search],
+  );
+  const teamHref = useCallback(
+    (team: string) => `${constructorPath(team)}${search}`,
+    [search],
+  );
   const [tabParam, setTab] = useStringParam<Tab>("tab", "drivers");
   const tab: Tab = TABS.includes(tabParam) ? tabParam : "drivers";
   const [chartParam, setChartView] = useStringParam<ChartView>(
@@ -607,9 +641,10 @@ export default function Standings() {
         color: d.color,
         dashed,
         values: driverProgression.totals.get(d.driverNumber) ?? [],
+        href: driverHref(d.driverNumber),
       };
     });
-  }, [driverStandings, driverProgression]);
+  }, [driverStandings, driverProgression, driverHref]);
 
   // Index-based keys: team names may contain "." which Recharts reads as a path.
   const constructorSeries = useMemo<ProgressionSeries[]>(
@@ -619,8 +654,9 @@ export default function Standings() {
         label: c.name,
         color: c.color,
         values: constructorProgression.totals.get(c.name) ?? [],
+        href: teamHref(c.name),
       })),
-    [constructorStandings, constructorProgression],
+    [constructorStandings, constructorProgression, teamHref],
   );
 
   useEffect(() => {
@@ -798,6 +834,7 @@ export default function Standings() {
             cells={resultsGrid.cells}
             standings={driverStandings}
             loading={isFetching}
+            driverHref={driverHref}
           />
         </div>
       ) : tab === "teammates" ? (
@@ -808,6 +845,8 @@ export default function Standings() {
           <TeammateComparison
             comparisons={teammates}
             qualifyingLoading={qualifyingLoading}
+            driverHref={driverHref}
+            teamHref={teamHref}
           />
         </div>
       ) : (
@@ -822,6 +861,7 @@ export default function Standings() {
                 color: d.color,
                 points: d.points,
                 title: d.title,
+                href: driverHref(d.driverNumber),
               }))}
             />
           ) : (
@@ -834,6 +874,7 @@ export default function Standings() {
                 color: c.color,
                 points: c.points,
                 title: c.title,
+                href: teamHref(c.name),
               }))}
             />
           )}
@@ -865,7 +906,10 @@ export default function Standings() {
                       loading={isFetching}
                     />
                   ) : (
-                    <DriverChart standings={driverStandings} />
+                    <DriverChart
+                      standings={driverStandings}
+                      onSelect={(d) => navigate(driverHref(d.driverNumber))}
+                    />
                   )}
                 </div>
               </>
@@ -893,7 +937,10 @@ export default function Standings() {
                       loading={isFetching}
                     />
                   ) : (
-                    <ConstructorChart standings={constructorStandings} />
+                    <ConstructorChart
+                      standings={constructorStandings}
+                      onSelect={(c) => navigate(teamHref(c.name))}
+                    />
                   )}
                 </div>
               </>

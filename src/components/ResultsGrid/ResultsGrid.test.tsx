@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { fireEvent, render, screen, within } from "@testing-library/react";
+import { MemoryRouter } from "react-router-dom";
 import { ResultsGrid } from "./ResultsGrid";
 import type { GridCell, ProgressionRound } from "@/utils/championship";
 import type { DriverStanding } from "@/utils/standings";
@@ -111,5 +112,27 @@ describe("ResultsGrid", () => {
     expect(screen.getByText("No race results yet")).toBeInTheDocument();
     rerender(<ResultsGrid rounds={[]} standings={standings} cells={new Map()} loading />);
     expect(screen.getByText("Loading race results…")).toBeInTheDocument();
+  });
+
+  it("links drivers to their profile when given hrefs", () => {
+    render(
+      <MemoryRouter>
+        <ResultsGrid
+          rounds={rounds}
+          standings={standings}
+          cells={cells}
+          driverHref={(n) => `/standings/driver/${n}`}
+        />
+      </MemoryRouter>,
+    );
+    expect(screen.getByRole("link", { name: "HAM" })).toHaveAttribute(
+      "href",
+      "/standings/driver/44",
+    );
+  });
+
+  it("renders plain names without hrefs", () => {
+    render(<ResultsGrid rounds={rounds} standings={standings} cells={cells} />);
+    expect(screen.queryByRole("link")).not.toBeInTheDocument();
   });
 });

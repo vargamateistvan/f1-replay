@@ -188,6 +188,7 @@ components/ (render to DOM; read settings from Zustand)
 | `TeammateComparison`                              | Qualifying / race / points head-to-heads per team (Standings → Teammates)                |
 | `ResultsGrid`                                     | Drivers × rounds finishing positions/points, colour-coded (Standings → Results)          |
 | `DriverProfile`                                   | Driver profile page pieces: stat tiles, finish distribution, round-by-round results (quali → finish → championship position) |
+| `MaybeLink`                                       | Router `Link` when `to` is set, plain `<span>` otherwise. Shared standings components take optional `driverHref` / `teamHref` / `href` props and only link when given them (their tests need no router) |
 | `ConstructorProfile`                              | Team profile page pieces: stat tiles (1-2s, double points…), driver line-up with points share, per-car round results |
 
 ---

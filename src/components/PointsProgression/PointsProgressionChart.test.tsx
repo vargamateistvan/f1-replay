@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 import { fireEvent, render, screen } from "@testing-library/react";
 import type { ReactNode } from "react";
+import { MemoryRouter } from "react-router-dom";
 import { PointsProgressionChart, type ProgressionSeries } from "./PointsProgressionChart";
 
 vi.mock("recharts", () => {
@@ -56,5 +57,21 @@ describe("PointsProgressionChart", () => {
     expect(screen.getByText("No race results yet")).toBeInTheDocument();
     rerender(<PointsProgressionChart rounds={[]} series={[]} loading />);
     expect(screen.getByText("Loading race results…")).toBeInTheDocument();
+  });
+
+  it("turns legend chips with an href into links that still highlight", () => {
+    const linked = series.map((s, i) =>
+      i === 3 ? { ...s, href: "/standings/driver/3" } : s,
+    );
+    render(
+      <MemoryRouter>
+        <PointsProgressionChart rounds={rounds} series={linked} />
+      </MemoryRouter>,
+    );
+    const link = screen.getByRole("link", { name: "D3" });
+    expect(link).toHaveAttribute("href", "/standings/driver/3");
+    fireEvent.mouseEnter(link);
+    expect(screen.getByTestId("line-d0")).toHaveAttribute("data-opacity", "0.15");
+    expect(screen.getByRole("button", { name: "D0" })).toBeInTheDocument();
   });
 });

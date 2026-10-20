@@ -3,6 +3,7 @@ import type { GridCell, ProgressionRound } from "@/utils/championship";
 import type { DriverStanding } from "@/utils/standings";
 import { ErrorMessage } from "@/components/ErrorMessage";
 import { DriverHeadshot } from "@/components/DriverHeadshot";
+import { MaybeLink } from "@/components/MaybeLink";
 import { STATUS_TONE, cellTone } from "./cellTone";
 
 type Mode = "position" | "points";
@@ -18,6 +19,8 @@ interface Props {
   readonly standings: DriverStanding[];
   readonly cells: Map<number, (GridCell | null)[]>;
   readonly loading?: boolean;
+  /** Driver profile links; names render as plain text without them. */
+  readonly driverHref?: (driverNumber: number) => string;
 }
 
 type Status = Exclude<GridCell["status"], "finished">;
@@ -95,7 +98,13 @@ const LEGEND: { label: string; tone: string; description?: string }[] = [
 ];
 
 // Drivers × rounds table of finishing positions (or points), colour-coded.
-export function ResultsGrid({ rounds, standings, cells, loading }: Props) {
+export function ResultsGrid({
+  rounds,
+  standings,
+  cells,
+  loading,
+  driverHref,
+}: Props) {
   const [mode, setMode] = useState<Mode>("position");
 
   if (rounds.length === 0 || standings.length === 0) {
@@ -221,12 +230,14 @@ export function ResultsGrid({ rounds, standings, cells, loading }: Props) {
                         className="h-4 w-[3px] shrink-0"
                         style={{ background: d.color }}
                       />
-                      <span
-                        className="font-black text-xs"
+                      <MaybeLink
+                        to={driverHref?.(d.driverNumber)}
+                        title={d.fullName}
+                        className="font-black text-xs hover:underline"
                         style={{ color: d.color }}
                       >
                         {d.acronym}
-                      </span>
+                      </MaybeLink>
                     </span>
                   </th>
                   {rounds.map((round, i) => {

@@ -1,6 +1,7 @@
 import { Link } from "react-router-dom";
 import type { GridCell, ProgressionRound } from "@/utils/championship";
 import type { ConstructorSeasonStats } from "@/utils/constructorProfile";
+import { driverPath } from "@/utils/driverProfile";
 import type { DriverStanding } from "@/utils/standings";
 import { cellTone } from "@/components/ResultsGrid/cellTone";
 import { ErrorMessage } from "@/components/ErrorMessage";
@@ -88,7 +89,7 @@ export function DriverLineup({
           return (
             <li key={d.driverNumber}>
               <Link
-                to={`/standings/driver/${d.driverNumber}${search}`}
+                to={`${driverPath(d.driverNumber)}${search}`}
                 aria-label={`${d.fullName} driver profile`}
                 className="group flex items-center gap-3"
               >

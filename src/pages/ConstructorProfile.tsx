@@ -15,7 +15,7 @@ import {
   ConstructorStatTiles,
   DriverLineup,
 } from "@/components/ConstructorProfile/ConstructorProfile";
-import { championshipPositions } from "@/utils/driverProfile";
+import { championshipPositions, driverPath } from "@/utils/driverProfile";
 import {
   constructorFinishDistribution,
   constructorPath,
@@ -109,8 +109,10 @@ export default function ConstructorProfile() {
         // Neighbours may share a colour family; keep the focused team solid.
         dashed: c !== standing,
         values: constructorProgression.totals.get(c.name) ?? [],
+        // The current team's chip stays a highlight-only button.
+        href: c === standing ? undefined : `${constructorPath(c.name)}${search}`,
       }));
-  }, [standing, constructorStandings, constructorProgression]);
+  }, [standing, constructorStandings, constructorProgression, search]);
 
   usePageSeo(
     standing
@@ -268,6 +270,7 @@ export default function ConstructorProfile() {
                   <TeammateComparison
                     comparisons={[teammate]}
                     qualifyingLoading={qualifyingLoading}
+                    driverHref={(n) => `${driverPath(n)}${search}`}
                   />
                 </div>
               )}

@@ -1,10 +1,14 @@
 import type { TeammateComparison as Comparison } from "@/hooks/useStandings";
 import { DriverHeadshot } from "@/components/DriverHeadshot";
 import { ErrorMessage } from "@/components/ErrorMessage";
+import { MaybeLink } from "@/components/MaybeLink";
 
 interface Props {
   readonly comparisons: Comparison[];
   readonly qualifyingLoading?: boolean;
+  /** Profile links; names render as plain text without them. */
+  readonly driverHref?: (driverNumber: number) => string;
+  readonly teamHref?: (team: string) => string;
 }
 
 function SplitRow({
@@ -58,7 +62,12 @@ function SplitRow({
 }
 
 // Head-to-head records for each team's two regular drivers.
-export function TeammateComparison({ comparisons, qualifyingLoading }: Props) {
+export function TeammateComparison({
+  comparisons,
+  qualifyingLoading,
+  driverHref,
+  teamHref,
+}: Props) {
   if (comparisons.length === 0) {
     return (
       <div className="min-h-32">
@@ -85,7 +94,9 @@ export function TeammateComparison({ comparisons, qualifyingLoading }: Props) {
               className="text-xs font-black uppercase tracking-[0.12em]"
               style={{ color: c.color }}
             >
-              {c.team}
+              <MaybeLink to={teamHref?.(c.team)} className="hover:underline">
+                {c.team}
+              </MaybeLink>
             </h3>
           </header>
 
@@ -93,14 +104,26 @@ export function TeammateComparison({ comparisons, qualifyingLoading }: Props) {
             <span className="flex items-center gap-2">
               <DriverHeadshot driver={c.a.driver} accent={c.color} size="sm" />
               <span>
-                <span className="block text-sm font-black">{c.a.acronym}</span>
+                <MaybeLink
+                  to={driverHref?.(c.a.driverNumber)}
+                  title={c.a.fullName}
+                  className="block text-sm font-black hover:underline"
+                >
+                  {c.a.acronym}
+                </MaybeLink>
                 <span className="block text-[10px] text-muted">P{c.a.position}</span>
               </span>
             </span>
             <span className="text-[10px] font-bold uppercase text-muted">vs</span>
             <span className="flex items-center gap-2 text-right">
               <span>
-                <span className="block text-sm font-black">{c.b.acronym}</span>
+                <MaybeLink
+                  to={driverHref?.(c.b.driverNumber)}
+                  title={c.b.fullName}
+                  className="block text-sm font-black hover:underline"
+                >
+                  {c.b.acronym}
+                </MaybeLink>
                 <span className="block text-[10px] text-muted">P{c.b.position}</span>
               </span>
               <DriverHeadshot driver={c.b.driver} accent={c.color} size="sm" />

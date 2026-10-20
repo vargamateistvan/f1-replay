@@ -17,6 +17,7 @@ import {
 } from "@/components/DriverProfile/DriverProfile";
 import {
   championshipPositions,
+  driverPath,
   driverSeasonStats,
   finishDistribution,
 } from "@/utils/driverProfile";
@@ -108,15 +109,18 @@ export default function DriverProfile() {
       color: d.color,
       dashed,
       values: driverProgression.totals.get(d.driverNumber) ?? [],
+      // The current driver's chip stays a highlight-only button.
+      href:
+        d === standing ? undefined : `${driverPath(d.driverNumber)}${search}`,
     }));
-  }, [standing, teammateStanding, leader, driverProgression]);
+  }, [standing, teammateStanding, leader, driverProgression, search]);
 
   usePageSeo(
     standing
       ? {
           title: `${standing.fullName} ${year} F1 Season | Results & Points | F1 Replay`,
           description: `${standing.fullName}'s ${year} Formula 1 season with ${standing.team}: P${standing.position} in the championship on ${standing.points} points, ${standing.wins} wins and ${standing.podiums} podiums. Round-by-round results, qualifying and teammate head-to-head.`,
-          canonicalPath: `/standings/driver/${driverNumber}${year !== DEFAULT_YEAR ? `?year=${year}` : ""}`,
+          canonicalPath: `${driverPath(driverNumber)}${year !== DEFAULT_YEAR ? `?year=${year}` : ""}`,
           breadcrumb: standing.fullName,
         }
       : null,
@@ -143,7 +147,7 @@ export default function DriverProfile() {
                   aria-label="Driver"
                   value={standing ? driverNumber : ""}
                   onChange={(e) =>
-                    navigate(`/standings/driver/${e.target.value}${search}`, {
+                    navigate(`${driverPath(Number(e.target.value))}${search}`, {
                       replace: true,
                     })
                   }
@@ -270,6 +274,8 @@ export default function DriverProfile() {
                   <TeammateComparison
                     comparisons={[teammate]}
                     qualifyingLoading={qualifyingLoading}
+                    driverHref={(n) => `${driverPath(n)}${search}`}
+                    teamHref={(team) => `${constructorPath(team)}${search}`}
                   />
                 </div>
               )}

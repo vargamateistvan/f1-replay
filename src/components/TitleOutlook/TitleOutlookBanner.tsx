@@ -1,5 +1,6 @@
 import { Trophy } from "lucide-react";
 import type { RemainingPoints, TitleOutlook } from "@/utils/championship";
+import { MaybeLink } from "@/components/MaybeLink";
 
 export interface TitleEntry {
   key: string;
@@ -7,6 +8,8 @@ export interface TitleEntry {
   color: string;
   points: number;
   title?: TitleOutlook;
+  /** Profile link for the entry's name. */
+  href?: string;
 }
 
 interface Props {
@@ -35,9 +38,13 @@ export function TitleOutlookBanner({ entries, remaining, scope }: Props) {
         className="flex items-center gap-2 border-b border-panel bg-surface px-4 py-2 text-xs"
       >
         <Trophy className="h-4 w-4 shrink-0 text-amber-300" aria-hidden />
-        <span className="font-black" style={{ color: leader.color }}>
+        <MaybeLink
+          to={leader.href}
+          className="font-black hover:underline"
+          style={{ color: leader.color }}
+        >
           {leader.label}
-        </span>
+        </MaybeLink>
         <span className="text-muted">
           {sessionsLeft === 0
             ? "won the championship"
@@ -74,9 +81,13 @@ export function TitleOutlookBanner({ entries, remaining, scope }: Props) {
             className="flex items-center gap-1.5 border border-panel px-2 py-0.5 font-mono text-[10px]"
             title={`Can reach at most ${e.title?.maxPoints ?? e.points} pts`}
           >
-            <span className="font-black" style={{ color: e.color }}>
+            <MaybeLink
+              to={e.href}
+              className="font-black hover:underline"
+              style={{ color: e.color }}
+            >
               {e.label}
-            </span>
+            </MaybeLink>
             <span className="tabular-nums text-muted">
               {e === leader ? `${e.points}` : `−${leader.points - e.points}`}
             </span>

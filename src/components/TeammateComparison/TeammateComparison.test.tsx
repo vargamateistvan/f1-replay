@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { render, screen } from "@testing-library/react";
+import { MemoryRouter } from "react-router-dom";
 import { TeammateComparison } from "./TeammateComparison";
 import type { TeammateComparison as Comparison } from "@/hooks/useStandings";
 import type { DriverStanding } from "@/utils/standings";
@@ -49,5 +50,29 @@ describe("TeammateComparison", () => {
   it("shows an empty state", () => {
     render(<TeammateComparison comparisons={[]} />);
     expect(screen.getByText("No teammate data for the selected season")).toBeInTheDocument();
+  });
+
+  it("links the team and both drivers when given hrefs", () => {
+    render(
+      <MemoryRouter>
+        <TeammateComparison
+          comparisons={[comparison]}
+          driverHref={(n) => `/standings/driver/${n}`}
+          teamHref={(team) => `/standings/team/${team}`}
+        />
+      </MemoryRouter>,
+    );
+    expect(screen.getByRole("link", { name: "McLaren" })).toHaveAttribute(
+      "href",
+      "/standings/team/McLaren",
+    );
+    expect(screen.getByRole("link", { name: "NOR" })).toHaveAttribute(
+      "href",
+      "/standings/driver/1",
+    );
+    expect(screen.getByRole("link", { name: "PIA" })).toHaveAttribute(
+      "href",
+      "/standings/driver/2",
+    );
   });
 });

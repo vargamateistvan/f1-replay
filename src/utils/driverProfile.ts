@@ -157,3 +157,6 @@ export function championshipPositions<K>(
       1 + rivals.filter(([, values]) => (values[i] ?? 0) > points).length,
   );
 }
+
+export const driverPath = (driverNumber: number): string =>
+  `/standings/driver/${driverNumber}`;

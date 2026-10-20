@@ -10,6 +10,7 @@ import {
 } from "recharts";
 import type { ProgressionRound } from "@/utils/championship";
 import { ErrorMessage } from "@/components/ErrorMessage";
+import { Link } from "react-router-dom";
 import { PROGRESSION_DEFAULT_LINES } from "@/constants";
 
 export interface ProgressionSeries {
@@ -19,6 +20,8 @@ export interface ProgressionSeries {
   /** Distinguishes teammates who share a team colour. */
   dashed?: boolean;
   values: number[];
+  /** Profile link for the legend chip. */
+  href?: string;
 }
 
 interface Props {
@@ -132,27 +135,39 @@ export function PointsProgressionChart({ rounds, series, loading }: Props) {
       </ResponsiveContainer>
 
       <div className="mt-3 flex flex-wrap items-center gap-1.5">
-        {visible.map((s) => (
-          <button
-            key={s.key}
-            type="button"
-            onMouseEnter={() => setHighlighted(s.key)}
-            onMouseLeave={() => setHighlighted(null)}
-            onFocus={() => setHighlighted(s.key)}
-            onBlur={() => setHighlighted(null)}
-            className="flex items-center gap-1.5 border border-panel px-2 py-1 text-[10px] font-bold text-muted hover:text-white focus:text-white focus:outline-none"
-          >
-            <span
-              className="h-0.5 w-3"
-              style={{
-                background: s.dashed
-                  ? `repeating-linear-gradient(90deg, ${s.color} 0 3px, transparent 3px 5px)`
-                  : s.color,
-              }}
-            />
-            {s.label}
-          </button>
-        ))}
+        {visible.map((s) => {
+          const chip = {
+            onMouseEnter: () => setHighlighted(s.key),
+            onMouseLeave: () => setHighlighted(null),
+            onFocus: () => setHighlighted(s.key),
+            onBlur: () => setHighlighted(null),
+            className:
+              "flex items-center gap-1.5 border border-panel px-2 py-1 text-[10px] font-bold text-muted hover:text-white focus:text-white focus:outline-none",
+          };
+          const content = (
+            <>
+              <span
+                className="h-0.5 w-3"
+                style={{
+                  background: s.dashed
+                    ? `repeating-linear-gradient(90deg, ${s.color} 0 3px, transparent 3px 5px)`
+                    : s.color,
+                }}
+              />
+              {s.label}
+            </>
+          );
+          // With a profile link the chip navigates; hover still highlights.
+          return s.href ? (
+            <Link key={s.key} to={s.href} {...chip}>
+              {content}
+            </Link>
+          ) : (
+            <button key={s.key} type="button" {...chip}>
+              {content}
+            </button>
+          );
+        })}
         {series.length > PROGRESSION_DEFAULT_LINES && (
           <button
             type="button"
