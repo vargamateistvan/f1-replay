@@ -16,7 +16,10 @@ import { parseCameraMode } from "@/components/TrackMap3D/cameraModes";
 import { hasCircuitGeometry } from "@/data/circuitGeometry";
 import LiveTiming from "@/components/LiveTiming/LiveTiming";
 import { QualifyingBanner } from "@/components/QualifyingBanner";
-import { SessionInfoBar } from "@/components/SessionInfoBar";
+import {
+  LatestRaceControlTicker,
+  SessionInfoBar,
+} from "@/components/SessionInfoBar";
 import { ErrorMessage } from "@/components/ErrorMessage";
 import { LiveDataNotice } from "@/components/LiveDataNotice";
 import { FinalClassificationDialog } from "@/components/FinalClassification";
@@ -1963,6 +1966,21 @@ export default function RaceWeekend() {
 
   // ── Shared sub-components ────────────────────────────────────────────────────
 
+  // Phone tracker tabs: the race control ticker moves out of the info bar
+  // into the Timing / Track tabs.
+  const mobileRaceControlTicker = (
+    <div className="flex shrink-0 border-b border-panel bg-track text-[10px] font-bold uppercase tracking-[0.1em]">
+      <LatestRaceControlTicker
+        raceControl={raceControl.data ?? []}
+        drivers={drivers.data ?? []}
+        sessionTimeMs={t}
+        sessionStartMs={sessionStartMs}
+        onJumpToSessionTime={setTimelineT}
+        className="border-t-0"
+      />
+    </div>
+  );
+
   const timingTower = (
     <LiveTiming
       drivers={drivers.data ?? []}
@@ -2331,6 +2349,7 @@ export default function RaceWeekend() {
           className="flex flex-col md:flex-1 md:min-h-0 md:overflow-hidden"
         >
           <SessionInfoBar
+            showTickerOnMobile={false}
             laps={laps.data ?? []}
             raceControl={raceControl.data ?? []}
             drivers={drivers.data ?? []}
@@ -2409,6 +2428,7 @@ export default function RaceWeekend() {
               >
                 {activeTrackerTab === "timing" && (
                   <>
+                    {mobileRaceControlTicker}
                     {/* Timing tower */}
                     <div className="flex flex-col md:flex-1 md:min-h-0 md:overflow-hidden">
                       {positions.isError ? (
@@ -2453,6 +2473,7 @@ export default function RaceWeekend() {
                     data-motion-card
                     className="min-h-[80vw] bg-[#10101a] flex flex-col md:flex-1 md:min-w-0"
                   >
+                    {mobileRaceControlTicker}
                     <div className="relative flex-1 min-h-[64vw]">
                       {drivers.isError ? (
                         <ErrorMessage message="Failed to load driver data" />

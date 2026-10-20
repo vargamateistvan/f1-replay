@@ -16,6 +16,7 @@ interface Props {
   driver?: Driver;
   sessionTimeMs: number;
   onJumpToSessionTime?: (sessionTimeMs: number) => void;
+  className?: string;
 }
 
 function fmtAge(ms: number): string {
@@ -33,6 +34,7 @@ export function RaceControlTicker({
   driver,
   sessionTimeMs,
   onJumpToSessionTime,
+  className: extraClassName = "",
 }: Readonly<Props>) {
   const badge = raceControlEventBadge(event);
   const accent = raceControlEventAccent(event, driver?.team_colour);
@@ -128,8 +130,7 @@ export function RaceControlTicker({
     </>
   );
 
-  const className =
-    "group relative flex min-w-0 flex-1 items-center gap-2 overflow-hidden border-t border-panel py-2 pl-4 pr-3 sm:border-t-0";
+  const className = `group relative flex min-w-0 flex-1 items-center gap-2 overflow-hidden border-t border-panel py-2 pl-4 pr-3 sm:border-t-0 ${extraClassName}`;
 
   if (!onJumpToSessionTime) {
     return (

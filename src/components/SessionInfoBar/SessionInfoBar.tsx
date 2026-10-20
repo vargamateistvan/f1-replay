@@ -25,6 +25,8 @@ interface Props {
   onShowEliminations?: () => void;
   onShowResults?: () => void;
   onJumpToSessionTime?: (sessionTimeMs: number) => void;
+  /** False hides the race control ticker below `md` (the page renders it elsewhere). */
+  showTickerOnMobile?: boolean;
 }
 
 function deriveLatestMessage(
@@ -39,6 +41,48 @@ function deriveLatestMessage(
     last = e;
   }
   return last ? { event: last, sameTimeCount } : null;
+}
+
+/** Ticker for the latest race control message at the playhead (nothing before the first one). */
+export function LatestRaceControlTicker({
+  raceControl,
+  drivers = [],
+  sessionTimeMs,
+  sessionStartMs,
+  onJumpToSessionTime,
+  className,
+}: Readonly<{
+  raceControl: RaceControl[];
+  drivers?: Driver[];
+  sessionTimeMs: number;
+  sessionStartMs: number;
+  onJumpToSessionTime?: (sessionTimeMs: number) => void;
+  className?: string;
+}>) {
+  const normalizedRaceControl = useMemo(
+    () => normalizeRaceControl(raceControl, sessionStartMs),
+    [raceControl, sessionStartMs],
+  );
+  const latestMsg = useMemo(
+    () => deriveLatestMessage(normalizedRaceControl, sessionTimeMs),
+    [normalizedRaceControl, sessionTimeMs],
+  );
+  if (!latestMsg) return null;
+  const driver =
+    latestMsg.event.driverNumber != null
+      ? drivers.find((d) => d.driver_number === latestMsg.event.driverNumber)
+      : undefined;
+  return (
+    <RaceControlTicker
+      key={latestMsg.event.id}
+      event={latestMsg.event}
+      sameTimeCount={latestMsg.sameTimeCount}
+      driver={driver}
+      sessionTimeMs={sessionTimeMs}
+      onJumpToSessionTime={onJumpToSessionTime}
+      className={className}
+    />
+  );
 }
 
 function fmtElapsed(ms: number): string {
@@ -76,6 +120,7 @@ export function SessionInfoBar({
   onShowEliminations,
   onShowResults,
   onJumpToSessionTime,
+  showTickerOnMobile = true,
 }: Readonly<Props>) {
   const lightMode = useSettings((s) => s.lightMode);
   const metricSystem = useSettings((s) => s.metricSystem);
@@ -126,18 +171,6 @@ export function SessionInfoBar({
       ? sessionTimeMs >= 0 && sessionTimeMs < lightsOutMs
       : false;
 
-  const normalizedRaceControl = useMemo(
-    () => normalizeRaceControl(raceControl, sessionStartMs),
-    [raceControl, sessionStartMs],
-  );
-  const latestMsg = useMemo(
-    () => deriveLatestMessage(normalizedRaceControl, sessionTimeMs),
-    [normalizedRaceControl, sessionTimeMs],
-  );
-  const latestMsgDriver =
-    latestMsg?.event.driverNumber != null
-      ? drivers.find((d) => d.driver_number === latestMsg.event.driverNumber)
-      : undefined;
   let lapDisplay: string | number = "—";
   if (isFormationLap) {
     lapDisplay = "F";
@@ -286,16 +319,14 @@ export function SessionInfoBar({
       </div>
 
       {/* Latest RC message */}
-      {latestMsg && (
-        <RaceControlTicker
-          key={latestMsg.event.id}
-          event={latestMsg.event}
-          sameTimeCount={latestMsg.sameTimeCount}
-          driver={latestMsgDriver}
-          sessionTimeMs={sessionTimeMs}
-          onJumpToSessionTime={onJumpToSessionTime}
-        />
-      )}
+      <LatestRaceControlTicker
+        raceControl={raceControl}
+        drivers={drivers}
+        sessionTimeMs={sessionTimeMs}
+        sessionStartMs={sessionStartMs}
+        onJumpToSessionTime={onJumpToSessionTime}
+        className={showTickerOnMobile ? "" : "hidden md:flex"}
+      />
 
       {isLapDialogOpen && (
         <div className="fixed inset-0 z-[230] flex items-center justify-center bg-black/70 px-3 py-6 backdrop-blur-sm">
