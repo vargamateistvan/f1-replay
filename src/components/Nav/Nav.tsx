@@ -630,12 +630,16 @@ export function Nav() {
   // no explicit meeting/session is selected in the URL/state.
   // selectLatestEvent() fetches what it needs itself, so this can run once
   // on mount without waiting for any query to settle.
+  // Standings routes only need ?year= — auto-selecting would overwrite it
+  // (e.g. a shared /standings/driver/4?year=2024 link jumping to this season),
+  // so the bootstrap waits until a replay route is opened.
+  const onStandingsRoute = useLocation().pathname.startsWith("/standings");
   useEffect(() => {
-    if (autoLatestBootstrappedRef.current) return;
+    if (autoLatestBootstrappedRef.current || onStandingsRoute) return;
     autoLatestBootstrappedRef.current = true;
     if (meetingKey !== null || sessionKey !== null) return;
     void selectLatestEvent("auto");
-  }, [meetingKey, sessionKey, selectLatestEvent]);
+  }, [meetingKey, sessionKey, selectLatestEvent, onStandingsRoute]);
 
   const eventLabel = selectedMeeting
     ? `${selectedMeeting.country_name.toUpperCase()} ${selectedMeeting.year}`

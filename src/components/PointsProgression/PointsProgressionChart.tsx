@@ -12,6 +12,7 @@ import type { ProgressionRound } from "@/utils/championship";
 import { ErrorMessage } from "@/components/ErrorMessage";
 import { Link } from "react-router-dom";
 import { PROGRESSION_DEFAULT_LINES } from "@/constants";
+import { useMediaQuery } from "@/hooks/useMediaQuery";
 
 export interface ProgressionSeries {
   key: string;
@@ -68,6 +69,7 @@ function ProgressionTooltip({
 export function PointsProgressionChart({ rounds, series, loading }: Props) {
   const [showAll, setShowAll] = useState(false);
   const [highlighted, setHighlighted] = useState<string | null>(null);
+  const isMobileViewport = useMediaQuery("(max-width: 767px)");
 
   const visible = useMemo(
     () => (showAll ? series : series.slice(0, PROGRESSION_DEFAULT_LINES)),
@@ -96,7 +98,7 @@ export function PointsProgressionChart({ rounds, series, loading }: Props) {
 
   return (
     <div>
-      <ResponsiveContainer width="100%" height={360}>
+      <ResponsiveContainer width="100%" height={isMobileViewport ? 260 : 360}>
         <LineChart data={rows} margin={{ top: 8, right: 16, left: 0, bottom: 4 }}>
           <CartesianGrid stroke="rgb(var(--color-panel))" vertical={false} />
           <XAxis

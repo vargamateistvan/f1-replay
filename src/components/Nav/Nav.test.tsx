@@ -436,4 +436,15 @@ describe("Nav", () => {
     expect(next.has("meeting")).toBe(false);
     expect(next.has("session")).toBe(false);
   });
+
+  it("keeps the URL's year on standings routes instead of auto-selecting", async () => {
+    state.pathname = "/standings/driver/4";
+    state.searchParams = new URLSearchParams("year=2024");
+    state.meetingKey = null;
+    state.sessionKey = null;
+    render(<Nav />);
+    // Give the async bootstrap a chance to run if it were going to.
+    await new Promise((r) => setTimeout(r, 20));
+    expect(state.setSearchParams).not.toHaveBeenCalled();
+  });
 });

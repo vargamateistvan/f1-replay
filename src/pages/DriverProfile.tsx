@@ -164,8 +164,11 @@ export default function DriverProfile() {
               </span>
             </label>
           )}
+          {/* The sections show their own loading states; on phones this would wrap. */}
           {isFetching && (
-            <span className={PICKER_FIELD_LABEL}>Loading results…</span>
+            <span className={`${PICKER_FIELD_LABEL} hidden sm:inline`}>
+              Loading results…
+            </span>
           )}
         </div>
       </div>
@@ -219,21 +222,18 @@ export default function DriverProfile() {
                 )}
                 <span aria-hidden="true">·</span>
                 <span>{year} season</span>
-                {standing.title && (
-                  <>
-                    <span aria-hidden="true">·</span>
-                    <span
-                      className={
-                        standing.title.status === "eliminated"
-                          ? "text-muted"
-                          : "text-amber-300"
-                      }
-                    >
-                      {TITLE_TEXT[standing.title.status]}
-                    </span>
-                  </>
-                )}
               </div>
+              {standing.title && (
+                <div
+                  className={`mt-0.5 text-xs ${
+                    standing.title.status === "eliminated"
+                      ? "text-muted"
+                      : "text-amber-300"
+                  }`}
+                >
+                  {TITLE_TEXT[standing.title.status]}
+                </div>
+              )}
             </div>
           </header>
 

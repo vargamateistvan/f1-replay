@@ -32,14 +32,21 @@ export function StatTile({
   hint?: string;
 }>) {
   return (
-    <div data-standing-row className="bg-track px-3 py-2.5">
-      <div className="text-[9px] font-bold uppercase tracking-[0.14em] text-muted">
+    <div data-standing-row className="min-w-0 bg-track px-3 py-2 sm:py-2.5">
+      <div className="truncate text-[9px] font-bold uppercase tracking-[0.14em] text-muted">
         {label}
       </div>
-      <div className="mt-1 font-mono text-lg font-black tabular-nums leading-none">
-        {value}
+      {/* Phones: hint beside the value so ten tiles stay ~5 short rows. */}
+      <div className="mt-1 flex min-w-0 items-baseline gap-1.5 sm:block">
+        <div className="shrink-0 font-mono text-base font-black tabular-nums leading-none sm:text-lg">
+          {value}
+        </div>
+        {hint && (
+          <div className="truncate text-[10px] leading-none text-muted sm:mt-1 sm:leading-normal">
+            {hint}
+          </div>
+        )}
       </div>
-      {hint && <div className="mt-1 text-[10px] text-muted">{hint}</div>}
     </div>
   );
 }
