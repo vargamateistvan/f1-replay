@@ -460,3 +460,8 @@ export const QUERY_PERSIST_GC_INTERVAL_MS = 24 * 60 * 60 * 1000;
 // ── Race control ticker (session info bar) ────────────────────────────────────
 /** A race control message counts as "new" (pulse dot, entrance flash) for this long. */
 export const RC_TICKER_FRESH_MS = 30_000;
+
+/** "While you were away": jumping to a skipped event starts this far before it. */
+export const CATCHUP_REPLAY_LEAD_MS = 5_000;
+/** Minimum forward jump (session ms) that opens the "While you were away" summary. */
+export const CATCHUP_JUMP_THRESHOLD_MS = 60_000;

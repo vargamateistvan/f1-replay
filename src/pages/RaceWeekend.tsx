@@ -2888,6 +2888,7 @@ export default function RaceWeekend() {
           summary={catchupSummary}
           drivers={drivers.data ?? []}
           onDismiss={dismissCatchup}
+          onJumpToSessionTime={setTimelineT}
         />
       )}
 

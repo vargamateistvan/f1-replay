@@ -1,7 +1,8 @@
-import { describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import { fireEvent, render, screen } from "@testing-library/react";
 import { CatchupSummary } from "@/components/CatchupSummary/CatchupSummary";
 import type { Driver } from "@/api/types";
+import { useSettings } from "@/stores/settings";
 import type { CatchupSummary as CatchupSummaryData } from "@/hooks/useCatchupSummary";
 
 vi.mock("@/lib/audio", () => ({
@@ -180,5 +181,132 @@ describe("CatchupSummary", () => {
     const fill = stopButton.querySelector("[data-progress]") as HTMLElement;
     expect(fill).toHaveAttribute("data-progress", "50");
     expect(fill).toHaveStyle({ width: "50%" });
+  });
+});
+
+describe("CatchupSummary — rework", () => {
+  // Saved defaults hide pits/flags; show every kind present.
+  beforeEach(() => {
+    useSettings.setState({ catchupSummaryDefaultFilters: [] });
+  });
+
+  const summary = {
+    fromMs: 60_000,
+    toMs: 420_000,
+    events: [
+      {
+        id: "pit1",
+        ms: 120_000,
+        kind: "pit",
+        payload: { driverNumber: 16, lapNumber: 12, pitDuration: null },
+      },
+      {
+        id: "fl1",
+        ms: 300_000,
+        kind: "flag",
+        payload: {
+          flag: "YELLOW",
+          message: "Yellow in sector 2",
+          lapNumber: 15,
+        },
+      },
+      {
+        id: "pit2",
+        ms: 302_000,
+        kind: "pit",
+        payload: { driverNumber: 1, lapNumber: 15, pitDuration: null },
+      },
+    ],
+  } as unknown as CatchupSummaryData;
+
+  it("shows the skipped lap range and duration in the header", () => {
+    render(
+      <CatchupSummary
+        summary={summary}
+        drivers={drivers}
+        onDismiss={vi.fn()}
+      />,
+    );
+    expect(screen.getByText(/Lap 12–15 · 6 min/)).toBeInTheDocument();
+  });
+
+  it("jumps to just before an event and closes when its timestamp is clicked", () => {
+    const onJump = vi.fn();
+    const onDismiss = vi.fn();
+    render(
+      <CatchupSummary
+        summary={summary}
+        drivers={drivers}
+        onDismiss={onDismiss}
+        onJumpToSessionTime={onJump}
+      />,
+    );
+    fireEvent.click(screen.getByRole("button", { name: "Replay from 02:00" }));
+    expect(onJump).toHaveBeenCalledWith(115_000);
+    expect(onDismiss).toHaveBeenCalledTimes(1);
+  });
+
+  it("renders plain timestamps without a jump handler", () => {
+    render(
+      <CatchupSummary
+        summary={summary}
+        drivers={drivers}
+        onDismiss={vi.fn()}
+      />,
+    );
+    expect(screen.queryByRole("button", { name: /Replay from/ })).toBeNull();
+    expect(screen.getByText("02:00")).toBeInTheDocument();
+  });
+
+  it("dismisses on Escape", () => {
+    const onDismiss = vi.fn();
+    render(
+      <CatchupSummary
+        summary={summary}
+        drivers={drivers}
+        onDismiss={onDismiss}
+      />,
+    );
+    fireEvent.keyDown(window, { key: "Escape" });
+    expect(onDismiss).toHaveBeenCalledTimes(1);
+  });
+
+  it("filters rows by chip and keeps at least one kind active", () => {
+    render(
+      <CatchupSummary
+        summary={summary}
+        drivers={drivers}
+        onDismiss={vi.fn()}
+      />,
+    );
+    fireEvent.click(screen.getByRole("button", { name: "2 pit stops" }));
+    expect(screen.queryByText("PIT")).toBeNull();
+    expect(screen.getByText("Yellow in sector 2")).toBeInTheDocument();
+    const flagChip = screen.getByRole("button", { name: "1 flag" });
+    fireEvent.click(flagChip);
+    expect(flagChip).toHaveAttribute("aria-pressed", "true");
+  });
+});
+
+describe("CatchupSummary — placement", () => {
+  it("is a centred modal that dismisses on backdrop click only", () => {
+    const onDismiss = vi.fn();
+    render(
+      <CatchupSummary
+        summary={
+          {
+            fromMs: 0,
+            toMs: 120_000,
+            events: [],
+          } as unknown as CatchupSummaryData
+        }
+        drivers={drivers}
+        onDismiss={onDismiss}
+      />,
+    );
+    fireEvent.click(screen.getByRole("dialog"));
+    expect(onDismiss).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByTestId("catchup-backdrop"));
+    expect(onDismiss).toHaveBeenCalledTimes(1);
   });
 });
