@@ -196,91 +196,94 @@ export function SessionInfoBar({
     typeof countdownMs === "number";
 
   return (
-    <div className="shrink-0 flex items-stretch overflow-x-auto border-b border-panel bg-track text-[10px] font-bold uppercase tracking-[0.1em]">
-      {/* Left tile: qualifying action in quali; countdown in timed practice; lap counter in race */}
-      {showQualiEliminationTile ? (
-        <button
-          type="button"
-          onClick={onShowEliminations}
-          className="flex shrink-0 items-center gap-2 border-r border-panel px-2.5 py-2 text-[10px] font-black uppercase tracking-[0.12em] text-white transition-colors hover:bg-white/5 hover:text-f1red sm:px-4 sm:tracking-[0.16em]"
-          aria-label="Show eliminated drivers"
-          title="Show eliminated drivers"
-        >
-          <span className="rounded bg-f1red px-1.5 py-0.5 text-[9px] font-black tracking-[0.16em] text-white">
-            {qualiPhase}
-          </span>
-          <span className="font-mono text-[11px] tabular-nums text-white/90">
-            {countdownMs <= 0 ? "00:00" : fmtElapsed(countdownMs)}
-          </span>
-          <span className="text-[10px] font-black tracking-[0.12em] text-white">
-            Eliminated
-          </span>
-        </button>
-      ) : showTimedCountdownTile ? (
-        <div className="flex shrink-0 items-center justify-center gap-2 border-r border-panel px-2.5 py-2 sm:justify-start sm:px-4">
-          <span className="text-muted">Countdown</span>
-          <span className="text-white tabular-nums font-mono">
-            {countdownMs <= 0 ? "00:00" : fmtElapsed(countdownMs)}
-          </span>
-        </div>
-      ) : (
-        <div className="flex shrink-0 items-center justify-center gap-2 border-r border-panel px-2.5 py-2 sm:justify-start sm:px-4">
-          <span className="text-muted">Lap</span>
+    <div className="shrink-0 flex flex-col border-b border-panel bg-track text-[10px] font-bold uppercase tracking-[0.1em] sm:flex-row sm:items-stretch">
+      {/* Mobile: tiles scroll sideways and the race control ticker gets its own row below */}
+      <div className="flex min-w-0 items-stretch overflow-x-auto">
+        {/* Left tile: qualifying action in quali; countdown in timed practice; lap counter in race */}
+        {showQualiEliminationTile ? (
           <button
             type="button"
-            onClick={() => setIsLapDialogOpen(true)}
-            className="tabular-nums text-[13px] font-black transition-colors hover:text-f1red"
-            style={{
-              color: isFormationLap ? formationLapColor : undefined,
-            }}
-            title={`Jump to lap (1-${selectableLapMax})`}
+            onClick={onShowEliminations}
+            className="flex shrink-0 items-center gap-2 border-r border-panel px-2.5 py-2 text-[10px] font-black uppercase tracking-[0.12em] text-white transition-colors hover:bg-white/5 hover:text-f1red sm:px-4 sm:tracking-[0.16em]"
+            aria-label="Show eliminated drivers"
+            title="Show eliminated drivers"
           >
-            {lapDisplay}
+            <span className="rounded bg-f1red px-1.5 py-0.5 text-[9px] font-black tracking-[0.16em] text-white">
+              {qualiPhase}
+            </span>
+            <span className="font-mono text-[11px] tabular-nums text-white/90">
+              {countdownMs <= 0 ? "00:00" : fmtElapsed(countdownMs)}
+            </span>
+            <span className="text-[10px] font-black tracking-[0.12em] text-white">
+              Eliminated
+            </span>
           </button>
+        ) : showTimedCountdownTile ? (
+          <div className="flex shrink-0 items-center justify-center gap-2 border-r border-panel px-2.5 py-2 sm:justify-start sm:px-4">
+            <span className="text-muted">Countdown</span>
+            <span className="text-white tabular-nums font-mono">
+              {countdownMs <= 0 ? "00:00" : fmtElapsed(countdownMs)}
+            </span>
+          </div>
+        ) : (
+          <div className="flex shrink-0 items-center justify-center gap-2 border-r border-panel px-2.5 py-2 sm:justify-start sm:px-4">
+            <span className="text-muted">Lap</span>
+            <button
+              type="button"
+              onClick={() => setIsLapDialogOpen(true)}
+              className="tabular-nums text-[13px] font-black transition-colors hover:text-f1red"
+              style={{
+                color: isFormationLap ? formationLapColor : undefined,
+              }}
+              title={`Jump to lap (1-${selectableLapMax})`}
+            >
+              {lapDisplay}
+            </button>
+          </div>
+        )}
+
+        {/* Elapsed time */}
+        <div className="flex shrink-0 items-center justify-center gap-2 border-r border-panel px-2.5 py-2 sm:justify-start sm:px-4">
+          <span className="text-muted">Time</span>
+          <span className="text-white tabular-nums font-mono">
+            {fmtElapsed(sessionTimeMs)}
+          </span>
         </div>
-      )}
 
-      {/* Elapsed time */}
-      <div className="flex shrink-0 items-center justify-center gap-2 border-r border-panel px-2.5 py-2 sm:justify-start sm:px-4">
-        <span className="text-muted">Time</span>
-        <span className="text-white tabular-nums font-mono">
-          {fmtElapsed(sessionTimeMs)}
-        </span>
+        {/* Weather temperatures */}
+        <div className="flex shrink-0 items-center justify-center gap-2 border-r border-panel px-2.5 py-2 sm:justify-start sm:px-4">
+          <span className="text-muted">Air</span>
+          <span className="text-white tabular-nums font-mono">
+            {fmtTemp(airTemp, metricSystem)}
+          </span>
+        </div>
+        <div className="flex shrink-0 items-center justify-center gap-2 border-r border-panel px-2.5 py-2 sm:justify-start sm:px-4">
+          <span className="text-muted">Track</span>
+          <span className="text-white tabular-nums font-mono">
+            {fmtTemp(trackTemp, metricSystem)}
+          </span>
+        </div>
+
+        {onShowEliminations && !showQualiEliminationTile && (
+          <button
+            onClick={onShowEliminations}
+            className="shrink-0 border-r border-panel px-3 py-2 text-[10px] font-black uppercase tracking-[0.12em] text-white transition-colors hover:bg-white/5 hover:text-f1red sm:px-4 sm:tracking-[0.16em]"
+          >
+            <span className="sm:hidden">Out</span>
+            <span className="hidden sm:inline">Eliminated</span>
+          </button>
+        )}
+
+        {onShowResults && (
+          <button
+            onClick={onShowResults}
+            className="shrink-0 border-r border-panel px-3 py-2 text-[10px] font-black uppercase tracking-[0.12em] text-white transition-colors hover:bg-white/5 hover:text-f1red sm:px-4 sm:tracking-[0.16em]"
+          >
+            <span className="sm:hidden">Results</span>
+            <span className="hidden sm:inline">Show Results</span>
+          </button>
+        )}
       </div>
-
-      {/* Weather temperatures */}
-      <div className="flex shrink-0 items-center justify-center gap-2 border-r border-panel px-2.5 py-2 sm:justify-start sm:px-4">
-        <span className="text-muted">Air</span>
-        <span className="text-white tabular-nums font-mono">
-          {fmtTemp(airTemp, metricSystem)}
-        </span>
-      </div>
-      <div className="flex shrink-0 items-center justify-center gap-2 border-r border-panel px-2.5 py-2 sm:justify-start sm:px-4">
-        <span className="text-muted">Track</span>
-        <span className="text-white tabular-nums font-mono">
-          {fmtTemp(trackTemp, metricSystem)}
-        </span>
-      </div>
-
-      {onShowEliminations && !showQualiEliminationTile && (
-        <button
-          onClick={onShowEliminations}
-          className="shrink-0 border-r border-panel px-3 py-2 text-[10px] font-black uppercase tracking-[0.12em] text-white transition-colors hover:bg-white/5 hover:text-f1red sm:px-4 sm:tracking-[0.16em]"
-        >
-          <span className="sm:hidden">Out</span>
-          <span className="hidden sm:inline">Eliminated</span>
-        </button>
-      )}
-
-      {onShowResults && (
-        <button
-          onClick={onShowResults}
-          className="shrink-0 border-r border-panel px-3 py-2 text-[10px] font-black uppercase tracking-[0.12em] text-white transition-colors hover:bg-white/5 hover:text-f1red sm:px-4 sm:tracking-[0.16em]"
-        >
-          <span className="sm:hidden">Results</span>
-          <span className="hidden sm:inline">Show Results</span>
-        </button>
-      )}
 
       {/* Latest RC message */}
       {latestMsg && (

@@ -129,7 +129,7 @@ export function RaceControlTicker({
   );
 
   const className =
-    "group relative hidden min-w-0 flex-1 items-center gap-2 overflow-hidden py-2 pl-4 pr-3 sm:flex";
+    "group relative flex min-w-0 flex-1 items-center gap-2 overflow-hidden border-t border-panel py-2 pl-4 pr-3 sm:border-t-0";
 
   if (!onJumpToSessionTime) {
     return (
