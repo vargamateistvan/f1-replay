@@ -489,15 +489,16 @@ function MobilePedalMeter({
   const activeSegments = Math.round(clamped / 20);
 
   return (
-    <span className="inline-flex min-w-0 items-center gap-1">
-      <span className={labelClassName}>{label}</span>
-      <span className="inline-flex items-center gap-px">
+    <span className="flex min-w-0 items-center gap-1">
+      <span className={`shrink-0 ${labelClassName}`}>{label}</span>
+      {/* Segments shrink with the cell so narrow mobile columns never overflow */}
+      <span className="flex min-w-0 max-w-[2.25rem] flex-1 items-center gap-px">
         {Array.from({ length: 5 }, (_, i) => {
           const active = i < activeSegments;
           return (
             <span
               key={i}
-              className="h-1.5 w-1.5"
+              className="h-1.5 min-w-0 flex-1"
               style={{
                 background: active
                   ? color
@@ -2338,7 +2339,7 @@ export function LiveTiming({
                                 </span>
                               )}
                               {columns.thrBrk && (
-                                <span className="col-span-2 inline-flex min-w-0 items-center justify-start gap-1.5">
+                                <span className="col-span-2 grid min-w-0 grid-cols-2 gap-x-1.5">
                                   <MobilePedalMeter
                                     label="T"
                                     value={car ? car.throttle : null}
