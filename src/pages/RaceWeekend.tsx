@@ -2169,6 +2169,7 @@ export default function RaceWeekend() {
         isCompactViewport ? undefined : () => openSettingsTab("track")
       }
       onExit3d={enter2d}
+      onEnterRing={enterRing}
     />
   ) : (
     <TrackMap

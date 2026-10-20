@@ -3,6 +3,7 @@ import mapboxgl from "mapbox-gl";
 import "mapbox-gl/dist/mapbox-gl.css";
 import {
   Camera,
+  CircleDot,
   Crosshair,
   Gauge,
   Maximize,
@@ -298,6 +299,8 @@ interface Props {
   readonly onOpenSettings?: () => void;
   /** Switch back to the 2D map. */
   readonly onExit3d: () => void;
+  /** When set, shows a button that switches to the ring (lap progress) view. */
+  readonly onEnterRing?: () => void;
 }
 
 /**
@@ -340,6 +343,7 @@ export function TrackMap3D({
   onSelectDriver,
   onOpenSettings,
   onExit3d,
+  onEnterRing,
 }: Props) {
   const t = useCoarseTime(100);
   const lightMode = useSettings((s) => s.lightMode);
@@ -1452,13 +1456,26 @@ export function TrackMap3D({
     </button>
   );
   const exitButton = (
-    <button type="button" className={buttonClass} title="Switch to 2D map" onClick={onExit3d}>
-      2D
-    </button>
+    <>
+      <button type="button" className={buttonClass} title="Switch to 2D map" onClick={onExit3d}>
+        2D
+      </button>
+      {onEnterRing && (
+        <button
+          type="button"
+          className={buttonClass}
+          title="Switch to ring view (lap progress)"
+          aria-label="Switch to ring view (lap progress)"
+          onClick={onEnterRing}
+        >
+          <CircleDot size={14} strokeWidth={2.2} aria-hidden="true" />
+        </button>
+      )}
+    </>
   );
 
   // Loading / unavailable: keep the controls so the user can always switch
-  // back to 2D or open settings.
+  // to 2D / ring or open settings.
   const fallback = (content: ReactNode) => (
     <div className="relative w-full h-full aspect-[3/2]" data-testid="track-map-3d-fallback">
       <div className="w-full h-full flex flex-col items-center justify-center gap-3">

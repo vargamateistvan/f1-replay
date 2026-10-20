@@ -13,6 +13,7 @@ const handlers = () => ({
   onSnapshot: vi.fn(),
   onOpenSettings: vi.fn(),
   onEnter3d: vi.fn(),
+  onEnterRing: vi.fn(),
 });
 
 describe("TrackControls", () => {
@@ -22,6 +23,7 @@ describe("TrackControls", () => {
     expect(screen.getByRole("toolbar", { name: "Track map controls" })).toBeInTheDocument();
     for (const [label, fn] of [
       ["Switch to 3D map", h.onEnter3d],
+      ["Switch to ring view (lap progress)", h.onEnterRing],
       ["Rotate left", h.onRotateLeft],
       ["Rotate right", h.onRotateRight],
       ["Zoom out", h.onZoomOut],
@@ -38,6 +40,9 @@ describe("TrackControls", () => {
   it("keeps the view switch, snapshot and settings when track controls are off", () => {
     render(<TrackControls showTrackControls={false} overlayBackground="#000" {...handlers()} />);
     expect(screen.getByRole("button", { name: "Switch to 3D map" })).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "Switch to ring view (lap progress)" }),
+    ).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Download map snapshot as PNG" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Track map settings" })).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Zoom in" })).not.toBeInTheDocument();

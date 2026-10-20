@@ -220,6 +220,22 @@ describe("TrackMap3D", () => {
     expect(onExit3d).toHaveBeenCalled();
   });
 
+  it("offers the ring view only when it's wired up", () => {
+    renderMap();
+    expect(screen.queryByTitle("Switch to ring view (lap progress)")).toBeNull();
+    const onEnterRing = vi.fn();
+    renderMap({ onEnterRing });
+    fireEvent.click(screen.getByTitle("Switch to ring view (lap progress)"));
+    expect(onEnterRing).toHaveBeenCalled();
+  });
+
+  it("keeps the ring switch while the map can't be shown", () => {
+    const onEnterRing = vi.fn();
+    renderMap({ circuitKey: 9999, onEnterRing });
+    fireEvent.click(screen.getByTitle("Switch to ring view (lap progress)"));
+    expect(onEnterRing).toHaveBeenCalled();
+  });
+
   it("builds the circuit layers once the style loads and frames the track", () => {
     const { map } = renderMap();
     expect(map).toBeDefined();
