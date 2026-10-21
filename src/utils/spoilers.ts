@@ -55,3 +55,18 @@ export function withWatched(
   }
   return next;
 }
+
+/**
+ * Scrubber end while a race's result is hidden: `lookahead` past the playhead,
+ * rounded up to a whole `step`, never past the real end. The bar's length then
+ * gives away neither the finish nor a red flag that ends the race early.
+ */
+export function visibleScrubEndMs(
+  t: number,
+  durationMs: number,
+  lookaheadMs: number,
+  stepMs: number,
+): number {
+  const end = Math.ceil((Math.max(0, t) + lookaheadMs) / stepMs) * stepMs;
+  return Math.min(durationMs, end);
+}

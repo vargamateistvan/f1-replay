@@ -220,7 +220,7 @@ With spoiler-free mode on and the session not watched, `/report` shows only the 
 ## Milestones
 
 1. ✅ **A1** — `utils/spoilers.ts`, `stores/spoilers.ts`, setting, auto-mark at the chequered flag, Standings/profile round cut-off. Changes from the design above: the on/off switch lives in `stores/spoilers.ts` (not `AppSettings`), so a settings reset can never reveal results; and a `knownBeforeMs` point (now − 7 days when turned on) decides which older results count as already known, so turning the mode on doesn't hide the whole season.
-2. **A2** — PlaybackBar marker/length hiding, `?t=` prompt, picker "Mark as watched".
+2. ✅ **A2** — PlaybackBar marker/length hiding (plus the End key), `?t=` prompt. Not done: "Mark as watched" in the session picker. It's a native `<select>`, so there's no room for a per-option button, and Reveal on the standings notice already covers it.
 3. **B1** — `utils/stintPace.ts` + tests.
 4. **B2** — Strategy tab toggle + Pace chart + table.
 5. **C1** — `utils/strategySim.ts` + tests (including the real-race regression).

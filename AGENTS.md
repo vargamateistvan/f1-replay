@@ -196,6 +196,7 @@ components/ (render to DOM; read settings from Zustand)
 | `DriverProfile`                                   | Driver profile page pieces: stat tiles, finish distribution, round-by-round results (quali → finish → championship position) |
 | `MaybeLink`                                       | Router `Link` when `to` is set, plain `<span>` otherwise. Shared standings components take optional `driverHref` / `teamHref` / `href` / `raceHref` props and only link when given them (their tests need no router). `raceHref` uses `roundReplayPath()` (`utils/url.ts`) → `/?year&meeting&session&view=tracker&focus=` |
 | `SpoilerNotice`                                   | "Standings after X — N newer rounds hidden" bar with Reveal next / Reveal all; on Standings and both profile pages |
+| `FinishLinkPrompt`                                | Full-page "This link starts after the finish" prompt for `?t=` links into a race hidden by spoiler-free mode |
 | `ConstructorProfile`                              | Team profile page pieces: stat tiles (1-2s, double points…), driver line-up with points share, per-car round results |
 
 ---
@@ -286,6 +287,8 @@ components/ (render to DOM; read settings from Zustand)
 - A finished Race/Sprint is hidden when the mode is on, it isn't in `watched`, and it ended after `knownBeforeMs`. Turning the mode on sets `knownBeforeMs = now − SPOILER_RECENT_WINDOW_MS` (last week's race counts as unseen); "Reveal all" sets it to now.
 - `useStandings` splits the season at the **first** hidden round (`splitAtFirstHidden`): it and every later round are dropped before anything is computed, so all tabs and both profile pages read "as of" the last visible round, and a hidden `?session=` falls back to it. Returns `hiddenSessions` / `throughSession` for `SpoilerNotice`.
 - `RaceWeekend` marks a Race/Sprint watched once the playhead passes the chequered flag, or while it's live — even with the mode off, so turning it on later doesn't hide races already seen.
+- On the replay page a hidden Race/Sprint gets `PlaybackBar hideEnd`: the scrubber is drawn to `visibleScrubEndMs` (20 min past the playhead in 10-min steps, `SPOILER_SCRUB_*`), with no chequered marker, total time or jump-to-end (the End key is off too, `endDisabled`). Playback still clamps at the real `durationMs`.
+- A `?t=` link past the finish of a hidden race opens `FinishLinkPrompt` (start over / show anyway) instead of the replay, and doesn't count as watching it. While race control is loading the prompt just covers the page, since the finish time isn't known yet.
 - The replay panels need no gating: they are already cut off at the playhead.
 
 ### Ring view (`utils/lapProgress.ts`, `components/TrackRing/`)

@@ -22,7 +22,13 @@ import { useTimeline } from "@/timeline/clock";
 import { useCoarseTime } from "@/hooks/useCoarseTime";
 import { useMediaQuery } from "@/hooks/useMediaQuery";
 import { TOUR_TARGET } from "@/components/AppTour/targets";
-import { SCRUBBER_THUMB_PX, SPEEDS } from "@/constants";
+import {
+  SCRUBBER_THUMB_PX,
+  SPEEDS,
+  SPOILER_SCRUB_LOOKAHEAD_MS,
+  SPOILER_SCRUB_STEP_MS,
+} from "@/constants";
+import { visibleScrubEndMs } from "@/utils/spoilers";
 import { nextAfter, prevBefore } from "@/timeline/events";
 import { startLightsWindow } from "@/timeline/startLights";
 import type { RaceControlMarker, MarkerSummary } from "@/timeline/raceControl";
@@ -63,6 +69,12 @@ interface Props {
   raceStartMs?: number | null;
   /** Session-relative chequered-flag time (races/sprints); shows a finish marker. */
   chequeredMs?: number | null;
+  /**
+   * Spoiler-free mode: the scrubber only reaches a little past the playhead
+   * (growing as it plays), with no finish marker, total time or jump-to-end.
+   * Playback still runs to `durationMs`.
+   */
+  hideEnd?: boolean;
   /** Starts loading the target's session-aligned replay windows before seeking. */
   onSeek?: (targetMs: number) => void;
   mobileInline?: boolean;
@@ -199,6 +211,7 @@ export function PlaybackBar({
   q3StartMs = null,
   raceStartMs = null,
   chequeredMs = null,
+  hideEnd = false,
   onSeek,
   mobileInline = false,
   showSpeedControls = true,
@@ -265,6 +278,12 @@ export function PlaybackBar({
     };
   }, [playing]);
 
+  // Length the scrubber is drawn against; only differs from durationMs when
+  // the end is hidden.
+  const scaleMs = hideEnd
+    ? visibleScrubEndMs(t, durationMs, SPOILER_SCRUB_LOOKAHEAD_MS, SPOILER_SCRUB_STEP_MS)
+    : durationMs;
+
   const clamp = useCallback(
     (v: number) => Math.max(0, durationMs > 0 ? Math.min(v, durationMs) : v),
     [durationMs],
@@ -313,7 +332,7 @@ export function PlaybackBar({
 
   const onScrubberHover = (e: MouseEvent<HTMLDivElement>) => {
     // Markers show their own tooltip.
-    if (durationMs <= 0 || (e.target as HTMLElement).closest("button")) {
+    if (scaleMs <= 0 || (e.target as HTMLElement).closest("button")) {
       setHoverPct(null);
       return;
     }
@@ -344,7 +363,7 @@ export function PlaybackBar({
     badgeText?: string;
     targetMs: number;
   }) => {
-    if (!showMarkers || durationMs <= 0 || ms < 0 || ms > durationMs)
+    if (!showMarkers || scaleMs <= 0 || ms < 0 || ms > scaleMs)
       return null;
     const tooltip = markerTooltip(label, ms);
     return (
@@ -362,7 +381,7 @@ export function PlaybackBar({
         }}
         className="group absolute top-1/2 h-5 w-5 rounded-full pointer-events-auto"
         style={{
-          left: `${(ms / durationMs) * 100}%`,
+          left: `${(ms / scaleMs) * 100}%`,
           transform: "translate(-50%, -50%)",
         }}
       >
@@ -392,7 +411,7 @@ export function PlaybackBar({
   const hasMarkers =
     raceControlMarkers.length > 0 ||
     raceStartMs !== null ||
-    chequeredMs !== null ||
+    (chequeredMs !== null && !hideEnd) ||
     qualiStarts.some(({ ms }) => ms !== null);
 
   const prevLap = prevBefore(lapStarts, t);
@@ -502,7 +521,7 @@ export function PlaybackBar({
             animateMotion(e.currentTarget, pressMotion());
             trackJump("to_end", durationMs);
           }}
-          disabled={durationMs <= 0 || t >= durationMs}
+          disabled={hideEnd || durationMs <= 0 || t >= durationMs}
           className={JUMP_BTN}
           aria-label="Jump to end"
           title="Jump to end"
@@ -553,8 +572,8 @@ export function PlaybackBar({
           <input
             type="range"
             min={0}
-            max={durationMs}
-            value={Math.max(0, Math.min(t, durationMs))}
+            max={scaleMs}
+            value={Math.max(0, Math.min(t, scaleMs))}
             onChange={(e) => jump(Number(e.target.value))}
             className="w-full h-1 cursor-pointer"
             style={{ touchAction: "none" }}
@@ -569,10 +588,10 @@ export function PlaybackBar({
               right: SCRUBBER_THUMB_PX / 2,
             }}
           >
-            {durationMs > 0 &&
+            {scaleMs > 0 &&
               showMarkers &&
               raceControlMarkers.map((marker) => {
-                const left = (marker.ms / durationMs) * 100;
+                const left = (marker.ms / scaleMs) * 100;
                 if (!Number.isFinite(left) || left < 0 || left > 100)
                   return null;
                 // Flag markers use the race control feed's flag palette;
@@ -623,6 +642,7 @@ export function PlaybackBar({
                 targetMs: startLightsWindow(raceStartMs).startMs,
               })}
             {chequeredMs !== null &&
+              !hideEnd &&
               renderLandmark({
                 ms: chequeredMs,
                 label: "Chequered flag",
@@ -642,14 +662,14 @@ export function PlaybackBar({
                     targetMs: ms,
                   }),
             )}
-            {hoverPct !== null && durationMs > 0 && (
+            {hoverPct !== null && scaleMs > 0 && (
               <span
                 role="tooltip"
                 aria-label="Time at pointer"
                 className={`${tooltipBaseClass} tabular-nums`}
                 style={{ left: `${hoverPct * 100}%` }}
               >
-                {fmtTime(hoverPct * durationMs)}
+                {fmtTime(hoverPct * scaleMs)}
               </span>
             )}
           </div>
@@ -657,7 +677,7 @@ export function PlaybackBar({
 
         {/* Duration — hidden on mobile to reclaim scrubber space */}
         <span className="hidden sm:inline text-muted font-mono text-xs tabular-nums w-12 shrink-0">
-          {fmtTime(durationMs)}
+          {hideEnd ? "--:--" : fmtTime(durationMs)}
         </span>
 
         {/* Marker toggle (race control + landmarks) */}

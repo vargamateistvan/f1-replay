@@ -106,6 +106,8 @@ import {
   type SettingsTabId,
 } from "@/stores/settings";
 import { useSpoilers } from "@/stores/spoilers";
+import { isResultHidden } from "@/utils/spoilers";
+import { FinishLinkPrompt } from "@/components/SpoilerNotice";
 import { deriveRetiredDrivers } from "@/utils/retirement";
 import { battlingFrom, latestIntervalSeconds } from "@/utils/battles";
 import { latestIntervalRows } from "@/utils/intervals";
@@ -909,15 +911,56 @@ export default function RaceWeekend() {
     return lastChequered;
   }, [timedRaceControl]);
 
-  // Spoiler-free mode: a Race/Sprint counts as watched once replayed past the
-  // chequered flag, or when followed live. Recorded even with the mode off so
-  // turning it on later doesn't hide races already seen here.
+  // Spoiler-free mode. A Race/Sprint whose result is still hidden gets a
+  // scrubber without its end, and a shared ?t= link past its finish asks first.
+  const spoilerEnabled = useSpoilers((s) => s.enabled);
+  const knownBeforeMs = useSpoilers((s) => s.knownBeforeMs);
+  const watchedSessions = useSpoilers((s) => s.watched);
   const markWatched = useSpoilers((s) => s.markWatched);
+  const resultHidden =
+    !!session &&
+    isRaceSession &&
+    !live &&
+    isResultHidden(session, {
+      enabled: spoilerEnabled,
+      knownBeforeMs,
+      watched: watchedSessions,
+    });
+
+  // useTimelineUrlSync restores ?t= once, for the first session opened.
+  const [deepLinkMs] = useState(() => {
+    const tSec = Number(new URLSearchParams(window.location.search).get("t"));
+    return Number.isFinite(tSec) && tSec > 0 ? tSec * 1000 : null;
+  });
+  const firstSessionKeyRef = useRef<number | null>(null);
+  if (firstSessionKeyRef.current === null && sessionKey !== null) {
+    firstSessionKeyRef.current = sessionKey;
+  }
+  const [finishPromptDismissed, setFinishPromptDismissed] = useState(false);
+  const deepLinkApplies =
+    resultHidden &&
+    !finishPromptDismissed &&
+    deepLinkMs !== null &&
+    sessionKey === firstSessionKeyRef.current;
+  // Until race control loads, the finish time isn't known: cover the page
+  // rather than flash the final order.
+  const finishPromptChecking = deepLinkApplies && raceControl.isPending;
+  const finishPromptOpen =
+    finishPromptChecking ||
+    (deepLinkApplies && chequeredMs !== null && deepLinkMs >= chequeredMs);
+
+  useEffect(() => {
+    if (finishPromptOpen) setTimelinePlaying(false);
+  }, [finishPromptOpen, setTimelinePlaying]);
+
+  // A Race/Sprint counts as watched once replayed past the chequered flag, or
+  // when followed live. Recorded even with the mode off so turning it on later
+  // doesn't hide races already seen here.
   const reachedFinish = chequeredMs !== null && tSlow >= chequeredMs;
   useEffect(() => {
-    if (!session || !isRaceSession) return;
+    if (!session || !isRaceSession || finishPromptOpen) return;
     if (live || reachedFinish) markWatched(session.session_key);
-  }, [session, isRaceSession, live, reachedFinish, markWatched]);
+  }, [session, isRaceSession, live, reachedFinish, finishPromptOpen, markWatched]);
 
   const nextReplayIncident = useMemo(() => {
     const MIN_AHEAD_MS = 250;
@@ -1958,8 +2001,9 @@ export default function RaceWeekend() {
     lapStarts: lapMarks,
     eventTimes: keyMomentMarks,
     durationMs: playbackDurationMs,
+    endDisabled: resultHidden,
     setView,
-    isModalOpen: isHelpOpen || isSettingsOpen || isTourOpen,
+    isModalOpen: isHelpOpen || isSettingsOpen || isTourOpen || finishPromptOpen,
     onOpenHelp: openHelp,
     enabled: sessionKey !== null,
   });
@@ -3002,10 +3046,26 @@ export default function RaceWeekend() {
         q3StartMs={qualiPhaseStartTimes.q3StartMs}
         raceStartMs={isRaceSession ? lightsOutMs : null}
         chequeredMs={isRaceSession ? chequeredMs : null}
+        hideEnd={resultHidden}
         onSeek={prefetchPlaybackWindows}
         showSpeedControls={showPlaybackSpeedControls}
         showEventChips={showPlaybackEventChips}
       />
+
+      {finishPromptOpen && session && (
+        <FinishLinkPrompt
+          sessionLabel={`the ${session.location} ${session.session_name}`}
+          checking={finishPromptChecking}
+          onStartOver={() => {
+            setFinishPromptDismissed(true);
+            setTimelineT(0);
+          }}
+          onReveal={() => {
+            setFinishPromptDismissed(true);
+            markWatched(session.session_key);
+          }}
+        />
+      )}
 
       {isTourOpen && isTourReady && (
         <Suspense fallback={null}>

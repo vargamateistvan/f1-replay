@@ -10,6 +10,8 @@ interface Options {
   readonly lapStarts: number[];
   readonly eventTimes?: number[];
   readonly durationMs: number;
+  /** Spoiler-free mode: End would jump past a hidden finish. */
+  readonly endDisabled?: boolean;
   readonly setView?: (view: MainView) => void;
   readonly isModalOpen?: boolean;
   readonly onOpenHelp?: () => void;
@@ -30,6 +32,7 @@ export function useKeyboardShortcuts({
   lapStarts,
   eventTimes = [],
   durationMs,
+  endDisabled = false,
   setView,
   isModalOpen = false,
   onOpenHelp,
@@ -74,6 +77,7 @@ export function useKeyboardShortcuts({
           store.setT(0);
           break;
         case "End":
+          if (endDisabled) break;
           e.preventDefault();
           store.setT(clamp(durationMs));
           break;
@@ -145,6 +149,7 @@ export function useKeyboardShortcuts({
   }, [
     durationMs,
     enabled,
+    endDisabled,
     eventTimes,
     isModalOpen,
     lapStarts,

@@ -70,4 +70,13 @@ describe("useKeyboardShortcuts", () => {
     window.dispatchEvent(new KeyboardEvent("keydown", { key: "ArrowLeft" }));
     expect(store.setT).not.toHaveBeenCalled();
   });
+
+  it("doesn't jump to a hidden end", () => {
+    renderHook(() =>
+      useKeyboardShortcuts({ lapStarts: [], durationMs: 60_000, endDisabled: true }),
+    );
+
+    window.dispatchEvent(new KeyboardEvent("keydown", { key: "End" }));
+    expect(store.setT).not.toHaveBeenCalled();
+  });
 });

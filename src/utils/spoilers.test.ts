@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   isResultHidden,
   splitAtFirstHidden,
+  visibleScrubEndMs,
   withWatched,
   type SpoilerState,
 } from "./spoilers";
@@ -73,5 +74,18 @@ describe("withWatched", () => {
 
   it("drops the oldest entries over the cap", () => {
     expect(withWatched({ 1: 10, 2: 30, 3: 20 }, 4, 40, 2)).toEqual({ 2: 30, 4: 40 });
+  });
+});
+
+describe("visibleScrubEndMs", () => {
+  const MIN = 60_000;
+
+  it("stays a lookahead past the playhead, rounded up to a step", () => {
+    expect(visibleScrubEndMs(0, 120 * MIN, 20 * MIN, 10 * MIN)).toBe(20 * MIN);
+    expect(visibleScrubEndMs(31 * MIN, 120 * MIN, 20 * MIN, 10 * MIN)).toBe(60 * MIN);
+  });
+
+  it("never passes the real end", () => {
+    expect(visibleScrubEndMs(110 * MIN, 120 * MIN, 20 * MIN, 10 * MIN)).toBe(120 * MIN);
   });
 });

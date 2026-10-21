@@ -209,6 +209,31 @@ describe("PlaybackBar marker interactions", () => {
     expect(timelineState.setT).toHaveBeenCalledWith(5_726_000);
   });
 
+  it("hides the finish while the result is hidden", () => {
+    timelineState.t = 31 * 60_000;
+    render(
+      <PlaybackBar
+        durationMs={6_000_000}
+        chequeredMs={5_726_000}
+        raceControlMarkers={[
+          { id: "sc", ms: 40 * 60_000, label: "Safety car", severity: "warning" },
+          { id: "red", ms: 80 * 60_000, label: "Red flag", severity: "critical" },
+        ]}
+        hideEnd
+      />,
+    );
+
+    expect(
+      screen.queryByRole("button", { name: /Jump to chequered flag/ }),
+    ).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Jump to end" })).toBeDisabled();
+    expect(screen.getByText("--:--")).toBeInTheDocument();
+    // Drawn to 60 min (31 + 20 lookahead, next 10-min step): a marker past it is left out.
+    expect(screen.getByRole("slider", { name: "Seek" })).toHaveAttribute("max", "3600000");
+    expect(screen.getByRole("button", { name: /Safety car/ })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /Red flag/ })).not.toBeInTheDocument();
+  });
+
   it("omits the race start marker when there is no race start", () => {
     render(<PlaybackBar durationMs={600_000} raceStartMs={null} />);
     expect(

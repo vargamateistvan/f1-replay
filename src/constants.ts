@@ -475,3 +475,7 @@ export const TOUR_VERSION = 1;
 export const SPOILER_RECENT_WINDOW_MS = 7 * 24 * 60 * 60 * 1000;
 /** Most sessions remembered as watched; the oldest are dropped first. */
 export const WATCHED_SESSIONS_MAX = 500;
+/** While a race's result is hidden, the scrubber shows at least this far past the playhead… */
+export const SPOILER_SCRUB_LOOKAHEAD_MS = 20 * 60 * 1000;
+/** …and grows in steps of this size, so markers don't creep every frame. */
+export const SPOILER_SCRUB_STEP_MS = 10 * 60 * 1000;
