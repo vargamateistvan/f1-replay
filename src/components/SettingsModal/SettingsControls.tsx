@@ -7,11 +7,13 @@ import {
   type SettingsTabId,
 } from "@/stores/settings";
 import { useMediaQuery } from "@/hooks/useMediaQuery";
+import { useSpoilers } from "@/stores/spoilers";
 import { trackEvent } from "@/lib/analytics";
 import {
   CORNER_HIGH_SPEED_KMH,
   CORNER_LOW_SPEED_KMH,
   SPEEDS,
+  SPOILER_RECENT_WINDOW_MS,
 } from "@/constants";
 import { animateMotion, pressMotion } from "@/lib/motion";
 
@@ -510,6 +512,9 @@ export function SettingsBody({
                 value={settings.metricSystem}
                 onChange={(v) => updateSetting("metricSystem", v)}
               />
+
+              <SectionHeader>Spoilers</SectionHeader>
+              <SpoilerFreeSetting />
             </div>
           )}
 
@@ -879,5 +884,24 @@ export function SettingsBody({
         </button>
       </div>
     </>
+  );
+}
+
+const SPOILER_RECENT_DAYS = Math.round(SPOILER_RECENT_WINDOW_MS / 86_400_000);
+
+// Lives in its own store (not AppSettings), so a settings reset keeps it.
+function SpoilerFreeSetting() {
+  const enabled = useSpoilers((s) => s.enabled);
+  const setEnabled = useSpoilers((s) => s.setEnabled);
+  return (
+    <SettingRow
+      label="Spoiler-free mode"
+      description={`Standings stop before the first race or sprint you haven't replayed to the chequered flag. Results from the last ${SPOILER_RECENT_DAYS} days count as unseen when you turn this on.`}
+      checked={enabled}
+      onChange={(v) => {
+        setEnabled(v);
+        trackEvent("spoiler_mode_toggled", { enabled: v });
+      }}
+    />
   );
 }

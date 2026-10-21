@@ -3,6 +3,8 @@ import { useQueries, useQuery, type UseQueryResult } from "@tanstack/react-query
 import { api } from "@/api/endpoints";
 import type { Driver } from "@/api/types";
 import { CURRENT_SEASON_STALE_MS } from "@/utils/live";
+import { isResultHidden, splitAtFirstHidden } from "@/utils/spoilers";
+import { useSpoilers } from "@/stores/spoilers";
 import { teamColor } from "@/utils/color";
 import { canonicalTeamName } from "@/utils/identity";
 import {
@@ -93,9 +95,22 @@ export function useStandings(
     staleTime: isCurrentYear ? CURRENT_SEASON_STALE_MS : Infinity,
   });
 
-  const raceSessions = useMemo(
-    () => completedPointsSessions(sessionsQ.data ?? [], Date.now()),
-    [sessionsQ.data],
+  const spoilerEnabled = useSpoilers((s) => s.enabled);
+  const knownBeforeMs = useSpoilers((s) => s.knownBeforeMs);
+  const watched = useSpoilers((s) => s.watched);
+
+  // Spoiler-free mode: the season stops at the round before the first unseen
+  // one, so every table, chart and grid below reads "as of" that round.
+  const { visible: raceSessions, hidden: hiddenSessions } = useMemo(() => {
+    const state = { enabled: spoilerEnabled, knownBeforeMs, watched };
+    return splitAtFirstHidden(
+      completedPointsSessions(sessionsQ.data ?? [], Date.now()),
+      (s) => isResultHidden(s, state),
+    );
+  }, [sessionsQ.data, spoilerEnabled, knownBeforeMs, watched]);
+  const hiddenKeys = useMemo(
+    () => new Set(hiddenSessions.map((s) => s.session_key)),
+    [hiddenSessions],
   );
 
   const latestKey = raceSessions.at(-1)?.session_key ?? null;
@@ -113,7 +128,7 @@ export function useStandings(
       : undefined;
   // Championship tables only exist for Races and Sprints, so a practice or
   // qualifying session shows the standings after the last one before it.
-  const selectedKey = selectedSession
+  const selectedKey = selectedSession && !hiddenKeys.has(selectedSession.session_key)
     ? isPointsSession(selectedSession)
       ? selectedSession.session_key
       : raceSessions
@@ -440,6 +455,10 @@ export function useStandings(
   const hasSelection = selectedKey !== null;
 
   return {
+    /** Finished Races/Sprints held back by spoiler-free mode, oldest first. */
+    hiddenSessions,
+    /** Latest round the standings include, or undefined before the first. */
+    throughSession: raceSessions.at(-1),
     driverStandings,
     constructorStandings,
     driverProgression,

@@ -3,6 +3,7 @@ import { Link, useLocation, useNavigate, useParams } from "react-router-dom";
 import { ArrowLeft, ChevronDown } from "lucide-react";
 import { useStandings } from "@/hooks/useStandings";
 import { useNumberParam } from "@/hooks/useSearchParamState";
+import { SpoilerNotice } from "@/components/SpoilerNotice";
 import { ErrorMessage } from "@/components/ErrorMessage";
 import {
   PointsProgressionChart,
@@ -53,6 +54,8 @@ export default function ConstructorProfile() {
   const [sessionKey] = useNumberParam("session", null);
 
   const {
+    hiddenSessions,
+    throughSession,
     driverStandings,
     constructorStandings,
     constructorProgression,
@@ -170,6 +173,7 @@ export default function ConstructorProfile() {
           )}
         </div>
       </div>
+      <SpoilerNotice hidden={hiddenSessions} through={throughSession} />
 
       {isError ? (
         <div className="flex-1">

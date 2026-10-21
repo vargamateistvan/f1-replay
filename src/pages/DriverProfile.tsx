@@ -4,6 +4,7 @@ import { ArrowLeft, ChevronDown } from "lucide-react";
 import { useStandings } from "@/hooks/useStandings";
 import { useNumberParam } from "@/hooks/useSearchParamState";
 import { DriverHeadshot } from "@/components/DriverHeadshot";
+import { SpoilerNotice } from "@/components/SpoilerNotice";
 import { ErrorMessage } from "@/components/ErrorMessage";
 import {
   PointsProgressionChart,
@@ -53,6 +54,8 @@ export default function DriverProfile() {
   const [sessionKey] = useNumberParam("session", null);
 
   const {
+    hiddenSessions,
+    throughSession,
     driverStandings,
     driverProgression,
     teammates,
@@ -173,6 +176,7 @@ export default function DriverProfile() {
           )}
         </div>
       </div>
+      <SpoilerNotice hidden={hiddenSessions} through={throughSession} />
 
       {isError ? (
         <div className="flex-1">

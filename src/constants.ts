@@ -469,3 +469,9 @@ export const CATCHUP_JUMP_THRESHOLD_MS = 60_000;
 // ── App tour ──────────────────────────────────────────────────────────────────
 /** Bump when the tour changes enough that returning users should see it again. */
 export const TOUR_VERSION = 1;
+
+// ── Spoiler-free mode ─────────────────────────────────────────────────────────
+/** Turning spoiler-free mode on treats results from this far back as not yet seen. */
+export const SPOILER_RECENT_WINDOW_MS = 7 * 24 * 60 * 60 * 1000;
+/** Most sessions remembered as watched; the oldest are dropped first. */
+export const WATCHED_SESSIONS_MAX = 500;

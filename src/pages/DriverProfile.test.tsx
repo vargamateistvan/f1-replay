@@ -44,6 +44,8 @@ const ham = standing(44, "HAM", 3, 30, "Mercedes");
 
 function setup(path: string) {
   mockUseStandings.mockReturnValue({
+    hiddenSessions: [],
+    throughSession: undefined,
     driverStandings: [ver, per, ham],
     driverProgression: {
       rounds,

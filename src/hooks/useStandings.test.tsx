@@ -1,6 +1,7 @@
 import { describe, expect, it, vi, beforeEach } from "vitest";
 import { renderHook } from "@testing-library/react";
 import { useStandings } from "./useStandings";
+import { useSpoilers } from "@/stores/spoilers";
 
 const mockUseQuery = vi.fn();
 
@@ -92,6 +93,40 @@ describe("useStandings", () => {
   beforeEach(() => {
     mockUseQuery.mockReset();
     mockData({ "sessions-year:2023": sessions2023 });
+    useSpoilers.setState({ enabled: false, knownBeforeMs: 0, watched: {} });
+  });
+
+  describe("spoiler-free mode", () => {
+    // Known up to mid-season: the first race is known, the last is not.
+    const knownBeforeMs = Date.parse("2023-06-01T00:00:00Z");
+
+    it("stops before the first unseen race", () => {
+      useSpoilers.setState({ enabled: true, knownBeforeMs, watched: {} });
+      const { result } = renderHook(() => useStandings(2023));
+      expect(championshipKey()).toBe(9000);
+      expect(result.current.hiddenSessions.map((s) => s.session_key)).toEqual([9001]);
+      expect(result.current.throughSession?.session_key).toBe(9000);
+    });
+
+    it("won't select a hidden race from the URL", () => {
+      useSpoilers.setState({ enabled: true, knownBeforeMs, watched: {} });
+      renderHook(() => useStandings(2023, 9001));
+      expect(championshipKey()).toBe(9000);
+    });
+
+    it("includes a race once it is watched", () => {
+      useSpoilers.setState({ enabled: true, knownBeforeMs, watched: { 9001: 1 } });
+      const { result } = renderHook(() => useStandings(2023));
+      expect(championshipKey()).toBe(9001);
+      expect(result.current.hiddenSessions).toEqual([]);
+    });
+
+    it("has no standings when every race is unseen", () => {
+      useSpoilers.setState({ enabled: true, knownBeforeMs: 0, watched: {} });
+      const { result } = renderHook(() => useStandings(2023));
+      expect(championshipKey()).toBeNull();
+      expect(result.current.throughSession).toBeUndefined();
+    });
   });
 
   it("uses the latest race of the year when no session is preferred", () => {

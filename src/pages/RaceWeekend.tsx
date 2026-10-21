@@ -105,6 +105,7 @@ import {
   type MapViewMode,
   type SettingsTabId,
 } from "@/stores/settings";
+import { useSpoilers } from "@/stores/spoilers";
 import { deriveRetiredDrivers } from "@/utils/retirement";
 import { battlingFrom, latestIntervalSeconds } from "@/utils/battles";
 import { latestIntervalRows } from "@/utils/intervals";
@@ -907,6 +908,16 @@ export default function RaceWeekend() {
     }
     return lastChequered;
   }, [timedRaceControl]);
+
+  // Spoiler-free mode: a Race/Sprint counts as watched once replayed past the
+  // chequered flag, or when followed live. Recorded even with the mode off so
+  // turning it on later doesn't hide races already seen here.
+  const markWatched = useSpoilers((s) => s.markWatched);
+  const reachedFinish = chequeredMs !== null && tSlow >= chequeredMs;
+  useEffect(() => {
+    if (!session || !isRaceSession) return;
+    if (live || reachedFinish) markWatched(session.session_key);
+  }, [session, isRaceSession, live, reachedFinish, markWatched]);
 
   const nextReplayIncident = useMemo(() => {
     const MIN_AHEAD_MS = 250;

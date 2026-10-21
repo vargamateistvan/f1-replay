@@ -53,6 +53,8 @@ const ham = driver(44, "HAM", 3, 30, "Mercedes");
 
 function setup(path: string) {
   mockUseStandings.mockReturnValue({
+    hiddenSessions: [],
+    throughSession: undefined,
     driverStandings: [ver, per, ham],
     constructorStandings: [
       team("Red Bull Racing", 1, 76),

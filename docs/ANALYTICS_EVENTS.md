@@ -146,6 +146,15 @@ dimension** instead of relying on the built-in App version report:
 - `settings_reset_defaults`
   - Params: none
   - Trigger: reset-to-defaults button
+- `spoiler_mode_toggled`
+  - Params: `enabled`
+  - Trigger: spoiler-free mode switch (General tab)
+
+### Spoiler Notice
+
+- `spoiler_revealed`
+  - Params: `scope` (`round` | `all`)
+  - Trigger: Reveal button on the Standings / profile spoiler notice
 
 ### Playback Bar
 

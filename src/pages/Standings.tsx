@@ -23,6 +23,7 @@ import {
   staggerFadeUpMotion,
   MOTION,
 } from "@/lib/motion";
+import { SpoilerNotice } from "@/components/SpoilerNotice";
 import { ErrorMessage } from "@/components/ErrorMessage";
 import { DriverHeadshot } from "@/components/DriverHeadshot";
 import {
@@ -606,6 +607,8 @@ export default function Standings() {
   });
 
   const {
+    hiddenSessions,
+    throughSession,
     driverStandings,
     constructorStandings,
     driverProgression,
@@ -767,6 +770,8 @@ export default function Standings() {
           Loading sessions…
         </div>
       )}
+
+      <SpoilerNotice hidden={hiddenSessions} through={throughSession} />
 
       {/* Sub-tabs — same pattern as the Commentary tabs */}
       <div

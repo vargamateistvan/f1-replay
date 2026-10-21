@@ -56,6 +56,7 @@ src/
 
   stores/
     settings.ts         — Zustand persist store for all user preferences (AppSettings)
+    spoilers.ts         — Spoiler-free mode: on/off, known-before point, watched sessions (own persist key, survives settings reset)
 
   hooks/
     useSession.ts       — All session-scoped TanStack Query hooks
@@ -85,6 +86,7 @@ src/
     raceControlFlags.ts — Flag severity, safety-car phase classification
     retirement.ts       — Retirement detection from race control
     session.ts          — Session utility helpers
+    spoilers.ts         — isResultHidden(), splitAtFirstHidden(), withWatched() for spoiler-free mode
     standings.ts        — computeStandings(), completed-session + wins/podiums tallies
     championship.ts     — Points progression, per-race results grid, title-outlook maths, teammate head-to-heads
     driverProfile.ts    — driverSeasonStats(), finishDistribution(), championshipPositions() for the driver profile
@@ -193,6 +195,7 @@ components/ (render to DOM; read settings from Zustand)
 | `ResultsGrid`                                     | Drivers × rounds finishing positions/points, colour-coded (Standings → Results)          |
 | `DriverProfile`                                   | Driver profile page pieces: stat tiles, finish distribution, round-by-round results (quali → finish → championship position) |
 | `MaybeLink`                                       | Router `Link` when `to` is set, plain `<span>` otherwise. Shared standings components take optional `driverHref` / `teamHref` / `href` / `raceHref` props and only link when given them (their tests need no router). `raceHref` uses `roundReplayPath()` (`utils/url.ts`) → `/?year&meeting&session&view=tracker&focus=` |
+| `SpoilerNotice`                                   | "Standings after X — N newer rounds hidden" bar with Reveal next / Reveal all; on Standings and both profile pages |
 | `ConstructorProfile`                              | Team profile page pieces: stat tiles (1-2s, double points…), driver line-up with points share, per-car round results |
 
 ---
@@ -205,6 +208,7 @@ components/ (render to DOM; read settings from Zustand)
 | ------------- | -------------------- | -------------------------------- | --------------------------------------------------------- |
 | `useTimeline` | `timeline/clock.ts`  | No                               | Playback state: `t`, `playing`, `speed`, `sessionStartMs`, `realTimeWindow` (span forced to 1x, e.g. race start lights) |
 | `useSettings` | `stores/settings.ts` | Yes (localStorage via `persist`) | All `AppSettings` flags                                   |
+| `useSpoilers` | `stores/spoilers.ts` | Yes (localStorage, `f1-replay-spoilers`) | Spoiler-free mode: `enabled`, `knownBeforeMs`, `watched` (sessionKey → ms) |
 
 ### 6b. TanStack Query keys (convention)
 
@@ -276,6 +280,13 @@ components/ (render to DOM; read settings from Zustand)
 - Handles Sprint sessions with a separate `SPRINT_POINTS` table.
 - `useStandings` only considers finished Race/Sprint sessions, fetches one `session_result` per round (shared `["sessionResult", key]` cache) for wins/podiums and the progression chart, and fetches main-qualifying results only when the Teammates tab is open.
 - Title outlook (`utils/championship.ts`): remaining points = 25 per GP (+1 fastest lap up to `FASTEST_LAP_POINT_LAST_YEAR`) and 8 per Sprint (double the top-two slots for teams). A rival who can only draw level stays a contender (countback).
+
+### Spoiler-free mode (`utils/spoilers.ts`, `stores/spoilers.ts`)
+
+- A finished Race/Sprint is hidden when the mode is on, it isn't in `watched`, and it ended after `knownBeforeMs`. Turning the mode on sets `knownBeforeMs = now − SPOILER_RECENT_WINDOW_MS` (last week's race counts as unseen); "Reveal all" sets it to now.
+- `useStandings` splits the season at the **first** hidden round (`splitAtFirstHidden`): it and every later round are dropped before anything is computed, so all tabs and both profile pages read "as of" the last visible round, and a hidden `?session=` falls back to it. Returns `hiddenSessions` / `throughSession` for `SpoilerNotice`.
+- `RaceWeekend` marks a Race/Sprint watched once the playhead passes the chequered flag, or while it's live — even with the mode off, so turning it on later doesn't hide races already seen.
+- The replay panels need no gating: they are already cut off at the playhead.
 
 ### Ring view (`utils/lapProgress.ts`, `components/TrackRing/`)
 
