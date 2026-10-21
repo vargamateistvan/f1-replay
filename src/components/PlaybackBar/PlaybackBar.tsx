@@ -215,7 +215,6 @@ export function PlaybackBar({
   const [timeInput, setTimeInput] = useState(() => fmtTime(t));
   const [isEditingTime, setIsEditingTime] = useState(false);
   const playPauseButtonRef = useRef<HTMLButtonElement | null>(null);
-  const isCompactViewport = useMediaQuery("(max-width: 639px)");
   const isMobileNavViewport = useMediaQuery("(max-width: 767px)");
   const hasClampedRef = useRef(false);
   const skipTimeCommitOnBlurRef = useRef(false);
@@ -572,7 +571,6 @@ export function PlaybackBar({
           >
             {durationMs > 0 &&
               showMarkers &&
-              !isCompactViewport &&
               raceControlMarkers.map((marker) => {
                 const left = (marker.ms / durationMs) * 100;
                 if (!Number.isFinite(left) || left < 0 || left > 100)
@@ -662,7 +660,7 @@ export function PlaybackBar({
           {fmtTime(durationMs)}
         </span>
 
-        {/* Marker toggle (race control + landmarks) — desktop only */}
+        {/* Marker toggle (race control + landmarks) */}
         {hasMarkers && (
           <button
             type="button"
@@ -683,7 +681,7 @@ export function PlaybackBar({
               showMarkers ? "Hide timeline markers" : "Show timeline markers"
             }
             aria-pressed={showMarkers}
-            className={`hidden sm:flex items-center gap-1 shrink-0 h-7 px-2 text-[9px] font-black uppercase tracking-widest transition-colors border ${
+            className={`flex items-center gap-1 shrink-0 h-7 px-2 text-[9px] font-black uppercase tracking-widest transition-colors border ${
               showMarkers
                 ? "border-amber-500/60 text-amber-300 bg-amber-500/10 hover:bg-amber-500/20"
                 : "border-panel text-muted bg-panel hover:text-white"
