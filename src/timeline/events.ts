@@ -1,4 +1,11 @@
-import type { Lap, Pit, RaceControl, Overtake, TeamRadio } from "@/api/types";
+import type {
+  Lap,
+  Pit,
+  RaceControl,
+  Overtake,
+  Stint,
+  TeamRadio,
+} from "@/api/types";
 import { pitStopTime } from "@/utils/pit";
 import { isSafetyRelatedRaceControl } from "@/utils/raceControlFlags";
 import { buildLapLookup, lapNumberAtMs } from "@/utils/lapLookup";
@@ -34,10 +41,18 @@ export interface OvertakePayload {
   overtaken: number;
   position: number | null;
 }
+export interface PitTyre {
+  compound: Stint["compound"];
+  /** Laps on the set: run so far for the tyre coming off, at fitting for the one going on (0 = new). */
+  age: number;
+}
 export interface PitPayload {
   driverNumber: number;
   lapNumber: number;
   pitDuration: number | null;
+  /** Null when stints don't cover the stop (no data yet, or no tyre change). */
+  tyreOff?: PitTyre | null;
+  tyreOn?: PitTyre | null;
 }
 export interface FastestLapPayload {
   driverNumber: number;
@@ -102,6 +117,35 @@ function classifyRaceControlToast(entry: RaceControl): {
   return null;
 }
 
+/**
+ * Tyres off/on for a stop at the end of `lapNumber`. The new stint must start on
+ * the next lap, so a stop without a tyre change (drive-through) gets no `tyreOn`.
+ */
+export function pitTyreChange(
+  stints: readonly Stint[],
+  driverNumber: number,
+  lapNumber: number,
+): { tyreOff: PitTyre | null; tyreOn: PitTyre | null } {
+  const own = stints.filter((s) => s.driver_number === driverNumber);
+  const off = own.find(
+    (s) => s.lap_start <= lapNumber && lapNumber <= (s.lap_end ?? Infinity),
+  );
+  const on = own.find(
+    (s) => s.lap_start > lapNumber && s.lap_start <= lapNumber + 1,
+  );
+  return {
+    tyreOff: off
+      ? {
+          compound: off.compound ?? "UNKNOWN",
+          age: lapNumber - off.lap_start + 1 + (off.tyre_age_at_start ?? 0),
+        }
+      : null,
+    tyreOn: on
+      ? { compound: on.compound ?? "UNKNOWN", age: on.tyre_age_at_start ?? 0 }
+      : null,
+  };
+}
+
 export function buildToastEvents(
   radios: TeamRadio[],
   raceControl: RaceControl[],
@@ -109,6 +153,7 @@ export function buildToastEvents(
   pits: Pit[],
   sessionStartMs: number,
   laps: Lap[] = [],
+  stints: Stint[] = [],
 ): ToastEvent[] {
   const events: ToastEvent[] = [];
   const lapLookup = buildLapLookup(laps, sessionStartMs);
@@ -175,6 +220,7 @@ export function buildToastEvents(
         driverNumber: p.driver_number,
         lapNumber: p.lap_number,
         pitDuration: pitStopTime(p),
+        ...pitTyreChange(stints, p.driver_number, p.lap_number),
       } satisfies PitPayload,
       priority: "high",
     });

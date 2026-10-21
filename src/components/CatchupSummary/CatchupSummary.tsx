@@ -17,6 +17,7 @@ import { formatPitDuration } from "@/utils/pit";
 import { useSettings } from "@/stores/settings";
 import { toSafeExternalUrl } from "@/utils/url";
 import { RadioAudio } from "@/components/RadioAudio";
+import { TyreChange } from "@/components/TyreChange/TyreChange";
 import { useAudioProgress } from "@/hooks/useAudioProgress";
 
 interface Props {
@@ -371,6 +372,7 @@ function CatchupEventRow(props: Readonly<RowProps>) {
       const p = ev.payload as PitPayload;
       const hasLap = typeof p.lapNumber === "number";
       const hasDuration = typeof p.pitDuration === "number";
+      const hasTyres = Boolean(p.tyreOff || p.tyreOn);
       return (
         <EventRow
           ev={ev}
@@ -390,13 +392,16 @@ function CatchupEventRow(props: Readonly<RowProps>) {
             </>
           }
           detail={
-            (hasLap || hasDuration) && (
+            (hasLap || hasDuration || hasTyres) && (
               <div className="flex items-center gap-2">
                 <LapTag lap={p.lapNumber} />
                 {hasDuration && (
                   <span className="text-[9px] font-mono tabular-nums text-white/70">
                     {formatPitDuration(p.pitDuration!) ?? "--:--"} stop
                   </span>
+                )}
+                {hasTyres && (
+                  <TyreChange off={p.tyreOff} on={p.tyreOn} compact />
                 )}
               </div>
             )

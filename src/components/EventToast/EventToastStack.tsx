@@ -17,6 +17,7 @@ import { toSafeExternalUrl } from "@/utils/url";
 import { useAudioProgress } from "@/hooks/useAudioProgress";
 import { beep, getAudioContext } from "@/lib/audio";
 import { RadioAudio } from "@/components/RadioAudio";
+import { TyreChange } from "@/components/TyreChange/TyreChange";
 
 interface Props {
   toasts: ActiveToast[];
@@ -559,8 +560,13 @@ function PitToast({
             {driver?.name_acronym ?? p.driverNumber}
           </span>
           {p.pitDuration !== null && (
-            <span className="text-white/70 text-[11px] font-mono tabular-nums">
+            <span className="min-w-0 truncate text-white/70 text-[11px] font-mono tabular-nums">
               {formatPitDuration(p.pitDuration) ?? "--:--:---"}
+            </span>
+          )}
+          {(p.tyreOff || p.tyreOn) && (
+            <span className="ml-auto">
+              <TyreChange off={p.tyreOff} on={p.tyreOn} compact />
             </span>
           )}
         </div>

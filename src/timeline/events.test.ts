@@ -9,8 +9,16 @@ import {
   nextAfter,
   prevBefore,
   atOrBefore,
+  pitTyreChange,
 } from "./events";
-import type { Lap, Pit, RaceControl, Overtake, TeamRadio } from "@/api/types";
+import type {
+  Lap,
+  Pit,
+  RaceControl,
+  Overtake,
+  Stint,
+  TeamRadio,
+} from "@/api/types";
 
 const START = new Date("2024-01-01T00:00:00Z").getTime();
 const iso = (sec: number) => new Date(START + sec * 1000).toISOString();
@@ -123,5 +131,56 @@ describe("nextAfter / prevBefore", () => {
     expect(atOrBefore(marks, 2500)).toBe(2000);
     expect(atOrBefore(marks, 2000)).toBe(2000);
     expect(atOrBefore(marks, 500)).toBe(0);
+  });
+});
+
+describe("pitTyreChange", () => {
+  const stint = (o: Partial<Stint>) =>
+    ({
+      driver_number: 1,
+      compound: "SOFT",
+      lap_start: 1,
+      lap_end: 20,
+      stint_number: 1,
+      tyre_age_at_start: 0,
+      ...o,
+    }) as Stint;
+  const stints = [
+    stint({ lap_start: 1, lap_end: 20, tyre_age_at_start: 3 }),
+    stint({ compound: "HARD", lap_start: 21, lap_end: 57, stint_number: 2 }),
+    stint({ driver_number: 16, compound: "MEDIUM", lap_start: 21, lap_end: 40, tyre_age_at_start: 4 }),
+  ];
+
+  it("gives laps run on the old set and the new set fitted", () => {
+    expect(pitTyreChange(stints, 1, 20)).toEqual({
+      tyreOff: { compound: "SOFT", age: 23 },
+      tyreOn: { compound: "HARD", age: 0 },
+    });
+  });
+
+  it("keeps a used set's age when fitted", () => {
+    expect(pitTyreChange(stints, 16, 20).tyreOn).toEqual({
+      compound: "MEDIUM",
+      age: 4,
+    });
+  });
+
+  it("has no new set for a stop without a tyre change", () => {
+    expect(pitTyreChange(stints, 1, 10).tyreOn).toBeNull();
+  });
+
+  it("is empty without stint data", () => {
+    expect(pitTyreChange([], 1, 20)).toEqual({ tyreOff: null, tyreOn: null });
+  });
+
+  it("is carried on pit toast payloads", () => {
+    const pits = [
+      { driver_number: 1, lap_number: 20, date: iso(60), lane_duration: 22 },
+    ] as unknown as Pit[];
+    const [ev] = buildToastEvents([], [], [], pits, START, [], stints);
+    expect(ev!.payload).toMatchObject({
+      tyreOff: { compound: "SOFT", age: 23 },
+      tyreOn: { compound: "HARD", age: 0 },
+    });
   });
 });

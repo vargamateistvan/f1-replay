@@ -1475,6 +1475,7 @@ export default function RaceWeekend() {
       pits.data ?? [],
       sessionStartMs,
       laps.data ?? [],
+      stints.data ?? [],
     );
   }, [
     teamRadio.data,
@@ -1483,6 +1484,7 @@ export default function RaceWeekend() {
     pits.data,
     sessionStartMs,
     laps.data,
+    stints.data,
     shouldBuildToastEvents,
   ]);
 

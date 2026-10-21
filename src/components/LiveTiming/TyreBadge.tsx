@@ -19,14 +19,33 @@ const COMPOUND_STYLE: Record<Compound, { color: string; letter: string }> = {
   UNKNOWN: { color: "#7b7b82", letter: "?" },
 };
 
-export function CompoundRing({ compound }: { compound: Compound }) {
+const RING_SIZE = {
+  md: {
+    box: "h-5 w-5 sm:h-6 sm:w-6",
+    inset: "inset-[4px]",
+    letter: "text-[9px] sm:text-[10px]",
+  },
+  // Fits inside a 12–13px text line without growing it (toasts).
+  sm: { box: "h-4 w-4", inset: "inset-[3px]", letter: "text-[8px]" },
+};
+
+export function CompoundRing({
+  compound,
+  size = "md",
+}: {
+  compound: Compound;
+  size?: keyof typeof RING_SIZE;
+}) {
+  const sz = RING_SIZE[size];
   const lightMode = useSettings((s) => s.lightMode);
   const { color: baseColor, letter } =
     COMPOUND_STYLE[compound] ?? COMPOUND_STYLE.UNKNOWN;
   const color = lightMode && compound === "HARD" ? "#6b7280" : baseColor;
 
   return (
-    <span className="relative inline-flex h-5 w-5 shrink-0 items-center justify-center sm:h-6 sm:w-6">
+    <span
+      className={`relative inline-flex shrink-0 items-center justify-center ${sz.box}`}
+    >
       <svg viewBox="0 0 24 24" className="absolute inset-0" aria-hidden="true">
         <circle
           cx="12"
@@ -39,10 +58,12 @@ export function CompoundRing({ compound }: { compound: Compound }) {
         />
       </svg>
       <span
-        className="absolute inset-[4px] rounded-full bg-track light:bg-white"
+        className={`absolute ${sz.inset} rounded-full bg-track light:bg-white`}
         aria-hidden="true"
       />
-      <span className="relative text-[9px] font-black uppercase leading-none text-white sm:text-[10px] light:text-black">
+      <span
+        className={`relative ${sz.letter} font-black uppercase leading-none text-white light:text-black`}
+      >
         {letter}
       </span>
     </span>
