@@ -1,13 +1,13 @@
 import type { Step } from "react-joyride";
-import { TOUR_TARGET, tourSelector } from "./targets";
+import { TOUR_TARGET, tourSelector, visibleTourTarget } from "./targets";
 
 export interface TourContext {
   /** Phone layout (below `md`): tabbed tracker + bottom nav. */
   readonly isCompact: boolean;
   /** Race or Sprint: the scrubber shows race start and chequered flag markers. */
   readonly isRace: boolean;
-  /** The map toolbar offers other views (3D map / ring). */
-  readonly hasMapModes: boolean;
+  /** The 3D map can be shown (Mapbox token, WebGL2, baked circuit). */
+  readonly has3d: boolean;
 }
 
 const welcome: Step = {
@@ -44,16 +44,25 @@ function playback({ isRace, isCompact }: TourContext): Step {
   };
 }
 
-function trackMap({ hasMapModes }: TourContext): Step {
-  const modes = hasMapModes
-    ? " The map toolbar switches to the 3D map or the ring view, which spaces cars by their time gap."
-    : "";
+const trackMap: Step = {
+  id: "track-map",
+  target: tourSelector(TOUR_TARGET.trackMap),
+  placement: "left",
+  title: "Live track map",
+  content:
+    "Every car, animated from GPS. Click a car to focus it and follow it around the lap.",
+};
+
+function mapViews({ has3d }: TourContext): Step {
+  const views = has3d
+    ? "Switch between the 2D map, the 3D map with follow, chase and onboard cameras, and the ring view."
+    : "Switch between the 2D map and the ring view.";
   return {
-    id: "track-map",
-    target: tourSelector(TOUR_TARGET.trackMap),
-    placement: "left",
-    title: "Live track map",
-    content: `Every car, animated from GPS. Click a car to focus it and follow it around the lap.${modes}`,
+    id: "map-views",
+    target: visibleTourTarget(TOUR_TARGET.mapViews),
+    placement: "bottom-end",
+    title: "Change the view",
+    content: `${views} The ring is a clock face spaced by lap time, so the angle between two cars is their gap.`,
   };
 }
 
@@ -76,7 +85,8 @@ const desktopSteps = (ctx: TourContext): Step[] => [
     content:
       "Gaps, sectors, tyres and live car data. Click a driver to focus them; the tabs switch to tyre strategy, lap and gap charts.",
   },
-  trackMap(ctx),
+  trackMap,
+  mapViews(ctx),
   playback(ctx),
   {
     id: "analysis-links",
@@ -103,8 +113,9 @@ const compactSteps = (ctx: TourContext): Step[] => [
     target: tourSelector(TOUR_TARGET.mobileTrackerTabs),
     placement: "bottom",
     title: "Timing, track and charts",
-    content:
-      "Switch between the timing tower, the live track map, tyre strategy and lap and gap charts. Tap a driver to focus them.",
+    content: `Switch between the timing tower, the live track map, tyre strategy and lap and gap charts. Tap a driver to focus them. On the map, the ${
+      ctx.has3d ? "2D, 3D and ring" : "2D and ring"
+    } buttons change its view.`,
   },
   playback(ctx),
   {

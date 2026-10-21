@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { buildTourSteps, type TourContext } from "./steps";
 import { TOUR_TARGET, tourSelector } from "./targets";
 
-const desktop: TourContext = { isCompact: false, isRace: true, hasMapModes: true };
+const desktop: TourContext = { isCompact: false, isRace: true, has3d: true };
 const phone: TourContext = { ...desktop, isCompact: true };
 
 const ids = (ctx: TourContext) => buildTourSteps(ctx).map((s) => s.id);
@@ -17,6 +17,7 @@ describe("buildTourSteps", () => {
       "view-tabs",
       "data-panel",
       "track-map",
+      "map-views",
       "playback",
       "analysis-links",
       "help",
@@ -39,10 +40,23 @@ describe("buildTourSteps", () => {
     for (const step of [...buildTourSteps(desktop), ...buildTourSteps(phone)]) {
       if (step.id === "welcome") {
         expect(step.placement).toBe("center");
+      } else if (typeof step.target === "function") {
+        expect(step.id).toBe("map-views");
       } else {
         expect(known).toContain(step.target);
       }
     }
+  });
+
+  it("points the view step at the toolbar on screen, not a hidden copy", () => {
+    document.body.innerHTML = `
+      <div data-tour="map-views" id="hidden"></div>
+      <div data-tour="map-views" id="shown"></div>`;
+    const shown = document.getElementById("shown")!;
+    shown.getClientRects = () => [new DOMRect(0, 0, 40, 20)] as unknown as DOMRectList;
+    const step = buildTourSteps(desktop).find((s) => s.id === "map-views")!;
+    expect((step.target as () => HTMLElement | null)()).toBe(shown);
+    document.body.innerHTML = "";
   });
 
   it("gives every step a unique id", () => {
@@ -63,10 +77,15 @@ describe("buildTourSteps", () => {
     expect(content(phone, "playback")).not.toMatch(/Space/);
   });
 
-  it("mentions the other map views only when the toolbar offers them", () => {
-    expect(content(desktop, "track-map")).toMatch(/ring view/);
-    expect(content({ ...desktop, hasMapModes: false }, "track-map")).not.toMatch(
-      /ring view/,
-    );
+  it("mentions the 3D map only where it can be shown", () => {
+    expect(content(desktop, "map-views")).toMatch(/3D map/);
+    expect(content(desktop, "map-views")).toMatch(/ring/);
+    const no3d = content({ ...desktop, has3d: false }, "map-views");
+    expect(no3d).not.toMatch(/3D/);
+    expect(no3d).toMatch(/ring view/);
+    expect(content(phone, "mobile-tracker-tabs")).toMatch(/2D, 3D and ring/);
+    expect(
+      content({ ...phone, has3d: false }, "mobile-tracker-tabs"),
+    ).not.toMatch(/3D/);
   });
 });

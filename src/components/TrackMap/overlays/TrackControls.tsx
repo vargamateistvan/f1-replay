@@ -11,6 +11,7 @@ import {
   ZoomOut,
 } from "lucide-react";
 import { animateMotion, pressMotion } from "@/lib/motion";
+import { TOUR_TARGET } from "@/components/AppTour/targets";
 
 /** Same button as the 3D map's toolbar, so both maps share one control bar look. */
 const BUTTON_CLASS =
@@ -127,7 +128,13 @@ export const TrackControls = memo(function TrackControls({
       </ControlButton>,
     );
   }
-  if (views.length) top.push(<Fragment key="views">{views}</Fragment>);
+  if (views.length) {
+    top.push(
+      <span key="views" data-tour={TOUR_TARGET.mapViews} className="flex items-center gap-1">
+        {views}
+      </span>,
+    );
+  }
   if (extraButtons?.length) {
     top.push(
       <Fragment key="extra">

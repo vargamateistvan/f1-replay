@@ -3002,7 +3002,7 @@ export default function RaceWeekend() {
             context={{
               isCompact: isCompactViewport,
               isRace: isRaceSession,
-              hasMapModes: mapShowTrackControls,
+              has3d: map3dAvailable,
             }}
           />
         </Suspense>

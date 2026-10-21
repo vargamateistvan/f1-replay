@@ -9,6 +9,7 @@ export const TOUR_TARGET = {
   viewTabs: "view-tabs",
   dataPanel: "data-panel",
   trackMap: "track-map",
+  mapViews: "map-views",
   playback: "playback",
   analysisLinks: "analysis-links",
   help: "help",
@@ -22,4 +23,18 @@ export type TourTargetId = (typeof TOUR_TARGET)[keyof typeof TOUR_TARGET];
 /** CSS selector for a tour target. */
 export function tourSelector(id: TourTargetId): string {
   return `[data-tour="${id}"]`;
+}
+
+/**
+ * Target for elements a hidden layout may also render (the map toolbar is in
+ * both the phone Track tab and the desktop split): the first one on screen,
+ * else the first in the DOM.
+ */
+export function visibleTourTarget(id: TourTargetId): () => HTMLElement | null {
+  return () => {
+    const all = Array.from(
+      document.querySelectorAll<HTMLElement>(tourSelector(id)),
+    );
+    return all.find((el) => el.getClientRects().length > 0) ?? all[0] ?? null;
+  };
 }

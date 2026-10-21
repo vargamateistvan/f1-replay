@@ -90,6 +90,7 @@ import { startLightsState } from "@/timeline/startLights";
 import { teamColor } from "@/utils/color";
 import { enuToLngLat, f1ToEnu, f1ToLngLat } from "@/utils/georef";
 import { parsePitLoss, pitRejoinView } from "@/utils/pitRejoin";
+import { TOUR_TARGET } from "@/components/AppTour/targets";
 import {
   addOverlayLayers,
   ensureGhostIcon,
@@ -1456,7 +1457,7 @@ export function TrackMap3D({
     </button>
   );
   const exitButton = (
-    <>
+    <span data-tour={TOUR_TARGET.mapViews} className="flex items-center gap-1">
       <button type="button" className={buttonClass} title="Switch to 2D map" onClick={onExit3d}>
         2D
       </button>
@@ -1471,7 +1472,7 @@ export function TrackMap3D({
           <CircleDot size={14} strokeWidth={2.2} aria-hidden="true" />
         </button>
       )}
-    </>
+    </span>
   );
 
   // Loading / unavailable: keep the controls so the user can always switch

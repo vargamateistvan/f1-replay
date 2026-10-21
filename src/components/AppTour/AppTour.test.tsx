@@ -9,7 +9,7 @@ import type { TourContext } from "./steps";
 const { trackEvent } = vi.hoisted(() => ({ trackEvent: vi.fn() }));
 vi.mock("@/lib/analytics", () => ({ trackEvent }));
 
-const desktop: TourContext = { isCompact: false, isRace: true, hasMapModes: true };
+const desktop: TourContext = { isCompact: false, isRace: true, has3d: true };
 
 function renderTour() {
   return render(
@@ -33,7 +33,7 @@ describe("AppTour", () => {
   it("starts on the welcome step", async () => {
     renderTour();
     expect(await screen.findByText("Welcome to F1 Replay")).toBeInTheDocument();
-    expect(screen.getByText("1 / 8")).toBeInTheDocument();
+    expect(screen.getByText("1 / 9")).toBeInTheDocument();
   });
 
   it("steps forward and back", async () => {
@@ -70,7 +70,7 @@ describe("AppTour", () => {
 
   it("marks the tour as seen when finished", async () => {
     renderTour();
-    for (let i = 0; i < 7; i++) {
+    for (let i = 0; i < 8; i++) {
       fireEvent.click(await screen.findByRole("button", { name: "Next" }));
     }
     fireEvent.click(await screen.findByRole("button", { name: "Done" }));
