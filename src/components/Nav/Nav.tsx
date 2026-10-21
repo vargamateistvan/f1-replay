@@ -22,6 +22,7 @@ import { AppLogo } from "@/components/AppLogo";
 import { LiveDataNotice } from "@/components/LiveDataNotice";
 import { useTimeline } from "@/timeline/clock";
 import { useSettings } from "@/stores/settings";
+import { TOUR_TARGET } from "@/components/AppTour/targets";
 import {
   toDisplayAltitudeM,
   altitudeUnitLabel,
@@ -782,7 +783,10 @@ export function Nav() {
           )}
         </div>
 
-        <nav className="hidden md:flex items-center h-10">
+        <nav
+          data-tour={TOUR_TARGET.viewTabs}
+          className="hidden md:flex items-center h-10"
+        >
           {VIEW_TABS.map(({ id, label }) => (
             <button
               key={id}
@@ -801,7 +805,10 @@ export function Nav() {
           ))}
         </nav>
 
-        <div className="hidden md:flex items-center gap-0 ml-3 pl-3 border-l border-white/20">
+        <div
+          data-tour={TOUR_TARGET.analysisLinks}
+          className="hidden md:flex items-center gap-0 ml-3 pl-3 border-l border-white/20"
+        >
           <NavLink
             to={`/telemetry?${searchParams}`}
             className={({ isActive }) =>
@@ -867,6 +874,7 @@ export function Nav() {
             trackEvent("nav_help_opened", { source: "desktop" });
             openHelp();
           }}
+          data-tour={TOUR_TARGET.help}
           className="hidden md:flex w-8 h-10 items-center justify-center text-white/70 hover:text-white hover:opacity-80 transition-opacity ml-1"
           aria-label="How it works"
           title="How it works"

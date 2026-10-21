@@ -10,6 +10,7 @@ import {
 import { useQueryClient } from "@tanstack/react-query";
 import { Settings as SettingsIcon } from "lucide-react";
 import { PlaybackBar } from "@/components/PlaybackBar";
+import { TOUR_TARGET } from "@/components/AppTour/targets";
 import type { ActiveTrackVehicles } from "@/components/TrackMap/TrackMap";
 import { isMap3dAvailable } from "@/components/TrackMap3D/availability";
 import { parseCameraMode } from "@/components/TrackMap3D/cameraModes";
@@ -66,6 +67,7 @@ import {
 import { useNumberParam, useStringParam } from "@/hooks/useSearchParamState";
 import { useTimelineUrlSync } from "@/hooks/useTimelineUrlSync";
 import { useKeyboardShortcuts } from "@/hooks/useKeyboardShortcuts";
+import { useAutoStartTour } from "@/hooks/useAutoStartTour";
 import {
   lapStartTimes,
   pitTimes,
@@ -261,6 +263,11 @@ const GapChart = lazy(() =>
 const CommentaryPanels = lazy(() =>
   import("@/components/CommentaryPanels/CommentaryPanels").then((m) => ({
     default: m.CommentaryPanels,
+  })),
+);
+const AppTour = lazy(() =>
+  import("@/components/AppTour/AppTour").then((m) => ({
+    default: m.AppTour,
   })),
 );
 
@@ -1320,6 +1327,7 @@ export default function RaceWeekend() {
     catchupSummaryEnabled,
     isHelpOpen,
     isOpen: isSettingsOpen,
+    isTourOpen,
     openHelp,
     setSetting,
   } = useSettings();
@@ -1915,12 +1923,32 @@ export default function RaceWeekend() {
     }
   }, [qualiPhase, sessionName]);
 
+  // ── App tour ──────────────────────────────────────────────────────────────
+  // Steps point at the timing tower and map, so the tour waits for the session.
+  const isTourReady =
+    sessionKey !== null && sessionStartMs > 0 && !isLoadingSessionData;
+  useAutoStartTour(isTourReady);
+  // Every step points at the Driver Tracker layout.
+  useEffect(() => {
+    if (isTourOpen && currentView !== "tracker") setView("tracker");
+  }, [isTourOpen, currentView, setView]);
+  // Hold the replay still while the tour talks over it, then carry on. Live
+  // sessions keep running so they don't fall behind the live edge.
+  useEffect(() => {
+    if (!isTourOpen || live) return;
+    const wasPlaying = useTimeline.getState().playing;
+    if (wasPlaying) setTimelinePlaying(false);
+    return () => {
+      if (wasPlaying) setTimelinePlaying(true);
+    };
+  }, [isTourOpen, live, setTimelinePlaying]);
+
   useKeyboardShortcuts({
     lapStarts: lapMarks,
     eventTimes: keyMomentMarks,
     durationMs: playbackDurationMs,
     setView,
-    isModalOpen: isHelpOpen || isSettingsOpen,
+    isModalOpen: isHelpOpen || isSettingsOpen || isTourOpen,
     onOpenHelp: openHelp,
     enabled: sessionKey !== null,
   });
@@ -2282,7 +2310,9 @@ export default function RaceWeekend() {
 
       {/* Mobile: zero-height sticky anchor keeps toasts in the top-right corner while scrolling */}
       {currentView === "tracker" && isCompactViewport && (
-        <div className="sticky top-20 z-40 h-0">{eventToastStack}</div>
+        <div className="sticky top-20 z-40 h-0">
+          {!isTourOpen && eventToastStack}
+        </div>
       )}
 
       {/* ── LEADERBOARD VIEW ──────────────────────────────────────────── */}
@@ -2381,7 +2411,7 @@ export default function RaceWeekend() {
             className="flex flex-col md:flex-1 md:min-h-0 md:overflow-hidden relative"
           >
             {/* Desktop toast overlay — mobile renders it at the page root */}
-            {!isCompactViewport && eventToastStack}
+            {!isCompactViewport && !isTourOpen && eventToastStack}
 
             {/* Phone layout: tab-switched (md:hidden) */}
             <div className="md:hidden flex flex-col w-full">
@@ -2389,6 +2419,7 @@ export default function RaceWeekend() {
               <div className="sticky top-0 z-20 flex flex-col bg-track/95 backdrop-blur">
                 <div
                   data-motion-tab-strip
+                  data-tour={TOUR_TARGET.mobileTrackerTabs}
                   className="flex w-full border-b border-panel shrink-0"
                 >
                   <div className="grid grid-cols-5 flex-1 min-w-0">
@@ -2567,6 +2598,7 @@ export default function RaceWeekend() {
             >
               {/* Left data panel */}
               <div
+                data-tour={TOUR_TARGET.dataPanel}
                 className="shrink-0 flex flex-col border-r border-panel overflow-hidden"
                 style={{ width: `${trackerDesktopPanelWidth}px` }}
               >
@@ -2705,6 +2737,7 @@ export default function RaceWeekend() {
               {/* Track map — fills remaining width */}
               <div
                 data-motion-card
+                data-tour={TOUR_TARGET.trackMap}
                 className="flex-1 min-w-0 bg-[#10101a] flex flex-col"
               >
                 <div className="relative flex-1 min-h-0">
@@ -2962,6 +2995,18 @@ export default function RaceWeekend() {
         showSpeedControls={showPlaybackSpeedControls}
         showEventChips={showPlaybackEventChips}
       />
+
+      {isTourOpen && isTourReady && (
+        <Suspense fallback={null}>
+          <AppTour
+            context={{
+              isCompact: isCompactViewport,
+              isRace: isRaceSession,
+              hasMapModes: mapShowTrackControls,
+            }}
+          />
+        </Suspense>
+      )}
     </div>
   );
 }

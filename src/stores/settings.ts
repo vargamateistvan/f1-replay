@@ -122,6 +122,9 @@ export interface AppSettings {
   lightMode: boolean;
   // Units
   metricSystem: "metric" | "imperial";
+  // Onboarding
+  /** Last `TOUR_VERSION` the user finished or skipped (0 = never). Kept on reset. */
+  tourSeenVersion: number;
 }
 
 /** Setting that controls whether each corner speed class is shaded on telemetry charts. */
@@ -156,6 +159,9 @@ interface SettingsStore extends AppSettings {
   isHelpOpen: boolean;
   openHelp: () => void;
   closeHelp: () => void;
+  isTourOpen: boolean;
+  openTour: () => void;
+  closeTour: () => void;
   setSetting: <K extends keyof AppSettings>(
     key: K,
     value: AppSettings[K],
@@ -263,6 +269,7 @@ export const SETTINGS_DEFAULTS: AppSettings = {
   showNextRaceWeekendBanner: true,
   lightMode: false,
   metricSystem: "metric",
+  tourSeenVersion: 0,
 };
 
 /**
@@ -291,8 +298,17 @@ export const useSettings = create<SettingsStore>()(
       isHelpOpen: false,
       openHelp: () => set({ isHelpOpen: true }),
       closeHelp: () => set({ isHelpOpen: false }),
+      isTourOpen: false,
+      openTour: () => set({ isTourOpen: true }),
+      closeTour: () => set({ isTourOpen: false }),
       setSetting: (key, value) => set((s) => ({ ...s, [key]: value })),
-      reset: () => set((s) => ({ ...s, ...SETTINGS_DEFAULTS })),
+      // Resetting preferences shouldn't replay the tour.
+      reset: () =>
+        set((s) => ({
+          ...s,
+          ...SETTINGS_DEFAULTS,
+          tourSeenVersion: s.tourSeenVersion,
+        })),
     }),
     {
       name: "f1-replay-settings",
@@ -315,6 +331,12 @@ export const useSettings = create<SettingsStore>()(
           openHelp,
           // eslint-disable-next-line @typescript-eslint/no-unused-vars
           closeHelp,
+          // eslint-disable-next-line @typescript-eslint/no-unused-vars
+          isTourOpen,
+          // eslint-disable-next-line @typescript-eslint/no-unused-vars
+          openTour,
+          // eslint-disable-next-line @typescript-eslint/no-unused-vars
+          closeTour,
           // eslint-disable-next-line @typescript-eslint/no-unused-vars
           setSetting,
           // eslint-disable-next-line @typescript-eslint/no-unused-vars

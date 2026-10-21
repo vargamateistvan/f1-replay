@@ -4,6 +4,7 @@ import { Info } from "lucide-react";
 import { useStringParam } from "@/hooks/useSearchParamState";
 import { useReleaseDate } from "@/hooks/useReleaseDate";
 import { useSettings } from "@/stores/settings";
+import { TOUR_TARGET } from "@/components/AppTour/targets";
 import type { MainView } from "@/components/Nav";
 import { AboutDialog } from "@/components/AboutDialog";
 import { trackEvent } from "@/lib/analytics";
@@ -129,7 +130,7 @@ export function MobileNav() {
         </button>
       )}
 
-      <div className="flex h-12">
+      <div data-tour={TOUR_TARGET.mobileNav} className="flex h-12">
         <button
           onClick={() => {
             trackEvent("nav_view_changed", {
@@ -171,6 +172,7 @@ export function MobileNav() {
               location.pathname === "/settings",
           )}
           aria-expanded={showMore}
+          data-tour={TOUR_TARGET.mobileMore}
         >
           <span className="text-base leading-none">⋯</span>
           <span>More</span>

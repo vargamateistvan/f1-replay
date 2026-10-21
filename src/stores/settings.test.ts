@@ -1,5 +1,14 @@
 import { describe, expect, it } from "vitest";
-import { migrateSettings } from "./settings";
+import { migrateSettings, useSettings } from "./settings";
+
+describe("reset", () => {
+  it("restores defaults but keeps the tour as seen", () => {
+    useSettings.setState({ lightMode: true, tourSeenVersion: 3 });
+    useSettings.getState().reset();
+    expect(useSettings.getState().lightMode).toBe(false);
+    expect(useSettings.getState().tourSeenVersion).toBe(3);
+  });
+});
 
 describe("migrateSettings", () => {
   it("turns the old 3D flag into the 3D view mode", () => {

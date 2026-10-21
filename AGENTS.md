@@ -74,6 +74,7 @@ src/
     useTimelineUrlSync.ts — Keeps ?t= query param in sync with playhead
     useStartLightsSound.ts — Race-start light beeps (public/sounds/start-light.mp3, synth fallback)
     useVerticalResize.ts — Drag-to-resize panels
+    useAutoStartTour.ts — Opens the app tour on a first visit (per `TOUR_VERSION`, never on `?t=` links)
 
   utils/
     color.ts            — teamColor() normaliser (OpenF1 omits leading #)
@@ -177,7 +178,8 @@ components/ (render to DOM; read settings from Zustand)
 | `CatchupSummary`                                  | "You skipped X events" modal                                                             |
 | `EventToast` (stack)                              | Bottom-right toast notifications                                                         |
 | `SettingsModal`                                   | All user preferences                                                                     |
-| `HowItWorksModal`                                 | Onboarding overlay                                                                       |
+| `HowItWorksModal`                                 | Onboarding overlay; "Take the tour" starts `AppTour` (navigates to `/` first, keeping the session) |
+| `AppTour`                                         | react-joyride v3 guided tour of the replay page, lazy-mounted by `RaceWeekend` while `isTourOpen` and the session has loaded. Steps (`steps.ts`, `buildTourSteps`) differ for desktop/phone, races and map toolbar; targets are `data-tour` attributes named in `targets.ts`; custom `TourTooltip`. Finishing/skipping saves `tourSeenVersion = TOUR_VERSION` (kept by settings reset). While open: playback paused (not live), toasts hidden, shortcuts off, view forced to Driver Tracker |
 | `Nav` / `MobileNav`                               | Top nav bar / bottom mobile tabs                                                         |
 | `ErrorBoundary` / `ErrorDisplay` / `ErrorMessage` | Error handling chain                                                                     |
 | `DriverHeadshot`                                  | Lazy-loaded driver photo                                                                 |
@@ -430,3 +432,4 @@ Authentication: optional bearer token via `VITE_OPENF1_API_KEY` env var (`.env.l
 12. **Team radio playback** (panel, toasts, catch-up) must go through `RadioAudio`, which plays the `public/sounds/radio-intro.mp3` chime and starts the clip after `RADIO_INTRO_LEAD_MS`. Don't render a bare `<audio autoPlay>` for radio.
 13. **3D map coordinates**: never hand raw OpenF1 x/y to Mapbox — project with `f1ToLngLat(getCircuitGeoref(...), x, y)`. Circuit data is kept current by `.github/workflows/update-circuits.yml` (weekly + manual): `fetch-circuits.mjs` (MultiViewer) → `bake-gps-circuits.mjs` (venues MultiViewer lacks, from the newest session's fastest clean lap, so from FP1; `source: "openf1-gps"`, no corners/marshal sectors; replaced automatically once MultiViewer has the venue) → `fetch-georef.mjs --latest` (bacinger trace matched automatically by length + best fit; `BACINGER_OVERRIDES` only if it picks wrong) → `fetch-pit-lanes.mjs` (missing circuits only; `--all` to rebuild). It runs type-check + tests and opens a PR on `bot/update-circuits`. Locally the same scripts need `node --use-system-ca` behind TLS inspection (Node ≥ 23.8). Tests fail if a geometry file has no georef or a surface polygon self-intersects. `mapbox-gl` must only be imported from the lazy `TrackMap3D` chunk (type-only imports elsewhere are fine); production needs the `VITE_MAPBOX_TOKEN` repo variable/secret.
 14. **Coarse time is trailing-edge**: `useCoarseTime` now delivers the last value after a throttled burst. Before, a paused seek (e.g. restoring `?t=`) could leave every `tSlow`-driven panel (flags, badges) stuck at t = 0.
+15. **App tour targets**: tour steps find elements by `data-tour` (`TOUR_TARGET` in `components/AppTour/targets.ts`, never class names). Desktop and phone layouts are both in the DOM, so each layout has its own target. When you move or remove a toured element, move its attribute and update `steps.ts`; bump `TOUR_VERSION` (`constants.ts`) when the tour changes enough that returning users should see it again.

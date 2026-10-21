@@ -21,6 +21,7 @@ import {
 import { useTimeline } from "@/timeline/clock";
 import { useCoarseTime } from "@/hooks/useCoarseTime";
 import { useMediaQuery } from "@/hooks/useMediaQuery";
+import { TOUR_TARGET } from "@/components/AppTour/targets";
 import { SCRUBBER_THUMB_PX, SPEEDS } from "@/constants";
 import { nextAfter, prevBefore } from "@/timeline/events";
 import { startLightsWindow } from "@/timeline/startLights";
@@ -409,6 +410,7 @@ export function PlaybackBar({
 
   const playbackBar = (
     <div
+      data-tour={TOUR_TARGET.playback}
       className={`flex flex-col gap-1.5 py-2 bg-track border-t border-panel sm:gap-2 sm:py-2.5 ${
         mobileInline
           ? ""

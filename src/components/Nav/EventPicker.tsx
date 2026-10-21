@@ -1,6 +1,7 @@
 import { useEffect, useId, useRef, useState } from "react";
 import { ChevronDown } from "lucide-react";
 import type { Meeting, Session } from "@/api/types";
+import { TOUR_TARGET } from "@/components/AppTour/targets";
 import { ErrorMessage } from "@/components/ErrorMessage";
 import { YEARS } from "@/constants";
 import { trackEvent } from "@/lib/analytics";
@@ -85,7 +86,11 @@ export function EventPicker({
   }
 
   return (
-    <div ref={rootRef} className="relative min-w-0 flex items-center">
+    <div
+      ref={rootRef}
+      data-tour={TOUR_TARGET.sessionPicker}
+      className="relative min-w-0 flex items-center"
+    >
       <button
         ref={triggerRef}
         type="button"

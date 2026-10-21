@@ -465,3 +465,7 @@ export const RC_TICKER_FRESH_MS = 30_000;
 export const CATCHUP_REPLAY_LEAD_MS = 5_000;
 /** Minimum forward jump (session ms) that opens the "While you were away" summary. */
 export const CATCHUP_JUMP_THRESHOLD_MS = 60_000;
+
+// ── App tour ──────────────────────────────────────────────────────────────────
+/** Bump when the tour changes enough that returning users should see it again. */
+export const TOUR_VERSION = 1;

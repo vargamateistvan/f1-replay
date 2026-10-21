@@ -1,23 +1,70 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { fireEvent, render, screen } from "@testing-library/react";
+import { fireEvent, render as rtlRender, screen } from "@testing-library/react";
+import type { ReactElement } from "react";
+import { MemoryRouter, Route, Routes, useLocation } from "react-router-dom";
 import { HowItWorksModal } from "@/components/HowItWorksModal/HowItWorksModal";
 
 const state = vi.hoisted(() => ({
   isHelpOpen: false,
   closeHelp: vi.fn(),
+  openTour: vi.fn(),
 }));
 
 vi.mock("@/stores/settings", () => ({
   useSettings: () => ({
     isHelpOpen: state.isHelpOpen,
     closeHelp: state.closeHelp,
+    openTour: state.openTour,
   }),
 }));
+
+function CurrentUrl() {
+  const { pathname, search } = useLocation();
+  return <div data-testid="url">{pathname + search}</div>;
+}
+
+function render(ui: ReactElement, path = "/") {
+  return rtlRender(
+    <MemoryRouter initialEntries={[path]}>
+      <Routes>
+        <Route
+          path="*"
+          element={
+            <>
+              {ui}
+              <CurrentUrl />
+            </>
+          }
+        />
+      </Routes>
+    </MemoryRouter>,
+  );
+}
 
 describe("HowItWorksModal", () => {
   beforeEach(() => {
     state.isHelpOpen = false;
     state.closeHelp.mockReset();
+    state.openTour.mockReset();
+  });
+
+  it("starts the tour from the replay page", () => {
+    state.isHelpOpen = true;
+    render(<HowItWorksModal />, "/?session=9165");
+    fireEvent.click(screen.getByRole("button", { name: "Take the tour" }));
+    expect(state.closeHelp).toHaveBeenCalledTimes(1);
+    expect(state.openTour).toHaveBeenCalledTimes(1);
+    expect(screen.getByTestId("url")).toHaveTextContent("/?session=9165");
+  });
+
+  it("goes back to the replay page for the tour, keeping the session", () => {
+    state.isHelpOpen = true;
+    render(<HowItWorksModal />, "/telemetry?year=2026&session=9165");
+    fireEvent.click(screen.getByRole("button", { name: "Take the tour" }));
+    expect(state.openTour).toHaveBeenCalledTimes(1);
+    expect(screen.getByTestId("url")).toHaveTextContent(
+      "/?year=2026&session=9165",
+    );
   });
 
   it("is hidden when help is closed", () => {

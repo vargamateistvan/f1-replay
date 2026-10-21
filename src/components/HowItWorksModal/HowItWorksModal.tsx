@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, type MouseEvent } from "react";
+import { useLocation, useNavigate } from "react-router-dom";
 import { useSettings } from "@/stores/settings";
 import { trackEvent } from "@/lib/analytics";
 import {
@@ -10,7 +11,9 @@ import {
 } from "@/lib/motion";
 
 export function HowItWorksModal() {
-  const { isHelpOpen, closeHelp } = useSettings();
+  const { isHelpOpen, closeHelp, openTour } = useSettings();
+  const { pathname, search } = useLocation();
+  const navigate = useNavigate();
   const backdropRef = useRef<HTMLDivElement>(null);
   const panelRef = useRef<HTMLDivElement>(null);
 
@@ -52,6 +55,14 @@ export function HowItWorksModal() {
   }, [isHelpOpen, closeWithReason]);
 
   if (!isHelpOpen) return null;
+
+  // The tour lives on the replay page; from elsewhere, go there with the same session.
+  function startTour() {
+    trackEvent("tour_started", { source: "help" });
+    closeHelp();
+    if (pathname !== "/") navigate(`/${search}`);
+    openTour();
+  }
 
   function handleBackdropClick(e: MouseEvent<HTMLDivElement>) {
     if (e.target === backdropRef.current) closeWithReason("backdrop");
@@ -116,6 +127,16 @@ export function HowItWorksModal() {
                 Race) from the top navigation. The app will load real-time F1
                 data from the OpenF1 API.
               </p>
+              <button
+                type="button"
+                onClick={(e) => {
+                  animateMotion(e.currentTarget, pressMotion());
+                  startTour();
+                }}
+                className="h-8 rounded-sm bg-f1red px-3.5 text-[10px] font-black uppercase tracking-widest text-white transition-opacity hover:opacity-90"
+              >
+                Take the tour
+              </button>
             </section>
 
             {/* Playback */}
