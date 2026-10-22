@@ -1,13 +1,43 @@
 # F1 Replay — Agent Documentation
 
-> Last updated: 2026-10-17  
-> Companion document to the existing docs in `docs/`. Provides concise, agent-readable architecture notes, conventions, and guardrails.
+> Last updated: 2026-10-22  
+> The single source of truth for agents. Provides concise, agent-readable architecture notes, conventions, and guardrails. `docs/` holds mostly historical plans — see Section 12 before trusting one.
+
+---
+
+## 0. Quick Lookup — "where do I change X?"
+
+| Task                                              | Start here                                                                                   |
+| ------------------------------------------------- | -------------------------------------------------------------------------------------------- |
+| Add/modify an OpenF1 call                         | `api/types.ts` → `api/endpoints.ts` → a hook in `hooks/useSession.ts` (never call `api.*` from a component) |
+| Tune a number (speed, poll rate, size, timeout)   | `src/constants.ts` (grep the name; every magic number lives here)                            |
+| Add a user setting                                | `stores/settings.ts` (`AppSettings`, defaults, `migrateSettings`) + `components/SettingsModal` |
+| Main replay page layout / wiring                  | `pages/RaceWeekend.tsx` (~3000 lines — grep, don't read whole)                               |
+| Playback, seek, speed                             | `timeline/clock.ts` (`useTimeline`), `components/PlaybackBar`                                |
+| Car positions on the map                          | `hooks/useLocationChunks.ts` → `timeline/interpolate.ts` → `components/TrackMap`             |
+| Track outline / circuit geometry                  | `data/circuitGeometry.ts` (+ `circuit-geometry/<circuitKey>-<year>.json`), `hooks/useCircuitGeometry.ts`, `hooks/useTrackMap.ts` |
+| 3D map                                            | `components/TrackMap3D/` (Section 7 "3D map rendering"), `utils/georef.ts`                   |
+| Ring view                                         | `components/TrackRing/`, `utils/lapProgress.ts`                                              |
+| Toasts / catch-up                                 | `timeline/events.ts`, `hooks/useEventToasts.ts`, `hooks/useCatchupSummary.ts`                |
+| Race control / flags                              | `timeline/raceControl.ts`, `utils/raceControlFlags.ts`                                       |
+| Side-panel feeds (RC, radio, pits, passes…)       | `components/CommentaryPanels/` (tabs: `rc` `radio` `pits` `passes` `moments` `chapters` `weather`) |
+| Live sessions                                     | `utils/live.ts`, polling in `hooks/useSession.ts`, MQTT push in `hooks/useOpenF1LiveMqtt.ts` |
+| Standings / profiles                              | `hooks/useStandings.ts`, `utils/standings.ts`, `utils/championship.ts`, `pages/Standings.tsx` |
+| Telemetry comparison                              | `pages/Telemetry.tsx`, `components/TelemetryChart`, `components/CornerAnalysis`, `utils/telemetry.ts` |
+| SEO / new route                                   | `routes.tsx`, `seo-routes.json`, `components/Seo/seo.ts` (Pitfall 10)                        |
+| Analytics event                                   | `lib/analytics.ts` (`trackEvent`) + document it in `docs/ANALYTICS_EVENTS.md`                |
+| Errors / Sentry                                   | `lib/sentry.ts` (lazy facade), `utils/ignorableErrors.ts`, `components/ErrorBoundary`        |
+| App tour                                          | `components/AppTour/` (`steps.ts`, `targets.ts`), `TOUR_VERSION` (Pitfall 15)                |
+| Proxy cache behaviour                             | `proxy/src/index.ts`, `proxy/README.md` (TTL table)                                          |
+| Circuit data refresh                              | `scripts/*.mjs`, `.github/workflows/update-circuits.yml` (Pitfall 13)                        |
+
+Tests sit next to the module (`foo.ts` → `foo.test.ts`); broad smoke/coverage tests are in `components/__tests__/`.
 
 ---
 
 ## 1. Project Overview
 
-**f1-replay** is a React + TypeScript SPA that streams live and historical Formula 1 telemetry from the [OpenF1 public API](https://openf1.org/) and renders an interactive replay timeline. The app is deployed as a static site (Vite build → GitHub Pages via `CNAME`).
+**f1-replay** is a React + TypeScript SPA that streams live and historical Formula 1 telemetry from the [OpenF1 public API](https://openf1.org/) and renders an interactive replay timeline. The app is deployed as a static site (Vite build → GitHub Pages, domain `f1replay.app` via `public/CNAME`). API requests go through a Cloudflare Worker proxy (`proxy/`, `https://proxy.f1replay.app/v1`) that caches OpenF1 responses in KV.
 
 **Core value proposition**: scrub through any F1 session like a replay video — track map with animated car positions, live timing leaderboard, race control messages, telemetry comparison, and standings.
 
@@ -27,6 +57,12 @@
 | Charts            | Recharts (standings/gap charts), uPlot (high-freq telemetry) |
 | 3D map            | Mapbox GL JS v3 (lazy chunk, opt-in, needs `VITE_MAPBOX_TOKEN`) |
 | Icons             | Lucide React                                                 |
+| Animation         | anime.js via `lib/motion.ts` (honours `prefers-reduced-motion`) |
+| Guided tour       | react-joyride v3                                             |
+| Live push         | `mqtt` over WSS (OpenF1 MQTT, optional credentials)          |
+| Monitoring        | Sentry (`@sentry/react`, lazy-loaded), GA4 (`lib/analytics.ts`) |
+| Fonts             | Fontsource Inter + JetBrains Mono                            |
+| API proxy         | Cloudflare Worker + KV (`proxy/`, deployed with wrangler)    |
 | Build             | Vite 6                                                       |
 | Testing           | Vitest + Testing Library + jsdom                             |
 
@@ -42,7 +78,7 @@ src/
   main.tsx              — ReactDOM.createRoot entry point
 
   api/
-    client.ts           — fetchEndpoint, OpenF1Error, rate-limiter (3 req/s, 30 req/min)
+    client.ts           — fetchEndpoint, OpenF1Error, rate-limiter (RATE_MAX_PER_SECOND / _PER_MINUTE), base URL from VITE_OPENF1_API_BASE
     endpoints.ts        — Typed api.* surface for every OpenF1 endpoint
     types.ts            — Pure TypeScript interfaces mirroring the OpenF1 schema
     circuitFactsLookup.ts — Static circuit metadata keyed by circuit_key
@@ -53,6 +89,7 @@ src/
     interpolate.ts      — Typed-array binary search + linear interpolation for location
     raceControl.ts      — Race control event enrichment and flag-state machine
     startLights.ts      — Start-light sequence state for the track-map badge
+    director.ts         — TV-camera shot picker for the 3D map (overtake > pit > battle > leader)
 
   stores/
     settings.ts         — Zustand persist store for all user preferences (AppSettings)
@@ -75,6 +112,11 @@ src/
     useStartLightsSound.ts — Race-start light beeps (public/sounds/start-light.mp3, synth fallback)
     useVerticalResize.ts — Drag-to-resize panels
     useAutoStartTour.ts — Opens the app tour on a first visit (per `TOUR_VERSION`, never on `?t=` links)
+    useCircuitGeometry.ts — Lazy-loads baked circuit geometry JSON (static asset, bypasses the query cache)
+    useOpenF1LiveMqtt.ts — Live sessions: OpenF1 MQTT topics → `setQueryData` into the polling queries' cache
+    useAudioProgress.ts — 0–1 progress of an <audio> element (radio clips)
+    useReleaseDate.ts   — Shared GitHub latest-release date (footer, About dialog)
+    queryKeys.ts        — Shared query-key builders (`lapsQueryKey`)
 
   utils/
     color.ts            — teamColor() normaliser (OpenF1 omits leading #)
@@ -97,9 +139,15 @@ src/
     units.ts            — Metric/imperial conversion
     georef.ts           — F1 frame ↔ WGS84: similarity fit (Umeyama + ICP) and projection for the 3D map
     pitLane.ts          — Pit-lane path extraction from a GPS trace (used by scripts/fetch-pit-lanes.mjs)
+    sortedTime.ts       — Binary-search helpers over time-sorted arrays (lastAtOrBefore, windowBoundsByValue)
+    driverTimeIndex.ts  — buildDriverTimeIndex(): per-driver, time-sorted series for per-frame lookups
+    lapLookup.ts        — buildLapLookup(): lap number at a given time
+    ignorableErrors.ts  — Filters browser noise (opaque "Script error.", cross-origin frames) from logging
 
   data/
-    (circuit geometry and layout data files)
+    circuitGeometry.ts  — Loader for circuit-geometry/<circuitKey>-<year>.json (import.meta.glob, lazy; generated by scripts/fetch-circuits.mjs)
+    circuitGeometryTypes.ts — CornerInfo, MarshalSector, MarshalLight, PitLoss types
+    circuits.ts         — Coarse fallback layouts (sectors, DRS zones) via getCircuitLayout()
     circuit-georef.json — Baked F1-frame → lng/lat fit per geometry file (`node scripts/fetch-georef.mjs`)
     circuitGeoref.ts    — getCircuitGeoref(): lookup matching the resolved geometry year
     pit-lanes.json      — Baked pit-lane paths (F1 frame) per circuit_key (`node --use-system-ca scripts/fetch-pit-lanes.mjs`)
@@ -112,6 +160,7 @@ src/
     DriverProfile.tsx   — /standings/driver/:driverNumber — one driver's season (keeps ?year/&session)
     ConstructorProfile.tsx — /standings/team/:teamName (canonical name, `constructorPath()`) — one team's season
     Settings.tsx        — Redirect to settings modal
+    Privacy.tsx, Terms.tsx — Static legal pages
     NotFound.tsx, AppCrash.tsx
 
   components/
@@ -119,10 +168,29 @@ src/
 
   lib/
     queryPersister.ts   — Per-query IndexedDB persister (lazy restore, structured clone, idle GC)
+    queryPersistencePolicy.ts — shouldPersistQueryKey(): which keys are persisted (not location/car-data windows)
     audio.ts            — Shared Web Audio context, beep(), and cached loadSample()/playSample()
+    analytics.ts        — GA4 trackEvent() (loaded when idle; events listed in docs/ANALYTICS_EVENTS.md)
+    sentry.ts / sentrySdk.ts — Lazy Sentry facade (calls queued until the SDK chunk loads; no-op in dev/tests)
+    appVersion.ts       — VITE_APP_VERSION formatting, GitHub releases URLs
+    idle.ts             — runWhenIdle(), loadScriptOnce()
+    motion.ts           — anime.js presets (fadeUp, modal, tab swap…), prefersReducedMotion()
 
   test/
-    (shared test helpers / setup)
+    setup.ts            — Vitest/jsdom setup
+```
+
+Outside `src/`:
+
+```
+proxy/                  — Cloudflare Worker: OpenF1 proxy + KV cache (own package.json, wrangler.toml; TTL table in proxy/README.md)
+scripts/                — Node build/bake scripts: sitemap + route shells + SEO validation, circuit/georef/pit-lane bakes,
+                          warm-proxy-cache.mjs, resolve-release-version.mjs
+public/                 — Static assets: sounds/, models/f1-car.glb, og-cover.png/svg, CNAME
+seo-routes.json         — Route list for sitemap, shells and <head> meta
+.github/workflows/      — ci (validate SEO, tsc, lint, test, build on PRs/main), deploy (GitHub Pages), deploy-proxy (Worker),
+                          versioning (tags + release notes), warm-cache (hourly on race weekends), update-circuits (weekly)
+.husky/pre-commit       — runs `yarn lint && yarn test && yarn build` (slow; expect it on every commit)
 ```
 
 ---
@@ -194,6 +262,12 @@ components/ (render to DOM; read settings from Zustand)
 | `DriverProfile`                                   | Driver profile page pieces: stat tiles, finish distribution, round-by-round results (quali → finish → championship position) |
 | `MaybeLink`                                       | Router `Link` when `to` is set, plain `<span>` otherwise. Shared standings components take optional `driverHref` / `teamHref` / `href` / `raceHref` props and only link when given them (their tests need no router). `raceHref` uses `roundReplayPath()` (`utils/url.ts`) → `/?year&meeting&session&view=tracker&focus=` |
 | `ConstructorProfile`                              | Team profile page pieces: stat tiles (1-2s, double points…), driver line-up with points share, per-car round results |
+| `CommentaryPanels`                                | Tabbed side panel (`CommentaryTab`: rc / radio / pits / passes / moments / chapters / weather); lazy-loads each feed. `keyMoments.ts` builds Key Moments, `CommentaryJumpButton` seeks to an item |
+| `Pits` (`PitFeed`)                                | Pit stop feed (commentary "pits" tab)                                                    |
+| `TyreChange`                                      | Old compound + laps → new compound + age; `compact` variant for inline text              |
+| `LiveDataNotice`                                  | Dismissible notice that live timing needs paid OpenF1 access (`dismissal.ts` store)      |
+| `AboutDialog`                                     | Mobile About dialog: version, release date, Privacy/Terms links                          |
+| `TooltipCard`                                     | Shared tooltip card styling                                                              |
 
 ---
 
@@ -226,8 +300,10 @@ components/ (render to DOM; read settings from Zustand)
 ["championshipDrivers", sessionKey]
 ["championshipTeams", sessionKey]
 ["location-chunk", sessionKey, chunkIndex]
-["car-data-window", sessionKey, dateGte, dateLte]
-["car-data-all-window", sessionKey, dateGte, dateLte]
+["pits", sessionKey]
+["carDataWindow", sessionKey, driverNumber, windowIndex]
+["allCarDataWindow", sessionKey, windowIndex]
+["carDataForLap", sessionKey, driverNumber, lapNumber]
 ```
 
 **Rules**: `staleTime: Infinity` for historical sessions; `staleTime: 0` + `refetchInterval: LIVE_POLL_FAST_MS | LIVE_POLL_SLOW_MS` for active sessions. Never manually invalidate historical queries.
@@ -376,6 +452,7 @@ Live sessions:
 - Use `refetchInterval` polling (fast: 15 s for timing-critical data, slow: 30 s for weather/radio).
 - Skip IndexedDB persistence (`staleTime: 0` marks them stale on restore).
 - Show real-time leaderboard updates.
+- `useOpenF1LiveMqtt` (mounted by `RaceWeekend`) subscribes to OpenF1 MQTT topics (`v1/position`, `v1/intervals`, `v1/laps`, `v1/race_control`, `v1/team_radio`, `v1/weather`, `v1/overtakes`) and merges rows into the same query keys via `setQueryData` (capped at `LIVE_MQTT_MAX_ROWS`). Needs `VITE_OPENF1_MQTT_*` credentials; polling remains the fallback. MQTT-only data is not persisted (Pitfall 7).
 
 Historical sessions:
 
@@ -414,6 +491,20 @@ Endpoints used (all GET, JSON array response):
 
 Authentication: optional bearer token via `VITE_OPENF1_API_KEY` env var (`.env.local`). API is free-tier without a key.
 
+### Environment variables (`.env.example` → copy to `.env.local`)
+
+| Variable                                                                 | Purpose                                                          |
+| ------------------------------------------------------------------------ | ---------------------------------------------------------------- |
+| `VITE_OPENF1_API_BASE`                                                   | API base; unset = `api.openf1.org/v1`, production = the proxy    |
+| `VITE_OPENF1_API_KEY`                                                    | Optional bearer token                                            |
+| `VITE_OPENF1_MQTT_WSS_URL` / `VITE_OPENF1_MQTT_USERNAME` / `VITE_OPENF1_MQTT_TOKEN` | Live MQTT push (optional)                             |
+| `VITE_MAPBOX_TOKEN`                                                      | Public Mapbox token; unset hides the 3D map                      |
+| `VITE_SENTRY_DSN`                                                        | Sentry (disabled on localhost regardless)                        |
+| `VITE_GA_MEASUREMENT_ID`                                                 | GA4 (see `docs/ANALYTICS_EVENTS.md`)                             |
+| `VITE_APP_VERSION`                                                       | Release string (set by CI from `versioning.yml`)                 |
+
+A local `yarn build` uploads source maps to Sentry when `.env.sentry-build-plugin` is present — use `yarn test` / `tsc -b` to verify changes instead of building.
+
 ---
 
 ## 11. Common Pitfalls for Agents
@@ -433,3 +524,22 @@ Authentication: optional bearer token via `VITE_OPENF1_API_KEY` env var (`.env.l
 13. **3D map coordinates**: never hand raw OpenF1 x/y to Mapbox — project with `f1ToLngLat(getCircuitGeoref(...), x, y)`. Circuit data is kept current by `.github/workflows/update-circuits.yml` (weekly + manual): `fetch-circuits.mjs` (MultiViewer) → `bake-gps-circuits.mjs` (venues MultiViewer lacks, from the newest session's fastest clean lap, so from FP1; `source: "openf1-gps"`, no corners/marshal sectors; replaced automatically once MultiViewer has the venue) → `fetch-georef.mjs --latest` (bacinger trace matched automatically by length + best fit; `BACINGER_OVERRIDES` only if it picks wrong) → `fetch-pit-lanes.mjs` (missing circuits only; `--all` to rebuild). It runs type-check + tests and opens a PR on `bot/update-circuits`. Locally the same scripts need `node --use-system-ca` behind TLS inspection (Node ≥ 23.8). Tests fail if a geometry file has no georef or a surface polygon self-intersects. `mapbox-gl` must only be imported from the lazy `TrackMap3D` chunk (type-only imports elsewhere are fine); production needs the `VITE_MAPBOX_TOKEN` repo variable/secret.
 14. **Coarse time is trailing-edge**: `useCoarseTime` now delivers the last value after a throttled burst. Before, a paused seek (e.g. restoring `?t=`) could leave every `tSlow`-driven panel (flags, badges) stuck at t = 0.
 15. **App tour targets**: tour steps find elements by `data-tour` (`TOUR_TARGET` in `components/AppTour/targets.ts`, never class names). Desktop and phone layouts are both in the DOM, so each layout has its own target. When you move or remove a toured element, move its attribute and update `steps.ts`; bump `TOUR_VERSION` (`constants.ts`) when the tour changes enough that returning users should see it again.
+
+---
+
+## 12. Other Docs — what is current
+
+Read the code over any plan below; most `docs/` files are snapshots from mid-2026 whose work has shipped.
+
+| File                                   | Status / use                                                                |
+| -------------------------------------- | --------------------------------------------------------------------------- |
+| `docs/ANALYTICS_EVENTS.md`             | **Current reference** — every GA4 event; update when adding `trackEvent()` calls |
+| `docs/OPENF1_LIVE_API_USAGE.md`        | **Current reference** — querying OpenF1 directly, mapping to `api/`         |
+| `proxy/README.md`                      | **Current reference** — proxy TTLs, cache warming, KV maintenance           |
+| `docs/DESIGN.md`, `docs/DESIGN_REWORK_V2.md`, `docs/MOBILE_DESIGN.md` | Design intent (F1.com-inspired look, mobile layout); visual reference only |
+| `docs/TRACK_RENDERING_PLAN.md`         | Background on baked circuit geometry (shipped)                              |
+| `docs/PLAN.md`, `ROADMAP.md`, `FEATURES_ROADMAP.md`, `REMAINING_PLAN.md`, `REPLAY_FEATURE_PLAN.md`, `OPENF1_*_PLAN.md`, `TRACK_SECTOR_FLAG_VISUALIZATION_PLAN.md` | Historical plans — mostly shipped; don't treat as a to-do list |
+| `docs/CODE_REVIEW_*.md`                | June 2026 review snapshots; findings may already be fixed                   |
+| `.claude/debug-session-notes.md`       | Notes from one debugging session (URL churn from `useTimelineUrlSync`)      |
+
+**Keeping this file current**: when you add a module, component, query key, setting group, env var or workflow, add a line here in the same change (Section 0 for new "where do I…" entry points, Section 3 for files, Section 5 for components) and bump "Last updated".
