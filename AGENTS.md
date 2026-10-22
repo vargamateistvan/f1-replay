@@ -22,6 +22,8 @@
 | Race control / flags                              | `timeline/raceControl.ts`, `utils/raceControlFlags.ts`                                       |
 | Side-panel feeds (RC, radio, pits, passes…)       | `components/CommentaryPanels/` (tabs: `rc` `radio` `pits` `passes` `moments` `chapters` `weather`) |
 | Live sessions                                     | `utils/live.ts`, polling in `hooks/useSession.ts`, MQTT push in `hooks/useOpenF1LiveMqtt.ts` |
+| Tyre degradation / race pace                      | `utils/racePace.ts` (clean laps, per-stint fit), `components/TyreDeg` (tracker tab `deg`)    |
+| Undercut / overcut                                | `utils/undercut.ts` (`detectPitBattles`), shown in `PitFeed` rows + `undercut` toast         |
 | Standings / profiles                              | `hooks/useStandings.ts`, `utils/standings.ts`, `utils/championship.ts`, `pages/Standings.tsx` |
 | Telemetry comparison                              | `pages/Telemetry.tsx`, `components/TelemetryChart`, `components/CornerAnalysis`, `utils/telemetry.ts` |
 | SEO / new route                                   | `routes.tsx`, `seo-routes.json`, `components/Seo/seo.ts` (Pitfall 10)                        |
@@ -137,6 +139,8 @@ src/
     corners.ts          — buildCornerZones(): braking→exit corner zones for telemetry charts
     cornerAnalysis.ts   — Per-corner metrics, lap alignment to timing lines, segment time deltas
     lapContext.ts       — tyreForLap(): compound + tyre age for a driver's lap
+    undercut.ts         — detectPitBattles(): pairs a stop (from UNDERCUT_MIN_STOP_LAP) with the car directly ahead/behind within UNDERCUT_MAX_GAP_S that stays out ≤ UNDERCUT_MAX_LAG_LAPS; verdict after the rival's out-lap (position headline + seconds), pending never reveals the future
+    racePace.ts         — cleanRaceLaps() (no lap 1, pit laps, SC/VSC/red, outliers, or laps past the playhead), fitStintPace() (s/lap deg), compoundPaceSummary(), neutralisedWindows()
     units.ts            — Metric/imperial conversion
     georef.ts           — F1 frame ↔ WGS84: similarity fit (Umeyama + ICP) and projection for the 3D map
     pitLane.ts          — Pit-lane path extraction from a GPS trace (used by scripts/fetch-pit-lanes.mjs)
@@ -240,6 +244,7 @@ components/ (render to DOM; read settings from Zustand)
 | `CornerAnalysis`                                  | Telemetry page: per-corner speeds/brake/throttle + time gained/lost per lap segment      |
 | `LapChart`                                        | Lap time evolution chart                                                                 |
 | `Strategy`                                        | Tyre strategy bar chart                                                                  |
+| `TyreDeg`                                         | Tracker tab `deg`: per-compound field summary (`compoundPaceSummary`, noisy fits excluded), lap time vs tyre age scatter + fitted line per stint (dash style per selected driver), table grouped by driver in race order with deg bars; optional fuel correction (off by default) |
 | `FinalClassification`                             | End-of-race classification table                                                         |
 | `KeyMoments`                                      | Timeline of significant events                                                           |
 | `RaceChapters`                                    | Lap-range navigation chips                                                               |
@@ -269,7 +274,7 @@ components/ (render to DOM; read settings from Zustand)
 | `MaybeLink`                                       | Router `Link` when `to` is set, plain `<span>` otherwise. Shared standings components take optional `driverHref` / `teamHref` / `href` / `raceHref` props and only link when given them (their tests need no router). `raceHref` uses `roundReplayPath()` (`utils/url.ts`) → `/?year&meeting&session&view=tracker&focus=` |
 | `ConstructorProfile`                              | Team profile page pieces: stat tiles (1-2s, double points…), driver line-up with points share, per-car round results |
 | `CommentaryPanels`                                | Tabbed side panel (`CommentaryTab`: rc / radio / pits / passes / moments / chapters / weather); lazy-loads each feed. `keyMoments.ts` builds Key Moments, `CommentaryJumpButton` seeks to an item |
-| `Pits` (`PitFeed`)                                | Pit stop feed (commentary "pits" tab)                                                    |
+| `Pits` (`PitFeed`)                                | Pit stop feed (commentary "pits" tab); the first stopper's row shows its undercut/overcut battle (`pitBattles` prop from `RaceWeekend`) |
 | `TyreChange`                                      | Old compound + laps → new compound + age; `compact` variant for inline text              |
 | `LiveDataNotice`                                  | Dismissible notice that live timing needs paid OpenF1 access (`dismissal.ts` store)      |
 | `AboutDialog`                                     | Mobile About dialog: version, release date, Privacy/Terms links                          |
@@ -342,7 +347,7 @@ components/ (render to DOM; read settings from Zustand)
 
 ### Toast event queue (`timeline/events.ts`, `hooks/useEventToasts.ts`)
 
-- `buildToastEvents()` merges laps, pits, race control, overtakes, team radio into a single sorted `ToastEvent[]`.
+- `buildToastEvents()` merges laps, pits, race control, overtakes, team radio and resolved pit battles (`undercut`, at the end of the rival's out-lap) into a single sorted `ToastEvent[]`. A new toast kind also needs `KIND_STYLES` in `CatchupSummary`, a toast component in `EventToastStack`, a `toast*` setting and the filter in `RaceWeekend`.
 - `useEventToasts` advances forward through the array as `t` increases; on a backwards seek or large forward jump (`> TOAST_JUMP_THRESHOLD_MS`) the seen-set and queue are cleared.
 - A `useCatchupSummary` hook fires when `t` jumps ≥ `CATCHUP_JUMP_THRESHOLD_MS`, collecting all crossed events into a summary modal.
 

@@ -209,7 +209,7 @@ dimension** instead of relying on the built-in App version report:
   - Params: `focus_driver`, `compare_driver`, `source`
   - Trigger: focus/compare state changes
 - `raceweekend_tracker_tab_changed`
-  - Params: `tab`, `source`
+  - Params: `tab` (`timing` `map` `strategy` `deg` `chart` `gap`), `source`
   - Trigger: tracker tab change
 - `raceweekend_commentary_tab_changed`
   - Params: `tab`

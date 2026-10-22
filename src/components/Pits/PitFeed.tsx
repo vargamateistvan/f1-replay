@@ -5,6 +5,7 @@ import { TyreBadge } from "@/components/LiveTiming/TyreBadge";
 import { useSettings } from "@/stores/settings";
 import { teamColor } from "@/utils/color";
 import { formatPitDuration, laneDuration, pitStopTime } from "@/utils/pit";
+import { formatBattleGain, pitBattleHeadline, type PitBattle } from "@/utils/undercut";
 import { upperBoundByValue } from "@/utils/sortedTime";
 import { isPracticeSession } from "@/utils/session";
 import {
@@ -24,6 +25,8 @@ import { CommentaryJumpButton } from "@/components/CommentaryPanels/CommentaryJu
 
 interface Props {
   readonly entries: Pit[];
+  /** Undercut / overcut battles, shown on the first stopper's row. */
+  readonly pitBattles?: PitBattle[];
   readonly stints: Stint[];
   readonly sessionKey?: number | null;
   readonly sessionType?: string;
@@ -40,6 +43,8 @@ type VisiblePitEntry = {
   dateMs: number;
 };
 
+const NO_PIT_BATTLES: PitBattle[] = [];
+
 type LapGroup = {
   lapNumber: number | null;
   entries: VisiblePitEntry[];
@@ -47,6 +52,7 @@ type LapGroup = {
 
 export function PitFeed({
   entries,
+  pitBattles = NO_PIT_BATTLES,
   stints,
   sessionKey = null,
   sessionType,
@@ -82,6 +88,15 @@ export function PitFeed({
     }
     return byDriver;
   }, [stints]);
+
+  const battlesByStop = useMemo(() => {
+    const byStop = new Map<string, PitBattle[]>();
+    for (const battle of pitBattles) {
+      const key = `${battle.firstStopper}:${battle.firstStopLap}`;
+      byStop.set(key, [...(byStop.get(key) ?? []), battle]);
+    }
+    return byStop;
+  }, [pitBattles]);
 
   const datedEntries = useMemo(
     () =>
@@ -226,6 +241,15 @@ export function PitFeed({
                         </div>
                       )}
                     </div>
+                    {battlesByStop
+                      .get(`${entry.driver_number}:${entry.lap_number}`)
+                      ?.map((battle) => (
+                        <PitBattleLine
+                          key={battle.id}
+                          battle={battle}
+                          driverByNumber={driverByNumber}
+                        />
+                      ))}
                   </div>
                   {onJump && (
                     <CommentaryJumpButton
@@ -250,6 +274,57 @@ export function PitFeed({
             Load older ({visibleAll.length - visible.length} left)
           </button>
         </div>
+      )}
+    </div>
+  );
+}
+
+function PitBattleLine({
+  battle,
+  driverByNumber,
+}: {
+  battle: PitBattle;
+  driverByNumber: Map<number, Driver>;
+}) {
+  const attacker = driverByNumber.get(battle.attacker);
+  const defender = driverByNumber.get(battle.defender);
+  const rivalNumber = battle.firstStopper === battle.attacker ? battle.defender : battle.attacker;
+  const rival = driverByNumber.get(rivalNumber);
+  const tone =
+    battle.attackerAheadAfter === null
+      ? "bg-white/10 text-white/80"
+      : battle.attackerAheadAfter
+        ? "bg-[#14b8a6] text-black"
+        : "bg-white/20 text-white";
+  return (
+    <div className={`${COMMENTARY_META_CLASS} mt-0.5`}>
+      <span className={`${COMMENTARY_BADGE_CLASS} ${tone}`}>
+        {pitBattleHeadline(battle)}
+      </span>
+      <span>
+        <span style={{ color: teamColor(attacker?.team_colour) }}>
+          {attacker?.name_acronym ?? battle.attacker}
+        </span>{" "}
+        vs{" "}
+        <span style={{ color: teamColor(defender?.team_colour) }}>
+          {defender?.name_acronym ?? battle.defender}
+        </span>
+      </span>
+      {battle.attackerGainS !== null ? (
+        <span className="font-mono tabular-nums text-white/70">
+          {formatBattleGain(battle.attackerGainS)}
+        </span>
+      ) : (
+        <span className="text-white/50">
+          {battle.rivalStopLap === null
+            ? `${rival?.name_acronym ?? rivalNumber} still out`
+            : "out-lap"}
+        </span>
+      )}
+      {battle.neutralised && (
+        <span className="text-white/50" title="A Safety Car, VSC or red flag affected this">
+          SC/VSC
+        </span>
       )}
     </div>
   );

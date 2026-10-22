@@ -17,6 +17,7 @@ export interface AppSettings {
   toastOvertake: boolean;
   toastPit: boolean;
   toastFastestLap: boolean;
+  toastUndercut: boolean;
   notificationMaxVisible: 2 | 4 | 6 | 8;
   // Track Map
   mapShowCompoundBadges: boolean;
@@ -180,6 +181,7 @@ export const SETTINGS_DEFAULTS: AppSettings = {
   toastOvertake: true,
   toastPit: true,
   toastFastestLap: true,
+  toastUndercut: true,
   notificationMaxVisible: 4,
   mapShowCompoundBadges: false,
   mapShowBattleRings: false,

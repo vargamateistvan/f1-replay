@@ -10,6 +10,7 @@ import { pitStopTime } from "@/utils/pit";
 import { isSafetyRelatedRaceControl } from "@/utils/raceControlFlags";
 import { buildLapLookup, lapNumberAtMs } from "@/utils/lapLookup";
 import { toSafeExternalUrl } from "@/utils/url";
+import type { PitBattle } from "@/utils/undercut";
 
 // ─── Normalized toast events ────────────────────────────────────────────────
 
@@ -20,7 +21,8 @@ export type ToastKind =
   | "penalty"
   | "overtake"
   | "pit"
-  | "fastest_lap";
+  | "fastest_lap"
+  | "undercut";
 
 export interface RadioPayload {
   driverNumber: number;
@@ -60,12 +62,16 @@ export interface FastestLapPayload {
   lapTime: number;
 }
 
+/** A resolved undercut / overcut (`utils/undercut.ts`). */
+export type UndercutPayload = PitBattle;
+
 export type ToastPayload =
   | RadioPayload
   | FlagPayload
   | OvertakePayload
   | PitPayload
-  | FastestLapPayload;
+  | FastestLapPayload
+  | UndercutPayload;
 
 export type ToastPriority = "high" | "low";
 
@@ -154,6 +160,7 @@ export function buildToastEvents(
   sessionStartMs: number,
   laps: Lap[] = [],
   stints: Stint[] = [],
+  pitBattles: readonly PitBattle[] = [],
 ): ToastEvent[] {
   const events: ToastEvent[] = [];
   const lapLookup = buildLapLookup(laps, sessionStartMs);
@@ -259,6 +266,17 @@ export function buildToastEvents(
         priority: "high",
       });
     }
+  }
+
+  for (const battle of pitBattles) {
+    if (battle.status !== "resolved" || battle.resolvedMs === null) continue;
+    events.push({
+      id: battle.id,
+      ms: battle.resolvedMs,
+      kind: "undercut",
+      payload: battle satisfies UndercutPayload,
+      priority: "high",
+    });
   }
 
   return events.sort((a, b) => a.ms - b.ms);

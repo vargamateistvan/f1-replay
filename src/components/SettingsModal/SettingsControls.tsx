@@ -39,6 +39,7 @@ const CATCHUP_EVENT_TYPE_OPTIONS = [
   { kind: "penalty", label: "Penalties", color: "#e8002d" },
   { kind: "overtake", label: "Overtakes", color: "#22c55e" },
   { kind: "fastest_lap", label: "Fastest laps", color: "#9b59f5" },
+  { kind: "undercut", label: "Undercuts", color: "#14b8a6" },
   { kind: "investigation", label: "Investigations", color: "#f5a623" },
   { kind: "radio", label: "Radio", color: "#6b6b7a" },
 ] as const;
@@ -49,6 +50,7 @@ const NOTIFICATION_EVENT_TYPE_OPTIONS = [
   { key: "toastPenalty", label: "Penalties", color: "#e8002d" },
   { key: "toastOvertake", label: "Overtakes", color: "#22c55e" },
   { key: "toastFastestLap", label: "Fastest laps", color: "#9b59f5" },
+  { key: "toastUndercut", label: "Undercuts", color: "#14b8a6" },
   { key: "toastInvestigation", label: "Investigations", color: "#f5a623" },
   { key: "toastRadio", label: "Radio", color: "#6b6b7a" },
 ] as const;

@@ -10,10 +10,12 @@ import type {
   RadioPayload,
   ToastEvent,
   ToastKind,
+  UndercutPayload,
 } from "@/timeline/events";
 import { CATCHUP_REPLAY_LEAD_MS } from "@/constants";
 import { teamColor } from "@/utils/color";
 import { formatPitDuration } from "@/utils/pit";
+import { formatBattleGain, pitBattleHeadline } from "@/utils/undercut";
 import { useSettings } from "@/stores/settings";
 import { toSafeExternalUrl } from "@/utils/url";
 import { RadioAudio } from "@/components/RadioAudio";
@@ -112,6 +114,12 @@ const KIND_STYLES: Record<ToastKind, KindStyle> = {
     text: "#fff",
     badge: "FASTEST",
     mkChipLabel: (n) => plural(n, "fastest lap"),
+  },
+  undercut: {
+    color: "#14b8a6",
+    text: "#000",
+    badge: null,
+    mkChipLabel: (n) => plural(n, "undercut"),
   },
   investigation: {
     color: "#f5a623",
@@ -363,6 +371,45 @@ function CatchupEventRow(props: Readonly<RowProps>) {
                 </span>
               )}
             </>
+          }
+        />
+      );
+    }
+
+    case "undercut": {
+      const p = ev.payload as UndercutPayload;
+      return (
+        <EventRow
+          ev={ev}
+          accent={style.color}
+          onJump={onJump}
+          headline={
+            <>
+              <DriverTag
+                driver={driverMap.get(p.attacker)}
+                driverNumber={p.attacker}
+                showName={false}
+              />
+              <span className="text-[10px] font-bold text-white/80">
+                {pitBattleHeadline(p)}
+              </span>
+              <span className="text-[9px] text-muted">vs</span>
+              <DriverTag
+                driver={driverMap.get(p.defender)}
+                driverNumber={p.defender}
+                showName={false}
+              />
+            </>
+          }
+          detail={
+            <div className="flex items-center gap-2">
+              <LapTag lap={p.firstStopLap} />
+              {p.attackerGainS !== null && (
+                <span className="text-[9px] font-mono tabular-nums text-muted">
+                  {formatBattleGain(p.attackerGainS)}
+                </span>
+              )}
+            </div>
           }
         />
       );

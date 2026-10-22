@@ -9,10 +9,12 @@ import type {
   OvertakePayload,
   PitPayload,
   FastestLapPayload,
+  UndercutPayload,
 } from "@/timeline/events";
 import { teamColor } from "@/utils/color";
 import { useSettings } from "@/stores/settings";
 import { formatPitDuration } from "@/utils/pit";
+import { formatBattleGain, pitBattleHeadline } from "@/utils/undercut";
 import { toSafeExternalUrl } from "@/utils/url";
 import { useAudioProgress } from "@/hooks/useAudioProgress";
 import { beep, getAudioContext } from "@/lib/audio";
@@ -282,6 +284,10 @@ function ToastCard({
       return (
         <FastestLapToast at={at} driverMap={driverMap} onDismiss={onDismiss} />
       );
+    if (at.event.kind === "undercut")
+      return (
+        <UndercutToast at={at} driverMap={driverMap} onDismiss={onDismiss} />
+      );
     return null;
   })();
 
@@ -518,6 +524,48 @@ function OvertakeToast({
           {p.position && (
             <span className="ml-1 text-[10px] font-bold text-muted">
               P{p.position}
+            </span>
+          )}
+        </div>
+      </div>
+      <DismissBtn id={at.event.id} onDismiss={onDismiss} />
+    </div>
+  );
+}
+
+// ─── Undercut / overcut ──────────────────────────────────────────────────────
+
+function UndercutToast({
+  at,
+  driverMap,
+  onDismiss,
+}: {
+  at: ActiveToast;
+  driverMap: Map<number, Driver>;
+  onDismiss: (id: string) => void;
+}) {
+  const p = at.event.payload as UndercutPayload;
+  const attacker = driverMap.get(p.attacker);
+  const defender = driverMap.get(p.defender);
+  const color = teamColor(attacker?.team_colour);
+
+  return (
+    <div className="relative pointer-events-auto rounded-lg bg-surface border border-panel shadow-xl flex items-center overflow-hidden w-full">
+      <span className="w-[3px] self-stretch shrink-0 bg-[#14b8a6]" />
+      <div className="flex-1 min-w-0 px-2.5 py-1.5 pr-8 md:px-3 md:py-2 md:pr-8">
+        <div className="text-[9px] text-muted uppercase tracking-widest mb-0.5">
+          {pitBattleHeadline(p)} · L{p.firstStopLap}
+          {p.neutralised && " · SC/VSC"}
+        </div>
+        <div className="flex items-center gap-1 font-black text-[12px] md:text-[13px]">
+          <span style={{ color }}>{attacker?.name_acronym ?? p.attacker}</span>
+          <span className="text-muted text-[10px]">vs</span>
+          <span className="text-white/60">
+            {defender?.name_acronym ?? p.defender}
+          </span>
+          {p.attackerGainS !== null && (
+            <span className="ml-auto text-[11px] font-mono tabular-nums text-white/70">
+              {formatBattleGain(p.attackerGainS)}
             </span>
           )}
         </div>

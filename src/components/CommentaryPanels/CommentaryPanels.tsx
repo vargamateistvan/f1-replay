@@ -26,6 +26,7 @@ import {
   type TimedPositionPoint,
 } from "@/components/CommentaryPanels/keyMoments";
 import type { IncidentWindow } from "@/timeline/raceControl";
+import type { PitBattle } from "@/utils/undercut";
 import { sessionStartLabel } from "@/utils/session";
 import type { KeyMoment } from "@/components/KeyMoments/types";
 
@@ -80,6 +81,8 @@ function PanelFallback() {
 
 type Props = {
   commentaryTab: CommentaryTab;
+  /** Undercut / overcut battles shown on the first stopper's pit row. */
+  pitBattles?: PitBattle[];
   raceControlError: boolean;
   teamRadioError: boolean;
   pitsError: boolean;
@@ -113,6 +116,7 @@ type Props = {
 
 type RenderContext = Readonly<{
   commentaryTab: CommentaryTab;
+  pitBattles: PitBattle[];
   raceControlError: boolean;
   teamRadioError: boolean;
   pitsError: boolean;
@@ -193,6 +197,7 @@ function renderCommentaryTabContent(ctx: RenderContext): ReactNode {
         <Suspense fallback={<PanelFallback />}>
           <PitFeed
             entries={ctx.pitEntries}
+            pitBattles={ctx.pitBattles}
             stints={ctx.stints}
             sessionKey={ctx.sessionKey}
             sessionType={ctx.sessionType}
@@ -280,8 +285,11 @@ function renderCommentaryTabContent(ctx: RenderContext): ReactNode {
   }
 }
 
+const NO_PIT_BATTLES: PitBattle[] = [];
+
 export function CommentaryPanels({
   commentaryTab,
+  pitBattles = NO_PIT_BATTLES,
   raceControlError,
   teamRadioError,
   pitsError,
@@ -423,6 +431,7 @@ export function CommentaryPanels({
 
   return renderCommentaryTabContent({
     commentaryTab,
+    pitBattles,
     raceControlError,
     teamRadioError,
     pitsError,

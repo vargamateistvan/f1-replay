@@ -1,6 +1,7 @@
 import { fireEvent, render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import type { Driver, Pit, Stint } from "@/api/types";
+import type { PitBattle } from "@/utils/undercut";
 import { PitFeed } from "./PitFeed";
 
 const drivers: Driver[] = [
@@ -104,5 +105,62 @@ describe("PitFeed", () => {
     expect(
       screen.queryByRole("button", { name: /Jump to/ }),
     ).not.toBeInTheDocument();
+  });
+});
+
+describe("PitFeed pit battles", () => {
+  const battle: PitBattle = {
+    id: "pit-battle-1-16-10",
+    kind: "undercut",
+    attacker: 1,
+    defender: 16,
+    firstStopper: 1,
+    firstStopLap: 10,
+    firstStopMs: 600_000,
+    attackerDeficitS: 1.5,
+    rivalStopLap: null,
+    status: "pending",
+    attackerAheadAfter: null,
+    attackerGainS: null,
+    resolvedMs: null,
+    neutralised: false,
+  };
+
+  function renderWith(pitBattles: PitBattle[]) {
+    render(
+      <PitFeed
+        entries={pits}
+        pitBattles={pitBattles}
+        stints={stints}
+        drivers={drivers}
+        sessionTimeMs={0}
+        sessionStartMs={Date.parse("2024-01-01T00:00:00Z")}
+        showAllItems
+        sessionType="Race"
+      />,
+    );
+  }
+
+  it("shows a pending undercut on the first stopper's row", () => {
+    renderWith([battle]);
+    expect(screen.getByText("Undercut on")).toBeInTheDocument();
+    expect(screen.getByText("16 still out")).toBeInTheDocument();
+  });
+
+  it("headlines the outcome and the seconds gained once resolved", () => {
+    renderWith([
+      {
+        ...battle,
+        status: "resolved",
+        rivalStopLap: 11,
+        attackerAheadAfter: true,
+        attackerGainS: 2.3,
+        resolvedMs: 720_000,
+        neutralised: true,
+      },
+    ]);
+    expect(screen.getByText("Undercut worked")).toBeInTheDocument();
+    expect(screen.getByText("+2.3 s")).toBeInTheDocument();
+    expect(screen.getByText("SC/VSC")).toBeInTheDocument();
   });
 });

@@ -83,7 +83,7 @@ const desktopSteps = (ctx: TourContext): Step[] => [
     placement: "right",
     title: "Timing and more",
     content:
-      "Gaps, sectors, tyres and live car data. Click a driver to focus them; the tabs switch to tyre strategy, lap and gap charts.",
+      "Gaps, sectors, tyres and live car data. Click a driver to focus them; the tabs switch to tyre strategy, tyre degradation, lap and gap charts.",
   },
   trackMap,
   mapViews(ctx),
@@ -113,7 +113,7 @@ const compactSteps = (ctx: TourContext): Step[] => [
     target: tourSelector(TOUR_TARGET.mobileTrackerTabs),
     placement: "bottom",
     title: "Timing, track and charts",
-    content: `Switch between the timing tower, the live track map, tyre strategy and lap and gap charts. Tap a driver to focus them. On the map, the ${
+    content: `Switch between the timing tower, the live track map, tyre strategy and degradation, and lap and gap charts. Tap a driver to focus them. On the map, the ${
       ctx.has3d ? "2D, 3D and ring" : "2D and ring"
     } buttons change its view.`,
   },

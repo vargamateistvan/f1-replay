@@ -126,6 +126,9 @@ import {
   upperBoundByValue,
   windowBoundsByValue,
 } from "@/utils/sortedTime";
+import { neutralisedWindows } from "@/utils/racePace";
+import { detectPitBattles, type PitBattle } from "@/utils/undercut";
+import { buildDriverTimeIndex } from "@/utils/driverTimeIndex";
 import { trackEvent } from "@/lib/analytics";
 import {
   animateMotion,
@@ -146,7 +149,7 @@ import type {
 import type { CommentaryTab } from "@/components/CommentaryPanels/CommentaryPanels";
 
 // Sub-tab options per view
-type TrackerTab = "timing" | "chart" | "gap" | "map" | "strategy";
+type TrackerTab = "timing" | "chart" | "gap" | "map" | "strategy" | "deg";
 type CommentaryTimeMode = "elapsed" | "all";
 const VALID_MAIN_VIEWS = new Set<MainView>([
   "leaderboard",
@@ -159,6 +162,7 @@ const VALID_TRACKER_TABS = new Set<TrackerTab>([
   "gap",
   "map",
   "strategy",
+  "deg",
 ]);
 const VALID_COMMENTARY_TABS = new Set<CommentaryTab>([
   "rc",
@@ -212,6 +216,8 @@ type CompletedLapPoint = {
   lapNumber: number;
 };
 
+const NO_PIT_BATTLES: PitBattle[] = [];
+
 type ClosedIncidentWindow = ReturnType<typeof buildIncidentWindows>[number] & {
   endMs: number;
 };
@@ -248,6 +254,11 @@ const FocusedTelemetry = lazy(() =>
 const StrategyBar = lazy(() =>
   import("@/components/Strategy/StrategyBar").then((m) => ({
     default: m.StrategyBar,
+  })),
+);
+const TyreDeg = lazy(() =>
+  import("@/components/TyreDeg/TyreDeg").then((m) => ({
+    default: m.TyreDeg,
   })),
 );
 const LapChart = lazy(() =>
@@ -893,6 +904,50 @@ export default function RaceWeekend() {
     [normalizedRcEvents],
   );
 
+  const raceNeutralised = useMemo(
+    () => neutralisedWindows(incidentWindows),
+    [incidentWindows],
+  );
+
+  const intervalIndex = useMemo(
+    () =>
+      buildDriverTimeIndex(intervals.data ?? [], (row) => Date.parse(row.date)),
+    [intervals.data],
+  );
+
+  // Undercut / overcut battles (races only). Toasts fire as each one resolves,
+  // so they're built from the whole session; the pit feed only knows the past
+  // unless the commentary shows everything.
+  const pitBattlesFor = useCallback(
+    (cutoffMs: number) =>
+      isRaceSession && sessionStartMs
+        ? detectPitBattles({
+            pits: pits.data ?? [],
+            laps: laps.data ?? [],
+            intervals: intervalIndex,
+            neutralised: raceNeutralised,
+            sessionStartMs,
+            cutoffMs,
+          })
+        : [],
+    [isRaceSession, sessionStartMs, pits.data, laps.data, intervalIndex, raceNeutralised],
+  );
+  const sessionPitBattles = useMemo(
+    () => pitBattlesFor(Number.POSITIVE_INFINITY),
+    [pitBattlesFor],
+  );
+  const showAllCommentary = commentaryTimeMode === "all";
+  const showsPitFeed = activeCommentaryTab === "pits";
+  const feedPitBattles = useMemo(
+    () =>
+      !showsPitFeed
+        ? NO_PIT_BATTLES
+        : showAllCommentary
+          ? sessionPitBattles
+          : pitBattlesFor(tSlow),
+    [showsPitFeed, showAllCommentary, sessionPitBattles, pitBattlesFor, tSlow],
+  );
+
   const closedIncidentWindows = useMemo(
     () => incidentWindows.filter(isClosedIncidentWindow),
     [incidentWindows],
@@ -1096,6 +1151,15 @@ export default function RaceWeekend() {
     isRaceSession,
   ]);
 
+  // Tyre Deg table rows follow the race order at the playhead.
+  const tyreDegPositions = useMemo(
+    () =>
+      activeTrackerTab === "deg" && director
+        ? positionsAt(director.positions, sessionStartMs + tSlow)
+        : null,
+    [activeTrackerTab, director, sessionStartMs, tSlow],
+  );
+
   // 3D gap ribbons: who each battling car is chasing, and by how much.
   const battleGaps = useMemo((): BattleGap[] | null => {
     if (!director || !intervalSeconds) return null;
@@ -1269,6 +1333,7 @@ export default function RaceWeekend() {
     toastOvertake: settingToastOvertake,
     toastPit: settingToastPit,
     toastFastestLap: settingToastFastestLap,
+    toastUndercut: settingToastUndercut,
     notificationMaxVisible,
     mapShowCompoundBadges,
     mapShowBattleRings,
@@ -1484,6 +1549,7 @@ export default function RaceWeekend() {
       sessionStartMs,
       laps.data ?? [],
       stints.data ?? [],
+      sessionPitBattles,
     );
   }, [
     teamRadio.data,
@@ -1493,6 +1559,7 @@ export default function RaceWeekend() {
     sessionStartMs,
     laps.data,
     stints.data,
+    sessionPitBattles,
     shouldBuildToastEvents,
   ]);
 
@@ -1506,6 +1573,7 @@ export default function RaceWeekend() {
       if (ev.kind === "overtake") return settingToastOvertake;
       if (ev.kind === "pit") return settingToastPit;
       if (ev.kind === "fastest_lap") return settingToastFastestLap;
+      if (ev.kind === "undercut") return settingToastUndercut;
       return true;
     });
   }, [
@@ -1519,6 +1587,7 @@ export default function RaceWeekend() {
     settingToastOvertake,
     settingToastPit,
     settingToastFastestLap,
+    settingToastUndercut,
   ]);
 
   const [playingToastIds, setPlayingToastIds] = useState<Set<string>>(
@@ -2257,6 +2326,22 @@ export default function RaceWeekend() {
     />
   );
 
+  // Shared by the mobile and desktop tracker layouts. Coarse time: the fits only
+  // change when a lap finishes.
+  const tyreDegPanel = (
+    <TyreDeg
+      drivers={drivers.data ?? []}
+      laps={laps.data ?? []}
+      stints={stints.data ?? []}
+      pits={pits.data ?? []}
+      neutralised={raceNeutralised}
+      sessionStartMs={sessionStartMs}
+      sessionTimeMs={tSlow}
+      focusDriver={focusDriver}
+      positionByDriver={tyreDegPositions}
+    />
+  );
+
   const trackerSettingsButton = (
     <button
       type="button"
@@ -2422,12 +2507,13 @@ export default function RaceWeekend() {
                   data-tour={TOUR_TARGET.mobileTrackerTabs}
                   className="flex w-full border-b border-panel shrink-0"
                 >
-                  <div className="grid grid-cols-5 flex-1 min-w-0">
+                  <div className="grid grid-cols-6 flex-1 min-w-0">
                     {(
                       [
                         ["timing", "Timing"],
                         ["map", "Track"],
                         ["strategy", "Tyre Strategy"],
+                        ["deg", "Deg"],
                         ["chart", "Chart"],
                         ["gap", "Gap"],
                       ] as [TrackerTab, string][]
@@ -2551,6 +2637,22 @@ export default function RaceWeekend() {
                   </div>
                 )}
 
+                {activeTrackerTab === "deg" && (
+                  <div
+                    data-motion-card
+                    className={`${PANEL} flex-1 flex flex-col overflow-hidden border-0`}
+                  >
+                    <div className={`${PANEL_TITLE} shrink-0`}>
+                      Tyre Degradation
+                    </div>
+                    <div className="min-h-0 flex-1 flex flex-col">
+                      <Suspense fallback={<PanelFallback />}>
+                        {tyreDegPanel}
+                      </Suspense>
+                    </div>
+                  </div>
+                )}
+
                 {activeTrackerTab === "chart" && (
                   <div
                     data-motion-card
@@ -2611,6 +2713,7 @@ export default function RaceWeekend() {
                     [
                       ["timing", "Timing"],
                       ["strategy", "Tyre Strategy"],
+                      ["deg", "Tyre Deg"],
                       ["chart", "Laps"],
                       ["gap", "Gap"],
                     ] as [TrackerTab, string][]
@@ -2665,6 +2768,20 @@ export default function RaceWeekend() {
                             sessionStartMs={sessionStartMs}
                             currentLap={currentLap}
                           />
+                        </Suspense>
+                      </div>
+                    </div>
+                  )}
+                  {activeTrackerTab === "deg" && (
+                    <div
+                      className={`${PANEL} flex-1 flex flex-col overflow-hidden border-0`}
+                    >
+                      <div className={`${PANEL_TITLE} shrink-0`}>
+                        Tyre Degradation
+                      </div>
+                      <div className="min-h-0 flex-1 flex flex-col">
+                        <Suspense fallback={<PanelFallback />}>
+                          {tyreDegPanel}
                         </Suspense>
                       </div>
                     </div>
@@ -2890,6 +3007,7 @@ export default function RaceWeekend() {
                 raceControlEntries={raceControl.data ?? []}
                 teamRadioEntries={teamRadio.data ?? []}
                 pitEntries={pits.data ?? []}
+                pitBattles={feedPitBattles}
                 stints={stints.data ?? []}
                 overtakeEntries={overtakes.data ?? []}
                 weatherEntries={weather.data ?? []}

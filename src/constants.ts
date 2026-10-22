@@ -472,6 +472,27 @@ export const CATCHUP_REPLAY_LEAD_MS = 5_000;
 /** Minimum forward jump (session ms) that opens the "While you were away" summary. */
 export const CATCHUP_JUMP_THRESHOLD_MS = 60_000;
 
+// ── Race analysis (tyre degradation) ──────────────────────────────────────────
+/** A lap this much slower than its stint's median is traffic or a mistake, not pace. */
+export const RACE_PACE_OUTLIER_PCT = 0.05;
+/** Fewest clean laps a stint needs before a degradation slope is fitted. */
+export const RACE_PACE_MIN_LAPS = 8;
+/** Optional fuel correction: lap time a car gains per lap as fuel burns off (s/lap). */
+export const RACE_PACE_FUEL_S_PER_LAP = 0.05;
+/** Degradation colour bands (s/lap): up to LOW is gentle, above HIGH is heavy. */
+export const RACE_PACE_DEG_LOW = 0.03;
+export const RACE_PACE_DEG_HIGH = 0.08;
+/** Fits explaining less of the lap-time spread than this (r²) are shown as noisy. */
+export const RACE_PACE_NOISY_R2 = 0.2;
+
+// ── Race analysis (undercut / overcut) ────────────────────────────────────────
+/** Two cars count as fighting when this close on track (s) as the first one pits. */
+export const UNDERCUT_MAX_GAP_S = 3.5;
+/** The rival must stop within this many laps of the first stop to make it a battle. */
+export const UNDERCUT_MAX_LAG_LAPS = 5;
+/** Stops before this lap are first-lap damage, not strategy, and the field hasn't settled. */
+export const UNDERCUT_MIN_STOP_LAP = 5;
+
 // ── App tour ──────────────────────────────────────────────────────────────────
 /** Bump when the tour changes enough that returning users should see it again. */
 export const TOUR_VERSION = 1;
