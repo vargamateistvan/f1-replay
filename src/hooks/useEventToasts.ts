@@ -1,8 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import type { ToastEvent } from "@/timeline/events";
+import { TOAST_AUTO_DISMISS_MS, TOAST_JUMP_THRESHOLD_MS } from "@/constants";
 
-const JUMP_THRESHOLD_MS = 5_000;
-const AUTO_DISMISS_MS = 8_000;
 const EMPTY_SET = new Set<string>();
 
 export interface ActiveToast {
@@ -38,7 +37,7 @@ export function useEventToasts(
     // bar buttons, which jump straight to an event's own timestamp) still
     // need to surface the event landed on, so stale "seen" ids are cleared
     // but crossed events are still evaluated below instead of bailing out.
-    const isLargeJump = delta > JUMP_THRESHOLD_MS;
+    const isLargeJump = delta > TOAST_JUMP_THRESHOLD_MS;
     if (isLargeJump) {
       seenRef.current.clear();
     }
@@ -62,7 +61,7 @@ export function useEventToasts(
     setToasts((prev) => {
       const pruned = prev.filter(
         (at) =>
-          pinnedIds.has(at.event.id) || now - at.addedAt < AUTO_DISMISS_MS,
+          pinnedIds.has(at.event.id) || now - at.addedAt < TOAST_AUTO_DISMISS_MS,
       );
       if (freshVisible.length === 0) return pruned;
       const incoming = freshVisible.map((ev) => ({ event: ev, addedAt: now }));

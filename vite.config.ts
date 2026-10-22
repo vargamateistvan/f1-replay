@@ -42,6 +42,9 @@ export default defineConfig(({ mode }) => ({
     apiPreconnectPlugin(mode),
     react(),
     sentryVitePlugin({
+      // Only the deploy workflow uploads source maps; local builds (including
+      // the pre-commit hook) would otherwise upload with the token file.
+      disable: !env.GITHUB_ACTIONS,
       org: "f1-replay",
       project: "f1-replay",
       ...(sentryRelease

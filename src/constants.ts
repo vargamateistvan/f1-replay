@@ -461,6 +461,12 @@ export const QUERY_PERSIST_GC_INTERVAL_MS = 24 * 60 * 60 * 1000;
 /** A race control message counts as "new" (pulse dot, entrance flash) for this long. */
 export const RC_TICKER_FRESH_MS = 30_000;
 
+// ── Event toasts ──────────────────────────────────────────────────────────────
+/** A forward jump (session ms) larger than this clears the toast queue instead of replaying it. */
+export const TOAST_JUMP_THRESHOLD_MS = 5_000;
+/** Unpinned toasts are dismissed after this long (wall-clock ms). */
+export const TOAST_AUTO_DISMISS_MS = 8_000;
+
 /** "While you were away": jumping to a skipped event starts this far before it. */
 export const CATCHUP_REPLAY_LEAD_MS = 5_000;
 /** Minimum forward jump (session ms) that opens the "While you were away" summary. */
