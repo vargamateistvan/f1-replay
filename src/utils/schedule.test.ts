@@ -5,6 +5,7 @@ import {
   buildSeasonSchedule,
   formatCountdown,
   isTestingMeeting,
+  scheduleFocusRound,
   sessionStatus,
 } from "./schedule";
 
@@ -132,5 +133,38 @@ describe("formatCountdown", () => {
     expect(formatCountdown(5 * HOUR + 12 * 60_000)).toBe("5h 12m");
     expect(formatCountdown(8 * 60_000 + 30_000)).toBe("8m");
     expect(formatCountdown(-1)).toBe("0m");
+  });
+});
+
+describe("scheduleFocusRound", () => {
+  const meetings = [
+    meeting(1, "Pre-Season Testing", T0 - 14 * DAY),
+    meeting(2, "Australian Grand Prix", T0),
+    meeting(3, "Chinese Grand Prix", T0 + 14 * DAY),
+    meeting(4, "Imola Grand Prix", T0 + 21 * DAY, { is_cancelled: true }),
+  ];
+  const sessions = [
+    session(20, 2, "Practice", T0),
+    session(21, 2, "Race", T0 + 2 * DAY),
+    session(30, 3, "Race", T0 + 16 * DAY),
+  ];
+  const focusAt = (nowMs: number) =>
+    scheduleFocusRound(buildSeasonSchedule(meetings, sessions, nowMs).rounds)?.meeting
+      .meeting_key;
+
+  it("prefers the weekend under way", () => {
+    expect(focusAt(T0 + DAY)).toBe(2);
+  });
+  it("otherwise picks the latest finished race weekend, not the next one", () => {
+    expect(focusAt(T0 + 7 * DAY)).toBe(2);
+  });
+  it("skips cancelled events after the last race", () => {
+    expect(focusAt(T0 + 40 * DAY)).toBe(3);
+  });
+  it("ignores finished testing and falls back to the first upcoming round", () => {
+    expect(focusAt(T0 - 7 * DAY)).toBe(2);
+  });
+  it("is null with no rounds", () => {
+    expect(scheduleFocusRound([])).toBeNull();
   });
 });

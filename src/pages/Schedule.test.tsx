@@ -93,6 +93,20 @@ describe("Schedule page", () => {
     expect(screen.queryByRole("link", { name: "Replay Practice 1" })).toBeNull();
   });
 
+  it("opens on the latest finished weekend rather than the next one", () => {
+    const scrollIntoView = vi.fn();
+    Element.prototype.scrollIntoView = scrollIntoView;
+    try {
+      setup();
+      expect(scrollIntoView).toHaveBeenCalledTimes(1);
+      const card = scrollIntoView.mock.contexts[0] as HTMLElement;
+      expect(card.getAttribute("data-meeting-key")).toBe("1");
+      expect(scrollIntoView).toHaveBeenCalledWith({ block: "start" });
+    } finally {
+      delete (Element.prototype as Partial<Element>).scrollIntoView;
+    }
+  });
+
   it("switches between your time and track time", () => {
     setup();
     const local = screen.getByRole("radio", { name: "Your time" });

@@ -132,7 +132,7 @@ src/
     retirement.ts       — Retirement detection from race control
     session.ts          — Session utility helpers
     circuitInfo.ts      — circuitStats() (centerline length, distinct turns, direction from shoelace sign; F1 frame is decimetres, Y-up), circuitThumbnail() (outline path oriented like the 2D map, start tick, direction arrow)
-    schedule.ts         — buildSeasonSchedule(): meetings + sessions → numbered rounds (testing/cancelled unnumbered), per-session status, next round; formatCountdown()
+    schedule.ts         — buildSeasonSchedule(): meetings + sessions → numbered rounds (testing/cancelled unnumbered), per-session status, next round; scheduleFocusRound() (live weekend → latest finished → first upcoming; the page opens scrolled to it); formatCountdown()
     standings.ts        — computeStandings(), completed-session + wins/podiums tallies
     championship.ts     — Points progression, per-race results grid, title-outlook maths, teammate head-to-heads
     driverProfile.ts    — driverSeasonStats(), finishDistribution(), championshipPositions() for the driver profile

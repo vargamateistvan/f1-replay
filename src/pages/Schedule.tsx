@@ -11,6 +11,7 @@ import { PICKER_BAR } from "@/components/Nav/pickerStyles";
 import { DEFAULT_YEAR, SCHEDULE_CLOCK_TICK_MS } from "@/constants";
 import {
   buildSeasonSchedule,
+  scheduleFocusRound,
   formatCountdown,
   type ScheduleRound,
   type ScheduleSession,
@@ -158,7 +159,8 @@ function RoundCard({
   return (
     <article
       data-next-round={round.isNext || undefined}
-      className={`flex flex-col overflow-hidden rounded-sm border bg-surface ${
+      data-meeting-key={meeting.meeting_key}
+      className={`flex scroll-mt-3 flex-col overflow-hidden rounded-sm border bg-surface ${
         round.isNext ? "border-f1red/80 ring-1 ring-f1red/40" : "border-panel"
       } ${round.status === "completed" || round.status === "cancelled" ? "opacity-80" : ""}`}
     >
@@ -248,18 +250,21 @@ export default function Schedule() {
   const nextSession =
     nextRound?.sessions.find((s) => s.status === "live" || s.status === "upcoming")
       ?.session ?? null;
-  const nextKey = nextRound?.meeting.meeting_key ?? null;
+  const isLoading = meetingsQ.isPending || sessionsQ.isPending;
+  // Wait for sessions too: until they arrive, statuses come from meeting dates.
+  const focusKey = isLoading
+    ? null
+    : (scheduleFocusRound(schedule.rounds)?.meeting.meeting_key ?? null);
 
-  // Bring the next round into view once per season (not on every clock tick).
+  // Open on the current (or latest) race weekend, once per season — not on
+  // every clock tick, so it never fights the user's own scrolling.
   const scrolledForYear = useRef<number | null>(null);
   useEffect(() => {
-    if (nextKey === null || scrolledForYear.current === year) return;
+    if (focusKey === null || scrolledForYear.current === year) return;
     scrolledForYear.current = year;
-    const card = listRef.current?.querySelector("[data-next-round]");
-    card?.scrollIntoView?.({ block: "center" });
-  }, [nextKey, year]);
-
-  const isLoading = meetingsQ.isPending || sessionsQ.isPending;
+    const card = listRef.current?.querySelector(`[data-meeting-key="${focusKey}"]`);
+    card?.scrollIntoView?.({ block: "start" });
+  }, [focusKey, year]);
   const isError = meetingsQ.isError;
 
   return (

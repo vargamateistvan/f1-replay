@@ -112,6 +112,17 @@ export function buildSeasonSchedule(
   };
 }
 
+// Round the schedule opens on: the weekend under way, else the latest
+// finished race weekend, else (pre-season) the first one still to come.
+export function scheduleFocusRound(rounds: ScheduleRound[]): ScheduleRound | null {
+  const live = rounds.find((r) => r.status === "live");
+  if (live) return live;
+  const lastCompleted = rounds.findLast(
+    (r) => r.round !== null && r.status === "completed",
+  );
+  return lastCompleted ?? rounds.find((r) => r.status === "upcoming") ?? null;
+}
+
 // "3d 4h", "5h 12m", "8m" — coarse countdown to the next session.
 export function formatCountdown(ms: number): string {
   const totalMin = Math.max(0, Math.floor(ms / 60_000));
