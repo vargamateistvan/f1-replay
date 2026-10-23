@@ -1,4 +1,5 @@
 import { useEffect, useState, type ReactNode } from "react";
+import { createPortal } from "react-dom";
 import type { CatchupSummary as CatchupSummaryData } from "@/hooks/useCatchupSummary";
 import { FastForward, Play, RotateCcw, Square, X } from "lucide-react";
 import type { Driver } from "@/api/types";
@@ -614,16 +615,19 @@ export function CatchupSummary({
 
   const visibleEvents = summary.events.filter((ev) => activeKinds.has(ev.kind));
 
-  return (
+  // Portalled: the route shell's enter animation leaves a transform, which
+  // would make it the containing block for `fixed` — on phones (where the
+  // page scrolls) the dialog then centres on the whole page, off screen.
+  const dialog = (
     <div
-      className="fixed inset-0 z-[200] flex items-center justify-center bg-black/70 px-4 backdrop-blur-sm"
+      className="fixed inset-0 z-[200] flex items-center justify-center bg-black/70 px-4 pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)] backdrop-blur-sm"
       onClick={(e) => {
         if (e.target === e.currentTarget) onDismiss();
       }}
       data-testid="catchup-backdrop"
     >
       <div
-        className="bg-surface border border-panel shadow-2xl overflow-hidden max-h-[70vh] w-[min(380px,92vw)] flex flex-col"
+        className="bg-surface border border-panel shadow-2xl overflow-hidden max-h-[70dvh] w-[min(380px,92vw)] flex flex-col"
         role="dialog"
         aria-modal="true"
         aria-label="While you were away"
@@ -710,4 +714,8 @@ export function CatchupSummary({
       </div>
     </div>
   );
+
+  return typeof document === "undefined"
+    ? dialog
+    : createPortal(dialog, document.body);
 }

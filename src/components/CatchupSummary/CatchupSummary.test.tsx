@@ -147,7 +147,7 @@ describe("CatchupSummary", () => {
   });
 
   it("fills the radio button with playback progress like other radio players", () => {
-    const { container } = render(
+    render(
       <CatchupSummary
         summary={
           {
@@ -173,7 +173,8 @@ describe("CatchupSummary", () => {
 
     fireEvent.click(screen.getByRole("button", { name: "Play" }));
     const stopButton = screen.getByRole("button", { name: "Stop" });
-    const audio = container.querySelector("audio")!;
+    // The dialog is portalled to document.body.
+    const audio = document.body.querySelector("audio")!;
     Object.defineProperty(audio, "duration", { value: 10 });
     Object.defineProperty(audio, "currentTime", { value: 5 });
     fireEvent.timeUpdate(audio);
@@ -308,5 +309,22 @@ describe("CatchupSummary — placement", () => {
     expect(onDismiss).not.toHaveBeenCalled();
     fireEvent.click(screen.getByTestId("catchup-backdrop"));
     expect(onDismiss).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe("CatchupSummary placement", () => {
+  it("renders on document.body so ancestor transforms can't offset it", () => {
+    const { container } = render(
+      <div style={{ transform: "translateY(0px)" }}>
+        <CatchupSummary
+          summary={{ fromMs: 0, toMs: 45_000, events: [] } as unknown as CatchupSummaryData}
+          drivers={[]}
+          onDismiss={vi.fn()}
+        />
+      </div>,
+    );
+    const backdrop = screen.getByTestId("catchup-backdrop");
+    expect(container.contains(backdrop)).toBe(false);
+    expect(backdrop.parentElement).toBe(document.body);
   });
 });
