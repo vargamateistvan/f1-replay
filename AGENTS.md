@@ -1,6 +1,6 @@
 # F1 Replay — Agent Documentation
 
-> Last updated: 2026-10-22  
+> Last updated: 2026-10-23  
 > The single source of truth for agents. Provides concise, agent-readable architecture notes, conventions, and guardrails. `docs/` holds mostly historical plans — see Section 12 before trusting one.
 
 ---
@@ -24,6 +24,7 @@
 | Live sessions                                     | `utils/live.ts`, polling in `hooks/useSession.ts`, MQTT push in `hooks/useOpenF1LiveMqtt.ts` |
 | Tyre degradation / race pace                      | `utils/racePace.ts` (clean laps, per-stint fit), `components/TyreDeg` (tracker tab `deg`)    |
 | Undercut / overcut                                | `utils/undercut.ts` (`detectPitBattles`), shown in `PitFeed` rows + `undercut` toast         |
+| Season schedule / calendar                        | `pages/Schedule.tsx` (`/schedule`), `utils/schedule.ts` (`buildSeasonSchedule`), `useSeasonSessions` in `hooks/useSession.ts` |
 | Standings / profiles                              | `hooks/useStandings.ts`, `utils/standings.ts`, `utils/championship.ts`, `pages/Standings.tsx` |
 | Telemetry comparison                              | `pages/Telemetry.tsx`, `components/TelemetryChart`, `components/CornerAnalysis`, `utils/telemetry.ts` |
 | SEO / new route                                   | `routes.tsx`, `seo-routes.json`, `components/Seo/seo.ts` (Pitfall 10)                        |
@@ -130,6 +131,7 @@ src/
     raceControlFlags.ts — Flag severity, safety-car phase classification
     retirement.ts       — Retirement detection from race control
     session.ts          — Session utility helpers
+    schedule.ts         — buildSeasonSchedule(): meetings + sessions → numbered rounds (testing/cancelled unnumbered), per-session status, next round; formatCountdown()
     standings.ts        — computeStandings(), completed-session + wins/podiums tallies
     championship.ts     — Points progression, per-race results grid, title-outlook maths, teammate head-to-heads
     driverProfile.ts    — driverSeasonStats(), finishDistribution(), championshipPositions() for the driver profile
@@ -167,6 +169,7 @@ src/
     RaceWeekend.tsx     — Main page: track map + leaderboard + timeline
     Telemetry.tsx       — Lap telemetry comparison page
     Standings.tsx       — Season championship standings page
+    Schedule.tsx        — /schedule — season calendar: round cards, session times (your time / track time via ?time=), replay links for started sessions, next round + countdown
     DriverProfile.tsx   — /standings/driver/:driverNumber — one driver's season (keeps ?year/&session)
     ConstructorProfile.tsx — /standings/team/:teamName (canonical name, `constructorPath()`) — one team's season
     Settings.tsx        — Redirect to settings modal
@@ -298,7 +301,7 @@ components/ (render to DOM; read settings from Zustand)
 ["latestMeeting"]
 ["latestSession"]
 ["sessions", meetingKey]
-["sessions-year", year]
+["sessions-year", year]   (useSeasonSessions — shared by schedule + standings)
 ["drivers", sessionKey]
 ["positions", sessionKey]
 ["intervals", sessionKey]

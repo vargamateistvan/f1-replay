@@ -71,6 +71,12 @@ export function MobileNav() {
             Telemetry
           </button>
           <button
+            onClick={() => goTo(`/schedule?${searchParams}`)}
+            className="h-10 rounded-sm bg-panel px-2 text-[10px] font-black uppercase tracking-[0.12em] text-white"
+          >
+            Schedule
+          </button>
+          <button
             onClick={() => goTo(`/standings?${searchParams}`)}
             className="h-10 rounded-sm bg-panel px-2 text-[10px] font-black uppercase tracking-[0.12em] text-white"
           >
@@ -168,6 +174,7 @@ export function MobileNav() {
           className={btn(
             showMore ||
               location.pathname === "/telemetry" ||
+              location.pathname === "/schedule" ||
               location.pathname.startsWith("/standings") ||
               location.pathname === "/settings",
           )}

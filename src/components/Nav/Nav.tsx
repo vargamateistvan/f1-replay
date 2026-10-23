@@ -56,6 +56,11 @@ const TRACK_FACTS_ENABLED = false;
 // How old cached calendar/alias data may be before the Latest button refetches.
 const LATEST_MANUAL_STALE_MS = 5 * 60 * 1000;
 
+// Pages that only need ?year= (no meeting/session picker).
+function isSeasonPath(pathname: string) {
+  return pathname === "/schedule" || pathname.startsWith("/standings");
+}
+
 function isRaceWeekend(meetingName: string, officialName: string) {
   return /grand prix/i.test(meetingName) || /grand prix/i.test(officialName);
 }
@@ -631,16 +636,16 @@ export function Nav() {
   // no explicit meeting/session is selected in the URL/state.
   // selectLatestEvent() fetches what it needs itself, so this can run once
   // on mount without waiting for any query to settle.
-  // Standings routes only need ?year= — auto-selecting would overwrite it
-  // (e.g. a shared /standings/driver/4?year=2024 link jumping to this season),
-  // so the bootstrap waits until a replay route is opened.
-  const onStandingsRoute = useLocation().pathname.startsWith("/standings");
+  // Standings and schedule routes only need ?year= — auto-selecting would
+  // overwrite it (e.g. a shared /standings/driver/4?year=2024 link jumping to
+  // this season), so the bootstrap waits until a replay route is opened.
+  const onSeasonRoute = isSeasonPath(useLocation().pathname);
   useEffect(() => {
-    if (autoLatestBootstrappedRef.current || onStandingsRoute) return;
+    if (autoLatestBootstrappedRef.current || onSeasonRoute) return;
     autoLatestBootstrappedRef.current = true;
     if (meetingKey !== null || sessionKey !== null) return;
     void selectLatestEvent("auto");
-  }, [meetingKey, sessionKey, selectLatestEvent, onStandingsRoute]);
+  }, [meetingKey, sessionKey, selectLatestEvent, onSeasonRoute]);
 
   const eventLabel = selectedMeeting
     ? `${selectedMeeting.country_name.toUpperCase()} ${selectedMeeting.year}`
@@ -660,7 +665,7 @@ export function Nav() {
   const navigate = useNavigate();
   const isMainRoute = location.pathname === "/";
   const isTelemetryRoute = location.pathname === "/telemetry";
-  const isStandingsRoute = location.pathname.startsWith("/standings");
+  const isSeasonRoute = isSeasonPath(location.pathname);
 
   function viewHref(id: MainView) {
     const params = new URLSearchParams(searchParams);
@@ -717,8 +722,8 @@ export function Nav() {
               onSession={onSessionSelect}
               onLatest={() => void selectLatestEvent("manual")}
             />
-          ) : isStandingsRoute ? (
-            // Standings only need a season; meeting/session are cleared on change.
+          ) : isSeasonRoute ? (
+            // Standings/schedule only need a season; meeting/session are cleared on change.
             <label className="relative inline-flex items-center">
               <span className="sr-only">Season year</span>
               <select
@@ -820,6 +825,18 @@ export function Nav() {
             }
           >
             Telemetry
+          </NavLink>
+          <NavLink
+            to={`/schedule?${searchParams}`}
+            className={({ isActive }) =>
+              `h-10 flex items-center px-3 text-[11px] font-bold uppercase tracking-[0.1em] border-b-2 transition-colors ${
+                isActive
+                  ? "text-white border-white"
+                  : "text-white/50 border-transparent hover:text-white/80"
+              }`
+            }
+          >
+            Schedule
           </NavLink>
           <NavLink
             to={`/standings?${searchParams}`}

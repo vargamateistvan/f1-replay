@@ -20,6 +20,16 @@
     "prerender": true
   },
   {
+    "path": "/schedule",
+    "title": "F1 Season Schedule | Race Calendar & Session Times",
+    "description": "The full Formula 1 season calendar with every practice, qualifying, sprint and race session in your time zone or track time, plus one-click replays of completed sessions.",
+    "keywords": "F1 schedule, Formula 1 calendar, F1 session times, F1 race calendar",
+    "noindex": false,
+    "changefreq": "daily",
+    "priority": "0.8",
+    "prerender": true
+  },
+  {
     "path": "/standings",
     "title": "F1 Standings Dashboard | Driver & Constructor Points",
     "description": "Explore Formula 1 championship standings with interactive driver and constructor points views, wins, and podium trends.",

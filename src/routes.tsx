@@ -33,6 +33,7 @@ import { useSettings } from "@/stores/settings";
 const RaceWeekend = lazy(() => import("@/pages/RaceWeekend"));
 const Telemetry = lazy(() => import("@/pages/Telemetry"));
 const Standings = lazy(() => import("@/pages/Standings"));
+const Schedule = lazy(() => import("@/pages/Schedule"));
 const DriverProfile = lazy(() => import("@/pages/DriverProfile"));
 const ConstructorProfile = lazy(() => import("@/pages/ConstructorProfile"));
 const Settings = lazy(() => import("@/pages/Settings"));
@@ -178,6 +179,7 @@ export function AppRouter() {
               <Routes>
                 <Route path="/" element={<RaceWeekend />} />
                 <Route path="/telemetry" element={<Telemetry />} />
+                <Route path="/schedule" element={<Schedule />} />
                 <Route path="/standings" element={<Standings />} />
                 <Route
                   path="/standings/driver/:driverNumber"

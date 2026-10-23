@@ -42,6 +42,8 @@ export const LIVE_POLL_SLOW_MS = 60_000;
 // playhead time) to stay well under the browser's ~100-calls/10s limit.
 export const URL_SYNC_THROTTLE_MS = 1_000;
 export const CURRENT_SEASON_STALE_MS = 6 * 60 * 60 * 1000;
+// How often the season schedule re-evaluates live/next badges and countdowns.
+export const SCHEDULE_CLOCK_TICK_MS = 30_000;
 // Public OpenF1 homepage, linked as the data-source attribution.
 export const OPENF1_SITE_URL = "https://openf1.org/";
 // OpenF1 MQTT-over-WebSocket endpoint for browser clients.

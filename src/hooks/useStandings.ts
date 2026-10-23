@@ -1,8 +1,7 @@
 import { useMemo } from "react";
-import { useQueries, useQuery, type UseQueryResult } from "@tanstack/react-query";
+import { useQueries, type UseQueryResult } from "@tanstack/react-query";
 import { api } from "@/api/endpoints";
 import type { Driver } from "@/api/types";
-import { CURRENT_SEASON_STALE_MS } from "@/utils/live";
 import { teamColor } from "@/utils/color";
 import { canonicalTeamName } from "@/utils/identity";
 import {
@@ -34,6 +33,7 @@ import {
   useChampionshipDrivers,
   useChampionshipTeams,
   useDrivers,
+  useSeasonSessions,
 } from "@/hooks/useSession";
 
 // Re-exported for existing import sites (pages/Standings.tsx).
@@ -87,11 +87,7 @@ export function useStandings(
 ) {
   const isCurrentYear = year === new Date().getFullYear();
 
-  const sessionsQ = useQuery({
-    queryKey: ["sessions-year", year],
-    queryFn: () => api.sessionsByYear(year),
-    staleTime: isCurrentYear ? CURRENT_SEASON_STALE_MS : Infinity,
-  });
+  const sessionsQ = useSeasonSessions(year);
 
   const raceSessions = useMemo(
     () => completedPointsSessions(sessionsQ.data ?? [], Date.now()),

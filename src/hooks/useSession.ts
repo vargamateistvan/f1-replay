@@ -71,6 +71,16 @@ export function useSessions(meetingKey: number | null) {
   });
 }
 
+// Every session of a season (calendar, standings). Shared with useStandings.
+export function useSeasonSessions(year: number) {
+  return useQuery({
+    queryKey: ["sessions-year", year],
+    queryFn: () => api.sessionsByYear(year),
+    enabled: Number.isFinite(year),
+    staleTime: year === new Date().getFullYear() ? CURRENT_SEASON_STALE_MS : Infinity,
+  });
+}
+
 export function useDrivers(sessionKey: number | null) {
   return useQuery({
     queryKey: ["drivers", sessionKey],
