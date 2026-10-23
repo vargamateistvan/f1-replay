@@ -24,7 +24,7 @@
 | Live sessions                                     | `utils/live.ts`, polling in `hooks/useSession.ts`, MQTT push in `hooks/useOpenF1LiveMqtt.ts` |
 | Tyre degradation / race pace                      | `utils/racePace.ts` (clean laps, per-stint fit), `components/TyreDeg` (tracker tab `deg`)    |
 | Undercut / overcut                                | `utils/undercut.ts` (`detectPitBattles`), shown in `PitFeed` rows + `undercut` toast         |
-| Season schedule / calendar                        | `pages/Schedule.tsx` (`/schedule`), `utils/schedule.ts` (`buildSeasonSchedule`), `useSeasonSessions` in `hooks/useSession.ts` |
+| Season schedule / calendar                        | `pages/Schedule.tsx` (`/schedule`), `utils/schedule.ts` (`buildSeasonSchedule`), `useSeasonSessions` in `hooks/useSession.ts`; per-card track outline + facts in `components/CircuitSummary` (`utils/circuitInfo.ts`) |
 | Standings / profiles                              | `hooks/useStandings.ts`, `utils/standings.ts`, `utils/championship.ts`, `pages/Standings.tsx` |
 | Telemetry comparison                              | `pages/Telemetry.tsx`, `components/TelemetryChart`, `components/CornerAnalysis`, `utils/telemetry.ts` |
 | SEO / new route                                   | `routes.tsx`, `seo-routes.json`, `components/Seo/seo.ts` (Pitfall 10)                        |
@@ -131,6 +131,7 @@ src/
     raceControlFlags.ts — Flag severity, safety-car phase classification
     retirement.ts       — Retirement detection from race control
     session.ts          — Session utility helpers
+    circuitInfo.ts      — circuitStats() (centerline length, distinct turns, direction from shoelace sign; F1 frame is decimetres, Y-up), circuitThumbnail() (outline path oriented like the 2D map, start tick, direction arrow)
     schedule.ts         — buildSeasonSchedule(): meetings + sessions → numbered rounds (testing/cancelled unnumbered), per-session status, next round; formatCountdown()
     standings.ts        — computeStandings(), completed-session + wins/podiums tallies
     championship.ts     — Points progression, per-race results grid, title-outlook maths, teammate head-to-heads
@@ -269,6 +270,7 @@ components/ (render to DOM; read settings from Zustand)
 | `Seo` / `RouteSeo`                                | Per-route `<head>` meta tags + JSON-LD from `seo-routes.json` (helpers in `Seo/seo.ts`); data-driven pages (driver/team profiles) override via `hooks/usePageSeo.ts` |
 | `ResizeHandle`                                    | Drag handle for split-panel layouts                                                      |
 | `Weather`                                         | Weather icon/badge overlay                                                               |
+| `CircuitSummary`                                  | Schedule card strip: baked-geometry track outline (start/finish tick, red direction arrow) + length (unit setting), turns, direction, circuit type, pit loss (normal · SC). Geometry loads per card via `useCircuitGeometry` |
 | `PointsProgression` (`PointsProgressionChart`)    | Cumulative championship points per round (Standings → Progression)                       |
 | `TitleOutlook` (`TitleOutlookBanner`)             | "N drivers in contention / X clinched" summary above the standings tables                |
 | `TeammateComparison`                              | Qualifying / race / points head-to-heads per team (Standings → Teammates)                |

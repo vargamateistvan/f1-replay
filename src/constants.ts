@@ -58,6 +58,14 @@ export const LIVE_MQTT_MAX_ROWS = 4_000;
 export const TRACK_SVG_W = 600;
 export const TRACK_SVG_H = 400;
 export const TRACK_SVG_PAD = 24;
+// OpenF1 / circuit-geometry x,y are decimetres.
+export const F1_UNITS_PER_METRE = 10;
+// Schedule card circuit thumbnail (SVG units) and how much of the lap the
+// direction arrow covers.
+export const SCHEDULE_OUTLINE_W = 120;
+export const SCHEDULE_OUTLINE_H = 80;
+export const SCHEDULE_OUTLINE_PAD = 6;
+export const SCHEDULE_OUTLINE_ARROW_FRACTION = 0.06;
 // Slightly enlarge the fit so the track uses the available map area while
 // leaving enough room for the ribbon, markers, and labels.
 export const TRACK_FIT_ZOOM = 1.15;

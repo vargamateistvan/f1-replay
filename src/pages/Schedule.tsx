@@ -4,6 +4,7 @@ import { Play } from "lucide-react";
 import type { Session } from "@/api/types";
 import { useMeetings, useSeasonSessions } from "@/hooks/useSession";
 import { useNumberParam, useStringParam } from "@/hooks/useSearchParamState";
+import { CircuitSummary } from "@/components/CircuitSummary";
 import { ErrorMessage } from "@/components/ErrorMessage";
 import { parseGmtOffsetToMinutes } from "@/components/TrackMap/trackMapFormat";
 import { PICKER_BAR } from "@/components/Nav/pickerStyles";
@@ -210,6 +211,7 @@ function RoundCard({
           )}
         </div>
       </header>
+      <CircuitSummary meeting={meeting} year={year} />
       {round.sessions.length > 0 ? (
         <div className="divide-y divide-panel/60 py-0.5">
           {round.sessions.map((item) => (
