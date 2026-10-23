@@ -94,7 +94,7 @@ const desktopSteps = (ctx: TourContext): Step[] => [
     placement: "bottom",
     title: "Dig deeper",
     content:
-      "Compare laps corner by corner in Telemetry, or follow the championship in Standings.",
+      "Compare laps corner by corner in Telemetry, plan your weekend in Schedule (session times in your time zone, track maps, and one-click replays of finished sessions), or follow the championship in Standings.",
   },
   {
     id: "help",
@@ -132,7 +132,7 @@ const compactSteps = (ctx: TourContext): Step[] => [
     placement: "top-end",
     title: "Everything else",
     content:
-      "Telemetry, Standings, Settings, and Help, where you can replay this tour.",
+      "Telemetry, the season Schedule with session times and track maps, Standings, Settings, and Help, where you can replay this tour.",
   },
 ];
 
