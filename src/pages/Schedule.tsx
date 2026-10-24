@@ -213,7 +213,9 @@ function RoundCard({
           )}
         </div>
       </header>
-      <CircuitSummary meeting={meeting} year={year} />
+      {/* Grows to fill the stretched card, so the fastest lap and sessions
+          line up at the bottom across a row even when facts are missing. */}
+      <CircuitSummary meeting={meeting} year={year} className="flex-1" />
       {round.sessions.length > 0 ? (
         <div className="divide-y divide-panel/60 py-0.5">
           {round.sessions.map((item) => (

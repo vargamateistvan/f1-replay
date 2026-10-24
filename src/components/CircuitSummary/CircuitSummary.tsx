@@ -39,9 +39,11 @@ function Fact({ label, value }: { label: string; value: string }) {
 export function CircuitSummary({
   meeting,
   year,
+  className = "",
 }: {
   meeting: Pick<Meeting, "circuit_key" | "circuit_short_name" | "circuit_type">;
   year: number;
+  className?: string;
 }) {
   const { data: geometry, isPending } = useCircuitGeometry(meeting.circuit_key, year);
   const metricSystem = useSettings((s) => s.metricSystem);
@@ -67,7 +69,7 @@ export function CircuitSummary({
   const typeLabel = CIRCUIT_TYPE_LABEL[meeting.circuit_type] ?? meeting.circuit_type;
 
   return (
-    <div className="flex items-center gap-3 border-b border-panel px-3 py-2">
+    <div className={`flex items-center gap-3 border-b border-panel px-3 py-2 ${className}`}>
       <div
         className="shrink-0 text-white/80"
         style={{ width: SCHEDULE_OUTLINE_W / 1.25, height: SCHEDULE_OUTLINE_H / 1.25 }}
