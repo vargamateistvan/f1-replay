@@ -1071,6 +1071,71 @@ describe("LiveTiming", () => {
     expect(rows[3]).toHaveTextContent("+1.800");
   });
 
+  it("ranks timed sessions on undeleted laps completed by the flag", () => {
+    const sessionStartMs = Date.parse("2024-01-01T00:00:00.000Z");
+    const at = (sec: number) => new Date(sessionStartMs + sec * 1000).toISOString();
+    const timedLap = (
+      driver_number: number,
+      lap_number: number,
+      startSec: number,
+      lap_duration: number,
+    ) =>
+      ({
+        date_start: at(startSec),
+        driver_number,
+        duration_sector_1: null,
+        duration_sector_2: null,
+        duration_sector_3: null,
+        lap_duration,
+        lap_number,
+      }) as unknown as Lap;
+
+    render(
+      <LiveTiming
+        drivers={drivers}
+        positions={[]}
+        intervals={[]}
+        pits={[]}
+        laps={[
+          // VER: 1:30.000 deleted, then a lap in progress at the flag.
+          timedLap(1, 1, 0, 90),
+          timedLap(1, 2, 90, 100),
+          // LEC: crosses just after the flag; the next lap is a cool-down.
+          timedLap(16, 1, 0, 91.2),
+          timedLap(16, 2, 91.2, 85),
+        ]}
+        raceControl={
+          [
+            {
+              date: at(90.5),
+              category: "Flag",
+              flag: "CHEQUERED",
+              message: "CHEQUERED FLAG",
+            },
+            {
+              date: at(95),
+              category: "Other",
+              flag: null,
+              message:
+                "CAR 1 (VER) TIME 1:30.000 DELETED - TRACK LIMITS AT TURN 12 LAP 2 13:01:30",
+            },
+          ] as unknown as RaceControl[]
+        }
+        sessionName="Practice 1"
+        sessionTimeMs={200_000}
+        sessionStartMs={sessionStartMs}
+        chequeredMs={90_500}
+      />,
+    );
+
+    const rows = screen.getAllByRole("row");
+    expect(rows[1]).toHaveTextContent("LEC");
+    expect(rows[1]).toHaveTextContent("1:31.200");
+    expect(rows[2]).toHaveTextContent("VER");
+    expect(rows[2]).toHaveTextContent("1:40.000");
+    expect(screen.getAllByRole("img", { name: "Finished" })).toHaveLength(2);
+  });
+
   it("shows race-session interval values only when enabled", () => {
     const sessionStartMs = Date.parse("2024-01-01T00:00:00.000Z");
 

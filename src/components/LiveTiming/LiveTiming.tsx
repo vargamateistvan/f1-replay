@@ -22,6 +22,11 @@ import {
   TELEMETRY_SPEED_BAR_MAX_KMH,
 } from "@/constants";
 import { deriveFinishedDrivers } from "@/utils/finish";
+import {
+  deletedLapKeys,
+  lapKey,
+  parseLapDeletions,
+} from "@/utils/lapDeletions";
 import { deriveRetiredDrivers } from "@/utils/retirement";
 import { useSettings } from "@/stores/settings";
 import { animateMotion, motionEnabled, tabSwapMotion } from "@/lib/motion";
@@ -914,6 +919,13 @@ export function LiveTiming({
     };
   }, [qualiPhaseMarkers, sessionTimeMs]);
 
+  // Practice/qualifying: laps begun after the final chequered flag are
+  // cool-down laps — untimed — while the lap in progress at the flag counts.
+  const untimedFromAbs =
+    isTimedSession(sessionName ?? "") && chequeredMs !== null
+      ? sessionStartMs + chequeredMs
+      : Number.POSITIVE_INFINITY;
+
   // Laps with a start and duration, timestamps parsed once, sorted by end time.
   const timedLaps = useMemo(
     () =>
@@ -926,8 +938,25 @@ export function LiveTiming({
           const startMs = new Date(lap.date_start).getTime();
           return { ...lap, startMs, endMs: startMs + lap.lap_duration * 1000 };
         })
+        .filter((lap) => lap.startMs < untimedFromAbs)
         .sort((a, b) => a.endMs - b.endMs),
-    [laps],
+    [laps, untimedFromAbs],
+  );
+
+  // Lap times deleted by race control (track limits…) as of the playhead:
+  // still shown as the last lap, never as a best lap.
+  const lapDeletions = useMemo(
+    () => parseLapDeletions(raceControl),
+    [raceControl],
+  );
+  const shownDeletionCount = upperBoundByValue(
+    lapDeletions,
+    currentT,
+    (event) => event.ms,
+  );
+  const deletedLaps = useMemo(
+    () => deletedLapKeys(lapDeletions.slice(0, shownDeletionCount), laps),
+    [lapDeletions, shownDeletionCount, laps],
   );
 
   const timedOrder = useMemo(() => {
@@ -964,6 +993,7 @@ export function LiveTiming({
       for (const lap of timedLaps) {
         if (lap.endMs > cutoffAbsMs) break;
         if (lap.startMs < fromAbsMs) continue;
+        if (deletedLaps.has(lapKey(lap))) continue;
         const prev = bestByDriver.get(lap.driver_number);
         if (prev === undefined || lap.lap_duration < prev) {
           bestByDriver.set(lap.driver_number, lap.lap_duration);
@@ -1055,6 +1085,7 @@ export function LiveTiming({
     drivers,
     posMap,
     timedLaps,
+    deletedLaps,
     currentT,
     referenceOrderMap,
     sessionName,
@@ -1140,7 +1171,7 @@ export function LiveTiming({
   const bestLapMap = useMemo(() => {
     const m = new Map<number, Lap & { lap_duration: number }>();
     for (const lap of timingLaps) {
-      if (lap.lap_duration === null) continue;
+      if (lap.lap_duration === null || deletedLaps.has(lapKey(lap))) continue;
       const prev = m.get(lap.driver_number);
       if (
         !prev ||
@@ -1152,7 +1183,7 @@ export function LiveTiming({
       }
     }
     return m;
-  }, [timingLaps]);
+  }, [timingLaps, deletedLaps]);
 
   // Session-best sector times and lap times
   const sessionBest = useMemo(() => {
@@ -1176,11 +1207,15 @@ export function LiveTiming({
         (s3 === null || l.duration_sector_3 < s3)
       )
         s3 = l.duration_sector_3;
-      if (l.lap_duration !== null && (lap === null || l.lap_duration < lap))
+      if (
+        l.lap_duration !== null &&
+        !deletedLaps.has(lapKey(l)) &&
+        (lap === null || l.lap_duration < lap)
+      )
         lap = l.lap_duration;
     }
     return { s1, s2, s3, lap };
-  }, [currentPartLaps]);
+  }, [currentPartLaps, deletedLaps]);
 
   const sessionBestOwners = useMemo(() => {
     let s1: SessionBestOwner | null = null;
@@ -1275,7 +1310,7 @@ export function LiveTiming({
     }
     const priorByDriver = new Map<number, number>();
     for (const l of timingLaps) {
-      if (l.lap_duration === null) continue;
+      if (l.lap_duration === null || deletedLaps.has(lapKey(l))) continue;
       if (l.lap_number === lastLapNumberByDriver.get(l.driver_number)) continue;
       const prev = priorByDriver.get(l.driver_number);
       if (prev === undefined || l.lap_duration < prev) {
@@ -1283,7 +1318,7 @@ export function LiveTiming({
       }
     }
     return priorByDriver;
-  }, [timingLaps]);
+  }, [timingLaps, deletedLaps]);
 
   const retiredDrivers = useMemo(() => {
     return deriveRetiredDrivers({
@@ -1305,6 +1340,7 @@ export function LiveTiming({
       currentT,
       isRaceSession:
         isRaceSession(sessionName) && !isTimedSession(sessionName ?? ""),
+      isTimedSession: isTimedSession(sessionName ?? ""),
       retiredDrivers,
     });
   }, [
@@ -2039,6 +2075,8 @@ export function LiveTiming({
                 ? `Penalty issued: ${markerDetail}`
                 : "Penalty issued";
               const lastLap = lastLapMap.get(num) ?? null;
+              const lastLapDeleted =
+                lastLap !== null && deletedLaps.has(lapKey(lastLap));
               const bestLap = bestLapMap.get(num) ?? null;
               const currentLap = currentLapMap.get(num) ?? null;
               const car = carData?.get(num) ?? null;
@@ -2407,7 +2445,8 @@ export function LiveTiming({
 
                   {columns.lastLap && (
                     <td
-                      className={`${mobileLastLapColumnClass} ${rowCellPad} align-middle px-1 text-right font-mono transition-colors duration-300 ${dense ? "text-[9px] min-[390px]:text-[10px]" : "text-[10px] min-[390px]:text-[11px]"} tabular-nums sm:px-1.5 ${LAP_TIME_COLOUR[lapTimeTier(lastLap?.lap_duration ?? null, sessionBest.lap, bestLap?.lap_duration ?? null)]} ${timingCellFlashClass(num, "lastLap")}`}
+                      className={`${mobileLastLapColumnClass} ${rowCellPad} align-middle px-1 text-right font-mono transition-colors duration-300 ${dense ? "text-[9px] min-[390px]:text-[10px]" : "text-[10px] min-[390px]:text-[11px]"} tabular-nums sm:px-1.5 ${lastLapDeleted ? "text-[#8a8a91] line-through" : LAP_TIME_COLOUR[lapTimeTier(lastLap?.lap_duration ?? null, sessionBest.lap, bestLap?.lap_duration ?? null)]} ${timingCellFlashClass(num, "lastLap")}`}
+                      title={lastLapDeleted ? "Lap time deleted" : undefined}
                     >
                       {fmtTime(lastLap?.lap_duration ?? null)}
                     </td>

@@ -8,6 +8,11 @@ interface Params {
   /** Absolute UTC ms of the current playhead. */
   currentT: number;
   isRaceSession: boolean;
+  /**
+   * Practice / qualifying: no leader to wait for — every car finishes on its
+   * first crossing after the flag (completing the lap it had started).
+   */
+  isTimedSession?: boolean;
   retiredDrivers?: ReadonlySet<number>;
 }
 
@@ -75,19 +80,23 @@ export function findLeaderFinishMs(
 /**
  * Drivers who have finished the race: once the leader takes the chequered
  * flag, every car — including lapped ones — finishes on its next crossing of
- * the start/finish line.
+ * the start/finish line. Timed sessions finish from the flag itself.
  */
 export function deriveFinishedDrivers({
   laps,
   chequeredAbsMs,
   currentT,
   isRaceSession,
+  isTimedSession = false,
   retiredDrivers,
 }: Params): ReadonlySet<number> {
   const finished = new Set<number>();
-  if (!isRaceSession || chequeredAbsMs === null) return finished;
+  if ((!isRaceSession && !isTimedSession) || chequeredAbsMs === null)
+    return finished;
 
-  const leaderFinishMs = findLeaderFinishMs(laps, chequeredAbsMs);
+  const leaderFinishMs = isTimedSession
+    ? chequeredAbsMs
+    : findLeaderFinishMs(laps, chequeredAbsMs);
   if (currentT < leaderFinishMs) return finished;
 
   for (const crossing of lineCrossings(laps)) {

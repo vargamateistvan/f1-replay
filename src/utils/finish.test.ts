@@ -100,3 +100,23 @@ describe("deriveFinishedDrivers", () => {
     expect(result.has(1)).toBe(true);
   });
 });
+
+describe("deriveFinishedDrivers (timed sessions)", () => {
+  // Flag at t=100s: car 1 crosses at 101s, car 2 is mid-lap until 150s.
+  const laps = [lap(1, 5, 11, 90), lap(2, 5, 60, 90)];
+  const timedFinished = (currentSec: number) => [
+    ...deriveFinishedDrivers({
+      laps,
+      chequeredAbsMs: at(100),
+      currentT: at(currentSec),
+      isRaceSession: false,
+      isTimedSession: true,
+    }),
+  ];
+
+  it("finishes each car on its first crossing after the flag", () => {
+    expect(timedFinished(99)).toEqual([]);
+    expect(timedFinished(120)).toEqual([1]);
+    expect(timedFinished(151).sort((a, b) => a - b)).toEqual([1, 2]);
+  });
+});
