@@ -600,22 +600,20 @@ function PitToast({
         <div className="text-[9px] text-muted uppercase tracking-widest mb-0.5">
           Pit · L{p.lapNumber}
         </div>
-        <div className="flex items-center gap-1.5">
+        <div className="flex items-center gap-1.5 whitespace-nowrap">
           <span
-            className="font-black text-[12px] md:text-[13px]"
+            className="shrink-0 font-black text-[12px] md:text-[13px]"
             style={{ color }}
           >
             {driver?.name_acronym ?? p.driverNumber}
           </span>
           {p.pitDuration !== null && (
-            <span className="min-w-0 truncate text-white/70 text-[11px] font-mono tabular-nums">
+            <span className="shrink-0 text-white/70 text-[11px] font-mono tabular-nums">
               {formatPitDuration(p.pitDuration) ?? "--:--:---"}
             </span>
           )}
           {(p.tyreOff || p.tyreOn) && (
-            <span className="ml-auto">
-              <TyreChange off={p.tyreOff} on={p.tyreOn} compact />
-            </span>
+            <TyreChange off={p.tyreOff} on={p.tyreOn} compact />
           )}
         </div>
       </div>

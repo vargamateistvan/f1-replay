@@ -88,6 +88,44 @@ describe("EventToastStack", () => {
     );
   });
 
+  it("shows pit duration and tyre data inline with the driver", () => {
+    render(
+      <EventToastStack
+        toasts={
+          [
+            {
+              addedAt: Date.now(),
+              event: {
+                id: "pit-1",
+                ms: 1000,
+                kind: "pit",
+                priority: "high",
+                payload: {
+                  driverNumber: 1,
+                  lapNumber: 16,
+                  pitDuration: 27.5,
+                  tyreOff: { compound: "HARD", age: 6 },
+                  tyreOn: null,
+                },
+              },
+            },
+          ] as ActiveToast[]
+        }
+        drivers={drivers}
+        onDismiss={vi.fn()}
+      />,
+    );
+
+    const tyre = screen.getByRole("img", { name: "Off: Hard after 6 laps" });
+    const details = screen.getByText("VER").parentElement;
+
+    expect(screen.getByText("Pit · L16")).toBeInTheDocument();
+    expect(details).toHaveTextContent("27.5");
+    expect(details).toContainElement(tyre);
+    expect(details).toHaveClass("whitespace-nowrap");
+    expect(tyre.parentElement).toBe(details);
+  });
+
   it("renders radio toast and toggles play/stop", () => {
     render(
       <EventToastStack
