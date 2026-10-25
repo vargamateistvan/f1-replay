@@ -160,6 +160,17 @@ VITE_GA_MEASUREMENT_ID=G-XXXXXXXXXX
 Analytics event names and parameter definitions are documented in
 [docs/ANALYTICS_EVENTS.md](docs/ANALYTICS_EVENTS.md).
 
+### Amplitude
+
+Every analytics event is also sent to Amplitude (`src/lib/amplitude.ts`, SDK
+lazy-loaded when idle). A default project key is built in; override it with:
+
+```bash
+VITE_AMPLITUDE_API_KEY=your_browser_api_key
+```
+
+Like GA4, Amplitude only runs on production builds outside localhost.
+
 ### Building for Production
 
 ```bash

@@ -1,3 +1,8 @@
+import {
+  AMPLITUDE_API_KEY,
+  amplitudeTrack,
+  loadAmplitude,
+} from "@/lib/amplitude";
 import { appVersion } from "@/lib/appVersion";
 import { loadScriptOnce, runWhenIdle } from "@/lib/idle";
 
@@ -53,11 +58,17 @@ function isLocalhostHost(hostname: string): boolean {
 
 function shouldTrackAnalytics(): boolean {
   return (
-    GA_MEASUREMENT_ID.length > 0 &&
+    (GA_MEASUREMENT_ID.length > 0 || AMPLITUDE_API_KEY.length > 0) &&
     typeof window !== "undefined" &&
     import.meta.env.PROD &&
     !isLocalhostHost(window.location.hostname)
   );
+}
+
+/** Sends one event to every configured provider (GA4 + Amplitude). */
+function emitEvent(eventName: string, params: EventParams): void {
+  if (GA_MEASUREMENT_ID) window.gtag?.("event", eventName, params);
+  amplitudeTrack(eventName, params);
 }
 
 function screenClassForWidth(width: number): "mobile" | "tablet" | "desktop" {
@@ -107,24 +118,27 @@ export function initializeAnalytics(): void {
   if (initialized || !shouldTrackAnalytics() || typeof window === "undefined")
     return;
   initialized = true;
-  // gtag.js is ~180 KB of third-party JS. The inline stub in index.html
-  // queues commands in dataLayer, so the real library can load once idle.
-  runWhenIdle(() => {
-    loadScriptOnce(
-      "gtag-js",
-      `https://www.googletagmanager.com/gtag/js?id=${encodeURIComponent(GA_MEASUREMENT_ID)}`,
-    );
-  });
-  if (appVersion) {
-    window.gtag?.("set", "user_properties", {
-      app_version: appVersion,
+  loadAmplitude(appVersion || undefined);
+  if (GA_MEASUREMENT_ID) {
+    // gtag.js is ~180 KB of third-party JS. The inline stub in index.html
+    // queues commands in dataLayer, so the real library can load once idle.
+    runWhenIdle(() => {
+      loadScriptOnce(
+        "gtag-js",
+        `https://www.googletagmanager.com/gtag/js?id=${encodeURIComponent(GA_MEASUREMENT_ID)}`,
+      );
+    });
+    if (appVersion) {
+      window.gtag?.("set", "user_properties", {
+        app_version: appVersion,
+      });
+    }
+    window.gtag?.("config", GA_MEASUREMENT_ID, {
+      ...buildAppVersionParams(),
+      send_page_view: false,
     });
   }
-  window.gtag?.("config", GA_MEASUREMENT_ID, {
-    ...buildAppVersionParams(),
-    send_page_view: false,
-  });
-  window.gtag?.("event", "app_session_started", {
+  emitEvent("app_session_started", {
     ...buildCommonEventParams(),
     landing_path: `${window.location.pathname}${window.location.search}${window.location.hash}`,
     referrer_host: referrerHost(),
@@ -133,7 +147,7 @@ export function initializeAnalytics(): void {
 
 export function trackPageView(path: string): void {
   if (!shouldTrackAnalytics()) return;
-  window.gtag?.("event", "page_view", {
+  emitEvent("page_view", {
     ...buildCommonEventParams(),
     page_location: window.location.href,
     page_path: path,
@@ -143,7 +157,7 @@ export function trackPageView(path: string): void {
 
 export function trackEvent(eventName: string, params: EventParams = {}): void {
   if (!shouldTrackAnalytics()) return;
-  window.gtag?.("event", eventName, {
+  emitEvent(eventName, {
     ...buildCommonEventParams(),
     ...params,
   });
@@ -157,7 +171,7 @@ export function trackPageEngagement(
   if (!shouldTrackAnalytics()) return;
   const engagementTimeMs = Math.round(durationMs);
   if (engagementTimeMs < 1_000) return;
-  window.gtag?.("event", "page_engagement", {
+  emitEvent("page_engagement", {
     ...buildCommonEventParams(),
     engagement_time_msec: engagementTimeMs,
     exit_reason: reason,

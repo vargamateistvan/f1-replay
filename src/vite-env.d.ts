@@ -13,6 +13,8 @@ interface ImportMetaEnv {
   readonly VITE_SENTRY_DSN?: string;
   /** Optional Google Analytics 4 Measurement ID (for example G-XXXXXXXXXX). */
   readonly VITE_GA_MEASUREMENT_ID?: string;
+  /** Optional Amplitude browser API key override (public; a default is built in). */
+  readonly VITE_AMPLITUDE_API_KEY?: string;
   /** Optional release identifier injected at build time (for example 1.4.2). */
   readonly VITE_APP_VERSION?: string;
   /** Public Mapbox token (pk.…) for the 3D track map; restrict it to the site's URLs. */

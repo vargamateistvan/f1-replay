@@ -1,6 +1,20 @@
-# Analytics Events (GA4)
+# Analytics Events (GA4 + Amplitude)
 
 This document defines the client-side analytics events emitted via `trackEvent()`.
+Every event (including `page_view`, `page_engagement` and `app_session_started`)
+is sent to both GA4 and Amplitude with the same name and parameters.
+
+## Amplitude
+
+`src/lib/amplitude.ts` lazy-loads `@amplitude/analytics-browser` once the page
+is idle; events tracked earlier are queued and replayed after `init`. The
+built-in project key can be overridden with `VITE_AMPLITUDE_API_KEY`.
+`VITE_APP_VERSION` is passed as Amplitude's `appVersion`.
+
+Autocapture is limited to sessions (`[Amplitude] Start Session` / `End Session`)
+and marketing attribution. Page views, clicks and form interactions are **not**
+autocaptured — they're covered by the explicit events below. Queued events are
+flushed with `sendBeacon` on `pagehide`.
 
 ## Setup
 

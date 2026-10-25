@@ -1,5 +1,13 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
+const amplitude = vi.hoisted(() => ({
+  AMPLITUDE_API_KEY: "amp-test-key",
+  amplitudeTrack: vi.fn(),
+  loadAmplitude: vi.fn(),
+}));
+
+vi.mock("@/lib/amplitude", () => amplitude);
+
 async function importFreshAnalytics() {
   vi.resetModules();
   return import("./analytics");
@@ -28,6 +36,8 @@ describe("analytics", () => {
       value: new URL("https://f1replay.app/"),
     });
     document.title = "F1 Replay";
+    amplitude.amplitudeTrack.mockReset();
+    amplitude.loadAmplitude.mockReset();
   });
 
   afterEach(() => {
@@ -216,5 +226,55 @@ describe("analytics", () => {
     trackEvent("nav_click", { destination: "/settings" });
 
     expect(gtag).not.toHaveBeenCalled();
+    expect(amplitude.amplitudeTrack).not.toHaveBeenCalled();
+  });
+
+  it("forwards custom events to Amplitude with the same params", async () => {
+    window.gtag = vi.fn();
+    const { trackEvent } = await importFreshAnalytics();
+
+    trackEvent("nav_click", { destination: "/settings" });
+
+    expect(amplitude.amplitudeTrack).toHaveBeenCalledWith(
+      "nav_click",
+      expect.objectContaining({
+        app_version: "1.2.3",
+        destination: "/settings",
+        route_name: "raceweekend",
+      }),
+    );
+  });
+
+  it("loads Amplitude and sends the session start to it on initialisation", async () => {
+    window.gtag = vi.fn();
+    const { initializeAnalytics } = await importFreshAnalytics();
+
+    initializeAnalytics();
+    initializeAnalytics();
+
+    expect(amplitude.loadAmplitude).toHaveBeenCalledTimes(1);
+    expect(amplitude.loadAmplitude).toHaveBeenCalledWith("1.2.3");
+    expect(amplitude.amplitudeTrack).toHaveBeenCalledWith(
+      "app_session_started",
+      expect.objectContaining({ landing_path: "/" }),
+    );
+  });
+
+  it("forwards page views and engagement to Amplitude", async () => {
+    window.gtag = vi.fn();
+    const { trackPageView, trackPageEngagement } =
+      await importFreshAnalytics();
+
+    trackPageView("/standings");
+    trackPageEngagement("/standings", 5_000, "navigate");
+
+    expect(amplitude.amplitudeTrack).toHaveBeenCalledWith(
+      "page_view",
+      expect.objectContaining({ page_path: "/standings" }),
+    );
+    expect(amplitude.amplitudeTrack).toHaveBeenCalledWith(
+      "page_engagement",
+      expect.objectContaining({ engagement_time_msec: 5000 }),
+    );
   });
 });

@@ -25,6 +25,7 @@
     "@vitest/coverage-v8/test-exclude/glob/minimatch/brace-expansion": "2.1.2"
   },
   "dependencies": {
+    "@amplitude/analytics-browser": "^2.48.1",
     "@fontsource/inter": "^5.2.8",
     "@fontsource/jetbrains-mono": "^5.2.8",
     "@sentry/react": "^10.59.0",

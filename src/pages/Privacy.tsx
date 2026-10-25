@@ -1,7 +1,7 @@
 import { Link } from "react-router-dom";
 
 export default function Privacy() {
-  const updatedOn = "2026-06-20";
+  const updatedOn = "2026-10-25";
 
   return (
     <section className="relative flex h-full min-h-[55vh] flex-col overflow-hidden bg-track px-4 py-6 sm:px-6 sm:py-8">
@@ -38,16 +38,17 @@ export default function Privacy() {
               Cookies and Consent
             </h2>
             <p className="mt-2">
-              We use Google tools for measurement. Non-essential storage and
-              analytics are controlled by your consent preferences.
+              We use Google Analytics and Amplitude for measurement.
+              Non-essential storage and analytics are controlled by your
+              consent preferences.
             </p>
           </div>
 
           <div>
             <h2 className="text-base font-bold text-white">Third Parties</h2>
             <p className="mt-2">
-              Data may be processed by third-party providers such as Google in
-              accordance with their terms and privacy policies.
+              Data may be processed by third-party providers such as Google and
+              Amplitude in accordance with their terms and privacy policies.
             </p>
           </div>
 

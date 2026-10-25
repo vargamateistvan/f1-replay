@@ -28,7 +28,7 @@
 | Standings / profiles                              | `hooks/useStandings.ts`, `utils/standings.ts`, `utils/championship.ts`, `pages/Standings.tsx` |
 | Telemetry comparison                              | `pages/Telemetry.tsx`, `components/TelemetryChart`, `components/CornerAnalysis`, `utils/telemetry.ts` |
 | SEO / new route                                   | `routes.tsx`, `seo-routes.json`, `components/Seo/seo.ts` (Pitfall 10)                        |
-| Analytics event                                   | `lib/analytics.ts` (`trackEvent`) + document it in `docs/ANALYTICS_EVENTS.md`                |
+| Analytics event                                   | `lib/analytics.ts` (`trackEvent` → GA4 + Amplitude) + document it in `docs/ANALYTICS_EVENTS.md` |
 | Errors / Sentry                                   | `lib/sentry.ts` (lazy facade), `utils/ignorableErrors.ts`, `components/ErrorBoundary`, `lib/staleChunkReload.ts` (post-deploy chunk 404s) |
 | App tour                                          | `components/AppTour/` (`steps.ts`, `targets.ts`), `TOUR_VERSION` (Pitfall 15)                |
 | Proxy cache behaviour                             | `proxy/src/index.ts`, `proxy/README.md` (TTL table)                                          |
@@ -63,7 +63,7 @@ Tests sit next to the module (`foo.ts` → `foo.test.ts`); broad smoke/coverage 
 | Animation         | anime.js via `lib/motion.ts` (honours `prefers-reduced-motion`) |
 | Guided tour       | react-joyride v3                                             |
 | Live push         | `mqtt` over WSS (OpenF1 MQTT, optional credentials)          |
-| Monitoring        | Sentry (`@sentry/react`, lazy-loaded), GA4 (`lib/analytics.ts`) |
+| Monitoring        | Sentry (`@sentry/react`, lazy-loaded), GA4 + Amplitude (`lib/analytics.ts`, `@amplitude/analytics-browser` lazy-loaded) |
 | Fonts             | Fontsource Inter + JetBrains Mono                            |
 | API proxy         | Cloudflare Worker + KV (`proxy/`, deployed with wrangler)    |
 | Build             | Vite 6                                                       |
@@ -185,7 +185,8 @@ src/
     queryPersister.ts   — Per-query IndexedDB persister (lazy restore, structured clone, idle GC)
     queryPersistencePolicy.ts — shouldPersistQueryKey(): which keys are persisted (not location/car-data windows)
     audio.ts            — Shared Web Audio context, beep(), and cached loadSample()/playSample()
-    analytics.ts        — GA4 trackEvent() (loaded when idle; events listed in docs/ANALYTICS_EVENTS.md)
+    analytics.ts        — trackEvent() → GA4 + Amplitude (loaded when idle; events listed in docs/ANALYTICS_EVENTS.md)
+    amplitude.ts        — Lazy Amplitude facade (SDK imported when idle, calls queued until init; autocapture limited to sessions + attribution)
     sentry.ts / sentrySdk.ts — Lazy Sentry facade (calls queued until the SDK chunk loads; no-op in dev/tests)
     appVersion.ts       — VITE_APP_VERSION formatting, GitHub releases URLs
     idle.ts             — runWhenIdle(), loadScriptOnce()
@@ -496,6 +497,7 @@ Authentication: optional bearer token via `VITE_OPENF1_API_KEY` env var (`.env.l
 | `VITE_MAPBOX_TOKEN`                                                      | Public Mapbox token; unset hides the 3D map                      |
 | `VITE_SENTRY_DSN`                                                        | Sentry (disabled on localhost regardless)                        |
 | `VITE_GA_MEASUREMENT_ID`                                                 | GA4 (see `docs/ANALYTICS_EVENTS.md`)                             |
+| `VITE_AMPLITUDE_API_KEY`                                                 | Amplitude key override (public; default built into `lib/amplitude.ts`) |
 | `VITE_APP_VERSION`                                                       | Release string (set by CI from `versioning.yml`)                 |
 
 Source maps are uploaded to Sentry only from GitHub Actions (`disable: !env.GITHUB_ACTIONS` in `vite.config.ts`), so local and pre-commit builds never upload. Don't remove that gate — `.env.sentry-build-plugin` holds a real token.
