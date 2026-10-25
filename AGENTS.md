@@ -95,7 +95,7 @@ src/
     director.ts         — TV-camera shot picker for the 3D map (overtake > pit > battle > leader)
 
   stores/
-    settings.ts         — Zustand persist store for all user preferences (AppSettings)
+    settings.ts         — Zustand persist store for all user preferences (AppSettings); ring pit-window outcomes are controlled by `mapRingShowPitWindowOutcomes` (default off)
 
   hooks/
     useSession.ts       — All session-scoped TanStack Query hooks
@@ -295,7 +295,7 @@ components/ (render to DOM; read settings from Zustand)
 | Store         | File                 | Persisted?                       | Purpose                                                   |
 | ------------- | -------------------- | -------------------------------- | --------------------------------------------------------- |
 | `useTimeline` | `timeline/clock.ts`  | No                               | Playback state: `t`, `playing`, `speed`, `sessionStartMs`, `realTimeWindow` (span forced to 1x, e.g. race start lights) |
-| `useSettings` | `stores/settings.ts` | Yes (localStorage via `persist`) | All `AppSettings` flags                                   |
+| `useSettings` | `stores/settings.ts` | Yes (localStorage via `persist`) | All `AppSettings` flags; `mapRingShowPitWindowOutcomes` is a ring-only toggle, default off |
 
 ### 6b. TanStack Query keys (convention)
 

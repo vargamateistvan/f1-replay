@@ -304,6 +304,11 @@ export function TrackMapSettings({
               "A full turn is a reference lap: gaps read as angles and slow corners take more of the circle. Off: spaced by distance",
             )}
             {row("mapRingReverse", "Anticlockwise", "Run the lap anticlockwise round the dial")}
+            {row(
+              "mapRingShowPitWindowOutcomes",
+              "Show pit window outcomes",
+              "Name the drivers who would pass or fall behind if the focused driver pitted now (races)",
+            )}
           </>
         )}
         <SectionHeader>Cars</SectionHeader>

@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { cloneElement } from "react";
 import { fireEvent, render, screen } from "@testing-library/react";
 import type { Driver, Location } from "@/api/types";
 import { RING_RADIUS, RING_SVG_H, RING_SVG_W } from "@/constants";
@@ -10,6 +11,7 @@ const ring = vi.hoisted(() => ({
   timeScale: false,
   gapMode: "interval" as "interval" | "leader" | "focus",
   reverse: false,
+  showPitWindowOutcomes: false,
   setSetting: vi.fn(),
 }));
 
@@ -57,6 +59,7 @@ vi.mock("@/stores/settings", () => ({
       mapRingTimeScale: ring.timeScale,
       mapRingGapMode: ring.gapMode,
       mapRingReverse: ring.reverse,
+      mapRingShowPitWindowOutcomes: ring.showPitWindowOutcomes,
       setSetting: ring.setSetting,
     }),
   ),
@@ -95,7 +98,7 @@ function renderRing(props: Partial<Parameters<typeof TrackRing>[0]> = {}) {
       ]}
       sessionStartMs={START}
       {...props}
-    />,
+    />
   );
 }
 
@@ -104,6 +107,7 @@ beforeEach(() => {
   ring.timeScale = false;
   ring.gapMode = "interval";
   ring.reverse = false;
+  ring.showPitWindowOutcomes = false;
   ring.setSetting.mockReset();
   vi.mocked(useCircuitGeometry).mockReturnValue({ data: null, isPending: false } as never);
 });
@@ -338,7 +342,7 @@ describe("TrackRing", () => {
     clock.t = 2.5 * LAP_MS;
     const drivers3 = [...drivers, { driver_number: 44, name_acronym: "HAM", team_colour: "27F4D2" }] as Driver[];
     const locs = [...timedLocations(), loc(44, 0.01, 200, 0), loc(44, 0.01, 200, 3 * LAP_MS)];
-    render(
+    const props = (
       <TrackRing
         sessionKey={1}
         drivers={drivers3}
@@ -353,12 +357,16 @@ describe("TrackRing", () => {
             [44, 45],
           ])
         }
-      />,
+      />
     );
+    const { rerender } = render(props);
     const window = screen.getByTestId("ring-pit-window");
     expect(window).toHaveTextContent("PIT → P2");
     expect(window).toHaveTextContent("SC");
     expect(window).toHaveTextContent("VSC");
+    expect(screen.queryByRole("status", { name: "Pit window outcomes" })).not.toBeInTheDocument();
+    ring.showPitWindowOutcomes = true;
+    rerender(cloneElement(props));
     expect(screen.getByRole("status", { name: "Pit window outcomes" })).toHaveTextContent("Would pass: LEC");
     expect(screen.getByRole("status", { name: "Pit window outcomes" })).toHaveTextContent(
       "Would drop behind if they pit: None",

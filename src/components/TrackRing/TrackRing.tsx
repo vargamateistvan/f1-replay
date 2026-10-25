@@ -160,6 +160,7 @@ export function TrackRing({
   const timeScale = useSettings((s) => s.mapRingTimeScale);
   const gapMode = useSettings((s) => s.mapRingGapMode);
   const reverse = useSettings((s) => s.mapRingReverse);
+  const showPitWindowOutcomes = useSettings((s) => s.mapRingShowPitWindowOutcomes);
   const setSetting = useSettings((s) => s.setSetting);
   const svgRef = useRef<SVGSVGElement>(null);
   const [hoverDriver, setHoverDriver] = useState<number | null>(null);
@@ -594,7 +595,7 @@ export function TrackRing({
         extraButtons={extraButtons}
       />
 
-      {pitWindow && pitWindowRivalsResult && (
+      {showPitWindowOutcomes && pitWindow && pitWindowRivalsResult && (
         <div
           role="status"
           aria-label="Pit window outcomes"

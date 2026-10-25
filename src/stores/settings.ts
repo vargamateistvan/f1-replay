@@ -46,6 +46,8 @@ export interface AppSettings {
   mapRingGapMode: "interval" | "leader" | "focus";
   /** Ring view: run the lap anticlockwise. */
   mapRingReverse: boolean;
+  /** Ring view: show the focused driver's projected pit-window outcomes. */
+  mapRingShowPitWindowOutcomes: boolean;
   /** 3D map lighting follows the sun at the circuit at the playhead (else the app theme). */
   mapView3dSessionLighting: boolean;
   /** 3D map: drape everything over Mapbox terrain (elevation). */
@@ -205,6 +207,7 @@ export const SETTINGS_DEFAULTS: AppSettings = {
   mapRingTimeScale: true,
   mapRingGapMode: "interval",
   mapRingReverse: false,
+  mapRingShowPitWindowOutcomes: false,
   mapView3dSessionLighting: true,
   mapView3dTerrain: false,
   mapView3dFlagColors: true,

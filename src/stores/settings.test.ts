@@ -1,5 +1,11 @@
 import { describe, expect, it } from "vitest";
-import { migrateSettings, useSettings } from "./settings";
+import { migrateSettings, SETTINGS_DEFAULTS, useSettings } from "./settings";
+
+describe("ring settings", () => {
+  it("keeps pit window outcomes hidden by default", () => {
+    expect(SETTINGS_DEFAULTS.mapRingShowPitWindowOutcomes).toBe(false);
+  });
+});
 
 describe("reset", () => {
   it("restores defaults but keeps the tour as seen", () => {
