@@ -5,7 +5,9 @@ import type { KeyMoment } from "@/components/KeyMoments/types";
 import { buildLapLookup, lapNumberAtMs } from "@/utils/lapLookup";
 import { isPracticeSession } from "@/utils/session";
 import {
+  COMMENTARY_ACCENT_CLASS,
   COMMENTARY_BADGE_CLASS,
+  COMMENTARY_EMPTY_CLASS,
   COMMENTARY_FEED_SCROLL_CLASS,
   COMMENTARY_GROUP_CLASS,
   COMMENTARY_GROUP_HEADER_CLASS,
@@ -105,7 +107,7 @@ export function KeyMoments({
 
   if (visibleMoments.length === 0) {
     return (
-      <div className="text-muted text-xs p-3">
+      <div className={COMMENTARY_EMPTY_CLASS}>
         No key moments yet — scrub forward or select a session
       </div>
     );
@@ -129,8 +131,12 @@ export function KeyMoments({
                 key={`${m.kind}-${m.ms}-${i}`}
                 onClick={() => onJump(m.ms)}
                 className={`w-full ${COMMENTARY_ROW_CLASS}`}
-                style={{ borderLeft: `6px solid ${cfg.badgeBg}` }}
               >
+                <span
+                  aria-hidden="true"
+                  className={COMMENTARY_ACCENT_CLASS}
+                  style={{ backgroundColor: cfg.badgeBg }}
+                />
                 <span className={COMMENTARY_TIME_CLASS}>
                   {formatSessionElapsedTime(m.ms)}
                 </span>
@@ -168,7 +174,7 @@ export function KeyMoments({
                 </span>
                 <span
                   aria-hidden="true"
-                  className={`self-center ${COMMENTARY_JUMP_BUTTON_CLASS}`}
+                  className={COMMENTARY_JUMP_BUTTON_CLASS}
                 >
                   <ChevronRight size={11} strokeWidth={2.4} />
                 </span>

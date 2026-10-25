@@ -803,16 +803,22 @@ export interface PhaseGroup {
  * For non-qualifying sessions, all events are in phase null.
  * Returns groups sorted descending (phase 3 → 1 → null).
  */
+/**
+ * Groups qualifying events into Q1/Q2/Q3. Untagged messages take the phase in
+ * effect at their time (`phaseAt`, built from the full feed so filters don't
+ * change the boundaries); only a feed with no phase tags yields a null group.
+ */
 export function groupEventsByPhase(
   events: NormalizedRaceControlEvent[],
+  phaseAt: (ms: number) => number | null = buildPhaseAtMsLookup(events),
 ): PhaseGroup[] {
   const grouped = new Map<string, PhaseGroup>();
   for (const e of events) {
-    const key =
-      e.qualifyingPhase !== null ? String(e.qualifyingPhase) : "session";
+    const phase = e.qualifyingPhase ?? phaseAt(e.ms);
+    const key = phase !== null ? String(phase) : "session";
     let group = grouped.get(key);
     if (!group) {
-      group = { phase: e.qualifyingPhase, events: [] };
+      group = { phase, events: [] };
       grouped.set(key, group);
     }
     group.events.push(e);
@@ -1182,9 +1188,10 @@ export function buildPhaseAtMsLookup(
 
   transitions.sort((a, b) => a.ms - b.ms);
 
-  // Return a function that finds the phase at a given timestamp
+  // Before the first tagged message the session is still in its first phase,
+  // so early events land in Q1 rather than an untitled bucket.
   return (ms: number): number | null => {
-    let phase: number | null = null;
+    let phase: number | null = transitions[0]?.phase ?? null;
     for (const t of transitions) {
       if (t.ms <= ms) {
         phase = t.phase;

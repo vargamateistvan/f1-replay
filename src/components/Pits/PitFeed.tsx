@@ -9,7 +9,10 @@ import { formatBattleGain, pitBattleHeadline, type PitBattle } from "@/utils/und
 import { upperBoundByValue } from "@/utils/sortedTime";
 import { isPracticeSession } from "@/utils/session";
 import {
+  COMMENTARY_ACCENT_CLASS,
   COMMENTARY_BADGE_CLASS,
+  COMMENTARY_BUTTON_CLASS,
+  COMMENTARY_EMPTY_CLASS,
   COMMENTARY_FEED_SCROLL_CLASS,
   COMMENTARY_GROUP_CLASS,
   COMMENTARY_GROUP_HEADER_CLASS,
@@ -145,7 +148,7 @@ export function PitFeed({
 
   if (visible.length === 0) {
     return (
-      <div className="text-muted text-xs p-3">
+      <div className={COMMENTARY_EMPTY_CLASS}>
         {sessionStartMs
           ? "No pit stops yet - scrub forward"
           : "Select a session"}
@@ -166,7 +169,7 @@ export function PitFeed({
                 `pit_stops_${sessionKey}.csv`,
               );
             }}
-            className="h-6 px-2 text-[9px] font-black uppercase tracking-widest rounded transition-colors bg-panel text-muted hover:text-white hover:bg-track"
+            className={COMMENTARY_BUTTON_CLASS}
             aria-label="Export pit stops CSV"
           >
             Export CSV
@@ -197,8 +200,12 @@ export function PitFeed({
                 <div
                   key={`${entry.driver_number}-${entry.lap_number}-${entry.date}-${idx}`}
                   className={COMMENTARY_ROW_CLASS}
-                  style={{ borderLeft: `6px solid ${color}` }}
                 >
+                  <span
+                    aria-hidden="true"
+                    className={COMMENTARY_ACCENT_CLASS}
+                    style={{ backgroundColor: color }}
+                  />
                   <span className={COMMENTARY_TIME_CLASS}>
                     {formatSessionElapsedTime(ms)}
                   </span>
@@ -226,7 +233,7 @@ export function PitFeed({
                         </span>
                       )}
                       {nextStint && (
-                        <div className="inline-flex max-w-full shrink-0 items-center gap-2 whitespace-nowrap rounded bg-white/[0.04] px-1.5 py-0.5">
+                        <div className="inline-flex max-w-full shrink-0 items-center gap-2 whitespace-nowrap border border-panel bg-track px-1.5 py-0.5">
                           <div className="w-10 shrink-0">
                             <TyreBadge
                               stints={stints}
@@ -269,7 +276,7 @@ export function PitFeed({
           <button
             type="button"
             onClick={() => setRenderLimit((v) => v + 120)}
-            className="h-6 px-2 text-[9px] font-black uppercase tracking-widest rounded transition-colors bg-panel text-muted hover:text-white hover:bg-track"
+            className={COMMENTARY_BUTTON_CLASS}
           >
             Load older ({visibleAll.length - visible.length} left)
           </button>

@@ -7,7 +7,10 @@ import { buildLapLookup, lapNumberAtMs } from "@/utils/lapLookup";
 import { upperBoundByValue } from "@/utils/sortedTime";
 import { isPracticeSession } from "@/utils/session";
 import {
+  COMMENTARY_ACCENT_CLASS,
   COMMENTARY_BADGE_CLASS,
+  COMMENTARY_BUTTON_CLASS,
+  COMMENTARY_EMPTY_CLASS,
   COMMENTARY_FEED_SCROLL_CLASS,
   COMMENTARY_GROUP_CLASS,
   COMMENTARY_GROUP_HEADER_CLASS,
@@ -127,7 +130,7 @@ export function OvertakeFeed({
 
   if (visible.length === 0) {
     return (
-      <div className="text-muted text-xs p-3">
+      <div className={COMMENTARY_EMPTY_CLASS}>
         {sessionStartMs
           ? "No overtakes yet — scrub forward"
           : "Select a session"}
@@ -148,7 +151,7 @@ export function OvertakeFeed({
                 `overtakes_${sessionKey}.csv`,
               );
             }}
-            className="h-6 px-2 text-[9px] font-black uppercase tracking-widest rounded transition-colors bg-panel text-muted hover:text-white hover:bg-track"
+            className={COMMENTARY_BUTTON_CLASS}
             aria-label="Export overtakes CSV"
           >
             Export CSV
@@ -174,8 +177,12 @@ export function OvertakeFeed({
                 <div
                   key={`${e.overtaking_driver_number}-${e.overtaken_driver_number}-${e.date}-${e.position ?? "na"}`}
                   className={COMMENTARY_ROW_CLASS}
-                  style={{ borderLeft: `6px solid ${overColor}` }}
                 >
+                  <span
+                    aria-hidden="true"
+                    className={COMMENTARY_ACCENT_CLASS}
+                    style={{ backgroundColor: overColor }}
+                  />
                   <span className={COMMENTARY_TIME_CLASS}>
                     {formatSessionElapsedTime(ms)}
                   </span>
@@ -216,7 +223,7 @@ export function OvertakeFeed({
           <button
             type="button"
             onClick={() => setRenderLimit((v) => v + 120)}
-            className="h-6 px-2 text-[9px] font-black uppercase tracking-widest rounded transition-colors bg-panel text-muted hover:text-white hover:bg-track"
+            className={COMMENTARY_BUTTON_CLASS}
           >
             Load older ({visibleAll.length - visible.length} left)
           </button>

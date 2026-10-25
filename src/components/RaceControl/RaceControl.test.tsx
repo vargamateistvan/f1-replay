@@ -327,7 +327,7 @@ describe("RaceControl", () => {
     const eventRow = screen.getByText("CHEQUERED FLAG").parentElement?.parentElement;
     const borderStrip = eventRow?.children[0] as HTMLElement | undefined;
 
-    expect(borderStrip).toHaveClass("w-[6px]");
+    expect(borderStrip).toHaveClass("w-0.5");
     expect(borderStrip?.getAttribute("style")).toContain("data:image/svg+xml");
     expect(borderStrip?.getAttribute("style")).toContain("background-size: 12px 12px");
   });

@@ -2,7 +2,7 @@ import { ChevronRight } from "lucide-react";
 import { formatSessionElapsedTime } from "@/components/CommentaryPanels/commentaryList";
 
 export const COMMENTARY_JUMP_BUTTON_CLASS =
-  "flex h-6 w-6 shrink-0 items-center justify-center rounded bg-panel text-muted transition-colors hover:bg-track hover:text-white";
+  "flex h-6 w-6 shrink-0 items-center justify-center border border-panel text-muted transition-colors group-hover/commentary:border-muted group-hover/commentary:text-white hover:!border-f1red hover:bg-f1red hover:!text-white focus:outline-none focus-visible:ring-1 focus-visible:ring-f1red";
 
 type Props = Readonly<{
   /** Session-relative ms of the event. */

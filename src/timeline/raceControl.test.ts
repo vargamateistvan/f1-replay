@@ -3,11 +3,13 @@ import type { Position, RaceControl } from "@/api/types";
 import {
   buildChequeredFlagTimeline,
   buildIncidentWindows,
+  buildPhaseAtMsLookup,
   buildRaceChapters,
   buildRaceControlMarkers,
   clusterRaceControlMarkers,
   computeWhatChanged,
   deriveTrackFlagState,
+  groupEventsByPhase,
   hasAnyMarshalYellow,
   isActiveTrackFlag,
   projectToTimingSectors,
@@ -993,5 +995,42 @@ describe("buildRaceChapters", () => {
     expect(chapters.map((c) => [c.kind, c.label, c.startMs, c.endMs])).toEqual([
       ["start", "Race Start", 0, 50_000],
     ]);
+  });
+});
+
+describe("qualifying phase grouping", () => {
+  const feed = normalizeRaceControl(
+    [
+      rc({ date: iso(5), message: "PIT EXIT OPEN", category: "Other" }),
+      rc({ date: iso(10), message: "SESSION STARTED", qualifying_phase: 1 }),
+      rc({ date: iso(400), message: "TRACK LIMITS CAR 1", category: "Other" }),
+      rc({ date: iso(600), message: "SESSION STARTED", qualifying_phase: 2 }),
+      rc({ date: iso(700), message: "BLUE FLAG", category: "Other" }),
+    ],
+    START,
+  );
+
+  it("treats time before the first tagged message as the first phase", () => {
+    const phaseAt = buildPhaseAtMsLookup(feed);
+    expect(phaseAt(0)).toBe(1);
+    expect(phaseAt(400_000)).toBe(1);
+    expect(phaseAt(700_000)).toBe(2);
+    expect(buildPhaseAtMsLookup([])(0)).toBeNull();
+  });
+
+  it("files untagged messages under Q1/Q2/Q3 instead of a session group", () => {
+    const groups = groupEventsByPhase(feed);
+    expect(groups.map((g) => g.phase)).toEqual([2, 1]);
+    expect(groups.find((g) => g.phase === 1)?.events.map((e) => e.description)).toEqual([
+      "PIT EXIT OPEN",
+      "SESSION STARTED",
+      "TRACK LIMITS CAR 1",
+    ]);
+  });
+
+  it("keeps phase boundaries from the full feed when the list is filtered", () => {
+    const untaggedOnly = feed.filter((e) => e.qualifyingPhase === null);
+    const groups = groupEventsByPhase(untaggedOnly, buildPhaseAtMsLookup(feed));
+    expect(groups.map((g) => g.phase)).toEqual([2, 1]);
   });
 });

@@ -11,7 +11,10 @@ import { isPracticeSession } from "@/utils/session";
 import { toSafeExternalUrl } from "@/utils/url";
 import { RadioAudio } from "@/components/RadioAudio";
 import {
+  COMMENTARY_ACCENT_CLASS,
   COMMENTARY_BADGE_CLASS,
+  COMMENTARY_BUTTON_CLASS,
+  COMMENTARY_EMPTY_CLASS,
   COMMENTARY_FEED_SCROLL_CLASS,
   COMMENTARY_GROUP_CLASS,
   COMMENTARY_GROUP_HEADER_CLASS,
@@ -155,7 +158,7 @@ export function TeamRadioFeed({
   }
 
   if (visible.length === 0) {
-    return <div className="text-muted text-xs p-3">{emptyMessage}</div>;
+    return <div className={COMMENTARY_EMPTY_CLASS}>{emptyMessage}</div>;
   }
 
   return (
@@ -171,7 +174,7 @@ export function TeamRadioFeed({
                 `team_radio_${sessionKey}.csv`,
               );
             }}
-            className="h-6 px-2 text-[9px] font-black uppercase tracking-widest rounded transition-colors bg-panel text-muted hover:text-white hover:bg-track"
+            className={COMMENTARY_BUTTON_CLASS}
             aria-label="Export team radio CSV"
           >
             Export CSV
@@ -208,7 +211,7 @@ export function TeamRadioFeed({
           <button
             type="button"
             onClick={() => setRenderLimit((v) => v + 120)}
-            className="h-6 px-2 text-[9px] font-black uppercase tracking-widest rounded transition-colors bg-panel text-muted hover:text-white hover:bg-track"
+            className={COMMENTARY_BUTTON_CLASS}
           >
             Load older ({visibleAll.length - visible.length} left)
           </button>
@@ -244,10 +247,12 @@ function RadioRow({
   const { progress, audioRef, onTimeUpdate } = useAudioProgress(isPlaying);
 
   return (
-    <div
-      className={COMMENTARY_ROW_CLASS}
-      style={{ borderLeft: `6px solid ${color}` }}
-    >
+    <div className={COMMENTARY_ROW_CLASS}>
+      <span
+        aria-hidden="true"
+        className={COMMENTARY_ACCENT_CLASS}
+        style={{ backgroundColor: color }}
+      />
       <span className={COMMENTARY_TIME_CLASS}>
         {fmtSessionTime(entryMs, sessionStartMs)}
       </span>
@@ -269,10 +274,8 @@ function RadioRow({
           onClick={() => recordingUrl && onPlay(recordingUrl)}
           disabled={!hasAudio}
           aria-label={isPlaying ? "Stop" : "Play"}
-          className={`relative flex h-6 w-[64px] items-center justify-center gap-1.5 overflow-hidden rounded px-2 text-[9px] font-black uppercase tracking-widest transition-colors ${
-            isPlaying
-              ? "bg-track text-white"
-              : "bg-panel text-muted hover:text-white hover:bg-track"
+          className={`${COMMENTARY_BUTTON_CLASS} relative w-[64px] overflow-hidden ${
+            isPlaying ? "border-f1red text-white" : ""
           }`}
         >
           {isPlaying && (

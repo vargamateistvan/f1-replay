@@ -7,24 +7,31 @@ import {
   normalizeRaceControl,
   groupEventsByLap,
   groupEventsByPhase,
+  buildPhaseAtMsLookup,
   deriveTrackFlagState,
   type RaceControlKind,
 } from "@/timeline/raceControl";
 import { isPracticeSession } from "@/utils/session";
 import {
+  COMMENTARY_ACCENT_CLASS,
   COMMENTARY_BADGE_CLASS,
+  COMMENTARY_BUTTON_CLASS,
+  COMMENTARY_EMPTY_CLASS,
   COMMENTARY_FEED_SCROLL_CLASS,
   COMMENTARY_GROUP_CLASS,
   COMMENTARY_GROUP_HEADER_CLASS,
   COMMENTARY_GROUP_ITEMS_CLASS,
   COMMENTARY_META_CLASS,
   COMMENTARY_ROW_CLASS,
+  COMMENTARY_SEARCH_CLASS,
   COMMENTARY_TIME_CLASS,
   COMMENTARY_TITLE_CLASS,
+  COMMENTARY_TOOLBAR_CLASS,
   commentaryGroupLabel,
   formatSessionElapsedTime,
 } from "@/components/CommentaryPanels/commentaryList";
 import { CommentaryJumpButton } from "@/components/CommentaryPanels/CommentaryJumpButton";
+import { Chip } from "@/components/SettingsModal/SettingsPrimitives";
 import { DEFAULT_FLAG_CONFIG, FLAG_CONFIG } from "./flagConfig";
 import { raceControlEventAccent, raceControlEventBadge } from "./eventStyle";
 
@@ -34,18 +41,40 @@ const DEFAULT_CONFIG = DEFAULT_FLAG_CONFIG;
 
 // ─── Kind filter groups ───────────────────────────────────────────────────────
 
-type KindGroup = { key: string; label: string; kinds: RaceControlKind[] };
+type KindGroup = {
+  key: string;
+  label: string;
+  /** Chip swatch colour. */
+  color: string;
+  kinds: RaceControlKind[];
+};
 
 const KIND_GROUPS: KindGroup[] = [
-  { key: "flags", label: "Flags", kinds: ["flag", "safety_car"] },
+  {
+    key: "flags",
+    label: "Flags",
+    color: "#f5d400",
+    kinds: ["flag", "safety_car"],
+  },
   {
     key: "incidents",
     label: "Incidents",
+    color: "#e8002d",
     kinds: ["penalty", "investigation"],
   },
-  { key: "session", label: "Session", kinds: ["session_status"] },
-  { key: "drs", label: "DRS", kinds: ["drs"] },
-  { key: "other", label: "Other", kinds: ["car_event", "other"] },
+  {
+    key: "session",
+    label: "Session",
+    color: "#39b54a",
+    kinds: ["session_status"],
+  },
+  { key: "drs", label: "DRS", color: "#9b59f5", kinds: ["drs"] },
+  {
+    key: "other",
+    label: "Other",
+    color: "#8a8a99",
+    kinds: ["car_event", "other"],
+  },
 ];
 
 const ALL_GROUP_KEYS = new Set(KIND_GROUPS.map((g) => g.key));
@@ -198,6 +227,8 @@ export function RaceControlFeed({
   }, [visibleEntries, enabledKinds, focusDriver, search]);
 
   // Lap/phase groups — descending so newest is on top
+  const phaseAt = useMemo(() => buildPhaseAtMsLookup(normalized), [normalized]);
+
   const lapGroups = useMemo(() => {
     const isQualifying = sessionType?.toLowerCase().includes("qualifying");
     const isPractice = sessionType ? isPracticeSession(sessionType) : false;
@@ -210,7 +241,7 @@ export function RaceControlFeed({
 
     if (isQualifying) {
       // For qualifying, group by phase (Q1, Q2, Q3)
-      const phaseGroups = groupEventsByPhase(filteredEntries);
+      const phaseGroups = groupEventsByPhase(filteredEntries, phaseAt);
       return phaseGroups.map((pg) => ({
         lapNumber: pg.phase,
         events: pg.events,
@@ -219,7 +250,7 @@ export function RaceControlFeed({
 
     // For race/sprint, group by lap
     return groupEventsByLap(filteredEntries).reverse();
-  }, [filteredEntries, sessionType]);
+  }, [filteredEntries, sessionType, phaseAt]);
 
   // Reset pagination only when the user changes what they're looking at —
   // not on every new event crossing the playhead.
@@ -283,7 +314,7 @@ export function RaceControlFeed({
           {activeBannerFlag?.sectors.map((s) => (
             <span
               key={s}
-              className="rounded bg-black/15 px-1.5 py-0.5 text-[9px] font-black uppercase tracking-widest text-inherit"
+              className="bg-black/15 px-1.5 py-0.5 text-[9px] font-black uppercase tracking-widest text-inherit"
             >
               S{s}
             </span>
@@ -292,21 +323,17 @@ export function RaceControlFeed({
       )}
 
       {/* ── Filter toolbar ─────────────────────────────────────── */}
-      <div className="shrink-0 flex flex-wrap items-center gap-1 px-2 py-1.5 border-b border-panel bg-track">
+      <div
+        className={`${COMMENTARY_TOOLBAR_CLASS} !flex-nowrap overflow-x-auto overscroll-x-contain [scrollbar-width:none] [&::-webkit-scrollbar]:hidden [&>*]:shrink-0 [&>*]:whitespace-nowrap`}
+      >
         {KIND_GROUPS.map((g) => (
-          <button
+          <Chip
             key={g.key}
-            type="button"
-            onClick={() => toggleGroup(g.key)}
-            aria-pressed={activeGroups.has(g.key)}
-            className={`h-6 px-2 text-[9px] font-black uppercase tracking-widest rounded transition-colors ${
-              activeGroups.has(g.key)
-                ? "bg-panel text-white"
-                : "bg-track text-muted"
-            }`}
-          >
-            {g.label}
-          </button>
+            label={g.label}
+            color={g.color}
+            active={activeGroups.has(g.key)}
+            onToggle={() => toggleGroup(g.key)}
+          />
         ))}
         {sessionKey !== null && showCsvExportButtons && (
           <button
@@ -318,7 +345,7 @@ export function RaceControlFeed({
                 `race_control_${sessionKey}.csv`,
               );
             }}
-            className="h-6 rounded px-2 text-[9px] font-black uppercase tracking-widest bg-panel text-muted transition-colors hover:bg-track hover:text-white"
+            className={COMMENTARY_BUTTON_CLASS}
             aria-label="Export race control CSV"
           >
             Export CSV
@@ -330,18 +357,20 @@ export function RaceControlFeed({
           onChange={(e) => setSearch(e.target.value)}
           placeholder="Search…"
           aria-label="Search race control events"
-          className="ml-auto h-6 w-28 min-w-0 rounded border border-panel bg-surface px-2 text-[10px] text-white placeholder:text-muted outline-none focus:border-muted sm:w-32"
+          className={`ml-auto ${COMMENTARY_SEARCH_CLASS}`}
         />
       </div>
 
       {/* ── Driver focus banner ────────────────────────────────── */}
       {focusDriver !== null && (
-        <div
-          className="flex items-center gap-2 rounded border border-panel bg-surface/80 px-2 py-1.5"
-          style={{
-            borderLeft: `3px solid ${teamColor(focusedDriver?.team_colour, "#e8002d")}`,
-          }}
-        >
+        <div className="relative flex items-center gap-2 border border-panel bg-surface py-1.5 pl-4 pr-2">
+          <span
+            aria-hidden="true"
+            className={COMMENTARY_ACCENT_CLASS}
+            style={{
+              backgroundColor: teamColor(focusedDriver?.team_colour, "#e8002d"),
+            }}
+          />
           <span
             className="text-[10px] font-black uppercase tracking-widest"
             style={{ color: teamColor(focusedDriver?.team_colour, "#ffffff") }}
@@ -355,7 +384,7 @@ export function RaceControlFeed({
             <button
               type="button"
               onClick={onClearFocus}
-              className="ml-auto text-[9px] font-black uppercase tracking-widest text-muted hover:text-white"
+              className={`ml-auto ${COMMENTARY_BUTTON_CLASS}`}
               aria-label="Clear driver filter"
             >
               ✕ Clear
@@ -365,9 +394,9 @@ export function RaceControlFeed({
       )}
 
       {/* ── Lap-grouped feed ───────────────────────────────────── */}
-      <div className="space-y-1">
+      <div className="space-y-2">
         {visibleLapGroups.length === 0 && (
-          <div className="rounded border border-panel bg-surface/80 p-3 text-xs text-muted">
+          <div className={`border border-panel bg-surface ${COMMENTARY_EMPTY_CLASS}`}>
             {sessionStartMs ? "No events match filters" : "Select a session"}
           </div>
         )}
@@ -393,13 +422,9 @@ export function RaceControlFeed({
                     Math.max(0, e.ms),
                   );
                   const badge = raceControlEventBadge(e);
-                  // `!` keeps the row tone from being overridden by the
-                  // shared even: zebra-stripe background.
                   const rowToneClass = isPenaltyEntry
-                    ? "!bg-red-500/10 ring-1 ring-inset ring-red-500/25 hover:!bg-red-500/15"
-                    : eventDriver
-                      ? "!bg-track/50 hover:!bg-white/[0.04]"
-                      : "";
+                    ? "bg-red-500/[0.08] hover:bg-red-500/[0.12]"
+                    : "";
                   const accentBorderStyle = raceControlEventAccent(
                     e,
                     eventDriver?.team_colour,
@@ -412,7 +437,7 @@ export function RaceControlFeed({
                       {accentBorderStyle && (
                         <span
                           aria-hidden="true"
-                          className="absolute inset-y-0 left-0 w-[6px]"
+                          className={COMMENTARY_ACCENT_CLASS}
                           style={accentBorderStyle}
                         />
                       )}
@@ -458,11 +483,11 @@ export function RaceControlFeed({
         })}
         {/* Feed is newest-first, so older items load at the bottom */}
         {hasMoreEvents && (
-          <div className="rounded border border-panel bg-surface/80 px-2 py-1.5">
+          <div className="flex justify-center pt-1">
             <button
               type="button"
               onClick={() => setRenderLimit((prev) => prev + RENDER_STEP)}
-              className="h-6 rounded px-2 text-[9px] font-black uppercase tracking-widest transition-colors bg-track text-muted hover:text-white hover:bg-panel"
+              className={COMMENTARY_BUTTON_CLASS}
             >
               Load older ({totalFilteredEvents - renderLimit} hidden)
             </button>

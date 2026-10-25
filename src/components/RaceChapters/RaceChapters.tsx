@@ -8,19 +8,23 @@ import type {
 import { buildLapLookup, lapNumberAtMs } from "@/utils/lapLookup";
 import { isPracticeSession } from "@/utils/session";
 import {
+  COMMENTARY_ACCENT_CLASS,
   COMMENTARY_BADGE_CLASS,
   COMMENTARY_FEED_SCROLL_CLASS,
   COMMENTARY_GROUP_CLASS,
   COMMENTARY_GROUP_HEADER_CLASS,
   COMMENTARY_GROUP_ITEMS_CLASS,
   COMMENTARY_META_CLASS,
+  COMMENTARY_PRIMARY_BUTTON_CLASS,
   COMMENTARY_ROW_CLASS,
   COMMENTARY_TIME_CLASS,
   COMMENTARY_TITLE_CLASS,
+  COMMENTARY_TOOLBAR_CLASS,
   commentaryGroupLabel,
   formatSessionElapsedTime,
 } from "@/components/CommentaryPanels/commentaryList";
 import { CommentaryJumpButton } from "@/components/CommentaryPanels/CommentaryJumpButton";
+import { Chip } from "@/components/SettingsModal/SettingsPrimitives";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -35,49 +39,42 @@ function fmtDuration(ms: number): string {
 
 const CHAPTER_CONFIG: Record<
   ChapterKind,
-  { badge: string; bg: string; text: string; trackCls: string }
+  { badge: string; bg: string; text: string }
 > = {
   start: {
     badge: "START",
     bg: "#e8e8e8",
     text: "#000",
-    trackCls: "border-l-[#e8e8e8]",
   },
   green: {
     badge: "GREEN",
     bg: "#39b54a",
     text: "#fff",
-    trackCls: "border-l-[#39b54a]",
   },
   safety_car: {
     badge: "SC",
     bg: "#f5a623",
     text: "#000",
-    trackCls: "border-l-[#f5a623]",
   },
   vsc: {
     badge: "VSC",
     bg: "#f5a623",
     text: "#000",
-    trackCls: "border-l-[#f5a623]",
   },
   yellow: {
     badge: "YELLOW",
     bg: "#f5d400",
     text: "#000",
-    trackCls: "border-l-[#f5d400]",
   },
   red_flag: {
     badge: "RED",
     bg: "#e8002d",
     text: "#fff",
-    trackCls: "border-l-[#e8002d]",
   },
   finish: {
     badge: "FINISH",
     bg: "#e8e8e8",
     text: "#000",
-    trackCls: "border-l-[#e8e8e8]",
   },
 };
 
@@ -109,8 +106,8 @@ function WhatChangedCard({ snapshot, drivers }: WhatChangedCardProps) {
   }
 
   return (
-    <div className="mt-1 rounded border border-panel bg-track/80 text-[10px]">
-      <div className="border-b border-panel px-2 py-1 text-[9px] font-black uppercase tracking-widest text-muted">
+    <div className="mx-3 mb-2.5 border border-panel bg-track text-[10px]">
+      <div className="border-b border-panel px-2 py-1 text-[9px] font-bold uppercase tracking-[0.12em] text-muted">
         What Changed
       </div>
 
@@ -178,7 +175,7 @@ function WhatChangedCard({ snapshot, drivers }: WhatChangedCardProps) {
               return (
                 <span
                   key={dn}
-                  className="rounded px-1 py-0.5 text-[9px] font-black uppercase"
+                  className="px-1 py-0.5 text-[9px] font-black uppercase"
                   style={{
                     background: `#${d?.team_colour ?? "636369"}22`,
                     color: `#${d?.team_colour ?? "ffffff"}`,
@@ -202,7 +199,7 @@ function WhatChangedCard({ snapshot, drivers }: WhatChangedCardProps) {
               return (
                 <span
                   key={dn}
-                  className="rounded px-1 py-0.5 text-[9px] font-black uppercase"
+                  className="px-1 py-0.5 text-[9px] font-black uppercase"
                   style={{
                     background: `#${d?.team_colour ?? "636369"}22`,
                     color: `#${d?.team_colour ?? "ffffff"}`,
@@ -244,10 +241,15 @@ function ChapterRow({
   return (
     <div>
       <div
-        className={`w-full ${COMMENTARY_ROW_CLASS} border-l-[6px] ${cfg.trackCls} ${
-          isCurrent ? "bg-track/50" : ""
+        className={`w-full ${COMMENTARY_ROW_CLASS} ${
+          isCurrent ? "bg-white/[0.04]" : ""
         }`}
       >
+        <span
+          aria-hidden="true"
+          className={COMMENTARY_ACCENT_CLASS}
+          style={{ backgroundColor: cfg.bg }}
+        />
         <span className={COMMENTARY_TIME_CLASS}>
           {formatSessionElapsedTime(chapter.startMs)}
         </span>
@@ -286,7 +288,7 @@ function ChapterRow({
             <button
               type="button"
               onClick={() => onPlayWindow(chapter.startMs, chapter.endMs!)}
-              className="h-6 rounded px-2 text-[9px] font-black uppercase tracking-widest bg-f1red text-white transition-colors hover:bg-red-600"
+              className={COMMENTARY_PRIMARY_BUTTON_CLASS}
               aria-label={`Replay ${chapter.label}`}
               title={`Replay ${chapter.label}`}
             >
@@ -404,24 +406,18 @@ export function RaceChapters({
 
   return (
     <div className={COMMENTARY_FEED_SCROLL_CLASS}>
-      <div className="sticky top-0 z-20 flex items-center gap-2 rounded border border-panel bg-track/95 px-2 py-1.5 backdrop-blur">
-        <button
-          type="button"
-          onClick={() => setIncidentOnly((v) => !v)}
-          aria-pressed={incidentOnly}
-          className={`h-6 rounded px-2 text-[9px] font-black uppercase tracking-widest transition-colors ${
-            incidentOnly
-              ? "border border-amber-500/40 bg-amber-500/20 text-amber-300"
-              : "bg-panel text-muted hover:text-white hover:bg-track"
-          }`}
-        >
-          Incident Only
-        </button>
-        <span className="text-[9px] uppercase tracking-widest text-muted">
+      <div className={`sticky top-0 z-20 ${COMMENTARY_TOOLBAR_CLASS}`}>
+        <Chip
+          label="Incident Only"
+          color="#f5a623"
+          active={incidentOnly}
+          onToggle={() => setIncidentOnly((v) => !v)}
+        />
+        <span className="ml-auto font-mono text-[10px] uppercase tracking-[0.12em] text-muted">
           {visibleChapters.length} chapters
         </span>
       </div>
-      <div className="space-y-1">
+      <div className="space-y-2">
         {chapterGroups.map((group, groupIndex) => (
           <div
             key={`${group.lapNumber ?? "session"}-${groupIndex}`}
