@@ -87,7 +87,7 @@ describe("HowItWorksModal", () => {
     state.isHelpOpen = true;
     render(<HowItWorksModal />);
 
-    expect(screen.getByText("🎨 Timing Colours")).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: /Timing Colours/ })).toBeInTheDocument();
     expect(
       screen.getByText(
         /absolute fastest time recorded by any driver/i,
@@ -105,7 +105,7 @@ describe("HowItWorksModal", () => {
     state.isHelpOpen = true;
     render(<HowItWorksModal />);
 
-    expect(screen.getByText("🚩 Track Flags & Status")).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: /Track Flags & Status/ })).toBeInTheDocument();
     expect(
       screen.getByText(/hazard on track; slow down and no overtaking/i),
     ).toBeInTheDocument();
@@ -120,8 +120,19 @@ describe("HowItWorksModal", () => {
   it("explains the 3D map cameras and TV mode", () => {
     state.isHelpOpen = true;
     render(<HowItWorksModal />);
-    expect(screen.getByText("🗺️ 3D Track Map")).toBeInTheDocument();
-    expect(screen.getByText("TV Mode:")).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: /3D Track Map/ })).toBeInTheDocument();
+    expect(screen.getByText("TV Mode")).toBeInTheDocument();
     expect(screen.getByText(/auto-director cuts between overtakes/)).toBeInTheDocument();
+  });
+
+  it("labels the dialog and lists every section in the contents", () => {
+    state.isHelpOpen = true;
+    render(<HowItWorksModal />);
+    expect(
+      screen.getByRole("dialog", { name: "How It Works" }),
+    ).toBeInTheDocument();
+    const nav = screen.getByRole("navigation", { name: "Guide sections" });
+    expect(nav).toHaveTextContent("Keyboard Shortcuts");
+    fireEvent.click(screen.getByRole("button", { name: /Keyboard Shortcuts/ }));
   });
 });

@@ -264,7 +264,7 @@ components/ (render to DOM; read settings from Zustand)
 | `CatchupSummary`                                  | "You skipped X events" modal                                                             |
 | `EventToast` (stack)                              | Bottom-right toast notifications                                                         |
 | `SettingsModal`                                   | All user preferences                                                                     |
-| `HowItWorksModal`                                 | Onboarding overlay; "Take the tour" starts `AppTour` (navigates to `/` first, keeping the session) |
+| `HowItWorksModal`                                 | Onboarding overlay; "Take the tour" starts `AppTour` (navigates to `/` first, keeping the session). Content is the `SECTIONS` / `SHORTCUTS` data; desktop gets a numbered contents column |
 | `AppTour`                                         | react-joyride v3 guided tour of the replay page, lazy-mounted by `RaceWeekend` while `isTourOpen` and the session has loaded. Steps (`steps.ts`, `buildTourSteps`) differ for desktop/phone, races and 3D availability; targets are `data-tour` attributes named in `targets.ts` (`visibleTourTarget` for the map view buttons, which the hidden phone Track tab can also render); custom `TourTooltip`. Finishing/skipping saves `tourSeenVersion = TOUR_VERSION` (kept by settings reset). While open: playback paused (not live), toasts hidden, shortcuts off, view forced to Driver Tracker |
 | `Nav` / `MobileNav`                               | Top nav bar / bottom mobile tabs                                                         |
 | `ErrorBoundary` / `ErrorDisplay` / `ErrorMessage` | Error handling chain                                                                     |
@@ -286,6 +286,7 @@ components/ (render to DOM; read settings from Zustand)
 | `TyreChange`                                      | Old compound + laps → new compound + age; `compact` variant for inline text              |
 | `LiveDataNotice`                                  | Dismissible notice that live timing needs paid OpenF1 access (`dismissal.ts` store)      |
 | `AboutDialog`                                     | Mobile About dialog: version, release date, Privacy/Terms links                          |
+| `DialogHeader`                                    | Shared modal header (Settings, How it works, About) in the legal-page style: red eyebrow strip + mono meta, black uppercase title, square close button |
 | `TooltipCard`                                     | Shared tooltip card styling                                                              |
 
 ---

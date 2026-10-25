@@ -21,13 +21,13 @@ export function Toggle({
         animateMotion(e.currentTarget, pressMotion());
         onChange(!checked);
       }}
-      className={`relative w-9 h-5 rounded-full shrink-0 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-f1red ${
-        disabled ? "opacity-30 cursor-not-allowed" : "cursor-pointer"
-      } ${checked ? "bg-f1red" : "bg-panel"}`}
+      className={`relative h-5 w-9 shrink-0 border transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-f1red ${
+        disabled ? "cursor-not-allowed opacity-30" : "cursor-pointer"
+      } ${checked ? "border-f1red bg-f1red" : "border-panel bg-track"}`}
     >
       <span
-        className={`absolute top-0.5 left-0.5 w-4 h-4 rounded-full bg-white shadow transition-transform ${
-          checked ? "translate-x-4" : "translate-x-0"
+        className={`absolute left-0.5 top-0.5 h-3.5 w-3.5 transition-transform ${
+          checked ? "translate-x-4 bg-white" : "translate-x-0 bg-muted"
         }`}
       />
     </button>
@@ -50,21 +50,9 @@ export function SettingRow({
   disabled?: boolean;
 }) {
   return (
-    <div
-      className={`flex items-center justify-between gap-4 py-3 border-b border-panel last:border-0 ${
-        disabled ? "opacity-40" : ""
-      }`}
-    >
-      <div className="min-w-0">
-        <div className="text-[13px] text-white/90 leading-tight">{label}</div>
-        {description && (
-          <div className="text-[11px] text-muted mt-0.5 leading-tight">
-            {description}
-          </div>
-        )}
-      </div>
+    <OptionRow label={label} description={description} disabled={disabled}>
       <Toggle checked={checked} onChange={onChange} disabled={disabled} />
-    </div>
+    </OptionRow>
   );
 }
 
@@ -72,8 +60,172 @@ export function SettingRow({
 
 export function SectionHeader({ children }: { children: ReactNode }) {
   return (
-    <div className="text-[9px] font-black uppercase tracking-[0.18em] text-muted pt-5 pb-1 first:pt-3">
+    <div className="flex items-center gap-2 pb-1 pt-6 first:pt-4">
+      <span aria-hidden="true" className="h-3 w-0.5 shrink-0 bg-f1red" />
+      <span className="text-[11px] font-black uppercase tracking-[0.16em] text-white">
+        {children}
+      </span>
+    </div>
+  );
+}
+
+// ── Option row: label + description with a control on the right ──────────────
+
+export function OptionRow({
+  label,
+  description,
+  disabled = false,
+  stackOnMobile = false,
+  children,
+}: {
+  label: string;
+  description?: string;
+  disabled?: boolean;
+  stackOnMobile?: boolean;
+  children: ReactNode;
+}) {
+  return (
+    <div
+      className={`flex gap-4 border-b border-panel py-3 last:border-0 ${
+        stackOnMobile
+          ? "flex-col items-start gap-2 sm:flex-row sm:items-center sm:justify-between sm:gap-4"
+          : "items-center justify-between"
+      } ${disabled ? "opacity-40" : ""}`}
+    >
+      <div className="min-w-0">
+        <div className="text-[13px] leading-tight text-white/90">{label}</div>
+        {description && (
+          <div className="mt-0.5 text-[11px] leading-tight text-muted">
+            {description}
+          </div>
+        )}
+      </div>
       {children}
+    </div>
+  );
+}
+
+// ── Segmented control (joined buttons, one active) ────────────────────────────
+
+export function Segmented<T extends string | number>({
+  options,
+  value,
+  onChange,
+  disabled = false,
+}: {
+  options: readonly { value: T; label: string }[];
+  value: T;
+  onChange: (v: T) => void;
+  disabled?: boolean;
+}) {
+  return (
+    <div className="flex shrink-0 border border-panel">
+      {options.map((option) => {
+        const active = option.value === value;
+        return (
+          <button
+            key={option.value}
+            type="button"
+            aria-pressed={active}
+            disabled={disabled}
+            onClick={(e) => {
+              animateMotion(e.currentTarget, pressMotion());
+              onChange(option.value);
+            }}
+            className={`h-7 min-w-9 px-2.5 font-mono text-[11px] font-bold uppercase tracking-wider transition-colors focus:outline-none focus-visible:ring-1 focus-visible:ring-inset focus-visible:ring-f1red ${
+              active
+                ? "bg-f1red text-white"
+                : "text-muted hover:bg-panel hover:text-white"
+            } ${disabled ? "cursor-not-allowed" : ""}`}
+          >
+            {option.label}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
+// ── Chip toggle (multi-select) ────────────────────────────────────────────────
+
+export function Chip({
+  label,
+  active,
+  onToggle,
+  color,
+  disabled = false,
+}: {
+  label: string;
+  active: boolean;
+  onToggle: () => void;
+  /** Fill colour when active; defaults to F1 red. */
+  color?: string;
+  disabled?: boolean;
+}) {
+  return (
+    <button
+      type="button"
+      aria-pressed={active}
+      disabled={disabled}
+      onClick={(e) => {
+        animateMotion(e.currentTarget, pressMotion());
+        onToggle();
+      }}
+      className={[
+        "flex items-center gap-1.5 border px-2 py-1 text-[10px] font-bold uppercase tracking-[0.08em] transition-colors",
+        "focus:outline-none focus-visible:ring-1 focus-visible:ring-white/40",
+        active
+          ? color
+            ? "border-panel bg-track text-white"
+            : "border-f1red bg-f1red text-white"
+          : "border-panel bg-transparent text-muted hover:border-muted hover:text-white",
+        disabled ? "cursor-not-allowed opacity-50" : "",
+      ].join(" ")}
+      style={active && color ? { borderColor: color } : undefined}
+    >
+      {color && (
+        <span
+          aria-hidden="true"
+          className="h-2 w-2 shrink-0"
+          style={{ backgroundColor: active ? color : "transparent", boxShadow: `inset 0 0 0 1px ${color}` }}
+        />
+      )}
+      {label}
+    </button>
+  );
+}
+
+// ── Chip field: label + description above a wrap of chips ────────────────────
+
+export function ChipField({
+  label,
+  description,
+  muted = false,
+  children,
+}: {
+  label: string;
+  description?: string;
+  /** Render the label as a small secondary caption (nested under a toggle). */
+  muted?: boolean;
+  children: ReactNode;
+}) {
+  return (
+    <div className="border-b border-panel py-3 last:border-0">
+      <div
+        className={
+          muted
+            ? "text-[11px] leading-tight text-muted"
+            : "text-[13px] leading-tight text-white/90"
+        }
+      >
+        {label}
+      </div>
+      {description && (
+        <div className="mt-0.5 text-[11px] leading-tight text-muted">
+          {description}
+        </div>
+      )}
+      <div className="mt-2 flex flex-wrap gap-1.5">{children}</div>
     </div>
   );
 }

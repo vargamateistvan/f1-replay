@@ -1,12 +1,12 @@
-import { useCallback, useEffect, useRef, type MouseEvent } from "react";
+import { useCallback, useEffect, useId, useRef, type MouseEvent } from "react";
 import { useSettings } from "@/stores/settings";
 import { SettingsBody } from "./SettingsControls";
+import { DialogHeader } from "@/components/DialogHeader";
 import { trackEvent } from "@/lib/analytics";
 import {
   animateMotion,
   modalBackdropMotion,
   modalPanelMotion,
-  pressMotion,
   motionEnabled,
 } from "@/lib/motion";
 
@@ -14,6 +14,7 @@ export function SettingsModal() {
   const { isOpen, modalTab, closeModal } = useSettings();
   const backdropRef = useRef<HTMLDivElement>(null);
   const panelRef = useRef<HTMLDivElement>(null);
+  const titleId = useId();
 
   const closeWithReason = useCallback(
     (reason: "escape" | "backdrop" | "button") => {
@@ -66,66 +67,23 @@ export function SettingsModal() {
     >
       <div
         ref={panelRef}
-        className="relative w-full max-w-2xl mx-4 h-[85dvh] max-h-[90dvh] flex flex-col bg-surface border border-panel rounded-lg shadow-2xl overflow-hidden"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby={titleId}
+        className="relative mx-4 flex h-[85dvh] max-h-[90dvh] w-full max-w-2xl flex-col overflow-hidden border border-panel bg-surface shadow-2xl"
       >
-        {/* Header */}
-        <div className="flex items-center justify-between px-5 py-3.5 border-b border-panel shrink-0">
-          <div className="flex items-center gap-2">
-            <svg
-              width="14"
-              height="14"
-              viewBox="0 0 16 16"
-              fill="none"
-              strokeLinecap="round"
-              className="text-muted"
-            >
-              <line
-                x1="2"
-                y1="4"
-                x2="14"
-                y2="4"
-                stroke="currentColor"
-                strokeWidth="1.5"
-              />
-              <circle cx="10" cy="4" r="2" fill="currentColor" />
-              <line
-                x1="2"
-                y1="8"
-                x2="14"
-                y2="8"
-                stroke="currentColor"
-                strokeWidth="1.5"
-              />
-              <circle cx="5" cy="8" r="2" fill="currentColor" />
-              <line
-                x1="2"
-                y1="12"
-                x2="14"
-                y2="12"
-                stroke="currentColor"
-                strokeWidth="1.5"
-              />
-              <circle cx="11" cy="12" r="2" fill="currentColor" />
-            </svg>
-            <span className="text-[13px] font-bold text-white tracking-wide">
-              Settings
-            </span>
-          </div>
-          <button
-            onClick={(e) => {
-              animateMotion(e.currentTarget, pressMotion());
-              closeWithReason("button");
-            }}
-            aria-label="Close settings"
-            className="w-7 h-7 flex items-center justify-center rounded text-muted hover:text-white hover:bg-panel transition-colors text-base"
-          >
-            ×
-          </button>
-        </div>
+        <DialogHeader
+          eyebrow="Preferences"
+          meta="Saved on this device"
+          title="Settings"
+          titleId={titleId}
+          closeLabel="Close settings"
+          onClose={() => closeWithReason("button")}
+        />
 
         {/* Scrollable body */}
         <div
-          className="flex flex-1 min-h-0 flex-col overscroll-contain px-5 pb-4"
+          className="flex min-h-0 flex-1 flex-col overscroll-contain px-4 pb-4 md:px-5"
           style={{ WebkitOverflowScrolling: "touch" }}
         >
           <SettingsBody initialTab={modalTab} />

@@ -1,5 +1,12 @@
 import { useState } from "react";
-import { SectionHeader, SettingRow } from "./SettingsPrimitives";
+import {
+  Chip,
+  ChipField,
+  OptionRow,
+  SectionHeader,
+  Segmented,
+  SettingRow,
+} from "./SettingsPrimitives";
 import { TrackMapSettings } from "./TrackMapSettings";
 import {
   useSettings,
@@ -73,34 +80,16 @@ export function SpeedSelector({
   onChange: (v: number) => void;
 }) {
   return (
-    <div className="flex items-center justify-between gap-4 py-3 border-b border-panel">
-      <div>
-        <div className="text-[13px] text-white/90 leading-tight">
-          Default playback speed
-        </div>
-        <div className="text-[11px] text-muted mt-0.5 leading-tight">
-          Applied when a new session loads
-        </div>
-      </div>
-      <div className="flex gap-1 shrink-0">
-        {SPEEDS.map((s) => (
-          <button
-            key={s}
-            onClick={(e) => {
-              animateMotion(e.currentTarget, pressMotion());
-              onChange(s);
-            }}
-            className={`w-9 h-8 text-[11px] font-bold rounded transition-colors ${
-              value === s
-                ? "bg-f1red text-white"
-                : "bg-track text-muted hover:text-white hover:bg-panel"
-            }`}
-          >
-            {s}×
-          </button>
-        ))}
-      </div>
-    </div>
+    <OptionRow
+      label="Default playback speed"
+      description="Applied when a new session loads"
+    >
+      <Segmented
+        options={SPEEDS.map((s) => ({ value: s, label: `${s}×` }))}
+        value={value}
+        onChange={onChange}
+      />
+    </OptionRow>
   );
 }
 
@@ -114,41 +103,30 @@ export function NotificationLimitSelector({
   disabled?: boolean;
 }) {
   return (
-    <div
-      className={`flex items-center justify-between gap-4 py-3 border-b border-panel ${disabled ? "opacity-40" : ""}`}
+    <OptionRow
+      label="Max visible notifications"
+      description="Simultaneous toasts in the stack, on mobile and desktop"
+      disabled={disabled}
     >
-      <div>
-        <div className="text-[13px] text-white/90 leading-tight">
-          Max visible notifications
-        </div>
-        <div className="text-[11px] text-muted mt-0.5 leading-tight">
-          Applies to mobile and desktop toast stack
-        </div>
-      </div>
-      <div className="flex gap-1 shrink-0">
-        {NOTIFICATION_LIMIT_OPTIONS.map((n) => (
-          <button
-            key={n}
-            onClick={(e) => {
-              if (disabled) return;
-              animateMotion(e.currentTarget, pressMotion());
-              onChange(n);
-            }}
-            disabled={disabled}
-            className={`w-9 h-8 text-[11px] font-bold rounded transition-colors ${
-              value === n
-                ? "bg-f1red text-white"
-                : "bg-track text-muted hover:text-white hover:bg-panel"
-            } ${disabled ? "cursor-not-allowed" : ""}`}
-          >
-            {n}
-          </button>
-        ))}
-      </div>
-    </div>
+      <Segmented
+        options={NOTIFICATION_LIMIT_OPTIONS.map((n) => ({
+          value: n,
+          label: String(n),
+        }))}
+        value={value}
+        onChange={onChange}
+        disabled={disabled}
+      />
+    </OptionRow>
   );
 }
+
 // ── Unit selector ─────────────────────────────────────────────────────────────
+
+const UNIT_OPTIONS = [
+  { value: "metric", label: "Metric" },
+  { value: "imperial", label: "Imperial" },
+] as const;
 
 export function UnitSelector({
   value,
@@ -158,32 +136,13 @@ export function UnitSelector({
   onChange: (v: "metric" | "imperial") => void;
 }) {
   return (
-    <div className="flex flex-col items-start gap-2 py-3 border-b border-panel sm:flex-row sm:items-center sm:justify-between sm:gap-4">
-      <div className="min-w-0">
-        <div className="text-[13px] text-white/90 leading-tight">Units</div>
-        <div className="text-[11px] text-muted mt-0.5 leading-tight">
-          Display distances in km or miles, temperature in °C or °F
-        </div>
-      </div>
-      <div className="flex gap-1 shrink-0">
-        {(["metric", "imperial"] as const).map((unit) => (
-          <button
-            key={unit}
-            onClick={(e) => {
-              animateMotion(e.currentTarget, pressMotion());
-              onChange(unit);
-            }}
-            className={`px-3 h-8 text-[11px] font-bold rounded transition-colors ${
-              value === unit
-                ? "bg-f1red text-white"
-                : "bg-track text-muted hover:text-white hover:bg-panel"
-            }`}
-          >
-            {unit === "metric" ? "Metric" : "Imperial"}
-          </button>
-        ))}
-      </div>
-    </div>
+    <OptionRow
+      label="Units"
+      description="Display distances in km or miles, temperature in °C or °F"
+      stackOnMobile
+    >
+      <Segmented options={UNIT_OPTIONS} value={value} onChange={onChange} />
+    </OptionRow>
   );
 }
 
@@ -468,9 +427,9 @@ export function SettingsBody({
           role="tablist"
           aria-label="Settings categories"
           aria-orientation={isMobileViewport ? "horizontal" : "vertical"}
-          className="sticky top-0 z-10 -mx-4 flex shrink-0 gap-1 overflow-x-auto overscroll-x-contain border-b border-panel bg-track px-4 [scrollbar-width:none] md:static md:mx-0 md:w-28 md:flex-col md:self-start md:overflow-visible md:border-b-0 md:border-r md:bg-transparent md:px-0 md:py-3 md:pr-3"
+          className="sticky top-0 z-10 -mx-4 flex shrink-0 overflow-x-auto overscroll-x-contain border-b border-panel bg-track px-4 [scrollbar-width:none] md:static md:mx-0 md:w-36 md:flex-col md:self-stretch md:overflow-visible md:border-b-0 md:border-r md:bg-transparent md:px-0 md:py-4 md:pr-4"
         >
-          {SETTINGS_TABS.map((tab) => {
+          {SETTINGS_TABS.map((tab, index) => {
             const isActive = activeTab === tab.id;
             return (
               <button
@@ -481,12 +440,20 @@ export function SettingsBody({
                 aria-selected={isActive}
                 aria-controls={`${tab.id}-settings-panel`}
                 onClick={() => setActiveTab(tab.id)}
-                className={`shrink-0 whitespace-nowrap border-b-2 px-3 py-3 text-[11px] font-bold uppercase tracking-[0.12em] transition-colors focus:outline-none focus-visible:ring-1 focus-visible:ring-f1red md:w-full md:rounded md:border-b-0 md:px-2.5 md:py-2 md:text-left md:text-[10px] md:normal-case md:tracking-normal ${
+                className={`flex shrink-0 items-center gap-2 whitespace-nowrap border-b-2 px-3 py-3 text-[10px] font-black uppercase tracking-[0.14em] transition-colors focus:outline-none focus-visible:ring-1 focus-visible:ring-inset focus-visible:ring-f1red md:w-full md:border-b-0 md:border-l-2 md:px-3 md:py-2.5 md:text-left ${
                   isActive
-                    ? "border-f1red text-white md:bg-f1red"
-                    : "border-transparent text-muted hover:text-white md:hover:bg-panel"
+                    ? "border-f1red text-white md:bg-panel/60"
+                    : "border-transparent text-muted hover:text-white md:hover:bg-panel/40"
                 }`}
               >
+                <span
+                  aria-hidden="true"
+                  className={`hidden font-mono text-[9px] font-bold md:inline ${
+                    isActive ? "text-f1red" : "text-muted/60"
+                  }`}
+                >
+                  {String(index + 1).padStart(2, "0")}
+                </span>
                 {tab.label}
               </button>
             );
@@ -553,52 +520,28 @@ export function SettingsBody({
                 onChange={toggle("catchupSummaryEnabled")}
               />
               {settings.catchupSummaryEnabled && (
-                <div className="py-2.5 border-b border-panel">
-                  <div className="text-[11px] text-muted mb-2 leading-tight">
-                    Default visible event types
-                  </div>
-                  <div className="flex flex-wrap gap-1.5">
-                    {CATCHUP_EVENT_TYPE_OPTIONS.map(
-                      ({ kind, label, color }) => {
-                        const active =
-                          settings.catchupSummaryDefaultFilters.includes(kind);
-                        return (
-                          <button
-                            key={kind}
-                            onClick={(e) => {
-                              animateMotion(e.currentTarget, pressMotion());
-                              const current =
-                                settings.catchupSummaryDefaultFilters;
-                              const next = active
-                                ? current.filter((k) => k !== kind)
-                                : [...current, kind];
-                              if (next.length > 0)
-                                updateSetting(
-                                  "catchupSummaryDefaultFilters",
-                                  next,
-                                );
-                            }}
-                            className={[
-                              "text-[10px] font-bold px-2 py-0.5 rounded-sm border transition-all",
-                              "focus:outline-none focus-visible:ring-1 focus-visible:ring-white/40",
-                              active
-                                ? "border-transparent text-black"
-                                : "border-panel text-muted bg-transparent",
-                            ].join(" ")}
-                            style={
-                              active
-                                ? { backgroundColor: color, borderColor: color }
-                                : {}
-                            }
-                            aria-pressed={active}
-                          >
-                            {label}
-                          </button>
-                        );
-                      },
-                    )}
-                  </div>
-                </div>
+                <ChipField label="Default visible event types" muted>
+                  {CATCHUP_EVENT_TYPE_OPTIONS.map(({ kind, label, color }) => {
+                    const active =
+                      settings.catchupSummaryDefaultFilters.includes(kind);
+                    return (
+                      <Chip
+                        key={kind}
+                        label={label}
+                        color={color}
+                        active={active}
+                        onToggle={() => {
+                          const current = settings.catchupSummaryDefaultFilters;
+                          const next = active
+                            ? current.filter((k) => k !== kind)
+                            : [...current, kind];
+                          if (next.length > 0)
+                            updateSetting("catchupSummaryDefaultFilters", next);
+                        }}
+                      />
+                    );
+                  })}
+                </ChipField>
               )}
             </div>
           )}
@@ -622,10 +565,6 @@ export function SettingsBody({
                 onChange={(v) => updateSetting("notificationMaxVisible", v)}
                 disabled={!settings.toastsEnabled}
               />
-              <div className="-mt-2.5 mb-1 text-[10px] text-muted/80 leading-tight border-b border-panel pb-2.5">
-                Controls the number of simultaneous toasts shown in the live
-                stack.
-              </div>
               <SettingRow
                 label="Auto-play radio messages"
                 description="Automatically play new team radio toasts"
@@ -640,48 +579,20 @@ export function SettingsBody({
                 onChange={toggle("toastSoundsEnabled")}
                 disabled={!settings.toastsEnabled}
               />
-              <div className="py-2.5 border-b border-panel">
-                <div className="text-[11px] text-muted mb-2 leading-tight">
-                  Default visible event types
-                </div>
-                <div className="flex flex-wrap gap-1.5">
-                  {NOTIFICATION_EVENT_TYPE_OPTIONS.map(
-                    ({ key, label, color }) => {
-                      const active = settings[key];
-                      const disabled = !settings.toastsEnabled;
-                      return (
-                        <button
-                          key={key}
-                          onClick={(e) => {
-                            animateMotion(e.currentTarget, pressMotion());
-                            updateSetting(
-                              key,
-                              !active as AppSettings[typeof key],
-                            );
-                          }}
-                          disabled={disabled}
-                          className={[
-                            "text-[10px] font-bold px-2 py-0.5 rounded-sm border transition-all",
-                            "focus:outline-none focus-visible:ring-1 focus-visible:ring-white/40",
-                            active
-                              ? "border-transparent text-black"
-                              : "border-panel text-muted bg-transparent",
-                            disabled ? "opacity-50 cursor-not-allowed" : "",
-                          ].join(" ")}
-                          style={
-                            active
-                              ? { backgroundColor: color, borderColor: color }
-                              : {}
-                          }
-                          aria-pressed={active}
-                        >
-                          {label}
-                        </button>
-                      );
-                    },
-                  )}
-                </div>
-              </div>
+              <ChipField label="Default visible event types" muted>
+                {NOTIFICATION_EVENT_TYPE_OPTIONS.map(({ key, label, color }) => (
+                  <Chip
+                    key={key}
+                    label={label}
+                    color={color}
+                    active={settings[key]}
+                    disabled={!settings.toastsEnabled}
+                    onToggle={() =>
+                      updateSetting(key, !settings[key] as AppSettings[typeof key])
+                    }
+                  />
+                ))}
+              </ChipField>
             </div>
           )}
 
@@ -723,36 +634,19 @@ export function SettingsBody({
                 />
               )}
               {!isMobileViewport && (
-                <div className="py-2.5 border-b border-panel">
-                  <div className="text-[13px] text-white/90 leading-tight">
-                    Driver tracker columns
-                  </div>
-                  <div className="text-[11px] text-muted mt-0.5 leading-tight">
-                    Pick which leaderboard-style timing columns appear in the
-                    tracker table
-                  </div>
-                  <div className="mt-2 flex flex-wrap gap-1.5">
-                    {trackerTimingColumns.map(({ label, active, onToggle }) => (
-                      <button
-                        key={label}
-                        onClick={(e) => {
-                          animateMotion(e.currentTarget, pressMotion());
-                          onToggle();
-                        }}
-                        className={[
-                          "text-[10px] font-bold px-2 py-0.5 rounded-sm border transition-all",
-                          "focus:outline-none focus-visible:ring-1 focus-visible:ring-white/40",
-                          active
-                            ? "border-f1red bg-f1red text-white"
-                            : "border-panel bg-transparent text-muted hover:border-muted hover:text-white",
-                        ].join(" ")}
-                        aria-pressed={active}
-                      >
-                        {label}
-                      </button>
-                    ))}
-                  </div>
-                </div>
+                <ChipField
+                  label="Driver tracker columns"
+                  description="Pick which leaderboard-style timing columns appear in the tracker table"
+                >
+                  {trackerTimingColumns.map(({ label, active, onToggle }) => (
+                    <Chip
+                      key={label}
+                      label={label}
+                      active={active}
+                      onToggle={onToggle}
+                    />
+                  ))}
+                </ChipField>
               )}
               {isMobileViewport && (
                 <div>
@@ -762,37 +656,19 @@ export function SettingsBody({
                     checked={settings.trackerTimingMobileCarData}
                     onChange={toggle("trackerTimingMobileCarData")}
                   />
-                  <div className="py-2.5 border-b border-panel">
-                    <div className="text-[13px] text-white/90 leading-tight">
-                      Mobile timing columns
-                    </div>
-                    <div className="text-[11px] text-muted mt-0.5 leading-tight">
-                      Pick which timing columns appear in mobile timing rows
-                    </div>
-                    <div className="mt-2 flex flex-wrap gap-1.5">
-                      {mobileTimingColumns.map(
-                        ({ label, active, onToggle }) => (
-                          <button
-                            key={label}
-                            onClick={(e) => {
-                              animateMotion(e.currentTarget, pressMotion());
-                              onToggle();
-                            }}
-                            className={[
-                              "text-[10px] font-bold px-2 py-0.5 rounded-sm border transition-all",
-                              "focus:outline-none focus-visible:ring-1 focus-visible:ring-white/40",
-                              active
-                                ? "border-f1red bg-f1red text-white"
-                                : "border-panel bg-transparent text-muted hover:border-muted hover:text-white",
-                            ].join(" ")}
-                            aria-pressed={active}
-                          >
-                            {label}
-                          </button>
-                        ),
-                      )}
-                    </div>
-                  </div>
+                  <ChipField
+                    label="Mobile timing columns"
+                    description="Pick which timing columns appear in mobile timing rows"
+                  >
+                    {mobileTimingColumns.map(({ label, active, onToggle }) => (
+                      <Chip
+                        key={label}
+                        label={label}
+                        active={active}
+                        onToggle={onToggle}
+                      />
+                    ))}
+                  </ChipField>
                 </div>
               )}
             </div>
@@ -875,14 +751,18 @@ export function SettingsBody({
         </div>
       </div>
 
-      <div className="shrink-0 pt-4 pb-1 flex justify-end">
+      <div className="flex shrink-0 items-center justify-between gap-3 border-t border-panel pt-3">
+        <span className="font-mono text-[9px] uppercase tracking-[0.14em] text-muted">
+          Changes apply instantly
+        </span>
         <button
+          type="button"
           onClick={(e) => {
             animateMotion(e.currentTarget, pressMotion());
             reset();
             trackEvent("settings_reset_defaults");
           }}
-          className="text-[11px] font-medium text-muted hover:text-white transition-colors px-3 py-1.5 rounded hover:bg-panel"
+          className="border border-panel px-3 py-1.5 text-[10px] font-bold uppercase tracking-[0.12em] text-white transition-colors hover:border-f1red hover:text-f1red"
         >
           Reset to defaults
         </button>

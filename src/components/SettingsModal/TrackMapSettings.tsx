@@ -116,8 +116,8 @@ function ViewSwitch({
       disabled={disabled}
       onClick={() => onChange(value)}
       title={disabled ? "3D needs a Mapbox token and WebGL2" : undefined}
-      className={`h-7 px-3 text-[10px] font-black uppercase tracking-widest transition-colors ${
-        view === value ? "bg-f1red text-white" : "text-muted hover:text-white"
+      className={`h-7 px-3 text-[10px] font-black uppercase tracking-widest transition-colors focus:outline-none focus-visible:ring-1 focus-visible:ring-inset focus-visible:ring-f1red ${
+        view === value ? "bg-f1red text-white" : "text-muted hover:bg-panel hover:text-white"
       } ${disabled ? "cursor-not-allowed opacity-40" : ""}`}
     >
       {label}
@@ -220,18 +220,22 @@ function TrackMapPreview({
   }
 
   return (
-    <div className="mt-3 overflow-hidden rounded border border-panel bg-track">
+    <div className="mt-3 overflow-hidden border border-panel bg-track">
       <div className="flex items-center justify-between gap-3 border-b border-panel px-3 py-2">
-        <div>
-          <div className="text-[10px] font-bold text-white">
+        <div className="min-w-0">
+          <div className="text-[10px] font-black uppercase tracking-[0.16em] text-white">
             Live preview{view === "3d" ? " · 3D" : view === "ring" ? " · Ring" : ""}
           </div>
-          <div className="text-[9px] text-muted">
+          <div className="mt-0.5 truncate font-mono text-[9px] uppercase tracking-[0.12em] text-muted">
             {data.meeting ? `${data.meeting.meeting_name} track map` : "Loading latest race weekend"}
             {view === "3d" && session && !supports3d ? " · no 3D for this circuit, showing 2D" : ""}
           </div>
         </div>
-        {data.unavailable && <span className="text-[9px] text-muted">Preview unavailable</span>}
+        {data.unavailable && (
+          <span className="shrink-0 font-mono text-[9px] uppercase tracking-[0.12em] text-muted">
+            Preview unavailable
+          </span>
+        )}
       </div>
       {/* Fixed height, full width: an aspect ratio plus max-height would also
           cap the width, leaving the 3D canvas narrower than the panel. */}

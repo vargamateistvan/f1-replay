@@ -1,7 +1,16 @@
-import { useCallback, useEffect, useRef, type MouseEvent } from "react";
+import {
+  useCallback,
+  useEffect,
+  useId,
+  useRef,
+  type MouseEvent,
+  type ReactNode,
+} from "react";
 import { useLocation, useNavigate } from "react-router-dom";
+import { ExternalLink } from "lucide-react";
 import { useSettings } from "@/stores/settings";
 import { trackEvent } from "@/lib/analytics";
+import { DialogHeader } from "@/components/DialogHeader";
 import {
   animateMotion,
   modalBackdropMotion,
@@ -10,12 +19,386 @@ import {
   motionEnabled,
 } from "@/lib/motion";
 
+interface Item {
+  term: string;
+  text: ReactNode;
+  /** Colour swatch instead of the red bullet (timing colours, flags). */
+  swatch?: string;
+  termColor?: string;
+}
+
+interface Section {
+  id: string;
+  title: string;
+  intro?: string;
+  items?: Item[];
+}
+
+const SECTIONS: Section[] = [
+  {
+    id: "playback",
+    title: "Playback & Navigation",
+    items: [
+      { term: "Play/Pause", text: "Toggle playback with the button or spacebar" },
+      {
+        term: "Scrub Timeline",
+        text: "Click or drag the playback bar to jump to any time",
+      },
+      {
+        term: "Speed Control",
+        text: "Adjust playback speed (1×, 2×, 4×, 8×, 16×)",
+      },
+      { term: "Keyboard", text: "Arrow keys frame-step, Space toggles play" },
+    ],
+  },
+  {
+    id: "telemetry",
+    title: "Telemetry & Performance",
+    items: [
+      {
+        term: "Telemetry Metrics",
+        text: "View high-frequency speed, throttle, brake, RPM, gear, DRS, and brake temperature data",
+      },
+      {
+        term: "Multi-Driver Comparison",
+        text: "Select one or more drivers to compare side-by-side telemetry traces",
+      },
+      {
+        term: "Tire Data",
+        text: "Monitor tire surface temperatures and compound wear progression during stints",
+      },
+      {
+        term: "Focused Overlay",
+        text: "Use the focused telemetry view for full-screen, high-resolution analysis",
+      },
+      {
+        term: "Hover Details",
+        text: "Inspect exact values at any point in time with precision tooltips",
+      },
+    ],
+  },
+  {
+    id: "strategy",
+    title: "Tire Strategy & Race Events",
+    items: [
+      {
+        term: "Strategy Timeline",
+        text: "Visualize pit stops, tire compound changes, stint lengths, and tire age tracking",
+      },
+      {
+        term: "Tire Compounds",
+        text: "Color-coded compound visualization (soft, medium, hard, intermediate, wet) for all stints",
+      },
+      {
+        term: "Pit Analysis",
+        text: "Exact pit timings and strategy call sequences per driver",
+      },
+      {
+        term: "Overtakes Tab",
+        text: "Complete list of overtakes with tactical context",
+      },
+      {
+        term: "Live Timing",
+        text: "Current position, gaps, intervals, pit status, and active in-pit tags",
+      },
+      {
+        term: "Team Radio",
+        text: "Driver communications synced to playback, with direct in-toast audio playback when recordings are available",
+      },
+      {
+        term: "Race Control",
+        text: "Flags, SC/VSC, incidents, and official messages",
+      },
+    ],
+  },
+  {
+    id: "track",
+    title: "Track Information",
+    items: [
+      {
+        term: "Circuit Layout",
+        text: "Visual track map with turn names, DRS zones, and sector divisions",
+      },
+      {
+        term: "Sector Performance",
+        text: "Real-time sector times and speed trap data for comparison",
+      },
+      {
+        term: "Driver Focus",
+        text: "Click a driver in timing or on-map to focus the camera and follow that car around the circuit",
+      },
+      {
+        term: "Driver Heatmap",
+        text: "Focus mode can overlay lap-based speed heatmap colors on the track map for quick pace reads",
+      },
+      {
+        term: "Circuit Details",
+        text: "Track name, length, total lap count, and key characteristics when available",
+      },
+      {
+        term: "Track Status",
+        text: "Live weather, flags, and track condition updates",
+      },
+    ],
+  },
+  {
+    id: "map3d",
+    title: "3D Track Map",
+    intro:
+      "Switch the track map to 3D with its 3D button (or in Settings → Track map). Needs WebGL2; available for circuits with mapped geometry.",
+    items: [
+      {
+        term: "Real Circuit",
+        text: "Full-width asphalt, kerbs, pit lane and start grid on a real map, with flags painted on the track",
+      },
+      {
+        term: "Light & Weather",
+        text: "Lighting follows the sun at the circuit (night races are night); rain brings a wet track and haze",
+      },
+      {
+        term: "Cameras",
+        text: "The camera button cycles follow, chase (behind the car), onboard (T-cam) and orbit; close-up cameras show a minimap of the whole field",
+      },
+      {
+        term: "TV Mode",
+        text: "In races, an auto-director cuts between overtakes, pit stops, the closest battle and the leader. Click any car to take over",
+      },
+      {
+        term: "Take the Camera",
+        text: "Drag, rotate or tilt to look around; Resume follow picks the car back up",
+      },
+      {
+        term: "Share a View",
+        text: "The URL keeps the time, focused driver and camera mode",
+      },
+    ],
+  },
+  {
+    id: "colours",
+    title: "Timing Colours",
+    items: [
+      {
+        term: "Purple",
+        swatch: "#9b59f5",
+        termColor: "#b982ff",
+        text: "The absolute fastest time recorded by any driver in that specific sector or lap during the current session.",
+      },
+      {
+        term: "Green",
+        swatch: "#39b54a",
+        termColor: "#39d743",
+        text: "A personal best time for that specific driver in that sector or lap during the session, but not fast enough to beat the overall session leader.",
+      },
+      {
+        term: "Yellow",
+        swatch: "#f5d400",
+        termColor: "#f5d400",
+        text: "A time that is slower than that specific driver's personal best for that sector or lap.",
+      },
+    ],
+  },
+  {
+    id: "flags",
+    title: "Track Flags & Status",
+    items: [
+      {
+        term: "Green flag",
+        swatch: "#00c851",
+        termColor: "#00c851",
+        text: "Track is clear and racing can continue normally.",
+      },
+      {
+        term: "Yellow flag",
+        swatch: "#f5d400",
+        termColor: "#f5d400",
+        text: "Hazard on track; slow down and no overtaking in the affected sector.",
+      },
+      {
+        term: "Double yellow flags",
+        swatch: "#f5d400",
+        termColor: "#f5d400",
+        text: "Major hazard; be prepared to stop and no overtaking.",
+      },
+      {
+        term: "Red flag",
+        swatch: "#e8002d",
+        termColor: "#e8002d",
+        text: "Session is stopped because conditions are unsafe.",
+      },
+      {
+        term: "Safety Car (SC)",
+        swatch: "#f5a623",
+        termColor: "#f5a623",
+        text: "The safety car is deployed and the field must follow it at a controlled speed.",
+      },
+      {
+        term: "Virtual Safety Car (VSC)",
+        swatch: "#f5a623",
+        termColor: "#f5a623",
+        text: "Drivers must follow a regulated delta time without a physical safety car on track.",
+      },
+      {
+        term: "Chequered flag",
+        swatch: "#ffffff",
+        text: "Session or race is complete.",
+      },
+      {
+        term: "Black and white flag",
+        swatch: "#aaaaaa",
+        termColor: "#aaaaaa",
+        text: "Official warning for unsportsmanlike conduct or a rule violation.",
+      },
+      {
+        term: "Lights out",
+        swatch: "#00c851",
+        termColor: "#00c851",
+        text: "The race has started.",
+      },
+    ],
+  },
+  {
+    id: "views",
+    title: "Main Views",
+    items: [
+      {
+        term: "Leaderboard",
+        text: "Grid view of race standings with gaps and intervals",
+      },
+      {
+        term: "Driver Tracker",
+        text: "Immersive replay with track map, tire strategy, telemetry, radio, and timing data with focused driver telemetry parity",
+      },
+      {
+        term: "Commentary",
+        text: "Event feeds (radio, race control, overtakes, weather)",
+      },
+      {
+        term: "Final Results",
+        text: "Open the Final Classification dialog with podium cards and complete race result table after sessions finish",
+      },
+    ],
+  },
+  {
+    id: "internals",
+    title: "Under The Hood",
+    items: [
+      {
+        term: "Shared Timeline",
+        text: "A single session clock drives map, timing, telemetry, toasts, and event feeds.",
+      },
+      {
+        term: "Smart Caching",
+        text: "API responses are persisted with TanStack Query, so switching tabs and revisiting sessions stays fast.",
+      },
+      {
+        term: "Derived Event Layers",
+        text: "Timeline helpers transform raw API rows into markers, toasts, chapters, and track-state overlays.",
+      },
+      {
+        term: "Map Interpolation",
+        text: "Car positions are interpolated at the current playhead time, then rendered on SVG geometry for smooth replay motion.",
+      },
+      {
+        term: "Live Settings",
+        text: "Overlay and notification toggles update the UI immediately without reloading session data.",
+      },
+    ],
+  },
+  {
+    id: "settings",
+    title: "Settings",
+    intro: "Customize your experience:",
+    items: [
+      {
+        term: "Notifications",
+        text: "Enable/disable event toasts (radio, flags, overtakes, pits, fastest laps)",
+      },
+      {
+        term: "Track Map",
+        text: "Show/hide focused HUD, leaderboard, tyre badges, battle rings, sector flags, and heatmap overlays",
+      },
+      {
+        term: "3D Map",
+        text: "2D or 3D view, flag colours on track, sector ribbon, weather effects, session-time lighting, buildings, car models and terrain",
+      },
+      {
+        term: "Playback Speed",
+        text: "Set default speed and enable speed controls",
+      },
+      {
+        term: "Resilience",
+        text: "Friendly error pages handle route and runtime failures without breaking the app shell",
+      },
+    ],
+  },
+  { id: "shortcuts", title: "Keyboard Shortcuts" },
+];
+
+const SHORTCUTS: { keys: string[]; label: string }[] = [
+  { keys: ["Space"], label: "Play/Pause" },
+  { keys: ["←", "→"], label: "Scrub ±5s" },
+  { keys: ["↑", "↓"], label: "Speed up/down" },
+  { keys: ["[", "]"], label: "Prev/next lap" },
+  { keys: ["J", "K"], label: "Prev/next key moment" },
+  { keys: ["1", "2", "3"], label: "Switch main view" },
+  { keys: ["Home", "End"], label: "Jump start/end" },
+  { keys: ["?", "H"], label: "Open this help" },
+  { keys: ["Esc"], label: "Close modal" },
+];
+
+const SECTION_TITLE =
+  "flex items-baseline gap-2 text-[11px] font-black uppercase tracking-[0.16em] text-white";
+const SECTION_INDEX = "font-mono text-[10px] font-bold text-f1red";
+const BODY_TEXT = "text-[13px] leading-6 text-white/80";
+
+function sectionNumber(index: number): string {
+  return String(index + 1).padStart(2, "0");
+}
+
+function ItemList({ items }: { items: Item[] }) {
+  return (
+    <ul className="mt-2 space-y-2">
+      {items.map(({ term, text, swatch, termColor }) => (
+        <li key={term} className={`flex items-start gap-2.5 ${BODY_TEXT}`}>
+          {swatch ? (
+            <span
+              aria-hidden="true"
+              className="mt-[7px] h-2.5 w-2.5 shrink-0"
+              style={{
+                backgroundColor: swatch,
+                boxShadow: "inset 0 0 0 1px rgba(128,128,128,0.45)",
+              }}
+            />
+          ) : (
+            <span
+              aria-hidden="true"
+              className="mt-[9px] h-1.5 w-1.5 shrink-0 bg-f1red"
+            />
+          )}
+          <span>
+            <strong
+              className={termColor ? "font-bold" : "font-bold text-white"}
+              style={termColor ? { color: termColor } : undefined}
+            >
+              {term}
+            </strong>
+            <span className="text-muted"> — </span>
+            {text}
+          </span>
+        </li>
+      ))}
+    </ul>
+  );
+}
+
 export function HowItWorksModal() {
   const { isHelpOpen, closeHelp, openTour } = useSettings();
   const { pathname, search } = useLocation();
   const navigate = useNavigate();
   const backdropRef = useRef<HTMLDivElement>(null);
   const panelRef = useRef<HTMLDivElement>(null);
+  const titleId = useId();
+  const idPrefix = useId();
 
   const closeWithReason = useCallback(
     (reason: "escape" | "backdrop" | "button") => {
@@ -68,6 +451,15 @@ export function HowItWorksModal() {
     if (e.target === backdropRef.current) closeWithReason("backdrop");
   }
 
+  const sectionId = (id: string) => `${idPrefix}-${id}`;
+
+  function jumpTo(id: string) {
+    document.getElementById(sectionId(id))?.scrollIntoView?.({
+      behavior: motionEnabled() ? "smooth" : "auto",
+      block: "start",
+    });
+  }
+
   return (
     <div
       ref={backdropRef}
@@ -76,53 +468,53 @@ export function HowItWorksModal() {
     >
       <div
         ref={panelRef}
-        className="relative w-full max-w-2xl mx-4 max-h-[90dvh] flex flex-col bg-surface border border-panel rounded-lg shadow-2xl overflow-hidden"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby={titleId}
+        className="relative mx-4 flex max-h-[90dvh] w-full max-w-3xl flex-col overflow-hidden border border-panel bg-surface shadow-2xl"
       >
-        {/* Header */}
-        <div className="flex items-center justify-between px-5 py-3.5 border-b border-panel shrink-0">
-          <div className="flex items-center gap-2">
-            <svg
-              width="14"
-              height="14"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-              className="text-f1red"
-            >
-              <circle cx="12" cy="12" r="10" />
-              <path d="M12 16v-4" />
-              <path d="M12 8h.01" />
-            </svg>
-            <span className="text-[13px] font-bold text-white tracking-wide">
-              How It Works
-            </span>
-          </div>
-          <button
-            onClick={(e) => {
-              animateMotion(e.currentTarget, pressMotion());
-              closeWithReason("button");
-            }}
-            aria-label="Close help"
-            className="w-7 h-7 flex items-center justify-center rounded text-muted hover:text-white hover:bg-panel transition-colors text-base"
-          >
-            ×
-          </button>
-        </div>
+        <DialogHeader
+          eyebrow="Guide"
+          meta="Data · OpenF1"
+          title="How It Works"
+          titleId={titleId}
+          subtitle="Scrub through any F1 session like a replay"
+          closeLabel="Close help"
+          onClose={() => closeWithReason("button")}
+        />
 
-        {/* Scrollable body */}
-        <div
-          className="flex-1 min-h-0 overflow-y-auto overscroll-contain px-5 pb-4"
-          style={{ WebkitOverflowScrolling: "touch" }}
-        >
-          <div className="space-y-6 pt-4 text-white/80">
-            {/* Getting Started */}
-            <section>
-              <h3 className="text-[13px] font-bold text-white uppercase tracking-widest mb-2">
-                🏁 Getting Started
+        <div className="flex min-h-0 flex-1">
+          <nav
+            aria-label="Guide sections"
+            className="hidden w-48 shrink-0 overflow-y-auto overscroll-contain border-r border-panel py-4 md:block"
+          >
+            <ol>
+              {SECTIONS.map((section, index) => (
+                <li key={section.id}>
+                  <button
+                    type="button"
+                    onClick={() => jumpTo(section.id)}
+                    className="flex w-full items-baseline gap-2 border-l-2 border-transparent px-4 py-1.5 text-left text-[10px] font-black uppercase tracking-[0.12em] text-muted transition-colors hover:border-f1red hover:bg-panel/40 hover:text-white focus:outline-none focus-visible:border-f1red focus-visible:text-white"
+                  >
+                    <span className="font-mono text-[9px] text-muted/60">
+                      {sectionNumber(index)}
+                    </span>
+                    <span>{section.title}</span>
+                  </button>
+                </li>
+              ))}
+            </ol>
+          </nav>
+
+          <div
+            className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 sm:px-5"
+            style={{ WebkitOverflowScrolling: "touch" }}
+          >
+            <section className="my-4 border border-panel bg-track p-4">
+              <h3 className="text-[11px] font-black uppercase tracking-[0.16em] text-white">
+                Getting Started
               </h3>
-              <p className="text-[12px] leading-relaxed mb-3">
+              <p className={`mt-2 ${BODY_TEXT}`}>
                 Select a circuit and session (Free Practice, Qualifying, or
                 Race) from the top navigation. The app will load real-time F1
                 data from the OpenF1 API.
@@ -133,483 +525,97 @@ export function HowItWorksModal() {
                   animateMotion(e.currentTarget, pressMotion());
                   startTour();
                 }}
-                className="h-8 rounded-sm bg-f1red px-3.5 text-[10px] font-black uppercase tracking-widest text-white transition-opacity hover:opacity-90"
+                className="mt-3 bg-f1red px-4 py-2 text-[10px] font-bold uppercase tracking-[0.12em] text-white transition-colors hover:bg-red-600"
               >
                 Take the tour
               </button>
             </section>
 
-            {/* Playback */}
-            <section>
-              <h3 className="text-[13px] font-bold text-white uppercase tracking-widest mb-2">
-                ▶️ Playback & Navigation
-              </h3>
-              <ul className="text-[12px] leading-relaxed space-y-1.5 ml-3">
-                <li>
-                  <strong className="text-white">Play/Pause:</strong> Toggle
-                  playback with the button or spacebar
-                </li>
-                <li>
-                  <strong className="text-white">Scrub Timeline:</strong> Click
-                  or drag the playback bar to jump to any time
-                </li>
-                <li>
-                  <strong className="text-white">Speed Control:</strong> Adjust
-                  playback speed (1×, 2×, 4×, 8×, 16×)
-                </li>
-                <li>
-                  <strong className="text-white">Keyboard:</strong> Arrow keys
-                  frame-step, Space toggles play
-                </li>
-              </ul>
-            </section>
+            <div className="divide-y divide-panel border-y border-panel">
+              {SECTIONS.map((section, index) => (
+                <section
+                  key={section.id}
+                  id={sectionId(section.id)}
+                  className="scroll-mt-2 py-4"
+                >
+                  <h3 className={SECTION_TITLE}>
+                    <span className={SECTION_INDEX}>{sectionNumber(index)}</span>
+                    {section.title}
+                  </h3>
+                  {section.intro && (
+                    <p className={`mt-2 ${BODY_TEXT}`}>{section.intro}</p>
+                  )}
+                  {section.items && <ItemList items={section.items} />}
+                  {section.id === "shortcuts" && (
+                    <dl className="mt-3 grid grid-cols-2 gap-px border border-panel bg-panel sm:grid-cols-3">
+                      {SHORTCUTS.map(({ keys, label }) => (
+                        <div
+                          key={label}
+                          className="flex flex-col gap-1.5 bg-surface px-3 py-2.5"
+                        >
+                          <dt className="flex flex-wrap gap-1">
+                            {keys.map((key) => (
+                              <kbd
+                                key={key}
+                                className="min-w-6 border border-panel bg-track px-1.5 py-0.5 text-center font-mono text-[10px] font-bold text-white"
+                              >
+                                {key}
+                              </kbd>
+                            ))}
+                          </dt>
+                          <dd className="text-[11px] text-muted">{label}</dd>
+                        </div>
+                      ))}
+                    </dl>
+                  )}
+                </section>
+              ))}
+            </div>
 
-            {/* Telemetry */}
-            <section>
-              <h3 className="text-[13px] font-bold text-white uppercase tracking-widest mb-2">
-                📊 Telemetry & Performance
-              </h3>
-              <ul className="text-[12px] leading-relaxed space-y-1.5 ml-3">
-                <li>
-                  <strong className="text-white">Telemetry Metrics:</strong>{" "}
-                  View high-frequency speed, throttle, brake, RPM, gear, DRS,
-                  and brake temperature data
-                </li>
-                <li>
-                  <strong className="text-white">
-                    Multi-Driver Comparison:
-                  </strong>{" "}
-                  Select one or more drivers to compare side-by-side telemetry
-                  traces
-                </li>
-                <li>
-                  <strong className="text-white">Tire Data:</strong> Monitor
-                  tire surface temperatures and compound wear progression during
-                  stints
-                </li>
-                <li>
-                  <strong className="text-white">Focused Overlay:</strong> Use
-                  the focused telemetry view for full-screen, high-resolution
-                  analysis
-                </li>
-                <li>
-                  <strong className="text-white">Hover Details:</strong> Inspect
-                  exact values at any point in time with precision tooltips
-                </li>
-              </ul>
-            </section>
-
-            {/* Strategy */}
-            <section>
-              <h3 className="text-[13px] font-bold text-white uppercase tracking-widest mb-2">
-                🏎️ Tire Strategy & Race Events
-              </h3>
-              <ul className="text-[12px] leading-relaxed space-y-1.5 ml-3">
-                <li>
-                  <strong className="text-white">Strategy Timeline:</strong>{" "}
-                  Visualize pit stops, tire compound changes, stint lengths, and
-                  tire age tracking
-                </li>
-                <li>
-                  <strong className="text-white">Tire Compounds:</strong>{" "}
-                  Color-coded compound visualization (soft, medium, hard,
-                  intermediate, wet) for all stints
-                </li>
-                <li>
-                  <strong className="text-white">Pit Analysis:</strong> Exact
-                  pit timings and strategy call sequences per driver
-                </li>
-                <li>
-                  <strong className="text-white">Overtakes Tab:</strong>{" "}
-                  Complete list of overtakes with tactical context
-                </li>
-                <li>
-                  <strong className="text-white">Live Timing:</strong> Current
-                  position, gaps, intervals, pit status, and active in-pit tags
-                </li>
-                <li>
-                  <strong className="text-white">Team Radio:</strong> Driver
-                  communications synced to playback, with direct in-toast audio
-                  playback when recordings are available
-                </li>
-                <li>
-                  <strong className="text-white">Race Control:</strong> Flags,
-                  SC/VSC, incidents, and official messages
-                </li>
-              </ul>
-            </section>
-
-            {/* Track Info */}
-            <section>
-              <h3 className="text-[13px] font-bold text-white uppercase tracking-widest mb-2">
-                🏁 Track Information
-              </h3>
-              <ul className="text-[12px] leading-relaxed space-y-1.5 ml-3">
-                <li>
-                  <strong className="text-white">Circuit Layout:</strong> Visual
-                  track map with turn names, DRS zones, and sector divisions
-                </li>
-                <li>
-                  <strong className="text-white">Sector Performance:</strong>{" "}
-                  Real-time sector times and speed trap data for comparison
-                </li>
-                <li>
-                  <strong className="text-white">Driver Focus:</strong> Click a
-                  driver in timing or on-map to focus the camera and follow that
-                  car around the circuit
-                </li>
-                <li>
-                  <strong className="text-white">Driver Heatmap:</strong> Focus
-                  mode can overlay lap-based speed heatmap colors on the track
-                  map for quick pace reads
-                </li>
-                <li>
-                  <strong className="text-white">Circuit Details:</strong> Track
-                  name, length, total lap count, and key characteristics when
-                  available
-                </li>
-                <li>
-                  <strong className="text-white">Track Status:</strong> Live
-                  weather, flags, and track condition updates
-                </li>
-              </ul>
-            </section>
-
-            {/* 3D map */}
-            <section>
-              <h3 className="text-[13px] font-bold text-white uppercase tracking-widest mb-2">
-                🗺️ 3D Track Map
-              </h3>
-              <p className="text-[12px] leading-relaxed mb-2">
-                Switch the track map to 3D with its 3D button (or in Settings →
-                Track map). Needs WebGL2; available for circuits with mapped
-                geometry.
+            <footer className="space-y-4 py-5">
+              <p className="text-[11px] leading-5 text-muted">
+                All data is from the public{" "}
+                <a
+                  href="https://api.openf1.org"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-f1red/85 transition-colors hover:text-f1red"
+                >
+                  OpenF1 API
+                </a>
+                . No account required! Built by{" "}
+                <a
+                  href="https://github.com/vargamateistvan"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="font-mono text-white/80 transition-colors hover:text-f1red"
+                >
+                  github.com/vargamateistvan
+                </a>
+                .
               </p>
-              <ul className="text-[12px] leading-relaxed space-y-1.5 ml-3">
-                <li>
-                  <strong className="text-white">Real Circuit:</strong>{" "}
-                  Full-width asphalt, kerbs, pit lane and start grid on a real
-                  map, with flags painted on the track
-                </li>
-                <li>
-                  <strong className="text-white">Light &amp; Weather:</strong>{" "}
-                  Lighting follows the sun at the circuit (night races are
-                  night); rain brings a wet track and haze
-                </li>
-                <li>
-                  <strong className="text-white">Cameras:</strong> The camera
-                  button cycles follow, chase (behind the car), onboard (T-cam)
-                  and orbit; close-up cameras show a minimap of the whole field
-                </li>
-                <li>
-                  <strong className="text-white">TV Mode:</strong> In races, an
-                  auto-director cuts between overtakes, pit stops, the closest
-                  battle and the leader. Click any car to take over
-                </li>
-                <li>
-                  <strong className="text-white">Take the Camera:</strong> Drag,
-                  rotate or tilt to look around; Resume follow picks the car
-                  back up
-                </li>
-                <li>
-                  <strong className="text-white">Share a View:</strong> The URL
-                  keeps the time, focused driver and camera mode
-                </li>
-              </ul>
-            </section>
-
-            {/* Timing colours */}
-            <section>
-              <h3 className="text-[13px] font-bold text-white uppercase tracking-widest mb-2">
-                🎨 Timing Colours
-              </h3>
-              <ul className="text-[12px] leading-relaxed space-y-1.5 ml-3">
-                <li className="flex items-start gap-2">
-                  <span
-                    aria-hidden="true"
-                    className="mt-1 h-2.5 w-2.5 shrink-0 rounded-sm bg-[#9b59f5]"
-                  />
-                  <span>
-                    <strong className="text-[#b982ff]">Purple:</strong> The
-                    absolute fastest time recorded by any driver in that
-                    specific sector or lap during the current session.
-                  </span>
-                </li>
-                <li className="flex items-start gap-2">
-                  <span
-                    aria-hidden="true"
-                    className="mt-1 h-2.5 w-2.5 shrink-0 rounded-sm bg-[#39b54a]"
-                  />
-                  <span>
-                    <strong className="text-[#39d743]">Green:</strong> A
-                    personal best time for that specific driver in that sector
-                    or lap during the session, but not fast enough to beat the
-                    overall session leader.
-                  </span>
-                </li>
-                <li className="flex items-start gap-2">
-                  <span
-                    aria-hidden="true"
-                    className="mt-1 h-2.5 w-2.5 shrink-0 rounded-sm bg-[#f5d400]"
-                  />
-                  <span>
-                    <strong className="text-[#f5d400]">Yellow:</strong> A time
-                    that is slower than that specific driver&apos;s personal
-                    best for that sector or lap.
-                  </span>
-                </li>
-              </ul>
-            </section>
-
-            {/* Track flags */}
-            <section>
-              <h3 className="text-[13px] font-bold text-white uppercase tracking-widest mb-2">
-                🚩 Track Flags & Status
-              </h3>
-              <ul className="text-[12px] leading-relaxed space-y-1.5 ml-3">
-                <li>
-                  <strong className="text-[#00c851]">Green flag:</strong>{" "}
-                  Track is clear and racing can continue normally.
-                </li>
-                <li>
-                  <strong className="text-[#f5d400]">Yellow flag:</strong>{" "}
-                  Hazard on track; slow down and no overtaking in the affected
-                  sector.
-                </li>
-                <li>
-                  <strong className="text-[#f5d400]">
-                    Double yellow flags:
-                  </strong>{" "}
-                  Major hazard; be prepared to stop and no overtaking.
-                </li>
-                <li>
-                  <strong className="text-[#e8002d]">Red flag:</strong> Session
-                  is stopped because conditions are unsafe.
-                </li>
-                <li>
-                  <strong className="text-[#f5a623]">Safety Car (SC):</strong>{" "}
-                  The safety car is deployed and the field must follow it at a
-                  controlled speed.
-                </li>
-                <li>
-                  <strong className="text-[#f5a623]">
-                    Virtual Safety Car (VSC):
-                  </strong>{" "}
-                  Drivers must follow a regulated delta time without a physical
-                  safety car on track.
-                </li>
-                <li>
-                  <strong className="text-white">Chequered flag:</strong>{" "}
-                  Session or race is complete.
-                </li>
-                <li>
-                  <strong className="text-[#aaa]">Black and white flag:</strong>{" "}
-                  Official warning for unsportsmanlike conduct or a rule
-                  violation.
-                </li>
-                <li>
-                  <strong className="text-[#00c851]">Lights out:</strong> The
-                  race has started.
-                </li>
-              </ul>
-            </section>
-
-            {/* Views */}
-            <section>
-              <h3 className="text-[13px] font-bold text-white uppercase tracking-widest mb-2">
-                👁️ Main Views
-              </h3>
-              <ul className="text-[12px] leading-relaxed space-y-1.5 ml-3">
-                <li>
-                  <strong className="text-white">Leaderboard:</strong> Grid view
-                  of race standings with gaps and intervals
-                </li>
-                <li>
-                  <strong className="text-white">Driver Tracker:</strong>{" "}
-                  Immersive replay with track map, tire strategy, telemetry,
-                  radio, and timing data with focused driver telemetry parity
-                </li>
-                <li>
-                  <strong className="text-white">Commentary:</strong> Event
-                  feeds (radio, race control, overtakes, weather)
-                </li>
-                <li>
-                  <strong className="text-white">Final Results:</strong> Open
-                  the Final Classification dialog with podium cards and complete
-                  race result table after sessions finish
-                </li>
-              </ul>
-            </section>
-
-            {/* Architecture */}
-            <section>
-              <h3 className="text-[13px] font-bold text-white uppercase tracking-widest mb-2">
-                🧠 How It Works Under The Hood
-              </h3>
-              <ul className="text-[12px] leading-relaxed space-y-1.5 ml-3">
-                <li>
-                  <strong className="text-white">Shared Timeline:</strong> A
-                  single session clock drives map, timing, telemetry, toasts,
-                  and event feeds.
-                </li>
-                <li>
-                  <strong className="text-white">Smart Caching:</strong> API
-                  responses are persisted with TanStack Query, so switching tabs
-                  and revisiting sessions stays fast.
-                </li>
-                <li>
-                  <strong className="text-white">Derived Event Layers:</strong>
-                  Timeline helpers transform raw API rows into markers, toasts,
-                  chapters, and track-state overlays.
-                </li>
-                <li>
-                  <strong className="text-white">Map Interpolation:</strong>
-                  Car positions are interpolated at the current playhead time,
-                  then rendered on SVG geometry for smooth replay motion.
-                </li>
-                <li>
-                  <strong className="text-white">Live Settings:</strong>
-                  Overlay and notification toggles update the UI immediately
-                  without reloading session data.
-                </li>
-              </ul>
-            </section>
-
-            {/* Settings */}
-            <section>
-              <h3 className="text-[13px] font-bold text-white uppercase tracking-widest mb-2">
-                ⚙️ Settings
-              </h3>
-              <p className="text-[12px] leading-relaxed mb-2">
-                Customize your experience:
-              </p>
-              <ul className="text-[12px] leading-relaxed space-y-1.5 ml-3">
-                <li>
-                  <strong className="text-white">Notifications:</strong>{" "}
-                  Enable/disable event toasts (radio, flags, overtakes, pits,
-                  fastest laps)
-                </li>
-                <li>
-                  <strong className="text-white">Track Map:</strong> Show/hide
-                  focused HUD, leaderboard, tyre badges, battle rings, sector
-                  flags, and heatmap overlays
-                </li>
-                <li>
-                  <strong className="text-white">3D Map:</strong> 2D or 3D
-                  view, flag colours on track, sector ribbon, weather effects,
-                  session-time lighting, buildings, car models and terrain
-                </li>
-                <li>
-                  <strong className="text-white">Playback Speed:</strong> Set
-                  default speed and enable speed controls
-                </li>
-                <li>
-                  <strong className="text-white">Resilience:</strong> Friendly
-                  error pages handle route and runtime failures without breaking
-                  the app shell
-                </li>
-              </ul>
-            </section>
-
-            {/* Keyboard Shortcuts */}
-            <section className="pb-2">
-              <h3 className="text-[13px] font-bold text-white uppercase tracking-widest mb-2">
-                ⌨️ Keyboard Shortcuts
-              </h3>
-              <div className="grid grid-cols-2 gap-2 text-[11px] sm:grid-cols-3">
-                <div>
-                  <div className="text-f1red font-mono">Space</div>
-                  <div className="text-[10px]">Play/Pause</div>
-                </div>
-                <div>
-                  <div className="text-f1red font-mono">← →</div>
-                  <div className="text-[10px]">Scrub ±5s</div>
-                </div>
-                <div>
-                  <div className="text-f1red font-mono">↑ ↓</div>
-                  <div className="text-[10px]">Speed up/down</div>
-                </div>
-                <div>
-                  <div className="text-f1red font-mono">[ ]</div>
-                  <div className="text-[10px]">Prev/next lap</div>
-                </div>
-                <div>
-                  <div className="text-f1red font-mono">J K</div>
-                  <div className="text-[10px]">Prev/next key moment</div>
-                </div>
-                <div>
-                  <div className="text-f1red font-mono">1 2 3</div>
-                  <div className="text-[10px]">Switch main view</div>
-                </div>
-                <div>
-                  <div className="text-f1red font-mono">Home End</div>
-                  <div className="text-[10px]">Jump start/end</div>
-                </div>
-                <div>
-                  <div className="text-f1red font-mono">? / H</div>
-                  <div className="text-[10px]">Open this help</div>
-                </div>
-                <div>
-                  <div className="text-f1red font-mono">Esc</div>
-                  <div className="text-[10px]">Close modal</div>
-                </div>
+              <div className="flex flex-wrap items-center gap-2 border-t border-panel pt-4">
+                <a
+                  href="https://github.com/vargamateistvan/f1-replay/issues"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1.5 border border-panel px-4 py-2 text-[10px] font-bold uppercase tracking-[0.12em] text-white transition-colors hover:border-f1red hover:text-f1red"
+                >
+                  Report an issue
+                  <ExternalLink size={10} aria-hidden="true" />
+                </a>
+                <a
+                  href="https://buymeacoffee.com/matt_varga"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  title="Enjoying the project? Support development with a slice."
+                  className="inline-flex items-center gap-1.5 bg-f1red px-4 py-2 text-[10px] font-bold uppercase tracking-[0.12em] text-white transition-colors hover:bg-red-600"
+                >
+                  <span aria-hidden="true">🍕</span>
+                  Buy me a pizza
+                </a>
               </div>
-            </section>
-
-            <hr className="border-panel my-2" />
-
-            <p className="text-[11px] text-muted leading-relaxed pb-2">
-              <strong>Tip:</strong> All data is from the public{" "}
-              <a
-                href="https://api.openf1.org"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-f1red hover:underline"
-              >
-                OpenF1 API
-              </a>
-              . No account required!
-            </p>
-
-            <p className="text-[11px] text-muted leading-relaxed pb-2">
-              Found a bug or have feedback?{" "}
-              <a
-                href="https://github.com/vargamateistvan/f1-replay/issues"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-f1red hover:underline"
-              >
-                Report an issue
-              </a>
-              .
-            </p>
-
-            <p className="text-[11px] text-muted leading-relaxed pb-2">
-              Author:{" "}
-              <a
-                href="https://github.com/vargamateistvan"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-f1red hover:underline"
-              >
-                github.com/vargamateistvan
-              </a>
-            </p>
-
-            <section className="pt-1 pb-3">
-              <p className="text-[11px] text-muted leading-relaxed pb-2">
-                Enjoying the project? Support development with a slice.
-              </p>
-              <a
-                href="https://buymeacoffee.com/matt_varga"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center gap-2 rounded-md border border-panel bg-f1red px-3 py-2 text-[12px] font-semibold text-white transition hover:brightness-110"
-              >
-                <span aria-hidden="true">🍕</span>
-                Buy me a pizza
-              </a>
-            </section>
+            </footer>
           </div>
         </div>
       </div>

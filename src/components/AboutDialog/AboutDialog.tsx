@@ -1,7 +1,8 @@
 import { useEffect, useId } from "react";
 import { createPortal } from "react-dom";
-import { ExternalLink, X } from "lucide-react";
+import { ExternalLink } from "lucide-react";
 import { AppLogo } from "@/components/AppLogo";
+import { DialogHeader } from "@/components/DialogHeader";
 import { useReleaseDate } from "@/hooks/useReleaseDate";
 import {
   appVersionLabel,
@@ -22,7 +23,9 @@ const ROW_LABEL =
   "shrink-0 text-[9px] font-bold uppercase tracking-widest text-muted";
 const ROW_VALUE = "min-w-0 text-right font-mono text-[11px] text-white";
 const LINK_BUTTON =
-  "flex h-9 items-center justify-center gap-1 rounded-sm bg-panel px-2 text-[10px] font-black uppercase tracking-[0.12em] text-white";
+  "flex h-9 items-center justify-center gap-1.5 border border-panel px-2 text-[10px] font-bold uppercase tracking-[0.12em] text-white transition-colors hover:border-f1red hover:text-f1red";
+const PRIMARY_BUTTON =
+  "flex h-9 items-center justify-center gap-1.5 bg-f1red px-2 text-[10px] font-bold uppercase tracking-[0.12em] text-white transition-colors hover:bg-red-600";
 
 export function AboutDialog({ open, onClose, onNavigate }: Props) {
   const titleId = useId();
@@ -50,30 +53,21 @@ export function AboutDialog({ open, onClose, onNavigate }: Props) {
         role="dialog"
         aria-modal="true"
         aria-labelledby={titleId}
-        className="w-full max-w-sm border border-panel bg-surface shadow-2xl sm:mx-4 sm:rounded-lg"
+        className="w-full max-w-sm border border-panel bg-surface shadow-2xl sm:mx-4"
         style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
       >
-        <div className="flex items-center justify-between border-b border-panel px-4 py-3">
-          <div className="flex items-center gap-2">
-            <AppLogo size={18} />
-            <h2
-              id={titleId}
-              className="text-[12px] font-black uppercase tracking-[0.18em] text-white"
-            >
-              About F1 Replay
-            </h2>
-          </div>
-          <button
-            type="button"
-            onClick={onClose}
-            aria-label="Close about"
-            className="flex h-7 w-7 items-center justify-center rounded text-muted transition-colors hover:bg-panel hover:text-white"
-          >
-            <X size={14} aria-hidden="true" />
-          </button>
-        </div>
+        <DialogHeader
+          eyebrow="Info"
+          meta="f1replay.app"
+          title="About F1 Replay"
+          titleId={titleId}
+          subtitle="Unofficial F1 session replays"
+          icon={<AppLogo size={28} />}
+          closeLabel="Close about"
+          onClose={onClose}
+        />
 
-        <dl className="divide-y divide-panel px-4">
+        <dl className="divide-y divide-panel px-4 sm:px-5">
           <div className={ROW}>
             <dt className={ROW_LABEL}>Version</dt>
             <dd className={`${ROW_VALUE} uppercase tracking-[0.12em]`}>
@@ -101,12 +95,12 @@ export function AboutDialog({ open, onClose, onNavigate }: Props) {
           </div>
         </dl>
 
-        <div className="grid grid-cols-2 gap-1 border-t border-panel px-4 py-3">
+        <div className="grid grid-cols-2 gap-2 border-t border-panel px-4 py-4 sm:px-5">
           <a
             href={RELEASES_PAGE_URL}
             target="_blank"
             rel="noreferrer"
-            className={`${LINK_BUTTON} col-span-2`}
+            className={`${PRIMARY_BUTTON} col-span-2`}
           >
             Release notes
             <ExternalLink size={10} aria-hidden="true" />

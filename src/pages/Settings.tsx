@@ -11,15 +11,16 @@ export default function Settings() {
   return (
     <div className="flex flex-1 flex-col bg-track md:h-full">
       {/* Header */}
-      <div className="flex items-center gap-3 px-4 py-3 border-b border-panel shrink-0 bg-track">
+      <div className="flex shrink-0 items-center gap-3 border-b border-panel bg-track px-4 py-3">
         <button
+          type="button"
           onClick={() => navigate(-1)}
-          className="w-8 h-8 flex items-center justify-center text-muted hover:text-white transition-colors"
+          className="flex h-8 w-8 items-center justify-center border border-panel text-muted transition-colors hover:border-f1red hover:text-f1red"
           aria-label="Go back"
         >
           <svg
-            width="18"
-            height="18"
+            width="16"
+            height="16"
             viewBox="0 0 24 24"
             fill="none"
             stroke="currentColor"
@@ -29,9 +30,14 @@ export default function Settings() {
             <polyline points="15 18 9 12 15 6" />
           </svg>
         </button>
-        <span className="text-[14px] font-bold text-white tracking-wide">
-          Settings
-        </span>
+        <div className="min-w-0">
+          <h1 className="text-[15px] font-black uppercase leading-tight tracking-[0.08em] text-white">
+            Settings
+          </h1>
+          <p className="font-mono text-[9px] uppercase tracking-[0.14em] text-muted">
+            Saved on this device
+          </p>
+        </div>
       </div>
 
       {/* Content — on desktop the inner panels own their scrolling; on phones
