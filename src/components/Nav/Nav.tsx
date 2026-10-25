@@ -702,16 +702,21 @@ export function Nav() {
             trackEvent("nav_logo_clicked", { destination: "home" });
             navigate(viewHref(currentView));
           }}
-          className="flex items-center gap-1.5 mr-3 sm:mr-6 select-none shrink-0 hover:opacity-80 transition-opacity"
+          className="flex items-center gap-1.5 mr-2 sm:mr-6 select-none shrink-0 hover:opacity-80 transition-opacity"
           aria-label="F1 Replay home"
         >
           <AppLogo size={22} />
-          <span className="font-black text-white text-[12px] sm:text-sm tracking-[0.18em] sm:tracking-[0.22em] uppercase leading-none">
+          {/* Phones give the event picker the room on replay routes. */}
+          <span
+            className={`font-black text-white text-[12px] sm:text-sm tracking-[0.18em] sm:tracking-[0.22em] uppercase leading-none ${
+              isMainRoute || isTelemetryRoute ? "hidden sm:inline" : ""
+            }`}
+          >
             F1<span className="opacity-50 font-light mx-1">|</span>REPLAY
           </span>
         </button>
 
-        <div className="mr-auto min-w-0 flex items-center gap-2">
+        <div className="max-md:ml-auto md:mr-auto min-w-0 flex items-center gap-2">
           {isMainRoute || isTelemetryRoute ? (
             <EventPicker
               year={year}

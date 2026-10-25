@@ -32,6 +32,10 @@ type Props = {
   onLatest: () => void;
 };
 
+function shortMeetingName(name: string): string {
+  return name.replace(/\bGrand Prix\b/i, "GP");
+}
+
 /**
  * Year / event / session picker that lives in the red top bar: the current
  * event is the trigger, the selects open in a popover underneath.
@@ -123,14 +127,25 @@ export function EventPicker({
                 referrerPolicy="no-referrer"
               />
             )}
-            <span className="min-w-0 text-white text-[10px] sm:text-[11px] font-bold uppercase tracking-wide truncate sm:max-w-[160px] lg:max-w-[240px]">
+            {/* Phones: event over session, so the event name isn't squeezed out. */}
+            <span className="sm:hidden min-w-0 flex flex-col items-start leading-none gap-0.5">
+              <span className="max-w-full text-white text-[10px] font-bold uppercase tracking-wide truncate">
+                {shortMeetingName(selectedMeeting.meeting_name)}
+              </span>
+              {sessionLabel && (
+                <span className="max-w-full text-white/70 text-[8px] font-bold uppercase tracking-widest truncate">
+                  {sessionLabel}
+                </span>
+              )}
+            </span>
+            <span className="hidden sm:inline min-w-0 text-white text-[11px] font-bold uppercase tracking-wide truncate sm:max-w-[160px] lg:max-w-[240px]">
               {selectedMeeting.meeting_name}
             </span>
             <span className="hidden sm:inline text-white/70 text-[11px] font-bold uppercase tracking-widest shrink-0">
               {selectedMeeting.year}
             </span>
             {sessionLabel && (
-              <span className="text-white/70 text-[10px] sm:text-[11px] font-bold uppercase tracking-widest shrink-0">
+              <span className="hidden sm:inline text-white/70 text-[11px] font-bold uppercase tracking-widest shrink-0">
                 · {sessionLabel}
               </span>
             )}
@@ -173,7 +188,7 @@ export function EventPicker({
           id={panelId}
           role="dialog"
           aria-label="Event and session"
-          className="z-[230] flex flex-col gap-2.5 rounded-md border border-panel bg-surface p-3 shadow-2xl light:bg-white light:border-slate-300 max-sm:fixed max-sm:inset-x-3 max-sm:top-[calc(env(safe-area-inset-top)+2.5rem)] sm:absolute sm:left-0 sm:top-full sm:mt-1.5 sm:w-[22rem]"
+          className="z-[230] flex flex-col gap-2.5 rounded-md border border-panel bg-surface p-3 shadow-2xl light:bg-white light:border-slate-300 max-sm:fixed max-sm:inset-x-3 max-sm:top-[calc(env(safe-area-inset-top)+2.5rem)] sm:absolute sm:right-0 md:right-auto md:left-0 sm:top-full sm:mt-1.5 sm:w-[22rem]"
         >
           <div className="flex items-end gap-2">
             <label className="flex flex-col gap-1 shrink-0">
