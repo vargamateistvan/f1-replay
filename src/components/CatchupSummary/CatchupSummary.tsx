@@ -1,7 +1,7 @@
-import { useEffect, useState, type ReactNode } from "react";
+import { useEffect, useId, useState, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 import type { CatchupSummary as CatchupSummaryData } from "@/hooks/useCatchupSummary";
-import { FastForward, Play, RotateCcw, Square, X } from "lucide-react";
+import { Play, RotateCcw, Square } from "lucide-react";
 import type { Driver } from "@/api/types";
 import type {
   OvertakePayload,
@@ -20,6 +20,8 @@ import { formatBattleGain, pitBattleHeadline } from "@/utils/undercut";
 import { useSettings } from "@/stores/settings";
 import { toSafeExternalUrl } from "@/utils/url";
 import { RadioAudio } from "@/components/RadioAudio";
+import { DialogHeader } from "@/components/DialogHeader";
+import { Chip } from "@/components/SettingsModal/SettingsPrimitives";
 import { TyreChange } from "@/components/TyreChange/TyreChange";
 import { useAudioProgress } from "@/hooks/useAudioProgress";
 
@@ -219,7 +221,7 @@ function EventTime({
     <button
       type="button"
       onClick={() => onJump(ms)}
-      className="group/time -my-0.5 -mr-1 flex shrink-0 items-center gap-1 rounded px-1 py-0.5 text-[10px] font-mono tabular-nums text-muted transition-colors hover:bg-white/[0.06] hover:text-white focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-f1red"
+      className="group/time -my-0.5 -mr-1 flex shrink-0 items-center gap-1 px-1 py-0.5 text-[10px] font-mono tabular-nums text-muted transition-colors hover:bg-white/[0.06] hover:text-white focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-f1red"
       title="Replay from here"
       aria-label={`Replay from ${label}`}
     >
@@ -252,7 +254,7 @@ function EventRow({
 }>) {
   return (
     <div
-      className="group/row px-3 py-2 border-l-2"
+      className="group/row border-l-2 py-2.5 pl-4 pr-4 sm:pr-5"
       style={{ borderLeftColor: accent }}
     >
       <div className="flex items-center justify-between gap-2">
@@ -500,10 +502,10 @@ function CatchupRadioRow({
           disabled={!hasAudio}
           aria-label={isPlaying ? "Stop" : "Play"}
           className={[
-            "relative flex h-6 min-w-[64px] items-center justify-center gap-1 overflow-hidden rounded px-2 text-[9px] font-black uppercase tracking-widest transition-colors",
+            "relative flex h-6 min-w-[64px] items-center justify-center gap-1 overflow-hidden border border-panel px-2 text-[9px] font-black uppercase tracking-widest transition-colors",
             isPlaying
               ? "bg-track text-white"
-              : "bg-panel text-muted hover:text-white hover:bg-track",
+              : "text-muted hover:border-f1red hover:text-f1red",
             !hasAudio ? "opacity-30 cursor-not-allowed" : "",
           ]
             .filter(Boolean)
@@ -577,6 +579,7 @@ export function CatchupSummary({
       ),
   );
   const [playingUrl, setPlayingUrl] = useState<string | null>(null);
+  const titleId = useId();
 
   useEffect(() => {
     function onKeyDown(e: KeyboardEvent) {
@@ -627,57 +630,34 @@ export function CatchupSummary({
       data-testid="catchup-backdrop"
     >
       <div
-        className="bg-surface border border-panel shadow-2xl overflow-hidden max-h-[70dvh] w-[min(380px,92vw)] flex flex-col"
+        className="flex max-h-[75dvh] w-[min(420px,92vw)] flex-col overflow-hidden border border-panel bg-surface shadow-2xl"
         role="dialog"
         aria-modal="true"
-        aria-label="While you were away"
+        aria-labelledby={titleId}
       >
-        {/* Header */}
-        <div className="flex items-center gap-2 px-3 py-2 bg-track border-b border-panel">
-          <span className="text-[10px] font-black uppercase tracking-widest text-white/80 flex items-center gap-1">
-            <FastForward size={11} strokeWidth={2.4} aria-hidden="true" />
-            While you were away
-          </span>
-          <span className="text-[10px] font-mono text-muted ml-1 truncate">
-            {lapRange ? `${lapRange} · ` : ""}
-            {fmtDuration(duration)}
-          </span>
-          <button
-            onClick={onDismiss}
-            className="ml-auto -mr-1 rounded p-0.5 text-muted hover:text-white transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-white/40"
-            aria-label="Dismiss"
-          >
-            <X size={13} strokeWidth={2.4} aria-hidden="true" />
-          </button>
-        </div>
+        <DialogHeader
+          eyebrow="Catch-up"
+          meta={`${lapRange ? `${lapRange} · ` : ""}${fmtDuration(duration)}`}
+          title="While you were away"
+          titleId={titleId}
+          subtitle={`${summary.events.length} event${summary.events.length === 1 ? "" : "s"} skipped`}
+          closeLabel="Dismiss"
+          onClose={onDismiss}
+        />
 
         <div className="min-h-0 overflow-y-auto">
-          {/* Filter chips */}
           {presentKinds.length > 0 && (
-            <div className="px-3 py-2 border-b border-panel flex flex-wrap gap-1.5">
+            <div className="flex flex-wrap gap-1.5 border-b border-panel px-4 py-3 sm:px-5">
               {presentKinds.map((kind) => {
                 const { color, mkChipLabel } = KIND_STYLES[kind];
-                const isActive = activeKinds.has(kind);
                 return (
-                  <button
+                  <Chip
                     key={kind}
-                    onClick={() => toggleKind(kind)}
-                    className={[
-                      "text-[10px] font-bold px-2 py-0.5 rounded-sm border transition-all",
-                      "focus:outline-none focus-visible:ring-1 focus-visible:ring-white/40",
-                      isActive
-                        ? "border-transparent text-black"
-                        : "border-panel text-muted bg-transparent hover:text-white",
-                    ].join(" ")}
-                    style={
-                      isActive
-                        ? { backgroundColor: color, borderColor: color }
-                        : {}
-                    }
-                    aria-pressed={isActive}
-                  >
-                    {mkChipLabel(counts[kind]!)}
-                  </button>
+                    label={mkChipLabel(counts[kind]!)}
+                    color={color}
+                    active={activeKinds.has(kind)}
+                    onToggle={() => toggleKind(kind)}
+                  />
                 );
               })}
             </div>
@@ -698,19 +678,24 @@ export function CatchupSummary({
               ))}
             </div>
           ) : (
-            <p className="text-[11px] text-muted px-3 py-3 text-center">
+            <p className="px-4 py-4 text-center font-mono text-[10px] uppercase tracking-[0.12em] text-muted">
               No events match the selected filters
             </p>
           )}
         </div>
 
-        {/* Dismiss */}
-        <button
-          onClick={onDismiss}
-          className="w-full py-1.5 text-[9px] font-black uppercase tracking-widest text-muted hover:text-white border-t border-panel transition-colors"
-        >
-          Dismiss
-        </button>
+        <div className="flex shrink-0 items-center justify-between gap-3 border-t border-panel px-4 py-3 sm:px-5">
+          <span className="font-mono text-[9px] uppercase tracking-[0.14em] text-muted">
+            {jump ? "Tap a time to replay it" : "Default filters: Settings → Playback"}
+          </span>
+          <button
+            type="button"
+            onClick={onDismiss}
+            className="shrink-0 bg-f1red px-4 py-2 text-[10px] font-bold uppercase tracking-[0.12em] text-white transition-colors hover:bg-red-600"
+          >
+            Continue watching
+          </button>
+        </div>
       </div>
     </div>
   );

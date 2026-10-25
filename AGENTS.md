@@ -286,7 +286,7 @@ components/ (render to DOM; read settings from Zustand)
 | `TyreChange`                                      | Old compound + laps → new compound + age; `compact` variant for inline text              |
 | `LiveDataNotice`                                  | Dismissible notice that live timing needs paid OpenF1 access (`dismissal.ts` store)      |
 | `AboutDialog`                                     | Mobile About dialog: version, release date, Privacy/Terms links                          |
-| `DialogHeader`                                    | Shared modal header (Settings, How it works, About) in the legal-page style: red eyebrow strip + mono meta, black uppercase title, square close button |
+| `DialogHeader`                                    | Shared modal header (Settings, How it works, About, catch-up) in the legal-page style: red eyebrow strip + mono meta, black uppercase title, square close button |
 | `TooltipCard`                                     | Shared tooltip card styling                                                              |
 
 ---
