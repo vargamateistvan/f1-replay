@@ -512,6 +512,13 @@ export function SettingsBody({
                 value={settings.metricSystem}
                 onChange={(v) => updateSetting("metricSystem", v)}
               />
+              <SectionHeader>Privacy</SectionHeader>
+              <SettingRow
+                label="Session replay"
+                description="Share a 10% sample of interactions with Amplitude to improve the app. Turn off to stop future recordings."
+                checked={settings.amplitudeSessionReplayEnabled}
+                onChange={toggle("amplitudeSessionReplayEnabled")}
+              />
             </div>
           )}
 

@@ -26,6 +26,7 @@
   },
   "dependencies": {
     "@amplitude/analytics-browser": "^2.48.1",
+    "@amplitude/plugin-session-replay-browser": "^1.36.4",
     "@fontsource/inter": "^5.2.8",
     "@fontsource/jetbrains-mono": "^5.2.8",
     "@sentry/react": "^10.59.0",

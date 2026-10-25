@@ -31,6 +31,13 @@ export default function Privacy() {
               events. We do not intentionally collect sensitive personal data
               through analytics events.
             </p>
+            <p className="mt-2">
+              In production, Amplitude Session Replay records a random 10% of
+              sessions to help us understand interactions and improve the app.
+              Replay may capture page content, clicks, scrolling, and
+              navigation. Form inputs are masked. You can turn off future
+              recordings in Settings at any time.
+            </p>
           </div>
 
           <div>
@@ -39,15 +46,15 @@ export default function Privacy() {
             </h2>
             <p className="mt-2">
               We use Google Analytics and Amplitude for measurement.
-              Non-essential storage and analytics are controlled by your
-              consent preferences.
+              Session Replay is enabled by default for a 10% sample of
+              production sessions and can be disabled in Settings.
             </p>
           </div>
 
           <div>
             <h2 className="text-base font-bold text-white">Third Parties</h2>
             <p className="mt-2">
-              Data may be processed by third-party providers such as Google and
+              Analytics and replay data may be processed by Google and
               Amplitude in accordance with their terms and privacy policies.
             </p>
           </div>

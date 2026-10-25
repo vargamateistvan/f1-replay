@@ -186,7 +186,7 @@ src/
     queryPersistencePolicy.ts — shouldPersistQueryKey(): which keys are persisted (not location/car-data windows)
     audio.ts            — Shared Web Audio context, beep(), and cached loadSample()/playSample()
     analytics.ts        — trackEvent() → GA4 + Amplitude (loaded when idle; events listed in docs/ANALYTICS_EVENTS.md)
-    amplitude.ts        — Lazy Amplitude facade (SDK imported when idle, calls queued until init; autocapture limited to sessions + attribution)
+    amplitude.ts        — Lazy Amplitude facade (SDK imported when idle; events queued until init; Session Replay is lazy-loaded at 10% sampling, controlled by `amplitudeSessionReplayEnabled`; inputs use medium masking)
     sentry.ts / sentrySdk.ts — Lazy Sentry facade (calls queued until the SDK chunk loads; no-op in dev/tests)
     appVersion.ts       — VITE_APP_VERSION formatting, GitHub releases URLs
     idle.ts             — runWhenIdle(), loadScriptOnce()
@@ -297,7 +297,7 @@ components/ (render to DOM; read settings from Zustand)
 | Store         | File                 | Persisted?                       | Purpose                                                   |
 | ------------- | -------------------- | -------------------------------- | --------------------------------------------------------- |
 | `useTimeline` | `timeline/clock.ts`  | No                               | Playback state: `t`, `playing`, `speed`, `sessionStartMs`, `realTimeWindow` (span forced to 1x, e.g. race start lights) |
-| `useSettings` | `stores/settings.ts` | Yes (localStorage via `persist`) | All `AppSettings` flags; `mapRingShowPitWindowOutcomes` is a ring-only toggle, default off |
+| `useSettings` | `stores/settings.ts` | Yes (localStorage via `persist`) | All `AppSettings` flags; `amplitudeSessionReplayEnabled` opts out of Amplitude Session Replay; `mapRingShowPitWindowOutcomes` is a ring-only toggle, default off |
 
 ### 6b. TanStack Query keys (convention)
 

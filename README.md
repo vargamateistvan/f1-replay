@@ -170,6 +170,9 @@ VITE_AMPLITUDE_API_KEY=your_browser_api_key
 ```
 
 Like GA4, Amplitude only runs on production builds outside localhost.
+Amplitude Session Replay is enabled by default for a 10% sample of production
+sessions. Users can disable future recordings in **Settings → General → Session
+replay**; form inputs are masked.
 
 ### Building for Production
 

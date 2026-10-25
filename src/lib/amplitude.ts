@@ -1,5 +1,7 @@
 import type * as AmplitudeSdk from "@amplitude/analytics-browser";
 import { runWhenIdle } from "@/lib/idle";
+import { useSettings } from "@/stores/settings";
+import type { SessionReplayPlugin } from "@amplitude/plugin-session-replay-browser";
 
 /**
  * Lazy facade over the Amplitude Browser SDK.
@@ -26,6 +28,56 @@ export const AMPLITUDE_API_KEY =
 let sdk: AmplitudeModule | null = null;
 let enabled = false;
 const queue: PendingCall[] = [];
+let sessionReplay: SessionReplayPlugin | null = null;
+let sessionReplayLoad: Promise<void> | null = null;
+let unsubscribeReplaySetting: (() => void) | null = null;
+
+function syncSessionReplay(isEnabled: boolean): void {
+  if (!sdk) return;
+
+  if (!isEnabled) {
+    sessionReplay?.stop();
+    return;
+  }
+
+  if (sessionReplay) {
+    void sessionReplay.start().catch((err: unknown) => {
+      console.warn("Amplitude Session Replay failed to start", err);
+    });
+    return;
+  }
+
+  if (sessionReplayLoad) return;
+  let loadFailed = false;
+  sessionReplayLoad = import("@amplitude/plugin-session-replay-browser")
+    .then(async ({ sessionReplayPlugin }) => {
+      if (!sdk || !useSettings.getState().amplitudeSessionReplayEnabled) return;
+      const replayPlugin = sessionReplayPlugin({
+        sampleRate: 0.1,
+        privacyConfig: { defaultMaskLevel: "medium" },
+      });
+      await sdk.add(replayPlugin).promise;
+      sessionReplay = replayPlugin;
+      if (!useSettings.getState().amplitudeSessionReplayEnabled) {
+        replayPlugin.stop();
+      }
+    })
+    .catch((err: unknown) => {
+      loadFailed = true;
+      console.warn("Amplitude Session Replay failed to load", err);
+    })
+    .finally(() => {
+      sessionReplayLoad = null;
+      if (
+        sdk &&
+        useSettings.getState().amplitudeSessionReplayEnabled &&
+        !sessionReplay &&
+        !loadFailed
+      ) {
+        syncSessionReplay(true);
+      }
+    });
+}
 
 function withAmplitude(fn: PendingCall): void {
   if (sdk) {
@@ -43,6 +95,14 @@ function withAmplitude(fn: PendingCall): void {
 export function loadAmplitude(appVersion?: string): void {
   if (enabled || !AMPLITUDE_API_KEY || typeof window === "undefined") return;
   enabled = true;
+  unsubscribeReplaySetting = useSettings.subscribe((state, previous) => {
+    if (
+      state.amplitudeSessionReplayEnabled !==
+      previous.amplitudeSessionReplayEnabled
+    ) {
+      syncSessionReplay(state.amplitudeSessionReplayEnabled);
+    }
+  });
   runWhenIdle(() => {
     import("@amplitude/analytics-browser")
       .then((mod) => {
@@ -67,6 +127,7 @@ export function loadAmplitude(appVersion?: string): void {
         });
         sdk = mod;
         for (const call of queue.splice(0)) call(mod);
+        syncSessionReplay(useSettings.getState().amplitudeSessionReplayEnabled);
       })
       .catch((err: unknown) => {
         enabled = false;
@@ -87,7 +148,11 @@ export function amplitudeTrack(
 
 /** Test-only: reset module state between tests. */
 export function __resetAmplitudeForTests(): void {
+  unsubscribeReplaySetting?.();
+  unsubscribeReplaySetting = null;
   sdk = null;
   enabled = false;
   queue.length = 0;
+  sessionReplay = null;
+  sessionReplayLoad = null;
 }

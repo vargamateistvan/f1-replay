@@ -123,6 +123,8 @@ export interface AppSettings {
   showNextRaceWeekendBanner: boolean;
   // Appearance
   lightMode: boolean;
+  // Privacy
+  amplitudeSessionReplayEnabled: boolean;
   // Units
   metricSystem: "metric" | "imperial";
   // Onboarding
@@ -273,6 +275,7 @@ export const SETTINGS_DEFAULTS: AppSettings = {
   showCsvExportButtons: true,
   showNextRaceWeekendBanner: true,
   lightMode: false,
+  amplitudeSessionReplayEnabled: true,
   metricSystem: "metric",
   tourSeenVersion: 0,
 };

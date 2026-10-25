@@ -16,6 +16,16 @@ and marketing attribution. Page views, clicks and form interactions are **not**
 autocaptured — they're covered by the explicit events below. Queued events are
 flushed with `sendBeacon` on `pagehide`.
 
+### Amplitude Session Replay
+
+The browser Session Replay plugin is lazy-loaded only when enabled. In
+production, it records a 10% sample of sessions by default. Users can turn off
+future recordings with **Settings → General → Session replay**; analytics
+events continue to be sent when recording is disabled. The SDK uses Amplitude's
+`medium` masking level, which masks form inputs. Verify the project's
+Session Replay privacy settings and a test recording in Amplitude before
+production rollout.
+
 ## Setup
 
 Enable GA4 by setting this in `.env.local`:

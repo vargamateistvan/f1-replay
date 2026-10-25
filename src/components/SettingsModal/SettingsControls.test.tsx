@@ -14,6 +14,7 @@ vi.mock("@/stores/settings", () => ({
     setSetting: state.setSetting,
     reset: state.reset,
     lightMode: false,
+    amplitudeSessionReplayEnabled: true,
     defaultSpeed: 1,
     showPlaybackSpeedControls: true,
     showPlaybackEventChips: true,
@@ -203,6 +204,19 @@ describe("SettingsControls", () => {
 
     fireEvent.click(screen.getByText("Reset to defaults"));
     expect(state.reset).toHaveBeenCalled();
+  });
+
+  it("allows users to opt out of Amplitude Session Replay", () => {
+    render(<SettingsBody />);
+
+    const replaySetting = screen.getByText("Session replay").parentElement
+      ?.parentElement;
+    fireEvent.click(within(replaySetting!).getByRole("switch"));
+
+    expect(state.setSetting).toHaveBeenCalledWith(
+      "amplitudeSessionReplayEnabled",
+      false,
+    );
   });
 
   it("updates mobile timing column visibility settings", () => {
