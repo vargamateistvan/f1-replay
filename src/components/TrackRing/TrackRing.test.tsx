@@ -270,6 +270,45 @@ describe("TrackRing", () => {
     expect(screen.getByText("gap to the car ahead")).toBeInTheDocument();
   });
 
+  it("keeps the two nearest cars on either side of the focused driver bright", () => {
+    const nearbyDrivers = [
+      ...drivers,
+      { driver_number: 44, name_acronym: "HAM", team_colour: "27F4D2" },
+      { driver_number: 77, name_acronym: "BOT", team_colour: "52E252" },
+      { driver_number: 11, name_acronym: "PER", team_colour: "3671C6" },
+      { driver_number: 20, name_acronym: "RUS", team_colour: "52E252" },
+      { driver_number: 30, name_acronym: "ALO", team_colour: "229971" },
+    ] as Driver[];
+    const locations = [
+      loc(1, 100, 0, 0),
+      loc(1, 100, 0, 1000),
+      loc(16, 200, 200, 0),
+      loc(16, 200, 200, 1000),
+      loc(44, 150, 0, 0),
+      loc(44, 150, 0, 1000),
+      loc(77, 50, 0, 0),
+      loc(77, 50, 0, 1000),
+      loc(11, 25, 0, 0),
+      loc(11, 25, 0, 1000),
+      loc(20, 175, 0, 0),
+      loc(20, 175, 0, 1000),
+      loc(30, 200, 100, 0),
+      loc(30, 200, 100, 1000),
+    ];
+    render(
+      <TrackRing
+        sessionKey={1}
+        drivers={nearbyDrivers}
+        locationData={locations}
+        sessionStartMs={START}
+        focusDriver={1}
+      />,
+    );
+    expect(screen.getByText("HAM").closest("g[opacity]")).toHaveAttribute("opacity", "1");
+    expect(screen.getByText("BOT").closest("g[opacity]")).toHaveAttribute("opacity", "1");
+    expect(screen.getByText("LEC").closest("g[opacity]")).toHaveAttribute("opacity", "0.3");
+  });
+
   it("measures the on-track time between the focused and the hovered car", () => {
     ring.timeScale = true;
     clock.t = 2.5 * LAP_MS;
@@ -320,8 +359,13 @@ describe("TrackRing", () => {
     expect(window).toHaveTextContent("PIT → P2");
     expect(window).toHaveTextContent("SC");
     expect(window).toHaveTextContent("VSC");
-    // LEC (12 s behind) would pass VER if it pitted now; HAM (45 s) wouldn't.
-    expect(screen.getByText("LEC").closest("g[opacity]")).toHaveAttribute("opacity", "1");
-    expect(screen.getByText("HAM").closest("g[opacity]")).toHaveAttribute("opacity", "0.3");
+    expect(screen.getByRole("status", { name: "Pit window outcomes" })).toHaveTextContent("Would pass: LEC");
+    expect(screen.getByRole("status", { name: "Pit window outcomes" })).toHaveTextContent(
+      "Would drop behind if they pit: None",
+    );
+    // LEC (12 s behind) would pass VER if it pitted now. HAM is outside that
+    // pit window but still stays bright because this tiny field makes it nearby.
+    expect(screen.getByText("LEC", { selector: "text" }).closest("g[opacity]")).toHaveAttribute("opacity", "1");
+    expect(screen.getByText("HAM", { selector: "text" }).closest("g[opacity]")).toHaveAttribute("opacity", "1");
   });
 });

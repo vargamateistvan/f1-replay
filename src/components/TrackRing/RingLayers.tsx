@@ -542,7 +542,8 @@ function RingCarMarker({
   const color = special ? special.fill : teamColor(driver?.team_colour, "#ffffff");
   const focused = focusDriver === num;
   const highlighted = highlightDrivers?.has(num) ?? false;
-  const dimmed = focusDriver !== null && !focused && !highlighted;
+  const hasInspection = focused || (highlightDrivers?.size ?? 0) > 0;
+  const dimmed = hasInspection && !focused && !highlighted;
   const r = showNumberInside || special ? (focused ? 8 : 6.6) : focused ? 6.5 : 5;
   const compound = activeCompounds?.get(num);
   const label = special ? special.shortLabel : (driver?.name_acronym ?? String(num));

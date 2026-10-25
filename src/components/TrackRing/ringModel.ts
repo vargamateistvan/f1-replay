@@ -3,6 +3,7 @@ import type { PitLanePath } from "@/data/pitLanes";
 import { timingSectorForMarshalPost } from "@/timeline/raceControl";
 import {
   RING_OFF_TRACK_M,
+  RING_NEARBY_CARS_PER_SIDE,
   RING_REF_LAP_MAX_MS,
   RING_REF_LAP_MIN_MS,
   RING_REF_TRACE_WINDOW_MS,
@@ -342,6 +343,29 @@ export function timeArc(
 export function signedTimeDelta(tfA: number, tfB: number): number {
   const d = wrapFraction(tfB - tfA);
   return d > 0.5 ? d - 1 : d;
+}
+
+/** Closest on-track cars in each direction from the inspected car. */
+export function nearbyRingDrivers(
+  timeFractions: ReadonlyMap<number, number>,
+  centerNumber: number | null,
+  countPerSide = RING_NEARBY_CARS_PER_SIDE,
+): Set<number> {
+  if (centerNumber === null || !timeFractions.has(centerNumber)) return new Set();
+  const center = timeFractions.get(centerNumber)!;
+  const ahead: Array<{ num: number; delta: number }> = [];
+  const behind: Array<{ num: number; delta: number }> = [];
+  for (const [num, fraction] of timeFractions) {
+    if (num === centerNumber) continue;
+    const delta = signedTimeDelta(center, fraction);
+    (delta > 0 ? ahead : behind).push({ num, delta: Math.abs(delta) });
+  }
+  ahead.sort((a, b) => a.delta - b.delta);
+  behind.sort((a, b) => a.delta - b.delta);
+  return new Set([
+    ...ahead.slice(0, countPerSide).map(({ num }) => num),
+    ...behind.slice(0, countPerSide).map(({ num }) => num),
+  ]);
 }
 
 type GapToLeader = {

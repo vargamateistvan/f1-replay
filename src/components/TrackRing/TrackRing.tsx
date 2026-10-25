@@ -47,6 +47,7 @@ import {
   formatRingGap,
   lapTimeFraction,
   layoutRingCars,
+  nearbyRingDrivers,
   placeCar,
   signedTimeDelta,
   toDisplay,
@@ -361,6 +362,7 @@ export function TrackRing({
         })
       : null;
   let pitWindow: Omit<Parameters<typeof RingPitWindow>[0], "cx" | "cy" | "r" | "scale"> | null = null;
+  let pitWindowRivalsResult: { passedBy: number[]; dropBehind: number[] } | null = null;
   const highlightDrivers = new Set<number>();
   if (rejoin && focusTimeFraction !== null && focusDriver !== null) {
     const lossTf = (s: number) => (profile ? (s * 1000) / profile.lapMs : null);
@@ -392,8 +394,17 @@ export function TrackRing({
         lossS: rejoin.lossS,
       };
       const rivals = rejoinGaps ? pitWindowRivals(rejoinGaps, focusDriver, rejoin.lossS, retiredDrivers) : null;
+      pitWindowRivalsResult = rivals;
       for (const num of [...(rivals?.passedBy ?? []), ...(rivals?.dropBehind ?? [])]) highlightDrivers.add(num);
     }
+  }
+
+  // Inspecting a focused or hovered car emphasizes the closest two cars on
+  // either side, while preserving the pit-window and gap-measure highlights.
+  const inspectedDriver = hoverDriver ?? focusDriver;
+  if (inspectedDriver !== null && timeFractions.has(inspectedDriver)) {
+    highlightDrivers.add(inspectedDriver);
+    for (const num of nearbyRingDrivers(timeFractions, inspectedDriver)) highlightDrivers.add(num);
   }
 
   // Gap measure: the on-track time between the focused car and the hovered one.
@@ -583,6 +594,24 @@ export function TrackRing({
         extraButtons={extraButtons}
       />
 
+      {pitWindow && pitWindowRivalsResult && (
+        <div
+          role="status"
+          aria-label="Pit window outcomes"
+          className="absolute top-12 right-2 z-20 max-w-[min(18rem,calc(100%-1rem))] rounded border border-purple-400/30 bg-[#171923]/90 px-2.5 py-2 text-[10px] leading-snug text-white shadow-lg backdrop-blur"
+        >
+          <p className="font-black uppercase tracking-wider text-purple-300">If {focusAcronym} pits now</p>
+          <p className="mt-1">
+            <span className="font-bold">Would pass:</span>{" "}
+            {driverList(pitWindowRivalsResult.passedBy, driverByNumber)}
+          </p>
+          <p>
+            <span className="font-bold">Would drop behind if they pit:</span>{" "}
+            {driverList(pitWindowRivalsResult.dropBehind, driverByNumber)}
+          </p>
+        </div>
+      )}
+
       {legendOpen && (
         <div className="absolute top-12 right-2 z-30">
           <RingLegend lightMode={lightMode} />
@@ -624,6 +653,13 @@ export function TrackRing({
 }
 
 function noop() {}
+
+function driverList(numbers: readonly number[], drivers: ReadonlyMap<number, Driver>): string {
+  if (numbers.length === 0) return "None";
+  const names = numbers.slice(0, 3).map((num) => drivers.get(num)?.name_acronym ?? `#${num}`);
+  if (numbers.length > names.length) names.push(`+${numbers.length - names.length} more`);
+  return names.join(", ");
+}
 
 /** Track status chip for the dial's centre. */
 function ringStatus(

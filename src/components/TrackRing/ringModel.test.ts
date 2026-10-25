@@ -8,6 +8,7 @@ import {
   formatLapTime,
   formatRingGap,
   placeCar,
+  nearbyRingDrivers,
   signedTimeDelta,
   timeArc,
   toDisplay,
@@ -168,6 +169,25 @@ describe("signedTimeDelta", () => {
     expect(signedTimeDelta(0.3, 0.2)).toBeCloseTo(-0.1);
     expect(signedTimeDelta(0.95, 0.05)).toBeCloseTo(0.1);
     expect(signedTimeDelta(0.05, 0.95)).toBeCloseTo(-0.1);
+  });
+});
+
+describe("nearbyRingDrivers", () => {
+  it("returns the closest cars in each direction, including across the start line", () => {
+    const fractions = new Map([
+      [1, 0.98],
+      [2, 0.03],
+      [3, 0.88],
+      [4, 0.2],
+      [5, 0.75],
+      [6, 0.92],
+    ]);
+    expect(nearbyRingDrivers(fractions, 1, 2)).toEqual(new Set([2, 4, 6, 3]));
+  });
+
+  it("returns no nearby cars when the inspected driver is not on track", () => {
+    expect(nearbyRingDrivers(new Map([[1, 0.25]]), 2)).toEqual(new Set());
+    expect(nearbyRingDrivers(new Map([[1, 0.25]]), null)).toEqual(new Set());
   });
 });
 

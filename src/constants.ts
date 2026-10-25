@@ -81,6 +81,8 @@ export const RING_PIT_RADIUS = 92;
 export const RING_LABEL_RADIUS = 168;
 /** Minimum spacing between ring labels, as a fraction of the lap. */
 export const RING_LABEL_MIN_GAP = 0.036;
+/** Nearest cars on either side of the inspected driver emphasized in ring view. */
+export const RING_NEARBY_CARS_PER_SIDE = 2;
 /** Time-based ring: laps within this share of the fastest form the reference lap. */
 export const RING_REF_LAP_SPREAD = 0.07;
 /** Time-based ring: distance grid points in the reference lap profile. */
