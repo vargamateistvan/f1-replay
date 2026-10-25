@@ -1,7 +1,7 @@
 import { Link } from "react-router-dom";
 
 export default function Terms() {
-  const updatedOn = "2026-06-20";
+  const updatedOn = "2026-10-25";
 
   return (
     <section className="relative flex h-full min-h-[55vh] flex-col overflow-hidden bg-track px-4 py-6 sm:px-6 sm:py-8">
@@ -36,6 +36,19 @@ export default function Terms() {
             <p className="mt-2">
               The platform displays motorsport data from third-party sources.
               Data may be delayed, incomplete, or inaccurate at times.
+            </p>
+          </div>
+
+          <div>
+            <h2 className="text-base font-bold text-white">
+              Formula One Trademarks
+            </h2>
+            <p className="mt-2">
+              F1 Replay is an independent, unofficial app. It is not affiliated
+              with, endorsed by, or associated with Formula One or any Formula
+              One group company. F1, FORMULA ONE, FORMULA 1, FIA FORMULA ONE
+              WORLD CHAMPIONSHIP, GRAND PRIX, and related marks are trademarks
+              of Formula One group companies.
             </p>
           </div>
 
