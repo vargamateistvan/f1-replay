@@ -508,3 +508,11 @@ export const UNDERCUT_MIN_STOP_LAP = 5;
 // ── App tour ──────────────────────────────────────────────────────────────────
 /** Bump when the tour changes enough that returning users should see it again. */
 export const TOUR_VERSION = 1;
+
+// ── Deploys ───────────────────────────────────────────────────────────────────
+/**
+ * After a deploy, a tab opened earlier asks for chunks that no longer exist and
+ * the page reloads once to pick up the new build. A second failure within this
+ * window shows the error instead, so a genuinely missing chunk can't loop.
+ */
+export const STALE_CHUNK_RELOAD_COOLDOWN_MS = 30_000;

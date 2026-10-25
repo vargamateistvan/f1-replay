@@ -14,6 +14,10 @@ import { appVersion } from "@/lib/appVersion";
 import { runWhenIdle } from "@/lib/idle";
 import { loadSentry, Sentry } from "@/lib/sentry";
 import {
+  handleStaleChunkError,
+  installStaleChunkReload,
+} from "@/lib/staleChunkReload";
+import {
   isCrossOriginFrameError,
   isIgnorableWindowError,
 } from "@/utils/ignorableErrors";
@@ -112,6 +116,8 @@ if (typeof globalThis.performance !== "undefined") {
 
 // Mobile Safari error prevention and logging
 if (typeof globalThis.window !== "undefined") {
+  installStaleChunkReload();
+
   // Store recent errors in sessionStorage for debugging
   const storeError = (msg: string) => {
     try {
@@ -167,7 +173,10 @@ if (typeof globalThis.window !== "undefined") {
   globalThis.addEventListener("unhandledrejection", (event) => {
     const msg =
       event.reason?.message || String(event.reason) || "Promise rejection";
-    if (isCrossOriginFrameError(event.reason ?? msg)) {
+    if (
+      isCrossOriginFrameError(event.reason ?? msg) ||
+      handleStaleChunkError(event.reason ?? msg)
+    ) {
       event.preventDefault();
       return true;
     }

@@ -29,7 +29,7 @@
 | Telemetry comparison                              | `pages/Telemetry.tsx`, `components/TelemetryChart`, `components/CornerAnalysis`, `utils/telemetry.ts` |
 | SEO / new route                                   | `routes.tsx`, `seo-routes.json`, `components/Seo/seo.ts` (Pitfall 10)                        |
 | Analytics event                                   | `lib/analytics.ts` (`trackEvent`) + document it in `docs/ANALYTICS_EVENTS.md`                |
-| Errors / Sentry                                   | `lib/sentry.ts` (lazy facade), `utils/ignorableErrors.ts`, `components/ErrorBoundary`        |
+| Errors / Sentry                                   | `lib/sentry.ts` (lazy facade), `utils/ignorableErrors.ts`, `components/ErrorBoundary`, `lib/staleChunkReload.ts` (post-deploy chunk 404s) |
 | App tour                                          | `components/AppTour/` (`steps.ts`, `targets.ts`), `TOUR_VERSION` (Pitfall 15)                |
 | Proxy cache behaviour                             | `proxy/src/index.ts`, `proxy/README.md` (TTL table)                                          |
 | Circuit data refresh                              | `scripts/*.mjs`, `.github/workflows/update-circuits.yml` (Pitfall 13)                        |
@@ -189,6 +189,7 @@ src/
     sentry.ts / sentrySdk.ts — Lazy Sentry facade (calls queued until the SDK chunk loads; no-op in dev/tests)
     appVersion.ts       — VITE_APP_VERSION formatting, GitHub releases URLs
     idle.ts             — runWhenIdle(), loadScriptOnce()
+    staleChunkReload.ts — After a deploy, old tabs 404 on removed hashed chunks: reloads once on `vite:preloadError` (sessionStorage cooldown `STALE_CHUNK_RELOAD_COOLDOWN_MS` stops loops); `ErrorBoundary` shows "Loading the latest version…" meanwhile
     motion.ts           — anime.js presets (fadeUp, modal, tab swap…), prefersReducedMotion()
 
   test/
