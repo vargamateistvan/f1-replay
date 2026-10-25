@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { ArrowLeftRight, FlipHorizontal2, Timer } from "lucide-react";
+import { ArrowLeftRight, CircleHelp, FlipHorizontal2, Timer } from "lucide-react";
 import type { Driver, Interval, Location, Stint, Weather } from "@/api/types";
 import { ErrorMessage } from "@/components/ErrorMessage";
 import {
@@ -57,6 +57,7 @@ import {
   RingCars,
   RingCenter,
   RingGapMeasure,
+  RingLegend,
   RingPitLane,
   RingPitWindow,
   RingTrack,
@@ -161,6 +162,7 @@ export function TrackRing({
   const setSetting = useSettings((s) => s.setSetting);
   const svgRef = useRef<SVGSVGElement>(null);
   const [hoverDriver, setHoverDriver] = useState<number | null>(null);
+  const [legendOpen, setLegendOpen] = useState(false);
   const patternId = `ring-finish-checker-${sessionKey ?? "na"}`;
 
   const { data: circuitGeom, isPending: bakedPending } = useCircuitGeometry(circuitKey, year);
@@ -419,6 +421,13 @@ export function TrackRing({
       };
   const extraButtons: TrackControlButton[] = [
     {
+      key: "legend",
+      title: legendOpen ? "Hide ring legend" : "Show ring legend",
+      icon: <CircleHelp size={14} strokeWidth={2.2} aria-hidden />,
+      active: legendOpen,
+      onPress: () => setLegendOpen((open) => !open),
+    },
+    {
       key: "time",
       title: timeScale ? "Space by distance" : "Space by lap time",
       icon: <Timer size={14} strokeWidth={2.2} aria-hidden />,
@@ -573,6 +582,12 @@ export function TrackRing({
         onEnter3d={onEnter3d}
         extraButtons={extraButtons}
       />
+
+      {legendOpen && (
+        <div className="absolute top-12 right-2 z-30">
+          <RingLegend lightMode={lightMode} />
+        </div>
+      )}
 
       <div className="absolute bottom-2 left-2 z-20 pointer-events-none flex flex-col gap-1">
         {mapShowClock && (

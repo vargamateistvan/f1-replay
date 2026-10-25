@@ -193,9 +193,24 @@ describe("formatFocusGap", () => {
   it("treats the leader as zero and handles lapped cars", () => {
     expect(formatFocusGap(row(null), row(4), { rowIsLeader: true, focusIsLeader: false })).toBe("−4.0");
     expect(formatFocusGap(row(0), row(4), { rowIsLeader: false, focusIsLeader: false })).toBeNull();
-    expect(formatFocusGap(row("+1 LAP"), row(4))).toBe("+1L");
+    expect(formatFocusGap({ ...row("+1 LAP"), interval: "+0.8" }, row(4))).toBe("+1L · +0.8s");
     expect(formatFocusGap(row(4), row("+2 LAPS"))).toBe("−2L");
     expect(formatFocusGap(row("+1 LAP"), row("+1 LAP"))).toBeNull();
     expect(formatFocusGap(undefined, row(4))).toBeNull();
+  });
+});
+
+describe("formatRingGap", () => {
+  it("keeps the lap deficit and adds a numeric timing gap when available", () => {
+    expect(formatRingGap({ interval: "+1 LAP", gap_to_leader: "+47.2" }, "interval", false)).toBe(
+      "+1L · +47.2s",
+    );
+    expect(formatRingGap({ interval: "+0.8", gap_to_leader: "+1 LAP" }, "leader", false)).toBe(
+      "+1L · +0.8s",
+    );
+  });
+
+  it("does not invent a timing gap when only lap counts are available", () => {
+    expect(formatRingGap({ interval: "+1 LAP", gap_to_leader: "+1 LAP" }, "interval", false)).toBe("+1L");
   });
 });

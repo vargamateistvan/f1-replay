@@ -344,7 +344,23 @@ export function signedTimeDelta(tfA: number, tfB: number): number {
   return d > 0.5 ? d - 1 : d;
 }
 
-type GapToLeader = { gap_to_leader: number | string | null } | undefined;
+type GapToLeader = {
+  gap_to_leader: number | string | null;
+  interval?: number | string | null;
+} | undefined;
+
+function lapGapLabel(value: string): string {
+  const laps = parseInt(value.replace(/[^\d]/g, ""), 10);
+  return `+${Number.isFinite(laps) ? laps : 1}L`;
+}
+
+function appendTimingGap(label: string, primary: number | string | null, secondary: number | string | null): string {
+  const timing = parseIntervalSeconds(
+    typeof primary === "string" && /LAP/i.test(primary) ? secondary : primary,
+  );
+  if (timing === null || timing <= 0) return label;
+  return `${label} · +${timing.toFixed(1)}s`;
+}
 
 function leaderGapOf(row: GapToLeader, isLeader: boolean | undefined): { s: number } | { laps: number } | null {
   if (isLeader) return { s: 0 };
@@ -375,7 +391,9 @@ export function formatFocusGap(
   const focus = leaderGapOf(focusRow, opts.focusIsLeader);
   if (!rival || !focus) return null;
   if ("laps" in rival && "laps" in focus) return null;
-  if ("laps" in rival) return `+${rival.laps}L`;
+  if ("laps" in rival) {
+    return appendTimingGap(`+${rival.laps}L`, row?.gap_to_leader ?? null, row?.interval ?? null);
+  }
   if ("laps" in focus) return `−${focus.laps}L`;
   const diff = rival.s - focus.s;
   if (Math.abs(diff) < 0.05) return "0.0";
@@ -403,8 +421,8 @@ export function formatRingGap(
   const value = mode === "leader" ? leaderGap : row.interval;
   if (value === null) return null;
   if (typeof value === "string" && /LAP/i.test(value)) {
-    const laps = parseInt(value.replace(/[^\d]/g, ""), 10);
-    return `+${Number.isFinite(laps) ? laps : 1}L`;
+    const secondary = mode === "leader" ? row.interval : row.gap_to_leader;
+    return appendTimingGap(lapGapLabel(value), value, secondary);
   }
   const s = parseIntervalSeconds(value);
   return s === null || s <= 0 ? null : `+${s.toFixed(1)}`;

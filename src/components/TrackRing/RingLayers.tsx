@@ -230,6 +230,39 @@ export interface RingStatus {
   color: string;
 }
 
+/** Optional key for the ring's gap labels, pit window and hover interaction. */
+export function RingLegend({ lightMode }: { lightMode: boolean }) {
+  return (
+    <aside
+      role="note"
+      aria-label="Ring view legend"
+      className={`w-64 rounded border p-2.5 shadow-lg backdrop-blur ${
+        lightMode ? "border-slate-300 bg-white/95 text-slate-800" : "border-white/15 bg-[#171923]/95 text-white"
+      }`}
+    >
+      <div className="mb-1.5 text-[9px] font-black uppercase tracking-[0.16em]">Ring view key</div>
+      <ul className="space-y-1.5 text-[10px] leading-snug">
+        <li>
+          <strong>Gap labels:</strong> + behind, − ahead of the focused driver. <strong>+1L · +2.4s</strong> shows
+          lap deficit and timing gap when available.
+        </li>
+        <li>
+          <strong className="text-purple-400">Purple band:</strong> pit-loss window; the lighter section ahead marks
+          cars that would drop behind if they pitted.
+        </li>
+        <li>
+          <strong className="text-amber-500">Orange ticks:</strong> alternate pit loss for Green, VSC or Safety Car
+          conditions.
+        </li>
+        <li>
+          <strong>Compare:</strong> hover another car with a driver focused to see their on-track time gap. Requires
+          time spacing.
+        </li>
+      </ul>
+    </aside>
+  );
+}
+
 /** Centre of the dial: lap, track status, reference lap and what the gaps mean. */
 export function RingCenter({
   cx,
@@ -515,7 +548,7 @@ function RingCarMarker({
   const label = special ? special.shortLabel : (driver?.name_acronym ?? String(num));
   const gap = special ? null : (gapText?.get(num) ?? null);
   const textColor = labelTextColor(color);
-  const boxW = 34;
+  const boxW = gap ? Math.max(34, gap.length * 4.5 + 8) : 34;
   const boxH = gap ? 20 : 13;
   const boxX = car.labelX - boxW / 2;
   const boxY = car.labelY - boxH / 2;

@@ -199,6 +199,16 @@ describe("TrackRing", () => {
     expect(ring.setSetting).toHaveBeenCalledWith("mapRingGapMode", "leader");
   });
 
+  it("shows the compact legend on demand", () => {
+    renderRing();
+    expect(screen.queryByRole("note", { name: "Ring view legend" })).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Show ring legend" }));
+    expect(screen.getByRole("note", { name: "Ring view legend" })).toHaveTextContent("Gap labels");
+    expect(screen.getByRole("note", { name: "Ring view legend" })).toHaveTextContent("Orange ticks");
+    fireEvent.click(screen.getByRole("button", { name: "Hide ring legend" }));
+    expect(screen.queryByRole("note", { name: "Ring view legend" })).not.toBeInTheDocument();
+  });
+
   it("flips the direction of travel", () => {
     ring.reverse = true;
     const { container } = renderRing();
