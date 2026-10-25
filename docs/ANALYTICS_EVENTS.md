@@ -75,7 +75,13 @@ dimension** instead of relying on the built-in App version report:
 
 - `page_view`
   - Params: `page_path`, `page_location`, `page_title`
-  - Trigger: route change
+  - Trigger: pathname change. Query-string and hash changes (including replay
+    playhead/speed updates) do not count as new page views; `page_path` is the
+    pathname only.
+- `page_engagement`
+  - Params: `engagement_time_msec`, `exit_reason`, `page_path`
+  - Trigger: pathname change, tab hidden/page exit, or tracker unmount. Replay
+    playhead/speed URL updates do not split page engagement.
 
 ### Session Picker
 

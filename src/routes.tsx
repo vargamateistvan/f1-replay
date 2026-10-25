@@ -74,7 +74,10 @@ function RouteFallback() {
 
 function RouteAnalyticsTracker() {
   const location = useLocation();
-  const currentPath = `${location.pathname}${location.search}${location.hash}`;
+  // Query params such as `t` and `speed` are updated during replay playback.
+  // They change shareable replay state, not the page, so don't emit another
+  // page_view or split engagement time for each URL sync.
+  const currentPath = location.pathname;
   const activePathRef = useRef(currentPath);
   const activeSinceMsRef = useRef(Date.now());
 
