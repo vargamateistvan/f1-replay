@@ -125,6 +125,96 @@ describe("SessionInfoBar", () => {
     expect(onShowEliminations).toHaveBeenCalledTimes(1);
   });
 
+  it.each(["Q1", "Q2"])(
+    "shows Break in the lap-counter slot after %s and clears it on restart or seek",
+    (phase) => {
+      const sessionStartMs = Date.parse("2026-10-10T13:00:00Z");
+      const raceControl: RaceControl[] = [
+        {
+          category: "SessionStatus",
+          date: "2026-10-10T13:55:00Z",
+          message: "SESSION STARTED",
+          qualifying_phase: 2,
+          driver_number: null,
+          flag: null,
+          lap_number: null,
+          meeting_key: 1296,
+          scope: null,
+          sector: null,
+          session_key: 11384,
+        },
+        {
+          category: "SessionStatus",
+          date: "2026-10-10T13:48:00Z",
+          message: "SESSION FINISHED",
+          qualifying_phase: 1,
+          driver_number: null,
+          flag: null,
+          lap_number: null,
+          meeting_key: 1296,
+          scope: null,
+          sector: null,
+          session_key: 11384,
+        },
+      ];
+      const props = {
+        laps: [],
+        raceControl,
+        sessionStartMs,
+        qualiPhase: phase,
+        countdownMs: 0,
+        onShowEliminations: vi.fn(),
+      };
+      const { rerender } = render(
+        <SessionInfoBar {...props} sessionTimeMs={48 * 60_000} />,
+      );
+      expect(screen.getByText("Break")).toBeInTheDocument();
+      expect(screen.queryByText("Lap")).not.toBeInTheDocument();
+      fireEvent.click(screen.getByRole("button", { name: "Show eliminated drivers" }));
+      expect(props.onShowEliminations).toHaveBeenCalledOnce();
+
+      rerender(
+        <SessionInfoBar
+          {...props}
+          qualiPhase="Q2"
+          countdownMs={15 * 60_000}
+          sessionTimeMs={55 * 60_000}
+        />,
+      );
+      expect(screen.queryByText("Break")).not.toBeInTheDocument();
+      expect(screen.getByText("15:00")).toBeInTheDocument();
+
+      rerender(<SessionInfoBar {...props} sessionTimeMs={47 * 60_000} />);
+      expect(screen.queryByText("Break")).not.toBeInTheDocument();
+
+      rerender(
+        <SessionInfoBar {...props} qualiPhase="Q3" sessionTimeMs={50 * 60_000} />,
+      );
+      expect(screen.queryByText("Break")).not.toBeInTheDocument();
+
+      rerender(
+        <SessionInfoBar
+          {...props}
+          onShowEliminations={undefined}
+          sessionTimeMs={50 * 60_000}
+        />,
+      );
+      expect(screen.getByText("Break")).toBeInTheDocument();
+
+      rerender(
+        <SessionInfoBar
+          {...props}
+          raceControl={raceControl.map((entry) => ({
+            ...entry,
+            message: entry.message.replace("FINISHED", "ABORTED"),
+          }))}
+          sessionTimeMs={50 * 60_000}
+        />,
+      );
+      expect(screen.queryByText("Break")).not.toBeInTheDocument();
+    },
+  );
+
   it("shows countdown instead of lap counter for timed non-race sessions", () => {
     const sessionStartMs = Date.parse("2024-01-01T00:00:00.000Z");
 

@@ -129,6 +129,24 @@ export function SessionInfoBar({
   const [lapError, setLapError] = useState<string | null>(null);
   const currentT = sessionStartMs + sessionTimeMs;
 
+  const isQualifyingBreak = useMemo(() => {
+    if (qualiPhase !== "Q1" && qualiPhase !== "Q2") return false;
+    let latestStatus: string | null = null;
+    let latestMs = -Infinity;
+    for (const entry of raceControl) {
+      const status = /^SESSION (STARTED|RESUMED|ABORTED|SUSPENDED|FINISHED)\b/i.exec(
+        entry.message,
+      )?.[1];
+      if (!status) continue;
+      const ms = Date.parse(entry.date);
+      if (ms <= currentT && ms >= latestMs) {
+        latestMs = ms;
+        latestStatus = status.toUpperCase();
+      }
+    }
+    return latestStatus === "FINISHED";
+  }, [raceControl, currentT, qualiPhase]);
+
   const formationLapColor = lightMode ? "#4a5575" : "#c8c8ff";
 
   const currentLap = useMemo(() => {
@@ -245,7 +263,11 @@ export function SessionInfoBar({
               {qualiPhase}
             </span>
             <span className="font-mono text-[11px] tabular-nums text-white/90">
-              {countdownMs <= 0 ? "00:00" : fmtElapsed(countdownMs)}
+              {isQualifyingBreak
+                ? "Break"
+                : countdownMs <= 0
+                  ? "00:00"
+                  : fmtElapsed(countdownMs)}
             </span>
             <span className="text-[10px] font-black tracking-[0.12em] text-white">
               Eliminated
@@ -253,9 +275,15 @@ export function SessionInfoBar({
           </button>
         ) : showTimedCountdownTile ? (
           <div className="flex shrink-0 items-center justify-center gap-2 border-r border-panel px-2.5 py-2 sm:justify-start sm:px-4">
-            <span className="text-muted">Countdown</span>
+            <span className="text-muted">
+              {isQualifyingBreak ? "Break" : "Countdown"}
+            </span>
             <span className="text-white tabular-nums font-mono">
-              {countdownMs <= 0 ? "00:00" : fmtElapsed(countdownMs)}
+              {isQualifyingBreak
+                ? qualiPhase
+                : countdownMs <= 0
+                  ? "00:00"
+                  : fmtElapsed(countdownMs)}
             </span>
           </div>
         ) : (
