@@ -4,36 +4,49 @@ export default function Privacy() {
   const updatedOn = "2026-10-25";
 
   return (
-    <section className="relative flex flex-1 min-h-0 flex-col overflow-y-auto overscroll-contain bg-track px-4 py-6 [-webkit-overflow-scrolling:touch] sm:px-6 sm:py-8">
+    <section className="relative flex min-h-0 flex-1 flex-col overflow-y-auto overscroll-contain bg-track px-4 py-5 [-webkit-overflow-scrolling:touch] sm:px-6 sm:py-8">
       <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top,_rgba(232,0,45,0.16),_transparent_58%)]" />
 
-      <div className="relative z-10 mx-auto w-full max-w-4xl shrink-0 rounded-2xl border border-panel bg-surface/80 p-5 shadow-[0_20px_55px_rgba(0,0,0,0.35)] sm:p-8">
-        <p className="text-f1red text-[11px] font-mono uppercase tracking-[0.24em]">
-          Legal
-        </p>
-        <h1 className="mt-2 text-2xl font-black text-white sm:text-3xl">
-          Privacy Policy
-        </h1>
-        <p className="mt-2 text-sm text-muted">Last updated: {updatedOn}</p>
+      <article className="relative z-10 mx-auto my-auto w-full max-w-4xl shrink-0 border border-panel bg-surface">
+        <div className="flex h-7 items-center justify-between bg-f1red px-4 text-white">
+          <span className="text-[10px] font-black uppercase tracking-[0.2em]">
+            Legal
+          </span>
+          <span className="font-mono text-[10px] uppercase tracking-wider">
+            Privacy
+          </span>
+        </div>
 
-        <div className="mt-6 space-y-5 text-sm leading-6 text-white/90">
-          <p>
+        <div className="p-5 sm:p-8">
+          <header className="border-b border-panel pb-5">
+            <h1 className="text-2xl font-black uppercase leading-tight tracking-[0.06em] text-white sm:text-3xl">
+              Privacy Policy
+            </h1>
+            <p className="mt-2 font-mono text-[10px] uppercase tracking-[0.14em] text-muted">
+              Last updated <span className="text-white/80">{updatedOn}</span>
+            </p>
+          </header>
+
+          <p className="my-5 max-w-3xl text-sm leading-6 text-white/90">
             F1 Replay uses analytics and session replay to understand site
             usage, improve the app, and investigate usability issues. This
             policy summarizes the information these tools may process.
           </p>
 
-          <div>
-            <h2 className="text-base font-bold text-white">What We Collect</h2>
-            <p className="mt-2">
+          <div className="divide-y divide-panel border-y border-panel">
+            <section className="border-l-2 border-f1red/70 py-4 pl-4 sm:pl-5">
+              <h2 className="text-[11px] font-black uppercase tracking-[0.16em] text-white">
+                What We Collect
+              </h2>
+              <p className="mt-2 text-sm leading-6 text-white/80">
               We may process technical and usage data such as page views,
               browser and device metadata, referral information, and
               interactions with the app. Analytics events include the current
               route and app context, such as the selected season, event, and
               session where available. We do not intentionally include
               sensitive personal data in analytics events.
-            </p>
-            <p className="mt-2">
+              </p>
+              <p className="mt-2 text-sm leading-6 text-white/80">
               In production, Amplitude Session Replay is configured to sample
               10% of sessions. A replay can reconstruct visible page content
               and interactions, including clicks, scrolling, and navigation.
@@ -41,14 +54,14 @@ export default function Privacy() {
               inputs; other visible page text may be captured. You can disable
               future recordings in Settings. The Amplitude project privacy
               settings may apply additional masking or override SDK settings.
-            </p>
-          </div>
+              </p>
+            </section>
 
-          <div>
-            <h2 className="text-base font-bold text-white">
-              Cookies and Consent
-            </h2>
-            <p className="mt-2">
+            <section className="border-l-2 border-transparent py-4 pl-4 sm:pl-5">
+              <h2 className="text-[11px] font-black uppercase tracking-[0.16em] text-white">
+                Cookies and Consent
+              </h2>
+              <p className="mt-2 text-sm leading-6 text-white/80">
               We use Google Analytics and Amplitude for measurement. Analytics
               and replay are enabled on production sites; Session Replay is
               configured for a 10% sample. You can turn off future Session
@@ -57,46 +70,51 @@ export default function Privacy() {
               does not currently provide a separate consent banner;
               requirements vary by location, so this notice is not a
               determination that consent is unnecessary.
-            </p>
-          </div>
+              </p>
+            </section>
 
-          <div>
-            <h2 className="text-base font-bold text-white">Third Parties</h2>
-            <p className="mt-2">
+            <section className="border-l-2 border-transparent py-4 pl-4 sm:pl-5">
+              <h2 className="text-[11px] font-black uppercase tracking-[0.16em] text-white">
+                Third Parties
+              </h2>
+              <p className="mt-2 text-sm leading-6 text-white/80">
               Analytics and replay data may be processed by Google and
               Amplitude under their respective terms and privacy policies.
               Review their policies for information about their processing and
               retention practices.
-            </p>
-          </div>
+              </p>
+            </section>
 
-          <div>
-            <h2 className="text-base font-bold text-white">Contact</h2>
-            <p className="mt-2">
+            <section className="border-l-2 border-transparent py-4 pl-4 sm:pl-5">
+              <h2 className="text-[11px] font-black uppercase tracking-[0.16em] text-white">
+                Contact
+              </h2>
+              <p className="mt-2 text-sm leading-6 text-white/80">
               For privacy inquiries, contact: security@f1replay.app
-            </p>
+              </p>
+            </section>
           </div>
 
-          <p className="text-xs text-muted">
+          <p className="mt-4 text-[10px] leading-5 text-muted">
             This page is a general summary and not legal advice.
           </p>
-        </div>
 
-        <div className="mt-7 flex flex-wrap items-center gap-3">
-          <Link
-            to="/terms"
-            className="rounded-md border border-panel bg-track px-4 py-2 text-xs font-semibold uppercase tracking-[0.08em] text-white transition-colors hover:border-f1red hover:text-f1red"
-          >
-            Terms of Service
-          </Link>
-          <Link
-            to="/"
-            className="rounded-md bg-f1red px-4 py-2 text-xs font-bold uppercase tracking-[0.08em] text-white transition-colors hover:bg-red-600"
-          >
-            Back to Replay
-          </Link>
+          <footer className="mt-6 flex flex-wrap items-center gap-2 border-t border-panel pt-4">
+            <Link
+              to="/terms"
+              className="border border-panel px-4 py-2 text-[10px] font-bold uppercase tracking-[0.12em] text-white transition-colors hover:border-f1red hover:text-f1red"
+            >
+              Terms of Service
+            </Link>
+            <Link
+              to="/"
+              className="bg-f1red px-4 py-2 text-[10px] font-bold uppercase tracking-[0.12em] text-white transition-colors hover:bg-red-600"
+            >
+              Back to Replay
+            </Link>
+          </footer>
         </div>
-      </div>
+      </article>
     </section>
   );
 }
