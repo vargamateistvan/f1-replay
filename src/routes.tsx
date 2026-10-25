@@ -176,7 +176,7 @@ export function AppRouter() {
       <RouteAnalyticsTracker />
       <div className="flex flex-col md:h-[100dvh] md:min-h-[100dvh] md:overflow-hidden">
         <Nav />
-        <main className="flex flex-col flex-1 pb-[calc(3rem+env(safe-area-inset-bottom))] md:min-h-0 md:overflow-hidden md:pb-0">
+        <main className="flex flex-col flex-1 min-h-0 pb-[calc(3rem+env(safe-area-inset-bottom))] md:overflow-hidden md:pb-0">
           <RouteMotionShell>
             <Suspense fallback={<RouteFallback />}>
               <Routes>
