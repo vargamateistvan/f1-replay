@@ -4,13 +4,17 @@ import { buildTrackGeometry, projectToSvg } from "../TrackMap/trackGeometry";
 import {
   buildRingModel,
   displayArc,
+  formatFocusGap,
   formatLapTime,
   formatRingGap,
   placeCar,
+  signedTimeDelta,
+  timeArc,
   toDisplay,
   type RingModel,
   type RingScale,
 } from "./ringModel";
+import { ringArcPath } from "@/utils/lapProgress";
 import { buildLapTimeProfile } from "./lapTimeProfile";
 
 // 1 km square in the F1 frame (decimetres), sampled every 50 m, starting at
@@ -155,5 +159,43 @@ describe("formatLapTime", () => {
   it("formats m:ss.sss", () => {
     expect(formatLapTime(94_412)).toBe("1:34.412");
     expect(formatLapTime(65_005)).toBe("1:05.005");
+  });
+});
+
+describe("signedTimeDelta", () => {
+  it("measures the short way round, positive when B is ahead", () => {
+    expect(signedTimeDelta(0.2, 0.3)).toBeCloseTo(0.1);
+    expect(signedTimeDelta(0.3, 0.2)).toBeCloseTo(-0.1);
+    expect(signedTimeDelta(0.95, 0.05)).toBeCloseTo(0.1);
+    expect(signedTimeDelta(0.05, 0.95)).toBeCloseTo(-0.1);
+  });
+});
+
+describe("timeArc", () => {
+  it("wraps unwrapped time fractions and follows the flip", () => {
+    const fwd: RingScale = { profile: null, reverse: false };
+    expect(timeArc(fwd, 0, 0, 10, -0.25, 0)).toBe(timeArc(fwd, 0, 0, 10, 0.75, 1));
+    const rev: RingScale = { profile: null, reverse: true };
+    // Reversed: the same stretch is drawn clockwise from 12 to 3 o'clock.
+    expect(timeArc(rev, 0, 0, 10, -0.25, 0)).toBe(ringArcPath(0, 0, 10, 1, 0.25));
+  });
+});
+
+describe("formatFocusGap", () => {
+  const row = (gap: number | string | null) => ({ gap_to_leader: gap });
+
+  it("signs the gap relative to the focused car", () => {
+    expect(formatFocusGap(row(15.5), row(12.2))).toBe("+3.3");
+    expect(formatFocusGap(row(7), row(12.2))).toBe("−5.2");
+    expect(formatFocusGap(row(12.21), row(12.2))).toBe("0.0");
+  });
+
+  it("treats the leader as zero and handles lapped cars", () => {
+    expect(formatFocusGap(row(null), row(4), { rowIsLeader: true, focusIsLeader: false })).toBe("−4.0");
+    expect(formatFocusGap(row(0), row(4), { rowIsLeader: false, focusIsLeader: false })).toBeNull();
+    expect(formatFocusGap(row("+1 LAP"), row(4))).toBe("+1L");
+    expect(formatFocusGap(row(4), row("+2 LAPS"))).toBe("−2L");
+    expect(formatFocusGap(row("+1 LAP"), row("+1 LAP"))).toBeNull();
+    expect(formatFocusGap(undefined, row(4))).toBeNull();
   });
 });

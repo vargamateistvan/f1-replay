@@ -2,12 +2,13 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { fireEvent, render, screen } from "@testing-library/react";
 import type { Driver, Location } from "@/api/types";
 import { RING_RADIUS, RING_SVG_H, RING_SVG_W } from "@/constants";
+import { useCircuitGeometry } from "@/hooks/useCircuitGeometry";
 import { TrackRing } from "./TrackRing";
 
 const clock = vi.hoisted(() => ({ t: 500 }));
 const ring = vi.hoisted(() => ({
   timeScale: false,
-  gapMode: "interval" as "interval" | "leader",
+  gapMode: "interval" as "interval" | "leader" | "focus",
   reverse: false,
   setSetting: vi.fn(),
 }));
@@ -104,7 +105,27 @@ beforeEach(() => {
   ring.gapMode = "interval";
   ring.reverse = false;
   ring.setSetting.mockReset();
+  vi.mocked(useCircuitGeometry).mockReturnValue({ data: null, isPending: false } as never);
 });
+
+const LAP_MS = 60_000;
+
+// VER laps the 800-unit square in 60 s; the first half of the distance takes
+// 70 % of the time. LEC is parked a quarter of the way round (35 % in time).
+function timedLocations(): Location[] {
+  const locs: Location[] = [];
+  for (let ms = 0; ms <= 3 * LAP_MS; ms += 250) {
+    const tf = (ms % LAP_MS) / LAP_MS;
+    const f = tf < 0.7 ? (tf / 0.7) * 0.5 : 0.5 + ((tf - 0.7) / 0.3) * 0.5;
+    const d = f * 800;
+    const [x, y] =
+      d < 200 ? [d, 0] : d < 400 ? [200, d - 200] : d < 600 ? [600 - d, 200] : [0, 800 - d];
+    // OpenF1's off-track placeholder is (0, 0): nudge the start line.
+    locs.push(loc(1, x || 0.01, y, ms));
+  }
+  locs.push(loc(16, 200, 0, 0), loc(16, 200, 0, 3 * LAP_MS));
+  return locs;
+}
 
 function carAt(container: HTMLElement, fraction: number) {
   const a = fraction * 2 * Math.PI - Math.PI / 2;
@@ -186,20 +207,8 @@ describe("TrackRing", () => {
   });
 
   it("spaces the dial by lap time once a full lap is loaded", () => {
-    // VER laps the 800-unit square in 60 s; the first half of the distance
-    // takes 70 % of the time. LEC is parked a quarter of the way round.
-    const lapMs = 60_000;
-    const locs: Location[] = [];
-    for (let ms = 0; ms <= 3 * lapMs; ms += 250) {
-      const tf = (ms % lapMs) / lapMs;
-      const f = tf < 0.7 ? (tf / 0.7) * 0.5 : 0.5 + ((tf - 0.7) / 0.3) * 0.5;
-      const d = f * 800;
-      const [x, y] =
-        d < 200 ? [d, 0] : d < 400 ? [200, d - 200] : d < 600 ? [600 - d, 200] : [0, 800 - d];
-      // OpenF1's off-track placeholder is (0, 0): nudge the start line.
-      locs.push(loc(1, x || 0.01, y, ms));
-    }
-    locs.push(loc(16, 200, 0, 0), loc(16, 200, 0, 3 * lapMs));
+    const lapMs = LAP_MS;
+    const locs = timedLocations();
     ring.timeScale = true;
     clock.t = 2.5 * lapMs;
     const { container } = render(
@@ -208,5 +217,101 @@ describe("TrackRing", () => {
     // Distance 0.25 → 35 % of the lap time.
     expect(carAt(container, 0.35)).not.toBeNull();
     expect(screen.getByText("Reference lap 1:00.000")).toBeInTheDocument();
+  });
+
+  it("labels gaps relative to the focused car", () => {
+    ring.gapMode = "focus";
+    renderRing({
+      focusDriver: 16,
+      leaderNumber: 1,
+      intervalRows: new Map([
+        [1, { interval: null, gap_to_leader: null }],
+        [16, { interval: 1.234, gap_to_leader: 1.234 }],
+      ]),
+    });
+    expect(screen.getByText("−1.2")).toBeInTheDocument();
+    expect(screen.getByText("gap to LEC")).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Show gap to the car ahead" }));
+    expect(ring.setSetting).toHaveBeenCalledWith("mapRingGapMode", "interval");
+  });
+
+  it("offers the gap to the focused car after the gap to the leader", () => {
+    ring.gapMode = "leader";
+    renderRing({
+      focusDriver: 16,
+      intervalRows: new Map([
+        [1, { interval: null, gap_to_leader: null }],
+        [16, { interval: 1.234, gap_to_leader: 1.234 }],
+      ]),
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Show gap to LEC" }));
+    expect(ring.setSetting).toHaveBeenCalledWith("mapRingGapMode", "focus");
+  });
+
+  it("falls back to the gap to the car ahead without a focused car", () => {
+    ring.gapMode = "focus";
+    renderRing({
+      intervalRows: new Map([
+        [1, { interval: null, gap_to_leader: null }],
+        [16, { interval: 1.234, gap_to_leader: 1.234 }],
+      ]),
+    });
+    expect(screen.getByText("+1.2")).toBeInTheDocument();
+    expect(screen.getByText("gap to the car ahead")).toBeInTheDocument();
+  });
+
+  it("measures the on-track time between the focused and the hovered car", () => {
+    ring.timeScale = true;
+    clock.t = 2.5 * LAP_MS;
+    render(
+      <TrackRing
+        sessionKey={1}
+        drivers={drivers}
+        locationData={timedLocations()}
+        sessionStartMs={START}
+        focusDriver={1}
+      />,
+    );
+    expect(screen.queryByTestId("ring-gap-measure")).not.toBeInTheDocument();
+    fireEvent.pointerEnter(screen.getByText("LEC"));
+    // VER halfway through the lap in time, LEC at 35 %: 15 % of 60 s.
+    expect(screen.getByTestId("ring-gap-measure")).toHaveTextContent("9.0 s");
+    fireEvent.pointerLeave(screen.getByText("LEC"));
+    expect(screen.queryByTestId("ring-gap-measure")).not.toBeInTheDocument();
+  });
+
+  it("shows the focused car's pit window with SC/VSC markers and highlights the cars in it", () => {
+    vi.mocked(useCircuitGeometry).mockReturnValue({
+      data: { pitLoss: { normal: "20", sc: "10", vsc: "14" } },
+      isPending: false,
+    } as never);
+    ring.timeScale = true;
+    clock.t = 2.5 * LAP_MS;
+    const drivers3 = [...drivers, { driver_number: 44, name_acronym: "HAM", team_colour: "27F4D2" }] as Driver[];
+    const locs = [...timedLocations(), loc(44, 0.01, 200, 0), loc(44, 0.01, 200, 3 * LAP_MS)];
+    render(
+      <TrackRing
+        sessionKey={1}
+        drivers={drivers3}
+        locationData={locs}
+        sessionStartMs={START}
+        focusDriver={1}
+        leaderNumber={1}
+        pitRejoinGaps={
+          new Map([
+            [1, 0],
+            [16, 12],
+            [44, 45],
+          ])
+        }
+      />,
+    );
+    const window = screen.getByTestId("ring-pit-window");
+    expect(window).toHaveTextContent("PIT → P2");
+    expect(window).toHaveTextContent("SC");
+    expect(window).toHaveTextContent("VSC");
+    // LEC (12 s behind) would pass VER if it pitted now; HAM (45 s) wouldn't.
+    expect(screen.getByText("LEC").closest("g[opacity]")).toHaveAttribute("opacity", "1");
+    expect(screen.getByText("HAM").closest("g[opacity]")).toHaveAttribute("opacity", "0.3");
   });
 });

@@ -42,8 +42,8 @@ export interface AppSettings {
   mapViewMode: MapViewMode;
   /** Ring view: space the circle by lap time (reference lap) instead of distance. */
   mapRingTimeScale: boolean;
-  /** Ring view: label gaps to the car ahead or to the leader. */
-  mapRingGapMode: "interval" | "leader";
+  /** Ring view: label gaps to the car ahead, the leader, or the focused car ("focus"; falls back to "interval" without one). */
+  mapRingGapMode: "interval" | "leader" | "focus";
   /** Ring view: run the lap anticlockwise. */
   mapRingReverse: boolean;
   /** 3D map lighting follows the sun at the circuit at the playhead (else the app theme). */

@@ -4,10 +4,20 @@ import { COMPOUND_COLORS, FLAG_COLORS, SAFETY_CAR_NUMBERS } from "@/constants";
 import type { TimingSectorFlags } from "@/timeline/raceControl";
 import { trackEvent } from "@/lib/analytics";
 import { teamColor } from "@/utils/color";
-import { forwardSpan, ringPoint } from "@/utils/lapProgress";
+import { forwardSpan, ringPoint, wrapFraction } from "@/utils/lapProgress";
+import type { PitLossCondition } from "@/utils/pitRejoin";
 import { SPECIAL_TRACK_VEHICLES } from "../TrackMap/layers/specialVehicles";
 import { mapBackgroundColor } from "../TrackMap/trackMapFormat";
-import { displayArc, toDisplay, type RingCarLayout, type RingModel, type RingScale } from "./ringModel";
+import {
+  displayArc,
+  fromTimeFraction,
+  signedTimeDelta,
+  timeArc,
+  toDisplay,
+  type RingCarLayout,
+  type RingModel,
+  type RingScale,
+} from "./ringModel";
 
 const RING_WIDTH = 14;
 const PIT_WIDTH = 6;
@@ -280,59 +290,158 @@ export function RingCenter({
   );
 }
 
+const PIT_WINDOW_COLOR = "#9b4dca";
+const PIT_MARKER_COLOR = "#ff8a1f";
+const PIT_CONDITION_LABEL: Record<PitLossCondition, string> = { normal: "GREEN", vsc: "VSC", sc: "SC" };
+
 /**
- * Pit window for the focused car: a hollow marker where it would rejoin if it
- * pitted now (its position minus the pit loss), an arc showing the loss, and
- * the projected position.
+ * Pit window for the focused car, on the ring itself: the band behind it is
+ * how far it would fall if it pitted now (cars in it would pass it), the band
+ * ahead how far a car ahead would fall (cars in it would drop behind it if
+ * they pitted). The rejoin point carries the projected position; hatched
+ * ticks show the pit loss under the other track conditions (SC, VSC, green).
  */
 export function RingPitWindow({
   cx,
   cy,
   r,
-  carD,
-  ghostD,
-  reverse,
-  color,
+  scale,
+  carTf,
+  behindTf,
+  aheadTf,
+  markers,
   position,
   lossS,
 }: RingFrame & {
-  /** Dial positions of the car and the rejoin point. */
-  carD: number;
-  ghostD: number;
-  reverse: boolean;
-  color: string;
+  scale: RingScale;
+  /** Lap time fractions (unwrapped is fine) of the car, its rejoin point and the window's far end ahead. */
+  carTf: number;
+  behindTf: number;
+  aheadTf: number | null;
+  markers: readonly { tf: number; condition: PitLossCondition }[];
   position: number;
   lossS: number;
 }) {
-  const arcR = r + 11;
-  // The loss runs backwards from the car along the direction of travel.
-  const from = reverse ? carD : ghostD;
-  const to = reverse ? ghostD : carD;
-  const span = forwardSpan(from, to);
-  const a = ringPoint(cx, cy, arcR, from);
-  const b = ringPoint(cx, cy, arcR, from + span);
+  const bandW = RING_WIDTH + 8;
+  const ghostD = fromTimeFraction(scale, wrapFraction(behindTf));
   const ghost = ringPoint(cx, cy, r, ghostD);
-  const tag = ringPoint(cx, cy, r - 22, ghostD);
+  const tag = ringPoint(cx, cy, r - 30, ghostD);
   return (
-    <g pointerEvents="none">
+    <g pointerEvents="none" data-testid="ring-pit-window">
       <path
-        d={`M${a.x.toFixed(2)} ${a.y.toFixed(2)}A${arcR} ${arcR} 0 ${span > 0.5 ? 1 : 0} 1 ${b.x.toFixed(2)} ${b.y.toFixed(2)}`}
+        d={timeArc(scale, cx, cy, r, behindTf, carTf)}
         fill="none"
-        stroke={color}
-        strokeWidth={2}
-        strokeOpacity={0.5}
-        strokeDasharray="4 3"
+        stroke={PIT_WINDOW_COLOR}
+        strokeWidth={bandW}
+        strokeOpacity={0.55}
       />
-      <circle cx={ghost.x} cy={ghost.y} r={7} fill="none" stroke={color} strokeWidth={1.6} strokeDasharray="2.5 2" />
+      {aheadTf !== null && (
+        <path
+          d={timeArc(scale, cx, cy, r, carTf, aheadTf)}
+          fill="none"
+          stroke={PIT_WINDOW_COLOR}
+          strokeWidth={bandW}
+          strokeOpacity={0.25}
+        />
+      )}
+      {markers.map(({ tf, condition }) => {
+        const d = fromTimeFraction(scale, wrapFraction(tf));
+        const a = ringPoint(cx, cy, r - bandW / 2, d);
+        const b = ringPoint(cx, cy, r + bandW / 2, d);
+        const t = ringPoint(cx, cy, r + bandW / 2 + 6, d);
+        return (
+          <g key={condition}>
+            <line
+              x1={a.x}
+              y1={a.y}
+              x2={b.x}
+              y2={b.y}
+              stroke={PIT_MARKER_COLOR}
+              strokeWidth={4}
+              strokeDasharray="2 1.5"
+            />
+            <text
+              x={t.x}
+              y={t.y}
+              textAnchor="middle"
+              dominantBaseline="middle"
+              transform={`rotate(${tangentRotation(d).toFixed(1)} ${t.x.toFixed(1)} ${t.y.toFixed(1)})`}
+              fontSize={5.5}
+              fontWeight="900"
+              fill={PIT_MARKER_COLOR}
+              fontFamily={FONT}
+            >
+              {PIT_CONDITION_LABEL[condition]}
+            </text>
+          </g>
+        );
+      })}
+      <circle cx={ghost.x} cy={ghost.y} r={7} fill="none" stroke="#ffffff" strokeWidth={1.6} strokeDasharray="2.5 2" />
       <g fontFamily={FONT} textAnchor="middle">
-        <rect x={tag.x - 19} y={tag.y - 9} width={38} height={18} rx={2} fill="rgba(0,0,0,0.6)" stroke={color} strokeWidth={0.8} />
+        <rect
+          x={tag.x - 21}
+          y={tag.y - 9}
+          width={42}
+          height={18}
+          rx={2}
+          fill={PIT_WINDOW_COLOR}
+          fillOpacity={0.9}
+        />
         <text x={tag.x} y={tag.y - 2.5} fontSize={6.5} fontWeight="900" fill="#ffffff" dominantBaseline="middle">
           PIT → P{position}
         </text>
-        <text x={tag.x} y={tag.y + 4.5} fontSize={5.5} fill="#d4dbee" dominantBaseline="middle">
+        <text x={tag.x} y={tag.y + 4.5} fontSize={5.5} fill="#f3e8ff" dominantBaseline="middle">
           −{lossS.toFixed(1)}s
         </text>
       </g>
+    </g>
+  );
+}
+
+/** On-track time between two cars: an arc just inside the ring and a "4.0 s" bubble. */
+export function RingGapMeasure({
+  cx,
+  cy,
+  r,
+  scale,
+  fromTf,
+  toTf,
+  gapMs,
+  lightMode,
+}: RingFrame & { scale: RingScale; fromTf: number; toTf: number; gapMs: number; lightMode: boolean }) {
+  const delta = signedTimeDelta(fromTf, toTf);
+  const [a, b] = delta >= 0 ? [fromTf, fromTf + delta] : [fromTf + delta, fromTf];
+  const arcR = r - RING_WIDTH / 2 - 5;
+  const mid = fromTimeFraction(scale, wrapFraction(fromTf + delta / 2));
+  const bubble = ringPoint(cx, cy, r - 34, mid);
+  const fg = lightMode ? "#111318" : "#ffffff";
+  const text = `${(gapMs / 1000).toFixed(1)} s`;
+  const w = text.length * 5 + 10;
+  return (
+    <g pointerEvents="none" data-testid="ring-gap-measure">
+      <path d={timeArc(scale, cx, cy, arcR, a, b)} fill="none" stroke={fg} strokeWidth={2.2} strokeLinecap="round" />
+      <rect
+        x={bubble.x - w / 2}
+        y={bubble.y - 8}
+        width={w}
+        height={16}
+        rx={3}
+        fill={lightMode ? "#ffffff" : "#111318"}
+        stroke={fg}
+        strokeWidth={0.9}
+      />
+      <text
+        x={bubble.x}
+        y={bubble.y + 0.5}
+        textAnchor="middle"
+        dominantBaseline="middle"
+        fontSize={8.5}
+        fontWeight="800"
+        fill={fg}
+        fontFamily={FONT}
+      >
+        {text}
+      </text>
     </g>
   );
 }
@@ -341,6 +450,8 @@ interface RingCarsProps {
   cars: readonly RingCarLayout[];
   driverByNumber: ReadonlyMap<number, Driver>;
   focusDriver: number | null;
+  /** With a focused car: cars that stay at full opacity (pit window rivals, the measured car). */
+  highlightDrivers?: ReadonlySet<number>;
   gapText?: ReadonlyMap<number, string>;
   pulseDrivers?: readonly number[];
   battlingDrivers?: ReadonlySet<number>;
@@ -350,6 +461,8 @@ interface RingCarsProps {
   showAcronym: boolean;
   showNumberInside: boolean;
   onSelectDriver?: (driverNumber: number) => void;
+  /** Pointer over a car (null when it leaves): drives the gap measure. */
+  onHoverDriver?: (driverNumber: number | null) => void;
 }
 
 /** Car dots with leader-lined label boxes; the focused car paints last. */
@@ -377,6 +490,7 @@ function RingCarMarker({
   car,
   driverByNumber,
   focusDriver,
+  highlightDrivers,
   gapText,
   pulsing,
   battlingDrivers,
@@ -386,6 +500,7 @@ function RingCarMarker({
   showAcronym,
   showNumberInside,
   onSelectDriver,
+  onHoverDriver,
 }: Omit<RingCarsProps, "cars" | "pulseDrivers"> & { car: RingCarLayout; pulsing: boolean }) {
   const { num } = car;
   const driver = driverByNumber.get(num);
@@ -393,7 +508,8 @@ function RingCarMarker({
   const sirenOn = SAFETY_CAR_NUMBERS.has(num) && safetyCarSirenOn;
   const color = special ? special.fill : teamColor(driver?.team_colour, "#ffffff");
   const focused = focusDriver === num;
-  const dimmed = focusDriver !== null && !focused;
+  const highlighted = highlightDrivers?.has(num) ?? false;
+  const dimmed = focusDriver !== null && !focused && !highlighted;
   const r = showNumberInside || special ? (focused ? 8 : 6.6) : focused ? 6.5 : 5;
   const compound = activeCompounds?.get(num);
   const label = special ? special.shortLabel : (driver?.name_acronym ?? String(num));
@@ -406,11 +522,13 @@ function RingCarMarker({
 
   return (
     <g
-      opacity={dimmed ? 0.4 : 1}
+      opacity={dimmed ? (highlightDrivers?.size ? 0.3 : 0.4) : 1}
       onClick={() => {
         trackEvent("trackmap_driver_selected", { driver_number: num, view: "ring" });
         onSelectDriver?.(num);
       }}
+      onPointerEnter={onHoverDriver ? () => onHoverDriver(num) : undefined}
+      onPointerLeave={onHoverDriver ? () => onHoverDriver(null) : undefined}
       style={onSelectDriver ? { cursor: "pointer" } : undefined}
     >
       {showAcronym && (

@@ -1,11 +1,13 @@
 import { describe, expect, it } from "vitest";
 import type { Interval } from "@/api/types";
 import {
+  alternativePitLosses,
   latestGapsToLeader,
   parsePitLoss,
   pitLossFor,
   projectPitRejoin,
   pitRejoinView,
+  pitWindowRivals,
 } from "./pitRejoin";
 import { buildIndex } from "@/timeline/interpolate";
 
@@ -185,5 +187,43 @@ describe("pitRejoinView", () => {
     expect(pitRejoinView({ ...base, focusDriver: null })).toBeNull();
     expect(pitRejoinView({ ...base, gaps: null })).toBeNull();
     expect(pitRejoinView({ ...base, pitLoss: null })).toBeNull();
+  });
+});
+
+describe("pitWindowRivals", () => {
+  const gaps = new Map([
+    [1, 0],
+    [4, 6],
+    [16, 12],
+    [44, 20],
+    [81, 33],
+    [63, 40],
+  ]);
+
+  it("splits the cars within one pit loss into behind (would pass) and ahead (would drop behind)", () => {
+    expect(pitWindowRivals(gaps, 16, 21)).toEqual({ passedBy: [44, 81], dropBehind: [1, 4] });
+  });
+
+  it("gives ties to the car on track and skips excluded cars", () => {
+    expect(pitWindowRivals(gaps, 16, 8, new Set([4]))).toEqual({ passedBy: [44], dropBehind: [] });
+  });
+
+  it("is null without a gap for the driver", () => {
+    expect(pitWindowRivals(gaps, 99, 20)).toBeNull();
+  });
+});
+
+describe("alternativePitLosses", () => {
+  it("lists the losses for the other track conditions", () => {
+    const loss = { normal: 21, sc: 11, vsc: 14 };
+    expect(alternativePitLosses(loss, "normal")).toEqual([
+      { condition: "vsc", seconds: 14 },
+      { condition: "sc", seconds: 11 },
+    ]);
+    expect(alternativePitLosses(loss, "sc")).toEqual([
+      { condition: "normal", seconds: 21 },
+      { condition: "vsc", seconds: 14 },
+    ]);
+    expect(alternativePitLosses({ normal: 21, sc: null, vsc: null }, "normal")).toEqual([]);
   });
 });

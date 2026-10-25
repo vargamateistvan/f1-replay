@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { ArrowLeftRight, FlipHorizontal2, Timer } from "lucide-react";
 import type { Driver, Interval, Location, Stint, Weather } from "@/api/types";
 import { ErrorMessage } from "@/components/ErrorMessage";
@@ -22,9 +22,7 @@ import { isOffTrackPlaceholder, useTrackOutline } from "@/hooks/useTrackMap";
 import { trackEvent } from "@/lib/analytics";
 import { useSettings } from "@/stores/settings";
 import { buildDriverIndexes, interpolateXY } from "@/timeline/interpolate";
-import { wrapFraction } from "@/utils/lapProgress";
-import { parsePitLoss, pitRejoinView } from "@/utils/pitRejoin";
-import { teamColor } from "@/utils/color";
+import { alternativePitLosses, parsePitLoss, pitRejoinView, pitWindowRivals } from "@/utils/pitRejoin";
 import {
   isActiveTrackFlag,
   projectToTimingSectors,
@@ -44,17 +42,26 @@ import type { LapTimeProfile } from "./lapTimeProfile";
 import {
   buildReferenceProfile,
   buildRingModel,
+  formatFocusGap,
   formatLapTime,
   formatRingGap,
-  fromTimeFraction,
   lapTimeFraction,
   layoutRingCars,
   placeCar,
+  signedTimeDelta,
   toDisplay,
   type RingCar,
   type RingScale,
 } from "./ringModel";
-import { RingCars, RingCenter, RingPitLane, RingPitWindow, RingTrack, type RingStatus } from "./RingLayers";
+import {
+  RingCars,
+  RingCenter,
+  RingGapMeasure,
+  RingPitLane,
+  RingPitWindow,
+  RingTrack,
+  type RingStatus,
+} from "./RingLayers";
 
 interface Props {
   readonly sessionKey: number | null;
@@ -153,6 +160,7 @@ export function TrackRing({
   const reverse = useSettings((s) => s.mapRingReverse);
   const setSetting = useSettings((s) => s.setSetting);
   const svgRef = useRef<SVGSVGElement>(null);
+  const [hoverDriver, setHoverDriver] = useState<number | null>(null);
   const patternId = `ring-finish-checker-${sessionKey ?? "na"}`;
 
   const { data: circuitGeom, isPending: bakedPending } = useCircuitGeometry(circuitKey, year);
@@ -241,15 +249,29 @@ export function TrackRing({
     }
     return out;
   }, [pitRejoinGaps, leaderNumber]);
+  // "Gap to the focused car" needs one; otherwise fall back to intervals.
+  const focusGapRow = focusDriver === null ? undefined : intervalRows?.get(focusDriver);
+  const effectiveGapMode = gapMode === "focus" && !focusGapRow ? "interval" : gapMode;
   const gapText = useMemo(() => {
     if (!intervalRows) return undefined;
     const out = new Map<number, string>();
+    const isLeader = (num: number) => (leaderNumber === null ? undefined : num === leaderNumber);
     for (const [num, row] of intervalRows) {
-      const text = formatRingGap(row, gapMode, leaderNumber === null ? undefined : num === leaderNumber);
+      const text =
+        effectiveGapMode === "focus"
+          ? num === focusDriver
+            ? null
+            : formatFocusGap(row, focusGapRow, {
+                rowIsLeader: isLeader(num),
+                focusIsLeader: focusDriver === null ? undefined : isLeader(focusDriver),
+              })
+          : formatRingGap(row, effectiveGapMode, isLeader(num));
       if (text) out.set(num, text);
     }
     return out;
-  }, [intervalRows, gapMode, leaderNumber]);
+  }, [intervalRows, effectiveGapMode, leaderNumber, focusDriver, focusGapRow]);
+  const focusAcronym =
+    focusDriver === null ? null : (driverByNumber.get(focusDriver)?.name_acronym ?? `#${focusDriver}`);
 
   const chunkIdx = chunkIndexFor(t);
   const { data: hudRawData } = useCarDataWindow(
@@ -298,7 +320,8 @@ export function TrackRing({
 
   // Per tick: interpolate each car, then place it on the lap.
   const ringCars: RingCar[] = [];
-  let focusTimeFraction: number | null = null;
+  // Lap time fraction (before the flip) of every car on track.
+  const timeFractions = new Map<number, number>();
   const hints = hintsRef.current;
   for (const [num, idx] of locationIndexes) {
     if (retiredDrivers?.has(num)) continue;
@@ -309,8 +332,9 @@ export function TrackRing({
     if (!placed) continue;
     hints.set(num, placed.segment);
     ringCars.push({ num, fraction: toDisplay(scale, placed.fraction), inPit: placed.inPit });
-    if (num === focusDriver) focusTimeFraction = placed.inPit ? null : lapTimeFraction(scale, placed.fraction);
+    if (!placed.inPit) timeFractions.set(num, lapTimeFraction(scale, placed.fraction));
   }
+  const focusTimeFraction = focusDriver === null ? null : (timeFractions.get(focusDriver) ?? null);
   const carLayout = layoutRingCars(ringCars, {
     cx: CX,
     cy: CY,
@@ -334,24 +358,52 @@ export function TrackRing({
           t,
         })
       : null;
-  let pitWindow: { carD: number; ghostD: number; position: number; lossS: number } | null = null;
-  if (rejoin && focusTimeFraction !== null) {
-    let ghostD: number | null = null;
-    if (profile) {
-      ghostD = fromTimeFraction(scale, wrapFraction(focusTimeFraction - (rejoin.lossS * 1000) / profile.lapMs));
+  let pitWindow: Omit<Parameters<typeof RingPitWindow>[0], "cx" | "cy" | "r" | "scale"> | null = null;
+  const highlightDrivers = new Set<number>();
+  if (rejoin && focusTimeFraction !== null && focusDriver !== null) {
+    const lossTf = (s: number) => (profile ? (s * 1000) / profile.lapMs : null);
+    let behindTf: number | null = null;
+    const loss = lossTf(rejoin.lossS);
+    if (loss !== null) {
+      behindTf = focusTimeFraction - loss;
     } else if (rejoin.ghost) {
       const g = projectToSvg(trackGeometry, rejoin.ghost.x, rejoin.ghost.y);
       const placed = placeCar(model, g.sx, g.sy, -1);
-      if (placed) ghostD = toDisplay(scale, placed.fraction);
+      // Distance dial: time fraction = distance fraction.
+      if (placed) behindTf = placed.fraction;
+      // Keep the band running backwards from the car.
+      if (behindTf !== null && behindTf > focusTimeFraction) behindTf -= 1;
     }
-    if (ghostD !== null) {
+    if (behindTf !== null) {
       pitWindow = {
-        carD: fromTimeFraction(scale, focusTimeFraction),
-        ghostD,
+        carTf: focusTimeFraction,
+        behindTf,
+        aheadTf: loss === null ? null : focusTimeFraction + loss,
+        markers:
+          pitLoss && loss !== null
+            ? alternativePitLosses(pitLoss, rejoin.condition).map(({ condition, seconds }) => ({
+                condition,
+                tf: focusTimeFraction - lossTf(seconds)!,
+              }))
+            : [],
         position: rejoin.projection.position,
         lossS: rejoin.lossS,
       };
+      const rivals = rejoinGaps ? pitWindowRivals(rejoinGaps, focusDriver, rejoin.lossS, retiredDrivers) : null;
+      for (const num of [...(rivals?.passedBy ?? []), ...(rivals?.dropBehind ?? [])]) highlightDrivers.add(num);
     }
+  }
+
+  // Gap measure: the on-track time between the focused car and the hovered one.
+  let measure: { fromTf: number; toTf: number; gapMs: number } | null = null;
+  const hoverTf = hoverDriver === null ? undefined : timeFractions.get(hoverDriver);
+  if (profile && focusTimeFraction !== null && hoverTf !== undefined && hoverDriver !== focusDriver) {
+    measure = {
+      fromTf: focusTimeFraction,
+      toTf: hoverTf,
+      gapMs: Math.abs(signedTimeDelta(focusTimeFraction, hoverTf)) * profile.lapMs,
+    };
+    highlightDrivers.add(hoverDriver!);
   }
 
   const overlayBackground = overlayBackgroundColor(lightMode);
@@ -382,11 +434,23 @@ export function TrackRing({
     },
   ];
   if (gapText) {
+    // Cycle: car ahead → leader → focused car (when there is one) → car ahead.
+    const nextGapMode =
+      effectiveGapMode === "interval"
+        ? "leader"
+        : effectiveGapMode === "leader" && focusGapRow
+          ? "focus"
+          : "interval";
     extraButtons.unshift({
       key: "gap",
-      title: gapMode === "interval" ? "Show gap to the leader" : "Show gap to the car ahead",
+      title:
+        nextGapMode === "leader"
+          ? "Show gap to the leader"
+          : nextGapMode === "focus"
+            ? `Show gap to ${focusAcronym}`
+            : "Show gap to the car ahead",
       icon: <ArrowLeftRight size={14} strokeWidth={2.2} aria-hidden />,
-      onPress: () => setSetting("mapRingGapMode", gapMode === "interval" ? "leader" : "interval"),
+      onPress: () => setSetting("mapRingGapMode", nextGapMode),
     });
   }
   const hasTrackConditionDisplay =
@@ -428,7 +492,15 @@ export function TrackRing({
           lapLabel={lapLabel && lapLabel !== "—" ? lapLabel : null}
           status={status}
           reference={reference}
-          gapCaption={gapText ? (gapMode === "interval" ? "gap to the car ahead" : "gap to the leader") : null}
+          gapCaption={
+            gapText
+              ? effectiveGapMode === "focus"
+                ? `gap to ${focusAcronym}`
+                : effectiveGapMode === "interval"
+                  ? "gap to the car ahead"
+                  : "gap to the leader"
+              : null
+          }
           lightMode={lightMode}
         />
         <RingPitLane
@@ -451,21 +523,16 @@ export function TrackRing({
           patternId={patternId}
           lightMode={lightMode}
         />
-        {pitWindow && focusDriver !== null && (
-          <RingPitWindow
-            cx={CX}
-            cy={CY}
-            r={RING_RADIUS}
-            {...pitWindow}
-            reverse={reverse}
-            color={teamColor(driverByNumber.get(focusDriver)?.team_colour, "#ffffff")}
-          />
+        {pitWindow && <RingPitWindow cx={CX} cy={CY} r={RING_RADIUS} scale={scale} {...pitWindow} />}
+        {measure && (
+          <RingGapMeasure cx={CX} cy={CY} r={RING_RADIUS} scale={scale} lightMode={lightMode} {...measure} />
         )}
         <RingCars
           cars={carLayout}
           gapText={gapText}
           driverByNumber={driverByNumber}
           focusDriver={focusDriver}
+          highlightDrivers={highlightDrivers}
           pulseDrivers={pulseDrivers}
           battlingDrivers={battlingDrivers}
           activeCompounds={activeCompounds}
@@ -474,6 +541,7 @@ export function TrackRing({
           showAcronym={showAcronym}
           showNumberInside={showNumberInside}
           onSelectDriver={onSelectDriver}
+          onHoverDriver={setHoverDriver}
         />
         {!hasCars && (
           <text

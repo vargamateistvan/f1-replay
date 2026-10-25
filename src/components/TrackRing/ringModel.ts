@@ -321,6 +321,67 @@ export function displayArc(
   return scale.reverse ? ringArcPath(cx, cy, r, b, a) : ringArcPath(cx, cy, r, a, b);
 }
 
+/** Arc along the direction of travel between two lap time fractions (any real number; wrapped). */
+export function timeArc(
+  scale: RingScale,
+  cx: number,
+  cy: number,
+  r: number,
+  fromTf: number,
+  toTf: number,
+): string {
+  const a = fromTimeFraction(scale, wrapFraction(fromTf));
+  const b = fromTimeFraction(scale, wrapFraction(toTf));
+  return scale.reverse ? ringArcPath(cx, cy, r, b, a) : ringArcPath(cx, cy, r, a, b);
+}
+
+/**
+ * Signed on-track gap from car A to car B (lap time fractions), the short way
+ * round: positive when B is ahead of A.
+ */
+export function signedTimeDelta(tfA: number, tfB: number): number {
+  const d = wrapFraction(tfB - tfA);
+  return d > 0.5 ? d - 1 : d;
+}
+
+type GapToLeader = { gap_to_leader: number | string | null } | undefined;
+
+function leaderGapOf(row: GapToLeader, isLeader: boolean | undefined): { s: number } | { laps: number } | null {
+  if (isLeader) return { s: 0 };
+  if (!row) return null;
+  const v = row.gap_to_leader;
+  if (v === null) return isLeader === undefined ? { s: 0 } : null;
+  if (typeof v === "string" && /LAP/i.test(v)) {
+    const laps = parseInt(v.replace(/[^\d]/g, ""), 10);
+    return { laps: Number.isFinite(laps) && laps > 0 ? laps : 1 };
+  }
+  const s = parseIntervalSeconds(v);
+  // A known non-leader reading 0 s is a stale row from a pit cycle.
+  if (s === 0 && isLeader === false) return null;
+  return s === null ? null : { s };
+}
+
+/**
+ * Gap text relative to the focused car: "+3.3" behind it, "−5.2" ahead of it,
+ * "+1L" for a car a lap down on it. Null for the focused car itself or without
+ * usable timing.
+ */
+export function formatFocusGap(
+  row: GapToLeader,
+  focusRow: GapToLeader,
+  opts: { rowIsLeader?: boolean; focusIsLeader?: boolean } = {},
+): string | null {
+  const rival = leaderGapOf(row, opts.rowIsLeader);
+  const focus = leaderGapOf(focusRow, opts.focusIsLeader);
+  if (!rival || !focus) return null;
+  if ("laps" in rival && "laps" in focus) return null;
+  if ("laps" in rival) return `+${rival.laps}L`;
+  if ("laps" in focus) return `−${focus.laps}L`;
+  const diff = rival.s - focus.s;
+  if (Math.abs(diff) < 0.05) return "0.0";
+  return `${diff > 0 ? "+" : "−"}${Math.abs(diff).toFixed(1)}`;
+}
+
 export type RingGapMode = "interval" | "leader";
 
 /**

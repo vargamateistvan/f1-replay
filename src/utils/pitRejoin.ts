@@ -124,6 +124,55 @@ export function projectPitRejoin(
   return { position: carsAhead + 1, ahead, behind };
 }
 
+export interface PitWindowRivals {
+  /** Cars behind now that would be ahead if the driver pitted (losing `lossS`). */
+  passedBy: number[];
+  /** Cars ahead now that would drop behind the driver if they pitted instead. */
+  dropBehind: number[];
+}
+
+/**
+ * Who sits inside the driver's pit window, by gap to the leader. Ties go to
+ * the car already on track, as in {@link projectPitRejoin}. Null without a
+ * gap for the driver.
+ */
+export function pitWindowRivals(
+  gaps: ReadonlyMap<number, number>,
+  driverNumber: number,
+  lossS: number,
+  excluded?: ReadonlySet<number>,
+): PitWindowRivals | null {
+  const ownGap = gaps.get(driverNumber);
+  if (ownGap === undefined) return null;
+  const passedBy: Array<[number, number]> = [];
+  const dropBehind: Array<[number, number]> = [];
+  for (const [num, gap] of gaps) {
+    if (num === driverNumber || excluded?.has(num)) continue;
+    if (gap > ownGap && gap <= ownGap + lossS) passedBy.push([num, gap]);
+    else if (gap < ownGap && gap >= ownGap - lossS) dropBehind.push([num, gap]);
+  }
+  const byGap = (a: [number, number], b: [number, number]) => a[1] - b[1];
+  return {
+    passedBy: passedBy.sort(byGap).map(([num]) => num),
+    dropBehind: dropBehind.sort(byGap).map(([num]) => num),
+  };
+}
+
+/** Pit losses for the conditions other than `current`, for markers on a pit window. */
+export function alternativePitLosses(
+  loss: PitLossSeconds,
+  current: PitLossCondition,
+): { condition: PitLossCondition; seconds: number }[] {
+  const all: { condition: PitLossCondition; seconds: number | null }[] = [
+    { condition: "normal", seconds: loss.normal },
+    { condition: "vsc", seconds: loss.vsc },
+    { condition: "sc", seconds: loss.sc },
+  ];
+  return all.flatMap(({ condition, seconds }) =>
+    condition !== current && seconds !== null ? [{ condition, seconds }] : [],
+  );
+}
+
 export interface PitRejoinView {
   projection: PitRejoinProjection;
   lossS: number;
