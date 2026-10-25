@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import type { ReactNode } from "react";
 import { Nav } from "@/components/Nav";
@@ -446,5 +446,47 @@ describe("Nav", () => {
     // Give the async bootstrap a chance to run if it were going to.
     await new Promise((r) => setTimeout(r, 20));
     expect(state.setSearchParams).not.toHaveBeenCalled();
+  });
+
+  describe("next race weekend banner", () => {
+    beforeEach(() => {
+      state.showNextRaceWeekendBanner = true;
+      state.meetings.data = [
+        ...state.meetings.data,
+        {
+          year: 2025,
+          meeting_key: 23,
+          meeting_name: "Chinese Grand Prix",
+          meeting_official_name: "FORMULA 1 CHINESE GRAND PRIX 2025",
+          date_start: "2025-03-21T00:00:00.000Z",
+          date_end: "2025-03-23T09:00:00.000Z",
+          circuit_short_name: "Shanghai",
+          country_name: "China",
+          is_cancelled: false,
+        },
+      ];
+    });
+
+    afterEach(() => {
+      vi.useRealTimers();
+    });
+
+    it("shows the countdown between race weekends", () => {
+      vi.useFakeTimers({ toFake: ["Date"] });
+      vi.setSystemTime(new Date("2025-03-18T12:00:00.000Z"));
+      render(<Nav />);
+      expect(
+        screen.getByRole("button", { name: "Hide next race banner" }),
+      ).toBeInTheDocument();
+    });
+
+    it("hides the banner while a race weekend is in progress", () => {
+      vi.useFakeTimers({ toFake: ["Date"] });
+      vi.setSystemTime(new Date("2025-03-16T05:00:00.000Z"));
+      render(<Nav />);
+      expect(
+        screen.queryByRole("button", { name: "Hide next race banner" }),
+      ).not.toBeInTheDocument();
+    });
   });
 });

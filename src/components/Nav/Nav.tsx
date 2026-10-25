@@ -340,6 +340,17 @@ export function Nav() {
         )[0] ?? null,
     [calendarYearMeetings, nowMs],
   );
+  const hasOngoingRaceWeekend = useMemo(
+    () =>
+      calendarYearMeetings.some(
+        (m) =>
+          !m.is_cancelled &&
+          isRaceWeekend(m.meeting_name, m.meeting_official_name) &&
+          new Date(m.date_start).getTime() <= nowMs &&
+          nowMs <= new Date(m.date_end).getTime(),
+      ),
+    [calendarYearMeetings, nowMs],
+  );
   const nextMeetingCountryFlagUrl = toSafeExternalUrl(
     nextMeeting?.country_flag,
   );
@@ -915,6 +926,7 @@ export function Nav() {
       {/* ── Next race weekend banner (main + telemetry routes) ─── */}
       {(isMainRoute || isTelemetryRoute) &&
         showNextRaceWeekendBanner &&
+        !hasOngoingRaceWeekend &&
         nextMeeting &&
         nextMeetingCountdown && (
           <div className="border-b border-panel">
