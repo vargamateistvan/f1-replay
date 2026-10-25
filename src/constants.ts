@@ -396,6 +396,18 @@ export const RATE_MAX_RETRIES = 6;
 // Standard F1 qualifying: only the top 10 drivers progress to Q3.
 export const Q3_GRID_SIZE = 10;
 
+// Running length of each qualifying phase (Q1/Q2/Q3). The clock stops under a
+// red flag and the breaks between phases don't count. Q3 grew to 13 min in
+// 2026. Finished phases use the running time recorded in the feed instead.
+export const QUALI_PHASE_DURATIONS_MS = [18 * 60_000, 15 * 60_000, 12 * 60_000];
+export const QUALI_Q3_13_MIN_FROM_YEAR = 2026;
+export const QUALI_Q3_13_MIN_MS = 13 * 60_000;
+export const SPRINT_QUALI_PHASE_DURATIONS_MS = [
+  12 * 60_000,
+  10 * 60_000,
+  8 * 60_000,
+];
+
 // ── Telemetry corner zones ──────────────────────────────────────────────────--
 // Apex-speed thresholds (km/h) used to classify a corner as low/medium/high
 // speed on the telemetry charts, mirroring F1 broadcast lap-time analysis.

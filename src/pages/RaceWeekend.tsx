@@ -120,6 +120,7 @@ import {
   isTimedSession,
   isQualiSession,
   detectQualiPhase,
+  qualiClockRemainingMs,
 } from "@/utils/session";
 import {
   lastAtOrBefore,
@@ -1898,41 +1899,18 @@ export default function RaceWeekend() {
   const countdownMs = useMemo(() => {
     if (!isTimedSession(sessionName) || effectiveDuration <= 0) return null;
 
-    if (!isQualiSession(sessionName)) {
-      return Math.max(0, effectiveDuration - t);
+    if (isQualiSession(sessionName) && sessionStartMs) {
+      const remaining = qualiClockRemainingMs(
+        raceControl.data ?? [],
+        sessionStartMs,
+        t,
+        sessionName,
+      );
+      if (remaining !== null) return remaining;
     }
 
-    const fallbackEnd = effectiveDuration;
-    let phaseEndMs: number | null = null;
-
-    if (qualiPhase === "Q1") {
-      phaseEndMs =
-        qualiPhaseStartTimes.q2StartMs ??
-        qualiPhaseStartTimes.q1EndMs ??
-        fallbackEnd;
-    } else if (qualiPhase === "Q2") {
-      phaseEndMs =
-        qualiPhaseStartTimes.q3StartMs ??
-        qualiPhaseStartTimes.q2EndMs ??
-        fallbackEnd;
-    } else if (qualiPhase === "Q3") {
-      phaseEndMs = qualiPhaseStartTimes.q3EndMs ?? fallbackEnd;
-    } else {
-      phaseEndMs = fallbackEnd;
-    }
-
-    return Math.max(0, phaseEndMs - t);
-  }, [
-    effectiveDuration,
-    qualiPhase,
-    qualiPhaseStartTimes.q1EndMs,
-    qualiPhaseStartTimes.q2EndMs,
-    qualiPhaseStartTimes.q2StartMs,
-    qualiPhaseStartTimes.q3EndMs,
-    qualiPhaseStartTimes.q3StartMs,
-    sessionName,
-    t,
-  ]);
+    return Math.max(0, effectiveDuration - t);
+  }, [effectiveDuration, raceControl.data, sessionName, sessionStartMs, t]);
 
   function openResultsDialog() {
     resultsModalAutoOpenedRef.current = false;

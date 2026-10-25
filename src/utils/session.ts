@@ -1,4 +1,10 @@
 import type { RaceControl } from "@/api/types";
+import {
+  QUALI_PHASE_DURATIONS_MS,
+  QUALI_Q3_13_MIN_FROM_YEAR,
+  QUALI_Q3_13_MIN_MS,
+  SPRINT_QUALI_PHASE_DURATIONS_MS,
+} from "@/constants";
 
 export type QualiPhase = "Q1" | "Q2" | "Q3";
 
@@ -61,4 +67,104 @@ export function detectQualiPhase(
     }
   }
   return phase;
+}
+
+const SESSION_STATUS_RE =
+  /^SESSION (STARTED|RESUMED|ABORTED|SUSPENDED|FINISHED)\b/;
+
+interface QualiPhaseRun {
+  index: number;
+  intervals: Array<{ start: number; end: number | null }>;
+  finishedAt: number | null;
+  // Chequered flag shown while the clock was running (not after a red flag),
+  // so the recorded running time is the phase's real length.
+  ranToTime: boolean;
+}
+
+function nominalQualiPhaseMs(
+  index: number,
+  sessionName: string,
+  year: number,
+): number {
+  if (/sprint/i.test(sessionName))
+    return SPRINT_QUALI_PHASE_DURATIONS_MS[index];
+  if (index === 2 && year >= QUALI_Q3_13_MIN_FROM_YEAR)
+    return QUALI_Q3_13_MIN_MS;
+  return QUALI_PHASE_DURATIONS_MS[index];
+}
+
+// Remaining time on the qualifying clock at session-relative time t, or null
+// when the feed has no session status messages yet. The clock only runs between
+// SESSION STARTED and SESSION ABORTED (red flag) / FINISHED, so it freezes
+// under red flags and reads 0 in the break after each phase's chequered flag.
+export function qualiClockRemainingMs(
+  messages: RaceControl[],
+  sessionStartMs: number,
+  t: number,
+  sessionName: string,
+): number | null {
+  const statuses = messages
+    .map((msg) => ({
+      msg,
+      ms: new Date(msg.date).getTime() - sessionStartMs,
+      status: SESSION_STATUS_RE.exec((msg.message ?? "").toUpperCase())?.[1],
+    }))
+    .filter((s) => s.status !== undefined && Number.isFinite(s.ms))
+    .sort((a, b) => a.ms - b.ms);
+  if (!statuses.length) return null;
+
+  const phases: QualiPhaseRun[] = [];
+  let current: QualiPhaseRun | null = null;
+  for (const { msg, ms, status } of statuses) {
+    const open = current?.intervals.at(-1);
+    const running = open !== undefined && open.end === null;
+    if (status === "STARTED" || status === "RESUMED") {
+      const tagged = msg.qualifying_phase;
+      const index: number =
+        tagged === 1 || tagged === 2 || tagged === 3
+          ? tagged - 1
+          : current === null
+            ? 0
+            : current.finishedAt !== null
+              ? Math.min(current.index + 1, 2)
+              : current.index;
+      if (
+        current === null ||
+        index !== current.index ||
+        current.finishedAt !== null
+      ) {
+        if (open && running) open.end = ms;
+        current = { index, intervals: [], finishedAt: null, ranToTime: false };
+        phases.push(current);
+        current.intervals.push({ start: ms, end: null });
+      } else if (!running) {
+        current.intervals.push({ start: ms, end: null });
+      }
+    } else if (current !== null) {
+      if (open && running) open.end = ms;
+      if (status === "FINISHED" && current.finishedAt === null) {
+        current.finishedAt = ms;
+        current.ranToTime = running;
+      }
+    }
+  }
+  if (!phases.length) return null;
+
+  const phase = phases.findLast((p) => p.intervals[0].start <= t) ?? phases[0];
+  if (phase.finishedAt !== null && t >= phase.finishedAt) return 0;
+
+  let elapsed = 0;
+  let recorded = 0;
+  for (const { start, end } of phase.intervals) {
+    if (start < t) elapsed += Math.min(end ?? t, t) - start;
+    if (end !== null) recorded += end - start;
+  }
+  const length = phase.ranToTime
+    ? recorded
+    : nominalQualiPhaseMs(
+        phase.index,
+        sessionName,
+        new Date(sessionStartMs).getUTCFullYear(),
+      );
+  return Math.max(0, length - elapsed);
 }
