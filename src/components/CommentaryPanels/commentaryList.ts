@@ -11,19 +11,19 @@ export const COMMENTARY_GROUP_HEADER_CLASS =
 export const COMMENTARY_GROUP_ITEMS_CLASS = "divide-y divide-panel";
 
 export const COMMENTARY_ROW_CLASS =
-  "group/commentary relative flex items-center gap-3 py-2.5 pl-4 pr-3 text-left transition-colors hover:bg-white/[0.04]";
+  "group/commentary relative flex items-start gap-3 py-2.5 pl-4 pr-3 text-left transition-colors hover:bg-white/[0.04]";
 
 /** Left accent strip; colour (or flag pattern) comes from an inline style. */
 export const COMMENTARY_ACCENT_CLASS = "absolute inset-y-0 left-0 w-0.5";
 
 export const COMMENTARY_TIME_CLASS =
-  "w-12 shrink-0 whitespace-nowrap font-mono text-[10px] tabular-nums text-muted";
+  "whitespace-nowrap font-mono text-[11px] leading-4 tabular-nums text-white/60";
 
 export const COMMENTARY_TITLE_CLASS =
-  "truncate text-[12px] font-bold leading-tight text-white/90";
+  "truncate text-[12px] font-semibold leading-4 text-white/90";
 
 export const COMMENTARY_META_CLASS =
-  "mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-[10px] text-muted";
+  "mt-1 flex flex-wrap items-center gap-x-2.5 gap-y-1 font-mono text-[10px] leading-4 tabular-nums text-muted";
 
 export const COMMENTARY_BADGE_CLASS =
   "inline-flex h-4 w-fit max-w-full shrink-0 items-center justify-center whitespace-nowrap px-1.5 text-center text-[8px] font-black uppercase leading-none tracking-widest";

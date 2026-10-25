@@ -7,22 +7,18 @@ import { buildLapLookup, lapNumberAtMs } from "@/utils/lapLookup";
 import { upperBoundByValue } from "@/utils/sortedTime";
 import { isPracticeSession } from "@/utils/session";
 import {
-  COMMENTARY_ACCENT_CLASS,
-  COMMENTARY_BADGE_CLASS,
   COMMENTARY_BUTTON_CLASS,
   COMMENTARY_EMPTY_CLASS,
   COMMENTARY_FEED_SCROLL_CLASS,
   COMMENTARY_GROUP_CLASS,
   COMMENTARY_GROUP_HEADER_CLASS,
   COMMENTARY_GROUP_ITEMS_CLASS,
-  COMMENTARY_META_CLASS,
-  COMMENTARY_ROW_CLASS,
-  COMMENTARY_TIME_CLASS,
-  COMMENTARY_TITLE_CLASS,
   commentaryGroupLabel,
-  formatSessionElapsedTime,
 } from "@/components/CommentaryPanels/commentaryList";
-import { CommentaryJumpButton } from "@/components/CommentaryPanels/CommentaryJumpButton";
+import {
+  CommentaryDriver,
+  CommentaryRow,
+} from "@/components/CommentaryPanels/CommentaryRow";
 
 interface Props {
   readonly entries: Overtake[];
@@ -170,49 +166,33 @@ export function OvertakeFeed({
             {group.entries.map(({ entry: e, dateMs }) => {
               const over = driverByNumber.get(e.overtaking_driver_number);
               const under = driverByNumber.get(e.overtaken_driver_number);
-              const overColor = teamColor(over?.team_colour);
-              const underColor = teamColor(under?.team_colour);
               const ms = dateMs - sessionStartMs;
               return (
-                <div
+                <CommentaryRow
                   key={`${e.overtaking_driver_number}-${e.overtaken_driver_number}-${e.date}-${e.position ?? "na"}`}
-                  className={COMMENTARY_ROW_CLASS}
-                >
-                  <span
-                    aria-hidden="true"
-                    className={COMMENTARY_ACCENT_CLASS}
-                    style={{ backgroundColor: overColor }}
-                  />
-                  <span className={COMMENTARY_TIME_CLASS}>
-                    {formatSessionElapsedTime(ms)}
-                  </span>
-                  <div className="min-w-0 flex-1">
-                    <div className={COMMENTARY_TITLE_CLASS}>
-                      <span style={{ color: overColor }}>
-                        {over?.name_acronym ?? e.overtaking_driver_number}
-                      </span>{" "}
-                      <span className="text-white/55">passed</span>{" "}
-                      <span style={{ color: underColor }}>
-                        {under?.name_acronym ?? e.overtaken_driver_number}
-                      </span>
-                    </div>
-                    <div className={COMMENTARY_META_CLASS}>
-                      <span
-                        className={`${COMMENTARY_BADGE_CLASS} bg-[#39b54a] text-white`}
-                      >
-                        Pass
-                      </span>
-                      {e.position !== null && <span>for P{e.position}</span>}
-                    </div>
-                  </div>
-                  {onJump && (
-                    <CommentaryJumpButton
-                      ms={ms}
-                      label={`${over?.name_acronym ?? e.overtaking_driver_number} passing ${under?.name_acronym ?? e.overtaken_driver_number}`}
-                      onJump={onJump}
-                    />
-                  )}
-                </div>
+                  ms={ms}
+                  badge={{ label: "Pass", className: "bg-[#39b54a] text-white" }}
+                  accent={teamColor(over?.team_colour)}
+                  upcoming={ms > sessionTimeMs}
+                  title={
+                    <>
+                      <CommentaryDriver
+                        driver={over}
+                        driverNumber={e.overtaking_driver_number}
+                      />{" "}
+                      <span className="font-normal text-muted">passed</span>{" "}
+                      <CommentaryDriver
+                        driver={under}
+                        driverNumber={e.overtaken_driver_number}
+                      />
+                    </>
+                  }
+                  meta={
+                    e.position !== null ? <span>for P{e.position}</span> : undefined
+                  }
+                  jumpLabel={`${over?.name_acronym ?? e.overtaking_driver_number} passing ${under?.name_acronym ?? e.overtaken_driver_number}`}
+                  onJump={onJump}
+                />
               );
             })}
           </div>

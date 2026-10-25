@@ -1,25 +1,17 @@
 import { useMemo } from "react";
-import { ChevronRight } from "lucide-react";
 import type { Lap } from "@/api/types";
 import type { KeyMoment } from "@/components/KeyMoments/types";
 import { buildLapLookup, lapNumberAtMs } from "@/utils/lapLookup";
 import { isPracticeSession } from "@/utils/session";
 import {
-  COMMENTARY_ACCENT_CLASS,
-  COMMENTARY_BADGE_CLASS,
   COMMENTARY_EMPTY_CLASS,
   COMMENTARY_FEED_SCROLL_CLASS,
   COMMENTARY_GROUP_CLASS,
   COMMENTARY_GROUP_HEADER_CLASS,
   COMMENTARY_GROUP_ITEMS_CLASS,
-  COMMENTARY_META_CLASS,
-  COMMENTARY_ROW_CLASS,
-  COMMENTARY_TIME_CLASS,
-  COMMENTARY_TITLE_CLASS,
   commentaryGroupLabel,
-  formatSessionElapsedTime,
 } from "@/components/CommentaryPanels/commentaryList";
-import { COMMENTARY_JUMP_BUTTON_CLASS } from "@/components/CommentaryPanels/CommentaryJumpButton";
+import { CommentaryRow } from "@/components/CommentaryPanels/CommentaryRow";
 
 interface Props {
   moments: KeyMoment[];
@@ -125,61 +117,35 @@ export function KeyMoments({
           </div>
           <div className={COMMENTARY_GROUP_ITEMS_CLASS}>
             {group.moments.map((m, i) => {
-            const cfg = KIND_CONFIG[m.kind];
-            return (
-              <button
-                key={`${m.kind}-${m.ms}-${i}`}
-                onClick={() => onJump(m.ms)}
-                className={`w-full ${COMMENTARY_ROW_CLASS}`}
-              >
-                <span
-                  aria-hidden="true"
-                  className={COMMENTARY_ACCENT_CLASS}
-                  style={{ backgroundColor: cfg.badgeBg }}
-                />
-                <span className={COMMENTARY_TIME_CLASS}>
-                  {formatSessionElapsedTime(m.ms)}
-                </span>
-                <span className="flex-1 min-w-0">
-                  <span
-                    className={`${COMMENTARY_TITLE_CLASS} block`}
-                    style={{
-                      color:
-                        m.kind === "lead_change"
-                          ? m.color
-                          : "rgba(255,255,255,0.9)",
-                    }}
-                  >
-                    {m.label}
-                  </span>
-                  <span className={COMMENTARY_META_CLASS}>
+              const cfg = KIND_CONFIG[m.kind];
+              return (
+                <CommentaryRow
+                  key={`${m.kind}-${m.ms}-${i}`}
+                  ms={m.ms}
+                  rowClickable
+                  onJump={onJump}
+                  badge={{
+                    label: cfg.badge,
+                    style: { backgroundColor: cfg.badgeBg, color: cfg.badgeText },
+                  }}
+                  accent={cfg.badgeBg}
+                  upcoming={m.ms > sessionTimeMs}
+                  title={
                     <span
-                      className={COMMENTARY_BADGE_CLASS}
-                      style={{
-                        backgroundColor: cfg.badgeBg,
-                        color: cfg.badgeText,
-                      }}
+                      style={
+                        m.kind === "lead_change" ? { color: m.color } : undefined
+                      }
                     >
-                      {cfg.badge}
+                      {m.label}
                     </span>
-                    {m.sublabel && (
-                      <span
-                        className="font-mono tabular-nums"
-                        style={{ color: m.color }}
-                      >
-                        {m.sublabel}
-                      </span>
-                    )}
-                  </span>
-                </span>
-                <span
-                  aria-hidden="true"
-                  className={COMMENTARY_JUMP_BUTTON_CLASS}
-                >
-                  <ChevronRight size={11} strokeWidth={2.4} />
-                </span>
-              </button>
-            );
+                  }
+                  meta={
+                    m.sublabel ? (
+                      <span style={{ color: m.color }}>{m.sublabel}</span>
+                    ) : undefined
+                  }
+                />
+              );
           })}
           </div>
         </div>

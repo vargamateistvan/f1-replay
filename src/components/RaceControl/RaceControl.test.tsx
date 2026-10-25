@@ -278,9 +278,9 @@ describe("RaceControl", () => {
 
     const eventRow = screen
       .getByText("WAVED BLUE FLAG FOR CAR 1 (VER)")
-      .parentElement?.parentElement;
-    const borderStrip = eventRow?.children[0] as HTMLElement | undefined;
-    const badge = eventRow?.children[2]?.children[1]?.children[0];
+      .closest("[data-commentary-row]");
+    const borderStrip = eventRow?.querySelector("[data-commentary-accent]");
+    const badge = eventRow?.querySelector("[data-commentary-badge]");
 
     expect(borderStrip).toHaveStyle({
       backgroundColor: "rgb(77, 166, 255)",
@@ -289,13 +289,9 @@ describe("RaceControl", () => {
       backgroundColor: "rgb(77, 166, 255)",
       color: "rgb(0, 0, 0)",
     });
-
-    const metaLine = eventRow?.children[2]?.children[1];
-    expect(metaLine).toBeDefined();
-    expect(metaLine).toHaveTextContent("BLUE");
-    expect(metaLine).toHaveTextContent("VER");
-    expect(metaLine).not.toHaveTextContent("Sector");
-    expect(metaLine).not.toHaveTextContent("flag");
+    expect(badge).toHaveTextContent("BLUE");
+    expect(eventRow).toHaveTextContent("VER");
+    expect(eventRow?.querySelector("[data-commentary-meta]")).toBeNull();
   });
 
   it("renders chequered flag rows with a striped border", () => {
@@ -324,8 +320,10 @@ describe("RaceControl", () => {
       />,
     );
 
-    const eventRow = screen.getByText("CHEQUERED FLAG").parentElement?.parentElement;
-    const borderStrip = eventRow?.children[0] as HTMLElement | undefined;
+    const borderStrip = screen
+      .getByText("CHEQUERED FLAG")
+      .closest("[data-commentary-row]")
+      ?.querySelector<HTMLElement>("[data-commentary-accent]");
 
     expect(borderStrip).toHaveClass("w-0.5");
     expect(borderStrip?.getAttribute("style")).toContain("data:image/svg+xml");

@@ -9,7 +9,6 @@ import { formatBattleGain, pitBattleHeadline, type PitBattle } from "@/utils/und
 import { upperBoundByValue } from "@/utils/sortedTime";
 import { isPracticeSession } from "@/utils/session";
 import {
-  COMMENTARY_ACCENT_CLASS,
   COMMENTARY_BADGE_CLASS,
   COMMENTARY_BUTTON_CLASS,
   COMMENTARY_EMPTY_CLASS,
@@ -18,13 +17,12 @@ import {
   COMMENTARY_GROUP_HEADER_CLASS,
   COMMENTARY_GROUP_ITEMS_CLASS,
   COMMENTARY_META_CLASS,
-  COMMENTARY_ROW_CLASS,
-  COMMENTARY_TIME_CLASS,
-  COMMENTARY_TITLE_CLASS,
   commentaryGroupLabel,
-  formatSessionElapsedTime,
 } from "@/components/CommentaryPanels/commentaryList";
-import { CommentaryJumpButton } from "@/components/CommentaryPanels/CommentaryJumpButton";
+import {
+  CommentaryDriver,
+  CommentaryRow,
+} from "@/components/CommentaryPanels/CommentaryRow";
 
 interface Props {
   readonly entries: Pit[];
@@ -197,75 +195,63 @@ export function PitFeed({
                 ?.find((stint) => stint.lap_start > entry.lap_number);
 
               return (
-                <div
+                <CommentaryRow
                   key={`${entry.driver_number}-${entry.lap_number}-${entry.date}-${idx}`}
-                  className={COMMENTARY_ROW_CLASS}
-                >
-                  <span
-                    aria-hidden="true"
-                    className={COMMENTARY_ACCENT_CLASS}
-                    style={{ backgroundColor: color }}
-                  />
-                  <span className={COMMENTARY_TIME_CLASS}>
-                    {formatSessionElapsedTime(ms)}
-                  </span>
-                  <div className="min-w-0 flex-1">
-                    <div className={COMMENTARY_TITLE_CLASS}>
-                      Pit stop for{" "}
-                      <span style={{ color }}>
-                        {driver?.name_acronym ?? entry.driver_number}
-                      </span>
-                    </div>
-                    <div className={COMMENTARY_META_CLASS}>
-                      <span
-                        className={`${COMMENTARY_BADGE_CLASS} bg-[#f5a623] text-black`}
-                      >
-                        Pit
-                      </span>
-                      {stop !== null && (
-                        <span className="font-mono tabular-nums text-white/90">
-                          Stop {formatPitDuration(stop) ?? "--:--:---"}
-                        </span>
-                      )}
-                      {lane !== null && (
-                        <span className="font-mono tabular-nums text-white/70">
-                          Lane {formatPitDuration(lane) ?? "--:--:---"}
-                        </span>
-                      )}
-                      {nextStint && (
-                        <div className="inline-flex max-w-full shrink-0 items-center gap-2 whitespace-nowrap border border-panel bg-track px-1.5 py-0.5">
-                          <div className="w-10 shrink-0">
-                            <TyreBadge
-                              stints={stints}
-                              driverNumber={entry.driver_number}
-                              currentLap={nextStint.lap_start}
-                            />
-                          </div>
-                          <span className="whitespace-nowrap font-mono tabular-nums text-white/70">
-                            Stint {nextStint.stint_number} · L
-                            {nextStint.lap_start}–{nextStint.lap_end}
-                          </span>
-                        </div>
-                      )}
-                    </div>
-                    {battlesByStop
-                      .get(`${entry.driver_number}:${entry.lap_number}`)
-                      ?.map((battle) => (
-                        <PitBattleLine
-                          key={battle.id}
-                          battle={battle}
-                          driverByNumber={driverByNumber}
-                        />
-                      ))}
-                  </div>
-                  {onJump && (
-                    <CommentaryJumpButton
-                      ms={ms}
-                      label={`pit stop for ${driver?.name_acronym ?? entry.driver_number}`}
-                      onJump={onJump}
+                  ms={ms}
+                  badge={{ label: "Pit", className: "bg-[#f5a623] text-black" }}
+                  accent={color}
+                  upcoming={ms > sessionTimeMs}
+                  title={
+                    <CommentaryDriver
+                      driver={driver}
+                      driverNumber={entry.driver_number}
+                      showName
                     />
-                  )}
-                </div>
+                  }
+                  meta={
+                    stop !== null || lane !== null || nextStint ? (
+                      <>
+                        {stop !== null && (
+                          <span className="text-white/90">
+                            Stop {formatPitDuration(stop) ?? "--:--:---"}
+                          </span>
+                        )}
+                        {lane !== null && (
+                          <span className="text-white/70">
+                            Lane {formatPitDuration(lane) ?? "--:--:---"}
+                          </span>
+                        )}
+                        {nextStint && (
+                          <span className="inline-flex max-w-full shrink-0 items-center gap-2 whitespace-nowrap">
+                            <span className="w-10 shrink-0">
+                              <TyreBadge
+                                stints={stints}
+                                driverNumber={entry.driver_number}
+                                currentLap={nextStint.lap_start}
+                              />
+                            </span>
+                            <span className="text-white/70">
+                              Stint {nextStint.stint_number} · L
+                              {nextStint.lap_start}–{nextStint.lap_end}
+                            </span>
+                          </span>
+                        )}
+                      </>
+                    ) : undefined
+                  }
+                  jumpLabel={`pit stop for ${driver?.name_acronym ?? entry.driver_number}`}
+                  onJump={onJump}
+                >
+                  {battlesByStop
+                    .get(`${entry.driver_number}:${entry.lap_number}`)
+                    ?.map((battle) => (
+                      <PitBattleLine
+                        key={battle.id}
+                        battle={battle}
+                        driverByNumber={driverByNumber}
+                      />
+                    ))}
+                </CommentaryRow>
               );
             })}
           </div>
@@ -304,7 +290,7 @@ function PitBattleLine({
         ? "bg-[#14b8a6] text-black"
         : "bg-white/20 text-white";
   return (
-    <div className={`${COMMENTARY_META_CLASS} mt-0.5`}>
+    <span className={`${COMMENTARY_META_CLASS} mt-1.5`}>
       <span className={`${COMMENTARY_BADGE_CLASS} ${tone}`}>
         {pitBattleHeadline(battle)}
       </span>
@@ -333,6 +319,6 @@ function PitBattleLine({
           SC/VSC
         </span>
       )}
-    </div>
+    </span>
   );
 }

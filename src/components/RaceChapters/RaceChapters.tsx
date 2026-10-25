@@ -8,22 +8,15 @@ import type {
 import { buildLapLookup, lapNumberAtMs } from "@/utils/lapLookup";
 import { isPracticeSession } from "@/utils/session";
 import {
-  COMMENTARY_ACCENT_CLASS,
-  COMMENTARY_BADGE_CLASS,
   COMMENTARY_FEED_SCROLL_CLASS,
   COMMENTARY_GROUP_CLASS,
   COMMENTARY_GROUP_HEADER_CLASS,
   COMMENTARY_GROUP_ITEMS_CLASS,
-  COMMENTARY_META_CLASS,
   COMMENTARY_PRIMARY_BUTTON_CLASS,
-  COMMENTARY_ROW_CLASS,
-  COMMENTARY_TIME_CLASS,
-  COMMENTARY_TITLE_CLASS,
   COMMENTARY_TOOLBAR_CLASS,
   commentaryGroupLabel,
-  formatSessionElapsedTime,
 } from "@/components/CommentaryPanels/commentaryList";
-import { CommentaryJumpButton } from "@/components/CommentaryPanels/CommentaryJumpButton";
+import { CommentaryRow } from "@/components/CommentaryPanels/CommentaryRow";
 import { Chip } from "@/components/SettingsModal/SettingsPrimitives";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -106,7 +99,7 @@ function WhatChangedCard({ snapshot, drivers }: WhatChangedCardProps) {
   }
 
   return (
-    <div className="mx-3 mb-2.5 border border-panel bg-track text-[10px]">
+    <div className="mt-2 border border-panel bg-track text-[10px]">
       <div className="border-b border-panel px-2 py-1 text-[9px] font-bold uppercase tracking-[0.12em] text-muted">
         What Changed
       </div>
@@ -221,6 +214,7 @@ function WhatChangedCard({ snapshot, drivers }: WhatChangedCardProps) {
 interface ChapterRowProps {
   chapter: RaceChapter;
   isCurrent: boolean;
+  upcoming: boolean;
   snapshot: WhatChangedSnapshot | null;
   drivers: Driver[];
   onJump: (ms: number) => void;
@@ -230,6 +224,7 @@ interface ChapterRowProps {
 function ChapterRow({
   chapter,
   isCurrent,
+  upcoming,
   snapshot,
   drivers,
   onJump,
@@ -239,70 +234,48 @@ function ChapterRow({
   const canReplayWindow = onPlayWindow && chapter.endMs !== null;
 
   return (
-    <div>
-      <div
-        className={`w-full ${COMMENTARY_ROW_CLASS} ${
-          isCurrent ? "bg-white/[0.04]" : ""
-        }`}
-      >
-        <span
-          aria-hidden="true"
-          className={COMMENTARY_ACCENT_CLASS}
-          style={{ backgroundColor: cfg.bg }}
-        />
-        <span className={COMMENTARY_TIME_CLASS}>
-          {formatSessionElapsedTime(chapter.startMs)}
-        </span>
-
-        <span className="min-w-0 flex-1">
-          <span className={`${COMMENTARY_TITLE_CLASS} block`}>
-            {chapter.label}
-          </span>
-          <span className={COMMENTARY_META_CLASS}>
-            <span
-              className={COMMENTARY_BADGE_CLASS}
-              style={{
-                background: cfg.bg,
-                color: cfg.text,
-              }}
-            >
-              {cfg.badge}
-            </span>
+    <CommentaryRow
+      ms={chapter.startMs}
+      badge={{ label: cfg.badge, style: { background: cfg.bg, color: cfg.text } }}
+      accent={cfg.bg}
+      active={isCurrent}
+      upcoming={upcoming}
+      title={chapter.label}
+      meta={
+        chapter.durationMs !== null || isCurrent ? (
+          <>
             {chapter.durationMs !== null && (
               <span>{fmtDuration(chapter.durationMs)}</span>
             )}
             {isCurrent && (
-              <span className="font-black uppercase tracking-widest text-f1red">
+              <span className="font-sans font-black uppercase tracking-widest text-f1red">
                 NOW
               </span>
             )}
-          </span>
-        </span>
-        <div className="shrink-0 flex items-center gap-1">
-          <CommentaryJumpButton
-            ms={chapter.startMs}
-            label={chapter.label}
-            onJump={onJump}
-          />
-          {canReplayWindow && (
-            <button
-              type="button"
-              onClick={() => onPlayWindow(chapter.startMs, chapter.endMs!)}
-              className={COMMENTARY_PRIMARY_BUTTON_CLASS}
-              aria-label={`Replay ${chapter.label}`}
-              title={`Replay ${chapter.label}`}
-            >
-              Replay
-            </button>
-          )}
-        </div>
-      </div>
-
+          </>
+        ) : undefined
+      }
+      jumpLabel={chapter.label}
+      onJump={onJump}
+      actions={
+        canReplayWindow ? (
+          <button
+            type="button"
+            onClick={() => onPlayWindow(chapter.startMs, chapter.endMs!)}
+            className={COMMENTARY_PRIMARY_BUTTON_CLASS}
+            aria-label={`Replay ${chapter.label}`}
+            title={`Replay ${chapter.label}`}
+          >
+            Replay
+          </button>
+        ) : undefined
+      }
+    >
       {/* What Changed inline card — only for completed incident windows */}
       {snapshot !== null && (
         <WhatChangedCard snapshot={snapshot} drivers={drivers} />
       )}
-    </div>
+    </CommentaryRow>
   );
 }
 
@@ -437,6 +410,7 @@ export function RaceChapters({
                     key={ch.id}
                     chapter={ch}
                     isCurrent={ch.id === currentChapterId}
+                    upcoming={ch.startMs > sessionTimeMs}
                     snapshot={snapshot}
                     drivers={drivers}
                     onJump={onJump}

@@ -14,23 +14,20 @@ import {
 import { isPracticeSession } from "@/utils/session";
 import {
   COMMENTARY_ACCENT_CLASS,
-  COMMENTARY_BADGE_CLASS,
   COMMENTARY_BUTTON_CLASS,
   COMMENTARY_EMPTY_CLASS,
   COMMENTARY_FEED_SCROLL_CLASS,
   COMMENTARY_GROUP_CLASS,
   COMMENTARY_GROUP_HEADER_CLASS,
   COMMENTARY_GROUP_ITEMS_CLASS,
-  COMMENTARY_META_CLASS,
-  COMMENTARY_ROW_CLASS,
   COMMENTARY_SEARCH_CLASS,
-  COMMENTARY_TIME_CLASS,
-  COMMENTARY_TITLE_CLASS,
   COMMENTARY_TOOLBAR_CLASS,
   commentaryGroupLabel,
-  formatSessionElapsedTime,
 } from "@/components/CommentaryPanels/commentaryList";
-import { CommentaryJumpButton } from "@/components/CommentaryPanels/CommentaryJumpButton";
+import {
+  CommentaryDriver,
+  CommentaryRow,
+} from "@/components/CommentaryPanels/CommentaryRow";
 import { Chip } from "@/components/SettingsModal/SettingsPrimitives";
 import { DEFAULT_FLAG_CONFIG, FLAG_CONFIG } from "./flagConfig";
 import { raceControlEventAccent, raceControlEventBadge } from "./eventStyle";
@@ -418,63 +415,40 @@ export function RaceControlFeed({
                     e.driverNumber !== null
                       ? driverMap.get(e.driverNumber)
                       : null;
-                  const eventTime = formatSessionElapsedTime(
-                    Math.max(0, e.ms),
-                  );
                   const badge = raceControlEventBadge(e);
-                  const rowToneClass = isPenaltyEntry
-                    ? "bg-red-500/[0.08] hover:bg-red-500/[0.12]"
-                    : "";
                   const accentBorderStyle = raceControlEventAccent(
                     e,
                     eventDriver?.team_colour,
                   );
                   return (
-                    <div
+                    <CommentaryRow
                       key={e.id}
-                      className={`${COMMENTARY_ROW_CLASS} ${rowToneClass}`}
-                    >
-                      {accentBorderStyle && (
-                        <span
-                          aria-hidden="true"
-                          className={COMMENTARY_ACCENT_CLASS}
-                          style={accentBorderStyle}
-                        />
-                      )}
-                      <span className={COMMENTARY_TIME_CLASS}>
-                        {eventTime}
-                      </span>
-                      <div className="min-w-0 flex-1">
-                        <div className={COMMENTARY_TITLE_CLASS}>
-                          {e.description}
-                        </div>
-                        <div className={COMMENTARY_META_CLASS}>
-                          <span
-                            className={`${COMMENTARY_BADGE_CLASS} ${badge.className}`}
-                            style={badge.style}
-                          >
-                            {badge.label}
-                          </span>
+                      ms={e.ms}
+                      badge={badge}
+                      accent={accentBorderStyle}
+                      wrapTitle
+                      upcoming={e.ms > sessionTimeMs}
+                      className={
+                        isPenaltyEntry
+                          ? "bg-red-500/[0.08] hover:bg-red-500/[0.12]"
+                          : ""
+                      }
+                      title={
+                        <>
                           {eventDriver && (
-                            <span
-                              className="font-black uppercase tracking-widest"
-                              style={{
-                                color: teamColor(eventDriver.team_colour),
-                              }}
-                            >
-                              {eventDriver.name_acronym}
+                            <span className="mr-1.5">
+                              <CommentaryDriver
+                                driver={eventDriver}
+                                driverNumber={eventDriver.driver_number}
+                              />
                             </span>
                           )}
-                        </div>
-                      </div>
-                      {onJump && (
-                        <CommentaryJumpButton
-                          ms={e.ms}
-                          label={e.title || e.description}
-                          onJump={onJump}
-                        />
-                      )}
-                    </div>
+                          <span>{e.description}</span>
+                        </>
+                      }
+                      jumpLabel={e.title || e.description}
+                      onJump={onJump}
+                    />
                   );
                 })}
               </div>

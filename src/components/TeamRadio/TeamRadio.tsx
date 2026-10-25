@@ -11,22 +11,18 @@ import { isPracticeSession } from "@/utils/session";
 import { toSafeExternalUrl } from "@/utils/url";
 import { RadioAudio } from "@/components/RadioAudio";
 import {
-  COMMENTARY_ACCENT_CLASS,
-  COMMENTARY_BADGE_CLASS,
   COMMENTARY_BUTTON_CLASS,
   COMMENTARY_EMPTY_CLASS,
   COMMENTARY_FEED_SCROLL_CLASS,
   COMMENTARY_GROUP_CLASS,
   COMMENTARY_GROUP_HEADER_CLASS,
   COMMENTARY_GROUP_ITEMS_CLASS,
-  COMMENTARY_META_CLASS,
-  COMMENTARY_ROW_CLASS,
-  COMMENTARY_TIME_CLASS,
-  COMMENTARY_TITLE_CLASS,
   commentaryGroupLabel,
-  formatSessionElapsedTime,
 } from "@/components/CommentaryPanels/commentaryList";
-import { CommentaryJumpButton } from "@/components/CommentaryPanels/CommentaryJumpButton";
+import {
+  CommentaryDriver,
+  CommentaryRow,
+} from "@/components/CommentaryPanels/CommentaryRow";
 
 interface Props {
   readonly entries: TeamRadioEntry[];
@@ -52,10 +48,6 @@ type LapGroup = {
   lapNumber: number | null;
   entries: VisibleRadioEntry[];
 };
-
-function fmtSessionTime(entryDateMs: number, sessionStartMs: number) {
-  return formatSessionElapsedTime(Math.max(0, entryDateMs - sessionStartMs));
-}
 
 export function TeamRadioFeed({
   entries,
@@ -196,6 +188,7 @@ export function TeamRadioFeed({
                 entry={e}
                 entryMs={entryMs}
                 sessionStartMs={sessionStartMs}
+                sessionTimeMs={sessionTimeMs}
                 driver={driverByNumber.get(e.driver_number)}
                 playing={playing}
                 onPlay={play}
@@ -225,6 +218,7 @@ function RadioRow({
   entry: e,
   entryMs,
   sessionStartMs,
+  sessionTimeMs,
   driver,
   playing,
   onPlay,
@@ -234,88 +228,78 @@ function RadioRow({
   entry: TeamRadioEntry;
   entryMs: number;
   sessionStartMs: number;
+  sessionTimeMs: number;
   driver: Driver | undefined;
   playing: string | null;
   onPlay: (url: string) => void;
   onEnded: () => void;
   onJump?: (ms: number) => void;
 }) {
-  const color = teamColor(driver?.team_colour);
   const recordingUrl = toSafeExternalUrl(e.recording_url);
   const hasAudio = Boolean(recordingUrl);
   const isPlaying = recordingUrl !== null && playing === recordingUrl;
   const { progress, audioRef, onTimeUpdate } = useAudioProgress(isPlaying);
+  const ms = entryMs - sessionStartMs;
 
   return (
-    <div className={COMMENTARY_ROW_CLASS}>
-      <span
-        aria-hidden="true"
-        className={COMMENTARY_ACCENT_CLASS}
-        style={{ backgroundColor: color }}
-      />
-      <span className={COMMENTARY_TIME_CLASS}>
-        {fmtSessionTime(entryMs, sessionStartMs)}
-      </span>
-      <div className="flex-1 min-w-0">
-        <div className={COMMENTARY_TITLE_CLASS}>
-          Team radio for{" "}
-          <span style={{ color }}>
-            {driver?.name_acronym ?? e.driver_number}
-          </span>
-        </div>
-        <div className={COMMENTARY_META_CLASS}>
-          <span className={`${COMMENTARY_BADGE_CLASS} bg-[#4da6ff] text-black`}>
-            Radio
-          </span>
-        </div>
-      </div>
-      <div className="shrink-0 flex items-center gap-1.5">
-        <button
-          onClick={() => recordingUrl && onPlay(recordingUrl)}
-          disabled={!hasAudio}
-          aria-label={isPlaying ? "Stop" : "Play"}
-          className={`${COMMENTARY_BUTTON_CLASS} relative w-[64px] overflow-hidden ${
-            isPlaying ? "border-f1red text-white" : ""
-          }`}
-        >
-          {isPlaying && (
-            <span
-              aria-hidden="true"
-              className="absolute inset-y-0 left-0 bg-f1red transition-[width] duration-150 ease-linear"
-              style={{ width: `${progress * 100}%` }}
-              data-progress={Math.round(progress * 100)}
+    <CommentaryRow
+      ms={ms}
+      badge={{ label: "Radio", className: "bg-[#4da6ff] text-black" }}
+      accent={teamColor(driver?.team_colour)}
+      upcoming={ms > sessionTimeMs}
+      title={
+        <CommentaryDriver
+          driver={driver}
+          driverNumber={e.driver_number}
+          showName
+        />
+      }
+      meta={hasAudio ? undefined : <span>No audio</span>}
+      jumpLabel={`team radio for ${driver?.name_acronym ?? e.driver_number}`}
+      onJump={onJump}
+      actions={
+        <>
+          <button
+            type="button"
+            onClick={() => recordingUrl && onPlay(recordingUrl)}
+            disabled={!hasAudio}
+            aria-label={isPlaying ? "Stop" : "Play"}
+            className={`${COMMENTARY_BUTTON_CLASS} relative w-[64px] overflow-hidden ${
+              isPlaying ? "border-f1red text-white" : ""
+            }`}
+          >
+            {isPlaying && (
+              <span
+                aria-hidden="true"
+                className="absolute inset-y-0 left-0 bg-f1red transition-[width] duration-150 ease-linear"
+                style={{ width: `${progress * 100}%` }}
+                data-progress={Math.round(progress * 100)}
+              />
+            )}
+            <span className="relative flex items-center gap-1.5">
+              {isPlaying ? (
+                <>
+                  <Square size={11} strokeWidth={2.4} aria-hidden="true" /> Stop
+                </>
+              ) : (
+                <>
+                  <Play size={11} strokeWidth={2.4} aria-hidden="true" /> Play
+                </>
+              )}
+            </span>
+          </button>
+          {isPlaying && recordingUrl && (
+            <RadioAudio
+              key={recordingUrl}
+              audioRef={audioRef}
+              src={recordingUrl}
+              onTimeUpdate={onTimeUpdate}
+              onEnded={onEnded}
+              onError={onEnded}
             />
           )}
-          <span className="relative flex items-center gap-1.5">
-            {isPlaying ? (
-              <>
-                <Square size={11} strokeWidth={2.4} aria-hidden="true" /> Stop
-              </>
-            ) : (
-              <>
-                <Play size={11} strokeWidth={2.4} aria-hidden="true" /> Play
-              </>
-            )}
-          </span>
-        </button>
-        {onJump && (
-          <CommentaryJumpButton
-            ms={entryMs - sessionStartMs}
-            label={`team radio for ${driver?.name_acronym ?? e.driver_number}`}
-            onJump={onJump}
-          />
-        )}
-        {isPlaying && recordingUrl && (
-          <RadioAudio
-            key={recordingUrl}
-            audioRef={audioRef}
-            src={recordingUrl}
-            onTimeUpdate={onTimeUpdate}
-            onEnded={onEnded}
-            onError={onEnded}
-          />
-        )}
-      </div>
-    </div>
+        </>
+      }
+    />
   );
 }
