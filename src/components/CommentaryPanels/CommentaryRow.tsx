@@ -39,6 +39,8 @@ type Props = Readonly<{
   actions?: ReactNode;
   /** Accessible name of what the row describes ("Jump to <label> at …"). */
   jumpLabel?: string;
+  /** Full accessible name for the jump button, replacing the default wording. */
+  jumpName?: string;
   onJump?: (ms: number) => void;
   /** The whole row seeks on click (no separate jump button). */
   rowClickable?: boolean;
@@ -46,8 +48,8 @@ type Props = Readonly<{
   upcoming?: boolean;
   /** The chapter / item currently in progress. */
   active?: boolean;
-  /** Wrap the title onto two lines instead of truncating (long RC messages). */
-  wrapTitle?: boolean;
+  /** Title lines before truncating: 2 for long RC messages, "all" to never clip. */
+  titleLines?: 1 | 2 | "all";
   className?: string;
 }>;
 
@@ -61,11 +63,12 @@ export function CommentaryRow({
   accent,
   actions,
   jumpLabel,
+  jumpName,
   onJump,
   rowClickable = false,
   upcoming = false,
   active = false,
-  wrapTitle = false,
+  titleLines = 1,
   className = "",
 }: Props) {
   const accentStyle =
@@ -88,7 +91,7 @@ export function CommentaryRow({
           style={accentStyle}
         />
       )}
-      <span className="flex w-[4.75rem] shrink-0 flex-col items-start gap-1">
+      <span className="flex min-w-[4.75rem] shrink-0 flex-col items-start gap-1">
         <span className={COMMENTARY_TIME_CLASS}>
           {formatSessionElapsedTime(Math.max(0, ms))}
         </span>
@@ -102,7 +105,7 @@ export function CommentaryRow({
       </span>
       <span className="block min-w-0 flex-1">
         <span
-          className={`${wrapTitle ? COMMENTARY_TITLE_WRAP_CLASS : COMMENTARY_TITLE_CLASS} block`}
+          className={`${TITLE_CLASS_BY_LINES[titleLines]} block`}
         >
           {title}
         </span>
@@ -125,6 +128,7 @@ export function CommentaryRow({
               <CommentaryJumpButton
                 ms={ms}
                 label={jumpLabel ?? "item"}
+                name={jumpName}
                 onJump={onJump}
               />
             ))}
@@ -152,8 +156,11 @@ export function CommentaryRow({
   );
 }
 
-const COMMENTARY_TITLE_WRAP_CLASS =
-  "line-clamp-2 text-[12px] font-semibold leading-4 text-white/90";
+const TITLE_CLASS_BY_LINES = {
+  1: COMMENTARY_TITLE_CLASS,
+  2: "line-clamp-2 text-[12px] font-semibold leading-4 text-white/90",
+  all: "text-[12px] font-semibold leading-4 text-white/90",
+} as const;
 
 /** Team-coloured driver code, optionally followed by the muted full name. */
 export function CommentaryDriver({

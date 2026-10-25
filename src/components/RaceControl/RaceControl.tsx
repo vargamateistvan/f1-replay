@@ -426,7 +426,7 @@ export function RaceControlFeed({
                       ms={e.ms}
                       badge={badge}
                       accent={accentBorderStyle}
-                      wrapTitle
+                      titleLines={2}
                       upcoming={e.ms > sessionTimeMs}
                       className={
                         isPenaltyEntry

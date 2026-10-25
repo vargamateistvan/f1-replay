@@ -9,13 +9,16 @@ type Props = Readonly<{
   ms: number;
   /** What the row describes, for the accessible name ("Jump to <label> at 12:34"). */
   label: string;
+  /** Full accessible name, replacing the "Jump to …" wording. */
+  name?: string;
   onJump: (ms: number) => void;
 }>;
 
 /** Per-row link button that seeks the playhead to a commentary item. */
-export function CommentaryJumpButton({ ms, label, onJump }: Props) {
+export function CommentaryJumpButton({ ms, label, name: nameOverride, onJump }: Props) {
   const target = Math.max(0, ms);
-  const name = `Jump to ${label} at ${formatSessionElapsedTime(target)}`;
+  const name =
+    nameOverride ?? `Jump to ${label} at ${formatSessionElapsedTime(target)}`;
   return (
     <button
       type="button"

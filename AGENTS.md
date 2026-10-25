@@ -261,7 +261,7 @@ components/ (render to DOM; read settings from Zustand)
 | `SessionInfoBar`                                  | Circuit name, session type, current lap                                                  |
 | `SessionPicker`                                   | Year / meeting / session picker                                                          |
 | `FocusedTelemetry`                                | Focused single-driver telemetry panel                                                    |
-| `CatchupSummary`                                  | "You skipped X events" modal                                                             |
+| `CatchupSummary`                                  | "You skipped X events" modal; rows reuse the commentary feeds' `CommentaryRow` (jump button replays from a few seconds earlier and closes the dialog) |
 | `EventToast` (stack)                              | Bottom-right toast notifications                                                         |
 | `SettingsModal`                                   | All user preferences                                                                     |
 | `HowItWorksModal`                                 | Onboarding overlay; "Take the tour" starts `AppTour` (navigates to `/` first, keeping the session). Content is the `SECTIONS` / `SHORTCUTS` data; desktop gets a numbered contents column |

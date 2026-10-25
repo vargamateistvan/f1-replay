@@ -1,7 +1,7 @@
-import { useEffect, useId, useState, type ReactNode } from "react";
+import { useEffect, useId, useState } from "react";
 import { createPortal } from "react-dom";
 import type { CatchupSummary as CatchupSummaryData } from "@/hooks/useCatchupSummary";
-import { Play, RotateCcw, Square } from "lucide-react";
+import { Play, Square } from "lucide-react";
 import type { Driver } from "@/api/types";
 import type {
   OvertakePayload,
@@ -14,7 +14,6 @@ import type {
   UndercutPayload,
 } from "@/timeline/events";
 import { CATCHUP_REPLAY_LEAD_MS } from "@/constants";
-import { teamColor } from "@/utils/color";
 import { formatPitDuration } from "@/utils/pit";
 import { formatBattleGain, pitBattleHeadline } from "@/utils/undercut";
 import { useSettings } from "@/stores/settings";
@@ -23,6 +22,15 @@ import { RadioAudio } from "@/components/RadioAudio";
 import { DialogHeader } from "@/components/DialogHeader";
 import { Chip } from "@/components/SettingsModal/SettingsPrimitives";
 import { TyreChange } from "@/components/TyreChange/TyreChange";
+import {
+  COMMENTARY_BUTTON_CLASS,
+  formatSessionElapsedTime,
+} from "@/components/CommentaryPanels/commentaryList";
+import {
+  CommentaryDriver,
+  CommentaryRow,
+  type CommentaryBadge,
+} from "@/components/CommentaryPanels/CommentaryRow";
 import { useAudioProgress } from "@/hooks/useAudioProgress";
 
 interface Props {
@@ -41,16 +49,6 @@ function fmtDuration(ms: number): string {
   const h = Math.floor(m / 60);
   if (h > 0) return `${h}h ${m % 60}m`;
   return `${m} min`;
-}
-
-function fmtRaceTime(ms: number): string {
-  const totalSec = Math.floor(ms / 1000);
-  const h = Math.floor(totalSec / 3600);
-  const m = Math.floor((totalSec % 3600) / 60);
-  const s = totalSec % 60;
-  if (h > 0)
-    return `${h}:${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
-  return `${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
 }
 
 function fmtLapTime(sec: number): string {
@@ -161,116 +159,16 @@ function flagBadge(flag: string) {
   };
 }
 
-// ─── Row building blocks ──────────────────────────────────────────────────────
-
-function Badge({
-  label,
-  color,
-  text,
-}: Readonly<{ label: string; color: string; text: string }>) {
-  return (
-    <span
-      className="text-[8px] font-black px-1 py-0.5 uppercase tracking-widest shrink-0"
-      style={{ backgroundColor: color, color: text }}
-    >
-      {label}
-    </span>
-  );
-}
-
-function DriverTag({
-  driver,
-  driverNumber,
-  showName = true,
-}: Readonly<{ driver?: Driver; driverNumber: number; showName?: boolean }>) {
-  return (
-    <>
-      <span
-        className="text-[12px] font-black"
-        style={{ color: teamColor(driver?.team_colour) }}
-      >
-        {driver?.name_acronym ?? driverNumber}
-      </span>
-      {showName && driver?.full_name && (
-        <span className="text-[10px] text-muted truncate">
-          {driver.full_name}
-        </span>
-      )}
-    </>
-  );
-}
+// ─── Rows ─────────────────────────────────────────────────────────────────────
 
 function LapTag({ lap }: Readonly<{ lap: number | null | undefined }>) {
   if (typeof lap !== "number") return null;
-  return <span className="text-[9px] text-muted font-mono">Lap {lap}</span>;
+  return <span>Lap {lap}</span>;
 }
 
-function EventTime({
-  ms,
-  onJump,
-}: Readonly<{ ms: number; onJump?: (ms: number) => void }>) {
-  const label = fmtRaceTime(ms);
-  if (!onJump) {
-    return (
-      <span className="text-[10px] font-mono tabular-nums text-muted shrink-0">
-        {label}
-      </span>
-    );
-  }
-  return (
-    <button
-      type="button"
-      onClick={() => onJump(ms)}
-      className="group/time -my-0.5 -mr-1 flex shrink-0 items-center gap-1 px-1 py-0.5 text-[10px] font-mono tabular-nums text-muted transition-colors hover:bg-white/[0.06] hover:text-white focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-f1red"
-      title="Replay from here"
-      aria-label={`Replay from ${label}`}
-    >
-      <RotateCcw
-        aria-hidden="true"
-        className="h-2.5 w-2.5 opacity-0 transition-opacity group-hover/row:opacity-60 group-hover/time:opacity-100 group-focus-visible/time:opacity-100"
-      />
-      {label}
-    </button>
-  );
+function kindBadge(style: KindStyle, label = style.badge ?? ""): CommentaryBadge {
+  return { label, style: { backgroundColor: style.color, color: style.text } };
 }
-
-/** Shared row chrome: accent border, headline left, time (+ action) right, detail below. */
-function EventRow({
-  ev,
-  accent,
-  headline,
-  detail,
-  action,
-  onJump,
-  children,
-}: Readonly<{
-  ev: ToastEvent;
-  accent: string;
-  headline: ReactNode;
-  detail?: ReactNode;
-  action?: ReactNode;
-  onJump?: (ms: number) => void;
-  children?: ReactNode;
-}>) {
-  return (
-    <div
-      className="group/row border-l-2 py-2.5 pl-4 pr-4 sm:pr-5"
-      style={{ borderLeftColor: accent }}
-    >
-      <div className="flex items-center justify-between gap-2">
-        <div className="flex min-w-0 items-center gap-1.5">{headline}</div>
-        <div className="flex items-center gap-1.5 shrink-0">
-          <EventTime ms={ev.ms} onJump={onJump} />
-          {action}
-        </div>
-      </div>
-      {detail && <div className="mt-0.5">{detail}</div>}
-      {children}
-    </div>
-  );
-}
-
-// ─── Per-kind rows ────────────────────────────────────────────────────────────
 
 interface RowProps {
   ev: ToastEvent;
@@ -278,6 +176,16 @@ interface RowProps {
   playingUrl: string | null;
   onToggleRadio: (url: string) => void;
   onJump?: (ms: number) => void;
+}
+
+/** Shared row props: time, replay button wording and accent. */
+function rowBase(ev: ToastEvent, accent: string, onJump?: (ms: number) => void) {
+  return {
+    ms: ev.ms,
+    accent,
+    onJump,
+    jumpName: `Replay from ${formatSessionElapsedTime(Math.max(0, ev.ms))}`,
+  };
 }
 
 function CatchupEventRow(props: Readonly<RowProps>) {
@@ -288,33 +196,23 @@ function CatchupEventRow(props: Readonly<RowProps>) {
     case "fastest_lap": {
       const p = ev.payload as FastestLapPayload;
       return (
-        <EventRow
-          ev={ev}
-          accent={style.color}
-          onJump={onJump}
-          headline={
-            <>
-              <Badge
-                label={style.badge!}
-                color={style.color}
-                text={style.text}
-              />
-              <DriverTag
-                driver={driverMap.get(p.driverNumber)}
-                driverNumber={p.driverNumber}
-              />
-            </>
+        <CommentaryRow
+          {...rowBase(ev, style.color, onJump)}
+          badge={kindBadge(style)}
+          title={
+            <CommentaryDriver
+              driver={driverMap.get(p.driverNumber)}
+              driverNumber={p.driverNumber}
+              showName
+            />
           }
-          detail={
-            <div className="flex items-center gap-2">
+          meta={
+            <>
               <LapTag lap={p.lapNumber} />
-              <span
-                className="text-[10px] font-mono tabular-nums font-bold"
-                style={{ color: style.color }}
-              >
+              <span className="font-bold" style={{ color: style.color }}>
                 {fmtLapTime(p.lapTime)}
               </span>
-            </div>
+            </>
           }
         />
       );
@@ -324,23 +222,25 @@ function CatchupEventRow(props: Readonly<RowProps>) {
     case "penalty":
     case "investigation": {
       const p = ev.payload as FlagPayload;
-      const badge =
-        ev.kind === "flag"
-          ? flagBadge(p.flag)
-          : { label: style.badge!, color: style.color, text: style.text };
+      const flag = ev.kind === "flag" ? flagBadge(p.flag) : null;
+      const accent = flag?.color ?? style.color;
       return (
-        <EventRow
-          ev={ev}
-          accent={badge.color}
-          onJump={onJump}
-          headline={<Badge {...badge} />}
-          detail={
-            <>
-              <span className="text-[10px] text-white/70 block">
-                {p.message}
-              </span>
+        <CommentaryRow
+          {...rowBase(ev, accent, onJump)}
+          badge={
+            flag
+              ? {
+                  label: flag.label,
+                  style: { backgroundColor: flag.color, color: flag.text },
+                }
+              : kindBadge(style)
+          }
+          titleLines="all"
+          title={p.message}
+          meta={
+            typeof p.lapNumber === "number" ? (
               <LapTag lap={p.lapNumber} />
-            </>
+            ) : undefined
           }
         />
       );
@@ -348,33 +248,24 @@ function CatchupEventRow(props: Readonly<RowProps>) {
 
     case "overtake": {
       const p = ev.payload as OvertakePayload;
-      const overtaken = driverMap.get(p.overtaken);
       return (
-        <EventRow
-          ev={ev}
-          accent={style.color}
-          onJump={onJump}
-          headline={
+        <CommentaryRow
+          {...rowBase(ev, style.color, onJump)}
+          badge={kindBadge(style, "PASS")}
+          title={
             <>
-              <DriverTag
+              <CommentaryDriver
                 driver={driverMap.get(p.overtaking)}
                 driverNumber={p.overtaking}
-                showName={false}
+              />{" "}
+              <span className="font-normal text-muted">passed</span>{" "}
+              <CommentaryDriver
+                driver={driverMap.get(p.overtaken)}
+                driverNumber={p.overtaken}
               />
-              <span className="text-[9px] text-muted">▸</span>
-              <span
-                className="text-[11px] font-bold"
-                style={{ color: teamColor(overtaken?.team_colour) }}
-              >
-                {overtaken?.name_acronym ?? p.overtaken}
-              </span>
-              {p.position && (
-                <span className="text-[9px] font-mono text-muted">
-                  P{p.position}
-                </span>
-              )}
             </>
           }
+          meta={p.position ? <span>for P{p.position}</span> : undefined}
         />
       );
     }
@@ -382,37 +273,30 @@ function CatchupEventRow(props: Readonly<RowProps>) {
     case "undercut": {
       const p = ev.payload as UndercutPayload;
       return (
-        <EventRow
-          ev={ev}
-          accent={style.color}
-          onJump={onJump}
-          headline={
+        <CommentaryRow
+          {...rowBase(ev, style.color, onJump)}
+          badge={kindBadge(style, p.kind === "undercut" ? "UNDERCUT" : "OVERCUT")}
+          title={
             <>
-              <DriverTag
+              <CommentaryDriver
                 driver={driverMap.get(p.attacker)}
                 driverNumber={p.attacker}
-                showName={false}
-              />
-              <span className="text-[10px] font-bold text-white/80">
-                {pitBattleHeadline(p)}
-              </span>
-              <span className="text-[9px] text-muted">vs</span>
-              <DriverTag
+              />{" "}
+              <span className="font-normal text-muted">vs</span>{" "}
+              <CommentaryDriver
                 driver={driverMap.get(p.defender)}
                 driverNumber={p.defender}
-                showName={false}
               />
             </>
           }
-          detail={
-            <div className="flex items-center gap-2">
+          meta={
+            <>
+              <span className="text-white/80">{pitBattleHeadline(p)}</span>
               <LapTag lap={p.firstStopLap} />
               {p.attackerGainS !== null && (
-                <span className="text-[9px] font-mono tabular-nums text-muted">
-                  {formatBattleGain(p.attackerGainS)}
-                </span>
+                <span>{formatBattleGain(p.attackerGainS)}</span>
               )}
-            </div>
+            </>
           }
         />
       );
@@ -424,37 +308,30 @@ function CatchupEventRow(props: Readonly<RowProps>) {
       const hasDuration = typeof p.pitDuration === "number";
       const hasTyres = Boolean(p.tyreOff || p.tyreOn);
       return (
-        <EventRow
-          ev={ev}
-          accent={style.color}
-          onJump={onJump}
-          headline={
-            <>
-              <Badge
-                label={style.badge!}
-                color={style.color}
-                text={style.text}
-              />
-              <DriverTag
-                driver={driverMap.get(p.driverNumber)}
-                driverNumber={p.driverNumber}
-              />
-            </>
+        <CommentaryRow
+          {...rowBase(ev, style.color, onJump)}
+          badge={kindBadge(style)}
+          title={
+            <CommentaryDriver
+              driver={driverMap.get(p.driverNumber)}
+              driverNumber={p.driverNumber}
+              showName
+            />
           }
-          detail={
-            (hasLap || hasDuration || hasTyres) && (
-              <div className="flex items-center gap-2">
+          meta={
+            hasLap || hasDuration || hasTyres ? (
+              <>
                 <LapTag lap={p.lapNumber} />
                 {hasDuration && (
-                  <span className="text-[9px] font-mono tabular-nums text-white/70">
+                  <span className="text-white/70">
                     {formatPitDuration(p.pitDuration!) ?? "--:--"} stop
                   </span>
                 )}
                 {hasTyres && (
                   <TyreChange off={p.tyreOff} on={p.tyreOn} compact />
                 )}
-              </div>
-            )
+              </>
+            ) : undefined
           }
         />
       );
@@ -483,68 +360,63 @@ function CatchupRadioRow({
   const { progress, audioRef, onTimeUpdate } = useAudioProgress(isPlaying);
 
   return (
-    <EventRow
-      ev={ev}
-      accent={style.color}
-      onJump={onJump}
-      headline={
-        <>
-          <Badge label={style.badge!} color={style.color} text={style.text} />
-          <DriverTag
-            driver={driverMap.get(p.driverNumber)}
-            driverNumber={p.driverNumber}
-          />
-        </>
+    <CommentaryRow
+      {...rowBase(ev, style.color, onJump)}
+      badge={kindBadge(style)}
+      title={
+        <CommentaryDriver
+          driver={driverMap.get(p.driverNumber)}
+          driverNumber={p.driverNumber}
+          showName
+        />
       }
-      action={
-        <button
-          onClick={() => recordingUrl && onToggleRadio(recordingUrl)}
-          disabled={!hasAudio}
-          aria-label={isPlaying ? "Stop" : "Play"}
-          className={[
-            "relative flex h-6 min-w-[64px] items-center justify-center gap-1 overflow-hidden border border-panel px-2 text-[9px] font-black uppercase tracking-widest transition-colors",
-            isPlaying
-              ? "bg-track text-white"
-              : "text-muted hover:border-f1red hover:text-f1red",
-            !hasAudio ? "opacity-30 cursor-not-allowed" : "",
-          ]
-            .filter(Boolean)
-            .join(" ")}
-        >
-          {isPlaying && (
-            <span
-              aria-hidden="true"
-              className="absolute inset-y-0 left-0 bg-f1red transition-[width] duration-150 ease-linear"
-              style={{ width: `${progress * 100}%` }}
-              data-progress={Math.round(progress * 100)}
+      meta={
+        typeof p.lapNumber === "number" ? <LapTag lap={p.lapNumber} /> : undefined
+      }
+      actions={
+        <>
+          <button
+            type="button"
+            onClick={() => recordingUrl && onToggleRadio(recordingUrl)}
+            disabled={!hasAudio}
+            aria-label={isPlaying ? "Stop" : "Play"}
+            className={`${COMMENTARY_BUTTON_CLASS} relative w-[64px] overflow-hidden ${
+              isPlaying ? "border-f1red text-white" : ""
+            }`}
+          >
+            {isPlaying && (
+              <span
+                aria-hidden="true"
+                className="absolute inset-y-0 left-0 bg-f1red transition-[width] duration-150 ease-linear"
+                style={{ width: `${progress * 100}%` }}
+                data-progress={Math.round(progress * 100)}
+              />
+            )}
+            <span className="relative flex items-center gap-1.5">
+              {isPlaying ? (
+                <>
+                  <Square size={11} strokeWidth={2.4} aria-hidden="true" /> Stop
+                </>
+              ) : (
+                <>
+                  <Play size={11} strokeWidth={2.4} aria-hidden="true" /> Play
+                </>
+              )}
+            </span>
+          </button>
+          {isPlaying && recordingUrl && (
+            <RadioAudio
+              key={recordingUrl}
+              audioRef={audioRef}
+              src={recordingUrl}
+              onTimeUpdate={onTimeUpdate}
+              onEnded={() => onToggleRadio(recordingUrl)}
+              onError={() => onToggleRadio(recordingUrl)}
             />
           )}
-          <span className="relative flex items-center gap-1">
-            {isPlaying ? (
-              <>
-                <Square size={11} strokeWidth={2.4} aria-hidden="true" /> Stop
-              </>
-            ) : (
-              <>
-                <Play size={11} strokeWidth={2.4} aria-hidden="true" /> Play
-              </>
-            )}
-          </span>
-        </button>
+        </>
       }
-      detail={typeof p.lapNumber === "number" && <LapTag lap={p.lapNumber} />}
-    >
-      {isPlaying && recordingUrl && (
-        <RadioAudio
-          key={recordingUrl}
-          audioRef={audioRef}
-          src={recordingUrl}
-          onTimeUpdate={onTimeUpdate}
-          onEnded={() => onToggleRadio(recordingUrl)}
-          onError={() => onToggleRadio(recordingUrl)}
-        />
-      )}
-    </EventRow>
+    />
   );
 }
 
@@ -686,7 +558,7 @@ export function CatchupSummary({
 
         <div className="flex shrink-0 items-center justify-between gap-3 border-t border-panel px-4 py-3 sm:px-5">
           <span className="font-mono text-[9px] uppercase tracking-[0.14em] text-muted">
-            {jump ? "Tap a time to replay it" : "Default filters: Settings → Playback"}
+            {jump ? "Tap › to replay from there" : "Default filters: Settings → Playback"}
           </span>
           <button
             type="button"
