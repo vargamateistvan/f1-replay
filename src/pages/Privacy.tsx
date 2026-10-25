@@ -18,25 +18,29 @@ export default function Privacy() {
 
         <div className="mt-6 space-y-5 text-sm leading-6 text-white/90">
           <p>
-            F1 Replay uses analytics and consent tooling to understand site
-            usage and improve reliability. This policy explains what data is
-            processed at a high level.
+            F1 Replay uses analytics and session replay to understand site
+            usage, improve the app, and investigate usability issues. This
+            policy summarizes the information these tools may process.
           </p>
 
           <div>
             <h2 className="text-base font-bold text-white">What We Collect</h2>
             <p className="mt-2">
               We may process technical and usage data such as page views,
-              browser and device metadata, referrer URLs, and interaction
-              events. We do not intentionally collect sensitive personal data
-              through analytics events.
+              browser and device metadata, referral information, and
+              interactions with the app. Analytics events include the current
+              route and app context, such as the selected season, event, and
+              session where available. We do not intentionally include
+              sensitive personal data in analytics events.
             </p>
             <p className="mt-2">
-              In production, Amplitude Session Replay records a random 10% of
-              sessions to help us understand interactions and improve the app.
-              Replay may capture page content, clicks, scrolling, and
-              navigation. Form inputs are masked. You can turn off future
-              recordings in Settings at any time.
+              In production, Amplitude Session Replay is configured to sample
+              10% of sessions. A replay can reconstruct visible page content
+              and interactions, including clicks, scrolling, and navigation.
+              Amplitude's medium masking level masks form fields and text
+              inputs; other visible page text may be captured. You can disable
+              future recordings in Settings. The Amplitude project privacy
+              settings may apply additional masking or override SDK settings.
             </p>
           </div>
 
@@ -45,9 +49,14 @@ export default function Privacy() {
               Cookies and Consent
             </h2>
             <p className="mt-2">
-              We use Google Analytics and Amplitude for measurement.
-              Session Replay is enabled by default for a 10% sample of
-              production sessions and can be disabled in Settings.
+              We use Google Analytics and Amplitude for measurement. Analytics
+              and replay are enabled on production sites; Session Replay is
+              configured for a 10% sample. You can turn off future Session
+              Replay recordings in{" "}
+              <strong>Settings → General → Session replay</strong>. This app
+              does not currently provide a separate consent banner;
+              requirements vary by location, so this notice is not a
+              determination that consent is unnecessary.
             </p>
           </div>
 
@@ -55,7 +64,9 @@ export default function Privacy() {
             <h2 className="text-base font-bold text-white">Third Parties</h2>
             <p className="mt-2">
               Analytics and replay data may be processed by Google and
-              Amplitude in accordance with their terms and privacy policies.
+              Amplitude under their respective terms and privacy policies.
+              Review their policies for information about their processing and
+              retention practices.
             </p>
           </div>
 

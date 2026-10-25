@@ -41,6 +41,29 @@ export default function Terms() {
 
           <div>
             <h2 className="text-base font-bold text-white">
+              Analytics and Session Replay
+            </h2>
+            <p className="mt-2">
+              We use third-party analytics services to understand how the
+              service is used. On production sites, Amplitude Session Replay is
+              configured to record a 10% sample of sessions. Replay may capture
+              visible page content and interactions; form fields and text
+              inputs are masked using Amplitude's medium masking level. You can
+              disable future replay recordings in Settings. Further details
+              about data collection and third-party processing are provided in
+              our{" "}
+              <Link
+                to="/privacy"
+                className="text-f1red/85 transition-colors hover:text-f1red"
+              >
+                Privacy Policy
+              </Link>
+              .
+            </p>
+          </div>
+
+          <div>
+            <h2 className="text-base font-bold text-white">
               Formula One Trademarks
             </h2>
             <p className="mt-2">
