@@ -8,6 +8,7 @@ import {
   projectPitRejoin,
   pitRejoinView,
   pitWindowRivals,
+  rankAtGap,
 } from "./pitRejoin";
 import { buildIndex } from "@/timeline/interpolate";
 
@@ -151,6 +152,32 @@ describe("projectPitRejoin", () => {
         21,
       ),
     ).toBeNull();
+  });
+});
+
+describe("rankAtGap", () => {
+  const gaps = new Map([
+    [1, 0],
+    [4, 0], // the pitting car's own (stale) gap is ignored
+    [16, 12],
+    [44, 22],
+  ]);
+
+  it("ranks a car already in the pits at its projected gap", () => {
+    expect(rankAtGap(gaps, 4, 15)).toEqual({
+      position: 3,
+      ahead: { driverNumber: 16, gapS: 3 },
+      behind: { driverNumber: 44, gapS: 7 },
+    });
+  });
+
+  it("puts a car ahead of the leader's reference in the lead", () => {
+    expect(rankAtGap(gaps, 4, -2)?.position).toBe(1);
+    expect(rankAtGap(gaps, 4, -2)?.ahead).toBeNull();
+  });
+
+  it("returns null when several other cars read as leader", () => {
+    expect(rankAtGap(new Map([[1, 0], [16, 0]]), 4, 5)).toBeNull();
   });
 });
 

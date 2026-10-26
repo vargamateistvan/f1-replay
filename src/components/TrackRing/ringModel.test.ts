@@ -4,9 +4,11 @@ import { buildTrackGeometry, projectToSvg } from "../TrackMap/trackGeometry";
 import {
   buildRingModel,
   displayArc,
+  findPitEntry,
   formatFocusGap,
   formatLapTime,
   formatRingGap,
+  gapAtTimeFraction,
   placeCar,
   nearbyRingDrivers,
   signedTimeDelta,
@@ -16,6 +18,7 @@ import {
   type RingScale,
 } from "./ringModel";
 import { ringArcPath } from "@/utils/lapProgress";
+import { buildIndex } from "@/timeline/interpolate";
 import { buildLapTimeProfile } from "./lapTimeProfile";
 
 // 1 km square in the F1 frame (decimetres), sampled every 50 m, starting at
@@ -110,6 +113,54 @@ describe("placeCar", () => {
 
   it("never puts cars in the pits on a layout outline that isn't to scale", () => {
     expect(place(layout, -300, 2500)!.inPit).toBe(false);
+  });
+});
+
+describe("findPitEntry", () => {
+  const model = buildRingModel({ geom, circuitGeom, pitLane, totalMarshalPosts: 6, toScale: true });
+  const index = buildIndex([
+    { t: 0, x: 0, y: 500 },
+    { t: 1000, x: 0, y: 1000 },
+    { t: 2000, x: -300, y: 1500 },
+    { t: 3000, x: -300, y: 2500 },
+  ]);
+
+  it("finds the last on-track sample before the car went into the pits", () => {
+    const entry = findPitEntry(model, geom, index, 3500, 60_000)!;
+    expect(entry.t).toBe(1000);
+    expect(entry.fraction).toBeCloseTo(0.025, 3);
+  });
+
+  it("gives up past the lookback or at OpenF1's (0, 0) placeholder", () => {
+    expect(findPitEntry(model, geom, index, 3500, 2000)).toBeNull();
+    const placeholder = buildIndex([
+      { t: 0, x: 0, y: 0 },
+      { t: 1000, x: -300, y: 2500 },
+    ]);
+    expect(findPitEntry(model, geom, placeholder, 1500, 60_000)).toBeNull();
+  });
+});
+
+describe("gapAtTimeFraction", () => {
+  const timeFractions = new Map([
+    [16, 0.35],
+    [44, 0.85],
+    [20, 0.34],
+  ]);
+  const gaps = new Map([
+    [16, 12],
+    [44, 45],
+  ]);
+
+  it("reads the gap off the nearest car that has one", () => {
+    // 1 s behind LEC (0.35 − 1/60); car 20 is closer but has no gap.
+    expect(gapAtTimeFraction(0.35 - 1 / 60, timeFractions, gaps, 60_000)).toBeCloseTo(13, 6);
+    // 3 s ahead of HAM.
+    expect(gapAtTimeFraction(0.9, timeFractions, gaps, 60_000)).toBeCloseTo(42, 6);
+  });
+
+  it("returns null without a car to read from", () => {
+    expect(gapAtTimeFraction(0.5, timeFractions, new Map(), 60_000)).toBeNull();
   });
 });
 

@@ -376,4 +376,84 @@ describe("TrackRing", () => {
     expect(screen.getByText("LEC", { selector: "text" }).closest("g[opacity]")).toHaveAttribute("opacity", "1");
     expect(screen.getByText("HAM", { selector: "text" }).closest("g[opacity]")).toHaveAttribute("opacity", "1");
   });
+
+  it("keeps projecting the rejoin while the focused car is in the pits", () => {
+    vi.mocked(useCircuitGeometry).mockReturnValue({
+      data: { pitLoss: { normal: "20", sc: "10", vsc: "14" } },
+      isPending: false,
+    } as never);
+    ring.timeScale = true;
+    ring.showPitWindowOutcomes = true;
+    const drivers3 = [...drivers, { driver_number: 44, name_acronym: "HAM", team_colour: "27F4D2" }] as Driver[];
+    // VER pits halfway through its third lap (time fraction 0.5) and sits
+    // 30 m off the track (no baked pit lane) until the end.
+    const pitAt = 2.5 * LAP_MS;
+    const locs = timedLocations().filter((l) => l.driver_number !== 1 || Date.parse(l.date) - START <= pitAt);
+    for (let ms = pitAt + 250; ms <= 3 * LAP_MS; ms += 250) locs.push(loc(1, -300, 100, ms));
+    locs.push(loc(44, 0.01, 200, 0), loc(44, 0.01, 200, 3 * LAP_MS));
+    const props = (
+      <TrackRing
+        sessionKey={1}
+        drivers={drivers3}
+        locationData={locs}
+        sessionStartMs={START}
+        focusDriver={1}
+        leaderNumber={1}
+        pitRejoinGaps={
+          new Map([
+            [1, 0],
+            [16, 12],
+            [44, 45],
+          ])
+        }
+      />
+    );
+    // 10 s into the stop: had VER stayed out it would be at 0.5 + 10/60; the
+    // 20 s loss puts the rejoin point at 1/3, 1 s behind LEC (0.35) → 13 s.
+    clock.t = pitAt + 10_000;
+    const { rerender } = render(props);
+    const window = screen.getByTestId("ring-pit-window");
+    expect(window).toHaveTextContent("REJOIN P2");
+    expect(window).not.toHaveTextContent("VSC");
+    const panel = screen.getByRole("status", { name: "Pit rejoin" });
+    expect(panel).toHaveTextContent("VER in the pits → P2");
+    expect(panel).toHaveTextContent(/Rejoins behind: LEC by 1\.\ds/);
+    expect(panel).toHaveTextContent(/Ahead of: HAM by 3\d\.\ds/);
+    expect(screen.queryByRole("status", { name: "Pit window outcomes" })).not.toBeInTheDocument();
+
+    // The rejoin point moves on at field speed: 5 s later it is 4 s past the
+    // parked LEC, so VER would now come out in front.
+    clock.t = pitAt + 15_000;
+    rerender(cloneElement(props));
+    expect(screen.getByTestId("ring-pit-window")).toHaveTextContent("REJOIN P1");
+    expect(screen.getByRole("status", { name: "Pit rejoin" })).toHaveTextContent(/Ahead of: LEC by 4\.\ds/);
+  });
+
+  it("needs the time dial to project a rejoin from the pits", () => {
+    vi.mocked(useCircuitGeometry).mockReturnValue({
+      data: { pitLoss: { normal: "20" } },
+      isPending: false,
+    } as never);
+    const pitAt = 2.5 * LAP_MS;
+    const locs = timedLocations().filter((l) => l.driver_number !== 1 || Date.parse(l.date) - START <= pitAt);
+    for (let ms = pitAt + 250; ms <= 3 * LAP_MS; ms += 250) locs.push(loc(1, -300, 100, ms));
+    clock.t = pitAt + 10_000;
+    render(
+      <TrackRing
+        sessionKey={1}
+        drivers={drivers}
+        locationData={locs}
+        sessionStartMs={START}
+        focusDriver={1}
+        leaderNumber={1}
+        pitRejoinGaps={
+          new Map([
+            [1, 0],
+            [16, 12],
+          ])
+        }
+      />,
+    );
+    expect(screen.queryByTestId("ring-pit-window")).not.toBeInTheDocument();
+  });
 });

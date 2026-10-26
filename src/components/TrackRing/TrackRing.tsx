@@ -6,6 +6,7 @@ import {
   RING_LABEL_MIN_GAP,
   RING_LABEL_RADIUS,
   FLAG_COLORS,
+  RING_PIT_ENTRY_LOOKBACK_MS,
   RING_PIT_RADIUS,
   RING_RADIUS,
   RING_REF_REFRESH_MS,
@@ -21,8 +22,17 @@ import { useStartLightsSound } from "@/hooks/useStartLightsSound";
 import { isOffTrackPlaceholder, useTrackOutline } from "@/hooks/useTrackMap";
 import { trackEvent } from "@/lib/analytics";
 import { useSettings } from "@/stores/settings";
-import { buildDriverIndexes, interpolateXY } from "@/timeline/interpolate";
-import { alternativePitLosses, parsePitLoss, pitRejoinView, pitWindowRivals } from "@/utils/pitRejoin";
+import { buildDriverIndexes, interpolateXY, type LocationIndex } from "@/timeline/interpolate";
+import {
+  alternativePitLosses,
+  parsePitLoss,
+  pitLossFor,
+  pitRejoinView,
+  pitWindowRivals,
+  rankAtGap,
+  type PitRejoinNeighbour,
+  type PitRejoinProjection,
+} from "@/utils/pitRejoin";
 import {
   isActiveTrackFlag,
   projectToTimingSectors,
@@ -42,9 +52,11 @@ import type { LapTimeProfile } from "./lapTimeProfile";
 import {
   buildReferenceProfile,
   buildRingModel,
+  findPitEntry,
   formatFocusGap,
   formatLapTime,
   formatRingGap,
+  gapAtTimeFraction,
   lapTimeFraction,
   layoutRingCars,
   nearbyRingDrivers,
@@ -52,6 +64,7 @@ import {
   signedTimeDelta,
   toDisplay,
   type RingCar,
+  type RingModel,
   type RingScale,
 } from "./ringModel";
 import {
@@ -219,9 +232,19 @@ export function TrackRing({
   // Last good reference lap (and the playhead it was built at). A new one
   // replaces it unless it is much slower (safety car laps) and nearby in time.
   const profileRef = useRef<{ profile: LapTimeProfile; t: number } | null>(null);
+  // Pit entry of the focused car while it is in the pits (null entry: none
+  // found within the lookback), so the location scan runs once per stop.
+  const pitEntryRef = useRef<{
+    driver: number;
+    index: LocationIndex;
+    model: RingModel;
+    scannedAt: number;
+    entry: { t: number; fraction: number } | null;
+  } | null>(null);
   useEffect(() => {
     hintsRef.current = new Map();
     profileRef.current = null;
+    pitEntryRef.current = null;
   }, [model]);
 
   const refBucket = Math.floor(t / RING_REF_REFRESH_MS);
@@ -327,6 +350,7 @@ export function TrackRing({
   // Lap time fraction (before the flip) of every car on track.
   const timeFractions = new Map<number, number>();
   const hints = hintsRef.current;
+  let focusInPit = false;
   for (const [num, idx] of locationIndexes) {
     if (retiredDrivers?.has(num)) continue;
     const pos = interpolateXY(idx, t);
@@ -337,7 +361,9 @@ export function TrackRing({
     hints.set(num, placed.segment);
     ringCars.push({ num, fraction: toDisplay(scale, placed.fraction), inPit: placed.inPit });
     if (!placed.inPit) timeFractions.set(num, lapTimeFraction(scale, placed.fraction));
+    else if (num === focusDriver) focusInPit = true;
   }
+  if (!focusInPit) pitEntryRef.current = null;
   const focusTimeFraction = focusDriver === null ? null : (timeFractions.get(focusDriver) ?? null);
   const carLayout = layoutRingCars(ringCars, {
     cx: CX,
@@ -397,6 +423,48 @@ export function TrackRing({
       const rivals = rejoinGaps ? pitWindowRivals(rejoinGaps, focusDriver, rejoin.lossS, retiredDrivers) : null;
       pitWindowRivalsResult = rivals;
       for (const num of [...(rivals?.passedBy ?? []), ...(rivals?.dropBehind ?? [])]) highlightDrivers.add(num);
+    }
+  }
+
+  // Already in the pits (time dial): the rejoin point is where the car would
+  // be had it stayed out (its pit entry, moved on at field speed) minus the
+  // pit loss, so it holds still against the field until the car rejoins.
+  let inPitRejoin: PitRejoinProjection | null = null;
+  const focusIndex = focusDriver === null ? undefined : locationIndexes.get(focusDriver);
+  if (focusInPit && focusDriver !== null && focusIndex && profile && pitLoss && rejoinGaps?.has(focusDriver)) {
+    const cached = pitEntryRef.current;
+    const reuse =
+      cached !== null &&
+      cached.driver === focusDriver &&
+      cached.index === focusIndex &&
+      cached.model === model &&
+      t >= (cached.entry?.t ?? cached.scannedAt) &&
+      t - (cached.entry?.t ?? cached.scannedAt) <= RING_PIT_ENTRY_LOOKBACK_MS;
+    const entry = reuse
+      ? cached.entry
+      : findPitEntry(model, trackGeometry, focusIndex, t, RING_PIT_ENTRY_LOOKBACK_MS);
+    if (!reuse) {
+      pitEntryRef.current = { driver: focusDriver, index: focusIndex, model, scannedAt: t, entry };
+    }
+    if (entry) {
+      const lossS = pitLossFor(pitLoss, activeTrackVehicles).seconds;
+      const carTf = lapTimeFraction(scale, entry.fraction) + (t - entry.t) / profile.lapMs;
+      const behindTf = carTf - (lossS * 1000) / profile.lapMs;
+      const gapS = gapAtTimeFraction(behindTf, timeFractions, rejoinGaps, profile.lapMs);
+      const projection = gapS === null ? null : rankAtGap(rejoinGaps, focusDriver, gapS, retiredDrivers);
+      if (projection) {
+        inPitRejoin = projection;
+        pitWindow = {
+          carTf,
+          behindTf,
+          aheadTf: null,
+          markers: [],
+          position: projection.position,
+          lossS,
+          inPit: true,
+        };
+        for (const n of [projection.ahead, projection.behind]) if (n) highlightDrivers.add(n.driverNumber);
+      }
     }
   }
 
@@ -613,6 +681,24 @@ export function TrackRing({
         </div>
       )}
 
+      {showPitWindowOutcomes && inPitRejoin && (
+        <div
+          role="status"
+          aria-label="Pit rejoin"
+          className="absolute top-12 right-2 z-20 max-w-[min(18rem,calc(100%-1rem))] rounded border border-purple-400/30 bg-[#171923]/90 px-2.5 py-2 text-[10px] leading-snug text-white shadow-lg backdrop-blur"
+        >
+          <p className="font-black uppercase tracking-wider text-purple-300">
+            {focusAcronym} in the pits → P{inPitRejoin.position}
+          </p>
+          <p className="mt-1">
+            <span className="font-bold">Rejoins behind:</span> {neighbourText(inPitRejoin.ahead, driverByNumber)}
+          </p>
+          <p>
+            <span className="font-bold">Ahead of:</span> {neighbourText(inPitRejoin.behind, driverByNumber)}
+          </p>
+        </div>
+      )}
+
       {legendOpen && (
         <div className="absolute top-12 right-2 z-30">
           <RingLegend lightMode={lightMode} />
@@ -660,6 +746,11 @@ function driverList(numbers: readonly number[], drivers: ReadonlyMap<number, Dri
   const names = numbers.slice(0, 3).map((num) => drivers.get(num)?.name_acronym ?? `#${num}`);
   if (numbers.length > names.length) names.push(`+${numbers.length - names.length} more`);
   return names.join(", ");
+}
+
+function neighbourText(n: PitRejoinNeighbour | null, drivers: ReadonlyMap<number, Driver>): string {
+  if (!n) return "None";
+  return `${drivers.get(n.driverNumber)?.name_acronym ?? `#${n.driverNumber}`} by ${n.gapS.toFixed(1)}s`;
 }
 
 /** Track status chip for the dial's centre. */

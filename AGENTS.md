@@ -1,6 +1,6 @@
 # F1 Replay — Agent Documentation
 
-> Last updated: 2026-10-25  
+> Last updated: 2026-10-26  
 > The single source of truth for agents. Provides concise, agent-readable architecture notes, conventions, and guardrails. `docs/` holds mostly historical plans — see Section 12 before trusting one.
 
 ---
@@ -127,7 +127,7 @@ src/
     identity.ts         — canonicalTeamName() deduplication
     live.ts             — isSessionLive() with ±30 min buffer
     pit.ts              — pitStopTime() helper
-    pitRejoin.ts        — Pit-loss parsing, gap-to-leader snapshot, pit rejoin position projection, pit window rivals (`pitWindowRivals`)
+    pitRejoin.ts        — Pit-loss parsing, gap-to-leader snapshot, pit rejoin position projection (`rankAtGap` for a car already in the pits), pit window rivals (`pitWindowRivals`)
     raceControlFlags.ts — Flag severity, safety-car phase classification
     retirement.ts       — Retirement detection from race control
     session.ts          — Session utility helpers
@@ -239,7 +239,7 @@ components/ (render to DOM; read settings from Zustand)
 | Component (folder, then export if different)      | Purpose                                                                                  |
 | ------------------------------------------------- | ---------------------------------------------------------------------------------------- |
 | `TrackMap`                                        | Animated SVG track map: driver blobs, sector flags, follow-cam, compass, weather overlay, status badges (start lights, SC/VSC, chequered flag), pit rejoin projection for the focused driver (baked `pitLoss`, races only). `TrackMap.tsx` orchestrates; memoized SVG layers in `layers/`, HTML overlays in `overlays/`, pure derivations in `trackGeometry.ts` / `statusBadges.ts` |
-| `TrackRing`                                       | Ring view (third map mode, `mapViewMode: "ring"`): every circuit as a dial spaced by lap time (reference lap profile, `lapTimeProfile.ts`), start/finish at 12 o'clock; gap labels (to car ahead / leader / focused car, retaining numeric timing next to lap deficits), pit window band and named rejoin outcomes for the focused car (rivals in it highlighted, SC/VSC loss ticks), nearby-driver emphasis, hover gap measure, optional `?` legend, pit-lane cars on an inner arc, lap/status/reference lap in the centre. Nearby count is tuned by `RING_NEARBY_CARS_PER_SIDE` in `constants.ts`. Pure model in `ringModel.ts` (lap/pit paths, sector boundaries, corner ticks, `placeCar`, `toDisplay`, `layoutRingCars`, `nearbyRingDrivers`, `formatRingGap`, `formatFocusGap`, `timeArc`); SVG layers in `RingLayers.tsx`. Reuses the 2D map's outline, overlays and toolbar (`extraButtons` for gap mode / time spacing / flip / legend) |
+| `TrackRing`                                       | Ring view (third map mode, `mapViewMode: "ring"`): every circuit as a dial spaced by lap time (reference lap profile, `lapTimeProfile.ts`), start/finish at 12 o'clock; gap labels (to car ahead / leader / focused car, retaining numeric timing next to lap deficits), pit window band and named rejoin outcomes for the focused car (rivals in it highlighted, SC/VSC loss ticks; while it is in the pits a "REJOIN P{n}" ghost that moves with the field, via `findPitEntry` / `gapAtTimeFraction`), nearby-driver emphasis, hover gap measure, optional `?` legend, pit-lane cars on an inner arc, lap/status/reference lap in the centre. Nearby count is tuned by `RING_NEARBY_CARS_PER_SIDE` in `constants.ts`. Pure model in `ringModel.ts` (lap/pit paths, sector boundaries, corner ticks, `placeCar`, `toDisplay`, `layoutRingCars`, `nearbyRingDrivers`, `formatRingGap`, `formatFocusGap`, `timeArc`); SVG layers in `RingLayers.tsx`. Reuses the 2D map's outline, overlays and toolbar (`extraButtons` for gap mode / time spacing / flip / legend) |
 | `TrackMap3D`                                      | Opt-in Mapbox 3D map (Standard style, optional terrain), desktop and mobile. `TrackMap3D.tsx` owns the map and one RAF loop (cars, trail, camera); pure builders: `mapFeatures.ts` (track, flags), `trackSurface.ts` (asphalt/verge/kerb/pit/start-grid polygons; layers in `surfaceLayers.ts`), `carLayers.ts` (2D-identical car icons drawn on canvas + CC0 3D models), `trackOverlays.ts` (start/finish, S1/S2, arrows, heat/delta/elevation gradients, pit ghost, trail), `atmosphere.ts` (sun-based light preset, rain), `cameraModes.ts` (follow / chase / orbit). Layers in `overlayLayers.ts`; gate with `availability.ts` (token + WebGL2). `?debug=map3d` logs per-frame cost |
 | `LiveTiming`                                      | Real-time leaderboard: positions, intervals, mini-sectors, telemetry columns. Practice/qualifying rank on best laps, skipping race-control-deleted times and laps begun after the final chequered flag (the lap in progress at the flag still counts) |
 | `PlaybackBar`                                     | Scrubber (race-control, race-start and chequered-flag markers) / speed controls / chips |

@@ -96,9 +96,28 @@ export function projectPitRejoin(
 ): PitRejoinProjection | null {
   const ownGap = gaps.get(driverNumber);
   if (ownGap === undefined) return null;
+  if (ownGap === 0) {
+    for (const [num, gap] of gaps) {
+      if (num !== driverNumber && !excluded?.has(num) && gap === 0) return null;
+    }
+  }
+  return rankAtGap(gaps, driverNumber, ownGap + lossS, excluded);
+}
 
+/**
+ * Race position of `driverNumber` placed at `projected` seconds to the leader
+ * (same reference as `gaps`) among the other cars, e.g. a car already in the
+ * pit lane. Ties go to the car already on track. Null when several other cars
+ * read as leader.
+ */
+export function rankAtGap(
+  gaps: ReadonlyMap<number, number>,
+  driverNumber: number,
+  projected: number,
+  excluded?: ReadonlySet<number>,
+): PitRejoinProjection | null {
   const rivals: Array<[number, number]> = [];
-  let leaders = ownGap === 0 ? 1 : 0;
+  let leaders = 0;
   for (const [num, gap] of gaps) {
     if (num === driverNumber || excluded?.has(num)) continue;
     if (gap === 0) leaders++;
@@ -106,7 +125,6 @@ export function projectPitRejoin(
   }
   if (leaders > 1) return null;
 
-  const projected = ownGap + lossS;
   let ahead: PitRejoinNeighbour | null = null;
   let behind: PitRejoinNeighbour | null = null;
   let carsAhead = 0;

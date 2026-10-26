@@ -333,6 +333,7 @@ const PIT_CONDITION_LABEL: Record<PitLossCondition, string> = { normal: "GREEN",
  * ahead how far a car ahead would fall (cars in it would drop behind it if
  * they pitted). The rejoin point carries the projected position; hatched
  * ticks show the pit loss under the other track conditions (SC, VSC, green).
+ * With `inPit` the car is already in the lane: only the rejoin point is drawn.
  */
 export function RingPitWindow({
   cx,
@@ -345,6 +346,7 @@ export function RingPitWindow({
   markers,
   position,
   lossS,
+  inPit = false,
 }: RingFrame & {
   scale: RingScale;
   /** Lap time fractions (unwrapped is fine) of the car, its rejoin point and the window's far end ahead. */
@@ -354,20 +356,24 @@ export function RingPitWindow({
   markers: readonly { tf: number; condition: PitLossCondition }[];
   position: number;
   lossS: number;
+  inPit?: boolean;
 }) {
   const bandW = RING_WIDTH + 8;
   const ghostD = fromTimeFraction(scale, wrapFraction(behindTf));
   const ghost = ringPoint(cx, cy, r, ghostD);
   const tag = ringPoint(cx, cy, r - 30, ghostD);
+  const tagHalfW = inPit ? 25 : 21;
   return (
     <g pointerEvents="none" data-testid="ring-pit-window">
-      <path
-        d={timeArc(scale, cx, cy, r, behindTf, carTf)}
-        fill="none"
-        stroke={PIT_WINDOW_COLOR}
-        strokeWidth={bandW}
-        strokeOpacity={0.55}
-      />
+      {!inPit && (
+        <path
+          d={timeArc(scale, cx, cy, r, behindTf, carTf)}
+          fill="none"
+          stroke={PIT_WINDOW_COLOR}
+          strokeWidth={bandW}
+          strokeOpacity={0.55}
+        />
+      )}
       {aheadTf !== null && (
         <path
           d={timeArc(scale, cx, cy, r, carTf, aheadTf)}
@@ -412,16 +418,16 @@ export function RingPitWindow({
       <circle cx={ghost.x} cy={ghost.y} r={7} fill="none" stroke="#ffffff" strokeWidth={1.6} strokeDasharray="2.5 2" />
       <g fontFamily={FONT} textAnchor="middle">
         <rect
-          x={tag.x - 21}
+          x={tag.x - tagHalfW}
           y={tag.y - 9}
-          width={42}
+          width={tagHalfW * 2}
           height={18}
           rx={2}
           fill={PIT_WINDOW_COLOR}
           fillOpacity={0.9}
         />
         <text x={tag.x} y={tag.y - 2.5} fontSize={6.5} fontWeight="900" fill="#ffffff" dominantBaseline="middle">
-          PIT → P{position}
+          {inPit ? `REJOIN P${position}` : `PIT → P${position}`}
         </text>
         <text x={tag.x} y={tag.y + 4.5} fontSize={5.5} fill="#f3e8ff" dominantBaseline="middle">
           −{lossS.toFixed(1)}s

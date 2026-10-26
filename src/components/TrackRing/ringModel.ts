@@ -268,6 +268,62 @@ export function traceLap(
   return out;
 }
 
+/**
+ * When (session ms) and where (distance fraction) a car now in the pits was
+ * last on track: its latest on-track sample at or before `t`. Null when it has
+ * been off track for longer than `maxLookbackMs` (garage) or data runs out.
+ */
+export function findPitEntry(
+  model: RingModel,
+  geom: TrackGeometry,
+  index: LocationIndex,
+  t: number,
+  maxLookbackMs: number,
+): { t: number; fraction: number } | null {
+  const { times, xs, ys } = index;
+  let lo = 0;
+  let hi = times.length;
+  while (lo < hi) {
+    const mid = (lo + hi) >>> 1;
+    if (times[mid]! <= t) lo = mid + 1;
+    else hi = mid;
+  }
+  // Full scans: a pit-lane sample's nearest lap segment is no hint for where
+  // the car left the track. Runs once per stop.
+  for (let i = lo - 1; i >= 0; i--) {
+    const ts = times[i]!;
+    if (t - ts > maxLookbackMs) return null;
+    const x = xs[i]!;
+    const y = ys[i]!;
+    if (x === 0 && y === 0) return null;
+    const { sx, sy } = projectToSvg(geom, x, y);
+    const placed = placeCar(model, sx, sy, -1);
+    if (!placed) return null;
+    if (!placed.inPit) return { t: ts, fraction: placed.fraction };
+  }
+  return null;
+}
+
+/**
+ * Gap to the leader (s) of a point on the time dial, read off the nearest
+ * on-track car with a gap: its gap plus the on-track time between them.
+ */
+export function gapAtTimeFraction(
+  tf: number,
+  timeFractions: ReadonlyMap<number, number>,
+  gaps: ReadonlyMap<number, number>,
+  lapMs: number,
+): number | null {
+  let best: { delta: number; gap: number } | null = null;
+  for (const [num, carTf] of timeFractions) {
+    const gap = gaps.get(num);
+    if (gap === undefined) continue;
+    const delta = signedTimeDelta(tf, carTf);
+    if (!best || Math.abs(delta) < Math.abs(best.delta)) best = { delta, gap };
+  }
+  return best ? best.gap + (best.delta * lapMs) / 1000 : null;
+}
+
 /** Reference lap profile from every car's latest full lap before `tNow`. */
 export function buildReferenceProfile(
   model: RingModel,
