@@ -14,7 +14,7 @@ Inspired by MultiViewer's "Circle of Doom": a dial spaced by **time**, so the an
 - Driver inspection: focusing or hovering a car keeps it and the nearest `RING_NEARBY_CARS_PER_SIDE` cars in each direction at full emphasis, fading the rest. Pit-window rivals and the hovered comparison car are also kept visible.
 - Gap measure: hovering a car while another is focused draws an arc between them inside the ring with the on-track time gap (`signedTimeDelta` × reference lap, the short way round). Needs the time scale.
 - Legend: the `?` toolbar button opens a compact key for gap signs, lapped-car timing, the pit-window bands and condition ticks; it also explains the hover comparison and its time-spacing requirement.
-- Centre: lap counter, track status chip, reference lap time.
+- Centre: lap counter, track status and reference lap title stay in fixed positions without explanatory captions. With no focused driver, the info area shows available track weather (track/air temperature, humidity, wind and rain) with compact icons; with a focused driver, that area instead shows position, number/name, gaps to the car ahead and behind, tyre compound/age, and speed/gear when telemetry is available.
 - Labels are spread with 1D cluster merging (`layoutRingLabels`), cut at the widest empty stretch so 12 o'clock isn't special; pit cars' labels go inside.
 - Sector 2/3 start at their first marshal post (as the 3D map), equal thirds without posts.
 - The map mode setting is `mapViewMode` (`"2d" | "3d" | "ring"`); `migrateSettings` (persist v1) maps the legacy `mapView3d` boolean onto it.

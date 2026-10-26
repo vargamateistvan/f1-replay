@@ -1,6 +1,15 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { ArrowLeftRight, CircleHelp, FlipHorizontal2, Timer } from "lucide-react";
 import type { Driver, Interval, Location, Stint, Weather } from "@/api/types";
+import { teamColor } from "@/utils/color";
+import {
+  speedUnitLabel,
+  temperatureUnitLabel,
+  toDisplaySpeed,
+  toDisplayTemperature,
+  toDisplayWindSpeed,
+  windSpeedUnitLabel,
+} from "@/utils/units";
 import { ErrorMessage } from "@/components/ErrorMessage";
 import {
   RING_LABEL_MIN_GAP,
@@ -47,7 +56,7 @@ import { StatusBadges } from "../TrackMap/overlays/StatusBadges";
 import { TrackControls, type TrackControlButton } from "../TrackMap/overlays/TrackControls";
 import { buildStatusBadges, type ActiveTrackVehicles } from "../TrackMap/statusBadges";
 import { buildTrackGeometry, carDataAt, projectToSvg } from "../TrackMap/trackGeometry";
-import { mapBackgroundColor, overlayBackgroundColor } from "../TrackMap/trackMapFormat";
+import { mapBackgroundColor, overlayBackgroundColor, windDir } from "../TrackMap/trackMapFormat";
 import type { LapTimeProfile } from "./lapTimeProfile";
 import {
   buildReferenceProfile,
@@ -90,6 +99,8 @@ interface Props {
   readonly circuitKey?: number | null;
   readonly year?: number | null;
   readonly activeCompounds?: ReadonlyMap<number, { compound: Stint["compound"]; age: number }>;
+  readonly focusCompound?: { compound: Stint["compound"]; age: number } | null;
+  readonly positionByDriver?: ReadonlyMap<number, number> | null;
   readonly battlingDrivers?: ReadonlySet<number>;
   readonly retiredDrivers?: ReadonlySet<number>;
   readonly weatherOverlay?: Weather | null;
@@ -140,6 +151,8 @@ export function TrackRing({
   circuitKey = null,
   year = null,
   activeCompounds,
+  focusCompound,
+  positionByDriver = null,
   battlingDrivers,
   retiredDrivers,
   weatherOverlay = null,
@@ -493,12 +506,58 @@ export function TrackRing({
   const reference = profile
     ? {
         title: `Reference lap ${formatLapTime(profile.lapMs)}`,
-        detail: `Avg. of ${profile.laps} recent lap${profile.laps === 1 ? "" : "s"} · spaced by time`,
       }
     : {
         title: "Spaced by distance",
-        detail: timeScale ? "Time spacing after the first full lap" : "Time spacing is off",
       };
+  const focusDriverData = focusDriver === null ? undefined : driverByNumber.get(focusDriver);
+  const focusPosition = focusDriver === null ? null : (positionByDriver?.get(focusDriver) ?? null);
+  const focusTyre = focusDriver === null ? undefined : focusCompound ?? activeCompounds?.get(focusDriver);
+  const focusGapAhead =
+    focusDriver === null
+      ? null
+      : formatRingGap(
+          focusGapRow,
+          "interval",
+          focusDriver === leaderNumber || focusPosition === 1,
+        );
+  const focusBehindDriver =
+    focusPosition === null
+      ? null
+      : Array.from(positionByDriver ?? []).find(([, position]) => position === focusPosition + 1)?.[0] ?? null;
+  const focusGapBehind =
+    focusBehindDriver === null
+      ? null
+      : formatRingGap(intervalRows?.get(focusBehindDriver), "interval", false);
+  const focusHud = hudData
+    ? `${Math.round(toDisplaySpeed(hudData.speed, metricSystem))} ${speedUnitLabel(metricSystem)} · G${
+        hudData.n_gear === 0 ? "N" : hudData.n_gear
+      }`
+    : null;
+  const focusInfo =
+    focusDriver === null
+      ? null
+      : {
+          number: focusDriver,
+          acronym: focusDriverData?.name_acronym ?? `#${focusDriver}`,
+          position: focusPosition,
+          color: teamColor(focusDriverData?.team_colour, "#ffffff"),
+          gapAhead: focusGapAhead,
+          gapBehind: focusGapBehind,
+          compound: focusTyre?.compound ?? null,
+          tyreAge: focusTyre?.age ?? null,
+          speed: focusHud,
+        };
+  const centerWeather =
+    focusDriver === null && weatherOverlay
+      ? {
+          track: `${toDisplayTemperature(weatherOverlay.track_temperature, metricSystem).toFixed(0)}°${temperatureUnitLabel(metricSystem)}`,
+          air: `${toDisplayTemperature(weatherOverlay.air_temperature, metricSystem).toFixed(0)}°${temperatureUnitLabel(metricSystem)}`,
+          humidity: `${weatherOverlay.humidity}%`,
+          wind: `${toDisplayWindSpeed(weatherOverlay.wind_speed, metricSystem).toFixed(0)} ${windSpeedUnitLabel(metricSystem)} ${windDir(weatherOverlay.wind_direction)}`,
+          raining: weatherOverlay.rainfall > 0,
+        }
+      : null;
   const extraButtons: TrackControlButton[] = [
     {
       key: "legend",
@@ -581,15 +640,8 @@ export function TrackRing({
           lapLabel={lapLabel && lapLabel !== "—" ? lapLabel : null}
           status={status}
           reference={reference}
-          gapCaption={
-            gapText
-              ? effectiveGapMode === "focus"
-                ? `gap to ${focusAcronym}`
-                : effectiveGapMode === "interval"
-                  ? "gap to the car ahead"
-                  : "gap to the leader"
-              : null
-          }
+          focusInfo={focusInfo}
+          weather={centerWeather}
           lightMode={lightMode}
         />
         <RingPitLane

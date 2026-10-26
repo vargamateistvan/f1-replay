@@ -1398,6 +1398,11 @@ export default function RaceWeekend() {
     setSetting,
   } = useSettings();
 
+  const ringPositions = useMemo(() => {
+    if (!isMapVisible || mapViewMode !== "ring" || !directorBase || !sessionStartMs) return null;
+    return positionsAt(directorBase.positions, sessionStartMs + tSlow);
+  }, [isMapVisible, mapViewMode, directorBase, sessionStartMs, tSlow]);
+
   // Ring view gap labels: each car's latest interval row (races only).
   const ringIntervalRows = useMemo(() => {
     if (!isMapVisible || mapViewMode !== "ring" || !isRaceSession) return null;
@@ -2203,6 +2208,8 @@ export default function RaceWeekend() {
       circuitKey={session?.circuit_key ?? null}
       year={session?.year ?? null}
       activeCompounds={mapShowCompoundBadges ? activeCompounds : undefined}
+      focusCompound={focusDriver === null ? null : (activeCompounds.get(focusDriver) ?? null)}
+      positionByDriver={ringPositions}
       battlingDrivers={mapShowBattleRings ? battlingDrivers : undefined}
       showFocusedHud={mapShowDriverHud}
       sharedAllDriverWindow={telemetryEnabled}

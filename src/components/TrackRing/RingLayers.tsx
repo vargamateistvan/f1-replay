@@ -1,4 +1,5 @@
 import { memo } from "react";
+import { CloudRain, CloudSun, Droplets, Thermometer, Wind } from "lucide-react";
 import type { Driver, Stint } from "@/api/types";
 import { COMPOUND_COLORS, FLAG_COLORS, SAFETY_CAR_NUMBERS } from "@/constants";
 import type { TimingSectorFlags } from "@/timeline/raceControl";
@@ -22,6 +23,12 @@ import {
 const RING_WIDTH = 14;
 const PIT_WIDTH = 6;
 const FONT = "Inter, sans-serif";
+
+function formatCenterGap(gap: string | null): string {
+  if (gap === "LEAD") return "LEADER";
+  if (!gap) return "—";
+  return gap.endsWith("s") ? gap : `${gap}s`;
+}
 
 interface RingFrame {
   cx: number;
@@ -270,16 +277,33 @@ export function RingCenter({
   lapLabel,
   status,
   reference,
-  gapCaption,
+  focusInfo = null,
+  weather = null,
   lightMode,
 }: {
   cx: number;
   cy: number;
   lapLabel: string | null;
   status: RingStatus | null;
-  /** Reference lap line + its detail, or the distance-scale note. */
-  reference: { title: string; detail: string };
-  gapCaption: string | null;
+  reference: { title: string };
+  focusInfo?: {
+    number: number;
+    acronym: string;
+    position: number | null;
+    color: string;
+    gapAhead: string | null;
+    gapBehind: string | null;
+    compound: Stint["compound"] | null;
+    tyreAge: number | null;
+    speed: string | null;
+  } | null;
+  weather?: {
+    track: string;
+    air: string;
+    humidity: string;
+    wind: string;
+    raining: boolean;
+  } | null;
   lightMode: boolean;
 }) {
   const fg = lightMode ? "#111318" : "#ffffff";
@@ -311,14 +335,105 @@ export function RingCenter({
       <text x={cx} y={cy + 20} fontSize={8} fill={fg} opacity={0.85} dominantBaseline="middle">
         {reference.title}
       </text>
-      <text x={cx} y={cy + 30} fontSize={6} fill={muted} dominantBaseline="middle">
-        {reference.detail}
-      </text>
-      {gapCaption && (
-        <text x={cx} y={cy + 44} fontSize={7.5} fill={fg} opacity={0.75} dominantBaseline="middle">
-          {gapCaption}
-        </text>
-      )}
+      {focusInfo ? (
+        <g data-testid="ring-focused-driver-info" aria-label={`Focused driver ${focusInfo.acronym}`}>
+          <text x={cx} y={cy + 42} fontSize={6.5} fill={fg} dominantBaseline="middle">
+            <tspan fill={focusInfo.color} fontWeight="800">
+              {focusInfo.position == null ? "P—" : `P${focusInfo.position}`}
+            </tspan>
+            <tspan fill={muted}> · </tspan>
+            <tspan fontWeight="700">{focusInfo.acronym}</tspan>
+            <tspan fill={muted}> #{focusInfo.number}</tspan>
+          </text>
+          <text
+            x={cx}
+            y={cy + 52}
+            fontSize={5.8}
+            fill={fg}
+            dominantBaseline="middle"
+          >
+            <tspan fill={muted}>AHEAD </tspan>
+            {formatCenterGap(focusInfo.gapAhead)}
+            <tspan fill={muted}> · BEHIND </tspan>
+            {formatCenterGap(focusInfo.gapBehind)}
+          </text>
+          <text x={cx} y={cy + 62} fontSize={5.5} fill={muted} dominantBaseline="middle">
+            <tspan fill={focusInfo.compound ? COMPOUND_COLORS[focusInfo.compound] : muted}>
+              {focusInfo.compound
+                ? `${focusInfo.compound} · ${focusInfo.tyreAge == null ? "—" : `${focusInfo.tyreAge}L`}`
+                : "TYRE DATA UNAVAILABLE"}
+            </tspan>
+            {focusInfo.speed ? ` · ${focusInfo.speed}` : ""}
+          </text>
+        </g>
+      ) : weather ? (
+        <g data-testid="ring-center-weather" aria-label="Track weather">
+          <g fill={muted} fontSize={4.5} dominantBaseline="middle">
+            <g textAnchor="middle">
+              <Thermometer x={cx - 44} y={cy + 37} size={7} strokeWidth={1.8} aria-hidden="true" />
+              <text x={cx - 34} y={cy + 41} textAnchor="start">TRACK</text>
+              <text x={cx - 36} y={cy + 51} fill={fg} fontSize={6.5} fontWeight="700">
+                {weather.track}
+              </text>
+            </g>
+            <g textAnchor="middle">
+              <Thermometer x={cx - 4} y={cy + 37} size={7} strokeWidth={1.8} aria-hidden="true" />
+              <text x={cx + 6} y={cy + 41} textAnchor="start">AIR</text>
+              <text x={cx + 4} y={cy + 51} fill={fg} fontSize={6.5} fontWeight="700">
+                {weather.air}
+              </text>
+            </g>
+            <g textAnchor="middle">
+              <Droplets x={cx + 35} y={cy + 37} size={7} strokeWidth={1.8} aria-hidden="true" />
+              <text x={cx + 45} y={cy + 41} textAnchor="start">HUM</text>
+              <text x={cx + 39} y={cy + 51} fill={fg} fontSize={6.5} fontWeight="700">
+                {weather.humidity}
+              </text>
+            </g>
+            <line
+              x1={cx - 52}
+              y1={cy + 58}
+              x2={cx + 52}
+              y2={cy + 58}
+              stroke={muted}
+              strokeOpacity={0.35}
+              strokeWidth={0.5}
+            />
+            <Wind x={cx - 37} y={cy + 62} size={7} strokeWidth={1.8} aria-hidden="true" />
+            <text x={cx - 27} y={cy + 66} fill={fg} textAnchor="start" fontSize={5.5}>
+              {weather.wind}
+            </text>
+            {weather.raining ? (
+              <CloudRain
+                x={cx + 14}
+                y={cy + 62}
+                size={7}
+                strokeWidth={1.8}
+                color="#38bdf8"
+                role="img"
+                aria-label="Rain"
+              />
+            ) : (
+              <CloudSun
+                x={cx + 14}
+                y={cy + 62}
+                size={7}
+                strokeWidth={1.8}
+                aria-hidden="true"
+              />
+            )}
+            <text
+              x={cx + 24}
+              y={cy + 66}
+              fill={weather.raining ? "#38bdf8" : muted}
+              textAnchor="start"
+              fontSize={5.5}
+            >
+              {weather.raining ? "RAIN" : "DRY"}
+            </text>
+          </g>
+        </g>
+      ) : null}
     </g>
   );
 }

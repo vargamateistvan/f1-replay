@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { cloneElement } from "react";
 import { fireEvent, render, screen } from "@testing-library/react";
-import type { Driver, Location } from "@/api/types";
+import type { Driver, Location, Weather } from "@/api/types";
 import { RING_RADIUS, RING_SVG_H, RING_SVG_W } from "@/constants";
 import { useCircuitGeometry } from "@/hooks/useCircuitGeometry";
 import { TrackRing } from "./TrackRing";
@@ -198,9 +198,89 @@ describe("TrackRing", () => {
     expect(screen.getByText("21/52")).toBeInTheDocument();
     expect(screen.getByText("LEAD")).toBeInTheDocument();
     expect(screen.getByText("+1.2")).toBeInTheDocument();
-    expect(screen.getByText("gap to the car ahead")).toBeInTheDocument();
+    expect(screen.queryByText("gap to the car ahead")).not.toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "Show gap to the leader" }));
     expect(ring.setSetting).toHaveBeenCalledWith("mapRingGapMode", "leader");
+  });
+
+  it("shows focused-driver race position, gap and tyre details in the centre", () => {
+    renderRing({
+      focusDriver: 16,
+      positionByDriver: new Map([
+        [16, 2],
+        [1, 3],
+      ]),
+      intervalRows: new Map([
+        [16, { interval: 1.234, gap_to_leader: 1.234 }],
+        [1, { interval: 0.84, gap_to_leader: 2.074 }],
+      ]),
+      focusCompound: { compound: "MEDIUM", age: 12 },
+    });
+    const driverInfo = screen.getByTestId("ring-focused-driver-info");
+    expect(driverInfo).toHaveTextContent("P2");
+    expect(driverInfo).toHaveTextContent("LEC");
+    expect(driverInfo).toHaveTextContent("#16");
+    expect(driverInfo).toHaveTextContent("AHEAD +1.2s · BEHIND +0.8s");
+    expect(driverInfo).toHaveTextContent("MEDIUM · 12L");
+    expect(driverInfo.querySelector("rect")).toBeNull();
+  });
+
+  it("shows compact weather details in the centre only when no driver is focused", () => {
+    const weather = {
+      air_temperature: 24.2,
+      date: new Date(START).toISOString(),
+      humidity: 48,
+      meeting_key: 1,
+      pressure: 1012,
+      rainfall: 0,
+      session_key: 1,
+      track_temperature: 38.6,
+      wind_direction: 270,
+      wind_speed: 3.7,
+    } satisfies Weather;
+    const { rerender } = renderRing({ weatherOverlay: weather, lapLabel: "21/52" });
+    const centerWeather = screen.getByTestId("ring-center-weather");
+    const centerGroup = centerWeather.parentElement;
+    const lapLabel = centerGroup?.querySelector('text');
+    expect(lapLabel).toHaveAttribute("y", String(RING_SVG_H / 2 - 24));
+    const statusLabel = Array.from(centerGroup?.querySelectorAll("text") ?? []).find(
+      (text) => text.textContent === "Green",
+    );
+    expect(statusLabel).toHaveAttribute("y", String(RING_SVG_H / 2 + 0.5));
+    expect(centerWeather).toHaveTextContent("TRACK39°C");
+    expect(centerWeather).toHaveTextContent("AIR24°C");
+    expect(centerWeather).toHaveTextContent("48%");
+    expect(centerWeather).toHaveTextContent("4 m/s W");
+    expect(centerWeather.querySelector(".lucide-thermometer")).not.toBeNull();
+    expect(centerWeather.querySelector(".lucide-droplets")).not.toBeNull();
+    expect(centerWeather.querySelector(".lucide-wind")).not.toBeNull();
+    expect(centerWeather.querySelector(".lucide-cloud-sun")).not.toBeNull();
+
+    rerender(
+      <TrackRing
+        sessionKey={1}
+        drivers={drivers}
+        locationData={[
+          loc(1, 100, 0, 0),
+          loc(1, 100, 0, 1000),
+          loc(16, 200, 200, 0),
+          loc(16, 200, 200, 1000),
+        ]}
+        sessionStartMs={START}
+        focusDriver={16}
+        weatherOverlay={weather}
+        lapLabel="21/52"
+      />,
+    );
+    expect(screen.queryByTestId("ring-center-weather")).not.toBeInTheDocument();
+    const driverInfo = screen.getByTestId("ring-focused-driver-info");
+    const focusedLap = driverInfo.parentElement?.querySelector('text');
+    expect(focusedLap).toHaveAttribute("y", lapLabel?.getAttribute("y"));
+    expect(driverInfo).toHaveTextContent("P—");
+    const focusedStatus = Array.from(driverInfo.parentElement?.querySelectorAll("text") ?? []).find(
+      (text) => text.textContent === "Green",
+    );
+    expect(focusedStatus).toHaveAttribute("y", statusLabel?.getAttribute("y"));
   });
 
   it("shows the compact legend on demand", () => {
@@ -244,7 +324,7 @@ describe("TrackRing", () => {
       ]),
     });
     expect(screen.getByText("−1.2")).toBeInTheDocument();
-    expect(screen.getByText("gap to LEC")).toBeInTheDocument();
+    expect(screen.queryByText("gap to LEC")).not.toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "Show gap to the car ahead" }));
     expect(ring.setSetting).toHaveBeenCalledWith("mapRingGapMode", "interval");
   });
@@ -271,7 +351,7 @@ describe("TrackRing", () => {
       ]),
     });
     expect(screen.getByText("+1.2")).toBeInTheDocument();
-    expect(screen.getByText("gap to the car ahead")).toBeInTheDocument();
+    expect(screen.queryByText("gap to the car ahead")).not.toBeInTheDocument();
   });
 
   it("keeps the two nearest cars on either side of the focused driver bright", () => {
