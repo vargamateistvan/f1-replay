@@ -7,15 +7,11 @@ import {
   SESSION_SIMULATION_CARS,
   SESSION_SIMULATION_LAP_SECONDS,
   SESSION_SIMULATION_LAP_STEP_SECONDS,
+  SESSION_SIMULATION_TEAM_COLORS,
   TRACK_SVG_H,
   TRACK_SVG_PAD,
   TRACK_SVG_W,
 } from "@/constants";
-
-const CAR_COLORS = [
-  "text-f1red", "text-blue", "text-teal", "text-orange",
-  "text-purple", "text-fg",
-];
 
 export function SessionSimulation({
   session,
@@ -53,12 +49,14 @@ export function SessionSimulation({
             <g
               key={index}
               data-simulation-car=""
-              className={CAR_COLORS[index % CAR_COLORS.length]}
-              style={reducedMotion ? {
-                offsetPath: `path("${outline.path}")`,
-                offsetDistance: `${progress * 100}%`,
-                offsetRotate: "auto",
-              } : undefined}
+              style={{
+                color: SESSION_SIMULATION_TEAM_COLORS[index % SESSION_SIMULATION_TEAM_COLORS.length],
+                ...(reducedMotion ? {
+                  offsetPath: `path("${outline.path}")`,
+                  offsetDistance: `${progress * 100}%`,
+                  offsetRotate: "auto",
+                } : {}),
+              }}
             >
               {!reducedMotion && (
                 <animateMotion

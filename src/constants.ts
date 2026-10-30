@@ -61,6 +61,19 @@ export const TRACK_SVG_W = 600;
 export const TRACK_SVG_H = 400;
 export const TRACK_SVG_PAD = 24;
 export const SESSION_SIMULATION_CARS = 12;
+export const SESSION_SIMULATION_TEAM_COLORS = [
+  "#F47600", // McLaren
+  "#ED1131", // Ferrari
+  "#4781D7", // Red Bull
+  "#00D7B6", // Mercedes
+  "#229971", // Aston Martin
+  "#00A1E8", // Alpine
+  "#9C9FA2", // Haas
+  "#6C98FF", // Racing Bulls
+  "#1868DB", // Williams
+  "#F50537", // Audi
+  "#909090", // Cadillac
+] as const;
 export const SESSION_SIMULATION_LAP_SECONDS = 32;
 export const SESSION_SIMULATION_LAP_STEP_SECONDS = 0.35;
 // OpenF1 / circuit-geometry x,y are decimetres.

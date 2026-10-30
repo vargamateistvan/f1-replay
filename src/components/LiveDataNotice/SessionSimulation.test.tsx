@@ -2,7 +2,7 @@ import { render, screen } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { useCircuitGeometry } from "@/hooks/useCircuitGeometry";
 import { useMediaQuery } from "@/hooks/useMediaQuery";
-import { SESSION_SIMULATION_CARS } from "@/constants";
+import { SESSION_SIMULATION_CARS, SESSION_SIMULATION_TEAM_COLORS } from "@/constants";
 import { SessionSimulation } from "./SessionSimulation";
 
 vi.mock("@/hooks/useCircuitGeometry", () => ({ useCircuitGeometry: vi.fn() }));
@@ -47,6 +47,19 @@ describe("SessionSimulation", () => {
     expect(cars).toHaveLength(SESSION_SIMULATION_CARS);
     expect(new Set([...cars].map((car) => car.style.offsetDistance)).size)
       .toBe(SESSION_SIMULATION_CARS);
+  });
+
+  it.each([false, true])("uses team colours with reduced motion %s", (reducedMotion) => {
+    vi.mocked(useMediaQuery).mockReturnValue(reducedMotion);
+    const { container } = render(<SessionSimulation session={session} />);
+    const cars = container.querySelectorAll<SVGGElement>("[data-simulation-car]");
+    cars.forEach((car, index) => {
+      expect(car).toHaveStyle({
+        color: SESSION_SIMULATION_TEAM_COLORS[index % SESSION_SIMULATION_TEAM_COLORS.length],
+      });
+    });
+    expect(new Set([...cars].map((car) => car.style.color)).size)
+      .toBe(SESSION_SIMULATION_TEAM_COLORS.length);
   });
 
   it("omits the simulation when circuit geometry is unavailable", () => {
