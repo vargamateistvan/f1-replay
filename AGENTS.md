@@ -26,7 +26,7 @@
 | Live sessions                                     | `utils/live.ts`, polling in `hooks/useSession.ts`, MQTT push in `hooks/useOpenF1LiveMqtt.ts` |
 | Tyre degradation / race pace                      | `utils/racePace.ts` (clean laps, per-stint fit), `components/TyreDeg` (tracker tab `deg`)    |
 | Undercut / overcut                                | `utils/undercut.ts` (`detectPitBattles`), shown in `PitFeed` rows + `undercut` toast         |
-| Season schedule / calendar                        | `pages/Schedule.tsx` (`/schedule`), `utils/schedule.ts` (`buildSeasonSchedule`), `useSeasonSessions` in `hooks/useSession.ts`; per-card track outline + facts in `components/CircuitSummary` (`utils/circuitInfo.ts`) |
+| Season schedule / calendar                        | `pages/Schedule.tsx` (`/schedule`), `utils/schedule.ts` (`buildSeasonSchedule`), `useSeasonSessions` in `hooks/useSession.ts`; per-card track outline + facts in `components/CircuitSummary` (`utils/circuitInfo.ts`); completed sessions' Result button opens `FinalClassificationDialog` |
 | Standings / profiles                              | `hooks/useStandings.ts`, `utils/standings.ts`, `utils/championship.ts`, `pages/Standings.tsx` |
 | Telemetry comparison                              | `pages/Telemetry.tsx`, `components/TelemetryChart`, `components/CornerAnalysis`, `utils/telemetry.ts` |
 | SEO / new route                                   | `routes.tsx`, `seo-routes.json`, `components/Seo/seo.ts` (Pitfall 10)                        |
@@ -177,7 +177,7 @@ src/
     RaceWeekend.tsx     — Main page: track map + leaderboard + timeline
     Telemetry.tsx       — Lap telemetry comparison page
     Standings.tsx       — Season championship standings page
-    Schedule.tsx        — /schedule — season calendar: round cards, session times (your time / track time via ?time=), replay links for started sessions, next round + countdown
+    Schedule.tsx        — /schedule — season calendar: round cards, session times (your time / track time via ?time=), replay links for started sessions, Result button (completed sessions) → `FinalClassificationDialog`, next round + countdown
     DriverProfile.tsx   — /standings/driver/:driverNumber — one driver's season (keeps ?year/&session)
     ConstructorProfile.tsx — /standings/team/:teamName (canonical name, `constructorPath()`) — one team's season
     Settings.tsx        — Redirect to settings modal
@@ -258,7 +258,7 @@ components/ (render to DOM; read settings from Zustand)
 | `LapChart`                                        | Lap time evolution chart                                                                 |
 | `Strategy`                                        | Tyre strategy bar chart                                                                  |
 | `TyreDeg`                                         | Tracker tab `deg`: per-compound field summary (`compoundPaceSummary`, noisy fits excluded), lap time vs tyre age scatter + fitted line per stint (dash style per selected driver), table grouped by driver in race order with deg bars; optional fuel correction (off by default) |
-| `FinalClassification`                             | End-of-race classification table                                                         |
+| `FinalClassification`                             | Session classification (podium + table; Q1–Q3 for qualifying, points for races). `FinalClassificationDialog` uses `DialogHeader` and takes `meta` / `subtitle` / `status` (loading · error · ready) / `footer`; opened by `RaceWeekend` at the session end and by the Schedule page's Result buttons |
 | `KeyMoments`                                      | Timeline of significant events                                                           |
 | `RaceChapters`                                    | Lap-range navigation chips                                                               |
 | `Overtakes`                                       | Overtake event list                                                                      |

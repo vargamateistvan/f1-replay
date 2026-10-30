@@ -1,10 +1,17 @@
-import { useEffect, useMemo, useRef, type MouseEvent } from "react";
+import {
+  useEffect,
+  useId,
+  useMemo,
+  type MouseEvent,
+  type ReactNode,
+} from "react";
 import { createPortal } from "react-dom";
 import type { Driver, SessionResult } from "@/api/types";
 import { teamColor } from "@/utils/color";
 import { isPracticeSession, isQualiSession } from "@/utils/session";
 import { Q3_GRID_SIZE } from "@/constants";
 import { DriverHeadshot } from "@/components/DriverHeadshot";
+import { DialogHeader } from "@/components/DialogHeader";
 
 interface Props {
   readonly results: SessionResult[];
@@ -13,6 +20,14 @@ interface Props {
 }
 
 interface DialogProps extends Props {
+  /** Mono text in the red header strip (e.g. event name and date). */
+  readonly meta?: ReactNode;
+  /** Line under the title; defaults to "Official session result". */
+  readonly subtitle?: ReactNode;
+  /** Results still loading / failed — shows a message instead of the table. */
+  readonly status?: "loading" | "error" | "ready";
+  /** Actions rendered in the dialog footer. */
+  readonly footer?: ReactNode;
   readonly onClose: () => void;
 }
 
@@ -132,7 +147,7 @@ function resultDetail(result: SessionResult): string {
     return (
       formatGapValue(normalizeValue(result.gap_to_leader)) ??
       formatRelativeDurationClock(result.duration) ??
-      "Not classified"
+      resultStatus(result)
     );
   }
   if (result.position === 1) {
@@ -154,6 +169,10 @@ function sortResults(results: SessionResult[]): SessionResult[] {
   });
 }
 
+// Eliminated / unclassified rows fall back to neutral token colours, not team hues.
+const NEUTRAL_ACCENT = "rgb(var(--color-line))";
+const NEUTRAL_TEXT = "rgb(var(--color-muted))";
+
 export function FinalClassification({ results, drivers, sessionName }: Props) {
   return (
     <section className="shrink-0 border-t border-panel bg-track/95 backdrop-blur">
@@ -171,9 +190,13 @@ export function FinalClassificationDialog({
   results,
   drivers,
   sessionName,
+  meta,
+  subtitle,
+  status = "ready",
+  footer,
   onClose,
 }: DialogProps) {
-  const backdropRef = useRef<HTMLDivElement>(null);
+  const titleId = useId();
 
   useEffect(() => {
     function onKeyDown(event: KeyboardEvent) {
@@ -183,43 +206,66 @@ export function FinalClassificationDialog({
     return () => window.removeEventListener("keydown", onKeyDown);
   }, [onClose]);
 
-  function handleBackdropClick(event: MouseEvent<HTMLDivElement>) {
-    if (event.target === backdropRef.current) onClose();
-  }
+  const hasResults = status === "ready" && results.length > 0;
+  const emptyMessage =
+    status === "loading"
+      ? "Loading results…"
+      : status === "error"
+        ? "Couldn't load the results"
+        : "No classification published for this session";
 
+  // Portalled: the route shell's enter animation leaves a transform, which
+  // would otherwise become the containing block for `fixed`.
   const dialog = (
     <div
-      ref={backdropRef}
-      onClick={handleBackdropClick}
-      className="fixed inset-0 z-modal flex touch-pan-y items-center justify-center bg-black/75 px-3 py-4 backdrop-blur-sm sm:px-6 sm:py-6"
+      onClick={(event: MouseEvent<HTMLDivElement>) => {
+        if (event.target === event.currentTarget) onClose();
+      }}
+      data-testid="results-backdrop"
+      className="fixed inset-0 z-modal flex touch-pan-y items-end justify-center bg-black/70 pt-[env(safe-area-inset-top)] backdrop-blur-sm sm:items-center sm:px-6 sm:py-6"
     >
-      <div className="flex max-h-full w-full max-w-5xl flex-col overflow-hidden border border-panel bg-track shadow-2xl">
-        <div className="flex items-center justify-between border-b border-panel px-4 py-3 sm:px-5">
-          <div>
-            <div className="text-caption font-black uppercase tracking-spaced text-f1red">
-              Final Classification
-            </div>
-            <div className="mt-1 text-sm font-black text-fg sm:text-base">
-              {sessionName ?? "Session Results"}
-            </div>
-          </div>
-          <button
-            onClick={onClose}
-            aria-label="Close results dialog"
-            className="flex h-8 w-8 items-center justify-center text-lg text-muted transition-colors hover:bg-fg/5 hover:text-fg"
-          >
-            ×
-          </button>
-        </div>
-
-        <FinalClassificationContent
-          results={results}
-          drivers={drivers}
-          sessionName={sessionName}
-          hideHeader
-          contentClassName="min-h-0 flex-1 overflow-y-auto overscroll-contain"
-          tableClassName=""
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby={titleId}
+        className="flex max-h-[90dvh] w-full max-w-4xl flex-col overflow-hidden border border-panel bg-surface shadow-2xl"
+        style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
+      >
+        <DialogHeader
+          eyebrow="Final classification"
+          meta={meta}
+          title={sessionName ?? "Session results"}
+          titleId={titleId}
+          subtitle={subtitle ?? "Official session result"}
+          closeLabel="Close results dialog"
+          onClose={onClose}
         />
+
+        {hasResults ? (
+          <FinalClassificationContent
+            results={results}
+            drivers={drivers}
+            sessionName={sessionName}
+            inDialog
+            contentClassName="min-h-0 flex-1 overflow-y-auto overscroll-contain"
+            tableClassName=""
+          />
+        ) : (
+          <p
+            role={status === "loading" ? "status" : undefined}
+            className={`px-4 py-10 text-center font-mono text-caption uppercase tracking-caps sm:px-5 ${
+              status === "error" ? "text-red-fg" : "text-muted"
+            }`}
+          >
+            {emptyMessage}
+          </p>
+        )}
+
+        {footer && (
+          <div className="flex shrink-0 items-center justify-end gap-2 border-t border-panel px-4 py-3 sm:px-5">
+            {footer}
+          </div>
+        )}
       </div>
     </div>
   );
@@ -230,16 +276,20 @@ export function FinalClassificationDialog({
 }
 
 interface ContentProps extends Props {
-  readonly hideHeader?: boolean;
+  /** Dialog body: no inline header, sits on the dialog's surface colour. */
+  readonly inDialog?: boolean;
   readonly contentClassName?: string;
   readonly tableClassName: string;
 }
+
+const TH = "px-3 py-2 font-black";
+const TD = "px-3 py-2";
 
 function FinalClassificationContent({
   results,
   drivers,
   sessionName,
-  hideHeader = false,
+  inDialog = false,
   contentClassName,
   tableClassName,
 }: ContentProps) {
@@ -258,6 +308,8 @@ function FinalClassificationContent({
     [results, sessionName],
   );
   const timed = phased || isPracticeSession(sessionName ?? "");
+  const showPoints =
+    !timed && results.some((result) => (result.points ?? 0) > 0);
 
   const decorated = useMemo<DecoratedResult[]>(() => {
     const outOfQuali = isQualiSession(sessionName ?? "");
@@ -284,12 +336,13 @@ function FinalClassificationContent({
   const podium = decorated.filter(
     (entry) => entry.result.position && entry.result.position <= 3,
   );
+  const surface = inDialog ? "bg-surface" : "bg-track/95";
 
   return (
     <div
-      className={`flex min-h-0 flex-col bg-track/95 backdrop-blur ${contentClassName ?? ""}`.trim()}
+      className={`flex min-h-0 flex-col ${inDialog ? "" : "bg-track/95 backdrop-blur"} ${contentClassName ?? ""}`.trim()}
     >
-      {!hideHeader && (
+      {!inDialog && (
         <div className="border-b border-panel px-4 py-3 sm:px-5">
           <div className="text-caption font-black uppercase tracking-spaced text-f1red">
             Final Classification
@@ -306,54 +359,47 @@ function FinalClassificationContent({
       )}
 
       {podium.length > 0 && (
-        <div className="grid gap-2 border-b border-panel px-4 py-3 sm:grid-cols-3 sm:px-5">
+        <ol className="hidden gap-2 border-b border-panel px-4 py-3 sm:grid sm:grid-cols-3 sm:px-5">
           {podium.map((entry) => (
-            <div
+            <li
               key={entry.result.driver_number}
-              className="border border-panel bg-surface px-3 py-3"
+              className="flex min-w-0 flex-col border border-t-2 border-panel bg-track/60 px-3 py-2.5"
+              style={{ borderTopColor: entry.color }}
             >
-              <div className="flex items-center justify-between gap-3">
-                <div className="flex items-center gap-3">
-                  <DriverHeadshot
-                    driver={entry.driver}
-                    accent={entry.color}
-                    size="lg"
-                  />
-                  <div>
-                    <div className="text-caption font-black uppercase tracking-eyebrow text-muted">
-                      P{entry.result.position}
-                    </div>
-                    <div
-                      className="mt-1 text-base font-black"
-                      style={{ color: entry.color }}
-                    >
-                      {entry.driver?.name_acronym ?? entry.result.driver_number}
-                    </div>
+              <div className="flex min-w-0 items-center gap-3">
+                <span className="w-7 shrink-0 font-mono text-lg font-black tabular-nums text-fg">
+                  P{entry.result.position}
+                </span>
+                <DriverHeadshot
+                  driver={entry.driver}
+                  accent={entry.color}
+                  size="lg"
+                />
+                <div className="min-w-0 flex-1">
+                  <div
+                    className="text-compact font-black uppercase tracking-wider"
+                    style={{ color: entry.color }}
+                  >
+                    {entry.driver?.name_acronym ?? entry.result.driver_number}
                   </div>
-                </div>
-                <div className="text-right">
-                  <div className="text-caption font-black uppercase tracking-eyebrow text-muted">
-                    Points
+                  <div className="truncate text-small text-fg/85">
+                    {entry.driver?.full_name ??
+                      `Driver ${entry.result.driver_number}`}
                   </div>
-                  <div className="text-lg font-black text-fg">
-                    {entry.result.points ?? 0}
+                  <div className="truncate text-tiny uppercase tracking-caps text-muted">
+                    {entry.driver?.team_name ?? "Unknown team"}
                   </div>
                 </div>
               </div>
-              <div className="mt-2 text-xs text-fg/85">
-                {entry.driver?.full_name ??
-                  `Driver ${entry.result.driver_number}`}
+              <div className="mt-2.5 flex items-baseline justify-between gap-2 border-t border-panel pt-2 font-mono tabular-nums">
+                <span className="text-tiny uppercase tracking-caps text-muted">
+                  {showPoints ? `${entry.result.points ?? 0} pts` : null}
+                </span>
+                <span className="text-small text-fg">{entry.detail}</span>
               </div>
-              <div className="mt-1 text-small text-muted">
-                {entry.driver?.team_name ?? "Unknown team"}
-              </div>
-              <div className="mt-3 flex items-center justify-between text-small uppercase tracking-caps">
-                <span className="text-muted">{entry.status}</span>
-                <span className="font-mono text-fg">{entry.detail}</span>
-              </div>
-            </div>
+            </li>
           ))}
-        </div>
+        </ol>
       )}
 
       <div
@@ -362,88 +408,115 @@ function FinalClassificationContent({
       >
         <table className="w-full border-collapse">
           <thead>
-            <tr className="sticky top-0 border-b border-panel bg-track/95 text-caption font-black uppercase tracking-eyebrow text-muted">
-              <th className="px-4 py-2 text-left sm:px-5">Pos</th>
-              <th className="px-4 py-2 text-left">Driver</th>
-              <th className="hidden px-4 py-2 text-left md:table-cell">Team</th>
-              <th className="px-4 py-2 text-right">Laps</th>
+            <tr
+              className={`sticky top-0 z-10 border-b border-panel ${surface} text-caption uppercase tracking-eyebrow text-faint`}
+            >
+              <th className={`${TH} pl-4 text-left sm:pl-5`}>Pos</th>
+              <th className={`${TH} text-left`}>Driver</th>
+              <th className={`${TH} hidden text-left md:table-cell`}>Team</th>
+              <th className={`${TH} hidden text-right sm:table-cell`}>Laps</th>
               {phased ? (
-                (["Q1", "Q2", "Q3"] as const).map((label, i) => (
-                  <th
-                    key={label}
-                    className={`px-4 py-2 text-right ${i === 2 ? "sm:px-5" : ""}`}
-                  >
+                (["Q1", "Q2", "Q3"] as const).map((label) => (
+                  <th key={label} className={`${TH} text-right last:pr-4 sm:last:pr-5`}>
                     {label}
                   </th>
                 ))
               ) : (
-                <th className="px-4 py-2 text-right sm:px-5">Gap / Time</th>
+                <>
+                  <th className={`${TH} text-right last:pr-4 sm:last:pr-5`}>
+                    {timed ? "Time / Gap" : "Gap / Time"}
+                  </th>
+                  {showPoints && (
+                    <th className={`${TH} text-right last:pr-4 sm:last:pr-5`}>Pts</th>
+                  )}
+                </>
               )}
             </tr>
           </thead>
           <tbody>
-            {decorated.map((entry) => (
-              <tr
-                key={entry.result.driver_number}
-                className={`border-b border-panel text-xs ${
-                  entry.isEliminated ? "text-muted/70 opacity-60" : "text-fg/90"
-                }`}
-              >
-                <td className="px-4 py-2.5 font-black tabular-nums sm:px-5">
-                  {entry.result.position ?? "—"}
-                </td>
-                <td className="px-4 py-2.5">
-                  <div className="flex items-center gap-2">
-                    <DriverHeadshot
-                      driver={entry.driver}
-                      accent={entry.isEliminated ? "#6b7280" : entry.color}
-                      size="sm"
-                    />
-                    <span
-                      className="h-4 w-[3px] shrink-0"
-                      style={{
-                        background: entry.isEliminated ? "#6b7280" : entry.color,
-                      }}
-                    />
-                    <span
-                      className="font-black"
-                      style={{
-                        color: entry.isEliminated ? "#9ca3af" : entry.color,
-                      }}
-                    >
-                      {entry.driver?.name_acronym ?? entry.result.driver_number}
-                    </span>
-                    <span className="hidden text-muted sm:inline">
-                      {entry.driver?.full_name ?? "Unknown driver"}
-                    </span>
-                  </div>
-                </td>
-                <td className="hidden px-4 py-2.5 text-muted md:table-cell">
-                  {entry.driver?.team_name ?? "—"}
-                </td>
-                <td
-                  className={`px-4 py-2.5 text-right font-mono tabular-nums ${entry.isEliminated ? "text-muted" : "text-fg"}`}
+            {decorated.map((entry) => {
+              const unclassified =
+                entry.result.position === null && entry.status !== "CLASSIFIED";
+              const dim = entry.isEliminated || unclassified;
+              const accent = dim ? NEUTRAL_ACCENT : entry.color;
+              return (
+                <tr
+                  key={entry.result.driver_number}
+                  className={`border-b border-panel/70 text-small transition-colors hover:bg-fg/5 ${
+                    dim ? "text-muted" : "text-fg/90"
+                  }`}
                 >
-                  {entry.result.number_of_laps ?? "—"}
-                </td>
-                {phased ? (
-                  entry.phaseTimes.map((time, i) => (
-                    <td
-                      key={i}
-                      className={`px-4 py-2.5 text-right font-mono tabular-nums ${i === 2 ? "sm:px-5" : ""} ${entry.isEliminated || time === "—" ? "text-muted" : "text-fg"}`}
-                    >
-                      {time}
-                    </td>
-                  ))
-                ) : (
                   <td
-                    className={`px-4 py-2.5 text-right font-mono tabular-nums sm:px-5 ${entry.isEliminated ? "text-muted" : "text-fg"}`}
+                    className={`${TD} pl-4 font-mono font-black tabular-nums sm:pl-5 ${
+                      unclassified ? "text-red-fg" : dim ? "" : "text-fg"
+                    }`}
                   >
-                    {entry.detail}
+                    {entry.result.position ??
+                      (entry.status === "CLASSIFIED" ? "—" : entry.status)}
                   </td>
-                )}
-              </tr>
-            ))}
+                  <td className={TD}>
+                    <div className="flex min-w-0 items-center gap-2">
+                      <DriverHeadshot
+                        driver={entry.driver}
+                        accent={accent}
+                        size="sm"
+                      />
+                      <span
+                        className="h-4 w-[3px] shrink-0"
+                        style={{ background: accent }}
+                      />
+                      <span
+                        className="font-black"
+                        style={{ color: dim ? NEUTRAL_TEXT : entry.color }}
+                      >
+                        {entry.driver?.name_acronym ??
+                          entry.result.driver_number}
+                      </span>
+                      <span className="hidden truncate text-muted sm:inline">
+                        {entry.driver?.full_name ?? "Unknown driver"}
+                      </span>
+                    </div>
+                  </td>
+                  <td className={`${TD} hidden text-muted md:table-cell`}>
+                    {entry.driver?.team_name ?? "—"}
+                  </td>
+                  <td
+                    className={`${TD} hidden text-right font-mono tabular-nums sm:table-cell`}
+                  >
+                    {entry.result.number_of_laps ?? "—"}
+                  </td>
+                  {phased ? (
+                    entry.phaseTimes.map((time, i) => (
+                      <td
+                        key={i}
+                        className={`${TD} text-right font-mono tabular-nums last:pr-4 sm:last:pr-5 ${
+                          dim || time === "—" ? "text-muted" : "text-fg"
+                        }`}
+                      >
+                        {time}
+                      </td>
+                    ))
+                  ) : (
+                    <>
+                      <td
+                        className={`${TD} text-right font-mono tabular-nums last:pr-4 sm:last:pr-5 ${dim ? "" : "text-fg"}`}
+                      >
+                        {entry.detail}
+                      </td>
+                      {showPoints && (
+                        <td
+                          className={`${TD} text-right font-mono font-black tabular-nums last:pr-4 sm:last:pr-5 ${
+                            (entry.result.points ?? 0) > 0 ? "text-fg" : "text-muted"
+                          }`}
+                        >
+                          {entry.result.points ?? 0}
+                        </td>
+                      )}
+                    </>
+                  )}
+                </tr>
+              );
+            })}
           </tbody>
         </table>
       </div>

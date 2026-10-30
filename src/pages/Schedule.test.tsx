@@ -6,9 +6,13 @@ import type { Meeting, Session } from "@/api/types";
 
 const mockUseMeetings = vi.fn();
 const mockUseSeasonSessions = vi.fn();
+const mockUseSessionResult = vi.fn();
+const mockUseDrivers = vi.fn();
 vi.mock("@/hooks/useSession", () => ({
   useMeetings: (...args: unknown[]) => mockUseMeetings(...args),
   useSeasonSessions: (...args: unknown[]) => mockUseSeasonSessions(...args),
+  useSessionResult: (...args: unknown[]) => mockUseSessionResult(...args),
+  useDrivers: (...args: unknown[]) => mockUseDrivers(...args),
 }));
 
 const HOUR = 3_600_000;
@@ -91,6 +95,47 @@ describe("Schedule page", () => {
       "/?year=2026&meeting=1&session=10&view=tracker",
     );
     expect(screen.queryByRole("link", { name: "Replay Practice 1" })).toBeNull();
+  });
+
+  it("shows a completed session's result in a dialog", () => {
+    mockUseSessionResult.mockReturnValue({
+      data: [
+        {
+          position: 1,
+          driver_number: 1,
+          number_of_laps: 57,
+          points: 25,
+          dnf: false,
+          dns: false,
+          dsq: false,
+          duration: 5400.5,
+          gap_to_leader: 0,
+          meeting_key: 1,
+          session_key: 10,
+        },
+      ],
+      isPending: false,
+      isError: false,
+    });
+    mockUseDrivers.mockReturnValue({
+      data: [{ driver_number: 1, name_acronym: "VER", full_name: "Max Verstappen" }],
+      isPending: false,
+    });
+    setup();
+    // Upcoming sessions have no result yet.
+    expect(screen.queryByRole("button", { name: "Practice 1 result" })).toBeNull();
+
+    fireEvent.click(screen.getByRole("button", { name: "Race result" }));
+    expect(mockUseSessionResult).toHaveBeenCalledWith(10);
+    const dialog = screen.getByRole("dialog", { name: "Race" });
+    expect(dialog.textContent).toContain("Bahrain Grand Prix");
+    expect(dialog.textContent).toContain("VER");
+    expect(
+      screen.getByRole("link", { name: "Replay session" }).getAttribute("href"),
+    ).toBe("/?year=2026&meeting=1&session=10&view=tracker");
+
+    fireEvent.click(screen.getByRole("button", { name: "Close results dialog" }));
+    expect(screen.queryByRole("dialog")).toBeNull();
   });
 
   it("opens on the latest finished weekend rather than the next one", () => {

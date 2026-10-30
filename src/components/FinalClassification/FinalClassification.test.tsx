@@ -81,8 +81,8 @@ describe("FinalClassification", () => {
 
     expect(screen.getByText("Final Classification")).toBeInTheDocument();
     expect(screen.getAllByText("P1").length).toBeGreaterThan(0);
-    expect(screen.getAllByText("CLASSIFIED").length).toBeGreaterThan(0);
-    expect(screen.queryByText("DNS")).not.toBeInTheDocument();
+    // Unclassified drivers show their status in place of a position.
+    expect(screen.getByText("DNS")).toBeInTheDocument();
     expect(screen.getByText("DNS noted")).toBeInTheDocument();
     expect(screen.getAllByText("+8.765").length).toBeGreaterThan(0);
     expect(screen.getAllByText("01:24:01.250").length).toBeGreaterThan(0);
@@ -194,5 +194,74 @@ describe("FinalClassification", () => {
 
     fireEvent.click(screen.getByText("Grand Prix"));
     expect(onClose).toHaveBeenCalledTimes(2);
+  });
+});
+
+describe("FinalClassificationDialog", () => {
+  const winner = {
+    position: 1,
+    driver_number: 1,
+    number_of_laps: 58,
+    points: 25,
+    dnf: false,
+    dns: false,
+    dsq: false,
+    duration: 5000,
+    gap_to_leader: null,
+    meeting_key: 1,
+    session_key: 1,
+  } as SessionResult;
+
+  it("renders as a labelled dialog with meta, points column and footer", () => {
+    render(
+      <FinalClassificationDialog
+        results={[winner]}
+        drivers={drivers}
+        sessionName="Race"
+        meta="Sakhir · 2024"
+        subtitle="Bahrain Grand Prix"
+        footer={<button type="button">Replay session</button>}
+        onClose={vi.fn()}
+      />,
+    );
+    const dialog = screen.getByRole("dialog", { name: "Race" });
+    expect(dialog.textContent).toContain("Sakhir · 2024");
+    expect(dialog.textContent).toContain("Bahrain Grand Prix");
+    expect(screen.getByText("Pts")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Replay session" })).toBeInTheDocument();
+  });
+
+  it("closes on a backdrop click but not on a click inside", () => {
+    const onClose = vi.fn();
+    render(
+      <FinalClassificationDialog
+        results={[winner]}
+        drivers={drivers}
+        sessionName="Race"
+        onClose={onClose}
+      />,
+    );
+    fireEvent.click(screen.getByRole("dialog"));
+    expect(onClose).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByTestId("results-backdrop"));
+    expect(onClose).toHaveBeenCalledTimes(1);
+  });
+
+  it.each([
+    ["loading", [winner], "Loading results…"],
+    ["error", [], "Couldn't load the results"],
+    ["ready", [], "No classification published for this session"],
+  ] as const)("shows a %s message instead of the table", (status, results, text) => {
+    render(
+      <FinalClassificationDialog
+        results={[...results]}
+        drivers={drivers}
+        sessionName="Race"
+        status={status}
+        onClose={vi.fn()}
+      />,
+    );
+    expect(screen.getByText(text)).toBeInTheDocument();
+    expect(screen.queryByRole("table")).toBeNull();
   });
 });

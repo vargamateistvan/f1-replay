@@ -1,11 +1,18 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "react-router-dom";
-import { Play } from "lucide-react";
-import type { Session } from "@/api/types";
-import { useMeetings, useSeasonSessions } from "@/hooks/useSession";
+import { ListOrdered, Play } from "lucide-react";
+import type { Meeting, Session } from "@/api/types";
+import {
+  useDrivers,
+  useMeetings,
+  useSeasonSessions,
+  useSessionResult,
+} from "@/hooks/useSession";
 import { useNumberParam, useStringParam } from "@/hooks/useSearchParamState";
 import { CircuitSummary } from "@/components/CircuitSummary";
 import { ErrorMessage } from "@/components/ErrorMessage";
+import { FinalClassificationDialog } from "@/components/FinalClassification";
+import { buttonClass, FOCUS_RING } from "@/components/Button/buttonClass";
 import { parseGmtOffsetToMinutes } from "@/components/TrackMap/trackMapFormat";
 import { PICKER_BAR } from "@/components/Nav/pickerStyles";
 import { DEFAULT_YEAR, SCHEDULE_CLOCK_TICK_MS } from "@/constants";
@@ -80,13 +87,17 @@ function SessionRow({
   item,
   year,
   fmt,
+  onShowResult,
 }: {
   item: ScheduleSession;
   year: number;
   fmt: TimeFormatter;
+  onShowResult: (session: Session) => void;
 }) {
   const { session, status } = item;
   const canReplay = status === "completed" || status === "live";
+  // Live sessions have no final classification yet.
+  const hasResult = status === "completed";
   const label = (
     <>
       <span
@@ -116,22 +127,82 @@ function SessionRow({
       </span>
     </>
   );
-  const rowCls =
-    "group flex items-center gap-2 px-3 py-1.5 font-mono text-small";
-  return canReplay ? (
-    <Link
-      to={replayPath({
-        year,
-        meetingKey: session.meeting_key,
-        sessionKey: session.session_key,
-      })}
-      className={`${rowCls} transition-colors hover:bg-fg/5`}
-      aria-label={`Replay ${session.session_name}`}
-    >
-      {label}
-    </Link>
-  ) : (
-    <div className={rowCls}>{label}</div>
+  const labelCls = "flex min-w-0 flex-1 items-center gap-2 py-1.5 pl-3";
+  return (
+    <div className="flex items-center gap-1 pr-2 font-mono text-small">
+      {canReplay ? (
+        <Link
+          to={replayPath({
+            year,
+            meetingKey: session.meeting_key,
+            sessionKey: session.session_key,
+          })}
+          className={`group ${labelCls} transition-colors hover:bg-fg/5 ${FOCUS_RING}`}
+          aria-label={`Replay ${session.session_name}`}
+        >
+          {label}
+        </Link>
+      ) : (
+        <div className={labelCls}>{label}</div>
+      )}
+      {/* Fixed-width slot keeps day/time columns aligned across rows. */}
+      <span className="flex w-7 shrink-0 justify-end lg:w-[4.25rem]">
+        {hasResult && (
+          <button
+            type="button"
+            onClick={() => onShowResult(session)}
+            aria-label={`${session.session_name} result`}
+            title="Result"
+            className={buttonClass("quiet", "sm", "w-full px-0 lg:px-1.5")}
+          >
+            <ListOrdered aria-hidden="true" className="h-3 w-3" />
+            <span className="hidden lg:inline">Result</span>
+          </button>
+        )}
+      </span>
+    </div>
+  );
+}
+
+function SessionResultDialog({
+  session,
+  meeting,
+  onClose,
+}: {
+  session: Session;
+  meeting: Meeting | undefined;
+  onClose: () => void;
+}) {
+  const results = useSessionResult(session.session_key);
+  const drivers = useDrivers(session.session_key);
+  const status = results.isError
+    ? "error"
+    : results.isPending || drivers.isPending
+      ? "loading"
+      : "ready";
+  return (
+    <FinalClassificationDialog
+      results={results.data ?? []}
+      drivers={drivers.data ?? []}
+      sessionName={session.session_name}
+      meta={`${session.circuit_short_name} · ${session.year}`}
+      subtitle={meeting?.meeting_name}
+      status={status}
+      footer={
+        <Link
+          to={replayPath({
+            year: session.year,
+            meetingKey: session.meeting_key,
+            sessionKey: session.session_key,
+          })}
+          className={buttonClass("primary")}
+        >
+          <Play aria-hidden="true" className="h-3 w-3" />
+          Replay session
+        </Link>
+      }
+      onClose={onClose}
+    />
   );
 }
 
@@ -141,12 +212,14 @@ function RoundCard({
   fmt,
   nextSession,
   now,
+  onShowResult,
 }: {
   round: ScheduleRound;
   year: number;
   fmt: TimeFormatter;
   nextSession: Session | null;
   now: number;
+  onShowResult: (session: Session) => void;
 }) {
   const { meeting } = round;
   const flagUrl = toSafeExternalUrl(meeting.country_flag);
@@ -219,7 +292,13 @@ function RoundCard({
       {round.sessions.length > 0 ? (
         <div className="divide-y divide-panel/60 py-0.5">
           {round.sessions.map((item) => (
-            <SessionRow key={item.session.session_key} item={item} year={year} fmt={fmt} />
+            <SessionRow
+              key={item.session.session_key}
+              item={item}
+              year={year}
+              fmt={fmt}
+              onShowResult={onShowResult}
+            />
           ))}
         </div>
       ) : (
@@ -238,6 +317,7 @@ export default function Schedule() {
   const timeMode: TimeMode = TIME_MODES.includes(timeParam) ? timeParam : "local";
   const now = useNow(SCHEDULE_CLOCK_TICK_MS);
   const listRef = useRef<HTMLDivElement>(null);
+  const [resultSession, setResultSession] = useState<Session | null>(null);
 
   const meetingsQ = useMeetings(year);
   const sessionsQ = useSeasonSessions(year);
@@ -323,10 +403,21 @@ export default function Schedule() {
                 fmt={fmt}
                 nextSession={round.isNext ? nextSession : null}
                 now={now}
+                onShowResult={setResultSession}
               />
             ))}
           </div>
         </div>
+      )}
+
+      {resultSession && (
+        <SessionResultDialog
+          session={resultSession}
+          meeting={meetingsQ.data?.find(
+            (m) => m.meeting_key === resultSession.meeting_key,
+          )}
+          onClose={() => setResultSession(null)}
+        />
       )}
     </div>
   );
