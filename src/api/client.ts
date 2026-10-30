@@ -103,10 +103,11 @@ function msUntilSlot(now: number): number {
   return wait;
 }
 
-let pumpScheduled = false;
+let pumpTimer: ReturnType<typeof setTimeout> | null = null;
+let pumpDueAt = 0;
 
 function pump() {
-  pumpScheduled = false;
+  pumpTimer = null;
   if (waiters.length === 0) return;
 
   const now = Date.now();
@@ -123,9 +124,15 @@ function pump() {
 }
 
 function schedulePump(delay: number) {
-  if (pumpScheduled) return;
-  pumpScheduled = true;
-  setTimeout(pump, Math.max(0, delay));
+  const wait = Math.max(0, delay);
+  const dueAt = Date.now() + wait;
+  if (pumpTimer !== null) {
+    if (pumpDueAt <= dueAt) return;
+    clearTimeout(pumpTimer);
+  }
+  // Cached responses can free a slot before an existing rate-window timer fires.
+  pumpDueAt = dueAt;
+  pumpTimer = setTimeout(pump, wait);
 }
 
 // Resolves (with the slot's start timestamp) when the caller is cleared to
@@ -204,18 +211,31 @@ export async function fetchEndpoint<T>(
 
     for (;;) {
       try {
+        const queuedAt = globalThis.performance?.now() ?? Date.now();
         const slotStartedAt = await acquireSlot();
         const requestStartedAt = globalThis.performance?.now() ?? Date.now();
+        Sentry.metrics.distribution(
+          "request_queue_time",
+          Math.round(requestStartedAt - queuedAt),
+          { unit: "millisecond", attributes: { endpoint: path } },
+        );
         const res = await fetch(url, { headers });
         releaseSlotIfCached(res, slotStartedAt);
-        const responseTimeMs = Math.round(
-          (globalThis.performance?.now() ?? Date.now()) - requestStartedAt,
-        );
+        const responseReceivedAt = globalThis.performance?.now() ?? Date.now();
+        const responseTimeMs = Math.round(responseReceivedAt - requestStartedAt);
         Sentry.metrics.distribution("response_time", responseTimeMs);
 
         if (res.ok) {
           try {
             const data = await res.json();
+            Sentry.metrics.distribution(
+              "response_body_time",
+              Math.round(
+                (globalThis.performance?.now() ?? Date.now()) -
+                responseReceivedAt,
+              ),
+              { unit: "millisecond", attributes: { endpoint: path } },
+            );
             if (!Array.isArray(data)) {
               logApiWarning("OpenF1 returned non-array JSON payload", {
                 path,

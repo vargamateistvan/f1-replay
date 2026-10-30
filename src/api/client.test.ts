@@ -140,6 +140,37 @@ describe("fetchEndpoint - in-flight deduplication", () => {
 
 // Rate limiter
 
+describe("fetchEndpoint - startup measurements", () => {
+  it("measures queue wait separately from response headers and JSON body", async () => {
+    const { fetchEndpoint } = await importFreshClient();
+    const { Sentry } = await import("@/lib/sentry");
+    const metric = vi.spyOn(Sentry.metrics, "distribution");
+    const now = vi.spyOn(performance, "now").mockReturnValue(100);
+    vi.stubGlobal("fetch", vi.fn(async () => {
+      now.mockReturnValue(200);
+      return {
+        ok: true,
+        json: async () => {
+          now.mockReturnValue(250);
+          return [];
+        },
+      };
+    }));
+    const request = fetchEndpoint("drivers", { session_key: 123 });
+    now.mockReturnValue(140);
+    await request;
+    expect(metric).toHaveBeenCalledWith(
+      "request_queue_time", 40,
+      { unit: "millisecond", attributes: { endpoint: "drivers" } },
+    );
+    expect(metric).toHaveBeenCalledWith("response_time", 60);
+    expect(metric).toHaveBeenCalledWith(
+      "response_body_time", 50,
+      { unit: "millisecond", attributes: { endpoint: "drivers" } },
+    );
+  });
+});
+
 describe("fetchEndpoint - rate limiter", () => {
   it("allows up to 3 requests to start within the same second", async () => {
     const { fetchEndpoint } = await importFreshClient();
@@ -222,6 +253,58 @@ describe("fetchEndpoint - rate limiter", () => {
       await vi.advanceTimersByTimeAsync(50);
       await Promise.all(promises);
       expect(callCount).toBe(40);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it.each(["EDGE", "KV"])("wakes the queue when delayed %s hits release slots before a scheduled rate window", async (cache) => {
+    vi.useFakeTimers();
+    try {
+      const { fetchEndpoint } = await importFreshClient();
+      const fetch = vi.fn(() => new Promise<Response>((resolve) => {
+        setTimeout(() => resolve(new Response("[]", {
+          headers: { "X-Cache": cache },
+        })), 100);
+      }));
+      vi.stubGlobal("fetch", fetch);
+      const requests = Promise.all(Array.from({ length: 6 }, (_, i) =>
+        fetchEndpoint("drivers", { session_key: i })));
+
+      await vi.advanceTimersByTimeAsync(50);
+      expect(fetch).toHaveBeenCalledTimes(2);
+      await vi.advanceTimersByTimeAsync(300);
+      expect(fetch).toHaveBeenCalledTimes(6);
+      await requests;
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("does not bypass 429 backoff when a delayed cached response wakes the queue", async () => {
+    vi.useFakeTimers();
+    try {
+      const { fetchEndpoint } = await importFreshClient();
+      const fetch = vi.fn()
+        .mockImplementationOnce(() => new Promise<Response>((resolve) => {
+          setTimeout(() => resolve(new Response("[]", {
+            headers: { "X-Cache": "EDGE" },
+          })), 100);
+        }))
+        .mockResolvedValueOnce(new Response("", {
+          status: 429, headers: { "Retry-After": "2" },
+        }))
+        .mockImplementation(() => Promise.resolve(new Response("[]", {
+          headers: { "X-Cache": "KV" },
+        })));
+      vi.stubGlobal("fetch", fetch);
+      const requests = Promise.all(Array.from({ length: 3 }, (_, i) =>
+        fetchEndpoint("drivers", { session_key: i })));
+      await vi.advanceTimersByTimeAsync(1900);
+      expect(fetch).toHaveBeenCalledTimes(2);
+      await vi.advanceTimersByTimeAsync(300);
+      await requests;
+      expect(fetch).toHaveBeenCalledTimes(4);
     } finally {
       vi.useRealTimers();
     }

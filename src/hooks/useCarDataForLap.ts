@@ -99,13 +99,15 @@ export function useCarDataForLap(
   sessionKey: number | null,
   driverNumber: number | null,
   lapNumber: number | null,
+  options?: { enabled?: boolean },
 ) {
   const queryClient = useQueryClient();
   return useQuery({
     queryKey: ["carDataForLap", sessionKey, driverNumber, lapNumber],
     queryFn: () =>
       fetchCarDataForLap(queryClient, sessionKey!, driverNumber!, lapNumber!),
-    enabled: sessionKey !== null && driverNumber !== null && lapNumber !== null,
+    enabled: (options?.enabled ?? true) &&
+      sessionKey !== null && driverNumber !== null && lapNumber !== null,
     staleTime: Infinity,
   });
 }

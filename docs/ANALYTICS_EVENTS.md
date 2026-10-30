@@ -235,6 +235,34 @@ dimension** instead of relying on the built-in App version report:
 
 ### RaceWeekend View Logic
 
+#### Replay startup
+
+These milestones fire once per session selection. Shared parameters:
+`session_key`, `elapsed_ms`, `live`, `needs_location` (whether the map is
+visible). Elapsed time starts at replay-page mount, including initial session
+discovery; it restarts on subsequent session switches.
+
+- `replay_load_started`: a session key has been selected.
+- `replay_session_ready`: session metadata is available.
+- `replay_timing_ready`: nonempty drivers and position data, laps and race
+  control have loaded successfully. Intervals may still be loading.
+- `replay_location_ready`: the visible map's current GPS chunk loaded
+  successfully with nonempty location data.
+- `replay_data_ready`: timing is ready and, if the map is visible, location
+  data is ready. This measures data availability, **not** map paint or a
+  successful playback interaction. Empty/error responses do not count as
+  location readiness.
+
+Use `app_session_started` → `replay_data_ready` → existing interaction events
+(`playback_toggle` with `action=play`, `playback_jump`, or
+`raceweekend_focus_changed`) as an activation funnel. Segment by
+`screen_class`, `live`, `needs_location`, and `app_version`. Visitors without a
+readiness milestone indicate potential pre-readiness abandonment; do not rely
+only on unload events. Compare like-for-like views: mobile timing does not
+require GPS. Recordings sample only 10% of sessions.
+
+#### Interactions
+
 - `raceweekend_focus_changed`
   - Params: `focus_driver`, `compare_driver`, `source`
   - Trigger: focus/compare state changes

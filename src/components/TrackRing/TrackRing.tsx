@@ -111,6 +111,7 @@ interface Props {
   readonly showFocusedHud?: boolean;
   /** True when the all-driver car_data window is already being fetched. */
   readonly sharedAllDriverWindow?: boolean;
+  readonly telemetryEnabled?: boolean;
   readonly raceLeader?: Driver | null;
   /** Session-relative ms of race start; drives the start-lights badge. */
   readonly lightsOutMs?: number | null;
@@ -162,6 +163,7 @@ export function TrackRing({
   showSectorBox = true,
   showFocusedHud = true,
   sharedAllDriverWindow = false,
+  telemetryEnabled = true,
   raceLeader = null,
   lightsOutMs = null,
   showTrackScreenshot = true,
@@ -319,7 +321,7 @@ export function TrackRing({
     showFocusedHud ? focusDriver : null,
     sessionStartMs,
     chunkIdx,
-    { sharedAllDriverWindow },
+    { sharedAllDriverWindow, enabled: telemetryEnabled },
   );
   const hudData = useMemo(
     () => (focusDriver === null ? null : carDataAt(hudRawData, sessionStartMs + t)),

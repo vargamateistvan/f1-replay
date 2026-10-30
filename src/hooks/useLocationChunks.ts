@@ -74,8 +74,8 @@ export function getEarlyLocationPrefetchMs(playbackSpeed: number): number {
 // How many chunks to keep on each side of the current position.
 const EVICT_RADIUS = 4;
 
-// Returns merged Location[] for the current 5-min window + the next (prefetched).
-// chunkIdx should be computed by the caller as chunkIndexFor(t).
+// Returns merged Location[] for the current window + adjacent chunks.
+// chunkIdx should be computed by the caller as locationChunkIndexFor(t).
 // tMs (optional) enables early prefetch: when within 60 s of the boundary we
 // immediately kick off chunkIdx+3 rather than waiting for chunkIdx to tick over.
 export function useLocationChunks(
@@ -88,7 +88,7 @@ export function useLocationChunks(
     prefetchChunks?: boolean;
     playbackSpeed?: number;
   },
-): { data: Location[]; isPending: boolean } {
+) {
   const qc = useQueryClient();
 
   const enabled = sessionKey !== null && sessionStartMs !== null;
@@ -112,18 +112,21 @@ export function useLocationChunks(
       sessionStartMs!,
       Math.max(0, chunkIdx - 1),
     ),
-    enabled: enabled && chunkIdx > 0,
+    enabled: enabled && chunkIdx > 0 && !current.isPending,
   });
 
   const next = useQuery<Location[]>({
     ...locationChunkQueryOptions(sessionKey!, sessionStartMs!, chunkIdx + 1),
-    enabled: enabled && includeNextChunk,
+    enabled: enabled && includeNextChunk && !current.isPending,
   });
 
   // Prefetch farther ahead at high playback speeds so fast-forward does not outrun
   // the network. Base headroom is +2/+3, then +4 at 8x and +5 at 16x.
   useEffect(() => {
-    if (!enabled || !prefetchChunks || prefetchOffsets.length === 0) return;
+    if (
+      !enabled || current.isPending || !prefetchChunks ||
+      prefetchOffsets.length === 0
+    ) return;
     // Prefetch only one furthest-ahead chunk per index step to avoid
     // parallel request fan-out on play.
     const targetOffset = prefetchOffsets[prefetchOffsets.length - 1]!;
@@ -136,6 +139,7 @@ export function useLocationChunks(
     });
   }, [
     qc,
+    current.isPending,
     enabled,
     prefetchChunks,
     prefetchOffsets,
@@ -150,7 +154,7 @@ export function useLocationChunks(
     tMs !== undefined &&
     tMs % LOCATION_CHUNK_MS > LOCATION_CHUNK_MS - earlyPrefetchMs;
   useEffect(() => {
-    if (!enabled || !nearBoundary || !prefetchChunks) return;
+    if (!enabled || current.isPending || !nearBoundary || !prefetchChunks) return;
     qc.prefetchQuery({
       ...locationChunkQueryOptions(
         sessionKey!,
@@ -160,6 +164,7 @@ export function useLocationChunks(
     });
   }, [
     qc,
+    current.isPending,
     earlyPrefetchMs,
     enabled,
     furthestPrefetchOffset,
@@ -207,5 +212,12 @@ export function useLocationChunks(
     [previous.data, current.data, includeNextChunk, next.data],
   );
 
-  return { data, isPending: current.isPending && data.length === 0 };
+  return {
+    data,
+    isPending: current.isPending && data.length === 0,
+    isSuccess: current.isSuccess,
+    isError: current.isError,
+    error: current.error,
+    refetch: current.refetch,
+  };
 }

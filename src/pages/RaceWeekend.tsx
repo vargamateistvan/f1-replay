@@ -68,6 +68,7 @@ import { useNumberParam, useStringParam } from "@/hooks/useSearchParamState";
 import { useTimelineUrlSync } from "@/hooks/useTimelineUrlSync";
 import { useKeyboardShortcuts } from "@/hooks/useKeyboardShortcuts";
 import { useAutoStartTour } from "@/hooks/useAutoStartTour";
+import { useReplayStartup } from "@/hooks/useReplayStartup";
 import {
   lapStartTimes,
   pitTimes,
@@ -487,20 +488,73 @@ export default function RaceWeekend() {
   const live = isSessionLive(session);
   useOpenF1LiveMqtt(sessionKey, live);
 
+  const setSessionStart = useTimeline((s) => s.setSessionStart);
+  const setTimelineT = useTimeline((s) => s.setT);
+  const setTimelinePlaying = useTimeline((s) => s.setPlaying);
+  const timelinePlaying = useTimeline((s) => s.playing);
+  const playbackSpeed = useTimeline((s) => s.speed);
+  const t = useCoarseTime();
+  const tSlow = useCoarseTime(500);
+  const sessionStartMs = session ? new Date(session.date_start).getTime() : 0;
+  const sessionEndMs = session ? new Date(session.date_end).getTime() : 0;
+  const durationMs = sessionEndMs - sessionStartMs;
+  const locationChunkIdx = locationChunkIndexFor(t);
+  const telemetryChunkIdx = chunkIndexFor(t);
+  const isMapVisible =
+    currentView === "tracker" &&
+    (!isCompactViewport || activeTrackerTab === "map");
+  const shouldPrefetchMapChunks =
+    !isCompactViewport && isMapVisible && playbackSpeed >= 4;
+
   const drivers = useDrivers(sessionKey);
+  // Subscribe to the visible GPS window before background feeds join the FIFO queue.
+  const location = useLocationChunks(
+    isMapVisible ? sessionKey : null,
+    isMapVisible ? sessionStartMs || null : null,
+    locationChunkIdx,
+    isMapVisible ? t : undefined,
+    {
+      includeNextChunk: !isCompactViewport,
+      prefetchChunks: shouldPrefetchMapChunks,
+      playbackSpeed,
+    },
+  );
   const positions = usePositions(sessionKey, live);
   const intervals = useIntervals(sessionKey, live);
-  const stints = useStints(sessionKey, live);
   const laps = useLaps(sessionKey, undefined, live);
-  const pits = usePits(sessionKey, live);
+  const raceControl = useRaceControl(sessionKey, live);
+  const coreQueries = [sessions, drivers, positions, intervals, laps, raceControl];
+  const coreSettled = coreQueries.every((query) => !query.isPending);
+  const timingReady =
+    Boolean(session) &&
+    drivers.isSuccess && drivers.data.length > 0 &&
+    positions.isSuccess && positions.data.length > 0 &&
+    laps.isSuccess && raceControl.isSuccess;
+  const secondaryEnabled = useReplayStartup({
+    sessionKey,
+    sessionReady: Boolean(session),
+    timingReady,
+    coreSettled,
+    needsLocation: isMapVisible && sessionStartMs > 0,
+    locationSettled: location.isSuccess || location.isError,
+    locationReady: location.isSuccess && location.data.length > 0,
+    live,
+  });
+  const secondaryOptions = { enabled: secondaryEnabled };
+  const stints = useStints(sessionKey, live, secondaryOptions);
+  const pits = usePits(sessionKey, live, secondaryOptions);
   // The URL meeting key is known up front; keying on session?.meeting_key
   // would change the query key once sessions load and fetch the grid twice.
-  const grid = useStartingGrid(sessionKey, meetingKey);
-  const sessionResult = useSessionResult(sessionKey);
-  const overtakes = useOvertakes(sessionKey, live);
-  const raceControl = useRaceControl(sessionKey, live);
-  const teamRadio = useTeamRadio(sessionKey, live);
-  const weather = useWeather(sessionKey, live);
+  const grid = useStartingGrid(sessionKey, meetingKey, secondaryOptions);
+  const sessionResult = useSessionResult(sessionKey, secondaryOptions);
+  const overtakes = useOvertakes(sessionKey, live, secondaryOptions);
+  const teamRadio = useTeamRadio(sessionKey, live, secondaryOptions);
+  const weather = useWeather(sessionKey, live, secondaryOptions);
+  const failedQueries = [
+    ...coreQueries,
+    stints, pits, grid, sessionResult, overtakes, teamRadio, weather,
+    ...(isMapVisible ? [location] : []),
+  ].filter((query) => query.isError);
   const liveDataError = live
     ? [
         drivers.error,
@@ -517,23 +571,6 @@ export default function RaceWeekend() {
         weather.error,
       ].find(isAuthError)
     : null;
-
-  // Stable selector — won't re-render on every t tick.
-  const setSessionStart = useTimeline((s) => s.setSessionStart);
-  const setTimelineT = useTimeline((s) => s.setT);
-  const setTimelinePlaying = useTimeline((s) => s.setPlaying);
-  const timelinePlaying = useTimeline((s) => s.playing);
-  const playbackSpeed = useTimeline((s) => s.speed);
-  // Throttled to ~10 Hz. Step-based panels (LiveTiming, Strategy, Weather, etc.)
-  // don't need 60 fps; TrackMap drives its own 60 Hz loop internally.
-  const t = useCoarseTime();
-  // Coarse time at 2 Hz (500 ms) — for memos that are time-aware but don't need
-  // frame-rate updates (lap state, battle detection, etc.)
-  const tSlow = useCoarseTime(500);
-
-  const sessionStartMs = session ? new Date(session.date_start).getTime() : 0;
-  const sessionEndMs = session ? new Date(session.date_end).getTime() : 0;
-  const durationMs = sessionEndMs - sessionStartMs;
 
   const timedLaps = useMemo((): TimedRow<Lap>[] => {
     if (!sessionStartMs || !laps.data?.length) return [];
@@ -794,35 +831,15 @@ export default function RaceWeekend() {
   }, [currentView, activeTrackerTab, activeCommentaryTab, sessionKey]);
 
   const isLoadingSessionData =
-    sessionKey !== null &&
-    (drivers.isPending || positions.isPending || intervals.isPending);
+    sessionKey !== null && !coreSettled;
   const isLoadingEventSession =
     meetingKey !== null && (sessions.isPending || isLoadingSessionData);
   const queryClient = useQueryClient();
 
-  const locationChunkIdx = locationChunkIndexFor(t);
-  const telemetryChunkIdx = chunkIndexFor(t);
-  const isMapVisible =
-    currentView === "tracker" &&
-    (!isCompactViewport || activeTrackerTab === "map");
-  const shouldPrefetchMapChunks =
-    !isCompactViewport && isMapVisible && playbackSpeed >= 4;
   const shouldTrackToasts = currentView === "tracker";
   const shouldBuildCommentaryMoments = currentView === "commentary";
   const shouldBuildToastEvents =
     shouldTrackToasts || shouldBuildCommentaryMoments;
-  const location = useLocationChunks(
-    isMapVisible ? sessionKey : null,
-    isMapVisible ? sessionStartMs || null : null,
-    locationChunkIdx,
-    isMapVisible ? t : undefined,
-    {
-      includeNextChunk: !isCompactViewport,
-      prefetchChunks: shouldPrefetchMapChunks,
-      playbackSpeed,
-    },
-  );
-
   const lapMarks = useMemo(
     () => lapStartTimes(laps.data ?? [], sessionStartMs),
     [laps.data, sessionStartMs],
@@ -1446,7 +1463,7 @@ export default function RaceWeekend() {
     sessionKey,
     sessionStartMs,
     telemetryChunkIdx,
-    telemetryEnabled,
+    telemetryEnabled && secondaryEnabled,
     {
       includePreviousChunk: false,
       includeNextChunk: false,
@@ -1462,16 +1479,9 @@ export default function RaceWeekend() {
 
       if (isMapVisible) {
         const locationIdx = locationChunkIndexFor(targetMs);
-        const locationChunks = [
-          ...(locationIdx > 0 ? [locationIdx - 1] : []),
-          locationIdx,
-          ...(!isCompactViewport ? [locationIdx + 1] : []),
-        ];
-        for (const idx of locationChunks) {
-          void queryClient.prefetchQuery(
-            locationChunkQueryOptions(sessionKey, sessionStartMs, idx),
-          );
-        }
+        void queryClient.prefetchQuery(
+          locationChunkQueryOptions(sessionKey, sessionStartMs, locationIdx),
+        );
       }
 
       if (telemetryEnabled) {
@@ -1485,7 +1495,6 @@ export default function RaceWeekend() {
       }
     },
     [
-      isCompactViewport,
       isMapVisible,
       queryClient,
       sessionKey,
@@ -1978,7 +1987,9 @@ export default function RaceWeekend() {
   // ── App tour ──────────────────────────────────────────────────────────────
   // Steps point at the timing tower and map, so the tour waits for the session.
   const isTourReady =
-    sessionKey !== null && sessionStartMs > 0 && !isLoadingSessionData;
+    timingReady &&
+    !isLoadingSessionData &&
+    (!isMapVisible || (location.isSuccess && location.data.length > 0));
   useAutoStartTour(isTourReady);
   // Every step points at the Driver Tracker layout.
   useEffect(() => {
@@ -2213,6 +2224,7 @@ export default function RaceWeekend() {
       battlingDrivers={mapShowBattleRings ? battlingDrivers : undefined}
       showFocusedHud={mapShowDriverHud}
       sharedAllDriverWindow={telemetryEnabled}
+      telemetryEnabled={secondaryEnabled}
       trackFlagState={mapShowSectorFlags ? trackFlagState : null}
       showSectorBox={mapShowSectorBox}
       showTrackScreenshot={trackScreenshotPngEnabled}
@@ -2250,6 +2262,7 @@ export default function RaceWeekend() {
       safetyCarSirenOn={safetyCarSirenOn}
       showFocusedHud={mapShowDriverHud}
       sharedAllDriverWindow={telemetryEnabled}
+      telemetryEnabled={secondaryEnabled}
       trackFlagState={mapShowSectorFlags ? trackFlagState : null}
       showTrackControls={mapShowTrackControls}
       showEnhancedVisuals={mapShowEnhancedVisuals}
@@ -2290,6 +2303,7 @@ export default function RaceWeekend() {
       showFocusedHud={mapShowDriverHud}
       pitRejoinGaps={pitRejoinGaps}
       sharedAllDriverWindow={telemetryEnabled}
+      telemetryEnabled={secondaryEnabled}
       trackFlagState={mapShowSectorFlags ? trackFlagState : null}
       showSectorBox={mapShowSectorBox}
       showTrackControls={mapShowTrackControls}
@@ -2364,15 +2378,25 @@ export default function RaceWeekend() {
     <div className="relative flex flex-col overflow-x-clip pb-[calc(9.25rem+env(safe-area-inset-bottom))] sm:pb-[calc(7.5rem+env(safe-area-inset-bottom))] md:h-full md:min-h-0 md:flex-1 md:overflow-hidden md:pb-0">
       <h1 className="sr-only">F1 Replay: Formula 1 race replay with live timing, track map and telemetry</h1>
       {isLoadingEventSession && (
-        <div className="absolute inset-0 z-40 flex items-center justify-center bg-[#0b0c12]/86 backdrop-blur-sm">
-          <div className="mx-4 w-full max-w-sm rounded border border-panel bg-surface px-4 py-4 text-center shadow-2xl">
-            <div className="text-f1red text-[11px] font-black uppercase tracking-[0.16em]">
-              Loading Event
-            </div>
-            <div className="mt-2 text-xs text-muted">
-              Fetching the latest session and preparing track data.
-            </div>
+        <div role="status" className="shrink-0 border-b border-panel bg-surface px-4 py-2">
+          <div className="text-f1red text-[10px] font-black uppercase tracking-[0.14em]">
+            {session ? "Loading replay" : "Finding your session"}
           </div>
+          <p className="mt-1 text-xs text-muted">
+            Explore available panels while timing and track data arrive.
+          </p>
+        </div>
+      )}
+      {failedQueries.length > 0 && (
+        <div role="alert" className="flex shrink-0 items-center justify-between gap-3 border-b border-f1red bg-surface px-4 py-2 text-xs">
+          <span>Some session data could not be loaded. Available panels remain usable.</span>
+          <button
+            type="button"
+            className="shrink-0 border border-panel px-3 py-1 font-bold hover:border-f1red"
+            onClick={() => failedQueries.forEach((query) => { void query.refetch(); })}
+          >
+            Retry failed requests
+          </button>
         </div>
       )}
 
@@ -2416,20 +2440,6 @@ export default function RaceWeekend() {
             }
             onJumpToSessionTime={(sessionTimeMs) => setTimelineT(sessionTimeMs)}
           />
-
-          {/* Loading indicator */}
-          {isLoadingSessionData && (
-            <div className="border-b border-panel bg-track px-3 py-2 sm:px-4">
-              <div className="rounded-sm border border-panel bg-surface px-3 py-2">
-                <div className="text-f1red text-[10px] font-black uppercase tracking-[0.14em]">
-                  Loading session data
-                </div>
-                <div className="mt-1 text-xs text-muted">
-                  Preparing timing and event feeds for this session.
-                </div>
-              </div>
-            </div>
-          )}
 
           <div
             data-motion-card
@@ -2565,6 +2575,7 @@ export default function RaceWeekend() {
                             driverLap={focusDriverLap}
                             compareDriverLap={compareDriverLap}
                             sharedAllDriverWindow={telemetryEnabled}
+                            telemetryEnabled={secondaryEnabled}
                             onClear={clearFocusSelection}
                             onClearCompare={() =>
                               setFocusSelection(focusDriver, null)
@@ -2589,7 +2600,7 @@ export default function RaceWeekend() {
                           {trackMap}
                         </Suspense>
                       )}
-                      {isLoadingSessionData && (
+                      {(isLoadingSessionData || location.isPending) && (
                         <span className="absolute top-2 right-2 text-f1red text-[10px]">
                           Loading…
                         </span>
@@ -2818,6 +2829,7 @@ export default function RaceWeekend() {
                         driverLap={focusDriverLap}
                         compareDriverLap={compareDriverLap}
                         sharedAllDriverWindow={telemetryEnabled}
+                        telemetryEnabled={secondaryEnabled}
                         onClear={clearFocusSelection}
                         onClearCompare={() =>
                           setFocusSelection(focusDriver, null)
@@ -2848,7 +2860,7 @@ export default function RaceWeekend() {
                   ) : (
                     <Suspense fallback={<PanelFallback />}>{trackMap}</Suspense>
                   )}
-                  {isLoadingSessionData && (
+                  {(isLoadingSessionData || location.isPending) && (
                     <span className="absolute top-2 right-2 text-f1red text-[10px]">
                       Loading…
                     </span>

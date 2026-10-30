@@ -287,6 +287,7 @@ interface Props {
   readonly pitRejoinGaps?: ReadonlyMap<number, number> | null;
   readonly showFocusedHud?: boolean;
   readonly sharedAllDriverWindow?: boolean;
+  readonly telemetryEnabled?: boolean;
   readonly raceLeader?: Driver | null;
   readonly lightsOutMs?: number | null;
   /** Auto-director inputs (races only); enables the "TV" camera mode. */
@@ -335,6 +336,7 @@ export function TrackMap3D({
   pitRejoinGaps = null,
   showFocusedHud = true,
   sharedAllDriverWindow = false,
+  telemetryEnabled = true,
   raceLeader = null,
   lightsOutMs = null,
   director = null,
@@ -406,11 +408,15 @@ export function TrackMap3D({
     () => (circuitGeom && geo ? buildArcPolyline(circuitGeom, geo) : null),
     [circuitGeom, geo],
   );
-  const heatData = useCarDataForLap(sessionKey, focusDriver, focusDriverLap ?? null);
+  const heatData = useCarDataForLap(
+    sessionKey, focusDriver, focusDriverLap ?? null,
+    { enabled: telemetryEnabled },
+  );
   const referenceHeatData = useCarDataForLap(
     sessionKey,
     focusDriver,
     focusDriverLap != null && focusDriverLap > 1 ? focusDriverLap - 1 : null,
+    { enabled: telemetryEnabled },
   );
   const showElevation = showEnhancedVisuals && mapShowElevation;
   const overlayGradients = useMemo(() => {
@@ -1338,7 +1344,7 @@ export function TrackMap3D({
     showFocusedHud || speedTrailEnabled ? focusDriver : null,
     sessionStartMs,
     chunkIndexFor(t),
-    { sharedAllDriverWindow },
+    { sharedAllDriverWindow, enabled: telemetryEnabled },
   );
   const hudData = useMemo(
     () => (focusDriver === null ? null : carDataAt(hudRawData, sessionStartMs + t)),

@@ -30,6 +30,7 @@ export function useCarDataWindow(
   sessionStartMs: number,
   chunkIdx: number,
   options?: {
+    enabled?: boolean;
     /** True when useAllCarDataWindow is active for the same session/chunks. */
     sharedAllDriverWindow?: boolean;
   },
@@ -37,6 +38,7 @@ export function useCarDataWindow(
   const qc = useQueryClient();
   const shared = options?.sharedAllDriverWindow ?? false;
   const enabled =
+    (options?.enabled ?? true) &&
     sessionKey !== null && driverNumber !== null && sessionStartMs > 0;
 
   const makeOptions = (idx: number) => ({

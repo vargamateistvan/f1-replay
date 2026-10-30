@@ -130,6 +130,7 @@ interface Props {
    * (leaderboard telemetry columns) — reuse it for the HUD instead of
    * per-driver requests. */
   readonly sharedAllDriverWindow?: boolean;
+  readonly telemetryEnabled?: boolean;
   readonly raceLeader?: Driver | null;
   /** Session-relative ms of race start; drives the start-lights badge. */
   readonly lightsOutMs?: number | null;
@@ -177,6 +178,7 @@ export function TrackMap({
   raceLeader = null,
   lightsOutMs = null,
   sharedAllDriverWindow = false,
+  telemetryEnabled = true,
   showTrackScreenshot = true,
   showEnhancedVisuals = true,
   onSelectDriver,
@@ -258,7 +260,7 @@ export function TrackMap({
     showFocusedHud ? focusDriver : null,
     sessionStartMs,
     chunkIdx,
-    { sharedAllDriverWindow },
+    { sharedAllDriverWindow, enabled: telemetryEnabled },
   );
 
   // Baked official geometry — loaded on demand for this circuit only.
@@ -417,11 +419,13 @@ export function TrackMap({
     sessionKey,
     focusDriver,
     focusDriverLap ?? null,
+    { enabled: telemetryEnabled },
   );
   const referenceHeatData = useCarDataForLap(
     sessionKey,
     focusDriver,
     focusDriverLap != null && focusDriverLap > 1 ? focusDriverLap - 1 : null,
+    { enabled: telemetryEnabled },
   );
 
   // Derived overlay data — computed only when its layer is visible.

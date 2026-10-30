@@ -1,6 +1,6 @@
 # F1 Replay — Agent Documentation
 
-> Last updated: 2026-10-26  
+> Last updated: 2026-10-30
 > The single source of truth for agents. Provides concise, agent-readable architecture notes, conventions, and guardrails. `docs/` holds mostly historical plans — see Section 12 before trusting one.
 
 ---
@@ -98,8 +98,9 @@ src/
     settings.ts         — Zustand persist store for all user preferences (AppSettings); ring pit-window outcomes are controlled by `mapRingShowPitWindowOutcomes` (default off)
 
   hooks/
-    useSession.ts       — All session-scoped TanStack Query hooks
-    useLocationChunks.ts — 5-min chunked location streaming with prefetch/eviction
+    useSession.ts       — All session-scoped TanStack Query hooks; secondary feeds accept an optional enabled gate without changing cache keys
+    useReplayStartup.ts — Replay readiness analytics and per-session secondary-feed release after essential requests and visible GPS settle (errors also release feeds)
+    useLocationChunks.ts — 2-min chunked location streaming with prefetch/eviction; current window loads before adjacent/speculative chunks
     useTrackMap.ts      — Track outline derivation (GPS → SVG coordinate transform)
     useEventToasts.ts   — Playhead-driven toast queue
     useCatchupSummary.ts — "You skipped X events" catchup overlay
@@ -351,8 +352,10 @@ components/ (render to DOM; read settings from Zustand)
 
 - Sliding-window: `RATE_MAX_PER_SECOND` / `RATE_MAX_PER_MINUTE` (kept under OpenF1's free-tier 3 req/s, 30 req/min).
 - Responses served from the proxy cache (`X-Cache: EDGE | KV`, exposed via CORS) give their slot back, so cached data isn't throttled; only misses count. The queue is FIFO — hooks subscribed first fetch first.
+- Returning a cached slot reschedules a later queue timer immediately; every wake-up still checks both sliding windows and global 429 backoff.
 - Concurrent identical GETs (same URL) are deduplicated via `inFlightJsonRequests` map.
 - On HTTP 429 the client honours `Retry-After` with exponential backoff (up to `RATE_MAX_RETRIES`).
+- Sentry distributions separate rate-limiter wait (`request_queue_time`), fetch-to-headers (`response_time`) and successful JSON body download/parsing (`response_body_time`); queue/body metrics carry the endpoint name.
 
 ### Toast event queue (`timeline/events.ts`, `hooks/useEventToasts.ts`)
 
@@ -456,6 +459,20 @@ Historical sessions:
 - All queries have `staleTime: Infinity` — data never re-fetched once cached.
 - Cache is persisted to IndexedDB (`QUERY_PERSIST_MAX_AGE_MS`).
 - Full replay scrubbing is available.
+
+Replay startup is progressive: metadata, drivers, current visible GPS, positions,
+intervals, laps and race control load first. Stints, pits, grid, results, overtakes,
+radio, weather and all-driver telemetry follow once essential requests and the
+visible GPS window settle. A failed essential request also releases secondary
+feeds; seeks and view changes do not re-disable them after release. Loading
+status never covers the entire replay, and failed requests have an explicit retry
+action. `useReplayStartup.ts` reports data-readiness milestones (not map paint);
+see `docs/ANALYTICS_EVENTS.md`.
+
+Map HUDs, map lap telemetry and `FocusedTelemetry` share the same startup gate
+through their optional `telemetryEnabled` prop (default true for other callers);
+`useCarDataWindow` and `useCarDataForLap` accept an optional enabled gate while
+retaining canonical query keys.
 
 ---
 

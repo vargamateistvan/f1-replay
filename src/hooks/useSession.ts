@@ -164,11 +164,15 @@ export function useLaps(
   });
 }
 
-export function useStints(sessionKey: number | null, isLive = false) {
+export function useStints(
+  sessionKey: number | null,
+  isLive = false,
+  options?: { enabled?: boolean },
+) {
   return useQuery({
     queryKey: ["stints", sessionKey],
     queryFn: () => api.stints(sessionKey!),
-    enabled: sessionKey !== null,
+    enabled: sessionKey !== null && (options?.enabled ?? true),
     staleTime: isLive ? 0 : Infinity,
     refetchInterval: isLive ? LIVE_POLL_SLOW_MS : false,
   });
@@ -177,6 +181,7 @@ export function useStints(sessionKey: number | null, isLive = false) {
 export function useStartingGrid(
   sessionKey: number | null,
   meetingKey: number | null = null,
+  options?: { enabled?: boolean },
 ) {
   const queryClient = useQueryClient();
 
@@ -216,16 +221,20 @@ export function useStartingGrid(
       if (!qualifyingSession) return directRows;
       return api.startingGrid(qualifyingSession.session_key, meetingKey);
     },
-    enabled: sessionKey !== null,
+    enabled: sessionKey !== null && (options?.enabled ?? true),
     staleTime: Infinity,
   });
 }
 
-export function usePits(sessionKey: number | null, isLive = false) {
+export function usePits(
+  sessionKey: number | null,
+  isLive = false,
+  options?: { enabled?: boolean },
+) {
   return useQuery({
     queryKey: ["pits", sessionKey],
     queryFn: () => api.pits(sessionKey!),
-    enabled: sessionKey !== null,
+    enabled: sessionKey !== null && (options?.enabled ?? true),
     staleTime: isLive ? 0 : Infinity,
     refetchInterval: isLive ? LIVE_POLL_SLOW_MS : false,
   });
@@ -241,40 +250,55 @@ export function useRaceControl(sessionKey: number | null, isLive = false) {
   });
 }
 
-export function useTeamRadio(sessionKey: number | null, isLive = false) {
+export function useTeamRadio(
+  sessionKey: number | null,
+  isLive = false,
+  options?: { enabled?: boolean },
+) {
   return useQuery({
     queryKey: ["teamRadio", sessionKey],
     queryFn: () => api.teamRadio(sessionKey!),
-    enabled: sessionKey !== null,
+    enabled: sessionKey !== null && (options?.enabled ?? true),
     staleTime: isLive ? 0 : Infinity,
     refetchInterval: isLive ? LIVE_POLL_SLOW_MS : false,
   });
 }
 
-export function useWeather(sessionKey: number | null, isLive = false) {
+export function useWeather(
+  sessionKey: number | null,
+  isLive = false,
+  options?: { enabled?: boolean },
+) {
   return useQuery({
     queryKey: ["weather", sessionKey],
     queryFn: () => api.weather(sessionKey!),
-    enabled: sessionKey !== null,
+    enabled: sessionKey !== null && (options?.enabled ?? true),
     staleTime: isLive ? 0 : Infinity,
     refetchInterval: isLive ? LIVE_POLL_SLOW_MS : false,
   });
 }
 
-export function useSessionResult(sessionKey: number | null) {
+export function useSessionResult(
+  sessionKey: number | null,
+  options?: { enabled?: boolean },
+) {
   return useQuery({
     queryKey: ["sessionResult", sessionKey],
     queryFn: () => api.sessionResult(sessionKey!),
-    enabled: sessionKey !== null,
+    enabled: sessionKey !== null && (options?.enabled ?? true),
     staleTime: Infinity,
   });
 }
 
-export function useOvertakes(sessionKey: number | null, isLive = false) {
+export function useOvertakes(
+  sessionKey: number | null,
+  isLive = false,
+  options?: { enabled?: boolean },
+) {
   return useQuery({
     queryKey: ["overtakes", sessionKey],
     queryFn: () => api.overtakes(sessionKey!),
-    enabled: sessionKey !== null,
+    enabled: sessionKey !== null && (options?.enabled ?? true),
     staleTime: isLive ? 0 : Infinity,
     refetchInterval: isLive ? LIVE_POLL_SLOW_MS : false,
   });
