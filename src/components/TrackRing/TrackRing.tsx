@@ -86,6 +86,7 @@ import {
   RingTrack,
   type RingStatus,
 } from "./RingLayers";
+import { TOKEN_HEX } from "@/designTokens";
 
 interface Props {
   readonly sessionKey: number | null;
@@ -692,7 +693,7 @@ export function TrackRing({
             y={CY}
             textAnchor="middle"
             dominantBaseline="middle"
-            fill="#636369"
+            fill={TOKEN_HEX.faint}
             fontSize={11}
             fontFamily="Inter, sans-serif"
           >
@@ -721,9 +722,9 @@ export function TrackRing({
         <div
           role="status"
           aria-label="Pit window outcomes"
-          className="absolute top-12 right-2 z-20 max-w-[min(18rem,calc(100%-1rem))] rounded border border-purple-400/30 bg-[#171923]/90 px-2.5 py-2 text-[10px] leading-snug text-white shadow-lg backdrop-blur"
+          className="absolute top-12 right-2 z-20 max-w-[min(18rem,calc(100%-1rem))] rounded-sm border border-purple-line bg-track/90 px-2.5 py-2 text-caption leading-snug text-fg shadow-lg backdrop-blur"
         >
-          <p className="font-black uppercase tracking-wider text-purple-300">If {focusAcronym} pits now</p>
+          <p className="font-black uppercase tracking-wider text-purple-fg">If {focusAcronym} pits now</p>
           <p className="mt-1">
             <span className="font-bold">Would pass:</span>{" "}
             {driverList(pitWindowRivalsResult.passedBy, driverByNumber)}
@@ -739,9 +740,9 @@ export function TrackRing({
         <div
           role="status"
           aria-label="Pit rejoin"
-          className="absolute top-12 right-2 z-20 max-w-[min(18rem,calc(100%-1rem))] rounded border border-purple-400/30 bg-[#171923]/90 px-2.5 py-2 text-[10px] leading-snug text-white shadow-lg backdrop-blur"
+          className="absolute top-12 right-2 z-20 max-w-[min(18rem,calc(100%-1rem))] rounded-sm border border-purple-line bg-track/90 px-2.5 py-2 text-caption leading-snug text-fg shadow-lg backdrop-blur"
         >
-          <p className="font-black uppercase tracking-wider text-purple-300">
+          <p className="font-black uppercase tracking-wider text-purple-fg">
             {focusAcronym} in the pits → P{inPitRejoin.position}
           </p>
           <p className="mt-1">
@@ -755,7 +756,7 @@ export function TrackRing({
 
       {legendOpen && (
         <div className="absolute top-12 right-2 z-30">
-          <RingLegend lightMode={lightMode} />
+          <RingLegend />
         </div>
       )}
 
@@ -764,12 +765,11 @@ export function TrackRing({
           <TrackClockPanel
             nowMs={sessionStartMs + Math.max(0, t)}
             sessionGmtOffset={sessionGmtOffset}
-            lightMode={lightMode}
             raining={(weatherOverlay?.rainfall ?? 0) > 0}
           />
         )}
         {weatherOverlay && (
-          <WeatherPanel weather={weatherOverlay} metricSystem={metricSystem} lightMode={lightMode} />
+          <WeatherPanel weather={weatherOverlay} metricSystem={metricSystem} />
         )}
       </div>
 

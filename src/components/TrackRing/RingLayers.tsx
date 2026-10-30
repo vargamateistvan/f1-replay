@@ -238,27 +238,25 @@ export interface RingStatus {
 }
 
 /** Optional key for the ring's gap labels, pit window and hover interaction. */
-export function RingLegend({ lightMode }: { lightMode: boolean }) {
+export function RingLegend() {
   return (
     <aside
       role="note"
       aria-label="Ring view legend"
-      className={`w-64 rounded border p-2.5 shadow-lg backdrop-blur ${
-        lightMode ? "border-slate-300 bg-white/95 text-slate-800" : "border-white/15 bg-[#171923]/95 text-white"
-      }`}
+      className="w-64 rounded-sm border border-fg/15 bg-track/95 p-2.5 text-fg shadow-lg backdrop-blur"
     >
-      <div className="mb-1.5 text-[9px] font-black uppercase tracking-[0.16em]">Ring view key</div>
-      <ul className="space-y-1.5 text-[10px] leading-snug">
+      <div className="mb-1.5 text-tiny font-black uppercase tracking-eyebrow">Ring view key</div>
+      <ul className="space-y-1.5 text-caption leading-snug">
         <li>
           <strong>Gap labels:</strong> + behind, − ahead of the focused driver. <strong>+1L · +2.4s</strong> shows
           lap deficit and timing gap when available.
         </li>
         <li>
-          <strong className="text-purple-400">Purple band:</strong> pit-loss window; the lighter section ahead marks
+          <strong className="text-purple-fg">Purple band:</strong> pit-loss window; the lighter section ahead marks
           cars that would drop behind if they pitted.
         </li>
         <li>
-          <strong className="text-amber-500">Orange ticks:</strong> alternate pit loss for Green, VSC or Safety Car
+          <strong className="text-orange-fg">Orange ticks:</strong> alternate pit loss for Green, VSC or Safety Car
           conditions.
         </li>
         <li>

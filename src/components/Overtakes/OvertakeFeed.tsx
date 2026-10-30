@@ -171,7 +171,7 @@ export function OvertakeFeed({
                 <CommentaryRow
                   key={`${e.overtaking_driver_number}-${e.overtaken_driver_number}-${e.date}-${e.position ?? "na"}`}
                   ms={ms}
-                  badge={{ label: "Pass", className: "bg-[#39b54a] text-white" }}
+                  badge={{ label: "Pass", className: "bg-green text-white" }}
                   accent={teamColor(over?.team_colour)}
                   upcoming={ms > sessionTimeMs}
                   title={

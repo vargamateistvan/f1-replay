@@ -104,14 +104,14 @@ export function EventPicker({
         aria-controls={open ? panelId : undefined}
         aria-label="Choose event and session"
         title="Choose event and session"
-        className={`group min-w-0 h-7 flex items-center gap-2 pl-2 pr-1 rounded-md border transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70 ${
+        className={`group min-w-0 h-7 flex items-center gap-2 pl-2 pr-1 rounded-sm border transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70 ${
           open
             ? "bg-black/15 border-white/25"
             : "bg-black/[0.06] border-white/10 hover:bg-black/15 hover:border-white/25"
         }`}
       >
         {live && (
-          <span className="flex items-center gap-1 bg-white text-f1red text-[9px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded-sm shrink-0">
+          <span className="flex items-center gap-1 bg-white text-f1red text-tiny font-black uppercase tracking-widest px-1.5 py-0.5 rounded-sm shrink-0">
             <span className="w-1.5 h-1.5 rounded-full bg-f1red" />
             Live
           </span>
@@ -122,45 +122,45 @@ export function EventPicker({
               <img
                 src={countryFlagUrl}
                 alt=""
-                className="h-3.5 w-5 object-cover rounded-[2px] border border-white/30 shrink-0"
+                className="h-3.5 w-5 object-cover rounded-sm border border-white/30 shrink-0"
                 loading="lazy"
                 referrerPolicy="no-referrer"
               />
             )}
             {/* Phones: event over session, so the event name isn't squeezed out. */}
             <span className="sm:hidden min-w-0 flex flex-col items-start leading-none gap-0.5">
-              <span className="max-w-full text-white text-[10px] font-bold uppercase tracking-wide truncate">
+              <span className="max-w-full text-white text-caption font-bold uppercase tracking-wide truncate">
                 {shortMeetingName(selectedMeeting.meeting_name)}
               </span>
               {sessionLabel && (
-                <span className="max-w-full text-white/70 text-[8px] font-bold uppercase tracking-widest truncate">
+                <span className="max-w-full text-white/70 text-micro font-bold uppercase tracking-widest truncate">
                   {sessionLabel}
                 </span>
               )}
             </span>
-            <span className="hidden sm:inline min-w-0 text-white text-[11px] font-bold uppercase tracking-wide truncate sm:max-w-[160px] lg:max-w-[240px]">
+            <span className="hidden sm:inline min-w-0 text-white text-small font-bold uppercase tracking-wide truncate sm:max-w-[160px] lg:max-w-[240px]">
               {selectedMeeting.meeting_name}
             </span>
-            <span className="hidden sm:inline text-white/70 text-[11px] font-bold uppercase tracking-widest shrink-0">
+            <span className="hidden sm:inline text-white/70 text-small font-bold uppercase tracking-widest shrink-0">
               {selectedMeeting.year}
             </span>
             {sessionLabel && (
-              <span className="hidden sm:inline text-white/70 text-[11px] font-bold uppercase tracking-widest shrink-0">
+              <span className="hidden sm:inline text-white/70 text-small font-bold uppercase tracking-widest shrink-0">
                 · {sessionLabel}
               </span>
             )}
             {selectedMeeting.is_cancelled && (
-              <span className="bg-white text-f1red text-[9px] font-bold uppercase tracking-widest px-1.5 py-0.5 rounded-sm shrink-0">
+              <span className="bg-white text-f1red text-tiny font-bold uppercase tracking-widest px-1.5 py-0.5 rounded-sm shrink-0">
                 Cancelled
               </span>
             )}
           </>
         ) : (
-          <span className="text-white/80 text-[10px] sm:text-[11px] font-bold tracking-widest uppercase truncate">
+          <span className="text-white/80 text-caption sm:text-small font-bold tracking-widest uppercase truncate">
             Select session
           </span>
         )}
-        <span className="ml-0.5 h-5 w-5 shrink-0 flex items-center justify-center rounded bg-white/[0.07] transition-colors group-hover:bg-white/15">
+        <span className="ml-0.5 h-5 w-5 shrink-0 flex items-center justify-center rounded-sm bg-white/[0.07] transition-colors group-hover:bg-white/15">
           <ChevronDown
             aria-hidden="true"
             className={`h-3.5 w-3.5 text-white/75 transition-transform group-hover:text-white ${
@@ -178,7 +178,7 @@ export function EventPicker({
         }}
         disabled={isSelectingLatest}
         title="Jump to the latest event and session"
-        className="ml-1.5 h-7 px-2 shrink-0 rounded-md border border-white/10 bg-black/[0.06] text-white/80 text-[9px] font-black uppercase tracking-widest transition-colors hover:bg-black/15 hover:border-white/25 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70 disabled:opacity-40 disabled:cursor-not-allowed"
+        className="ml-1.5 h-7 px-2 shrink-0 rounded-sm border border-white/10 bg-black/[0.06] text-white/80 text-tiny font-black uppercase tracking-widest transition-colors hover:bg-black/15 hover:border-white/25 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70 disabled:opacity-40 disabled:cursor-not-allowed"
       >
         Latest
       </button>
@@ -188,7 +188,7 @@ export function EventPicker({
           id={panelId}
           role="dialog"
           aria-label="Event and session"
-          className="z-[230] flex flex-col gap-2.5 rounded-md border border-panel bg-surface p-3 shadow-2xl light:bg-white light:border-slate-300 max-sm:fixed max-sm:inset-x-3 max-sm:top-[calc(env(safe-area-inset-top)+2.5rem)] sm:absolute sm:right-0 md:right-auto md:left-0 sm:top-full sm:mt-1.5 sm:w-[22rem]"
+          className="z-popover flex flex-col gap-2.5 rounded-sm border border-panel bg-surface p-3 shadow-2xl max-sm:fixed max-sm:inset-x-3 max-sm:top-[calc(env(safe-area-inset-top)+2.5rem)] sm:absolute sm:right-0 md:right-auto md:left-0 sm:top-full sm:mt-1.5 sm:w-[22rem]"
         >
           <div className="flex items-end gap-2">
             <label className="flex flex-col gap-1 shrink-0">
@@ -211,7 +211,7 @@ export function EventPicker({
             </label>
 
             {(meetingsPending || sessionsPending) && (
-              <span className="mb-1.5 text-muted text-[9px]">Loading…</span>
+              <span className="mb-1.5 text-muted text-tiny">Loading…</span>
             )}
           </div>
 

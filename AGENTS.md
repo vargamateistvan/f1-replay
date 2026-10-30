@@ -11,6 +11,8 @@
 | ------------------------------------------------- | -------------------------------------------------------------------------------------------- |
 | Add/modify an OpenF1 call                         | `api/types.ts` → `api/endpoints.ts` → a hook in `hooks/useSession.ts` (never call `api.*` from a component) |
 | Tune a number (speed, poll rate, size, timeout)   | `src/constants.ts` (grep the name; every magic number lives here)                            |
+| Colour, font size, letter-spacing, z-index        | `src/designTokens.ts` (Tailwind tokens + light/dark values; Section 8 Styling)               |
+| A button                                          | `components/Button` (`buttonClass()` for links, `<Button>`, `FOCUS_RING`)                    |
 | Add a user setting                                | `stores/settings.ts` (`AppSettings`, defaults, `migrateSettings`) + `components/SettingsModal` |
 | Main replay page layout / wiring                  | `pages/RaceWeekend.tsx` (very large — grep, don't read whole)                                 |
 | Playback, seek, speed                             | `timeline/clock.ts` (`useTimeline`), `components/PlaybackBar`                                |
@@ -56,7 +58,7 @@ Tests sit next to the module (`foo.ts` → `foo.test.ts`); broad smoke/coverage 
 | Server state      | TanStack Query v5                                            |
 | Cache persistence | TanStack per-query persister (`experimental_createQueryPersister`) → IndexedDB |
 | Client state      | Zustand v5                                                   |
-| Styling           | Tailwind CSS v3                                              |
+| Styling           | Tailwind CSS v3, palette locked to `designTokens.ts`         |
 | Charts            | Recharts (standings/gap charts), uPlot (high-freq telemetry) |
 | 3D map            | Mapbox GL JS v3 (lazy chunk, opt-in, needs `VITE_MAPBOX_TOKEN`) |
 | Icons             | Lucide React                                                 |
@@ -77,7 +79,8 @@ Tests sit next to the module (`foo.ts` → `foo.test.ts`); broad smoke/coverage 
 src/
   App.tsx               — QueryClient setup, global gates (light mode, coffee widget)
   routes.tsx            — BrowserRouter + top-level route tree
-  constants.ts          — ALL tunable magic numbers (speeds, chunk sizes, poll rates…)
+  constants.ts          — ALL tunable magic numbers (speeds, chunk sizes, poll rates…); COMPOUND_COLORS / COMPOUND_LETTERS, FLAG_COLORS
+  designTokens.ts       — Design tokens: themed colours (dark + light R G B → CSS vars via tailwind.config.ts), type scale, letter-spacing, z layers, TOKEN_HEX for canvas/SVG
   main.tsx              — ReactDOM.createRoot entry point
 
   api/
@@ -289,6 +292,7 @@ components/ (render to DOM; read settings from Zustand)
 | `AboutDialog`                                     | Mobile About dialog: version, release date, Privacy/Terms links                          |
 | `DialogHeader`                                    | Shared modal header (Settings, How it works, About, catch-up) in the legal-page style: red eyebrow strip + mono meta, black uppercase title, square close button |
 | `TooltipCard`                                     | Shared tooltip card styling                                                              |
+| `Button`                                          | `buttonClass(variant, size)` (`primary` red fill / `secondary` bordered, red hover / `quiet` muted; `md` / `sm` / `block`) for buttons and `<Link>`s, `<Button>`, `FOCUS_RING` for custom controls |
 
 ---
 
@@ -423,8 +427,16 @@ components/ (render to DOM; read settings from Zustand)
 
 ### Styling
 
-- Tailwind utility classes only. No CSS-in-JS. Custom tokens live in `tailwind.config.ts`.
-- Dark mode is the default; `light` class on `<html>` activates light mode (toggled by `LightModeGate` in `App.tsx`).
+- Tailwind utility classes only. No CSS-in-JS.
+- **Design tokens** (`src/designTokens.ts`) are the only colours. `tailwind.config.ts` turns each into a CSS variable (`--color-*`, overridden under `html.light`) and replaces Tailwind's default palette, so `bg-red-500` generates nothing. ESLint rejects arbitrary hex classes (`bg-[#…]`), pixel font sizes (`text-[10px]`) and default-palette shades.
+  - Neutrals: `fg` (text, white in dark mode — use `text-fg`, not `text-white`), `track` (page), `sunken` (map/chart wells), `surface` (cards), `panel` (controls, default border), `line` (strong border), `muted`, `faint`.
+  - Tones `purple` `green` `yellow` `orange` `red` `blue` `teal`, each with `DEFAULT` (fills, F1 timing text), `-fg` (text), `-line` (chip border), `-tint` (chip/row background): a tinted chip is `border-orange-line bg-orange-tint text-orange-fg`. Brand: `f1red` (+ `f1red-hover`, `f1red-fg` for red text); `podium-gold/silver/bronze`.
+  - `text-white` / `text-black` only on solid coloured fills (`bg-f1red`, `bg-purple`, `bg-yellow`…), where they must not flip with the theme.
+  - Canvas, chart series, Mapbox paint and SVG attributes can't read CSS variables: use `TOKEN_HEX` (dark values) or a `constants.ts` colour map, never a new hex literal.
+- Dark mode is the default; `light` class on `<html>` activates light mode (toggled by `LightModeGate` in `App.tsx`). Tokens handle it — don't branch on `lightMode` for class names. The `light:` variant exists for the rare light-only tweak (e.g. a softer shadow).
+- Type scale (font-size only, set leading separately): `text-micro` 8px, `text-tiny` 9px, `text-caption` 10px, `text-small` 11px, `text-compact` 12px, `text-body` 13px, `text-stat` 22px; Tailwind `text-sm` and up above that. Uppercase letter-spacing: `tracking-wider` / `widest`, `tracking-caps` (0.12em, titles/buttons), `tracking-eyebrow` (0.16em), `tracking-spaced` (0.2em).
+- Corners: `rounded-sm` (2px) for panels, buttons, chips and dialogs; `rounded-full` only for dots, avatars and pills. Layers: `z-10` / `z-20` inside panels, then `z-overlay` < `z-modal` < `z-tour` < `z-popover` < `z-tooltip`.
+- Buttons come from `components/Button`; keyboard focus is a global brand-red `:focus-visible` outline (`index.css`), or `FOCUS_RING` on controls that draw their own.
 
 ### Testing
 
@@ -566,7 +578,8 @@ Read the code over any plan below; most `docs/` files are snapshots from mid-202
 | `docs/TRACK_MAP_3D.md`, `docs/RING_VIEW.md` | **Current reference** — 3D map and ring view internals (update with those components) |
 | `docs/OPENF1_LIVE_API_USAGE.md`        | **Current reference** — querying OpenF1 directly, mapping to `api/`         |
 | `proxy/README.md`                      | **Current reference** — proxy TTLs, cache warming, KV maintenance           |
-| `docs/DESIGN.md`, `docs/DESIGN_REWORK_V2.md`, `docs/MOBILE_DESIGN.md` | Design intent (F1.com-inspired look, mobile layout); visual reference only |
+| `docs/DESIGN.md`                       | **Current reference** for design intent, tokens and component patterns (values live in `src/designTokens.ts`) |
+| `docs/DESIGN_REWORK_V2.md`, `docs/MOBILE_DESIGN.md` | Design intent (rework, mobile layout); visual reference only — their hex values predate the tokens |
 | `docs/TRACK_RENDERING_PLAN.md`         | Background on baked circuit geometry (shipped)                              |
 | `docs/PLAN.md`, `ROADMAP.md`, `FEATURES_ROADMAP.md`, `REMAINING_PLAN.md`, `REPLAY_FEATURE_PLAN.md`, `OPENF1_*_PLAN.md`, `TRACK_SECTOR_FLAG_VISUALIZATION_PLAN.md` | Historical plans — mostly shipped; don't treat as a to-do list |
 | `docs/CODE_REVIEW_*.md`                | June 2026 review snapshots; findings may already be fixed                   |

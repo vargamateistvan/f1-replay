@@ -4,6 +4,7 @@ import {
   deriveTrackFlagState,
   hasAnyMarshalYellow,
 } from "@/timeline/raceControl";
+import { TOKEN_HEX } from "@/designTokens";
 
 interface Props {
   entries: RaceControl[];
@@ -21,18 +22,18 @@ interface BannerStyle {
 }
 
 const LIGHTS_OUT_STYLE: BannerStyle = {
-  bg: "#00c851",
+  bg: TOKEN_HEX.green,
   text: "#fff",
   label: "🚦 LIGHTS OUT",
 };
 
 const FLAG_STYLES: Record<string, BannerStyle> = {
-  YELLOW: { bg: "#f5d400", text: "#000", label: "⚑ YELLOW FLAG" },
-  DOUBLE_YELLOW: { bg: "#f5d400", text: "#000", label: "⚑⚑ DOUBLE YELLOW" },
-  RED: { bg: "#e8002d", text: "#fff", label: "⚑ RED FLAG" },
-  SAFETY_CAR: { bg: "#f5a623", text: "#000", label: "🚗 SAFETY CAR" },
-  VIRTUAL_SC: { bg: "#f5a623", text: "#000", label: "VSC DEPLOYED" },
-  VIRTUAL_SAFETY_CAR: { bg: "#f5a623", text: "#000", label: "VSC DEPLOYED" },
+  YELLOW: { bg: TOKEN_HEX.yellow, text: "#000", label: "⚑ YELLOW FLAG" },
+  DOUBLE_YELLOW: { bg: TOKEN_HEX.yellow, text: "#000", label: "⚑⚑ DOUBLE YELLOW" },
+  RED: { bg: TOKEN_HEX.f1red, text: "#fff", label: "⚑ RED FLAG" },
+  SAFETY_CAR: { bg: TOKEN_HEX.orange, text: "#000", label: "🚗 SAFETY CAR" },
+  VIRTUAL_SC: { bg: TOKEN_HEX.orange, text: "#000", label: "VSC DEPLOYED" },
+  VIRTUAL_SAFETY_CAR: { bg: TOKEN_HEX.orange, text: "#000", label: "VSC DEPLOYED" },
   CHEQUERED: { bg: "#fff", text: "#000", label: "🏁 CHEQUERED FLAG" },
   BLACK_AND_WHITE: { bg: "#888", text: "#fff", label: "◩ BLACK & WHITE FLAG" },
 };
@@ -104,7 +105,7 @@ export function FlagBanner({
       className="w-full px-4 py-1 flex items-center justify-center gap-2"
       style={{ backgroundColor: banner.bg, color: banner.text }}
     >
-      <span className="text-[12px] sm:text-[11px] font-black uppercase tracking-[0.25em]">
+      <span className="text-compact sm:text-small font-black uppercase tracking-spaced">
         {banner.label}
       </span>
     </div>

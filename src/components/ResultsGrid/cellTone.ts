@@ -14,9 +14,9 @@ export const STATUS_TONE: Record<Status, string> = {
 export function cellTone(cell: GridCell | null): string {
   if (!cell) return "text-muted/40";
   if (cell.status !== "finished") return STATUS_TONE[cell.status];
-  if (cell.position === 1) return "bg-amber-300 text-black font-black";
-  if (cell.position === 2) return "bg-[#c0c0c0] text-black font-bold";
-  if (cell.position === 3) return "bg-[#cd7f32] text-black font-bold";
-  if (cell.points > 0) return "bg-panel text-white font-bold";
+  if (cell.position === 1) return "bg-podium-gold text-black font-black";
+  if (cell.position === 2) return "bg-podium-silver text-black font-bold";
+  if (cell.position === 3) return "bg-podium-bronze text-black font-bold";
+  if (cell.points > 0) return "bg-panel text-fg font-bold";
   return "text-muted";
 }

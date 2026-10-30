@@ -51,14 +51,14 @@ function ProgressionTooltip({
   if (!active || !payload?.length) return null;
   const rows = [...payload].sort((a, b) => (b.value ?? 0) - (a.value ?? 0));
   return (
-    <div className="bg-surface border border-panel text-xs font-mono px-3 py-2 rounded shadow-lg">
+    <div className="bg-surface border border-panel text-xs font-mono px-3 py-2 rounded-sm shadow-lg">
       <div className="text-muted mb-1">After {label}</div>
       {rows.map((row) => (
         <div key={String(row.dataKey)} className="flex justify-between gap-4">
           <span className="font-bold" style={{ color: row.color }}>
             {row.name}
           </span>
-          <span className="tabular-nums text-white">{row.value}</span>
+          <span className="tabular-nums text-fg">{row.value}</span>
         </div>
       ))}
     </div>
@@ -144,7 +144,7 @@ export function PointsProgressionChart({ rounds, series, loading }: Props) {
             onFocus: () => setHighlighted(s.key),
             onBlur: () => setHighlighted(null),
             className:
-              "flex items-center gap-1.5 border border-panel px-2 py-1 text-[10px] font-bold text-muted hover:text-white focus:text-white focus:outline-none",
+              "flex items-center gap-1.5 border border-panel px-2 py-1 text-caption font-bold text-muted hover:text-fg focus:text-fg focus:outline-none",
           };
           const content = (
             <>
@@ -174,7 +174,7 @@ export function PointsProgressionChart({ rounds, series, loading }: Props) {
           <button
             type="button"
             onClick={() => setShowAll((v) => !v)}
-            className="ml-auto border border-panel px-2 py-1 text-[10px] font-bold uppercase tracking-[0.12em] text-muted hover:text-white"
+            className="ml-auto border border-panel px-2 py-1 text-caption font-bold uppercase tracking-caps text-muted hover:text-fg"
           >
             {showAll ? `Top ${PROGRESSION_DEFAULT_LINES}` : `Show all ${series.length}`}
           </button>

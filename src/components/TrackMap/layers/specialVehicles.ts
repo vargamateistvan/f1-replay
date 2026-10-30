@@ -1,3 +1,4 @@
+import { TOKEN_HEX } from "@/designTokens";
 /** Marker styling for the safety and medical cars (shared by the 2D and 3D maps). */
 export interface SpecialVehicleStyle {
   shortLabel: string;
@@ -13,7 +14,7 @@ export interface SpecialVehicleStyle {
 const SAFETY_CAR_STYLE: SpecialVehicleStyle = {
   shortLabel: "SC",
   fullLabel: "SAFETY CAR",
-  fill: "#f5a623",
+  fill: TOKEN_HEX.orange,
   stroke: "#7a5400",
   text: "#101010",
   textDark: "#ffffff",
@@ -29,7 +30,7 @@ export const SPECIAL_TRACK_VEHICLES: Record<number, SpecialVehicleStyle> = {
   244: {
     shortLabel: "MC",
     fullLabel: "MEDICAL CAR",
-    fill: "#e8002d",
+    fill: TOKEN_HEX.f1red,
     stroke: "#5f121d",
     text: "#ffffff",
     halo: "rgba(232,0,45,0.55)",

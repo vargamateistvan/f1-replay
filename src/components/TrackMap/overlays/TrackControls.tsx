@@ -15,7 +15,7 @@ import { TOUR_TARGET } from "@/components/AppTour/targets";
 
 /** Same button as the 3D map's toolbar, so both maps share one control bar look. */
 const BUTTON_CLASS =
-  "h-7 min-w-7 px-1.5 flex items-center justify-center border border-panel text-white/85 hover:text-white hover:border-white/50 transition-colors text-[10px] font-black tracking-widest disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:border-panel";
+  "h-7 min-w-7 px-1.5 flex items-center justify-center border border-panel text-fg/85 hover:text-fg hover:border-fg/50 transition-colors text-caption font-black tracking-widest disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:border-panel";
 
 export interface TrackControlButton {
   key: string;
@@ -46,7 +46,7 @@ function ControlButton({
         animateMotion(e.currentTarget, pressMotion());
         onPress();
       }}
-      className={active ? `${BUTTON_CLASS} !border-f1red text-white` : BUTTON_CLASS}
+      className={active ? `${BUTTON_CLASS} !border-f1red text-fg` : BUTTON_CLASS}
       title={title}
       aria-label={title}
       aria-pressed={active}
@@ -204,7 +204,7 @@ export const TrackControls = memo(function TrackControls({
     <div className="flex items-center justify-end gap-1">
       {groups.map((group, i) => (
         <Fragment key={i}>
-          {i > 0 && <span className="mx-0.5 h-4 w-px bg-white/15" aria-hidden="true" />}
+          {i > 0 && <span className="mx-0.5 h-4 w-px bg-fg/15" aria-hidden="true" />}
           {group}
         </Fragment>
       ))}

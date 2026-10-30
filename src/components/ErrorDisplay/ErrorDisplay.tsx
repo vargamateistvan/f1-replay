@@ -61,7 +61,7 @@ export function ErrorDisplay() {
   if (errors.length === 0) return null;
 
   return (
-    <div className="fixed bottom-0 left-0 right-0 bg-f1red/90 border-t border-f1red text-white p-3 text-xs font-mono z-50 max-h-32 overflow-y-auto">
+    <div className="fixed bottom-0 left-0 right-0 bg-f1red/90 border-t border-f1red text-fg p-3 text-xs font-mono z-50 max-h-32 overflow-y-auto">
       <div className="font-bold mb-2 flex justify-between">
         <span>Debug: {errors.length} Error(s)</span>
         <button
@@ -73,13 +73,13 @@ export function ErrorDisplay() {
               // Ignore errors when clearing storage
             }
           }}
-          className="text-white/70 hover:text-white"
+          className="text-fg/70 hover:text-fg"
         >
           ✕
         </button>
       </div>
       {errors.map((err, i) => (
-        <div key={i} className="truncate text-white/80">
+        <div key={i} className="truncate text-fg/80">
           {i + 1}. {err}
         </div>
       ))}

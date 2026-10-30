@@ -182,7 +182,7 @@ const VALID_COMMENTARY_TABS = new Set<CommentaryTab>([
 
 const PANEL = "bg-surface border border-panel";
 const PANEL_TITLE =
-  "text-[10px] font-bold text-muted px-3 py-2 border-b border-panel uppercase tracking-[0.12em] border-l-2 border-l-f1red bg-track";
+  "text-caption font-bold text-muted px-3 py-2 border-b border-panel uppercase tracking-caps border-l-2 border-l-f1red bg-track";
 const OVERTAKE_PULSE_MS = 4_000;
 const SAFETY_CAR_SIREN_LEAVING_MS = 45_000;
 const SAFETY_CAR_SIREN_RETURN_MS = 90_000;
@@ -290,7 +290,7 @@ const AppTour = lazy(() =>
 
 function PanelFallback() {
   return (
-    <div className="flex h-full min-h-[120px] items-center justify-center text-[10px] font-bold uppercase tracking-[0.12em] text-muted">
+    <div className="flex h-full min-h-[120px] items-center justify-center text-caption font-bold uppercase tracking-caps text-muted">
       Loading Panel
     </div>
   );
@@ -2163,7 +2163,7 @@ export default function RaceWeekend() {
   // Phone tracker tabs: the race control ticker moves out of the info bar
   // into the Timing / Track tabs.
   const mobileRaceControlTicker = (
-    <div className="flex shrink-0 border-b border-panel bg-track text-[10px] font-bold uppercase tracking-[0.1em]">
+    <div className="flex shrink-0 border-b border-panel bg-track text-caption font-bold uppercase tracking-widest">
       <LatestRaceControlTicker
         raceControl={raceControl.data ?? []}
         drivers={drivers.data ?? []}
@@ -2448,7 +2448,7 @@ export default function RaceWeekend() {
       onClick={() =>
         openSettingsTab(activeTrackerTab === "map" ? "track" : "timing")
       }
-      className="shrink-0 w-8 flex items-center justify-center text-muted hover:text-white transition-colors"
+      className="shrink-0 w-8 flex items-center justify-center text-muted hover:text-fg transition-colors"
       aria-label={
         activeTrackerTab === "map" ? "Track map settings" : "Timing settings"
       }
@@ -2480,7 +2480,7 @@ export default function RaceWeekend() {
       <h1 className="sr-only">F1 Replay: Formula 1 race replay with live timing, track map and telemetry</h1>
       {welcome.visible && createPortal(
         <div
-          className="fixed inset-0 z-[220] flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm"
+          className="fixed inset-0 z-modal flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm"
           onClick={(event) => {
             if (event.target === event.currentTarget) closeWelcome(false);
           }}
@@ -2542,7 +2542,7 @@ export default function RaceWeekend() {
             <button
               type="button"
               onClick={() => closeWelcome(true)}
-              className="text-xs font-bold text-muted underline underline-offset-4 hover:text-white"
+              className="text-xs font-bold text-muted underline underline-offset-4 hover:text-fg"
             >
               Take a tour
             </button>
@@ -2555,7 +2555,7 @@ export default function RaceWeekend() {
       )}
       {isLoadingEventSession && (
         <div role="status" className="shrink-0 border-b border-panel bg-surface px-4 py-2">
-          <div className="text-f1red text-[10px] font-black uppercase tracking-[0.14em]">
+          <div className="text-f1red text-caption font-black uppercase tracking-caps">
             {session ? "Loading replay" : "Finding your session"}
           </div>
           <p className="mt-1 text-xs text-muted">
@@ -2698,10 +2698,10 @@ export default function RaceWeekend() {
                           });
                           setTrackerTab(tab);
                         }}
-                        className={`w-full px-1.5 py-2 text-[10px] font-bold uppercase tracking-wider border-b-2 -mb-px transition-colors ${
+                        className={`w-full px-1.5 py-2 text-caption font-bold uppercase tracking-wider border-b-2 -mb-px transition-colors ${
                           activeTrackerTab === tab
-                            ? "text-white border-f1red bg-surface"
-                            : "text-muted border-transparent hover:text-white"
+                            ? "text-fg border-f1red bg-surface"
+                            : "text-muted border-transparent hover:text-fg"
                         }`}
                       >
                         {label}
@@ -2766,7 +2766,7 @@ export default function RaceWeekend() {
                 {activeTrackerTab === "map" && (
                   <div
                     data-motion-card
-                    className="min-h-[80vw] bg-[#10101a] flex flex-col md:flex-1 md:min-w-0"
+                    className="min-h-[80vw] bg-sunken flex flex-col md:flex-1 md:min-w-0"
                   >
                     <div className="relative flex-1 min-h-[64vw]">
                       {drivers.isError ? (
@@ -2777,7 +2777,7 @@ export default function RaceWeekend() {
                         </Suspense>
                       )}
                       {(isLoadingSessionData || location.isPending) && (
-                        <span className="absolute top-2 right-2 text-f1red text-[10px]">
+                        <span className="absolute top-2 right-2 text-f1red text-caption">
                           Loading…
                         </span>
                       )}
@@ -2828,7 +2828,7 @@ export default function RaceWeekend() {
                 {activeTrackerTab === "chart" && (
                   <div
                     data-motion-card
-                    className="h-[52vh] min-h-[280px] bg-[#10101a]"
+                    className="h-[52vh] min-h-[280px] bg-sunken"
                   >
                     <Suspense fallback={<PanelFallback />}>
                       <LapChart
@@ -2846,7 +2846,7 @@ export default function RaceWeekend() {
                 {activeTrackerTab === "gap" && (
                   <div
                     data-motion-card
-                    className="h-[52vh] min-h-[280px] bg-[#10101a]"
+                    className="h-[52vh] min-h-[280px] bg-sunken"
                   >
                     <Suspense fallback={<PanelFallback />}>
                       <GapChart
@@ -2899,10 +2899,10 @@ export default function RaceWeekend() {
                         });
                         setTrackerTab(tab);
                       }}
-                      className={`flex-1 px-2 py-1 text-[10px] font-bold uppercase tracking-wider transition-colors ${
+                      className={`flex-1 px-2 py-1 text-caption font-bold uppercase tracking-wider transition-colors ${
                         activeTrackerTab === tab
-                          ? "text-white border-b-2 border-f1red -mb-px bg-surface"
-                          : "text-muted hover:text-white bg-track"
+                          ? "text-fg border-b-2 border-f1red -mb-px bg-surface"
+                          : "text-muted hover:text-fg bg-track"
                       }`}
                     >
                       {label}
@@ -3028,7 +3028,7 @@ export default function RaceWeekend() {
               <div
                 data-motion-card
                 data-tour={TOUR_TARGET.trackMap}
-                className="flex-1 min-w-0 bg-[#10101a] flex flex-col"
+                className="flex-1 min-w-0 bg-sunken flex flex-col"
               >
                 <div className="relative flex-1 min-h-0">
                   {drivers.isError ? (
@@ -3037,7 +3037,7 @@ export default function RaceWeekend() {
                     <Suspense fallback={<PanelFallback />}>{trackMap}</Suspense>
                   )}
                   {(isLoadingSessionData || location.isPending) && (
-                    <span className="absolute top-2 right-2 text-f1red text-[10px]">
+                    <span className="absolute top-2 right-2 text-f1red text-caption">
                       Loading…
                     </span>
                   )}
@@ -3094,18 +3094,18 @@ export default function RaceWeekend() {
                     trackEvent("raceweekend_commentary_tab_changed", { tab });
                     setCommentaryTab(tab);
                   }}
-                  className={`w-full px-1.5 py-2 text-[10px] font-bold uppercase tracking-wider transition-colors border-b-2 sm:shrink-0 sm:w-auto sm:px-4 sm:text-[11px] ${
+                  className={`w-full px-1.5 py-2 text-caption font-bold uppercase tracking-wider transition-colors border-b-2 sm:shrink-0 sm:w-auto sm:px-4 sm:text-small ${
                     activeCommentaryTab === tab
-                      ? "text-white border-f1red -mb-px"
-                      : "text-muted border-transparent hover:text-white"
+                      ? "text-fg border-f1red -mb-px"
+                      : "text-muted border-transparent hover:text-fg"
                   }`}
                 >
                   <span className="block sm:hidden">{shortLabel}</span>
                   <span className="hidden sm:block">{label}</span>
                   <span
-                    className={`mt-1 block font-mono text-[9px] leading-none tabular-nums ${
+                    className={`mt-1 block font-mono text-tiny leading-none tabular-nums ${
                       activeCommentaryTab === tab
-                        ? "text-white/70"
+                        ? "text-fg/70"
                         : "text-muted/80"
                     }`}
                   >
@@ -3126,8 +3126,8 @@ export default function RaceWeekend() {
             className="shrink-0 border-b border-panel bg-surface/70 px-3 py-1.5"
           >
             <div className="flex items-center gap-3">
-              <span className="text-[10px] font-black uppercase tracking-[0.12em] text-muted">
-                <span className="text-white tabular-nums">
+              <span className="text-caption font-black uppercase tracking-caps text-muted">
+                <span className="text-fg tabular-nums">
                   {commentaryStatusLabel}
                 </span>
               </span>
@@ -3146,10 +3146,10 @@ export default function RaceWeekend() {
                       })(),
                     )
                   }
-                  className={`h-5 px-2 text-[9px] font-black uppercase tracking-widest border transition-colors ${
+                  className={`h-5 px-2 text-tiny font-black uppercase tracking-widest border transition-colors ${
                     commentaryTimeMode === "all"
                       ? "border-f1red bg-f1red text-white"
-                      : "border-panel bg-track text-muted hover:text-white"
+                      : "border-panel bg-track text-muted hover:text-fg"
                   }`}
                   title={
                     commentaryTimeMode === "all"

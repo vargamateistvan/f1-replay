@@ -829,7 +829,7 @@ describe("LiveTiming", () => {
       .getAllByRole("row")
       .find((candidate) => candidate.textContent?.includes("VER"));
     expect(row).toBeDefined();
-    expect(row).toHaveClass("bg-[#2c1a45]/55");
+    expect(row).toHaveClass("bg-purple-tint/55");
     expect(row).not.toHaveClass("ring-1");
   });
 
@@ -901,7 +901,7 @@ describe("LiveTiming", () => {
       .getAllByRole("row")
       .find((candidate) => candidate.textContent?.includes("VER"));
     expect(row).toBeDefined();
-    expect(row).toHaveClass("bg-[#173726]/45");
+    expect(row).toHaveClass("bg-green-tint/45");
   });
 
   it("highlights a lap slower than the driver's personal best in yellow", () => {
@@ -958,7 +958,7 @@ describe("LiveTiming", () => {
       .getAllByRole("row")
       .find((candidate) => candidate.textContent?.includes("VER"));
     expect(row).toBeDefined();
-    expect(row).toHaveClass("bg-[#3a2f08]/50");
+    expect(row).toHaveClass("bg-yellow-tint/50");
   });
 
   it("derives timed-session intervals from the car ahead", () => {
@@ -1594,7 +1594,7 @@ describe("LiveTiming", () => {
 
   describe("gap trend colours", () => {
     const sessionStartMs = Date.parse("2024-01-01T00:00:00.000Z");
-    const GREEN = "rgb(57, 215, 67)";
+    const GREEN = "rgb(63, 211, 90)";
     const RED = "rgb(255, 82, 82)";
     const props = {
       drivers,

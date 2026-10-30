@@ -1,29 +1,65 @@
 import type { Config } from "tailwindcss";
+import plugin from "tailwindcss/plugin";
+import {
+  BRAND_COLORS,
+  FONT_SIZES,
+  LETTER_SPACING,
+  NEUTRAL_COLORS,
+  TONE_COLORS,
+  Z_LAYERS,
+  type ThemeColor,
+} from "./src/designTokens";
+
+// Every themed colour becomes a CSS variable (`--color-<name>[-<slot>]`) set on
+// :root and overridden under html.light, plus a Tailwind colour reading it.
+const cssVars: { dark: Record<string, string>; light: Record<string, string> } = {
+  dark: {},
+  light: {},
+};
+const colorRef = (name: string, value: ThemeColor) => {
+  cssVars.dark[`--color-${name}`] = value.dark;
+  cssVars.light[`--color-${name}`] = value.light;
+  return `rgb(var(--color-${name}) / <alpha-value>)`;
+};
+const colorGroup = (name: string, slots: Record<string, ThemeColor>) =>
+  Object.fromEntries(
+    Object.entries(slots).map(([slot, value]) => [
+      slot,
+      colorRef(slot === "DEFAULT" ? name : `${name}-${slot}`, value),
+    ]),
+  );
+
+const colors = {
+  ...Object.fromEntries(
+    Object.entries(NEUTRAL_COLORS).map(([name, value]) => [name, colorRef(name, value)]),
+  ),
+  ...Object.fromEntries(
+    Object.entries({ ...TONE_COLORS, ...BRAND_COLORS }).map(([name, slots]) => [
+      name,
+      colorGroup(name, slots),
+    ]),
+  ),
+};
 
 export default {
   content: ["./index.html", "./src/**/*.{ts,tsx}"],
   theme: {
+    // Only design tokens: Tailwind's default palette (red-500, slate-300…) is
+    // intentionally unavailable.
+    colors: {
+      inherit: "inherit",
+      current: "currentColor",
+      transparent: "transparent",
+      white: "#ffffff",
+      black: "#000000",
+      ...colors,
+    },
     extend: {
-      colors: {
-        f1red: "#E8002D",
-        track: "rgb(var(--color-track) / <alpha-value>)",
-        surface: "rgb(var(--color-surface) / <alpha-value>)",
-        panel: "rgb(var(--color-panel) / <alpha-value>)",
-        muted: "rgb(var(--color-muted) / <alpha-value>)",
-        // Sector / lap-time tier colours matching F1.com live timing
-        "f1-purple": "#9b59f5",
-        "f1-yellow": "#f5d400",
-        "f1-green": "#39b54a",
-        // Tyre compound colours
-        "tyre-soft": "#e8002d",
-        "tyre-med": "#f5a623",
-        "tyre-hard": "#e0e0e0",
-        "tyre-inter": "#39b54a",
-        "tyre-wet": "#1e90ff",
-        // Flag banner colours
-        "flag-yellow": "#f5d400",
-        "flag-sc": "#f5a623",
-      },
+      fontSize: FONT_SIZES,
+      letterSpacing: LETTER_SPACING,
+      zIndex: Object.fromEntries(
+        Object.entries(Z_LAYERS).map(([name, z]) => [name, String(z)]),
+      ),
       keyframes: {
         "rc-ticker-in": {
           "0%": { opacity: "0", transform: "translateY(60%)" },
@@ -44,5 +80,11 @@ export default {
       },
     },
   },
-  plugins: [],
+  plugins: [
+    plugin(({ addBase, addVariant }) => {
+      addBase({ ":root": cssVars.dark, "html.light": cssVars.light });
+      // Light-mode-only styles, e.g. `light:shadow-none`. Prefer a themed token.
+      addVariant("light", "html.light &");
+    }),
+  ],
 } satisfies Config;

@@ -247,7 +247,7 @@ export function SessionInfoBar({
     typeof countdownMs === "number";
 
   return (
-    <div className="shrink-0 flex flex-col border-b border-panel bg-track text-[10px] font-bold uppercase tracking-[0.1em] sm:flex-row sm:items-stretch">
+    <div className="shrink-0 flex flex-col border-b border-panel bg-track text-caption font-bold uppercase tracking-widest sm:flex-row sm:items-stretch">
       {/* Mobile: tiles scroll sideways and the race control ticker gets its own row below */}
       <div className="flex min-w-0 items-stretch overflow-x-auto">
         {/* Left tile: qualifying action in quali; countdown in timed practice; lap counter in race */}
@@ -255,21 +255,21 @@ export function SessionInfoBar({
           <button
             type="button"
             onClick={onShowEliminations}
-            className="flex shrink-0 items-center gap-2 border-r border-panel px-2.5 py-2 text-[10px] font-black uppercase tracking-[0.12em] text-white transition-colors hover:bg-white/5 hover:text-f1red sm:px-4 sm:tracking-[0.16em]"
+            className="flex shrink-0 items-center gap-2 border-r border-panel px-2.5 py-2 text-caption font-black uppercase tracking-caps text-fg transition-colors hover:bg-fg/5 hover:text-f1red sm:px-4 sm:tracking-eyebrow"
             aria-label="Show eliminated drivers"
             title="Show eliminated drivers"
           >
-            <span className="rounded bg-f1red px-1.5 py-0.5 text-[9px] font-black tracking-[0.16em] text-white">
+            <span className="rounded-sm bg-f1red px-1.5 py-0.5 text-tiny font-black tracking-eyebrow text-white">
               {qualiPhase}
             </span>
-            <span className="font-mono text-[11px] tabular-nums text-white/90">
+            <span className="font-mono text-small tabular-nums text-fg/90">
               {isQualifyingBreak
                 ? "Break"
                 : countdownMs <= 0
                   ? "00:00"
                   : fmtElapsed(countdownMs)}
             </span>
-            <span className="text-[10px] font-black tracking-[0.12em] text-white">
+            <span className="text-caption font-black tracking-caps text-fg">
               Eliminated
             </span>
           </button>
@@ -278,7 +278,7 @@ export function SessionInfoBar({
             <span className="text-muted">
               {isQualifyingBreak ? "Break" : "Countdown"}
             </span>
-            <span className="text-white tabular-nums font-mono">
+            <span className="text-fg tabular-nums font-mono">
               {isQualifyingBreak
                 ? qualiPhase
                 : countdownMs <= 0
@@ -292,7 +292,7 @@ export function SessionInfoBar({
             <button
               type="button"
               onClick={() => setIsLapDialogOpen(true)}
-              className="tabular-nums text-[13px] font-black transition-colors hover:text-f1red"
+              className="tabular-nums text-body font-black transition-colors hover:text-f1red"
               style={{
                 color: isFormationLap ? formationLapColor : undefined,
               }}
@@ -306,7 +306,7 @@ export function SessionInfoBar({
         {/* Elapsed time */}
         <div className="flex shrink-0 items-center justify-center gap-2 border-r border-panel px-2.5 py-2 sm:justify-start sm:px-4">
           <span className="text-muted">Time</span>
-          <span className="text-white tabular-nums font-mono">
+          <span className="text-fg tabular-nums font-mono">
             {fmtElapsed(sessionTimeMs)}
           </span>
         </div>
@@ -314,13 +314,13 @@ export function SessionInfoBar({
         {/* Weather temperatures */}
         <div className="flex shrink-0 items-center justify-center gap-2 border-r border-panel px-2.5 py-2 sm:justify-start sm:px-4">
           <span className="text-muted">Air</span>
-          <span className="text-white tabular-nums font-mono">
+          <span className="text-fg tabular-nums font-mono">
             {fmtTemp(airTemp, metricSystem)}
           </span>
         </div>
         <div className="flex shrink-0 items-center justify-center gap-2 border-r border-panel px-2.5 py-2 sm:justify-start sm:px-4">
           <span className="text-muted">Track</span>
-          <span className="text-white tabular-nums font-mono">
+          <span className="text-fg tabular-nums font-mono">
             {fmtTemp(trackTemp, metricSystem)}
           </span>
         </div>
@@ -328,7 +328,7 @@ export function SessionInfoBar({
         {onShowEliminations && !showQualiEliminationTile && (
           <button
             onClick={onShowEliminations}
-            className="shrink-0 border-r border-panel px-3 py-2 text-[10px] font-black uppercase tracking-[0.12em] text-white transition-colors hover:bg-white/5 hover:text-f1red sm:px-4 sm:tracking-[0.16em]"
+            className="shrink-0 border-r border-panel px-3 py-2 text-caption font-black uppercase tracking-caps text-fg transition-colors hover:bg-fg/5 hover:text-f1red sm:px-4 sm:tracking-eyebrow"
           >
             <span className="sm:hidden">Out</span>
             <span className="hidden sm:inline">Eliminated</span>
@@ -338,7 +338,7 @@ export function SessionInfoBar({
         {onShowResults && (
           <button
             onClick={onShowResults}
-            className="shrink-0 border-r border-panel px-3 py-2 text-[10px] font-black uppercase tracking-[0.12em] text-white transition-colors hover:bg-white/5 hover:text-f1red sm:px-4 sm:tracking-[0.16em]"
+            className="shrink-0 border-r border-panel px-3 py-2 text-caption font-black uppercase tracking-caps text-fg transition-colors hover:bg-fg/5 hover:text-f1red sm:px-4 sm:tracking-eyebrow"
           >
             <span className="sm:hidden">Results</span>
             <span className="hidden sm:inline">Show Results</span>
@@ -357,20 +357,20 @@ export function SessionInfoBar({
       />
 
       {isLapDialogOpen && (
-        <div className="fixed inset-0 z-[230] flex items-center justify-center bg-black/70 px-3 py-6 backdrop-blur-sm">
+        <div className="fixed inset-0 z-modal flex items-center justify-center bg-black/70 px-3 py-6 backdrop-blur-sm">
           <div className="w-full max-w-sm border border-panel bg-track shadow-2xl">
             <div className="border-b border-panel px-4 py-3">
-              <div className="text-[10px] font-black uppercase tracking-[0.2em] text-f1red">
+              <div className="text-caption font-black uppercase tracking-spaced text-f1red">
                 Jump To Lap
               </div>
-              <div className="mt-1 text-xs text-white/70 normal-case tracking-normal">
+              <div className="mt-1 text-xs text-fg/70 normal-case tracking-normal">
                 Enter a lap number between 1 and {selectableLapMax}.
               </div>
             </div>
             <div className="space-y-3 px-4 py-4 normal-case tracking-normal">
               <label
                 htmlFor="lap-jump-input"
-                className="block text-[11px] font-semibold uppercase tracking-[0.14em] text-muted"
+                className="block text-small font-semibold uppercase tracking-caps text-muted"
               >
                 Lap Number
               </label>
@@ -391,25 +391,25 @@ export function SessionInfoBar({
                     submitLapSelection();
                   }
                 }}
-                className="w-full border border-panel bg-track px-3 py-2 text-sm font-semibold text-white outline-none transition-colors focus:border-f1red"
+                className="w-full border border-panel bg-track px-3 py-2 text-sm font-semibold text-fg outline-none transition-colors focus:border-f1red"
                 autoFocus
               />
               {lapError && (
-                <div className="text-xs text-[#ff7b7b]">{lapError}</div>
+                <div className="text-xs text-red-fg">{lapError}</div>
               )}
             </div>
             <div className="flex items-center justify-end gap-2 border-t border-panel px-4 py-3">
               <button
                 type="button"
                 onClick={() => setIsLapDialogOpen(false)}
-                className="border border-panel bg-track px-3 py-1.5 text-[10px] font-black uppercase tracking-[0.14em] text-muted transition-colors hover:text-white"
+                className="border border-panel bg-track px-3 py-1.5 text-caption font-black uppercase tracking-caps text-muted transition-colors hover:text-fg"
               >
                 Cancel
               </button>
               <button
                 type="button"
                 onClick={submitLapSelection}
-                className="border border-f1red bg-f1red px-3 py-1.5 text-[10px] font-black uppercase tracking-[0.14em] text-white transition-colors hover:brightness-110"
+                className="border border-f1red bg-f1red px-3 py-1.5 text-caption font-black uppercase tracking-caps text-white transition-colors hover:brightness-110"
               >
                 Jump
               </button>

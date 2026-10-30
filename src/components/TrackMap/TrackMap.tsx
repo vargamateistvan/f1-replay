@@ -87,6 +87,7 @@ import { Compass, SectorChips } from "./overlays/MapCornerWidgets";
 import { PitRejoinPanel } from "./overlays/PitRejoinPanel";
 import { teamColor } from "@/utils/color";
 import { parsePitLoss, pitRejoinView } from "@/utils/pitRejoin";
+import { TOKEN_HEX } from "@/designTokens";
 
 export type { ActiveTrackVehicles } from "./statusBadges";
 
@@ -798,7 +799,7 @@ export function TrackMap({
               textAnchor="middle"
               dominantBaseline="middle"
               transform={`rotate(${-rotationDeg.toFixed(1)} ${SVG_W / 2} ${SVG_H / 2})`}
-              fill="#636369"
+              fill={TOKEN_HEX.faint}
               fontSize={11}
               fontFamily="Inter, sans-serif"
             >
@@ -834,7 +835,7 @@ export function TrackMap({
 
       {outline.source === "layout" && (
         <div
-          className="absolute top-14 right-2 px-2 py-1 text-[9px] font-black uppercase tracking-[0.16em] text-white/80 border border-panel"
+          className="absolute top-14 right-2 px-2 py-1 text-tiny font-black uppercase tracking-eyebrow text-fg/80 border border-panel"
           style={{
             background: overlayBackground,
             backdropFilter: "blur(4px)",
@@ -851,7 +852,6 @@ export function TrackMap({
           <TrackClockPanel
             nowMs={sessionStartMs + Math.max(0, t)}
             sessionGmtOffset={sessionGmtOffset}
-            lightMode={lightMode}
             raining={(weatherOverlay?.rainfall ?? 0) > 0}
           />
         )}
@@ -859,7 +859,6 @@ export function TrackMap({
           <WeatherPanel
             weather={weatherOverlay}
             metricSystem={metricSystem}
-            lightMode={lightMode}
           />
         )}
       </div>

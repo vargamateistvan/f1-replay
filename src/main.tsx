@@ -234,7 +234,7 @@ if (root) {
       });
     }
     appRoot.render(
-      <div className="flex min-h-screen items-center justify-center bg-track px-5 text-center font-mono text-white">
+      <div className="flex min-h-screen items-center justify-center bg-track px-5 text-center font-mono text-fg">
         <div>
           <h1 className="mb-2 text-2xl font-bold text-f1red">Critical Error</h1>
           <p className="mb-2">{msg}</p>
@@ -244,7 +244,7 @@ if (root) {
           <button
             type="button"
             onClick={() => globalThis.window.location.assign("/")}
-            className="mt-5 rounded bg-f1red px-5 py-2.5 text-white"
+            className="mt-5 rounded-sm bg-f1red px-5 py-2.5 text-white"
           >
             Go Home
           </button>

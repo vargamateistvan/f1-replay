@@ -42,7 +42,7 @@ export function TyreChange({
 
   return (
     <span
-      className={`inline-flex shrink-0 items-center font-mono text-[10px] leading-none tabular-nums ${compact ? "gap-0.5" : "gap-1"}`}
+      className={`inline-flex shrink-0 items-center font-mono text-caption leading-none tabular-nums ${compact ? "gap-0.5" : "gap-1"}`}
       title={label}
       aria-label={label}
       role="img"
@@ -63,7 +63,7 @@ export function TyreChange({
           <CompoundRing compound={on.compound} size={ring} />
           <span
             className={
-              on.age === 0 ? "font-bold text-white light:text-black" : "text-white/70"
+              on.age === 0 ? "font-bold text-fg" : "text-fg/70"
             }
           >
             {on.age === 0 ? "NEW" : laps(on.age)}

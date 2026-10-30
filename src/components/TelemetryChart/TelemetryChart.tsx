@@ -560,7 +560,7 @@ function TelemetryChartImpl({
     return (
       <div
         style={{ height }}
-        className="rounded border border-panel bg-surface shadow-[0_14px_36px_rgba(0,0,0,0.24)]"
+        className="rounded-sm border border-panel bg-surface shadow-[0_14px_36px_rgba(0,0,0,0.24)]"
       >
         <ErrorMessage message="No data found" variant="empty" />
       </div>
@@ -569,7 +569,7 @@ function TelemetryChartImpl({
 
   return (
     <div
-      className="overflow-hidden rounded border border-panel bg-surface shadow-[0_14px_36px_rgba(0,0,0,0.26)] ring-1 ring-white/5 [&_.u-title]:px-3 [&_.u-title]:pt-2.5 [&_.u-title]:pb-1 [&_.u-title]:text-[11px] [&_.u-title]:font-black [&_.u-title]:uppercase [&_.u-title]:tracking-[0.12em] [&_.u-title]:text-white/90 [&_.u-legend]:mx-3 [&_.u-legend]:mb-2 [&_.u-legend]:rounded [&_.u-legend]:border [&_.u-legend]:border-panel/80 [&_.u-legend]:bg-black/20 [&_.u-legend]:px-2 [&_.u-legend]:py-1 [&_.u-legend]:text-[11px] [&_.u-legend]:font-medium [&_.u-legend_.u-label]:pr-2 [&_.u-legend_.u-value]:inline-block [&_.u-legend_.u-value]:min-w-[84px] [&_.u-legend_.u-value]:text-right [&_.u-legend_.u-value]:font-mono [&_.u-legend_.u-value]:[font-variant-numeric:tabular-nums] [&_.u-axis]:text-[10px] [&_.u-axis]:text-muted [&_.u-cursor-x]:bg-white/30 [&_.u-cursor-y]:bg-white/25"
+      className="overflow-hidden rounded-sm border border-panel bg-surface shadow-[0_14px_36px_rgba(0,0,0,0.26)] ring-1 ring-white/5 [&_.u-title]:px-3 [&_.u-title]:pt-2.5 [&_.u-title]:pb-1 [&_.u-title]:text-small [&_.u-title]:font-black [&_.u-title]:uppercase [&_.u-title]:tracking-caps [&_.u-title]:text-fg/90 [&_.u-legend]:mx-3 [&_.u-legend]:mb-2 [&_.u-legend]:rounded-sm [&_.u-legend]:border [&_.u-legend]:border-panel/80 [&_.u-legend]:bg-black/20 [&_.u-legend]:px-2 [&_.u-legend]:py-1 [&_.u-legend]:text-small [&_.u-legend]:font-medium [&_.u-legend_.u-label]:pr-2 [&_.u-legend_.u-value]:inline-block [&_.u-legend_.u-value]:min-w-[84px] [&_.u-legend_.u-value]:text-right [&_.u-legend_.u-value]:font-mono [&_.u-legend_.u-value]:[font-variant-numeric:tabular-nums] [&_.u-axis]:text-caption [&_.u-axis]:text-muted [&_.u-cursor-x]:bg-fg/30 [&_.u-cursor-y]:bg-fg/25"
       style={{
         boxShadow: `0 14px 36px rgba(0,0,0,0.26), inset 0 1px 0 rgba(255,255,255,0.04), 0 0 0 1px ${theme.glow}`,
       }}
@@ -581,13 +581,13 @@ function TelemetryChartImpl({
             background: `linear-gradient(90deg, rgba(18,20,31,0.95), rgba(14,16,24,0.9)), ${theme.bg}`,
           }}
         >
-          <span className="text-[9px] font-bold uppercase tracking-widest text-muted">
+          <span className="text-tiny font-bold uppercase tracking-widest text-muted">
             Zoom
           </span>
           <button
             type="button"
             onClick={() => pan(-0.2)}
-            className="h-6 w-6 rounded border border-panel/80 bg-black/20 text-[11px] text-white/80 transition-colors hover:border-white/60 hover:text-white"
+            className="h-6 w-6 rounded-sm border border-panel/80 bg-black/20 text-small text-fg/80 transition-colors hover:border-fg/60 hover:text-fg"
             title="Pan left"
             aria-label="Pan left"
           >
@@ -596,7 +596,7 @@ function TelemetryChartImpl({
           <button
             type="button"
             onClick={() => zoom(0.82)}
-            className="h-6 w-6 rounded border border-panel/80 bg-black/20 text-[11px] text-white/80 transition-colors hover:border-white/60 hover:text-white"
+            className="h-6 w-6 rounded-sm border border-panel/80 bg-black/20 text-small text-fg/80 transition-colors hover:border-fg/60 hover:text-fg"
             title="Zoom in"
             aria-label="Zoom in"
           >
@@ -605,7 +605,7 @@ function TelemetryChartImpl({
           <button
             type="button"
             onClick={() => zoom(1.22)}
-            className="h-6 w-6 rounded border border-panel/80 bg-black/20 text-[11px] text-white/80 transition-colors hover:border-white/60 hover:text-white"
+            className="h-6 w-6 rounded-sm border border-panel/80 bg-black/20 text-small text-fg/80 transition-colors hover:border-fg/60 hover:text-fg"
             title="Zoom out"
             aria-label="Zoom out"
           >
@@ -614,7 +614,7 @@ function TelemetryChartImpl({
           <button
             type="button"
             onClick={() => pan(0.2)}
-            className="h-6 w-6 rounded border border-panel/80 bg-black/20 text-[11px] text-white/80 transition-colors hover:border-white/60 hover:text-white"
+            className="h-6 w-6 rounded-sm border border-panel/80 bg-black/20 text-small text-fg/80 transition-colors hover:border-fg/60 hover:text-fg"
             title="Pan right"
             aria-label="Pan right"
           >
@@ -623,7 +623,7 @@ function TelemetryChartImpl({
           <button
             type="button"
             onClick={resetZoom}
-            className="ml-1 h-6 rounded border border-panel/80 bg-black/20 px-2 text-[9px] font-bold uppercase tracking-widest text-white/80 transition-colors hover:border-white/60 hover:text-white"
+            className="ml-1 h-6 rounded-sm border border-panel/80 bg-black/20 px-2 text-tiny font-bold uppercase tracking-widest text-fg/80 transition-colors hover:border-fg/60 hover:text-fg"
             title="Reset zoom"
             aria-label="Reset zoom"
           >
@@ -635,7 +635,7 @@ function TelemetryChartImpl({
               {series.map((line, idx) => (
                 <span
                   key={`${line.label}-${idx}`}
-                  className="inline-flex items-center gap-1 rounded border border-panel/90 bg-track/80 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-[0.1em] text-white/85"
+                  className="inline-flex items-center gap-1 rounded-sm border border-panel/90 bg-track/80 px-1.5 py-0.5 text-tiny font-bold uppercase tracking-widest text-fg/85"
                   style={{ boxShadow: `inset 0 0 0 1px ${line.color}33` }}
                   title={`${line.label} series`}
                 >
@@ -652,7 +652,7 @@ function TelemetryChartImpl({
             </div>
           )}
 
-          <span className="ml-auto hidden text-[9px] text-muted sm:inline">
+          <span className="ml-auto hidden text-tiny text-muted sm:inline">
             Drag to zoom window · double-click reset
           </span>
         </div>
@@ -663,7 +663,7 @@ function TelemetryChartImpl({
           {series.map((line, idx) => (
             <span
               key={`${line.label}-${idx}`}
-              className="inline-flex items-center gap-1 rounded border border-panel/90 bg-track/80 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-[0.1em] text-white/85"
+              className="inline-flex items-center gap-1 rounded-sm border border-panel/90 bg-track/80 px-1.5 py-0.5 text-tiny font-bold uppercase tracking-widest text-fg/85"
               style={{ boxShadow: `inset 0 0 0 1px ${line.color}33` }}
               title={`${line.label} series`}
             >
@@ -686,7 +686,7 @@ function TelemetryChartImpl({
             {cornerSpeedClasses.map((speedClass) => (
               <span
                 key={speedClass}
-                className="inline-flex items-center gap-1 rounded-sm border border-panel/80 bg-track/80 px-1.5 py-0.5 text-[8px] font-black uppercase tracking-[0.1em] text-white/80"
+                className="inline-flex items-center gap-1 rounded-sm border border-panel/80 bg-track/80 px-1.5 py-0.5 text-micro font-black uppercase tracking-widest text-fg/80"
                 title={cornerSpeedLabel(speedClass)}
               >
                 <span
@@ -723,7 +723,7 @@ function TelemetryChartImpl({
                   title={cornerSpeedLabel(zone.speedClass)}
                 >
                   {showText && (
-                    <span className="whitespace-nowrap text-[8px] font-bold uppercase leading-3 tracking-[0.1em] text-white/75">
+                    <span className="whitespace-nowrap text-micro font-bold uppercase leading-3 tracking-widest text-fg/75">
                       {cornerSpeedShortLabel(zone.speedClass)}
                     </span>
                   )}
@@ -768,7 +768,7 @@ function TelemetryChartImpl({
 
       {visibleRange && showCornerAxis && cornerMarkers.length > 0 && (
         <div className="relative h-6 border-t border-panel/80 bg-black/30">
-          <span className="pointer-events-none absolute left-2 top-0 text-[8px] font-bold uppercase leading-6 tracking-[0.14em] text-muted">
+          <span className="pointer-events-none absolute left-2 top-0 text-micro font-bold uppercase leading-6 tracking-caps text-muted">
             Turns
           </span>
           {cornerMarkers.map((corner) => {
@@ -782,7 +782,7 @@ function TelemetryChartImpl({
             return (
               <span
                 key={`${corner.label}-${corner.distance}`}
-                className="pointer-events-none absolute top-0 -translate-x-1/2 text-[9px] font-bold leading-6 text-white/85"
+                className="pointer-events-none absolute top-0 -translate-x-1/2 text-tiny font-bold leading-6 text-fg/85"
                 style={placement}
               >
                 <span className="absolute left-1/2 top-1 h-1 w-1 -translate-x-1/2 rounded-full bg-white/70" />

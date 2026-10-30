@@ -4,6 +4,11 @@ The goal is to shift the app's visual language from a "dark hacker dashboard" fe
 Formula 1 website: stark black backgrounds, bold uppercase sans-serif type, sharp geometric shapes,
 prominent use of the F1 red, and tight information density with clear visual hierarchy.
 
+> **Source of truth:** values live in [`src/designTokens.ts`](../src/designTokens.ts) and are exposed as
+> Tailwind classes by `tailwind.config.ts` (default palette disabled, light mode via CSS variables).
+> Buttons come from `src/components/Button`. This document describes intent; class names below use
+> the tokens. Never write a raw hex class — ESLint rejects it.
+
 ---
 
 ## 1. Current State vs. Target
@@ -24,51 +29,39 @@ prominent use of the F1 red, and tight information density with clear visual hie
 
 ## 2. Color Palette
 
-### Semantic tokens (replace current `tailwind.config.ts`)
+### Tokens
 
-```ts
-colors: {
-  // Brand
-  f1red:    '#E8002D',   // primary CTA, active states, LIVE indicator
-  f1white:  '#FFFFFF',
+Every token has a dark and a light value; components never branch on the theme.
 
-  // Backgrounds — layered from darkest to lightest
-  bg: {
-    base:    '#15151e',  // page background (was: track)
-    surface: '#1f1f27',  // panels, cards       (was: surface)
-    raised:  '#2a2a35',  // inputs, dropdowns   (was: panel)
-    overlay: '#38383f',  // hover, selected row
-  },
+| Token | Dark | Use |
+|---|---|---|
+| `f1red` | `#e8002d` | Primary CTA, active states, LIVE. `f1red-hover` for hover, `f1red-fg` for red text |
+| `fg` | `#ffffff` | Default text and icons (`text-fg`, `text-fg/70`…) |
+| `track` | `#15151e` | Page background |
+| `sunken` | `#10101a` | Map / chart wells, picker bar |
+| `surface` | `#1f1f27` | Panels, cards, dialogs |
+| `panel` | `#2a2a35` | Inputs, chips, selected rows, default border |
+| `line` | `#3f3f4b` | Strong borders, separators, inactive bars |
+| `muted` | `#a3a3a3` | Secondary text |
+| `faint` | `#636369` | Column headers, footnotes |
 
-  // Text
-  text: {
-    primary:  '#FFFFFF',
-    secondary:'#a3a3a3', // labels, captions    (was: muted)
-    disabled: '#636369',
-  },
+Tones carry meaning and come in four slots — `DEFAULT` (fills, timing text), `-fg` (text), `-line`
+(chip border), `-tint` (chip / row background):
 
-  // Borders
-  border: {
-    subtle:   '#2a2a35', // card edges
-    default:  '#38383f', // separators, table rows
-    strong:   '#636369', // active inputs
-  },
+| Tone | Meaning |
+|---|---|
+| `purple` | Session best (sector, lap) |
+| `green` | Personal best, gains, valid, green flag |
+| `yellow` | Yellow flag, slower than personal best, title contention |
+| `orange` | Safety car, pit stops, warnings |
+| `red` | Errors, retirements, braking, deleted laps |
+| `blue` | Info, references, rain, team radio, pit-lane minisector |
+| `teal` | Pit-lane events (undercut) |
 
-  // Sector / timing colours (unchanged)
-  purple: '#b48ead',  // personal best sector
-  green:  '#39d743',  // faster than prev lap
-  yellow: '#ffd600',  // slower than prev lap
-
-  // Team colours are applied inline via teamColor() — not in the theme
-}
-```
-
-### Key deltas from current
-
-- `track` → `bg.base` — darker, less blue
-- `surface` → `bg.surface` — warmer dark, no blue tint
-- `panel` → `bg.raised` — used for inputs/chips only, not full panels
-- `muted` → `text.secondary` — slightly lighter grey
+A tinted status chip is `border border-orange-line bg-orange-tint text-orange-fg`. `text-white` /
+`text-black` are only for text on a solid fill (`bg-f1red text-white`, `bg-yellow text-black`).
+Canvas, chart and Mapbox colours use `TOKEN_HEX` or the maps in `constants.ts` (`COMPOUND_COLORS`,
+`FLAG_COLORS`). Team colours are applied inline via `teamColor()` — not in the theme.
 
 ---
 
@@ -96,7 +89,7 @@ fontFamily: {
 ```css
 /* index.css */
 body {
-  @apply bg-[#15151e] text-white font-sans antialiased;
+  @apply bg-track text-fg font-sans antialiased;
 }
 ```
 
@@ -104,12 +97,16 @@ body {
 
 | Role | Size | Weight | Transform | Usage |
 |---|---|---|---|---|
-| Page title | `text-2xl` | `font-black` (900) | `uppercase tracking-[0.1em]` | Page headers (STANDINGS, TELEMETRY) |
-| Section title | `text-xs` | `font-bold` (700) | `uppercase tracking-[0.12em]` | Panel headers (LIVE TIMING, WEATHER) |
+| Page title | `text-2xl` | `font-black` (900) | `uppercase tracking-widest` | Page headers (STANDINGS, TELEMETRY) |
+| Section title | `text-xs` | `font-bold` (700) | `uppercase tracking-caps` | Panel headers (LIVE TIMING, WEATHER) |
 | Body / table | `text-sm` | `font-medium` (500) | normal | Driver names, lap times |
 | Label | `text-xs` | `font-medium` | `uppercase tracking-wider` | Column headers, picker labels |
 | Data readout | `text-sm font-mono` | `font-semibold` | `tabular-nums` | Gap times, sector times, position |
-| Badge / chip | `text-[10px]` | `font-bold` | `uppercase tracking-widest` | PIT, LIVE, flag labels |
+| Badge / chip | `text-tiny` / `text-caption` | `font-bold` | `uppercase tracking-widest` | PIT, LIVE, flag labels |
+
+Small sizes are named tokens (font-size only): `text-micro` 8px, `text-tiny` 9px, `text-caption` 10px,
+`text-small` 11px, `text-compact` 12px, `text-body` 13px, `text-stat` 22px. Letter-spacing:
+`tracking-caps` 0.12em, `tracking-eyebrow` 0.16em, `tracking-spaced` 0.2em.
 
 ---
 
@@ -129,8 +126,8 @@ body {
 **Changes from current:**
 - Background: `#15151e` (not surface)
 - Active state: `border-b-2 border-f1red text-white` (remove `bg-f1red` pill)
-- Inactive: `text-[#a3a3a3] hover:text-white` (no hover background)
-- Link style: `text-xs font-bold uppercase tracking-[0.12em] py-4 px-4`
+- Inactive: `text-muted hover:text-fg` (no hover background)
+- Link style: `text-xs font-bold uppercase tracking-caps py-4 px-4`
 - Remove `rounded` from all nav links
 - Bottom border: `1px solid #2a2a35`
 
@@ -148,39 +145,40 @@ body {
 
 **Panel header (`PANEL_TITLE`) — new pattern:**
 ```tsx
-// Replace current: 'text-xs font-bold text-muted px-3 py-1 border-b border-panel uppercase tracking-wider'
-// With:
-'flex items-center gap-2 text-xs font-bold uppercase tracking-[0.12em] px-3 py-2 border-b border-[#38383f] before:block before:w-1 before:h-3.5 before:bg-f1red before:rounded-sm'
+'flex items-center gap-2 text-xs font-bold uppercase tracking-caps px-3 py-2 border-b border-line before:block before:w-1 before:h-3.5 before:bg-f1red before:rounded-sm'
 ```
 
 Or as a left-border accent:
 ```tsx
-'text-xs font-bold uppercase tracking-[0.12em] px-3 py-2 border-b border-[#38383f] border-l-2 border-l-f1red'
+'text-xs font-bold uppercase tracking-caps px-3 py-2 border-b border-line border-l-2 border-l-f1red'
 ```
 
 **Panel wrapper:**
-- Remove: `bg-surface rounded border border-panel`
-- Add: `bg-[#1f1f27] border border-[#2a2a35]` (no `rounded`, or `rounded-sm`)
+- `bg-surface border border-panel rounded-sm` (`rounded-sm` is the only corner radius; `rounded-full` is for dots and avatars)
 
 ### 4.3 Buttons
 
 **F1.com pattern:** Sharp rectangle, uppercase bold text, no border-radius.
 
-| Variant | Style |
-|---|---|
-| Primary | `bg-f1red text-white font-bold uppercase text-xs tracking-widest px-4 py-2` |
-| Ghost | `border border-[#636369] text-white font-bold uppercase text-xs tracking-widest px-4 py-2 hover:border-white` |
-| Speed chip | `bg-[#2a2a35] text-[#a3a3a3] font-bold uppercase text-[10px] tracking-widest px-2.5 py-1 active:bg-f1red active:text-white` |
+Use `buttonClass(variant, size)` from `src/components/Button/buttonClass.ts` (or `<Button>`):
 
-No `rounded` on any button. Play/pause button: `rounded-none` or keep as square.
+| Variant | Look |
+|---|---|
+| `primary` | `bg-f1red text-white`, `hover:bg-f1red-hover` |
+| `secondary` | `border border-panel text-fg`, red border + text on hover |
+| `quiet` | `border border-panel text-muted`, for dense feed/toolbar actions |
+
+Sizes: `md` (`px-4 py-2 text-caption`), `sm` (`h-6 px-2 text-tiny`), `block` (`h-9 w-full`). All are
+uppercase, `font-bold tracking-caps`, square-cornered, and carry `FOCUS_RING`. Speed chips:
+`bg-panel text-muted` inactive / `bg-f1red text-white` active.
 
 ### 4.4 Select / Dropdown
 
 F1.com uses custom dropdowns but we keep native `<select>`. Style update:
 
 ```
-bg-[#2a2a35] text-white border border-[#38383f] text-xs font-medium px-3 py-1.5
-focus:outline-none focus:border-[#636369]
+bg-panel text-fg border border-line text-xs font-medium px-3 py-1.5
+focus:outline-none focus:border-faint
 appearance-none  (add chevron via wrapper div)
 ```
 
@@ -198,24 +196,25 @@ Remove `rounded` or use `rounded-none`.
  3   ██ LEC  Charles Leclerc   +1.452    +0.729
 ```
 
-- Column headers: `text-[10px] font-bold uppercase tracking-widest text-[#636369]`
+- Column headers: `text-caption font-bold uppercase tracking-widest text-faint`
 - Row height: tighter, `py-2` (currently `py-1.5`)
 - Position number: `font-black text-base` (bold and slightly larger)
 - Driver acronym: `font-black text-sm` colored with `teamColor()`
-- Full name: `text-xs text-[#a3a3a3] font-medium`
+- Full name: `text-xs text-muted font-medium`
 - Team color strip: `w-[3px] h-5 rounded-none mr-3` (sharp, not rounded-sm)
 - Gap column: `font-mono text-sm tabular-nums` — green if gaining, red if losing
-- No row hover background; use `border-b border-[#2a2a35]` separator only
+- No row hover background; use `border-b border-panel` separator only
 
 ### 4.6 Badges / Chips
 
 | Badge | Style |
 |---|---|
-| PIT | `bg-[#2a2a35] text-[#a3a3a3] text-[10px] font-black uppercase tracking-widest px-1.5 py-0.5` |
-| LIVE | `bg-f1red text-white text-[10px] font-black uppercase tracking-widest px-1.5 py-0.5` + pulsing dot |
-| SC | `bg-yellow-400 text-black text-[10px] font-black uppercase px-1.5 py-0.5` |
-| RED FLAG | `bg-red-600 text-white ...` |
-| PURPLE (best sector) | `bg-[#b48ead] text-black ...` |
+| PIT | `bg-orange text-black text-tiny font-black uppercase tracking-widest px-1.5 py-0.5` |
+| LIVE | `bg-f1red text-white text-caption font-black uppercase tracking-widest px-1.5 py-0.5` + pulsing dot |
+| SC | `bg-orange text-black …` |
+| RED FLAG | `bg-f1red text-white …` |
+| Session best | `bg-purple text-white …` |
+| Status (tinted) | `border border-<tone>-line bg-<tone>-tint text-<tone>-fg …` |
 
 No `rounded` on badges; sharp rectangle chips.
 
@@ -242,10 +241,10 @@ F1.com doesn't have a playback bar (live only), but we can style it with the sam
 └─────────────────────────────────────────────────────────┘
 ```
 
-- Background: `#15151e` (same as base — recessed into page, not elevated)
-- Top border: `1px solid #2a2a35`
+- Background: `bg-track` (same as base — recessed into page, not elevated)
+- Top border: `border-t border-panel`
 - Scrubber: `accent-f1red` (keep), but also style the range track via custom CSS
-- Speed buttons: sharp chips, `bg-[#2a2a35]` inactive / `bg-f1red` active, no `rounded`
+- Speed buttons: sharp chips, `bg-panel` inactive / `bg-f1red` active
 - Time readout: `font-mono text-sm tabular-nums`
 
 ### 4.9 Session Picker
@@ -254,9 +253,9 @@ F1.com doesn't have a playback bar (live only), but we can style it with the sam
 YEAR  [2024 ▾]   EVENT  [Bahrain GP ▾]   SESSION  [Race ▾]   ● LIVE
 ```
 
-- Full bar: `bg-[#15151e] border-b border-[#2a2a35]`
-- Labels: `text-[10px] font-bold uppercase tracking-widest text-[#636369]`
-- LIVE chip: `bg-f1red px-1.5 py-0.5 text-[10px] font-black uppercase tracking-widest` (sharp rectangle, no rounded)
+- Full bar: `bg-sunken border-b border-panel` (`PICKER_BAR` in `components/Nav/pickerStyles.ts`)
+- Labels: `text-tiny font-bold uppercase tracking-widest text-muted`
+- LIVE chip: `bg-f1red px-1.5 py-0.5 text-caption font-black uppercase tracking-widest`
 
 ---
 
@@ -294,9 +293,9 @@ F1.com uses tight, consistent 4px-based spacing. Recommended Tailwind tokens:
 
 ### 5.3 Borders & Shadows
 
-- Use borders (`border-[#2a2a35]`) not shadows for panel separation
+- Use borders (`border-panel`) not shadows for panel separation
 - No `shadow-*` classes anywhere — flat design
-- Track map: `border border-[#2a2a35]` only
+- Track map: `border border-panel` only
 
 ---
 
@@ -325,7 +324,7 @@ The current SVG has 3 concentric strokes (outline effect). F1.com's track maps u
 - **Single thick stroke** in a mid-grey (`#38383f` or `#4a4a55`), width ~8–12px
 - **White or very light inner highlight** stroke, ~2px
 - **Car dots**: smaller (`r="5"`), with a thin white border ring, team color fill
-- **Car label**: driver acronym in `text-[9px] font-black uppercase` positioned above the dot
+- **Car label**: driver acronym in `text-tiny font-black uppercase` positioned above the dot
 - Background: same as page (`#15151e`) — the track floats on black
 
 ---
@@ -362,15 +361,17 @@ Recommended phased rollout (each is a self-contained PR):
 
 ## 10. Quick Reference — Class Replacement Cheat Sheet
 
-| Old class | New class |
+| Don't write | Write |
 |---|---|
-| `bg-track` | `bg-[#15151e]` |
-| `bg-surface` | `bg-[#1f1f27]` |
-| `bg-panel` | `bg-[#2a2a35]` |
-| `border-panel` | `border-[#2a2a35]` or `border-[#38383f]` |
-| `text-muted` | `text-[#a3a3a3]` |
-| `rounded` (on panels/buttons) | remove or `rounded-none` |
-| `rounded` (on chips/badges) | `rounded-sm` max, prefer sharp |
+| `bg-[#15151e]` / `bg-[#1f1f27]` / `bg-[#2a2a35]` | `bg-track` / `bg-surface` / `bg-panel` |
+| `border-[#38383f]`, `border-[#4a4a5d]` | `border-line` |
+| `text-[#a3a3a3]` / `text-[#636369]` | `text-muted` / `text-faint` |
+| `text-white` on a neutral background | `text-fg` (flips in light mode) |
+| `text-[#9b59f5]`, `bg-[#39b54a]`, `bg-[#f5a623]` … | `text-purple`, `bg-green`, `bg-orange` … |
+| `text-amber-300 bg-amber-500/20 border-amber-500/30` | `text-orange-fg bg-orange-tint border-orange-line` |
+| `lightMode ? "bg-white …" : "bg-surface …"` | `bg-surface` (tokens switch themselves) |
+| `text-[10px]`, `tracking-[0.12em]`, `z-[200]` | `text-caption`, `tracking-caps`, `z-modal` |
+| `rounded`, `rounded-md`, `rounded-lg` | `rounded-sm` |
+| hand-written `bg-f1red px-4 py-2 … hover:bg-red-600` | `buttonClass("primary")` |
 | `font-mono` (on UI text) | `font-sans` — keep mono only for numbers |
-| `text-xs font-bold uppercase tracking-wider` (panel title) | `text-xs font-bold uppercase tracking-[0.12em]` |
-| `bg-f1red text-white font-bold` (nav active pill) | `border-b-2 border-f1red text-white font-bold` |
+| `bg-f1red text-white font-bold` (nav active pill) | `border-b-2 border-f1red text-fg font-bold` |

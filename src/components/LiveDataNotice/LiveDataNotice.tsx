@@ -18,14 +18,14 @@ export function LiveDataNotice({ error }: Props) {
   return (
     <div
       role="alert"
-      className="relative border-b border-amber-400/40 bg-amber-500/10 py-2 pl-4 pr-10 text-center text-xs text-amber-100"
+      className="relative border-b border-orange-line bg-orange-tint py-2 pl-4 pr-10 text-center text-xs text-fg/90"
     >
       <span className="font-bold">Live data is currently unavailable.</span>{" "}
       <a
         href="https://openf1.org/"
         target="_blank"
         rel="noopener noreferrer"
-        className="font-bold text-amber-300 underline decoration-amber-300/60 underline-offset-2 hover:text-amber-200"
+        className="font-bold text-orange-fg underline decoration-orange-fg/60 underline-offset-2 hover:text-fg"
       >
         OpenF1
       </a>{" "}
@@ -34,7 +34,7 @@ export function LiveDataNotice({ error }: Props) {
         href="https://buymeacoffee.com/matt_varga"
         target="_blank"
         rel="noopener noreferrer"
-        className="font-bold text-amber-300 underline decoration-amber-300/60 underline-offset-2 hover:text-amber-200"
+        className="font-bold text-orange-fg underline decoration-orange-fg/60 underline-offset-2 hover:text-fg"
       >
         Support F1 Replay to help bring live data to the project.
       </a>
@@ -43,7 +43,7 @@ export function LiveDataNotice({ error }: Props) {
         onClick={dismiss}
         aria-label="Dismiss live data notice"
         title="Dismiss"
-        className="absolute right-2 top-1/2 -translate-y-1/2 flex h-6 w-6 items-center justify-center rounded text-amber-200 hover:bg-amber-500/20 hover:text-white transition-colors"
+        className="absolute right-2 top-1/2 -translate-y-1/2 flex h-6 w-6 items-center justify-center rounded-sm text-orange-fg hover:bg-orange/20 hover:text-fg transition-colors"
       >
         <X className="h-3.5 w-3.5" aria-hidden="true" />
       </button>

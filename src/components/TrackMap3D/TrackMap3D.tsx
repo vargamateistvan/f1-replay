@@ -1449,7 +1449,7 @@ export function TrackMap3D({
   });
 
   const buttonClass =
-    "h-7 min-w-7 px-1.5 flex items-center justify-center border border-panel text-white/85 hover:text-white hover:border-white/50 transition-colors text-[10px] font-black tracking-widest";
+    "h-7 min-w-7 px-1.5 flex items-center justify-center border border-panel text-fg/85 hover:text-fg hover:border-fg/50 transition-colors text-caption font-black tracking-widest";
 
   const settingsButton = onOpenSettings && (
     <button
@@ -1596,7 +1596,7 @@ export function TrackMap3D({
         <button
           type="button"
           onClick={recenter}
-          className="absolute top-12 right-2 z-20 px-2 py-1 text-[10px] font-black uppercase tracking-widest border border-panel text-white"
+          className="absolute top-12 right-2 z-20 px-2 py-1 text-caption font-black uppercase tracking-widest border border-panel text-fg"
           style={{ background: overlayBackground, backdropFilter: "blur(4px)" }}
         >
           Resume follow
@@ -1624,7 +1624,6 @@ export function TrackMap3D({
           <TrackClockPanel
             nowMs={sessionStartMs + Math.max(0, t)}
             sessionGmtOffset={sessionGmtOffset}
-            lightMode={lightMode}
             raining={(weatherOverlay?.rainfall ?? 0) > 0}
           />
         )}
@@ -1632,7 +1631,6 @@ export function TrackMap3D({
           <WeatherPanel
             weather={weatherOverlay}
             metricSystem={metricSystem}
-            lightMode={lightMode}
           />
         )}
       </div>
@@ -1641,7 +1639,7 @@ export function TrackMap3D({
         <div className="absolute top-2 left-2 z-20 pointer-events-none flex flex-col gap-1">
           {directorCaption && (
             <div
-              className="self-start flex items-center gap-1.5 px-2 py-1 text-[10px] font-black uppercase tracking-widest text-white border border-panel"
+              className="self-start flex items-center gap-1.5 px-2 py-1 text-caption font-black uppercase tracking-widest text-fg border border-panel"
               style={{ background: overlayBackground, backdropFilter: "blur(4px)" }}
               role="status"
               aria-live="polite"

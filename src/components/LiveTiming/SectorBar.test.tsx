@@ -15,13 +15,13 @@ describe("SectorBar", () => {
     );
 
     expect(minisectors).toHaveLength(8);
-    expect(minisectors[0]).toHaveClass("bg-[#f5d400]");
-    expect(minisectors[1]).toHaveClass("bg-[#39b54a]");
-    expect(minisectors[2]).toHaveClass("bg-[#9b59f5]");
-    expect(minisectors[3]).toHaveClass("bg-[#4a90d9]");
-    expect(minisectors[4]).toHaveClass("bg-slate-500/70");
-    expect(minisectors[5]).toHaveClass("bg-slate-500/70");
-    expect(minisectors[6]).toHaveClass("bg-slate-500/70");
+    expect(minisectors[0]).toHaveClass("bg-yellow");
+    expect(minisectors[1]).toHaveClass("bg-green");
+    expect(minisectors[2]).toHaveClass("bg-purple");
+    expect(minisectors[3]).toHaveClass("bg-blue");
+    expect(minisectors[4]).toHaveClass("bg-faint");
+    expect(minisectors[5]).toHaveClass("bg-faint");
+    expect(minisectors[6]).toHaveClass("bg-faint");
     expect(minisectors[7]).toHaveClass("bg-panel");
   });
 

@@ -26,6 +26,6 @@ describe("ErrorMessage", () => {
     const status = screen.getByRole("status");
     expect(status).toHaveTextContent("No data");
     expect(status).toHaveTextContent("No data found");
-    expect(status.className).toContain("border-l-flag-sc");
+    expect(status.className).toContain("border-l-orange");
   });
 });

@@ -3,6 +3,7 @@ import type { FastestLapPayload, ToastEvent } from "@/timeline/events";
 import { getSafetyControlPhase } from "@/utils/raceControlFlags";
 import { teamColor } from "@/utils/color";
 import type { KeyMoment } from "@/components/KeyMoments/types";
+import { TOKEN_HEX } from "@/designTokens";
 
 export type TimedPositionPoint = {
   ms: number;
@@ -56,7 +57,7 @@ function collectFastestLapMoments(
       kind: "fastest_lap",
       label: `Fastest: ${d?.name_acronym ?? payload.driverNumber}`,
       sublabel: minutes > 0 ? `${minutes}:${seconds}` : seconds,
-      color: "#9b59f5",
+      color: TOKEN_HEX.purple,
     });
   }
 
@@ -78,7 +79,7 @@ function collectRaceControlMoments(
         ms,
         kind: "safety_car",
         label: "Safety Car deployed",
-        color: "#f5a623",
+        color: TOKEN_HEX.orange,
       });
     }
     if (phase === "safety_car_end") {
@@ -86,7 +87,7 @@ function collectRaceControlMoments(
         ms,
         kind: "safety_car",
         label: "Safety Car in this lap",
-        color: "#f5a623",
+        color: TOKEN_HEX.orange,
       });
     }
     if (phase === "vsc_start") {
@@ -94,7 +95,7 @@ function collectRaceControlMoments(
         ms,
         kind: "vsc",
         label: "Virtual Safety Car",
-        color: "#f5a623",
+        color: TOKEN_HEX.orange,
       });
     }
     if (phase === "vsc_end") {
@@ -102,7 +103,7 @@ function collectRaceControlMoments(
         ms,
         kind: "vsc",
         label: "VSC ending",
-        color: "#f5a623",
+        color: TOKEN_HEX.orange,
       });
     }
     if (entry.flag === "RED") {
@@ -110,7 +111,7 @@ function collectRaceControlMoments(
         ms,
         kind: "red_flag",
         label: "Red Flag",
-        color: "#e8002d",
+        color: TOKEN_HEX.f1red,
       });
     }
   }

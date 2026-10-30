@@ -27,7 +27,6 @@ import { nextAfter, prevBefore } from "@/timeline/events";
 import { startLightsWindow } from "@/timeline/startLights";
 import type { RaceControlMarker, MarkerSummary } from "@/timeline/raceControl";
 import { flagAccentStyleFor } from "@/components/RaceControl/flagConfig";
-import { useSettings } from "@/stores/settings";
 import { trackEvent } from "@/lib/analytics";
 import {
   animateMotion,
@@ -118,9 +117,9 @@ const CHEQUERED_SWATCH_STYLE: CSSProperties = {
 };
 
 const JUMP_BTN =
-  "flex h-8 w-6 items-center justify-center text-xs bg-panel text-muted transition-colors shrink-0 hover:text-white hover:bg-track sm:w-7 disabled:opacity-30 disabled:hover:bg-panel disabled:hover:text-muted";
+  "flex h-8 w-6 items-center justify-center text-xs bg-panel text-muted transition-colors shrink-0 hover:text-fg hover:bg-track sm:w-7 disabled:opacity-30 disabled:hover:bg-panel disabled:hover:text-muted";
 const CHIP_STRETCH =
-  "h-7 shrink-0 px-3 flex items-center justify-center text-[10px] font-black uppercase tracking-widest bg-panel text-muted hover:text-white hover:bg-track transition-colors sm:flex-none sm:px-3 disabled:opacity-30 disabled:hover:bg-panel disabled:hover:text-muted";
+  "h-7 shrink-0 px-3 flex items-center justify-center text-caption font-black uppercase tracking-widest bg-panel text-muted hover:text-fg hover:bg-track transition-colors sm:flex-none sm:px-3 disabled:opacity-30 disabled:hover:bg-panel disabled:hover:text-muted";
 
 const SpeedButtons = memo(function SpeedButtons({
   className,
@@ -164,10 +163,10 @@ const SpeedButtons = memo(function SpeedButtons({
           }}
           aria-pressed={speed === s}
           aria-label={`${s}× speed`}
-          className={`text-[10px] font-black uppercase tracking-widest transition-colors ${
+          className={`text-caption font-black uppercase tracking-widest transition-colors ${
             speed === s
               ? "bg-f1red text-white"
-              : "bg-panel text-muted hover:text-white hover:bg-track"
+              : "bg-panel text-muted hover:text-fg hover:bg-track"
           }`}
         >
           {s}×
@@ -218,10 +217,8 @@ export function PlaybackBar({
   const isMobileNavViewport = useMediaQuery("(max-width: 767px)");
   const hasClampedRef = useRef(false);
   const skipTimeCommitOnBlurRef = useRef(false);
-  const lightMode = useSettings((s) => s.lightMode);
-  const tooltipBaseClass = lightMode
-    ? "pointer-events-none absolute bottom-full left-1/2 z-20 mb-2 w-max max-w-[180px] -translate-x-1/2 whitespace-normal break-words text-center rounded border border-slate-300 bg-white px-2 py-1 text-[10px] font-black uppercase tracking-wider text-slate-900 shadow-[0_8px_20px_rgba(15,23,42,0.18)]"
-    : "pointer-events-none absolute bottom-full left-1/2 z-20 mb-2 w-max max-w-[180px] -translate-x-1/2 whitespace-normal break-words text-center rounded border border-panel bg-[#101117] px-2 py-1 text-[10px] font-black uppercase tracking-wider text-white shadow-[0_8px_20px_rgba(0,0,0,0.45)]";
+  const tooltipBaseClass =
+    "pointer-events-none absolute bottom-full left-1/2 z-20 mb-2 w-max max-w-[180px] -translate-x-1/2 whitespace-normal break-words text-center rounded-sm border border-panel bg-sunken px-2 py-1 text-caption font-black uppercase tracking-wider text-fg shadow-[0_8px_20px_rgba(0,0,0,0.45)] light:shadow-[0_8px_20px_rgba(15,23,42,0.18)]";
   const markerTooltipClass = `${tooltipBaseClass} opacity-0 transition-opacity group-hover:opacity-100 group-focus-visible:opacity-100`;
   // Fraction along the scrubber under the mouse, for the hover time readout.
   const [hoverPct, setHoverPct] = useState<number | null>(null);
@@ -368,14 +365,14 @@ export function PlaybackBar({
       >
         {badgeText ? (
           <span
-            className={`absolute left-1/2 top-1/2 flex h-4 -translate-x-1/2 -translate-y-1/2 items-center rounded px-0.5 text-[8px] font-black leading-none ${swatchClassName} opacity-90 ring-1 ring-black/35 transition-opacity group-hover:opacity-100`}
+            className={`absolute left-1/2 top-1/2 flex h-4 -translate-x-1/2 -translate-y-1/2 items-center rounded-sm px-0.5 text-micro font-black leading-none ${swatchClassName} opacity-90 ring-1 ring-black/35 transition-opacity group-hover:opacity-100`}
             style={swatchStyle}
           >
             {badgeText}
           </span>
         ) : (
           <span
-            className={`absolute left-1/2 top-1/2 h-4 w-1.5 -translate-x-1/2 -translate-y-1/2 rounded ${swatchClassName} opacity-90 ring-1 ring-black/35 transition-opacity group-hover:opacity-100`}
+            className={`absolute left-1/2 top-1/2 h-4 w-1.5 -translate-x-1/2 -translate-y-1/2 rounded-sm ${swatchClassName} opacity-90 ring-1 ring-black/35 transition-opacity group-hover:opacity-100`}
             style={swatchStyle}
           />
         )}
@@ -471,7 +468,7 @@ export function PlaybackBar({
             });
             toggle();
           }}
-          className="w-8 h-8 bg-f1red text-white font-bold flex items-center justify-center hover:bg-red-600 transition-colors shrink-0"
+          className="w-8 h-8 bg-f1red text-white font-bold flex items-center justify-center hover:bg-f1red-hover transition-colors shrink-0"
           aria-label={playing ? "Pause" : "Play"}
           title="Play / pause (Space)"
         >
@@ -541,7 +538,7 @@ export function PlaybackBar({
           spellCheck={false}
           aria-label="Playback time"
           title="Type MM:SS or HH:MM:SS and press Enter"
-          className="h-7 w-14 shrink-0 border border-panel bg-panel px-1 text-right font-mono text-xs tabular-nums text-muted transition-colors focus:border-f1red focus:text-white focus:outline-none sm:w-16"
+          className="h-7 w-14 shrink-0 border border-panel bg-panel px-1 text-right font-mono text-xs tabular-nums text-muted transition-colors focus:border-f1red focus:text-fg focus:outline-none sm:w-16"
         />
 
         {/* Scrubber */}
@@ -581,10 +578,10 @@ export function PlaybackBar({
                 const color = flagStyle
                   ? ""
                   : marker.severity === "critical"
-                    ? "bg-red-500"
+                    ? "bg-red"
                     : marker.severity === "warning"
-                      ? "bg-amber-400"
-                      : "bg-slate-400";
+                      ? "bg-orange"
+                      : "bg-muted";
                 const tooltip = markerTooltip(marker.label, marker.ms);
                 return (
                   <button
@@ -606,7 +603,7 @@ export function PlaybackBar({
                     }}
                   >
                     <span
-                      className={`absolute left-1/2 top-1/2 h-4 w-1.5 -translate-x-1/2 -translate-y-1/2 rounded ${color} opacity-90 ring-1 ring-black/35 transition-opacity group-hover:opacity-100`}
+                      className={`absolute left-1/2 top-1/2 h-4 w-1.5 -translate-x-1/2 -translate-y-1/2 rounded-sm ${color} opacity-90 ring-1 ring-black/35 transition-opacity group-hover:opacity-100`}
                       style={flagStyle ?? undefined}
                     />
                     <span className={markerTooltipClass}>{tooltip}</span>
@@ -618,7 +615,7 @@ export function PlaybackBar({
                 ms: raceStartMs,
                 label: "Race start",
                 ariaLabel: `Jump to race start: lights out at ${fmtTime(raceStartMs)}`,
-                swatchClassName: "bg-[#00c851]",
+                swatchClassName: "bg-green",
                 // Land at the "get ready" lead-in so the light sequence plays.
                 targetMs: startLightsWindow(raceStartMs).startMs,
               })}
@@ -637,7 +634,7 @@ export function PlaybackBar({
                     ms,
                     label: `${phase} start`,
                     ariaLabel: `Jump to ${phase} start at ${fmtTime(ms)}`,
-                    swatchClassName: "bg-[#00c851] text-black",
+                    swatchClassName: "bg-green text-black",
                     badgeText: phase,
                     targetMs: ms,
                   }),
@@ -681,10 +678,10 @@ export function PlaybackBar({
               showMarkers ? "Hide timeline markers" : "Show timeline markers"
             }
             aria-pressed={showMarkers}
-            className={`flex items-center gap-1 shrink-0 h-7 px-2 text-[9px] font-black uppercase tracking-widest transition-colors border ${
+            className={`flex items-center gap-1 shrink-0 h-7 px-2 text-tiny font-black uppercase tracking-widest transition-colors border ${
               showMarkers
-                ? "border-amber-500/60 text-amber-300 bg-amber-500/10 hover:bg-amber-500/20"
-                : "border-panel text-muted bg-panel hover:text-white"
+                ? "border-orange-line text-orange-fg bg-orange-tint hover:bg-orange/20"
+                : "border-panel text-muted bg-panel hover:text-fg"
             }`}
           >
             {showMarkers ? (
@@ -694,13 +691,13 @@ export function PlaybackBar({
             )}
             {(markerSummary?.critical ?? 0) > 0 && (
               <span className="flex items-center gap-0.5">
-                <span className="inline-block w-1.5 h-1.5 rounded-sm bg-red-500" />
+                <span className="inline-block w-1.5 h-1.5 rounded-sm bg-red" />
                 {markerSummary?.critical}
               </span>
             )}
             {(markerSummary?.warning ?? 0) > 0 && (
               <span className="flex items-center gap-0.5">
-                <span className="inline-block w-1.5 h-1.5 rounded-sm bg-amber-400" />
+                <span className="inline-block w-1.5 h-1.5 rounded-sm bg-orange" />
                 {markerSummary?.warning}
               </span>
             )}
@@ -726,15 +723,15 @@ export function PlaybackBar({
         >
           {/* Countdown / qualifying phase chip — practice & qualifying only */}
           {countdownMs !== null && (
-            <span className="flex items-center gap-1 shrink-0 px-2 h-7 bg-panel text-[10px] font-black tabular-nums uppercase tracking-widest">
+            <span className="flex items-center gap-1 shrink-0 px-2 h-7 bg-panel text-caption font-black tabular-nums uppercase tracking-widest">
               {qualiPhase && <span className="text-f1red">{qualiPhase}</span>}
               <span
                 className={
                   countdownMs <= 0
                     ? "text-muted"
                     : countdownMs <= 60_000
-                      ? "text-[#f5a623]"
-                      : "text-white"
+                      ? "text-orange-fg"
+                      : "text-fg"
                 }
               >
                 {countdownMs <= 0 ? "ENDED" : fmtTime(countdownMs)}
@@ -794,7 +791,7 @@ export function PlaybackBar({
             Incident ›
           </button>
           {incidentReplayHint && hasReplayNextAction && (
-            <span className="h-7 flex items-center px-2 text-[9px] font-black uppercase tracking-widest bg-amber-500/20 text-amber-300 border border-amber-500/30 shrink-0">
+            <span className="h-7 flex items-center px-2 text-tiny font-black uppercase tracking-widest bg-orange-tint text-orange-fg border border-orange-line shrink-0">
               {incidentReplayHint}
             </span>
           )}

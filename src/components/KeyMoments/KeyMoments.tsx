@@ -12,6 +12,7 @@ import {
   commentaryGroupLabel,
 } from "@/components/CommentaryPanels/commentaryList";
 import { CommentaryRow } from "@/components/CommentaryPanels/CommentaryRow";
+import { TOKEN_HEX } from "@/designTokens";
 
 interface Props {
   moments: KeyMoment[];
@@ -38,10 +39,10 @@ const KIND_CONFIG: Record<
     badgeBg: "rgb(var(--color-panel) / 1)",
     badgeText: "#fff",
   },
-  fastest_lap: { badge: "FASTEST", badgeBg: "#9b59f5", badgeText: "#fff" },
-  safety_car: { badge: "SC", badgeBg: "#f5a623", badgeText: "#000" },
-  vsc: { badge: "VSC", badgeBg: "#f5a623", badgeText: "#000" },
-  red_flag: { badge: "RED", badgeBg: "#e8002d", badgeText: "#fff" },
+  fastest_lap: { badge: "FASTEST", badgeBg: TOKEN_HEX.purple, badgeText: "#fff" },
+  safety_car: { badge: "SC", badgeBg: TOKEN_HEX.orange, badgeText: "#000" },
+  vsc: { badge: "VSC", badgeBg: TOKEN_HEX.orange, badgeText: "#000" },
+  red_flag: { badge: "RED", badgeBg: TOKEN_HEX.f1red, badgeText: "#fff" },
 };
 
 export function KeyMoments({

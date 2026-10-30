@@ -4,6 +4,7 @@ import type { TelemetrySample } from "@/hooks/useCarDataForLap";
 import { teamColor } from "@/utils/color";
 import { speedUnitLabel, toDisplaySpeed, type UnitSystem } from "@/utils/units";
 import { computeSpeedStats } from "../trackGeometry";
+import { TOKEN_HEX } from "@/designTokens";
 
 /** Focused-driver HUD — speed / gear / throttle + brake bars. */
 export function FocusedDriverHud({
@@ -32,22 +33,22 @@ export function FocusedDriverHud({
     >
       <div className="flex items-baseline gap-2">
         <span
-          className="text-[22px] font-black tabular-nums leading-none"
+          className="text-stat font-black tabular-nums leading-none"
           style={{ color }}
         >
           {Math.round(toDisplaySpeed(sample.speed, metricSystem))}
         </span>
-        <span className="text-[9px] text-muted uppercase tracking-widest leading-none self-end pb-0.5">
+        <span className="text-tiny text-muted uppercase tracking-widest leading-none self-end pb-0.5">
           {speedUnitLabel(metricSystem)}
         </span>
         <span
-          className="ml-auto text-[18px] font-black tabular-nums leading-none"
-          style={{ color: sample.n_gear === 0 ? "#ff5252" : color }}
+          className="ml-auto text-lg font-black tabular-nums leading-none"
+          style={{ color: sample.n_gear === 0 ? TOKEN_HEX.red : color }}
         >
           {sample.n_gear === 0 ? "N" : sample.n_gear}
         </span>
       </div>
-      <HudBar label="THR" value={sample.throttle} barClass="bg-[#39b54a]" />
+      <HudBar label="THR" value={sample.throttle} barClass="bg-green" />
       <HudBar label="BRK" value={sample.brake} barClass="bg-f1red" />
     </div>
   );
@@ -64,7 +65,7 @@ function HudBar({
 }) {
   return (
     <div className="flex items-center gap-1.5">
-      <span className="text-[8px] text-muted w-5 shrink-0">{label}</span>
+      <span className="text-micro text-muted w-5 shrink-0">{label}</span>
       <div className="flex-1 h-1.5 bg-panel rounded-sm overflow-hidden">
         <div
           className={`h-full ${barClass} rounded-sm transition-none`}
@@ -98,7 +99,7 @@ export const LapSpeedLegend = memo(function LapSpeedLegend({
         minWidth: 186,
       }}
     >
-      <div className="flex items-center justify-between text-[8px] font-black uppercase tracking-[0.14em] text-muted">
+      <div className="flex items-center justify-between text-micro font-black uppercase tracking-caps text-muted">
         <span>Lap Speed</span>
         <span>{speedUnitLabel(metricSystem)}</span>
       </div>
@@ -109,7 +110,7 @@ export const LapSpeedLegend = memo(function LapSpeedLegend({
             "linear-gradient(90deg, hsl(240,100%,55%) 0%, hsl(120,100%,55%) 50%, hsl(0,100%,55%) 100%)",
         }}
       />
-      <div className="mt-1 flex items-center justify-between text-[9px] font-mono tabular-nums text-white">
+      <div className="mt-1 flex items-center justify-between text-tiny font-mono tabular-nums text-fg">
         <span>{display(stats.min)}</span>
         <span className="text-muted">AVG {display(stats.avg)}</span>
         <span>{display(stats.max)}</span>

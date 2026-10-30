@@ -21,6 +21,8 @@ import {
   SPEEDS,
 } from "@/constants";
 import { animateMotion, pressMotion } from "@/lib/motion";
+import { TOKEN_HEX } from "@/designTokens";
+import { buttonClass } from "@/components/Button/buttonClass";
 
 function toAnalyticsValue(
   value: AppSettings[keyof AppSettings],
@@ -42,23 +44,23 @@ export { SectionHeader, SettingRow, Toggle } from "./SettingsPrimitives";
 const NOTIFICATION_LIMIT_OPTIONS = [2, 4, 6, 8] as const;
 const CATCHUP_EVENT_TYPE_OPTIONS = [
   { kind: "pit", label: "Pit stops", color: "#3d78ff" },
-  { kind: "flag", label: "Flags", color: "#f5a623" },
-  { kind: "penalty", label: "Penalties", color: "#e8002d" },
+  { kind: "flag", label: "Flags", color: TOKEN_HEX.orange },
+  { kind: "penalty", label: "Penalties", color: TOKEN_HEX.f1red },
   { kind: "overtake", label: "Overtakes", color: "#22c55e" },
-  { kind: "fastest_lap", label: "Fastest laps", color: "#9b59f5" },
-  { kind: "undercut", label: "Undercuts", color: "#14b8a6" },
-  { kind: "investigation", label: "Investigations", color: "#f5a623" },
+  { kind: "fastest_lap", label: "Fastest laps", color: TOKEN_HEX.purple },
+  { kind: "undercut", label: "Undercuts", color: TOKEN_HEX.teal },
+  { kind: "investigation", label: "Investigations", color: TOKEN_HEX.orange },
   { kind: "radio", label: "Radio", color: "#6b6b7a" },
 ] as const;
 
 const NOTIFICATION_EVENT_TYPE_OPTIONS = [
   { key: "toastPit", label: "Pit stops", color: "#3d78ff" },
-  { key: "toastFlag", label: "Flags", color: "#f5a623" },
-  { key: "toastPenalty", label: "Penalties", color: "#e8002d" },
+  { key: "toastFlag", label: "Flags", color: TOKEN_HEX.orange },
+  { key: "toastPenalty", label: "Penalties", color: TOKEN_HEX.f1red },
   { key: "toastOvertake", label: "Overtakes", color: "#22c55e" },
-  { key: "toastFastestLap", label: "Fastest laps", color: "#9b59f5" },
-  { key: "toastUndercut", label: "Undercuts", color: "#14b8a6" },
-  { key: "toastInvestigation", label: "Investigations", color: "#f5a623" },
+  { key: "toastFastestLap", label: "Fastest laps", color: TOKEN_HEX.purple },
+  { key: "toastUndercut", label: "Undercuts", color: TOKEN_HEX.teal },
+  { key: "toastInvestigation", label: "Investigations", color: TOKEN_HEX.orange },
   { key: "toastRadio", label: "Radio", color: "#6b6b7a" },
 ] as const;
 
@@ -440,15 +442,15 @@ export function SettingsBody({
                 aria-selected={isActive}
                 aria-controls={`${tab.id}-settings-panel`}
                 onClick={() => setActiveTab(tab.id)}
-                className={`flex shrink-0 items-center gap-2 whitespace-nowrap border-b-2 px-3 py-3 text-[10px] font-black uppercase tracking-[0.14em] transition-colors focus:outline-none focus-visible:ring-1 focus-visible:ring-inset focus-visible:ring-f1red md:w-full md:border-b-0 md:border-l-2 md:px-3 md:py-2.5 md:text-left ${
+                className={`flex shrink-0 items-center gap-2 whitespace-nowrap border-b-2 px-3 py-3 text-caption font-black uppercase tracking-caps transition-colors focus:outline-none focus-visible:ring-1 focus-visible:ring-inset focus-visible:ring-f1red md:w-full md:border-b-0 md:border-l-2 md:px-3 md:py-2.5 md:text-left ${
                   isActive
-                    ? "border-f1red text-white md:bg-panel/60"
-                    : "border-transparent text-muted hover:text-white md:hover:bg-panel/40"
+                    ? "border-f1red text-fg md:bg-panel/60"
+                    : "border-transparent text-muted hover:text-fg md:hover:bg-panel/40"
                 }`}
               >
                 <span
                   aria-hidden="true"
-                  className={`hidden font-mono text-[9px] font-bold md:inline ${
+                  className={`hidden font-mono text-tiny font-bold md:inline ${
                     isActive ? "text-f1red" : "text-muted/60"
                   }`}
                 >
@@ -752,7 +754,7 @@ export function SettingsBody({
       </div>
 
       <div className="flex shrink-0 items-center justify-between gap-3 border-t border-panel pt-3">
-        <span className="font-mono text-[9px] uppercase tracking-[0.14em] text-muted">
+        <span className="font-mono text-tiny uppercase tracking-caps text-muted">
           Changes apply instantly
         </span>
         <button
@@ -762,7 +764,7 @@ export function SettingsBody({
             reset();
             trackEvent("settings_reset_defaults");
           }}
-          className="border border-panel px-3 py-1.5 text-[10px] font-bold uppercase tracking-[0.12em] text-white transition-colors hover:border-f1red hover:text-f1red"
+          className={buttonClass("secondary")}
         >
           Reset to defaults
         </button>

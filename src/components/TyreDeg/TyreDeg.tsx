@@ -27,6 +27,7 @@ import {
   type PaceLap,
   type StintPace,
 } from "@/utils/racePace";
+import { TOKEN_HEX } from "@/designTokens";
 
 /** Most drivers plotted at once; more turns the scatter into noise. */
 const MAX_SELECTED = 4;
@@ -35,7 +36,7 @@ const DRIVER_DASHES = ["", "6 3", "2 3", "10 3 2 3"];
 /** Degradation that fills the table's bar (s/lap). */
 const DEG_BAR_FULL = 0.15;
 
-const DEG_COLORS = { gentle: "#22c55e", moderate: "#f5a623", heavy: "#e8002d" };
+const DEG_COLORS = { gentle: "#22c55e", moderate: TOKEN_HEX.orange, heavy: TOKEN_HEX.f1red };
 
 interface Props {
   readonly drivers: Driver[];
@@ -148,7 +149,7 @@ export function TyreDeg({
         >
           {compounds.map((c) => (
             <div key={c.compound} className="min-w-0 bg-track px-2 py-2 sm:px-3">
-              <div className="flex items-center gap-1.5 text-[9px] font-bold uppercase tracking-[0.14em] text-muted">
+              <div className="flex items-center gap-1.5 text-tiny font-bold uppercase tracking-caps text-muted">
                 <CompoundRing compound={c.compound} size="sm" />
                 <span className="truncate">{compoundName(c.compound)}</span>
                 <span className="ml-auto font-mono tracking-normal" title="Stints measured">
@@ -162,11 +163,11 @@ export function TyreDeg({
                 >
                   {formatDeg(c.medianDegSPerLap)}
                 </span>
-                <span className="text-[10px] text-muted">
+                <span className="text-caption text-muted">
                   s/lap<span className="hidden sm:inline"> median</span>
                 </span>
               </div>
-              <div className="mt-1 truncate text-[10px] text-muted">
+              <div className="mt-1 truncate text-caption text-muted">
                 Best{" "}
                 <span className="font-bold" style={{ color: colorOf(c.best.driverNumber) }}>
                   {acronymOf(c.best.driverNumber)}
@@ -181,14 +182,14 @@ export function TyreDeg({
       <div className="flex shrink-0 items-center gap-1.5 border-b border-panel bg-track px-2 py-1.5">
         <div className="flex min-w-0 flex-1 flex-wrap items-center gap-1">
           {selected.length === 0 && (
-            <span className="text-[10px] text-muted">Pick drivers below to plot them</span>
+            <span className="text-caption text-muted">Pick drivers below to plot them</span>
           )}
           {selected.map((driverNumber, i) => (
             <button
               key={driverNumber}
               type="button"
               onClick={() => toggleDriver(driverNumber)}
-              className="flex h-5 items-center gap-1 border border-panel bg-surface px-1.5 text-[10px] font-black transition-colors hover:border-white/30"
+              className="flex h-5 items-center gap-1 border border-panel bg-surface px-1.5 text-caption font-black transition-colors hover:border-fg/30"
               aria-label={`Remove ${acronymOf(driverNumber)} from chart`}
             >
               <svg width="16" height="6" aria-hidden="true">
@@ -213,10 +214,10 @@ export function TyreDeg({
           type="button"
           onClick={() => setFuelCorrected((v) => !v)}
           aria-pressed={fuelCorrected}
-          className={`h-5 shrink-0 px-2 text-[9px] font-black uppercase tracking-widest border transition-colors ${
+          className={`h-5 shrink-0 px-2 text-tiny font-black uppercase tracking-widest border transition-colors ${
             fuelCorrected
               ? "border-f1red bg-f1red text-white"
-              : "border-panel bg-track text-muted hover:text-white"
+              : "border-panel bg-track text-muted hover:text-fg"
           }`}
           title={`Add back ${RACE_PACE_FUEL_S_PER_LAP} s/lap for fuel burn, which hides part of the tyre wear`}
         >
@@ -224,7 +225,7 @@ export function TyreDeg({
         </button>
       </div>
 
-      <div className="h-[220px] shrink-0 bg-[#10101a]">
+      <div className="h-[220px] shrink-0 bg-sunken">
         <ResponsiveContainer width="100%" height="100%">
           <ScatterChart margin={{ top: 10, right: 12, left: 0, bottom: 4 }}>
             <CartesianGrid stroke="rgb(var(--color-panel))" />
@@ -234,7 +235,7 @@ export function TyreDeg({
               name="Tyre age"
               allowDecimals={false}
               domain={["dataMin", "dataMax"]}
-              tick={{ fill: "#636369", fontSize: 10 }}
+              tick={{ fill: TOKEN_HEX.faint, fontSize: 10 }}
               axisLine={{ stroke: "rgb(var(--color-panel))" }}
               tickLine={false}
             />
@@ -245,7 +246,7 @@ export function TyreDeg({
               domain={["auto", "auto"]}
               width={40}
               tickFormatter={(v: number) => v.toFixed(1)}
-              tick={{ fill: "#636369", fontSize: 10 }}
+              tick={{ fill: TOKEN_HEX.faint, fontSize: 10 }}
               axisLine={false}
               tickLine={false}
             />
@@ -278,9 +279,9 @@ export function TyreDeg({
       </div>
 
       <div className="min-h-0 overflow-y-auto md:panel-scroll">
-        <table className="w-full text-[11px] tabular-nums">
+        <table className="w-full text-small tabular-nums">
           <thead className="sticky top-0 z-10 bg-surface">
-            <tr className="border-b border-panel text-[9px] uppercase tracking-widest text-muted">
+            <tr className="border-b border-panel text-tiny uppercase tracking-widest text-muted">
               <th className="px-2 py-1.5 pl-3 text-left font-bold">Driver</th>
               <th className="px-2 py-1.5 text-left font-bold">Stint</th>
               <th className="px-2 py-1.5 text-right font-bold">Laps</th>
@@ -304,14 +305,14 @@ export function TyreDeg({
                         aria-selected={isSelected}
                         className={`cursor-pointer transition-colors ${
                           i === driverFits.length - 1 ? "border-b border-panel" : ""
-                        } ${isSelected ? "bg-surface text-white" : "text-white/70 hover:bg-surface"}`}
+                        } ${isSelected ? "bg-surface text-fg" : "text-fg/70 hover:bg-surface"}`}
                         style={{ boxShadow: `inset ${isSelected ? 4 : 2}px 0 0 ${color}` }}
                       >
                         <td className="px-2 py-1 pl-3 font-black">
                           {i === 0 && (
                             <span className="flex items-center gap-1.5">
                               {position !== undefined && (
-                                <span className="w-4 font-mono text-[10px] text-muted">
+                                <span className="w-4 font-mono text-caption text-muted">
                                   {position}
                                 </span>
                               )}
@@ -324,7 +325,7 @@ export function TyreDeg({
                         <td className="px-2 py-1">
                           <span className="flex items-center gap-1.5">
                             <CompoundRing compound={fit.compound} size="sm" />
-                            <span className="font-mono text-[10px] text-muted">
+                            <span className="font-mono text-caption text-muted">
                               L{fit.laps[0]!.lapNumber}–{fit.laps.at(-1)!.lapNumber}
                             </span>
                           </span>
@@ -411,12 +412,12 @@ function DegTooltip({ active, payload, acronymOf, colorOf }: TooltipProps) {
   if (!active || !lap) return null;
   return (
     <div className="bg-surface border border-panel px-2 py-1.5 shadow-xl">
-      <div className="flex items-center gap-1.5 text-[11px] font-black">
+      <div className="flex items-center gap-1.5 text-small font-black">
         <span style={{ color: colorOf(lap.driverNumber) }}>{acronymOf(lap.driverNumber)}</span>
         <CompoundRing compound={lap.compound} size="sm" />
-        <span className="text-[9px] uppercase tracking-widest text-muted">Lap {lap.lapNumber}</span>
+        <span className="text-tiny uppercase tracking-widest text-muted">Lap {lap.lapNumber}</span>
       </div>
-      <div className="mt-0.5 font-mono text-[11px] tabular-nums text-white/90">
+      <div className="mt-0.5 font-mono text-small tabular-nums text-fg/90">
         {formatLapTime(lap.lapS)}
         <span className="ml-1.5 text-muted">age {lap.tyreAge}</span>
       </div>

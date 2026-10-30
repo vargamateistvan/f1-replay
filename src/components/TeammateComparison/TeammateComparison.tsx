@@ -30,17 +30,17 @@ function SplitRow({
     <div className="grid grid-cols-[2.5rem_1fr_2.5rem] items-center gap-2">
       <span
         className={`text-right font-mono text-sm tabular-nums ${
-          a > b ? "font-black text-white" : "text-muted"
+          a > b ? "font-black text-fg" : "text-muted"
         }`}
       >
         {pending ? "…" : a}
       </span>
       <div>
-        <div className="mb-1 text-center text-[9px] font-bold uppercase tracking-[0.16em] text-muted">
+        <div className="mb-1 text-center text-tiny font-bold uppercase tracking-eyebrow text-muted">
           {label}
         </div>
         <div
-          className="flex h-1.5 overflow-hidden rounded bg-panel"
+          className="flex h-1.5 overflow-hidden rounded-sm bg-panel"
           role="img"
           aria-label={`${label}: ${a}–${b}`}
         >
@@ -52,7 +52,7 @@ function SplitRow({
       </div>
       <span
         className={`font-mono text-sm tabular-nums ${
-          b > a ? "font-black text-white" : "text-muted"
+          b > a ? "font-black text-fg" : "text-muted"
         }`}
       >
         {pending ? "…" : b}
@@ -91,7 +91,7 @@ export function TeammateComparison({
           <header className="mb-3 flex items-center gap-2">
             <span className="h-4 w-[3px]" style={{ background: c.color }} />
             <h3
-              className="text-xs font-black uppercase tracking-[0.12em]"
+              className="text-xs font-black uppercase tracking-caps"
               style={{ color: c.color }}
             >
               <MaybeLink to={teamHref?.(c.team)} className="hover:underline">
@@ -111,10 +111,10 @@ export function TeammateComparison({
                 >
                   {c.a.acronym}
                 </MaybeLink>
-                <span className="block text-[10px] text-muted">P{c.a.position}</span>
+                <span className="block text-caption text-muted">P{c.a.position}</span>
               </span>
             </span>
-            <span className="text-[10px] font-bold uppercase text-muted">vs</span>
+            <span className="text-caption font-bold uppercase text-muted">vs</span>
             <span className="flex items-center gap-2 text-right">
               <span>
                 <MaybeLink
@@ -124,7 +124,7 @@ export function TeammateComparison({
                 >
                   {c.b.acronym}
                 </MaybeLink>
-                <span className="block text-[10px] text-muted">P{c.b.position}</span>
+                <span className="block text-caption text-muted">P{c.b.position}</span>
               </span>
               <DriverHeadshot driver={c.b.driver} accent={c.color} size="sm" />
             </span>

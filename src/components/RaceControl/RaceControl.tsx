@@ -31,6 +31,7 @@ import {
 import { Chip } from "@/components/SettingsModal/SettingsPrimitives";
 import { DEFAULT_FLAG_CONFIG, FLAG_CONFIG } from "./flagConfig";
 import { raceControlEventAccent, raceControlEventBadge } from "./eventStyle";
+import { TOKEN_HEX } from "@/designTokens";
 
 // ─── Visual config ───────────────────────────────────────────────────────────
 
@@ -50,22 +51,22 @@ const KIND_GROUPS: KindGroup[] = [
   {
     key: "flags",
     label: "Flags",
-    color: "#f5d400",
+    color: TOKEN_HEX.yellow,
     kinds: ["flag", "safety_car"],
   },
   {
     key: "incidents",
     label: "Incidents",
-    color: "#e8002d",
+    color: TOKEN_HEX.f1red,
     kinds: ["penalty", "investigation"],
   },
   {
     key: "session",
     label: "Session",
-    color: "#39b54a",
+    color: TOKEN_HEX.green,
     kinds: ["session_status"],
   },
-  { key: "drs", label: "DRS", color: "#9b59f5", kinds: ["drs"] },
+  { key: "drs", label: "DRS", color: TOKEN_HEX.purple, kinds: ["drs"] },
   {
     key: "other",
     label: "Other",
@@ -305,13 +306,13 @@ export function RaceControlFeed({
             color: flagConfig.bannerText,
           }}
         >
-          <span className="font-black text-[10px] tracking-widest uppercase">
+          <span className="font-black text-caption tracking-widest uppercase">
             {flagBannerLabel}
           </span>
           {activeBannerFlag?.sectors.map((s) => (
             <span
               key={s}
-              className="bg-black/15 px-1.5 py-0.5 text-[9px] font-black uppercase tracking-widest text-inherit"
+              className="bg-black/15 px-1.5 py-0.5 text-tiny font-black uppercase tracking-widest text-inherit"
             >
               S{s}
             </span>
@@ -365,16 +366,16 @@ export function RaceControlFeed({
             aria-hidden="true"
             className={COMMENTARY_ACCENT_CLASS}
             style={{
-              backgroundColor: teamColor(focusedDriver?.team_colour, "#e8002d"),
+              backgroundColor: teamColor(focusedDriver?.team_colour, TOKEN_HEX.f1red),
             }}
           />
           <span
-            className="text-[10px] font-black uppercase tracking-widest"
+            className="text-caption font-black uppercase tracking-widest"
             style={{ color: teamColor(focusedDriver?.team_colour, "#ffffff") }}
           >
             {focusedDriver?.name_acronym ?? `#${focusDriver}`}
           </span>
-          <span className="text-[9px] uppercase tracking-widest text-muted">
+          <span className="text-tiny uppercase tracking-widest text-muted">
             driver filter active
           </span>
           {onClearFocus && (
@@ -430,7 +431,7 @@ export function RaceControlFeed({
                       upcoming={e.ms > sessionTimeMs}
                       className={
                         isPenaltyEntry
-                          ? "bg-red-500/[0.08] hover:bg-red-500/[0.12]"
+                          ? "bg-red/[0.08] hover:bg-red/[0.12]"
                           : ""
                       }
                       title={

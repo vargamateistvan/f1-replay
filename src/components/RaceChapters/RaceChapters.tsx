@@ -18,6 +18,7 @@ import {
 } from "@/components/CommentaryPanels/commentaryList";
 import { CommentaryRow } from "@/components/CommentaryPanels/CommentaryRow";
 import { Chip } from "@/components/SettingsModal/SettingsPrimitives";
+import { TOKEN_HEX } from "@/designTokens";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -41,27 +42,27 @@ const CHAPTER_CONFIG: Record<
   },
   green: {
     badge: "GREEN",
-    bg: "#39b54a",
+    bg: TOKEN_HEX.green,
     text: "#fff",
   },
   safety_car: {
     badge: "SC",
-    bg: "#f5a623",
+    bg: TOKEN_HEX.orange,
     text: "#000",
   },
   vsc: {
     badge: "VSC",
-    bg: "#f5a623",
+    bg: TOKEN_HEX.orange,
     text: "#000",
   },
   yellow: {
     badge: "YELLOW",
-    bg: "#f5d400",
+    bg: TOKEN_HEX.yellow,
     text: "#000",
   },
   red_flag: {
     badge: "RED",
-    bg: "#e8002d",
+    bg: TOKEN_HEX.f1red,
     text: "#fff",
   },
   finish: {
@@ -99,8 +100,8 @@ function WhatChangedCard({ snapshot, drivers }: WhatChangedCardProps) {
   }
 
   return (
-    <div className="mt-2 border border-panel bg-track text-[10px]">
-      <div className="border-b border-panel px-2 py-1 text-[9px] font-bold uppercase tracking-[0.12em] text-muted">
+    <div className="mt-2 border border-panel bg-track text-caption">
+      <div className="border-b border-panel px-2 py-1 text-tiny font-bold uppercase tracking-caps text-muted">
         What Changed
       </div>
 
@@ -113,7 +114,7 @@ function WhatChangedCard({ snapshot, drivers }: WhatChangedCardProps) {
               key={c.driverNumber}
               className="flex items-center gap-2 px-2 py-1.5"
             >
-              <span className="text-green-400 font-black w-5 text-center shrink-0">
+              <span className="text-green-fg font-black w-5 text-center shrink-0">
                 ▲{c.delta}
               </span>
               <span
@@ -139,7 +140,7 @@ function WhatChangedCard({ snapshot, drivers }: WhatChangedCardProps) {
               key={c.driverNumber}
               className="flex items-center gap-2 px-2 py-1.5"
             >
-              <span className="text-red-400 font-black w-5 text-center shrink-0">
+              <span className="text-red-fg font-black w-5 text-center shrink-0">
                 ▼{Math.abs(c.delta)}
               </span>
               <span
@@ -160,7 +161,7 @@ function WhatChangedCard({ snapshot, drivers }: WhatChangedCardProps) {
         {/* Pits */}
         {snapshot.pitsDuringWindow.length > 0 && (
           <div className="flex flex-wrap items-center gap-1 px-2 py-1">
-            <span className="text-muted text-[9px] font-black uppercase tracking-widest shrink-0">
+            <span className="text-muted text-tiny font-black uppercase tracking-widest shrink-0">
               Pitted:
             </span>
             {snapshot.pitsDuringWindow.map((dn) => {
@@ -168,7 +169,7 @@ function WhatChangedCard({ snapshot, drivers }: WhatChangedCardProps) {
               return (
                 <span
                   key={dn}
-                  className="px-1 py-0.5 text-[9px] font-black uppercase"
+                  className="px-1 py-0.5 text-tiny font-black uppercase"
                   style={{
                     background: `#${d?.team_colour ?? "636369"}22`,
                     color: `#${d?.team_colour ?? "ffffff"}`,
@@ -184,7 +185,7 @@ function WhatChangedCard({ snapshot, drivers }: WhatChangedCardProps) {
         {/* Retirements */}
         {snapshot.retiredDuringWindow.length > 0 && (
           <div className="flex flex-wrap items-center gap-1 px-2 py-1">
-            <span className="text-muted text-[9px] font-black uppercase tracking-widest shrink-0">
+            <span className="text-muted text-tiny font-black uppercase tracking-widest shrink-0">
               Retired:
             </span>
             {snapshot.retiredDuringWindow.map((dn) => {
@@ -192,7 +193,7 @@ function WhatChangedCard({ snapshot, drivers }: WhatChangedCardProps) {
               return (
                 <span
                   key={dn}
-                  className="px-1 py-0.5 text-[9px] font-black uppercase"
+                  className="px-1 py-0.5 text-tiny font-black uppercase"
                   style={{
                     background: `#${d?.team_colour ?? "636369"}22`,
                     color: `#${d?.team_colour ?? "ffffff"}`,
@@ -382,11 +383,11 @@ export function RaceChapters({
       <div className={`sticky top-0 z-20 ${COMMENTARY_TOOLBAR_CLASS}`}>
         <Chip
           label="Incident Only"
-          color="#f5a623"
+          color={TOKEN_HEX.orange}
           active={incidentOnly}
           onToggle={() => setIncidentOnly((v) => !v)}
         />
-        <span className="ml-auto font-mono text-[10px] uppercase tracking-[0.12em] text-muted">
+        <span className="ml-auto font-mono text-caption uppercase tracking-caps text-muted">
           {visibleChapters.length} chapters
         </span>
       </div>

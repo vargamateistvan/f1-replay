@@ -190,19 +190,19 @@ export function QualifyingBanner({
   return (
     <>
       {!dialogOnly && (
-        <div className="pointer-events-none absolute right-3 top-3 z-[120] sm:right-4 sm:top-4">
-          <div className="pointer-events-auto flex items-center gap-2 rounded border border-panel bg-track/90 px-2 py-1.5 backdrop-blur">
-            <span className="rounded bg-f1red px-1.5 py-0.5 text-[9px] font-black uppercase tracking-[0.16em] text-white">
+        <div className="pointer-events-none absolute right-3 top-3 z-overlay sm:right-4 sm:top-4">
+          <div className="pointer-events-auto flex items-center gap-2 rounded-sm border border-panel bg-track/90 px-2 py-1.5 backdrop-blur">
+            <span className="rounded-sm bg-f1red px-1.5 py-0.5 text-tiny font-black uppercase tracking-eyebrow text-white">
               {phase}
             </span>
             {countdownMs !== null && countdownMs > 0 && (
-              <span className="font-mono text-[10px] tabular-nums text-white/90">
+              <span className="font-mono text-caption tabular-nums text-fg/90">
                 {fmtCountdown(countdownMs)}
               </span>
             )}
             <button
               onClick={() => setOpen(true)}
-              className="rounded border border-white/10 bg-black/25 px-2 py-1 text-[10px] font-black uppercase tracking-[0.12em] text-white transition-colors hover:border-f1red/40 hover:bg-f1red/10"
+              className="rounded-sm border border-fg/10 bg-black/25 px-2 py-1 text-caption font-black uppercase tracking-caps text-fg transition-colors hover:border-f1red/40 hover:bg-f1red/10"
             >
               Eliminated
             </button>
@@ -211,22 +211,22 @@ export function QualifyingBanner({
       )}
 
       {open && (
-        <div className="fixed inset-0 z-[230] flex items-start justify-center overflow-y-auto bg-black/75 px-3 py-4 backdrop-blur-sm sm:items-center sm:px-6">
+        <div className="fixed inset-0 z-modal flex items-start justify-center overflow-y-auto bg-black/75 px-3 py-4 backdrop-blur-sm sm:items-center sm:px-6">
           <div className="my-auto w-full max-w-2xl border border-panel bg-track shadow-2xl">
             <div className="flex items-center justify-between border-b border-panel px-4 py-3 sm:px-5">
               <div>
-                <div className="text-[10px] font-black uppercase tracking-[0.2em] text-f1red">
+                <div className="text-caption font-black uppercase tracking-spaced text-f1red">
                   {phase} Elimination
                 </div>
-                <div className="mt-1 text-sm font-black text-white sm:text-base">
+                <div className="mt-1 text-sm font-black text-fg sm:text-base">
                   {meta.title}
                 </div>
-                <div className="text-xs text-white/65">{meta.subtitle}</div>
+                <div className="text-xs text-fg/65">{meta.subtitle}</div>
               </div>
               <button
                 onClick={() => setOpen(false)}
                 aria-label="Close elimination dialog"
-                className="flex h-8 w-8 items-center justify-center text-lg text-muted transition-colors hover:bg-white/5 hover:text-white"
+                className="flex h-8 w-8 items-center justify-center text-lg text-muted transition-colors hover:bg-fg/5 hover:text-fg"
               >
                 ×
               </button>
@@ -234,7 +234,7 @@ export function QualifyingBanner({
 
             <div className="px-4 py-4 sm:px-5">
               {eliminatedGroups.every((group) => group.drivers.length === 0) ? (
-                <div className="rounded border border-panel bg-track px-3 py-3 text-sm text-muted">
+                <div className="rounded-sm border border-panel bg-track px-3 py-3 text-sm text-muted">
                   No eliminated drivers available yet.
                 </div>
               ) : (
@@ -242,15 +242,15 @@ export function QualifyingBanner({
                   {eliminatedGroups.map((group) => (
                     <div key={group.title} className="space-y-2">
                       <div className="flex items-center justify-between border-b border-panel/80 pb-1">
-                        <span className="text-[10px] font-black uppercase tracking-[0.14em] text-white/90">
+                        <span className="text-caption font-black uppercase tracking-caps text-fg/90">
                           {group.title}
                         </span>
-                        <span className="text-[10px] uppercase tracking-[0.12em] text-white/55">
+                        <span className="text-caption uppercase tracking-caps text-fg/55">
                           {group.subtitle}
                         </span>
                       </div>
                       {group.drivers.length === 0 ? (
-                        <div className="rounded border border-panel bg-track px-3 py-2 text-xs text-muted">
+                        <div className="rounded-sm border border-panel bg-track px-3 py-2 text-xs text-muted">
                           No drivers locked out in this group yet.
                         </div>
                       ) : (
@@ -263,9 +263,9 @@ export function QualifyingBanner({
                             return (
                               <div
                                 key={`${group.title}-${entry.driverNumber}`}
-                                className="flex items-center gap-2 rounded border border-panel bg-track px-3 py-2"
+                                className="flex items-center gap-2 rounded-sm border border-panel bg-track px-3 py-2"
                               >
-                                <span className="font-mono text-xs tabular-nums text-white/65">
+                                <span className="font-mono text-xs tabular-nums text-fg/65">
                                   P{entry.position}
                                 </span>
                                 <span
@@ -273,12 +273,12 @@ export function QualifyingBanner({
                                   style={{ background: color }}
                                 />
                                 <span
-                                  className="text-xs font-black uppercase tracking-[0.12em]"
+                                  className="text-xs font-black uppercase tracking-caps"
                                   style={{ color }}
                                 >
                                   {driver?.name_acronym ?? entry.driverNumber}
                                 </span>
-                                <span className="ml-auto text-[10px] uppercase tracking-[0.12em] text-white/55">
+                                <span className="ml-auto text-caption uppercase tracking-caps text-fg/55">
                                   out
                                 </span>
                               </div>

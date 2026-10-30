@@ -1,6 +1,7 @@
 import { useEffect, useMemo } from "react";
 import { EVENTS, STATUS, useJoyride, type Options } from "react-joyride";
 import { TOUR_VERSION } from "@/constants";
+import { Z_LAYERS } from "@/designTokens";
 import { trackEvent } from "@/lib/analytics";
 import { prefersReducedMotion } from "@/lib/motion";
 import { useSettings } from "@/stores/settings";
@@ -20,8 +21,7 @@ const TOUR_OPTIONS: Partial<Options> = {
   arrowColor: "rgb(var(--color-surface))",
   spotlightRadius: 6,
   spotlightPadding: 6,
-  // Above the Nav dialogs (z-[220]).
-  zIndex: 230,
+  zIndex: Z_LAYERS.tour,
 };
 
 interface AppTourProps {

@@ -9,10 +9,10 @@ interface Props {
 }
 
 const SIZE_CLASSES: Record<NonNullable<Props["size"]>, string> = {
-  xxs: "h-4 w-4 text-[7px]",
-  xs: "h-5 w-5 text-[8px]",
-  sm: "h-7 w-7 text-[9px]",
-  md: "h-10 w-10 text-[11px]",
+  xxs: "h-4 w-4 text-micro",
+  xs: "h-5 w-5 text-micro",
+  sm: "h-7 w-7 text-tiny",
+  md: "h-10 w-10 text-small",
   lg: "h-14 w-14 text-sm",
 };
 
@@ -34,7 +34,7 @@ export function DriverHeadshot({ driver, accent, size = "md" }: Props) {
   if (!safeHeadshotUrl || failed) {
     return (
       <span
-        className={`${className} flex items-center justify-center font-black uppercase tracking-[0.08em] text-white`}
+        className={`${className} flex items-center justify-center font-black uppercase tracking-widest text-fg`}
         style={{ borderColor: accent }}
         aria-hidden="true"
       >

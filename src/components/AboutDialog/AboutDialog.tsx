@@ -10,6 +10,7 @@ import {
   RELEASES_PAGE_URL,
 } from "@/lib/appVersion";
 import { OPENF1_SITE_URL } from "@/constants";
+import { buttonClass } from "@/components/Button/buttonClass";
 
 interface Props {
   open: boolean;
@@ -20,12 +21,10 @@ interface Props {
 
 const ROW = "flex items-baseline justify-between gap-3 py-2.5";
 const ROW_LABEL =
-  "shrink-0 text-[9px] font-bold uppercase tracking-widest text-muted";
-const ROW_VALUE = "min-w-0 text-right font-mono text-[11px] text-white";
-const LINK_BUTTON =
-  "flex h-9 items-center justify-center gap-1.5 border border-panel px-2 text-[10px] font-bold uppercase tracking-[0.12em] text-white transition-colors hover:border-f1red hover:text-f1red";
-const PRIMARY_BUTTON =
-  "flex h-9 items-center justify-center gap-1.5 bg-f1red px-2 text-[10px] font-bold uppercase tracking-[0.12em] text-white transition-colors hover:bg-red-600";
+  "shrink-0 text-tiny font-bold uppercase tracking-widest text-muted";
+const ROW_VALUE = "min-w-0 text-right font-mono text-small text-fg";
+const LINK_BUTTON = buttonClass("secondary", "block");
+const PRIMARY_BUTTON = buttonClass("primary", "block");
 
 export function AboutDialog({ open, onClose, onNavigate }: Props) {
   const titleId = useId();
@@ -44,7 +43,7 @@ export function AboutDialog({ open, onClose, onNavigate }: Props) {
 
   return createPortal(
     <div
-      className="fixed inset-0 z-[200] flex items-end justify-center bg-black/70 backdrop-blur-sm sm:items-center"
+      className="fixed inset-0 z-modal flex items-end justify-center bg-black/70 backdrop-blur-sm sm:items-center"
       onClick={(e) => {
         if (e.target === e.currentTarget) onClose();
       }}
@@ -70,7 +69,7 @@ export function AboutDialog({ open, onClose, onNavigate }: Props) {
         <dl className="divide-y divide-panel px-4 sm:px-5">
           <div className={ROW}>
             <dt className={ROW_LABEL}>Version</dt>
-            <dd className={`${ROW_VALUE} uppercase tracking-[0.12em]`}>
+            <dd className={`${ROW_VALUE} uppercase tracking-caps`}>
               {appVersionLabel}
             </dd>
           </div>

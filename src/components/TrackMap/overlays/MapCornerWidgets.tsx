@@ -16,7 +16,7 @@ export const SectorChips = memo(function SectorChips({
       style={{ backdropFilter: "blur(4px)" }}
     >
       <div
-        className="px-1.5 py-0.5 text-[8px] font-black uppercase tracking-[0.14em] text-muted text-center"
+        className="px-1.5 py-0.5 text-micro font-black uppercase tracking-caps text-muted text-center"
         style={{ background: overlayBackground }}
       >
         Sectors
@@ -41,7 +41,7 @@ export const SectorChips = memo(function SectorChips({
                 className="w-2 h-2 rounded-full mb-0.5"
                 style={{ background: color }}
               />
-              <span className="text-[8px] font-black uppercase text-white/70">
+              <span className="text-micro font-black uppercase text-fg/70">
                 S{sectorNum}
               </span>
             </div>
@@ -68,7 +68,7 @@ export const Compass = memo(function Compass({
         ? { type: "button" as const, onClick: onReset, "aria-label": "Reset map rotation" }
         : {})}
       className={`w-[46px] h-12 bg-track/85 flex items-center justify-center${
-        onReset ? " border border-transparent hover:border-white/40 transition-colors" : ""
+        onReset ? " border border-transparent hover:border-fg/40 transition-colors" : ""
       }`}
       title={onReset ? "Compass · click to reset rotation" : "Compass"}
     >

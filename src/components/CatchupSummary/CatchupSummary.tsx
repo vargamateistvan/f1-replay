@@ -32,6 +32,8 @@ import {
   type CommentaryBadge,
 } from "@/components/CommentaryPanels/CommentaryRow";
 import { useAudioProgress } from "@/hooks/useAudioProgress";
+import { TOKEN_HEX } from "@/designTokens";
+import { buttonClass } from "@/components/Button/buttonClass";
 
 interface Props {
   summary: CatchupSummaryData;
@@ -93,13 +95,13 @@ const KIND_STYLES: Record<ToastKind, KindStyle> = {
     mkChipLabel: (n) => plural(n, "pit stop"),
   },
   flag: {
-    color: "#f5a623",
+    color: TOKEN_HEX.orange,
     text: "#000",
     badge: null, // per-flag colour + label
     mkChipLabel: (n) => plural(n, "flag"),
   },
   penalty: {
-    color: "#e8002d",
+    color: TOKEN_HEX.f1red,
     text: "#fff",
     badge: "PENALTY",
     mkChipLabel: (n) => plural(n, "penalty", "penalties"),
@@ -111,19 +113,19 @@ const KIND_STYLES: Record<ToastKind, KindStyle> = {
     mkChipLabel: (n) => plural(n, "overtake"),
   },
   fastest_lap: {
-    color: "#9b59f5",
+    color: TOKEN_HEX.purple,
     text: "#fff",
     badge: "FASTEST",
     mkChipLabel: (n) => plural(n, "fastest lap"),
   },
   undercut: {
-    color: "#14b8a6",
+    color: TOKEN_HEX.teal,
     text: "#000",
     badge: null,
     mkChipLabel: (n) => plural(n, "undercut"),
   },
   investigation: {
-    color: "#f5a623",
+    color: TOKEN_HEX.orange,
     text: "#000",
     badge: "INVESTIGATION",
     mkChipLabel: (n) => plural(n, "investigation"),
@@ -139,12 +141,12 @@ const KIND_STYLES: Record<ToastKind, KindStyle> = {
 const KIND_ORDER = Object.keys(KIND_STYLES) as ToastKind[];
 
 const FLAG_COLORS: Record<string, string> = {
-  RED: "#e8002d",
-  SAFETY_CAR: "#f5a623",
-  VIRTUAL_SC: "#f5a623",
-  VIRTUAL_SAFETY_CAR: "#f5a623",
-  YELLOW: "#f5d400",
-  DOUBLE_YELLOW: "#f5d400",
+  RED: TOKEN_HEX.f1red,
+  SAFETY_CAR: TOKEN_HEX.orange,
+  VIRTUAL_SC: TOKEN_HEX.orange,
+  VIRTUAL_SAFETY_CAR: TOKEN_HEX.orange,
+  YELLOW: TOKEN_HEX.yellow,
+  DOUBLE_YELLOW: TOKEN_HEX.yellow,
   CHEQUERED: "#ffffff",
   BLUE: "#3d78ff",
 };
@@ -154,7 +156,7 @@ const DARK_FLAG_TEXT = new Set(["YELLOW", "DOUBLE_YELLOW", "CHEQUERED"]);
 function flagBadge(flag: string) {
   return {
     label: flag.replaceAll("_", " ").replace(/\b\w/g, (c) => c.toUpperCase()),
-    color: FLAG_COLORS[flag] ?? "#636369",
+    color: FLAG_COLORS[flag] ?? TOKEN_HEX.faint,
     text: DARK_FLAG_TEXT.has(flag) ? "#000" : "#fff",
   };
 }
@@ -291,7 +293,7 @@ function CatchupEventRow(props: Readonly<RowProps>) {
           }
           meta={
             <>
-              <span className="text-white/80">{pitBattleHeadline(p)}</span>
+              <span className="text-fg/80">{pitBattleHeadline(p)}</span>
               <LapTag lap={p.firstStopLap} />
               {p.attackerGainS !== null && (
                 <span>{formatBattleGain(p.attackerGainS)}</span>
@@ -323,7 +325,7 @@ function CatchupEventRow(props: Readonly<RowProps>) {
               <>
                 <LapTag lap={p.lapNumber} />
                 {hasDuration && (
-                  <span className="text-white/70">
+                  <span className="text-fg/70">
                     {formatPitDuration(p.pitDuration!) ?? "--:--"} stop
                   </span>
                 )}
@@ -381,7 +383,7 @@ function CatchupRadioRow({
             disabled={!hasAudio}
             aria-label={isPlaying ? "Stop" : "Play"}
             className={`${COMMENTARY_BUTTON_CLASS} relative w-[64px] overflow-hidden ${
-              isPlaying ? "border-f1red text-white" : ""
+              isPlaying ? "border-f1red text-fg" : ""
             }`}
           >
             {isPlaying && (
@@ -495,7 +497,7 @@ export function CatchupSummary({
   // page scrolls) the dialog then centres on the whole page, off screen.
   const dialog = (
     <div
-      className="fixed inset-0 z-[200] flex items-center justify-center bg-black/70 px-4 pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)] backdrop-blur-sm"
+      className="fixed inset-0 z-modal flex items-center justify-center bg-black/70 px-4 pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)] backdrop-blur-sm"
       onClick={(e) => {
         if (e.target === e.currentTarget) onDismiss();
       }}
@@ -550,20 +552,20 @@ export function CatchupSummary({
               ))}
             </div>
           ) : (
-            <p className="px-4 py-4 text-center font-mono text-[10px] uppercase tracking-[0.12em] text-muted">
+            <p className="px-4 py-4 text-center font-mono text-caption uppercase tracking-caps text-muted">
               No events match the selected filters
             </p>
           )}
         </div>
 
         <div className="flex shrink-0 items-center justify-between gap-3 border-t border-panel px-4 py-3 sm:px-5">
-          <span className="font-mono text-[9px] uppercase tracking-[0.14em] text-muted">
+          <span className="font-mono text-tiny uppercase tracking-caps text-muted">
             {jump ? "Tap › to replay from there" : "Default filters: Settings → Playback"}
           </span>
           <button
             type="button"
             onClick={onDismiss}
-            className="shrink-0 bg-f1red px-4 py-2 text-[10px] font-bold uppercase tracking-[0.12em] text-white transition-colors hover:bg-red-600"
+            className={buttonClass("primary")}
           >
             Continue watching
           </button>

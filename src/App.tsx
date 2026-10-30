@@ -14,6 +14,7 @@ import { initializeAnalytics } from "@/lib/analytics";
 import { loadScriptOnce, runWhenIdle } from "@/lib/idle";
 import { useMediaQuery } from "@/hooks/useMediaQuery";
 import { COFFEE_WIDGET_MIN_WIDTH_PX } from "@/constants";
+import { TOKEN_HEX } from "@/designTokens";
 
 const COFFEE_WIDGET_SCRIPT_ID = "bmc-widget-script";
 
@@ -61,7 +62,7 @@ function CoffeeWidgetGate() {
           "data-id": "matt_varga",
           "data-description": "Support me on Buy me a coffee!",
           "data-message": "",
-          "data-color": "#E8002D",
+          "data-color": TOKEN_HEX.f1red,
           "data-position": "Right",
           "data-x_margin": "18",
           "data-y_margin": "18",

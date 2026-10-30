@@ -25,10 +25,10 @@ function formatPitLoss(raw: string | undefined): string | null {
 function Fact({ label, value }: { label: string; value: string }) {
   return (
     <div className="min-w-0">
-      <dt className="text-[9px] font-bold uppercase tracking-widest text-muted">
+      <dt className="text-tiny font-bold uppercase tracking-widest text-muted">
         {label}
       </dt>
-      <dd className="truncate font-mono text-[11px] text-white/90">{value}</dd>
+      <dd className="truncate font-mono text-small text-fg/90">{value}</dd>
     </div>
   );
 }
@@ -71,7 +71,7 @@ export function CircuitSummary({
   return (
     <div className={`flex items-center gap-3 border-b border-panel px-3 py-2 ${className}`}>
       <div
-        className="shrink-0 text-white/80"
+        className="shrink-0 text-fg/80"
         style={{ width: SCHEDULE_OUTLINE_W / 1.25, height: SCHEDULE_OUTLINE_H / 1.25 }}
       >
         {thumb ? (

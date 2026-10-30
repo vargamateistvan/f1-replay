@@ -33,7 +33,7 @@ import {
 } from "@/components/Nav/pickerStyles";
 
 const SECTION_TITLE =
-  "mb-3 text-[10px] font-bold uppercase tracking-[0.12em] text-muted";
+  "mb-3 text-caption font-bold uppercase tracking-caps text-muted";
 
 const TITLE_TEXT = {
   champion: "World Champion",
@@ -135,7 +135,7 @@ export default function DriverProfile() {
         <div className="flex flex-wrap items-center gap-x-3 gap-y-1 py-1.5 pl-[max(0.75rem,env(safe-area-inset-left))] pr-[max(0.75rem,env(safe-area-inset-right))] sm:px-4">
           <Link
             to={backTo}
-            className="flex items-center gap-1 text-[10px] font-bold uppercase tracking-[0.12em] text-muted hover:text-white"
+            className="flex items-center gap-1 text-caption font-bold uppercase tracking-caps text-muted hover:text-fg"
           >
             <ArrowLeft aria-hidden="true" className="h-3 w-3" />
             Standings
@@ -214,7 +214,7 @@ export default function DriverProfile() {
                 {standing.constructorName ? (
                   <Link
                     to={`${constructorPath(standing.constructorName)}${search}`}
-                    className="hover:text-white hover:underline"
+                    className="hover:text-fg hover:underline"
                   >
                     {standing.team}
                   </Link>
@@ -229,7 +229,7 @@ export default function DriverProfile() {
                   className={`mt-0.5 text-xs ${
                     standing.title.status === "eliminated"
                       ? "text-muted"
-                      : "text-amber-300"
+                      : "text-yellow-fg"
                   }`}
                 >
                   {TITLE_TEXT[standing.title.status]}

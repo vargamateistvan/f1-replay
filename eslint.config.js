@@ -5,6 +5,30 @@ import reactRefresh from "eslint-plugin-react-refresh";
 import tsPlugin from "@typescript-eslint/eslint-plugin";
 import tsParser from "@typescript-eslint/parser";
 
+// Design-system guards for class strings (see src/designTokens.ts).
+const HEX_CLASS = "-\\[#[0-9a-fA-F]{3,8}\\]";
+const PX_FONT = "(^|[\\s:])text-\\[\\d+px\\]";
+const DEFAULT_PALETTE =
+  "(^|[\\s:])(bg|text|border|ring|fill|stroke|from|to|via|divide|outline|decoration)-(slate|gray|zinc|neutral|stone|red|orange|amber|yellow|lime|green|emerald|teal|cyan|sky|blue|indigo|violet|purple|fuchsia|pink|rose)-\\d{2,3}";
+const designSystemRule = (pattern, message) => [
+  { selector: `Literal[value=/${pattern}/]`, message },
+  { selector: `TemplateElement[value.raw=/${pattern}/]`, message },
+];
+const DESIGN_SYSTEM_RULES = [
+  ...designSystemRule(
+    HEX_CLASS,
+    "Use a design token class (bg-surface, text-purple-fg…) instead of an arbitrary hex colour.",
+  ),
+  ...designSystemRule(
+    PX_FONT,
+    "Use the type scale (text-micro, text-tiny, text-caption, text-small, text-compact, text-body, text-sm…).",
+  ),
+  ...designSystemRule(
+    DEFAULT_PALETTE,
+    "Tailwind's default palette is disabled; use a design token colour.",
+  ),
+];
+
 export default [
   { ignores: ["dist", "coverage", "proxy/.wrangler", "proxy/node_modules"] },
 
@@ -59,6 +83,7 @@ export default [
         "warn",
         { allowConstantExport: true },
       ],
+      "no-restricted-syntax": ["error", ...DESIGN_SYSTEM_RULES],
     },
   },
 ];

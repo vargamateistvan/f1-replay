@@ -191,22 +191,22 @@ export function FinalClassificationDialog({
     <div
       ref={backdropRef}
       onClick={handleBackdropClick}
-      className="fixed inset-0 z-[220] flex touch-pan-y items-center justify-center bg-black/75 px-3 py-4 backdrop-blur-sm sm:px-6 sm:py-6"
+      className="fixed inset-0 z-modal flex touch-pan-y items-center justify-center bg-black/75 px-3 py-4 backdrop-blur-sm sm:px-6 sm:py-6"
     >
       <div className="flex max-h-full w-full max-w-5xl flex-col overflow-hidden border border-panel bg-track shadow-2xl">
         <div className="flex items-center justify-between border-b border-panel px-4 py-3 sm:px-5">
           <div>
-            <div className="text-[10px] font-black uppercase tracking-[0.2em] text-f1red">
+            <div className="text-caption font-black uppercase tracking-spaced text-f1red">
               Final Classification
             </div>
-            <div className="mt-1 text-sm font-black text-white sm:text-base">
+            <div className="mt-1 text-sm font-black text-fg sm:text-base">
               {sessionName ?? "Session Results"}
             </div>
           </div>
           <button
             onClick={onClose}
             aria-label="Close results dialog"
-            className="flex h-8 w-8 items-center justify-center text-lg text-muted transition-colors hover:bg-white/5 hover:text-white"
+            className="flex h-8 w-8 items-center justify-center text-lg text-muted transition-colors hover:bg-fg/5 hover:text-fg"
           >
             ×
           </button>
@@ -291,14 +291,14 @@ function FinalClassificationContent({
     >
       {!hideHeader && (
         <div className="border-b border-panel px-4 py-3 sm:px-5">
-          <div className="text-[10px] font-black uppercase tracking-[0.2em] text-f1red">
+          <div className="text-caption font-black uppercase tracking-spaced text-f1red">
             Final Classification
           </div>
           <div className="mt-1 flex flex-wrap items-end justify-between gap-2">
-            <div className="text-lg font-black text-white sm:text-xl">
+            <div className="text-lg font-black text-fg sm:text-xl">
               {sessionName ?? "Session Results"}
             </div>
-            <div className="text-[11px] uppercase tracking-[0.16em] text-muted">
+            <div className="text-small uppercase tracking-eyebrow text-muted">
               Official session result
             </div>
           </div>
@@ -320,7 +320,7 @@ function FinalClassificationContent({
                     size="lg"
                   />
                   <div>
-                    <div className="text-[10px] font-black uppercase tracking-[0.16em] text-muted">
+                    <div className="text-caption font-black uppercase tracking-eyebrow text-muted">
                       P{entry.result.position}
                     </div>
                     <div
@@ -332,24 +332,24 @@ function FinalClassificationContent({
                   </div>
                 </div>
                 <div className="text-right">
-                  <div className="text-[10px] font-black uppercase tracking-[0.16em] text-muted">
+                  <div className="text-caption font-black uppercase tracking-eyebrow text-muted">
                     Points
                   </div>
-                  <div className="text-lg font-black text-white">
+                  <div className="text-lg font-black text-fg">
                     {entry.result.points ?? 0}
                   </div>
                 </div>
               </div>
-              <div className="mt-2 text-xs text-white/85">
+              <div className="mt-2 text-xs text-fg/85">
                 {entry.driver?.full_name ??
                   `Driver ${entry.result.driver_number}`}
               </div>
-              <div className="mt-1 text-[11px] text-muted">
+              <div className="mt-1 text-small text-muted">
                 {entry.driver?.team_name ?? "Unknown team"}
               </div>
-              <div className="mt-3 flex items-center justify-between text-[11px] uppercase tracking-[0.14em]">
+              <div className="mt-3 flex items-center justify-between text-small uppercase tracking-caps">
                 <span className="text-muted">{entry.status}</span>
-                <span className="font-mono text-white">{entry.detail}</span>
+                <span className="font-mono text-fg">{entry.detail}</span>
               </div>
             </div>
           ))}
@@ -362,7 +362,7 @@ function FinalClassificationContent({
       >
         <table className="w-full border-collapse">
           <thead>
-            <tr className="sticky top-0 border-b border-panel bg-track/95 text-[10px] font-black uppercase tracking-[0.16em] text-muted">
+            <tr className="sticky top-0 border-b border-panel bg-track/95 text-caption font-black uppercase tracking-eyebrow text-muted">
               <th className="px-4 py-2 text-left sm:px-5">Pos</th>
               <th className="px-4 py-2 text-left">Driver</th>
               <th className="hidden px-4 py-2 text-left md:table-cell">Team</th>
@@ -386,7 +386,7 @@ function FinalClassificationContent({
               <tr
                 key={entry.result.driver_number}
                 className={`border-b border-panel text-xs ${
-                  entry.isEliminated ? "text-muted/70 opacity-60" : "text-white/90"
+                  entry.isEliminated ? "text-muted/70 opacity-60" : "text-fg/90"
                 }`}
               >
                 <td className="px-4 py-2.5 font-black tabular-nums sm:px-5">
@@ -422,7 +422,7 @@ function FinalClassificationContent({
                   {entry.driver?.team_name ?? "—"}
                 </td>
                 <td
-                  className={`px-4 py-2.5 text-right font-mono tabular-nums ${entry.isEliminated ? "text-muted" : "text-white"}`}
+                  className={`px-4 py-2.5 text-right font-mono tabular-nums ${entry.isEliminated ? "text-muted" : "text-fg"}`}
                 >
                   {entry.result.number_of_laps ?? "—"}
                 </td>
@@ -430,14 +430,14 @@ function FinalClassificationContent({
                   entry.phaseTimes.map((time, i) => (
                     <td
                       key={i}
-                      className={`px-4 py-2.5 text-right font-mono tabular-nums ${i === 2 ? "sm:px-5" : ""} ${entry.isEliminated || time === "—" ? "text-muted" : "text-white"}`}
+                      className={`px-4 py-2.5 text-right font-mono tabular-nums ${i === 2 ? "sm:px-5" : ""} ${entry.isEliminated || time === "—" ? "text-muted" : "text-fg"}`}
                     >
                       {time}
                     </td>
                   ))
                 ) : (
                   <td
-                    className={`px-4 py-2.5 text-right font-mono tabular-nums sm:px-5 ${entry.isEliminated ? "text-muted" : "text-white"}`}
+                    className={`px-4 py-2.5 text-right font-mono tabular-nums sm:px-5 ${entry.isEliminated ? "text-muted" : "text-fg"}`}
                   >
                     {entry.detail}
                   </td>

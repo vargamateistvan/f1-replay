@@ -66,7 +66,7 @@ function LazyModals() {
 
 function RouteFallback() {
   return (
-    <div className="flex min-h-[40vh] items-center justify-center text-xs uppercase tracking-[0.12em] text-muted">
+    <div className="flex min-h-[40vh] items-center justify-center text-xs uppercase tracking-caps text-muted">
       Loading View
     </div>
   );
@@ -158,12 +158,12 @@ function ReleaseVersionLabel() {
         href={RELEASES_PAGE_URL}
         target="_blank"
         rel="noreferrer"
-        className="font-mono uppercase tracking-[0.12em] text-muted/85 transition-colors hover:text-f1red"
+        className="font-mono uppercase tracking-caps text-muted/85 transition-colors hover:text-f1red"
       >
         Version {appVersionLabel}
       </a>
       {releaseDate ? (
-        <span className="font-mono text-[10px] text-muted/70">({releaseDate})</span>
+        <span className="font-mono text-caption text-muted/70">({releaseDate})</span>
       ) : null}
     </span>
   );
@@ -200,7 +200,7 @@ export function AppRouter() {
             </Suspense>
           </RouteMotionShell>
         </main>
-        <footer className="hidden border-t border-panel bg-track/90 px-3 py-1 text-[10px] text-muted md:block">
+        <footer className="hidden border-t border-panel bg-track/90 px-3 py-1 text-caption text-muted md:block">
           <div className="mx-auto flex w-full items-center justify-between gap-2.5">
             <div className="flex items-center gap-2.5">
               <ReleaseVersionLabel />

@@ -28,11 +28,11 @@ export function DialogHeader({
   return (
     <div className="shrink-0">
       <div className="flex h-7 items-center justify-between gap-3 bg-f1red px-4 text-white sm:px-5">
-        <span className="text-[10px] font-black uppercase tracking-[0.2em]">
+        <span className="text-caption font-black uppercase tracking-spaced">
           {eyebrow}
         </span>
         {meta != null && (
-          <span className="truncate font-mono text-[10px] uppercase tracking-wider">
+          <span className="truncate font-mono text-caption uppercase tracking-wider">
             {meta}
           </span>
         )}
@@ -43,12 +43,12 @@ export function DialogHeader({
           <div className="min-w-0">
             <h2
               id={titleId}
-              className="text-lg font-black uppercase leading-tight tracking-[0.06em] text-white sm:text-xl"
+              className="text-lg font-black uppercase leading-tight tracking-wider text-fg sm:text-xl"
             >
               {title}
             </h2>
             {subtitle && (
-              <p className="mt-1 font-mono text-[10px] uppercase tracking-[0.14em] text-muted">
+              <p className="mt-1 font-mono text-caption uppercase tracking-caps text-muted">
                 {subtitle}
               </p>
             )}

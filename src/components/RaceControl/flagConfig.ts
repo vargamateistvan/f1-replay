@@ -1,5 +1,6 @@
 import type { CSSProperties } from "react";
 import { toFlagKey } from "@/timeline/raceControl";
+import { TOKEN_HEX } from "@/designTokens";
 
 const CHEQUERED_BORDER_IMAGE = (() => {
   const svg =
@@ -25,35 +26,35 @@ export interface FlagVisualConfig {
 export const FLAG_CONFIG: Record<string, FlagVisualConfig> = {
   GREEN: {
     label: "GREEN",
-    bannerBg: "#39b54a",
+    bannerBg: TOKEN_HEX.green,
     bannerText: "#fff",
-    badgeBg: "#39b54a",
+    badgeBg: TOKEN_HEX.green,
     badgeText: "#fff",
-    border: "#39b54a",
+    border: TOKEN_HEX.green,
   },
   YELLOW: {
     label: "YELLOW",
-    bannerBg: "#f5d400",
+    bannerBg: TOKEN_HEX.yellow,
     bannerText: "#000",
-    badgeBg: "#f5d400",
+    badgeBg: TOKEN_HEX.yellow,
     badgeText: "#000",
-    border: "#f5d400",
+    border: TOKEN_HEX.yellow,
   },
   DOUBLE_YELLOW: {
     label: "DBL YELLOW",
-    bannerBg: "#f5d400",
+    bannerBg: TOKEN_HEX.yellow,
     bannerText: "#000",
-    badgeBg: "#f5d400",
+    badgeBg: TOKEN_HEX.yellow,
     badgeText: "#000",
-    border: "#f5d400",
+    border: TOKEN_HEX.yellow,
   },
   RED: {
     label: "RED FLAG",
-    bannerBg: "#e8002d",
+    bannerBg: TOKEN_HEX.f1red,
     bannerText: "#fff",
-    badgeBg: "#e8002d",
+    badgeBg: TOKEN_HEX.f1red,
     badgeText: "#fff",
-    border: "#e8002d",
+    border: TOKEN_HEX.f1red,
   },
   CHEQUERED: {
     label: "CHEQUERED",
@@ -66,11 +67,11 @@ export const FLAG_CONFIG: Record<string, FlagVisualConfig> = {
   },
   BLUE: {
     label: "BLUE",
-    bannerBg: "#4da6ff",
+    bannerBg: TOKEN_HEX.blue,
     bannerText: "#000",
-    badgeBg: "#4da6ff",
+    badgeBg: TOKEN_HEX.blue,
     badgeText: "#000",
-    border: "#4da6ff",
+    border: TOKEN_HEX.blue,
   },
   BLACK_AND_WHITE: {
     label: "BLK/WHT",
@@ -98,35 +99,35 @@ export const FLAG_CONFIG: Record<string, FlagVisualConfig> = {
   },
   SAFETY_CAR: {
     label: "SAFETY CAR",
-    bannerBg: "#f5a623",
+    bannerBg: TOKEN_HEX.orange,
     bannerText: "#000",
-    badgeBg: "#f5a623",
+    badgeBg: TOKEN_HEX.orange,
     badgeText: "#000",
-    border: "#f5a623",
+    border: TOKEN_HEX.orange,
   },
   VIRTUAL_SC: {
     label: "VIRTUAL SC",
-    bannerBg: "#f5a623",
+    bannerBg: TOKEN_HEX.orange,
     bannerText: "#000",
-    badgeBg: "#f5a623",
+    badgeBg: TOKEN_HEX.orange,
     badgeText: "#000",
-    border: "#f5a623",
+    border: TOKEN_HEX.orange,
   },
   VIRTUAL_SAFETY_CAR: {
     label: "VIRTUAL SC",
-    bannerBg: "#f5a623",
+    bannerBg: TOKEN_HEX.orange,
     bannerText: "#000",
-    badgeBg: "#f5a623",
+    badgeBg: TOKEN_HEX.orange,
     badgeText: "#000",
-    border: "#f5a623",
+    border: TOKEN_HEX.orange,
   },
   CLEAR: {
     label: "CLEAR",
-    bannerBg: "#39b54a",
+    bannerBg: TOKEN_HEX.green,
     bannerText: "#fff",
-    badgeBg: "#39b54a",
+    badgeBg: TOKEN_HEX.green,
     badgeText: "#fff",
-    border: "#39b54a",
+    border: TOKEN_HEX.green,
   },
 };
 

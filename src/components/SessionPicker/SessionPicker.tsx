@@ -25,7 +25,7 @@ const CIRCUIT_TYPE_LABEL: Record<string, string> = {
 };
 
 const SELECT =
-  "bg-panel text-white border border-panel text-xs font-medium px-3 py-1.5 focus:outline-none focus:border-muted transition-colors disabled:opacity-60 disabled:cursor-not-allowed light:bg-white light:text-black light:border-slate-300 light:focus:border-slate-500 light:[color-scheme:light] light:[&>option]:bg-white light:[&>option]:text-black";
+  "bg-panel text-fg border border-panel text-xs font-medium px-3 py-1.5 focus:outline-none focus:border-muted transition-colors disabled:opacity-60 disabled:cursor-not-allowed";
 
 function clearReplayTimeParam(params: URLSearchParams) {
   params.delete("t");
@@ -161,9 +161,9 @@ export function SessionPicker({
   return (
     <div>
       <LiveDataNotice error={authError} />
-      <div className="bg-surface border-b border-panel light:bg-white light:border-slate-300/80">
-        <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 px-4 py-2 light:bg-white">
-          <span className="text-[10px] font-bold uppercase tracking-widest text-muted">
+      <div className="bg-surface border-b border-panel">
+        <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 px-4 py-2">
+          <span className="text-caption font-bold uppercase tracking-widest text-muted">
             Year
           </span>
           <select
@@ -207,7 +207,7 @@ export function SessionPicker({
             ))}
           </select>
 
-          <span className="text-[10px] font-bold uppercase tracking-widest text-muted">
+          <span className="text-caption font-bold uppercase tracking-widest text-muted">
             Event
           </span>
           {meetings.isError ? (
@@ -276,7 +276,7 @@ export function SessionPicker({
             </select>
           )}
 
-          <span className="text-[10px] font-bold uppercase tracking-widest text-muted">
+          <span className="text-caption font-bold uppercase tracking-widest text-muted">
             Session
           </span>
           {sessions.isError ? (
@@ -344,14 +344,14 @@ export function SessionPicker({
           )}
 
           {live && (
-            <span className="flex items-center gap-1.5 bg-f1red text-white text-[10px] font-black uppercase tracking-widest px-2 py-1">
+            <span className="flex items-center gap-1.5 bg-f1red text-white text-caption font-black uppercase tracking-widest px-2 py-1">
               <span className="w-1.5 h-1.5 rounded-full bg-white" />
               Live
             </span>
           )}
 
           {(meetings.isPending || sessions.isPending) && (
-            <span className="text-muted text-[10px]">
+            <span className="text-muted text-caption">
               Loading…
             </span>
           )}
@@ -363,14 +363,14 @@ export function SessionPicker({
               latestSessionQuery.isPending ||
               (!latestSession && (meetings.isPending || !meetings.data?.length))
             }
-            className="h-7 px-2 text-[10px] font-black uppercase tracking-widest rounded bg-track text-muted hover:text-white hover:bg-panel disabled:opacity-40 disabled:cursor-not-allowed light:bg-white light:text-slate-600 light:border light:border-slate-300 light:hover:text-slate-900 light:hover:bg-slate-100"
+            className="h-7 px-2 text-caption font-black uppercase tracking-widest rounded-sm bg-track text-muted hover:text-fg hover:bg-panel disabled:opacity-40 disabled:cursor-not-allowed"
           >
             Latest Event
           </button>
         </div>
 
         {selectedMeeting && (
-          <div className="flex items-center gap-2 px-4 py-1.5 border-t border-panel/80 light:bg-white light:border-slate-200">
+          <div className="flex items-center gap-2 px-4 py-1.5 border-t border-panel/80">
             {selectedCircuitImageUrl && (
               <img
                 src={selectedCircuitImageUrl}
@@ -384,20 +384,20 @@ export function SessionPicker({
               <img
                 src={selectedCountryFlagUrl}
                 alt={`${selectedMeeting.country_name} flag`}
-                className="h-4 w-6 object-cover rounded-[2px] border border-panel/80"
+                className="h-4 w-6 object-cover rounded-sm border border-panel/80"
                 loading="lazy"
                 referrerPolicy="no-referrer"
               />
             )}
-            <span className="text-[10px] text-white/90 font-semibold truncate">
+            <span className="text-caption text-fg/90 font-semibold truncate">
               {selectedMeeting.meeting_name}
             </span>
-            <span className="text-[9px] text-muted uppercase tracking-widest">
+            <span className="text-tiny text-muted uppercase tracking-widest">
               {CIRCUIT_TYPE_LABEL[selectedMeeting.circuit_type] ??
                 selectedMeeting.circuit_type}
             </span>
             {selectedMeeting.is_cancelled && (
-              <span className="bg-red-500/15 border border-red-500/40 text-red-300 text-[9px] font-bold uppercase tracking-widest px-1.5 py-0.5 rounded-sm">
+              <span className="bg-red-tint border border-red-line text-red-fg text-tiny font-bold uppercase tracking-widest px-1.5 py-0.5 rounded-sm">
                 Cancelled
               </span>
             )}

@@ -3,6 +3,7 @@ import { DriverHeadshot } from "@/components/DriverHeadshot";
 import { START_LIGHT_COUNT } from "@/constants";
 import { teamColor } from "@/utils/color";
 import type { StatusBadge } from "../statusBadges";
+import { TOKEN_HEX } from "@/designTokens";
 
 // Same #111/#fff checker as the finish line and the timing-tower FIN chip.
 const CHEQUERED_SWATCH_STYLE: CSSProperties = {
@@ -13,7 +14,7 @@ const CHEQUERED_SWATCH_STYLE: CSSProperties = {
 };
 
 const START_LIGHT_ON_STYLE: CSSProperties = {
-  background: "#e8002d",
+  background: TOKEN_HEX.f1red,
   boxShadow:
     "0 0 6px 2px rgba(232,0,45,0.65), inset 0 1px 0 rgba(255,100,100,0.35)",
 };
@@ -62,7 +63,7 @@ export function StatusBadges({ badges }: { badges: readonly StatusBadge[] }) {
         ) : (
           <div
             key={badge.key}
-            className="border px-2 py-0.5 text-[9px] font-black uppercase tracking-[0.16em] flex items-center gap-1.5 shadow-md rounded-sm"
+            className="border px-2 py-0.5 text-tiny font-black uppercase tracking-eyebrow flex items-center gap-1.5 shadow-md rounded-sm"
             style={{
               background: badge.bg,
               borderColor: badge.border,

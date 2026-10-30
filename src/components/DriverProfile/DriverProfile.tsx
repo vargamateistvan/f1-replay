@@ -14,10 +14,10 @@ import { MaybeLink } from "@/components/MaybeLink";
 import { finishText, fmt } from "./format";
 
 const SECTION_TITLE =
-  "mb-3 text-[10px] font-bold uppercase tracking-[0.12em] text-muted";
+  "mb-3 text-caption font-bold uppercase tracking-caps text-muted";
 
 const HEAD =
-  "sticky top-0 bg-track py-2 text-[10px] font-bold uppercase tracking-wider text-muted shadow-[inset_0_-1px_0_rgb(var(--color-panel))]";
+  "sticky top-0 bg-track py-2 text-caption font-bold uppercase tracking-wider text-muted shadow-[inset_0_-1px_0_rgb(var(--color-panel))]";
 
 function signed(value: number | null): string {
   if (value === null) return "–";
@@ -37,7 +37,7 @@ export function StatTile({
 }>) {
   return (
     <div data-standing-row className="min-w-0 bg-track px-3 py-2 sm:py-2.5">
-      <div className="truncate text-[9px] font-bold uppercase tracking-[0.14em] text-muted">
+      <div className="truncate text-tiny font-bold uppercase tracking-caps text-muted">
         {label}
       </div>
       {/* Phones: hint beside the value so ten tiles stay ~5 short rows. */}
@@ -46,7 +46,7 @@ export function StatTile({
           {value}
         </div>
         {hint && (
-          <div className="truncate text-[10px] leading-none text-muted sm:mt-1 sm:leading-normal">
+          <div className="truncate text-caption leading-none text-muted sm:mt-1 sm:leading-normal">
             {hint}
           </div>
         )}
@@ -168,14 +168,14 @@ export function FinishDistribution({
               ) : null,
             )}
           </div>
-          <div className="mt-2 flex flex-wrap gap-x-3 gap-y-1 text-[10px] text-muted">
+          <div className="mt-2 flex flex-wrap gap-x-3 gap-y-1 text-caption text-muted">
             {FINISH_BUCKETS.map((b) => (
               <span key={b} className="flex items-center gap-1.5">
                 <span
                   className={`h-2.5 w-2.5 border border-panel ${BUCKET_TONE[b]}`}
                 />
                 {BUCKET_LABEL[b]}
-                <span className="font-mono font-bold text-white tabular-nums">
+                <span className="font-mono font-bold text-fg tabular-nums">
                   {counts[b]}
                 </span>
               </span>
@@ -275,7 +275,7 @@ export function SeasonResults({
                 <td className="px-1.5 sm:px-2 py-2 text-right font-mono text-xs tabular-nums text-muted">
                   {cell?.qualifying !== undefined ? `P${cell.qualifying}` : ""}
                   {cell?.pole && (
-                    <sup className="ml-px text-[8px] font-bold text-amber-300">
+                    <sup className="ml-px text-micro font-bold text-yellow-fg">
                       P
                     </sup>
                   )}

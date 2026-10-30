@@ -10,6 +10,7 @@ import {
   type MarshalHeatmapSegment,
   type TrackGeometry,
 } from "../trackGeometry";
+import { TOKEN_HEX } from "@/designTokens";
 
 /**
  * Marshal-sector heatmap: each individual marshal post as a distinct arc
@@ -65,11 +66,11 @@ export const CircuitLayoutOverlays = memo(function CircuitLayoutOverlays({
           y1={a.sy}
           x2={b.sx}
           y2={b.sy}
-          stroke="#4da6ff"
+          stroke={TOKEN_HEX.blue}
           strokeWidth={3}
           opacity={0.8}
         />
-        <circle cx={a.sx} cy={a.sy} r={2.5} fill="#4da6ff" />
+        <circle cx={a.sx} cy={a.sy} r={2.5} fill={TOKEN_HEX.blue} />
       </g>
     );
   });

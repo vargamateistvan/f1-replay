@@ -18,6 +18,8 @@ import {
   pressMotion,
   motionEnabled,
 } from "@/lib/motion";
+import { TOKEN_HEX } from "@/designTokens";
+import { buttonClass } from "@/components/Button/buttonClass";
 
 interface Item {
   term: string;
@@ -179,20 +181,20 @@ const SECTIONS: Section[] = [
     items: [
       {
         term: "Purple",
-        swatch: "#9b59f5",
+        swatch: TOKEN_HEX.purple,
         termColor: "#b982ff",
         text: "The absolute fastest time recorded by any driver in that specific sector or lap during the current session.",
       },
       {
         term: "Green",
-        swatch: "#39b54a",
-        termColor: "#39d743",
+        swatch: TOKEN_HEX.green,
+        termColor: TOKEN_HEX.green,
         text: "A personal best time for that specific driver in that sector or lap during the session, but not fast enough to beat the overall session leader.",
       },
       {
         term: "Yellow",
-        swatch: "#f5d400",
-        termColor: "#f5d400",
+        swatch: TOKEN_HEX.yellow,
+        termColor: TOKEN_HEX.yellow,
         text: "A time that is slower than that specific driver's personal best for that sector or lap.",
       },
     ],
@@ -203,38 +205,38 @@ const SECTIONS: Section[] = [
     items: [
       {
         term: "Green flag",
-        swatch: "#00c851",
-        termColor: "#00c851",
+        swatch: TOKEN_HEX.green,
+        termColor: TOKEN_HEX.green,
         text: "Track is clear and racing can continue normally.",
       },
       {
         term: "Yellow flag",
-        swatch: "#f5d400",
-        termColor: "#f5d400",
+        swatch: TOKEN_HEX.yellow,
+        termColor: TOKEN_HEX.yellow,
         text: "Hazard on track; slow down and no overtaking in the affected sector.",
       },
       {
         term: "Double yellow flags",
-        swatch: "#f5d400",
-        termColor: "#f5d400",
+        swatch: TOKEN_HEX.yellow,
+        termColor: TOKEN_HEX.yellow,
         text: "Major hazard; be prepared to stop and no overtaking.",
       },
       {
         term: "Red flag",
-        swatch: "#e8002d",
-        termColor: "#e8002d",
+        swatch: TOKEN_HEX.f1red,
+        termColor: TOKEN_HEX.f1red,
         text: "Session is stopped because conditions are unsafe.",
       },
       {
         term: "Safety Car (SC)",
-        swatch: "#f5a623",
-        termColor: "#f5a623",
+        swatch: TOKEN_HEX.orange,
+        termColor: TOKEN_HEX.orange,
         text: "The safety car is deployed and the field must follow it at a controlled speed.",
       },
       {
         term: "Virtual Safety Car (VSC)",
-        swatch: "#f5a623",
-        termColor: "#f5a623",
+        swatch: TOKEN_HEX.orange,
+        termColor: TOKEN_HEX.orange,
         text: "Drivers must follow a regulated delta time without a physical safety car on track.",
       },
       {
@@ -250,8 +252,8 @@ const SECTIONS: Section[] = [
       },
       {
         term: "Lights out",
-        swatch: "#00c851",
-        termColor: "#00c851",
+        swatch: TOKEN_HEX.green,
+        termColor: TOKEN_HEX.green,
         text: "The race has started.",
       },
     ],
@@ -347,9 +349,9 @@ const SHORTCUTS: { keys: string[]; label: string }[] = [
 ];
 
 const SECTION_TITLE =
-  "flex items-baseline gap-2 text-[11px] font-black uppercase tracking-[0.16em] text-white";
-const SECTION_INDEX = "font-mono text-[10px] font-bold text-f1red";
-const BODY_TEXT = "text-[13px] leading-6 text-white/80";
+  "flex items-baseline gap-2 text-small font-black uppercase tracking-eyebrow text-fg";
+const SECTION_INDEX = "font-mono text-caption font-bold text-f1red";
+const BODY_TEXT = "text-body leading-6 text-fg/80";
 
 function sectionNumber(index: number): string {
   return String(index + 1).padStart(2, "0");
@@ -377,7 +379,7 @@ function ItemList({ items }: { items: Item[] }) {
           )}
           <span>
             <strong
-              className={termColor ? "font-bold" : "font-bold text-white"}
+              className={termColor ? "font-bold" : "font-bold text-fg"}
               style={termColor ? { color: termColor } : undefined}
             >
               {term}
@@ -464,7 +466,7 @@ export function HowItWorksModal() {
     <div
       ref={backdropRef}
       onClick={handleBackdropClick}
-      className="fixed inset-0 z-[200] flex items-center justify-center bg-black/70 backdrop-blur-sm"
+      className="fixed inset-0 z-modal flex items-center justify-center bg-black/70 backdrop-blur-sm"
     >
       <div
         ref={panelRef}
@@ -494,9 +496,9 @@ export function HowItWorksModal() {
                   <button
                     type="button"
                     onClick={() => jumpTo(section.id)}
-                    className="flex w-full items-baseline gap-2 border-l-2 border-transparent px-4 py-1.5 text-left text-[10px] font-black uppercase tracking-[0.12em] text-muted transition-colors hover:border-f1red hover:bg-panel/40 hover:text-white focus:outline-none focus-visible:border-f1red focus-visible:text-white"
+                    className="flex w-full items-baseline gap-2 border-l-2 border-transparent px-4 py-1.5 text-left text-caption font-black uppercase tracking-caps text-muted transition-colors hover:border-f1red hover:bg-panel/40 hover:text-fg focus:outline-none focus-visible:border-f1red focus-visible:text-fg"
                   >
-                    <span className="font-mono text-[9px] text-muted/60">
+                    <span className="font-mono text-tiny text-muted/60">
                       {sectionNumber(index)}
                     </span>
                     <span>{section.title}</span>
@@ -511,7 +513,7 @@ export function HowItWorksModal() {
             style={{ WebkitOverflowScrolling: "touch" }}
           >
             <section className="my-4 border border-panel bg-track p-4">
-              <h3 className="text-[11px] font-black uppercase tracking-[0.16em] text-white">
+              <h3 className="text-small font-black uppercase tracking-eyebrow text-fg">
                 Getting Started
               </h3>
               <p className={`mt-2 ${BODY_TEXT}`}>
@@ -525,7 +527,7 @@ export function HowItWorksModal() {
                   animateMotion(e.currentTarget, pressMotion());
                   startTour();
                 }}
-                className="mt-3 bg-f1red px-4 py-2 text-[10px] font-bold uppercase tracking-[0.12em] text-white transition-colors hover:bg-red-600"
+                className={buttonClass("primary", "md", "mt-3")}
               >
                 Take the tour
               </button>
@@ -557,13 +559,13 @@ export function HowItWorksModal() {
                             {keys.map((key) => (
                               <kbd
                                 key={key}
-                                className="min-w-6 border border-panel bg-track px-1.5 py-0.5 text-center font-mono text-[10px] font-bold text-white"
+                                className="min-w-6 border border-panel bg-track px-1.5 py-0.5 text-center font-mono text-caption font-bold text-fg"
                               >
                                 {key}
                               </kbd>
                             ))}
                           </dt>
-                          <dd className="text-[11px] text-muted">{label}</dd>
+                          <dd className="text-small text-muted">{label}</dd>
                         </div>
                       ))}
                     </dl>
@@ -573,7 +575,7 @@ export function HowItWorksModal() {
             </div>
 
             <footer className="space-y-4 py-5">
-              <p className="text-[11px] leading-5 text-muted">
+              <p className="text-small leading-5 text-muted">
                 All data is from the public{" "}
                 <a
                   href="https://api.openf1.org"
@@ -588,7 +590,7 @@ export function HowItWorksModal() {
                   href="https://github.com/vargamateistvan"
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="font-mono text-white/80 transition-colors hover:text-f1red"
+                  className="font-mono text-fg/80 transition-colors hover:text-f1red"
                 >
                   github.com/vargamateistvan
                 </a>
@@ -599,7 +601,7 @@ export function HowItWorksModal() {
                   href="https://github.com/vargamateistvan/f1-replay/issues"
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="inline-flex items-center gap-1.5 border border-panel px-4 py-2 text-[10px] font-bold uppercase tracking-[0.12em] text-white transition-colors hover:border-f1red hover:text-f1red"
+                  className={buttonClass("secondary")}
                 >
                   Report an issue
                   <ExternalLink size={10} aria-hidden="true" />
@@ -609,7 +611,7 @@ export function HowItWorksModal() {
                   target="_blank"
                   rel="noopener noreferrer"
                   title="Enjoying the project? Support development with a slice."
-                  className="inline-flex items-center gap-1.5 bg-f1red px-4 py-2 text-[10px] font-bold uppercase tracking-[0.12em] text-white transition-colors hover:bg-red-600"
+                  className={buttonClass("primary")}
                 >
                   <span aria-hidden="true">🍕</span>
                   Buy me a pizza

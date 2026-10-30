@@ -122,7 +122,7 @@ describe("PlaybackBar marker interactions", () => {
       backgroundColor: "#e8002d",
     });
     const investigation = swatch("Jump to incident: Investigation at 01:30");
-    expect(investigation).toHaveClass("bg-amber-400");
+    expect(investigation).toHaveClass("bg-orange");
     expect(investigation.getAttribute("style")).toBeNull();
   });
 

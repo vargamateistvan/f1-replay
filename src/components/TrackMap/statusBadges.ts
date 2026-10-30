@@ -7,6 +7,7 @@ import {
 } from "@/timeline/raceControl";
 import type { StartLightsState } from "@/timeline/startLights";
 import { teamColor } from "@/utils/color";
+import { TOKEN_HEX } from "@/designTokens";
 
 export interface ActiveTrackVehicles {
   safetyCar: boolean;
@@ -30,14 +31,14 @@ export interface StatusBadge {
 
 /** Badge / sector-chip colour and label per flag key. */
 export const FLAG_PALETTE: Record<string, { color: string; label: string }> = {
-  YELLOW: { color: "#f5d400", label: "Yellow" },
-  DOUBLE_YELLOW: { color: "#f5d400", label: "Double Yellow" },
-  RED: { color: "#e8002d", label: "Red Flag" },
-  SAFETY_CAR: { color: "#f5a623", label: "Safety Car" },
-  VIRTUAL_SC: { color: "#f5a623", label: "VSC" },
-  VIRTUAL_SAFETY_CAR: { color: "#f5a623", label: "VSC" },
-  GREEN: { color: "#39b54a", label: "Green" },
-  CLEAR: { color: "#39b54a", label: "Clear" },
+  YELLOW: { color: TOKEN_HEX.yellow, label: "Yellow" },
+  DOUBLE_YELLOW: { color: TOKEN_HEX.yellow, label: "Double Yellow" },
+  RED: { color: TOKEN_HEX.f1red, label: "Red Flag" },
+  SAFETY_CAR: { color: TOKEN_HEX.orange, label: "Safety Car" },
+  VIRTUAL_SC: { color: TOKEN_HEX.orange, label: "VSC" },
+  VIRTUAL_SAFETY_CAR: { color: TOKEN_HEX.orange, label: "VSC" },
+  GREEN: { color: TOKEN_HEX.green, label: "Green" },
+  CLEAR: { color: TOKEN_HEX.green, label: "Clear" },
 };
 
 const FLAG_BADGE_LABELS: Record<string, string> = {
@@ -86,7 +87,7 @@ export function buildStatusBadges({
         ? "Lights out"
         : `${startLights.lit} of ${START_LIGHT_COUNT} start lights on`,
       bg: "#0c0c18",
-      border: lightsOut ? "#00c851" : "#5f121d",
+      border: lightsOut ? TOKEN_HEX.green : "#5f121d",
       text: "#c8c8ff",
       lightsLit: lightsOut ? 0 : startLights.lit,
     });
@@ -114,7 +115,7 @@ export function buildStatusBadges({
     push({
       key: "safety_car",
       label: "Safety Car",
-      bg: "#f5a623",
+      bg: TOKEN_HEX.orange,
       border: "#704600",
       text: "#101010",
     });
@@ -132,7 +133,7 @@ export function buildStatusBadges({
     push({
       key: "medical",
       label: "Medical Car",
-      bg: "#e8002d",
+      bg: TOKEN_HEX.f1red,
       border: "#5f121d",
       text: "#ffffff",
     });

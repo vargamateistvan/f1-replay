@@ -11,6 +11,7 @@ import {
 } from "recharts";
 import type { Driver, Position } from "@/api/types";
 import { teamColor } from "@/utils/color";
+import { TOKEN_HEX } from "@/designTokens";
 
 interface Props {
   readonly drivers: Driver[];
@@ -96,10 +97,10 @@ export function LapChart({
           <button
             type="button"
             onClick={() => setShowAllLaps((v) => !v)}
-            className={`h-5 px-2 text-[9px] font-black uppercase tracking-widest border transition-colors ${
+            className={`h-5 px-2 text-tiny font-black uppercase tracking-widest border transition-colors ${
               showAllLaps
                 ? "border-f1red bg-f1red text-white"
-                : "border-panel bg-track text-muted hover:text-white"
+                : "border-panel bg-track text-muted hover:text-fg"
             }`}
             title={showAllLaps ? "Showing all laps" : "Showing elapsed laps"}
           >
@@ -116,7 +117,7 @@ export function LapChart({
           <CartesianGrid stroke="rgb(var(--color-panel))" />
           <XAxis
             dataKey="lap"
-            tick={{ fill: "#636369", fontSize: 10 }}
+            tick={{ fill: TOKEN_HEX.faint, fontSize: 10 }}
             axisLine={{ stroke: "rgb(var(--color-panel))" }}
             tickLine={false}
           />
@@ -125,13 +126,13 @@ export function LapChart({
             domain={[1, driverCount]}
             allowDecimals={false}
             width={24}
-            tick={{ fill: "#636369", fontSize: 10 }}
+            tick={{ fill: TOKEN_HEX.faint, fontSize: 10 }}
             axisLine={false}
             tickLine={false}
           />
           <Tooltip content={<LapTooltip />} />
           {playbackLap > 0 && (
-            <ReferenceLine x={playbackLap} stroke="#E8002D" strokeWidth={1} />
+            <ReferenceLine x={playbackLap} stroke={TOKEN_HEX.f1red} strokeWidth={1} />
           )}
           {drivers.map((d) => (
             <Line
@@ -174,7 +175,7 @@ interface TooltipProps {
 function LapTooltip({ active, label }: TooltipProps) {
   if (!active) return null;
   return (
-    <div className="bg-surface border border-panel text-[10px] font-bold uppercase tracking-widest px-2 py-1">
+    <div className="bg-surface border border-panel text-caption font-bold uppercase tracking-widest px-2 py-1">
       Lap {label}
     </div>
   );

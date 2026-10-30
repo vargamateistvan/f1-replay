@@ -1,25 +1,8 @@
 import { useMemo, useState } from "react";
 import type { Stint, Driver, Lap, Pit } from "@/api/types";
+import { COMPOUND_COLORS, COMPOUND_LETTERS } from "@/constants";
 import { teamColor } from "@/utils/color";
 import { formatPitDuration, pitStopTime } from "@/utils/pit";
-
-const COMPOUND_COLOR: Record<string, string> = {
-  SOFT: "#E8002D",
-  MEDIUM: "#ffd600",
-  HARD: "#f0f0f0",
-  INTERMEDIATE: "#39d743",
-  WET: "#0067ff",
-  UNKNOWN: "#555",
-};
-
-const COMPOUND_LABEL: Record<string, string> = {
-  SOFT: "S",
-  MEDIUM: "M",
-  HARD: "H",
-  INTERMEDIATE: "I",
-  WET: "W",
-  UNKNOWN: "?",
-};
 
 interface Props {
   readonly stints: Stint[];
@@ -138,7 +121,7 @@ export function StrategyBar({
     return (
       <div className="p-3 sm:p-4">
         <div className="rounded-sm border border-panel bg-track px-3 py-3 sm:px-4">
-          <div className="text-[10px] font-black uppercase tracking-[0.14em] text-white">
+          <div className="text-caption font-black uppercase tracking-caps text-fg">
             No strategy data
           </div>
           <div className="mt-1 text-xs text-muted">
@@ -156,10 +139,10 @@ export function StrategyBar({
         <button
           type="button"
           onClick={() => setShowAllLaps((v) => !v)}
-          className={`h-5 px-2 text-[9px] font-black uppercase tracking-widest border transition-colors ${
+          className={`h-5 px-2 text-tiny font-black uppercase tracking-widest border transition-colors ${
             showAllLaps
               ? "border-f1red bg-f1red text-white"
-              : "border-panel bg-track text-muted hover:text-white"
+              : "border-panel bg-track text-muted hover:text-fg"
           }`}
           title={showAllLaps ? "Showing all laps" : "Showing elapsed laps"}
         >
@@ -172,7 +155,7 @@ export function StrategyBar({
         {axisTicks.map((lap) => (
           <span
             key={lap}
-            className="absolute -translate-x-1/2 text-[9px] font-mono text-muted sm:text-[10px]"
+            className="absolute -translate-x-1/2 text-tiny font-mono text-muted sm:text-caption"
             style={{
               left: `calc(2rem + ${(lap / visibleMaxLap) * 100}% * (100% - 2rem) / 100%)`,
             }}
@@ -194,14 +177,14 @@ export function StrategyBar({
           <div key={num} className="flex h-[18px] items-center gap-1 sm:h-5">
             {/* Driver label */}
             <span
-              className="w-7 shrink-0 truncate text-right text-[9px] font-black sm:w-9 sm:text-[10px]"
+              className="w-7 shrink-0 truncate text-right text-tiny font-black sm:w-9 sm:text-caption"
               style={{ color }}
             >
               {driver?.name_acronym ?? num}
             </span>
 
             <span
-              className="w-7 shrink-0 text-center text-[8px] font-black uppercase tracking-[0.04em] text-white/70 tabular-nums sm:w-10 sm:text-[9px] sm:tracking-[0.08em]"
+              className="w-7 shrink-0 text-center text-micro font-black uppercase tracking-wider text-fg/70 tabular-nums sm:w-10 sm:text-tiny sm:tracking-widest"
               title={
                 activeStint
                   ? `${activeStint.compound} · ${activeStint.age} lap${activeStint.age === 1 ? "" : "s"} old`
@@ -221,7 +204,7 @@ export function StrategyBar({
                 const left = ((visibleStart - 1) / visibleMaxLap) * 100;
                 const width =
                   ((visibleEnd - visibleStart + 1) / visibleMaxLap) * 100;
-                const bg = COMPOUND_COLOR[s.compound] ?? "#555";
+                const bg = COMPOUND_COLORS[s.compound] ?? COMPOUND_COLORS.UNKNOWN;
                 const isHard = s.compound === "HARD";
                 return (
                   <div
@@ -237,8 +220,8 @@ export function StrategyBar({
                     }}
                   >
                     {width > 10 && (
-                      <span className="select-none text-[8px] font-black leading-none text-black/70 sm:text-[9px]">
-                        {COMPOUND_LABEL[s.compound] ?? "?"}
+                      <span className="select-none text-micro font-black leading-none text-black/70 sm:text-tiny">
+                        {COMPOUND_LETTERS[s.compound] ?? COMPOUND_LETTERS.UNKNOWN}
                       </span>
                     )}
                   </div>
@@ -254,7 +237,7 @@ export function StrategyBar({
                   <div
                     key={i}
                     title={`Pit L${p.lap_number}${stop !== null ? ` (${formatPitDuration(stop) ?? "--:--:---"})` : ""}`}
-                    className="absolute top-0 h-full w-px bg-[#636369] z-10"
+                    className="absolute top-0 h-full w-px bg-faint z-10"
                     style={{ left: `${left}%` }}
                   />
                 );
@@ -274,7 +257,7 @@ export function StrategyBar({
 
       {/* Legend */}
       <div className="mt-1.5 flex flex-wrap gap-x-2 gap-y-0.5 border-t border-panel pt-1.5 sm:gap-x-3">
-        {Object.entries(COMPOUND_COLOR)
+        {Object.entries(COMPOUND_COLORS)
           .filter(([c]) => c !== "UNKNOWN")
           .map(([c, color]) => (
             <span key={c} className="flex items-center gap-1">
@@ -282,23 +265,23 @@ export function StrategyBar({
                 className="inline-block h-2 w-2 sm:h-2.5 sm:w-2.5"
                 style={{ background: color }}
               />
-              <span className="text-muted text-[9px] font-bold uppercase sm:text-[10px]">
+              <span className="text-muted text-tiny font-bold uppercase sm:text-caption">
                 {c[0]}
               </span>
             </span>
           ))}
         <span className="flex items-center gap-1 ml-2">
-          <span className="w-px h-3 bg-[#636369] inline-block" />
-          <span className="text-muted text-[9px] font-bold uppercase sm:text-[10px]">
+          <span className="w-px h-3 bg-faint inline-block" />
+          <span className="text-muted text-tiny font-bold uppercase sm:text-caption">
             Pit
           </span>
         </span>
-        <span className="text-muted text-[10px] font-bold uppercase">
+        <span className="text-muted text-caption font-bold uppercase">
           Age = laps on tyre
         </span>
         <span className="flex items-center gap-1">
           <span className="w-px h-3 bg-f1red inline-block" />
-          <span className="text-muted text-[10px] font-bold uppercase">
+          <span className="text-muted text-caption font-bold uppercase">
             Now
           </span>
         </span>

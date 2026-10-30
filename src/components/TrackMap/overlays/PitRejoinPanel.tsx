@@ -23,9 +23,9 @@ function NeighbourRow({
   if (!neighbour) return null;
   const driver = driverByNumber.get(neighbour.driverNumber);
   return (
-    <div className="flex items-center justify-between gap-2 text-[9px]">
-      <span className="text-muted uppercase tracking-[0.12em]">{label}</span>
-      <span className="font-mono tabular-nums text-white">
+    <div className="flex items-center justify-between gap-2 text-tiny">
+      <span className="text-muted uppercase tracking-caps">{label}</span>
+      <span className="font-mono tabular-nums text-fg">
         {driver?.name_acronym ?? `#${neighbour.driverNumber}`}{" "}
         <span className="text-muted">{neighbour.gapS.toFixed(1)}s</span>
       </span>
@@ -61,11 +61,11 @@ export function PitRejoinPanel({
       data-testid="pit-rejoin-panel"
     >
       <div className="flex items-baseline justify-between gap-2">
-        <span className="text-[8px] font-black uppercase tracking-[0.14em] text-muted">
+        <span className="text-micro font-black uppercase tracking-caps text-muted">
           Pit now
         </span>
         <span
-          className="text-[14px] font-black tabular-nums leading-none"
+          className="text-sm font-black tabular-nums leading-none"
           style={{ color }}
         >
           P{projection.position}
@@ -81,7 +81,7 @@ export function PitRejoinPanel({
         neighbour={projection.behind}
         driverByNumber={driverByNumber}
       />
-      <div className="text-[7px] uppercase tracking-[0.12em] text-muted">
+      <div className="text-micro uppercase tracking-caps text-muted">
         Loss {lossS.toFixed(1)}s · {CONDITION_LABEL[condition]}
       </div>
     </div>

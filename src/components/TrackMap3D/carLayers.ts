@@ -33,6 +33,7 @@ import { interpolateXY, type LocationIndex } from "@/timeline/interpolate";
 import { teamColor } from "@/utils/color";
 import { type CircuitGeoref, f1ToLngLat } from "@/utils/georef";
 import { headingDeg, type FeatureCollection, type PointFeature } from "./mapFeatures";
+import { TOKEN_HEX } from "@/designTokens";
 
 const LABEL_X = 10;
 const BATTLE_COLOR = "#ffd700";
@@ -192,7 +193,7 @@ export function carStyle(
     specialRingColor: special?.stroke ?? "#000000",
     safetyRingRadius: isSafetyCar && !siren ? serviceRadius + 3.4 : 0,
     sirenBase: serviceRadius,
-    sirenColor: special?.fill ?? "#f5a623",
+    sirenColor: special?.fill ?? TOKEN_HEX.orange,
     compoundColor: compound ? COMPOUND_COLORS[compound] : "",
     marker: special ? special.shortLabel : String(num),
     markerSize: !showMarker

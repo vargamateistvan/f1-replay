@@ -1,6 +1,8 @@
 // Central home for tunable constants and magic numbers used across the app.
 // Grouped by domain. Prefer importing from here over re-declaring literals.
 
+import { TOKEN_HEX } from "./designTokens";
+
 // ── Seasons ───────────────────────────────────────────────────────────────────
 // OpenF1 coverage starts in 2023. Generates a descending list up to the current
 // year so the picker stays current without manual updates.
@@ -124,19 +126,19 @@ export const MEDICAL_CAR_NUMBER = 243;
 // normalized flag key from `toFlagKey`. A flag absent from this map is not
 // painted, which is why CHEQUERED, BLUE and BLACK_AND_WHITE are omitted.
 export const FLAG_COLORS: Record<string, string> = {
-  YELLOW: "#f5d400",
-  DOUBLE_YELLOW: "#f5d400",
-  RED: "#e8002d",
-  SAFETY_CAR: "#f5a623",
-  VIRTUAL_SC: "#f5a623",
-  VIRTUAL_SAFETY_CAR: "#f5a623",
-  GREEN: "#39b54a",
-  CLEAR: "#39b54a",
+  YELLOW: TOKEN_HEX.yellow,
+  DOUBLE_YELLOW: TOKEN_HEX.yellow,
+  RED: TOKEN_HEX.f1red,
+  SAFETY_CAR: TOKEN_HEX.orange,
+  VIRTUAL_SC: TOKEN_HEX.orange,
+  VIRTUAL_SAFETY_CAR: TOKEN_HEX.orange,
+  GREEN: TOKEN_HEX.green,
+  CLEAR: TOKEN_HEX.green,
 };
 
 // ── Track map sector colours ────────────────────────────────────────────────--
 export const SECTOR_COLORS: Record<1 | 2 | 3, string> = {
-  1: "#f5a623",
+  1: TOKEN_HEX.orange,
   2: "#7cb342",
   3: "#b71c1c",
 };
@@ -338,14 +340,26 @@ export const MAP3D_SUN_DAY_DEG = 6;
 /** Sun elevation (°) at or below which it uses "night" (civil twilight ends ≈ -6°). */
 export const MAP3D_SUN_NIGHT_DEG = -6;
 
-// ── Tyre compound colours ───────────────────────────────────────────────────--
+// ── Tyre compounds ──────────────────────────────────────────────────────────--
+// The only definition of compound colours: every badge, chart and map marker
+// reads it (the 3D map and canvas need literal hex, not CSS variables).
 export const COMPOUND_COLORS = {
-  SOFT: "#e8002d",
+  SOFT: TOKEN_HEX.f1red,
   MEDIUM: "#ffd700",
   HARD: "#f0f0f0",
-  INTERMEDIATE: "#39b54a",
-  WET: "#4da6ff",
-  UNKNOWN: "#636369",
+  INTERMEDIATE: TOKEN_HEX.green,
+  WET: TOKEN_HEX.blue,
+  UNKNOWN: TOKEN_HEX.faint,
+} as const;
+/** HARD's white disappears on a light background; light mode draws it grey. */
+export const COMPOUND_HARD_LIGHT_COLOR = "#6b7280";
+export const COMPOUND_LETTERS = {
+  SOFT: "S",
+  MEDIUM: "M",
+  HARD: "H",
+  INTERMEDIATE: "I",
+  WET: "W",
+  UNKNOWN: "?",
 } as const;
 
 // ── Championship points ─────────────────────────────────────────────────────--

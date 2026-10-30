@@ -15,7 +15,7 @@ type Mode = "position" | "points";
 // Matches the driver/constructor standings table headers; the inset shadow
 // stands in for border-b, which border-collapse drops on sticky cells.
 const HEAD =
-  "sticky top-0 bg-track py-2 text-[10px] font-bold uppercase tracking-widest shadow-[inset_0_-1px_0_rgb(var(--color-panel))]";
+  "sticky top-0 bg-track py-2 text-caption font-bold uppercase tracking-widest shadow-[inset_0_-1px_0_rgb(var(--color-panel))]";
 
 interface Props {
   readonly rounds: ProgressionRound[];
@@ -67,7 +67,7 @@ function markerText(cell: GridCell | null): string {
 
 function Marker({ text }: { text: string }) {
   return (
-    <sup className="ml-px text-[8px] font-bold leading-none">{text}</sup>
+    <sup className="ml-px text-micro font-bold leading-none">{text}</sup>
   );
 }
 
@@ -128,7 +128,7 @@ export function ResultsGrid({
   return (
     <div className="flex flex-col md:min-h-0 md:flex-1">
       <div className="flex flex-wrap items-center justify-between gap-3 border-b border-panel bg-surface px-4 py-2">
-        <div className="flex flex-wrap gap-x-2.5 gap-y-1.5 text-[10px] font-bold">
+        <div className="flex flex-wrap gap-x-2.5 gap-y-1.5 text-caption font-bold">
           {LEGEND.map((item) => (
             <span
               key={item.label}
@@ -137,7 +137,7 @@ export function ResultsGrid({
               {item.description ? (
                 <>
                   <span
-                    className={`border border-panel px-1 font-mono text-[9px] leading-3 ${item.tone}`}
+                    className={`border border-panel px-1 font-mono text-tiny leading-3 ${item.tone}`}
                   >
                     {item.label}
                   </span>
@@ -156,7 +156,7 @@ export function ResultsGrid({
               key={item.mark}
               className="flex items-center gap-1.5 text-muted"
             >
-              <span className="font-mono text-white">
+              <span className="font-mono text-fg">
                 1<Marker text={item.mark} />
               </span>
               {item.description}
@@ -171,10 +171,10 @@ export function ResultsGrid({
               type="button"
               aria-pressed={mode === m}
               onClick={() => setMode(m)}
-              className={`border px-2 py-1 text-[10px] font-bold uppercase tracking-[0.12em] ${
+              className={`border px-2 py-1 text-caption font-bold uppercase tracking-caps ${
                 mode === m
                   ? "border-f1red bg-f1red text-white"
-                  : "border-panel bg-track text-muted hover:text-white"
+                  : "border-panel bg-track text-muted hover:text-fg"
               }`}
             >
               {m}
@@ -202,12 +202,12 @@ export function ResultsGrid({
                 >
                   <MaybeLink
                     to={raceHref?.(round)}
-                    className="block hover:text-white hover:underline"
+                    className="block hover:text-fg hover:underline"
                   >
                     {round.code}
                   </MaybeLink>
                   {round.isSprint && (
-                    <span className="block text-[8px] text-muted/70">S</span>
+                    <span className="block text-micro text-muted/70">S</span>
                   )}
                 </th>
               ))}
@@ -259,7 +259,7 @@ export function ResultsGrid({
                         key={round.sessionKey}
                         title={`${d.acronym} · ${round.label}: ${describe(cell)}`}
                         className={`border-l border-panel px-1 py-3 text-center font-mono text-xs tabular-nums ${cellTone(cell)} ${
-                          round.isSprint ? "text-[10px] italic" : ""
+                          round.isSprint ? "text-caption italic" : ""
                         }`}
                       >
                         <MaybeLink

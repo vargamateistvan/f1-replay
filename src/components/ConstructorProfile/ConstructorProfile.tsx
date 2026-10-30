@@ -15,10 +15,10 @@ import { StatTile } from "@/components/DriverProfile/DriverProfile";
 import { finishText, fmt } from "@/components/DriverProfile/format";
 
 const SECTION_TITLE =
-  "mb-3 text-[10px] font-bold uppercase tracking-[0.12em] text-muted";
+  "mb-3 text-caption font-bold uppercase tracking-caps text-muted";
 
 const HEAD =
-  "sticky top-0 bg-track py-2 text-[10px] font-bold uppercase tracking-wider text-muted shadow-[inset_0_-1px_0_rgb(var(--color-panel))]";
+  "sticky top-0 bg-track py-2 text-caption font-bold uppercase tracking-wider text-muted shadow-[inset_0_-1px_0_rgb(var(--color-panel))]";
 
 // ── Stat tiles ────────────────────────────────────────────────────────────────
 
@@ -106,10 +106,10 @@ export function DriverLineup({
                     </span>
                     <span className="shrink-0 font-mono tabular-nums text-muted">
                       P{d.position} ·{" "}
-                      <span className="font-bold text-white">{d.points}</span> pts
+                      <span className="font-bold text-fg">{d.points}</span> pts
                     </span>
                   </span>
-                  <span className="mt-1 block h-1.5 overflow-hidden rounded bg-panel">
+                  <span className="mt-1 block h-1.5 overflow-hidden rounded-sm bg-panel">
                     <span
                       className="block h-full"
                       style={{ width: `${share}%`, background: color }}
@@ -225,7 +225,7 @@ export function ConstructorResults({
                     >
                       {cell ? finishText(cell) : "—"}
                       {cell?.pole && (
-                        <sup className="ml-px text-[8px] font-bold">P</sup>
+                        <sup className="ml-px text-micro font-bold">P</sup>
                       )}
                     </MaybeLink>
                   </td>

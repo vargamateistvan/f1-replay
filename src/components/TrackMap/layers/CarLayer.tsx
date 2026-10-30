@@ -5,6 +5,7 @@ import { trackEvent } from "@/lib/analytics";
 import { teamColor } from "@/utils/color";
 import { mapBackgroundColor } from "../trackMapFormat";
 import { projectToSvg, type TrackGeometry } from "../trackGeometry";
+import { TOKEN_HEX } from "@/designTokens";
 
 export interface CarPosition {
   num: number;
@@ -176,7 +177,7 @@ function CarMarker({
         <circle
           r={serviceRadius + 3.2}
           fill="none"
-          stroke={specialVehicle?.fill ?? "#f5a623"}
+          stroke={specialVehicle?.fill ?? TOKEN_HEX.orange}
           strokeWidth={1.2}
           strokeOpacity={0.78}
         >

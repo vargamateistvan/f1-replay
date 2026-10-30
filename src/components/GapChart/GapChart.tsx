@@ -11,6 +11,7 @@ import {
 } from "recharts";
 import type { Driver, Interval } from "@/api/types";
 import { teamColor } from "@/utils/color";
+import { TOKEN_HEX } from "@/designTokens";
 
 // Cap the Y axis so lapped cars don't collapse the interesting battle zone.
 const MAX_GAP_SEC = 120;
@@ -135,10 +136,10 @@ export function GapChart({
           <button
             type="button"
             onClick={() => setShowAllLaps((v) => !v)}
-            className={`h-5 px-2 text-[9px] font-black uppercase tracking-widest border transition-colors ${
+            className={`h-5 px-2 text-tiny font-black uppercase tracking-widest border transition-colors ${
               showAllLaps
                 ? "border-f1red bg-f1red text-white"
-                : "border-panel bg-track text-muted hover:text-white"
+                : "border-panel bg-track text-muted hover:text-fg"
             }`}
             title={showAllLaps ? "Showing all laps" : "Showing elapsed laps"}
           >
@@ -158,14 +159,14 @@ export function GapChart({
             type="number"
             domain={["dataMin", "dataMax"]}
             tickFormatter={useLapAxis ? (v: number) => `L${v}` : msToMin}
-            tick={{ fill: "#636369", fontSize: 10 }}
+            tick={{ fill: TOKEN_HEX.faint, fontSize: 10 }}
             axisLine={{ stroke: "rgb(var(--color-panel))" }}
             tickLine={false}
           />
           <YAxis
             domain={[0, MAX_GAP_SEC]}
             width={32}
-            tick={{ fill: "#636369", fontSize: 10 }}
+            tick={{ fill: TOKEN_HEX.faint, fontSize: 10 }}
             axisLine={false}
             tickLine={false}
             tickFormatter={(v: number) => `${v}s`}
@@ -175,7 +176,7 @@ export function GapChart({
           />
           <ReferenceLine
             x={useLapAxis ? currentLap : sessionTimeMs}
-            stroke="#E8002D"
+            stroke={TOKEN_HEX.f1red}
             strokeWidth={1}
           />
           {activeDrivers.map((d) => (
@@ -240,7 +241,7 @@ function GapTooltip({
   if (!active || !payload?.length || label == null) return null;
   const sorted = [...payload].sort((a, b) => a.value - b.value);
   return (
-    <div className="bg-surface border border-panel px-2 py-1.5 text-[10px]">
+    <div className="bg-surface border border-panel px-2 py-1.5 text-caption">
       <div className="text-muted mb-1 font-bold uppercase tracking-widest">
         {axisMode === "lap" ? `Lap ${label}` : msToMin(label)}
       </div>
@@ -249,7 +250,7 @@ function GapTooltip({
           <span style={{ color: p.stroke }} className="font-bold w-8">
             {p.name}
           </span>
-          <span className="text-white">+{p.value.toFixed(3)}s</span>
+          <span className="text-fg">+{p.value.toFixed(3)}s</span>
         </div>
       ))}
     </div>

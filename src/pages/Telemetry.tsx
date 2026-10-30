@@ -45,6 +45,7 @@ import {
   type CornerAnalysisLap,
 } from "@/components/CornerAnalysis/CornerAnalysis";
 import { CompoundRing } from "@/components/LiveTiming/TyreBadge";
+import { minisectorClass } from "@/components/LiveTiming/sectorColors";
 import { useCircuitGeometry } from "@/hooks/useCircuitGeometry";
 import {
   CORNER_HIGH_SPEED_KMH,
@@ -61,6 +62,7 @@ import {
   motionEnabled,
   tabSwapMotion,
 } from "@/lib/motion";
+import { TOKEN_HEX } from "@/designTokens";
 
 interface PlotSlot {
   num: number;
@@ -205,11 +207,11 @@ interface TrackCornerLabel {
 
 const PANEL = "bg-surface border border-panel";
 const PANEL_TITLE =
-  "text-[10px] font-bold text-muted px-3 py-2 border-b border-panel uppercase tracking-[0.12em] border-l-2 border-l-f1red bg-track";
-const LABEL = "text-[10px] font-bold uppercase tracking-widest text-muted";
+  "text-caption font-bold text-muted px-3 py-2 border-b border-panel uppercase tracking-caps border-l-2 border-l-f1red bg-track";
+const LABEL = "text-caption font-bold uppercase tracking-widest text-muted";
 const SELECT =
-  "bg-track text-white border border-panel text-xs font-medium px-3 py-2 focus:outline-none focus:border-muted transition-colors";
-const SLOT_COLORS = ["#e8002d", "#0067ff", "#23c552"];
+  "bg-track text-fg border border-panel text-xs font-medium px-3 py-2 focus:outline-none focus:border-muted transition-colors";
+const SLOT_COLORS = [TOKEN_HEX.f1red, "#0067ff", "#23c552"];
 const EMPTY_SECTOR_WINS: SectorWins = {
   s1: false,
   s2: false,
@@ -282,14 +284,14 @@ function formatDeltaHint(deltaSeconds: number | null): DeltaHint {
   if (deltaSeconds === null || !Number.isFinite(deltaSeconds)) {
     return {
       text: "Δ N/A",
-      className: "text-muted border-[#4a4a5d] bg-[#171823]",
+      className: "text-muted border-line bg-track",
     };
   }
 
   if (Math.abs(deltaSeconds) < 0.001) {
     return {
       text: "Δ 0.000s",
-      className: "text-muted border-[#4a4a5d] bg-[#171823]",
+      className: "text-muted border-line bg-track",
     };
   }
 
@@ -297,8 +299,8 @@ function formatDeltaHint(deltaSeconds: number | null): DeltaHint {
   return {
     text: `${ahead ? "+" : ""}${deltaSeconds.toFixed(3)}s`,
     className: ahead
-      ? "text-[#3fd35a] border-[#276d33] bg-[#112419]"
-      : "text-[#ff8a8a] border-[#7a2d38] bg-[#2a1217]",
+      ? "text-green-fg border-green-line bg-green-tint"
+      : "text-red-fg border-red-line bg-red-tint",
   };
 }
 
@@ -553,7 +555,7 @@ export default function Telemetry() {
         return {
           timeText: "No lap selected",
           statusLabel: "Idle",
-          statusClass: "text-muted border-[#444458] bg-[#171822]",
+          statusClass: "text-muted border-line bg-track",
         };
       }
 
@@ -562,7 +564,7 @@ export default function Telemetry() {
         return {
           timeText: "No timing data",
           statusLabel: "Missing",
-          statusClass: "text-[#f5d400] border-[#7e7422] bg-[#2a240f]",
+          statusClass: "text-yellow-fg border-yellow-line bg-yellow-tint",
         };
       }
 
@@ -570,7 +572,7 @@ export default function Telemetry() {
         return {
           timeText: formatLapTime(lap.lap_duration),
           statusLabel: "Pit Out",
-          statusClass: "text-[#f5a623] border-[#875d18] bg-[#2d1f0e]",
+          statusClass: "text-orange-fg border-orange-line bg-orange-tint",
         };
       }
 
@@ -578,14 +580,14 @@ export default function Telemetry() {
         return {
           timeText: "No timing data",
           statusLabel: "Invalid",
-          statusClass: "text-[#f5d400] border-[#7e7422] bg-[#2a240f]",
+          statusClass: "text-yellow-fg border-yellow-line bg-yellow-tint",
         };
       }
 
       return {
         timeText: formatLapTime(lap.lap_duration),
         statusLabel: "Valid",
-        statusClass: "text-[#39b54a] border-[#276d33] bg-[#112419]",
+        statusClass: "text-green-fg border-green-line bg-green-tint",
       };
     },
     [lapLookup],
@@ -1312,7 +1314,7 @@ export default function Telemetry() {
   const deltaHintA = useMemo<DeltaHint>(
     () => ({
       text: "Reference",
-      className: "text-[#9bc9ff] border-[#385b8a] bg-[#172437]",
+      className: "text-blue-fg border-blue-line bg-blue-tint",
     }),
     [],
   );
@@ -1521,8 +1523,8 @@ export default function Telemetry() {
       <h1 className="sr-only">F1 telemetry comparison: lap-by-lap driver analysis</h1>
       {isLoadingEventSession && (
         <div className="absolute inset-0 z-40 flex items-center justify-center bg-black/80 backdrop-blur-sm">
-          <div className="mx-4 w-full max-w-sm rounded border border-panel bg-surface px-4 py-4 text-center shadow-2xl">
-            <div className="text-f1red text-[11px] font-black uppercase tracking-[0.16em]">
+          <div className="mx-4 w-full max-w-sm rounded-sm border border-panel bg-surface px-4 py-4 text-center shadow-2xl">
+            <div className="text-f1red text-small font-black uppercase tracking-eyebrow">
               Loading Event
             </div>
             <div className="mt-2 text-xs text-muted">
@@ -1534,7 +1536,7 @@ export default function Telemetry() {
 
       <div className="border-b border-panel bg-track px-3 py-3">
         <div className="mb-2 flex items-center justify-between">
-          <span className="text-[10px] font-black uppercase tracking-[0.12em] text-muted">
+          <span className="text-caption font-black uppercase tracking-caps text-muted">
             Driver & track preview
           </span>
           <button
@@ -1548,7 +1550,7 @@ export default function Telemetry() {
                 return nextValue;
               });
             }}
-            className="h-7 border border-panel bg-track px-2 text-[10px] font-black uppercase tracking-widest text-white transition-colors hover:border-f1red"
+            className="h-7 border border-panel bg-track px-2 text-caption font-black uppercase tracking-widest text-fg transition-colors hover:border-f1red"
             aria-expanded={isCardsAccordionOpen}
             title={
               isCardsAccordionOpen
@@ -1843,14 +1845,14 @@ export default function Telemetry() {
               className="h-full lg:h-[276px] border border-panel bg-track p-1.5 flex flex-col"
             >
               <div className="mb-1 flex items-center gap-1.5">
-                <span className="text-[10px] font-black uppercase tracking-[0.15em] text-muted">
+                <span className="text-caption font-black uppercase tracking-caps text-muted">
                   Track position preview
                 </span>
                 <span className="h-0.5 w-6 bg-f1red" />
                 <button
                   type="button"
                   onClick={() => setIsTrackDialogOpen((v) => !v)}
-                  className="ml-auto h-7 border border-panel bg-track px-2 text-[9px] lg:h-5 font-black uppercase tracking-widest text-muted transition-colors hover:border-f1red hover:text-white"
+                  className="ml-auto h-7 border border-panel bg-track px-2 text-tiny lg:h-5 font-black uppercase tracking-widest text-muted transition-colors hover:border-f1red hover:text-fg"
                   title={isTrackDialogOpen ? "Close track dialog" : "Expand track"}
                 >
                   {isTrackDialogOpen ? "✕ Close" : "↗ Expand"}
@@ -1879,22 +1881,22 @@ export default function Telemetry() {
               className="fixed inset-0 z-50 flex items-stretch justify-center bg-black/75 p-2 backdrop-blur-sm sm:items-center sm:p-4"
               onClick={(e) => { if (e.target === e.currentTarget) setIsTrackDialogOpen(false); }}
             >
-              <div className="relative flex h-full w-full max-w-[calc(100vw-1rem)] min-h-0 flex-col gap-2 overflow-y-auto overscroll-contain rounded border border-panel bg-[#15151e] p-2 shadow-2xl sm:h-[92dvh] sm:max-w-6xl sm:gap-3 sm:overflow-hidden sm:p-4 lg:max-w-7xl">
+              <div className="relative flex h-full w-full max-w-[calc(100vw-1rem)] min-h-0 flex-col gap-2 overflow-y-auto overscroll-contain rounded-sm border border-panel bg-track p-2 shadow-2xl sm:h-[92dvh] sm:max-w-6xl sm:gap-3 sm:overflow-hidden sm:p-4 lg:max-w-7xl">
                 {/* Dialog header */}
-                <div className="sticky -top-2 z-10 -mx-2 -mt-2 flex shrink-0 flex-wrap items-center gap-2 bg-[#15151e] px-2 pt-2 pb-1 sm:static sm:m-0 sm:p-0">
-                  <span className="text-[10px] font-black uppercase tracking-[0.15em] text-muted">
+                <div className="sticky -top-2 z-10 -mx-2 -mt-2 flex shrink-0 flex-wrap items-center gap-2 bg-track px-2 pt-2 pb-1 sm:static sm:m-0 sm:p-0">
+                  <span className="text-caption font-black uppercase tracking-caps text-muted">
                     Track position preview
                   </span>
                   <span className="h-0.5 w-6 bg-f1red" />
                   {session && (
-                    <span className="order-last w-full text-[10px] text-muted sm:order-none sm:ml-2 sm:w-auto">
+                    <span className="order-last w-full text-caption text-muted sm:order-none sm:ml-2 sm:w-auto">
                       {session.circuit_short_name} · {session.session_name} · {session.year}
                     </span>
                   )}
                   <button
                     type="button"
                     onClick={() => setIsTrackDialogOpen(false)}
-                    className="ml-auto flex h-7 w-7 items-center justify-center border border-panel bg-track text-sm text-muted transition-colors hover:border-f1red hover:text-white"
+                    className="ml-auto flex h-7 w-7 items-center justify-center border border-panel bg-track text-sm text-muted transition-colors hover:border-f1red hover:text-fg"
                     aria-label="Close dialog"
                   >
                     ✕
@@ -2004,7 +2006,7 @@ export default function Telemetry() {
                   </svg>
                   {dialogTrackMarkers.length === 0 && (
                     <div className="pointer-events-none absolute inset-0 flex items-end justify-center pb-3">
-                      <span className="text-[10px] text-muted">
+                      <span className="text-caption text-muted">
                         <span className="sm:hidden">Tap or drag along the track to inspect driver data</span>
                         <span className="hidden sm:inline">Move cursor over the track to inspect driver data</span>
                       </span>
@@ -2021,15 +2023,8 @@ export default function Telemetry() {
                   const leaderDistM = Math.max(...dialogTrackMarkers.map((r) => r.distM));
                   const sectorTier = (val: number | null, best: number | null): string => {
                     if (val === null) return "bg-panel";
-                    if (best !== null && val === best) return "bg-[#9b59f5]";
-                    return "bg-[#39b54a]";
-                  };
-                  const miniClass = (code: number): string => {
-                    if (code >= 2064) return "bg-[#9b59f5]";
-                    if (code === 2051) return "bg-[#f5d400]";
-                    if (code >= 2049) return "bg-[#39b54a]";
-                    if (code > 0) return "bg-white/35";
-                    return "bg-panel";
+                    if (best !== null && val === best) return "bg-purple";
+                    return "bg-green";
                   };
                   return (
                     <div
@@ -2041,7 +2036,7 @@ export default function Telemetry() {
                       }
                     >
                       {dialogTrackMarkers.map((marker) => (
-                        <div key={`dlg-data-${marker.driver}`} className="rounded border bg-track p-2.5" style={{ borderColor: `${marker.color}55` }}>
+                        <div key={`dlg-data-${marker.driver}`} className="rounded-sm border bg-track p-2.5" style={{ borderColor: `${marker.color}55` }}>
                           {/* Header: headshot + name + time */}
                           <div className="mb-2 grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-2">
                             <DriverHeadshot
@@ -2050,33 +2045,33 @@ export default function Telemetry() {
                               size="xs"
                             />
                             <span
-                              className="min-w-0 overflow-hidden text-ellipsis whitespace-nowrap text-[10px] font-black uppercase tracking-[0.12em]"
+                              className="min-w-0 overflow-hidden text-ellipsis whitespace-nowrap text-caption font-black uppercase tracking-caps"
                               style={{ color: marker.color }}
                               title={driverByNumber.get(marker.driver)?.full_name ?? marker.label}
                             >
                               {driverByNumber.get(marker.driver)?.full_name ?? marker.label}
                             </span>
-                            <span className="font-mono text-[10px] text-muted" title="Elapsed lap time at this point">{formatLapTime(marker.timeS)}</span>
+                            <span className="font-mono text-caption text-muted" title="Elapsed lap time at this point">{formatLapTime(marker.timeS)}</span>
                           </div>
 
                           {/* Lap summary */}
-                          <div className="mb-2 flex flex-wrap items-center gap-x-3 gap-y-1.5 rounded border border-panel bg-black/20 px-2 py-1.5">
+                          <div className="mb-2 flex flex-wrap items-center gap-x-3 gap-y-1.5 rounded-sm border border-panel bg-black/20 px-2 py-1.5">
                             <div>
-                              <div className="text-[8px] uppercase tracking-widest text-muted">
+                              <div className="text-micro uppercase tracking-widest text-muted">
                                 Lap{marker.lapNo !== null ? ` ${marker.lapNo}` : ""}
                               </div>
                               <div className="flex items-baseline gap-1.5">
                                 <span
                                   className={`font-mono text-sm font-bold ${
                                     marker.lapTime !== null && marker.lapTime === minLapTime && dialogTrackMarkers.length > 1
-                                      ? "text-[#9b59f5]"
-                                      : "text-white"
+                                      ? "text-purple"
+                                      : "text-fg"
                                   }`}
                                 >
                                   {marker.lapTime !== null ? formatLapTime(marker.lapTime) : "—"}
                                 </span>
                                 {marker.lapTime !== null && minLapTime !== null && marker.lapTime > minLapTime && (
-                                  <span className="font-mono text-[10px] text-f1red">
+                                  <span className="font-mono text-caption text-f1red">
                                     +{(marker.lapTime - minLapTime).toFixed(3)}
                                   </span>
                                 )}
@@ -2090,21 +2085,21 @@ export default function Telemetry() {
                                 <span className="scale-75">
                                   <CompoundRing compound={marker.tyre.compound} />
                                 </span>
-                                <span className="font-mono text-[10px] text-white">
+                                <span className="font-mono text-caption text-fg">
                                   {marker.tyre.age}L
                                 </span>
                               </div>
                             )}
                             {marker.pitOutLap && (
-                              <span className="rounded-sm border border-panel px-1 text-[8px] font-black uppercase tracking-widest text-muted">
+                              <span className="rounded-sm border border-panel px-1 text-micro font-black uppercase tracking-widest text-muted">
                                 Out lap
                               </span>
                             )}
                             <div className="ml-auto text-right">
-                              <div className="text-[8px] uppercase tracking-widest text-muted">
+                              <div className="text-micro uppercase tracking-widest text-muted">
                                 {Math.round(marker.lapProgress * 100)}% lap
                               </div>
-                              <div className="font-mono text-[10px] text-white" title="Distance behind the leading car at this moment">
+                              <div className="font-mono text-caption text-fg" title="Distance behind the leading car at this moment">
                                 {leaderDistM - marker.distM < 0.5
                                   ? "Ahead"
                                   : `−${toDisplayShortDistanceM(leaderDistM - marker.distM, metricSystem).toFixed(0)} ${shortDistanceUnitLabel(metricSystem)}`}
@@ -2115,34 +2110,34 @@ export default function Telemetry() {
                           {/* Live telemetry */}
                           <div className="mb-3 grid grid-cols-2 gap-x-3 gap-y-1.5">
                             <div>
-                              <div className="text-[9px] uppercase tracking-widest text-muted">Speed</div>
-                              <div className="font-mono text-sm font-bold text-white">{toDisplaySpeed(marker.speed, metricSystem).toFixed(0)} <span className="text-[9px] text-muted">{speedUnitLabel(metricSystem)}</span></div>
+                              <div className="text-tiny uppercase tracking-widest text-muted">Speed</div>
+                              <div className="font-mono text-sm font-bold text-fg">{toDisplaySpeed(marker.speed, metricSystem).toFixed(0)} <span className="text-tiny text-muted">{speedUnitLabel(metricSystem)}</span></div>
                             </div>
                             <div>
-                              <div className="text-[9px] uppercase tracking-widest text-muted">Gear</div>
-                              <div className="font-mono text-sm font-bold text-white">{marker.gear}</div>
+                              <div className="text-tiny uppercase tracking-widest text-muted">Gear</div>
+                              <div className="font-mono text-sm font-bold text-fg">{marker.gear}</div>
                             </div>
                             <div>
-                              <div className="text-[9px] uppercase tracking-widest text-muted">Throttle</div>
+                              <div className="text-tiny uppercase tracking-widest text-muted">Throttle</div>
                               <div className="flex items-center gap-1.5">
                                 <div className="h-1.5 flex-1 rounded-full bg-panel overflow-hidden">
-                                  <div className="h-full rounded-full bg-[#23c552]" style={{ width: `${marker.throttle}%` }} />
+                                  <div className="h-full rounded-full bg-green" style={{ width: `${marker.throttle}%` }} />
                                 </div>
-                                <span className="font-mono text-[10px] text-white w-7 text-right">{Math.round(marker.throttle)}%</span>
+                                <span className="font-mono text-caption text-fg w-7 text-right">{Math.round(marker.throttle)}%</span>
                               </div>
                             </div>
                             <div>
-                              <div className="text-[9px] uppercase tracking-widest text-muted">Brake</div>
+                              <div className="text-tiny uppercase tracking-widest text-muted">Brake</div>
                               <div className="flex items-center gap-1.5">
                                 <div className="h-1.5 flex-1 rounded-full bg-panel overflow-hidden">
-                                  <div className="h-full rounded-full bg-[#e8002d]" style={{ width: `${marker.brake}%` }} />
+                                  <div className="h-full rounded-full bg-f1red" style={{ width: `${marker.brake}%` }} />
                                 </div>
-                                <span className="font-mono text-[10px] text-white w-7 text-right">{Math.round(marker.brake)}%</span>
+                                <span className="font-mono text-caption text-fg w-7 text-right">{Math.round(marker.brake)}%</span>
                               </div>
                             </div>
                             <div className="col-span-2">
-                              <div className="text-[9px] uppercase tracking-widest text-muted">DRS</div>
-                              <div className={`text-[10px] font-bold ${marker.drs > 10 ? "text-[#23c552]" : "text-muted"}`}>{marker.drs > 10 ? "Active" : "Closed"}</div>
+                              <div className="text-tiny uppercase tracking-widest text-muted">DRS</div>
+                              <div className={`text-caption font-bold ${marker.drs > 10 ? "text-green-fg" : "text-muted"}`}>{marker.drs > 10 ? "Active" : "Closed"}</div>
                             </div>
                           </div>
 
@@ -2156,19 +2151,19 @@ export default function Telemetry() {
                                 const isFastest = dur !== null && best !== null && dur === best;
                                 return (
                                   <div key={sk} className="flex-1 min-w-0">
-                                    <div className="text-[8px] uppercase tracking-widest text-muted mb-0.5">S{si + 1}</div>
+                                    <div className="text-micro uppercase tracking-widest text-muted mb-0.5">S{si + 1}</div>
                                     {/* Sector bar + mini-segments */}
                                     <div className="flex flex-col gap-[2px] mb-1">
                                       <div className={`h-[5px] rounded-sm ${sectorTier(dur, best)}`} />
                                       {segs && segs.length > 0 && (
                                         <div className="flex h-[3px] gap-px overflow-hidden rounded-sm">
                                           {segs.map((code, idx) => (
-                                            <div key={idx} className={`h-full flex-1 ${miniClass(code)}`} />
+                                            <div key={idx} className={`h-full flex-1 ${minisectorClass(code)}`} />
                                           ))}
                                         </div>
                                       )}
                                     </div>
-                                    <span className={`font-mono text-[9px] leading-none ${isFastest ? "text-[#9b59f5] font-bold" : "text-white"}`}>
+                                    <span className={`font-mono text-tiny leading-none ${isFastest ? "text-purple font-bold" : "text-fg"}`}>
                                       {dur !== null ? formatLapTime(dur) : "—"}
                                     </span>
                                   </div>
@@ -2181,23 +2176,23 @@ export default function Telemetry() {
                               <div className="mt-2 flex gap-3">
                                 {marker.i1 !== null && (
                                   <div>
-                                    <div className="text-[8px] uppercase tracking-widest text-muted">I1</div>
-                                    <div className="font-mono text-[10px] text-white">{toDisplaySpeed(marker.i1, metricSystem).toFixed(0)}</div>
+                                    <div className="text-micro uppercase tracking-widest text-muted">I1</div>
+                                    <div className="font-mono text-caption text-fg">{toDisplaySpeed(marker.i1, metricSystem).toFixed(0)}</div>
                                   </div>
                                 )}
                                 {marker.i2 !== null && (
                                   <div>
-                                    <div className="text-[8px] uppercase tracking-widest text-muted">I2</div>
-                                    <div className="font-mono text-[10px] text-white">{toDisplaySpeed(marker.i2, metricSystem).toFixed(0)}</div>
+                                    <div className="text-micro uppercase tracking-widest text-muted">I2</div>
+                                    <div className="font-mono text-caption text-fg">{toDisplaySpeed(marker.i2, metricSystem).toFixed(0)}</div>
                                   </div>
                                 )}
                                 {marker.st !== null && (
                                   <div>
-                                    <div className="text-[8px] uppercase tracking-widest text-muted">ST</div>
-                                    <div className="font-mono text-[10px] text-white">{toDisplaySpeed(marker.st, metricSystem).toFixed(0)}</div>
+                                    <div className="text-micro uppercase tracking-widest text-muted">ST</div>
+                                    <div className="font-mono text-caption text-fg">{toDisplaySpeed(marker.st, metricSystem).toFixed(0)}</div>
                                   </div>
                                 )}
-                                <div className="self-end text-[8px] text-muted">{speedUnitLabel(metricSystem)}</div>
+                                <div className="self-end text-micro text-muted">{speedUnitLabel(metricSystem)}</div>
                               </div>
                             )}
                           </div>
@@ -2234,7 +2229,7 @@ export default function Telemetry() {
 
           if (!driverA || !selectedLapA) {
             return (
-              <div className="flex h-full items-center justify-center text-[10px] font-bold uppercase tracking-widest text-muted">
+              <div className="flex h-full items-center justify-center text-caption font-bold uppercase tracking-widest text-muted">
                 Select Driver A and a lap to view telemetry
               </div>
             );
@@ -2274,7 +2269,7 @@ export default function Telemetry() {
                     </span>
                   );
                 })}
-                <div className="flex flex-wrap items-center gap-1.5 text-[9px] uppercase tracking-[0.12em] text-muted">
+                <div className="flex flex-wrap items-center gap-1.5 text-tiny uppercase tracking-caps text-muted">
                   <span className="font-black">Corner speed</span>
                   {CORNER_SPEED_LEGEND.map((item) => {
                     const shown = cornerZoneVisibility[item.speedClass];
@@ -2289,7 +2284,7 @@ export default function Telemetry() {
                             !shown,
                           )
                         }
-                        className={`inline-flex items-center gap-1 rounded-sm border px-1.5 py-1 uppercase tracking-[0.12em] transition-colors hover:border-muted ${
+                        className={`inline-flex items-center gap-1 rounded-sm border px-1.5 py-1 uppercase tracking-caps transition-colors hover:border-muted ${
                           shown
                             ? "border-panel bg-surface"
                             : "border-dashed border-panel bg-transparent opacity-50"
@@ -2297,11 +2292,11 @@ export default function Telemetry() {
                         title={`${shown ? "Hide" : "Show"} ${item.label.toLowerCase()} speed corner bands on the charts (${item.range} km/h apex speed)`}
                       >
                         <span
-                          className="h-2 w-2 rounded-sm border border-white/20"
+                          className="h-2 w-2 rounded-sm border border-fg/20"
                           style={{ background: shown ? item.color : "transparent" }}
                         />
                         <span
-                          className={`font-black ${shown ? "text-white/85" : "text-muted line-through"}`}
+                          className={`font-black ${shown ? "text-fg/85" : "text-muted line-through"}`}
                         >
                           {item.label}
                         </span>
@@ -2319,7 +2314,7 @@ export default function Telemetry() {
                         setSetting(key, next);
                       }
                     }}
-                    className="rounded-sm border border-panel bg-surface px-1.5 py-1 font-black uppercase tracking-[0.12em] text-muted transition-colors hover:border-muted hover:text-white"
+                    className="rounded-sm border border-panel bg-surface px-1.5 py-1 font-black uppercase tracking-caps text-muted transition-colors hover:border-muted hover:text-fg"
                     title={
                       anyCornerZoneShown
                         ? "Hide all corner speed bands on the charts"
@@ -2577,19 +2572,19 @@ function DriverLapCard({
                 loading="lazy"
               />
             ) : (
-              <span className="flex h-full w-full items-center justify-center text-[10px] font-black uppercase tracking-[0.12em] text-muted">
+              <span className="flex h-full w-full items-center justify-center text-caption font-black uppercase tracking-caps text-muted">
                 {avatarLabel}
               </span>
             )}
           </div>
 
           <div className="min-w-0">
-            <span className="block text-[10px] font-black uppercase tracking-[0.15em] text-muted">
+            <span className="block text-caption font-black uppercase tracking-caps text-muted">
               {slotLabel}
             </span>
             <div className="mt-0.5 flex items-center gap-2">
               <span
-                className="truncate text-[11px] font-black uppercase tracking-[0.08em]"
+                className="truncate text-small font-black uppercase tracking-widest"
                 style={{ color: accent }}
                 title={driverName}
               >
@@ -2620,9 +2615,9 @@ function DriverLapCard({
           />
           <span
             key={`wins-${sectorAnimationSeed ?? "none"}-${sectorWins.total}`}
-            className={`border px-1.5 py-0.5 text-[9px] font-black uppercase tracking-[0.1em] ${
+            className={`border px-1.5 py-0.5 text-tiny font-black uppercase tracking-widest ${
               sectorWins.total > 0
-                ? "border-[#5f4c7c] bg-[#251a35] text-[#d4b7ff] animate-[pulse_0.45s_ease-out_1]"
+                ? "border-purple-line bg-purple-tint text-purple-fg animate-[pulse_0.45s_ease-out_1]"
                 : "border-panel bg-surface text-muted"
             }`}
             title="Total sector wins for selected lap"
@@ -2664,12 +2659,12 @@ function DriverLapCard({
         <button
           onClick={onBest}
           disabled={driver === null || bestLap === null}
-          className={`border px-2 font-bold uppercase tracking-[0.12em] disabled:opacity-50 ${
-            compact ? "h-5 text-[9px]" : "h-6 text-[10px]"
+          className={`border px-2 font-bold uppercase tracking-caps disabled:opacity-50 ${
+            compact ? "h-5 text-tiny" : "h-6 text-caption"
           } ${
             isBestSelected
-              ? "border-[#6f54a2] bg-[#2a1b3f] text-[#dfcbff]"
-              : "border-panel bg-surface text-white"
+              ? "border-purple-line bg-purple-tint text-purple-fg"
+              : "border-panel bg-surface text-fg"
           }`}
           title="Select best valid lap"
         >
@@ -2679,12 +2674,12 @@ function DriverLapCard({
         <button
           onClick={onLatest}
           disabled={driver === null || latestLap === null}
-          className={`border px-2 font-bold uppercase tracking-[0.12em] disabled:opacity-50 ${
-            compact ? "h-5 text-[9px]" : "h-6 text-[10px]"
+          className={`border px-2 font-bold uppercase tracking-caps disabled:opacity-50 ${
+            compact ? "h-5 text-tiny" : "h-6 text-caption"
           } ${
             isLatestSelected
-              ? "border-[#2c6ab7] bg-[#112744] text-[#b9dcff]"
-              : "border-panel bg-surface text-white"
+              ? "border-blue-line bg-blue-tint text-blue-fg"
+              : "border-panel bg-surface text-fg"
           }`}
           title="Select latest valid lap"
         >
@@ -2693,16 +2688,16 @@ function DriverLapCard({
       </div>
 
       <div className="mt-1.5 flex flex-wrap items-center gap-1">
-        <span className="border border-panel bg-surface px-2 py-1 text-[10px] font-bold uppercase tracking-[0.1em] text-muted">
+        <span className="border border-panel bg-surface px-2 py-1 text-caption font-bold uppercase tracking-widest text-muted">
           {lapMeta.timeText}
         </span>
         <span
-          className={`border px-2 py-1 text-[10px] font-bold uppercase tracking-[0.1em] ${lapMeta.statusClass}`}
+          className={`border px-2 py-1 text-caption font-bold uppercase tracking-widest ${lapMeta.statusClass}`}
         >
           {lapMeta.statusLabel}
         </span>
         <span
-          className={`border px-2 py-1 text-[10px] font-bold uppercase tracking-[0.1em] ${deltaHint.className}`}
+          className={`border px-2 py-1 text-caption font-bold uppercase tracking-widest ${deltaHint.className}`}
           title="Estimated lap-end delta versus Driver A"
         >
           {deltaHint.text}
@@ -2713,12 +2708,12 @@ function DriverLapCard({
 
       {!compact && (
         <div className="mt-1.5 overflow-hidden border border-panel bg-surface">
-          <div className="flex items-center justify-between border-b border-[#2d2d3b] px-2 py-1">
-            <span className="text-[10px] font-bold uppercase tracking-[0.12em] text-muted">
+          <div className="flex items-center justify-between border-b border-panel px-2 py-1">
+            <span className="text-caption font-bold uppercase tracking-caps text-muted">
               Speed trace
             </span>
             {speedStats && (
-              <span className="text-[10px] font-semibold text-muted">
+              <span className="text-caption font-semibold text-muted">
                 AVG {Math.round(speedStats.avg)} · MAX{" "}
                 {Math.round(speedStats.max)}
               </span>
@@ -2746,7 +2741,7 @@ function LapConditionsRow({ conditions }: { conditions: LapConditions }) {
   const fmtTemp = (c: number) =>
     `${Math.round(toDisplayTemperature(c, metricSystem))}${tempUnit}`;
   const chip =
-    "inline-flex items-center gap-1 border border-panel bg-surface px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-[0.08em] text-muted";
+    "inline-flex items-center gap-1 border border-panel bg-surface px-1.5 py-0.5 text-caption font-bold uppercase tracking-widest text-muted";
 
   return (
     <div className="mt-1 flex flex-wrap items-center gap-1" data-testid="lap-conditions">
@@ -2758,7 +2753,7 @@ function LapConditionsRow({ conditions }: { conditions: LapConditions }) {
           <span className="scale-75">
             <CompoundRing compound={tyre.compound} />
           </span>
-          <span className="text-white">
+          <span className="text-fg">
             {tyre.compound === "INTERMEDIATE" ? "INTER" : tyre.compound}
           </span>
           <span className="font-mono normal-case">
@@ -2768,17 +2763,17 @@ function LapConditionsRow({ conditions }: { conditions: LapConditions }) {
       )}
       {trackTempC !== null && (
         <span className={chip} title="Track temperature at lap start">
-          Track <span className="font-mono text-white">{fmtTemp(trackTempC)}</span>
+          Track <span className="font-mono text-fg">{fmtTemp(trackTempC)}</span>
         </span>
       )}
       {airTempC !== null && (
         <span className={chip} title="Air temperature at lap start">
-          Air <span className="font-mono text-white">{fmtTemp(airTempC)}</span>
+          Air <span className="font-mono text-fg">{fmtTemp(airTempC)}</span>
         </span>
       )}
       {rainfall && (
         <span
-          className="inline-flex items-center border border-[#2c6ab7] bg-[#112744] px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-[0.08em] text-[#b9dcff]"
+          className="inline-flex items-center border border-blue-line bg-blue-tint px-1.5 py-0.5 text-caption font-bold uppercase tracking-widest text-blue-fg"
           title="Rainfall reported at lap start"
         >
           Rain
@@ -2800,9 +2795,9 @@ function SectorChip({
   return (
     <span
       key={`${label}-${animationSeed ?? "none"}-${active ? 1 : 0}`}
-      className={`border px-1.5 py-0.5 text-[9px] font-black uppercase tracking-[0.1em] ${
+      className={`border px-1.5 py-0.5 text-tiny font-black uppercase tracking-widest ${
         active
-          ? "border-[#6f54a2] bg-[#2a1b3f] text-[#dfcbff] animate-[pulse_0.45s_ease-out_1]"
+          ? "border-purple-line bg-purple-tint text-purple-fg animate-[pulse_0.45s_ease-out_1]"
           : "border-panel bg-surface text-muted"
       }`}
       title={active ? `${label} winner` : `${label} not quickest`}
@@ -2853,7 +2848,7 @@ function SpeedSparkline({
 
   if (!hasTrace) {
     return (
-      <div className="flex h-10 items-center justify-center text-[10px] font-semibold uppercase tracking-[0.12em] text-muted">
+      <div className="flex h-10 items-center justify-center text-caption font-semibold uppercase tracking-caps text-muted">
         No trace
       </div>
     );
@@ -2963,9 +2958,9 @@ function SplitsTable({
     v === null ? "-" : `${Math.round(toDisplaySpeed(v, metricSystem))}`;
   // Lower sector time = better (min wins); higher speed = better (max wins)
   const clsMin = (v: number | null, best: number | null) =>
-    v !== null && best !== null && v === best ? "text-[#b48ead]" : "text-white";
+    v !== null && best !== null && v === best ? "text-purple" : "text-fg";
   const clsMax = (v: number | null, best: number | null) =>
-    v !== null && best !== null && v === best ? "text-[#88c0d0]" : "text-white";
+    v !== null && best !== null && v === best ? "text-blue-fg" : "text-fg";
 
   const hasSpeedData = rows.some(
     (r) => r.i1 !== null || r.i2 !== null || r.st !== null,
@@ -2977,7 +2972,7 @@ function SplitsTable({
       <div className="overflow-x-auto">
         <table className="w-full min-w-[680px] font-mono text-xs">
           <thead>
-            <tr className="text-[10px] uppercase tracking-widest text-[#636369]">
+            <tr className="text-caption uppercase tracking-widest text-faint">
               <th className="whitespace-nowrap px-2 py-1 text-left sm:px-3">
                 Driver
               </th>
@@ -3004,14 +2999,14 @@ function SplitsTable({
               </th>
               {hasSpeedData && (
                 <>
-                  <th className="whitespace-nowrap px-2 py-1 text-right text-[#88c0d0] sm:px-3">
+                  <th className="whitespace-nowrap px-2 py-1 text-right text-blue-fg sm:px-3">
                     I1
                   </th>
-                  <th className="whitespace-nowrap px-2 py-1 text-right text-[#88c0d0] sm:px-3">
+                  <th className="whitespace-nowrap px-2 py-1 text-right text-blue-fg sm:px-3">
                     I2
                   </th>
                   <th
-                    className="whitespace-nowrap px-2 py-1 text-right text-[#88c0d0] sm:px-3"
+                    className="whitespace-nowrap px-2 py-1 text-right text-blue-fg sm:px-3"
                     title={`Speed trap (${speedUnit})`}
                   >
                     ST
@@ -3098,7 +3093,7 @@ function SplitsTable({
         </table>
       </div>
       {hasSpeedData && (
-        <p className="px-3 py-1 text-[10px] text-[#636369]">
+        <p className="px-3 py-1 text-caption text-faint">
           I1 / I2 = intermediate speeds · ST = speed trap · unit: {speedUnit} ·
           cyan = fastest
         </p>

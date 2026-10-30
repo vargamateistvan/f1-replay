@@ -63,7 +63,7 @@ export function SettingsModal() {
     <div
       ref={backdropRef}
       onClick={handleBackdropClick}
-      className="fixed inset-0 z-[200] flex items-center justify-center bg-black/70 backdrop-blur-sm"
+      className="fixed inset-0 z-modal flex items-center justify-center bg-black/70 backdrop-blur-sm"
     >
       <div
         ref={panelRef}

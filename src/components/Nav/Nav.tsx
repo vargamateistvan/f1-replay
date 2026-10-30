@@ -708,7 +708,7 @@ export function Nav() {
           <AppLogo size={22} />
           {/* Phones give the event picker the room on replay routes. */}
           <span
-            className={`font-black text-white text-[12px] sm:text-sm tracking-[0.18em] sm:tracking-[0.22em] uppercase leading-none ${
+            className={`font-black text-white text-compact sm:text-sm tracking-eyebrow sm:tracking-spaced uppercase leading-none ${
               isMainRoute || isTelemetryRoute ? "hidden sm:inline" : ""
             }`}
           >
@@ -746,7 +746,7 @@ export function Nav() {
                 aria-label="Season year"
                 value={year}
                 onChange={(e) => onYear(Number(e.target.value))}
-                className="h-7 appearance-none cursor-pointer rounded-md border border-white/10 bg-black/[0.06] pl-2 pr-6 text-[11px] font-bold uppercase tracking-widest text-white transition-colors hover:border-white/25 hover:bg-black/15 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70 [&>option]:bg-surface [&>option]:text-white light:[&>option]:bg-white light:[&>option]:text-black"
+                className="h-7 appearance-none cursor-pointer rounded-sm border border-white/10 bg-black/[0.06] pl-2 pr-6 text-small font-bold uppercase tracking-widest text-white transition-colors hover:border-white/25 hover:bg-black/15 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70 [&>option]:bg-surface [&>option]:text-fg"
               >
                 {YEARS.map((y) => (
                   <option key={y} value={y}>
@@ -773,30 +773,30 @@ export function Nav() {
                     <img
                       src={selectedCountryFlagUrl}
                       alt={`${selectedMeeting.country_name} flag`}
-                      className="h-3.5 w-5 object-cover rounded-[2px] border border-white/30 shrink-0"
+                      className="h-3.5 w-5 object-cover rounded-sm border border-white/30 shrink-0"
                       loading="lazy"
                       referrerPolicy="no-referrer"
                     />
                   )}
-                  <span className="min-w-0 text-white text-[10px] sm:text-[11px] font-bold uppercase tracking-wide truncate sm:max-w-[160px] lg:max-w-[240px]">
+                  <span className="min-w-0 text-white text-caption sm:text-small font-bold uppercase tracking-wide truncate sm:max-w-[160px] lg:max-w-[240px]">
                     {selectedMeeting.meeting_name}
                   </span>
-                  <span className="hidden sm:inline text-white/70 text-[11px] font-bold uppercase tracking-widest shrink-0">
+                  <span className="hidden sm:inline text-white/70 text-small font-bold uppercase tracking-widest shrink-0">
                     {selectedMeeting.year}
                   </span>
                   {sessionLabel && (
-                    <span className="hidden sm:inline text-white/70 text-[11px] font-bold uppercase tracking-widest shrink-0">
+                    <span className="hidden sm:inline text-white/70 text-small font-bold uppercase tracking-widest shrink-0">
                       · {sessionLabel}
                     </span>
                   )}
                   {selectedMeeting.is_cancelled && (
-                    <span className="bg-white text-f1red text-[9px] font-bold uppercase tracking-widest px-1.5 py-0.5 rounded-sm shrink-0">
+                    <span className="bg-white text-f1red text-tiny font-bold uppercase tracking-widest px-1.5 py-0.5 rounded-sm shrink-0">
                       Cancelled
                     </span>
                   )}
                 </>
               ) : (
-                <span className="hidden sm:inline text-white/80 text-[11px] font-bold tracking-widest uppercase truncate">
+                <span className="hidden sm:inline text-white/80 text-small font-bold tracking-widest uppercase truncate">
                   {headerLabel}
                 </span>
               )}
@@ -815,7 +815,7 @@ export function Nav() {
                 trackEvent("nav_view_changed", { view: id, source: "desktop" });
                 navigate(viewHref(id));
               }}
-              className={`h-10 px-4 text-[11px] font-bold uppercase tracking-[0.1em] border-b-2 transition-colors ${
+              className={`h-10 px-4 text-small font-bold uppercase tracking-widest border-b-2 transition-colors ${
                 isMainRoute && currentView === id
                   ? "text-white border-white"
                   : "text-white/60 border-transparent hover:text-white/90 hover:border-white/40"
@@ -833,7 +833,7 @@ export function Nav() {
           <NavLink
             to={`/telemetry?${searchParams}`}
             className={({ isActive }) =>
-              `h-10 flex items-center px-3 text-[11px] font-bold uppercase tracking-[0.1em] border-b-2 transition-colors ${
+              `h-10 flex items-center px-3 text-small font-bold uppercase tracking-widest border-b-2 transition-colors ${
                 isActive
                   ? "text-white border-white"
                   : "text-white/50 border-transparent hover:text-white/80"
@@ -845,7 +845,7 @@ export function Nav() {
           <NavLink
             to={`/schedule?${searchParams}`}
             className={({ isActive }) =>
-              `h-10 flex items-center px-3 text-[11px] font-bold uppercase tracking-[0.1em] border-b-2 transition-colors ${
+              `h-10 flex items-center px-3 text-small font-bold uppercase tracking-widest border-b-2 transition-colors ${
                 isActive
                   ? "text-white border-white"
                   : "text-white/50 border-transparent hover:text-white/80"
@@ -857,7 +857,7 @@ export function Nav() {
           <NavLink
             to={`/standings?${searchParams}`}
             className={({ isActive }) =>
-              `h-10 flex items-center px-3 text-[11px] font-bold uppercase tracking-[0.1em] border-b-2 transition-colors ${
+              `h-10 flex items-center px-3 text-small font-bold uppercase tracking-widest border-b-2 transition-colors ${
                 isActive
                   ? "text-white border-white"
                   : "text-white/50 border-transparent hover:text-white/80"
@@ -962,39 +962,39 @@ export function Nav() {
                   <img
                     src={nextMeetingCountryFlagUrl}
                     alt={`${nextMeeting.country_name} flag`}
-                    className="h-4 w-6 object-cover rounded-[2px] border border-white/20 shrink-0 light:border-slate-300"
+                    className="h-4 w-6 object-cover rounded-sm border border-fg/20 shrink-0"
                     loading="lazy"
                     referrerPolicy="no-referrer"
                   />
                 )}
                 <div className="min-w-0">
-                  <div className="text-[11px] font-black text-white tracking-wide truncate light:text-slate-900">
+                  <div className="text-small font-black text-fg tracking-wide truncate">
                     {nextMeeting.country_name}{" "}
-                    <span className="text-white/60 light:text-slate-500">
+                    <span className="text-fg/60">
                       ›
                     </span>
                   </div>
-                  <div className="text-[9px] font-semibold uppercase tracking-[0.08em] text-white/60 truncate light:text-slate-500">
+                  <div className="text-tiny font-semibold uppercase tracking-widest text-fg/60 truncate">
                     {nextMeeting.circuit_short_name}
                   </div>
                 </div>
               </div>
 
               <div className="min-w-0">
-                <div className="flex items-center gap-2 text-[9px] font-black uppercase tracking-[0.14em] text-white/85 light:text-slate-700">
+                <div className="flex items-center gap-2 text-tiny font-black uppercase tracking-caps text-fg/85">
                   {nextMeetingRound !== null && (
                     <span className="shrink-0">
                       R{String(nextMeetingRound).padStart(2, "0")}
                     </span>
                   )}
-                  <span className="text-white/45 light:text-slate-400">|</span>
+                  <span className="text-fg/45">|</span>
                   <span className="shrink-0">
                     {nextMeetingDateRange ?? "TBA"}
                   </span>
                 </div>
               </div>
 
-              <span className="ml-auto h-6 px-2 rounded-sm bg-white/5 text-[9px] font-mono text-[#ff5c77] shrink-0 inline-flex items-center light:bg-slate-100">
+              <span className="ml-auto h-6 px-2 rounded-sm bg-fg/5 text-tiny font-mono text-f1red-fg shrink-0 inline-flex items-center">
                 {nextMeetingCountdown}
               </span>
 
@@ -1007,7 +1007,7 @@ export function Nav() {
                 }}
                 aria-label="Hide next race banner"
                 title="Hide banner"
-                className="h-6 w-6 shrink-0 inline-flex items-center justify-center rounded-sm text-white/65 hover:text-white hover:bg-white/10 light:text-slate-500 light:hover:text-slate-800 light:hover:bg-slate-100"
+                className="h-6 w-6 shrink-0 inline-flex items-center justify-center rounded-sm text-fg/65 hover:text-fg hover:bg-fg/10"
               >
                 ×
               </button>
@@ -1017,7 +1017,7 @@ export function Nav() {
 
       {showNextAgenda && nextMeeting && (
         <div
-          className="fixed inset-0 z-[220] flex items-center justify-center bg-black/70 backdrop-blur-sm px-4"
+          className="fixed inset-0 z-modal flex items-center justify-center bg-black/70 backdrop-blur-sm px-4"
           onClick={(e) => {
             if (e.target === e.currentTarget) {
               trackEvent("nav_next_agenda_closed", { reason: "backdrop" });
@@ -1025,13 +1025,13 @@ export function Nav() {
             }
           }}
         >
-          <div className="w-full max-w-2xl max-h-[88dvh] overflow-hidden rounded-lg border border-panel bg-surface shadow-2xl">
+          <div className="w-full max-w-2xl max-h-[88dvh] overflow-hidden rounded-sm border border-panel bg-surface shadow-2xl">
             <div className="flex items-center justify-between border-b border-panel px-5 py-3.5">
               <div className="min-w-0">
-                <div className="text-[13px] font-bold text-white tracking-wide truncate">
+                <div className="text-body font-bold text-fg tracking-wide truncate">
                   {nextMeeting.meeting_name} Agenda
                 </div>
-                <div className="text-[10px] text-muted uppercase tracking-widest truncate">
+                <div className="text-caption text-muted uppercase tracking-widest truncate">
                   {nextMeeting.country_name} · {nextMeeting.circuit_short_name}
                 </div>
               </div>
@@ -1041,7 +1041,7 @@ export function Nav() {
                   trackEvent("nav_next_agenda_closed", { reason: "button" });
                   setShowNextAgenda(false);
                 }}
-                className="w-7 h-7 flex items-center justify-center rounded text-muted hover:text-white hover:bg-panel transition-colors text-base"
+                className="w-7 h-7 flex items-center justify-center rounded-sm text-muted hover:text-fg hover:bg-panel transition-colors text-base"
                 aria-label="Close agenda"
                 title="Close"
               >
@@ -1050,14 +1050,14 @@ export function Nav() {
             </div>
 
             <div className="p-4 overflow-y-auto max-h-[calc(88dvh-60px)]">
-              <div className="mb-3 text-[10px] font-black uppercase tracking-[0.14em] text-muted">
+              <div className="mb-3 text-caption font-black uppercase tracking-caps text-muted">
                 Event Time
               </div>
 
               {nextMeetingSessions.isPending ? (
-                <div className="text-[11px] text-f1red">Loading agenda...</div>
+                <div className="text-small text-f1red">Loading agenda...</div>
               ) : nextAgendaSessions.length === 0 ? (
-                <div className="text-[11px] text-muted">
+                <div className="text-small text-muted">
                   Agenda not available yet.
                 </div>
               ) : (
@@ -1065,14 +1065,14 @@ export function Nav() {
                   {nextAgendaSessions.map((s) => (
                     <div
                       key={s.session_key}
-                      className="rounded border border-panel/80 bg-track/70 px-3 py-2"
+                      className="rounded-sm border border-panel/80 bg-track/70 px-3 py-2"
                     >
-                      <div className="text-[11px] font-bold text-white">
+                      <div className="text-small font-bold text-fg">
                         {s.session_name}
                       </div>
-                      <div className="mt-1 text-[10px] text-muted font-mono tracking-wide">
+                      <div className="mt-1 text-caption text-muted font-mono tracking-wide">
                         {`${formatTrackLocalDayMonth(s.date_start, resolveTrackOffsetMin(s.gmt_offset, nextMeeting.gmt_offset))} ${formatTrackLocal(s.date_start, resolveTrackOffsetMin(s.gmt_offset, nextMeeting.gmt_offset))} - ${formatTrackLocal(s.date_end, resolveTrackOffsetMin(s.gmt_offset, nextMeeting.gmt_offset))}`}
-                        <span className="ml-2 uppercase tracking-widest text-white/50">
+                        <span className="ml-2 uppercase tracking-widest text-fg/50">
                           {`EVENT (${s.gmt_offset || nextMeeting.gmt_offset || "+00:00"})`}
                         </span>
                       </div>
@@ -1090,25 +1090,25 @@ export function Nav() {
 
       {TRACK_FACTS_ENABLED && showCircuitFacts && selectedMeeting && (
         <div
-          className="fixed inset-0 z-[210] flex items-center justify-center bg-black/70 backdrop-blur-sm px-4"
+          className="fixed inset-0 z-modal flex items-center justify-center bg-black/70 backdrop-blur-sm px-4"
           onClick={(e) => {
             if (e.target === e.currentTarget) setShowCircuitFacts(false);
           }}
         >
-          <div className="w-full max-w-2xl max-h-[88dvh] overflow-hidden rounded-lg border border-panel bg-surface shadow-2xl">
+          <div className="w-full max-w-2xl max-h-[88dvh] overflow-hidden rounded-sm border border-panel bg-surface shadow-2xl">
             <div className="flex items-center justify-between border-b border-panel px-5 py-3.5">
               <div className="min-w-0">
-                <div className="text-[13px] font-bold text-white tracking-wide truncate">
+                <div className="text-body font-bold text-fg tracking-wide truncate">
                   {selectedMeeting.circuit_short_name} Track Facts
                 </div>
-                <div className="text-[10px] text-muted uppercase tracking-widest truncate">
+                <div className="text-caption text-muted uppercase tracking-widest truncate">
                   {selectedMeeting.country_name}
                 </div>
               </div>
               <button
                 type="button"
                 onClick={() => setShowCircuitFacts(false)}
-                className="w-7 h-7 flex items-center justify-center rounded text-muted hover:text-white hover:bg-panel transition-colors text-base"
+                className="w-7 h-7 flex items-center justify-center rounded-sm text-muted hover:text-fg hover:bg-panel transition-colors text-base"
                 aria-label="Close track facts"
                 title="Close"
               >
@@ -1118,12 +1118,12 @@ export function Nav() {
 
             <div className="p-4 overflow-y-auto max-h-[calc(88dvh-60px)]">
               {selectedCircuitImageUrl && !isCircuitImageBroken && (
-                <div className="mb-3 rounded border border-panel/80 bg-track/70 p-2">
-                  <div className="rounded border border-black/10 bg-gradient-to-b from-[#f6f8fb] to-[#e8edf4] p-2">
+                <div className="mb-3 rounded-sm border border-panel/80 bg-track/70 p-2">
+                  <div className="rounded-sm border border-black/10 bg-white p-2">
                     <img
                       src={selectedCircuitImageUrl}
                       alt={`${selectedMeeting.circuit_short_name} track layout`}
-                      className="w-full max-h-44 object-contain rounded [filter:contrast(1.08)_drop-shadow(0_1px_0_rgba(255,255,255,0.45))]"
+                      className="w-full max-h-44 object-contain rounded-sm [filter:contrast(1.08)_drop-shadow(0_1px_0_rgba(255,255,255,0.45))]"
                       loading="lazy"
                       referrerPolicy="no-referrer"
                       onError={() =>
@@ -1135,7 +1135,7 @@ export function Nav() {
               )}
 
               {selectedCircuitImageUrl && isCircuitImageBroken && (
-                <div className="mb-3 rounded border border-panel/80 bg-track/70 px-3 py-2 text-[10px] text-muted">
+                <div className="mb-3 rounded-sm border border-panel/80 bg-track/70 px-3 py-2 text-caption text-muted">
                   Track layout image unavailable for this event.
                 </div>
               )}
@@ -1208,12 +1208,12 @@ export function Nav() {
                 ].map((item) => (
                   <div
                     key={item.label}
-                    className="min-w-0 rounded border border-panel/80 bg-track/70 px-2.5 py-2"
+                    className="min-w-0 rounded-sm border border-panel/80 bg-track/70 px-2.5 py-2"
                   >
-                    <div className="text-[9px] font-black uppercase tracking-[0.14em] text-muted">
+                    <div className="text-tiny font-black uppercase tracking-caps text-muted">
                       {item.label}
                     </div>
-                    <div className="mt-1 text-[11px] font-semibold text-white break-words">
+                    <div className="mt-1 text-small font-semibold text-fg break-words">
                       {item.value}
                     </div>
                   </div>
@@ -1222,11 +1222,11 @@ export function Nav() {
 
               <div className="mt-3 border-t border-panel/70 pt-2">
                 {apiFactsLoading && (
-                  <div className="mb-1 text-[10px] text-f1red">
+                  <div className="mb-1 text-caption text-f1red">
                     Fetching facts from API...
                   </div>
                 )}
-                <div className="text-[10px] text-muted leading-relaxed">
+                <div className="text-caption text-muted leading-relaxed">
                   Data source: live circuit facts fetched from API at runtime.
                 </div>
                 {selectedCircuitInfoUrl && (
@@ -1234,7 +1234,7 @@ export function Nav() {
                     href={selectedCircuitInfoUrl}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="mt-1 inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-widest text-f1red hover:text-white transition-colors"
+                    className="mt-1 inline-flex items-center gap-1 text-caption font-bold uppercase tracking-widest text-f1red hover:text-fg transition-colors"
                   >
                     Official circuit information
                     <span aria-hidden="true">↗</span>

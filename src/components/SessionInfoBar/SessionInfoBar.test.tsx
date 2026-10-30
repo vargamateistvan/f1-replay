@@ -279,7 +279,7 @@ describe("SessionInfoBar", () => {
     ).toBeInTheDocument();
     expect(screen.queryByText("RED FLAG")).not.toBeInTheDocument();
     expect(screen.getByText("L4")).toBeInTheDocument();
-    expect(screen.getByText("Penalty")).toHaveClass("bg-red-500/25");
+    expect(screen.getByText("Penalty")).toHaveClass("bg-red-tint");
     expect(screen.getByText("HAM")).toHaveStyle({ color: "#E8002D" });
   });
 
@@ -311,7 +311,7 @@ describe("SessionInfoBar", () => {
       />,
     );
 
-    expect(screen.getByText("GREEN LIGHT - PIT EXIT OPEN")).toHaveClass("text-white/90");
+    expect(screen.getByText("GREEN LIGHT - PIT EXIT OPEN")).toHaveClass("text-fg/90");
     expect(screen.getByText("12s ago")).toBeInTheDocument();
     expect(screen.getByText("+1")).toBeInTheDocument();
 
@@ -332,7 +332,7 @@ describe("SessionInfoBar", () => {
     );
 
     expect(screen.getByText("5m ago")).toBeInTheDocument();
-    expect(screen.getByText("GREEN LIGHT - PIT EXIT OPEN")).toHaveClass("text-white/60");
+    expect(screen.getByText("GREEN LIGHT - PIT EXIT OPEN")).toHaveClass("text-fg/60");
     expect(
       screen.queryByRole("button", { name: /Replay from race control/ }),
     ).not.toBeInTheDocument();

@@ -8,6 +8,7 @@ import {
   raceControlEventAccent,
   raceControlEventBadge,
 } from "@/components/RaceControl/eventStyle";
+import { TOKEN_HEX } from "@/designTokens";
 
 interface Props {
   event: NormalizedRaceControlEvent;
@@ -42,7 +43,7 @@ export function RaceControlTicker({
   const isFresh = ageMs < RC_TICKER_FRESH_MS;
   const driverColour = driver ? teamColor(driver.team_colour) : null;
   const pulseColour =
-    accent?.backgroundColor ?? badge.style?.backgroundColor ?? "#E8002D";
+    accent?.backgroundColor ?? badge.style?.backgroundColor ?? TOKEN_HEX.f1red;
 
   const content = (
     <>
@@ -93,7 +94,7 @@ export function RaceControlTicker({
         </span>
         {driver && driverColour && (
           <span
-            className="shrink-0 rounded px-1 py-0.5 font-black leading-none"
+            className="shrink-0 rounded-sm px-1 py-0.5 font-black leading-none"
             style={{
               color: driverColour,
               backgroundColor: `${driverColour}26`,
@@ -104,14 +105,14 @@ export function RaceControlTicker({
         )}
         <span
           className={`truncate font-medium normal-case tracking-normal transition-colors ${
-            isFresh ? "text-white/90" : "text-white/60"
+            isFresh ? "text-fg/90" : "text-fg/60"
           }`}
         >
           {event.description}
         </span>
         {sameTimeCount > 0 && (
           <span
-            className="shrink-0 rounded bg-white/10 px-1 py-0.5 leading-none text-muted"
+            className="shrink-0 rounded-sm bg-fg/10 px-1 py-0.5 leading-none text-muted"
             title={`${sameTimeCount} more message${sameTimeCount === 1 ? "" : "s"} at this time`}
           >
             +{sameTimeCount}
@@ -143,7 +144,7 @@ export function RaceControlTicker({
     <button
       type="button"
       onClick={() => onJumpToSessionTime(event.ms)}
-      className={`${className} text-left uppercase transition-colors hover:bg-white/[0.04] focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-inset focus-visible:ring-f1red`}
+      className={`${className} text-left uppercase transition-colors hover:bg-fg/[0.04] focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-inset focus-visible:ring-f1red`}
       title={`${event.description} — click to replay from here`}
       aria-label={`Replay from race control message: ${event.description}`}
     >

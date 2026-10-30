@@ -47,8 +47,8 @@ export function MobileNav() {
   }
 
   const btn = (active: boolean) =>
-    `flex-1 min-w-0 flex flex-col items-center justify-center gap-0.5 px-1 text-[9px] font-bold uppercase tracking-[0.1em] border-t-2 transition-colors ${
-      active ? "text-white border-f1red" : "text-white/50 border-transparent"
+    `flex-1 min-w-0 flex flex-col items-center justify-center gap-0.5 px-1 text-tiny font-bold uppercase tracking-widest border-t-2 transition-colors ${
+      active ? "text-fg border-f1red" : "text-fg/50 border-transparent"
     }`;
 
   function goTo(url: string) {
@@ -66,25 +66,25 @@ export function MobileNav() {
         <div className="grid grid-cols-3 gap-px border-b border-panel bg-track px-2 py-2">
           <button
             onClick={() => goTo(`/telemetry?${searchParams}`)}
-            className="h-10 rounded-sm bg-panel px-2 text-[10px] font-black uppercase tracking-[0.12em] text-white"
+            className="h-10 rounded-sm bg-panel px-2 text-caption font-black uppercase tracking-caps text-fg"
           >
             Telemetry
           </button>
           <button
             onClick={() => goTo(`/schedule?${searchParams}`)}
-            className="h-10 rounded-sm bg-panel px-2 text-[10px] font-black uppercase tracking-[0.12em] text-white"
+            className="h-10 rounded-sm bg-panel px-2 text-caption font-black uppercase tracking-caps text-fg"
           >
             Schedule
           </button>
           <button
             onClick={() => goTo(`/standings?${searchParams}`)}
-            className="h-10 rounded-sm bg-panel px-2 text-[10px] font-black uppercase tracking-[0.12em] text-white"
+            className="h-10 rounded-sm bg-panel px-2 text-caption font-black uppercase tracking-caps text-fg"
           >
             Standings
           </button>
           <button
             onClick={() => goTo("/settings")}
-            className="h-10 rounded-sm bg-panel px-2 text-[10px] font-black uppercase tracking-[0.12em] text-white"
+            className="h-10 rounded-sm bg-panel px-2 text-caption font-black uppercase tracking-caps text-fg"
           >
             Settings
           </button>
@@ -94,19 +94,19 @@ export function MobileNav() {
               trackEvent("nav_help_opened", { source: "mobile_menu" });
               openHelp();
             }}
-            className="h-10 rounded-sm bg-panel px-2 text-[10px] font-black uppercase tracking-[0.12em] text-white"
+            className="h-10 rounded-sm bg-panel px-2 text-caption font-black uppercase tracking-caps text-fg"
           >
             Help
           </button>
           <button
             onClick={() => goTo("/privacy")}
-            className="h-10 rounded-sm bg-panel px-2 text-[10px] font-black uppercase tracking-[0.12em] text-white"
+            className="h-10 rounded-sm bg-panel px-2 text-caption font-black uppercase tracking-caps text-fg"
           >
             Privacy
           </button>
           <button
             onClick={() => goTo("/terms")}
-            className="h-10 rounded-sm bg-panel px-2 text-[10px] font-black uppercase tracking-[0.12em] text-white"
+            className="h-10 rounded-sm bg-panel px-2 text-caption font-black uppercase tracking-caps text-fg"
           >
             Terms
           </button>
@@ -123,14 +123,14 @@ export function MobileNav() {
           }}
           className="flex h-8 items-center justify-between gap-2 border-b border-panel bg-track px-3 text-left"
         >
-          <span className="flex min-w-0 items-center gap-1.5 font-mono text-[10px] uppercase tracking-[0.12em] text-muted">
+          <span className="flex min-w-0 items-center gap-1.5 font-mono text-caption uppercase tracking-caps text-muted">
             <Info size={11} aria-hidden="true" className="shrink-0" />
             <span className="truncate">
               {appVersionLabel}
               {releaseDate ? ` · ${releaseDate}` : ""}
             </span>
           </span>
-          <span className="shrink-0 text-[9px] font-black uppercase tracking-widest text-white/60">
+          <span className="shrink-0 text-tiny font-black uppercase tracking-widest text-fg/60">
             About ›
           </span>
         </button>

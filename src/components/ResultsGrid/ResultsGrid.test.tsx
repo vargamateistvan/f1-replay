@@ -59,7 +59,7 @@ describe("ResultsGrid", () => {
     render(<ResultsGrid rounds={rounds} standings={standings} cells={cells} />);
     const ver = within(rowFor("VER")).getAllByRole("cell");
     expect(ver.map((c) => c.textContent)).toEqual(["1", "2", "DNF", "32"]);
-    expect(ver[0]).toHaveClass("bg-amber-300");
+    expect(ver[0]).toHaveClass("bg-podium-gold");
     expect(ver[0]).toHaveAttribute("title", "VER · Sakhir: P1 · 25 pts");
     expect(ver[2]).toHaveClass("text-f1red");
     expect(ver[2]).toHaveAttribute("title", "VER · Shanghai: DNF (did not finish) · 0 pts");

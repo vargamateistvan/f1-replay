@@ -42,7 +42,7 @@ export class ErrorBoundary extends Component<Props, State> {
       return (
         <div
           role="status"
-          className="flex min-h-[100dvh] items-center justify-center bg-track text-xs uppercase tracking-[0.12em] text-muted"
+          className="flex min-h-[100dvh] items-center justify-center bg-track text-xs uppercase tracking-caps text-muted"
         >
           Loading the latest version…
         </div>

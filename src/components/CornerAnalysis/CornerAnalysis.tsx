@@ -24,6 +24,7 @@ import {
   toDisplaySpeed,
 } from "@/utils/units";
 import { focusTelemetryCharts } from "@/components/TelemetryChart/sync";
+import { TOKEN_HEX } from "@/designTokens";
 
 export interface CornerAnalysisLap {
   key: string;
@@ -54,12 +55,12 @@ type CornerSegment = LapSegment & { zone: CornerZone };
 
 const PANEL = "bg-surface border border-panel";
 const PANEL_TITLE =
-  "text-[10px] font-bold text-muted px-3 py-2 border-b border-panel uppercase tracking-[0.12em] border-l-2 border-l-f1red bg-track";
+  "text-caption font-bold text-muted px-3 py-2 border-b border-panel uppercase tracking-caps border-l-2 border-l-f1red bg-track";
 const TH = "whitespace-nowrap px-2 py-1 text-right sm:px-3";
 const TD = "whitespace-nowrap px-2 py-1 text-right tabular-nums sm:px-3";
-const BEST = "text-[#b48ead] font-bold";
-const GAIN = "text-[#3fd35a]";
-const LOSS = "text-[#ff8a8a]";
+const BEST = "text-purple font-bold";
+const GAIN = "text-green-fg";
+const LOSS = "text-red-fg";
 const STRIP_W = 1000;
 const STRIP_H = 40;
 const STRIP_HALF = STRIP_H / 2 - 2;
@@ -242,7 +243,7 @@ function CornerAnalysisImpl({
             const lossIdx = summary.biggestLossIndex;
             return (
               <div key={lap.key} className="space-y-1">
-                <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[10px] uppercase tracking-[0.1em] text-muted">
+                <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-caption uppercase tracking-widest text-muted">
                   <span className="font-black" style={{ color: lap.color }}>
                     {lap.label} · L{lap.lapNo ?? "-"}
                   </span>
@@ -328,7 +329,7 @@ function CornerAnalysisImpl({
                             y={isGain ? STRIP_H / 2 - h : STRIP_H / 2}
                             width={Math.max(0.5, w - inset * 2)}
                             height={h}
-                            fill={isGain ? "#3fd35a" : "#ff5c70"}
+                            fill={isGain ? TOKEN_HEX.greenFg : "#ff5c70"}
                             opacity={0.85}
                           />
                         )}
@@ -348,7 +349,7 @@ function CornerAnalysisImpl({
               </div>
             );
           })}
-          <p className="text-[10px] text-[#636369]">
+          <p className="text-caption text-faint">
             Bars above the line = time gained, below = time lost · shaded bands =
             corners · click a bar to zoom
           </p>
@@ -358,7 +359,7 @@ function CornerAnalysisImpl({
       <div className="overflow-x-auto">
         <table className="w-full min-w-[720px] font-mono text-xs">
           <thead>
-            <tr className="text-[10px] uppercase tracking-widest text-[#636369]">
+            <tr className="text-caption uppercase tracking-widest text-faint">
               <th className="whitespace-nowrap px-2 py-1 text-left sm:px-3">Turn</th>
               <th className="whitespace-nowrap px-2 py-1 text-left sm:px-3">Driver</th>
               <th className={TH} title={`Speed entering the corner zone (${speedUnit})`}>
@@ -425,12 +426,12 @@ function CornerAnalysisImpl({
                         ? null
                         : (compared[lapIndex - 1]?.deltas[segmentIndex] ?? null);
                     const cls = (best: ReadonlySet<number>) =>
-                      best.has(lapIndex) ? BEST : "text-white";
+                      best.has(lapIndex) ? BEST : "text-fg";
                     const noBrake = !!m && m.brakeBeforeApexM === null;
                     return (
                       <tr
                         key={`${segment.key}-${lap.key}`}
-                        className={`${lapIndex === 0 ? "border-t border-panel" : ""} hover:bg-white/[0.03]`}
+                        className={`${lapIndex === 0 ? "border-t border-panel" : ""} hover:bg-fg/[0.03]`}
                         onMouseEnter={() => onHoverDistance?.(apex)}
                         onMouseLeave={() => onHoverDistance?.(null)}
                       >
@@ -442,11 +443,11 @@ function CornerAnalysisImpl({
                             <button
                               type="button"
                               onClick={() => focusSegment(segment)}
-                              className="inline-flex items-center gap-1.5 font-black text-white hover:text-f1red"
+                              className="inline-flex items-center gap-1.5 font-black text-fg hover:text-f1red"
                               title={`${cornerSpeedLabel(segment.zone.speedClass)} corner · zoom charts to ${segment.label}`}
                             >
                               <span
-                                className="h-2 w-2 rounded-sm border border-white/20"
+                                className="h-2 w-2 rounded-sm border border-fg/20"
                                 style={{
                                   background: CORNER_ZONE_COLORS[segment.zone.speedClass],
                                 }}
@@ -489,7 +490,7 @@ function CornerAnalysisImpl({
           </tbody>
         </table>
       </div>
-      <p className="px-3 py-1 text-[10px] text-[#636369]">
+      <p className="px-3 py-1 text-caption text-faint">
         Speeds in {speedUnit} · distances relative to the apex · purple = best ·
         car data is sampled at ~4 Hz, so braking and throttle points are accurate
         to about ±

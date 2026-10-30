@@ -52,6 +52,7 @@ import { SectorBar, type SectorTier } from "./SectorBar";
 import { TyreBadge } from "./TyreBadge";
 import { DriverHeadshot } from "@/components/DriverHeadshot";
 import { TooltipCard } from "@/components/TooltipCard/TooltipCard";
+import { TOKEN_HEX } from "@/designTokens";
 
 interface Props {
   readonly drivers: Driver[];
@@ -261,7 +262,7 @@ function StatusBadgeTooltip({
             title="Status"
             text={tooltip}
             accentClassName={tooltipAccentClassName}
-            className="pointer-events-none fixed z-[9999] w-56 max-w-[calc(100vw-2rem)]"
+            className="pointer-events-none fixed z-tooltip w-56 max-w-[calc(100vw-2rem)]"
             style={{ top: position.top, left: position.left }}
           />,
           document.body,
@@ -271,20 +272,20 @@ function StatusBadgeTooltip({
 }
 
 const LAP_TIME_COLOUR: Record<string, string> = {
-  fastest: "text-[#9b59f5]",
-  personal: "text-[#39b54a]",
-  normal: "text-[#f5d400]",
+  fastest: "text-purple",
+  personal: "text-green-fg",
+  normal: "text-yellow-fg",
   none: "text-muted",
 };
 
 const TH =
-  "py-1.5 px-1.5 text-[9px] font-bold uppercase tracking-[0.12em] text-muted select-none sm:px-2";
+  "py-1.5 px-1.5 text-tiny font-bold uppercase tracking-caps text-muted select-none sm:px-2";
 
 const TH_COMPACT =
-  "py-1 px-1.5 text-[9px] font-bold uppercase tracking-[0.1em] text-muted select-none sm:px-2";
+  "py-1 px-1.5 text-tiny font-bold uppercase tracking-widest text-muted select-none sm:px-2";
 
-const THROTTLE_COLOR = "#39d743";
-const BRAKE_COLOR = "#ff5252";
+const THROTTLE_COLOR = TOKEN_HEX.green;
+const BRAKE_COLOR = TOKEN_HEX.red;
 
 function clampPct(value: number) {
   return Math.max(0, Math.min(100, value));
@@ -301,9 +302,9 @@ function pedalPhase(throttle: number, brake: number): PedalPhase {
 
 // Same solid-fill badge vocabulary as the DRS / status badges in the tower.
 const PEDAL_PHASE_BADGE: Record<PedalPhase, string> = {
-  brake: "bg-[#ff5252] text-white",
-  full: "bg-[#39d743] text-black",
-  lift: "bg-[#f5a623] text-black",
+  brake: "bg-red text-white",
+  full: "bg-green text-black",
+  lift: "bg-orange text-black",
   partial: "bg-panel text-muted",
 };
 
@@ -356,7 +357,7 @@ function PedalBars({
         <PedalFill value={b} color={BRAKE_COLOR} heightClass="h-[4px]" />
       </span>
       <span
-        className={`flex w-[2rem] shrink-0 items-center justify-center px-1 py-0.5 text-center leading-none text-[9px] font-black uppercase tracking-[0.08em] tabular-nums ${PEDAL_PHASE_BADGE[phase]}`}
+        className={`flex w-[2rem] shrink-0 items-center justify-center px-1 py-0.5 text-center leading-none text-tiny font-black uppercase tracking-widest tabular-nums ${PEDAL_PHASE_BADGE[phase]}`}
       >
         {phaseLabel[phase]}
       </span>
@@ -392,7 +393,7 @@ function PedalTrace({ throttle, brake }: { throttle: number; brake: number }) {
 
 function revColor(rpm: number): string {
   if (rpm >= TELEMETRY_RPM_SHIFT) return BRAKE_COLOR;
-  if (rpm >= TELEMETRY_RPM_HIGH) return "#f5a623";
+  if (rpm >= TELEMETRY_RPM_HIGH) return TOKEN_HEX.orange;
   return THROTTLE_COLOR;
 }
 
@@ -413,8 +414,8 @@ function GearChip({ gear, sizeClass }: { gear: number; sizeClass: string }) {
     <span
       className={`flex shrink-0 items-center justify-center border font-mono font-black tabular-nums leading-none ${sizeClass} ${
         neutral
-          ? "border-[#f5a623]/60 text-[#f5a623]"
-          : "border-panel bg-panel/60 text-white"
+          ? "border-orange/60 text-orange-fg"
+          : "border-panel bg-panel/60 text-fg"
       }`}
       title={neutral ? "Neutral" : `Gear ${gear}`}
     >
@@ -425,7 +426,7 @@ function GearChip({ gear, sizeClass }: { gear: number; sizeClass: string }) {
 
 function drsBadgeClass(open: boolean): string {
   return open
-    ? "bg-[#39d743] text-black shadow-[0_0_6px_rgba(57,215,67,0.6)]"
+    ? "bg-green text-black shadow-[0_0_6px_rgba(57,215,67,0.6)]"
     : "border border-panel text-muted";
 }
 
@@ -448,28 +449,28 @@ function CombinedTelemetry({
   return (
     <span className="flex items-center gap-1.5 whitespace-nowrap font-mono tabular-nums leading-none">
       <span className="flex w-10 shrink-0 items-baseline justify-end gap-0.5">
-        <span className="text-[12px] font-bold text-white">{speed}</span>
-        <span className="text-[7px] font-semibold tracking-[0.06em] text-muted">
+        <span className="text-compact font-bold text-fg">{speed}</span>
+        <span className="text-micro font-semibold tracking-wider text-muted">
           {speedUnit}
         </span>
       </span>
-      <GearChip gear={car.n_gear} sizeClass="h-4 w-4 text-[10px]" />
+      <GearChip gear={car.n_gear} sizeClass="h-4 w-4 text-caption" />
       <span
         role="img"
         aria-label={`${rpm} rpm`}
         title={`${rpm} rpm`}
         className="flex w-11 shrink-0 flex-col gap-[3px]"
       >
-        <span className="text-right text-[9px] text-white/80">
+        <span className="text-right text-tiny text-fg/80">
           {rpm}
-          <span className="ml-0.5 text-[7px] text-muted">rpm</span>
+          <span className="ml-0.5 text-micro text-muted">rpm</span>
         </span>
         <MeterBar pct={revPct} color={revColor(rpm)} />
       </span>
       <PedalTrace throttle={car.throttle} brake={car.brake} />
       {showDrs && (
         <span
-          className={`w-7 shrink-0 py-[3px] text-center text-[8px] font-black uppercase tracking-[0.08em] transition-colors duration-150 motion-reduce:transition-none ${drsBadgeClass(drsOpen)}`}
+          className={`w-7 shrink-0 py-[3px] text-center text-micro font-black uppercase tracking-widest transition-colors duration-150 motion-reduce:transition-none ${drsBadgeClass(drsOpen)}`}
           title={`DRS raw value ${car.drs ?? 0}`}
         >
           DRS
@@ -631,7 +632,6 @@ export function LiveTiming({
   chequeredMs = null,
 }: Props) {
   const metricSystem = useSettings((s) => s.metricSystem);
-  const lightMode = useSettings((s) => s.lightMode);
   const [timingCellHighlights, setTimingCellHighlights] = useState<
     Record<string, number>
   >({});
@@ -1626,7 +1626,7 @@ export function LiveTiming({
     field: TimingHighlightField,
   ) => {
     return timingCellHighlights[`${driverNumber}:${field}`]
-      ? "bg-white/[0.035]"
+      ? "bg-fg/[0.035]"
       : "";
   };
 
@@ -1635,8 +1635,8 @@ export function LiveTiming({
     field: Exclude<TimingHighlightField, "bestLap" | "lastLap">,
   ) => {
     const tone = timingCellTones[`${driverNumber}:${field}`];
-    if (tone === "green") return "text-[#39d743]";
-    if (tone === "red") return "text-[#ff5252]";
+    if (tone === "green") return "text-green-fg";
+    if (tone === "red") return "text-red";
     return "text-muted";
   };
 
@@ -1645,8 +1645,8 @@ export function LiveTiming({
     field: Exclude<TimingHighlightField, "bestLap" | "lastLap">,
   ): CSSProperties | undefined => {
     const tone = timingCellTones[`${driverNumber}:${field}`];
-    if (tone === "green") return { color: "#39d743", fontWeight: 700 };
-    if (tone === "red") return { color: "#ff5252", fontWeight: 700 };
+    if (tone === "green") return { color: TOKEN_HEX.greenFg, fontWeight: 700 };
+    if (tone === "red") return { color: TOKEN_HEX.red, fontWeight: 700 };
     return undefined;
   };
 
@@ -1713,21 +1713,15 @@ export function LiveTiming({
     ? "py-0.5 px-1 sm:px-1.5"
     : "py-1 px-1 sm:px-1.5";
   const statusBadgeClass = dense
-    ? "inline-flex h-3 items-center px-0.5 text-[7px] leading-none"
-    : "inline-block text-[8px] px-1 py-0.5";
+    ? "inline-flex h-3 items-center px-0.5 text-micro leading-none"
+    : "inline-block text-micro px-1 py-0.5";
   let rowHeightClass = showTelemetry && !dense ? "h-auto sm:h-11" : "h-11";
   if (fullWidthTable) rowHeightClass = "h-8";
   else if (dense) rowHeightClass = "h-[30px]";
 
-  const timingStripClass = lightMode
-    ? "border-b border-slate-200 bg-white/95"
-    : "border-b border-panel bg-surface/80";
-  const timingHeaderRowClass = lightMode
-    ? "sticky top-0 z-10 border-b border-slate-200 bg-white"
-    : "sticky top-0 z-10 border-b border-panel bg-track";
-  const timingRowBaseClass = lightMode
-    ? "border-b border-slate-200 transition-colors"
-    : "border-b border-panel transition-colors";
+  const timingStripClass = "border-b border-panel bg-surface/80";
+  const timingHeaderRowClass = "sticky top-0 z-10 border-b border-panel bg-track";
+  const timingRowBaseClass = "border-b border-panel transition-colors";
   const mobilePositionColumnClass =
     showMobilePositionColumn && columns.position ? "" : "hidden sm:table-cell";
   const mobileDriverColumnClass =
@@ -1791,7 +1785,7 @@ export function LiveTiming({
     return (
       <div className="p-3 sm:p-4">
         <div className="rounded-sm border border-panel bg-surface px-3 py-3 sm:px-4">
-          <div className="text-[10px] font-black uppercase tracking-[0.14em] text-f1red">
+          <div className="text-caption font-black uppercase tracking-caps text-f1red">
             Loading timing data
           </div>
           <div className="mt-1 text-xs text-muted">
@@ -1805,7 +1799,7 @@ export function LiveTiming({
     return (
       <div className="p-3 sm:p-4">
         <div className="rounded-sm border border-panel bg-surface px-3 py-3 sm:px-4">
-          <div className="text-[10px] font-black uppercase tracking-[0.14em] text-white">
+          <div className="text-caption font-black uppercase tracking-caps text-fg">
             {sessionStartMs ? "Waiting for timing" : "No session selected"}
           </div>
           <div className="mt-1 text-xs text-muted">
@@ -1846,23 +1840,23 @@ export function LiveTiming({
                           : `${label} not set yet`
                       }
                     >
-                      <span className="bg-[#9b59f5] px-1.5 py-0.5 text-[9px] font-black uppercase tracking-widest text-white">
+                      <span className="bg-purple px-1.5 py-0.5 text-tiny font-black uppercase tracking-widest text-white">
                         {label}
                       </span>
                       {best ? (
                         <>
                           <span
-                            className="min-w-0 truncate font-black text-[10px] uppercase tracking-[0.08em] sm:text-[11px] sm:tracking-[0.1em]"
+                            className="min-w-0 truncate font-black text-caption uppercase tracking-widest sm:text-small sm:tracking-widest"
                             style={{ color }}
                           >
                             {driver?.name_acronym ?? best.driverNumber}
                           </span>
-                          <span className="ml-auto shrink-0 font-mono text-[9px] tabular-nums text-white sm:text-[10px]">
+                          <span className="ml-auto shrink-0 font-mono text-tiny tabular-nums text-fg sm:text-caption">
                             {best.time.toFixed(3)}
                           </span>
                         </>
                       ) : (
-                        <span className="truncate text-[9px] uppercase tracking-[0.1em] text-muted sm:text-[10px] sm:tracking-[0.12em]">
+                        <span className="truncate text-tiny uppercase tracking-widest text-muted sm:text-caption sm:tracking-caps">
                           Waiting
                         </span>
                       )}
@@ -1873,14 +1867,14 @@ export function LiveTiming({
             </>
           ) : (
             <div className="flex items-center gap-2 rounded-sm border border-panel bg-track px-2 py-2">
-              <span className="bg-[#9b59f5] px-1.5 py-0.5 text-[9px] font-black uppercase tracking-widest text-white shrink-0">
+              <span className="bg-purple px-1.5 py-0.5 text-tiny font-black uppercase tracking-widest text-white shrink-0">
                 Sectors
               </span>
               <div className="min-w-0">
-                <div className="text-[10px] font-black uppercase tracking-[0.12em] text-white">
+                <div className="text-caption font-black uppercase tracking-caps text-fg">
                   First timed lap pending
                 </div>
-                <div className="text-[10px] text-muted">
+                <div className="text-caption text-muted">
                   Sector references will appear as soon as timed laps are
                   registered.
                 </div>
@@ -1999,7 +1993,7 @@ export function LiveTiming({
                   className={`${headerCellClass} hidden sm:table-cell text-left ${combinedTelemetryWidthClass}`}
                 >
                   <span className="block leading-none">Telemetry</span>
-                  <span className="block text-[8px] normal-case tracking-normal text-muted leading-none mt-0.5">
+                  <span className="block text-micro normal-case tracking-normal text-muted leading-none mt-0.5">
                     {speedUnitShort} · Gear · RPM · Thr/Brk
                     {showCombinedDrs ? " · DRS" : ""}
                   </span>
@@ -2012,7 +2006,7 @@ export function LiveTiming({
                       className={`${headerCellClass} ${speedColumnClass} text-right w-[3rem]`}
                     >
                       <span className="block leading-none">Speed</span>
-                      <span className="block text-[8px] normal-case tracking-normal text-muted leading-none mt-0.5">
+                      <span className="block text-micro normal-case tracking-normal text-muted leading-none mt-0.5">
                         {speedUnitShort}
                       </span>
                     </th>
@@ -2191,23 +2185,23 @@ export function LiveTiming({
                 priorBestLap !== null &&
                 justSetLapDuration >= priorBestLap;
 
-              let rowBg = "hover:bg-white/[0.06]";
+              let rowBg = "hover:bg-fg/[0.06]";
               if (selected) rowBg = "bg-panel";
               else if (eliminated)
-                rowBg = "bg-[#22162e]/70 grayscale opacity-60";
+                rowBg = "bg-purple-tint/70 grayscale opacity-60";
               else if (retired) rowBg = "grayscale opacity-50";
               else if (idx % 2 === 1)
-                rowBg = "bg-white/[0.02] hover:bg-white/[0.06]";
+                rowBg = "bg-fg/[0.02] hover:bg-fg/[0.06]";
 
               let lapFlashClass = "";
               if (justSetLap) {
                 lapFlashClass = lastLapIsSessionBest
-                  ? "bg-[#2c1a45]/55"
+                  ? "bg-purple-tint/55"
                   : lastLapIsPersonalRegression
-                    ? "bg-[#3a2f08]/50"
+                    ? "bg-yellow-tint/50"
                     : lastLapIsPersonalImprovement
-                      ? "bg-[#173726]/45"
-                      : "bg-[#11263a]/45";
+                      ? "bg-green-tint/45"
+                      : "bg-blue-tint/45";
               }
 
               let statusContent: ReactNode = null;
@@ -2215,7 +2209,7 @@ export function LiveTiming({
                 statusContent = (
                   <span
                     title={`Eliminated in ${row.eliminatedPhase}`}
-                    className={`inline-flex bg-[#3a214a] text-[#e7c7ff] font-black uppercase tracking-widest ${statusBadgeClass}`}
+                    className={`inline-flex bg-purple-tint text-purple-fg font-black uppercase tracking-widest ${statusBadgeClass}`}
                   >
                     {fullWidthTable ? `OUT ${row.eliminatedPhase}` : "OUT"}
                   </span>
@@ -2223,7 +2217,7 @@ export function LiveTiming({
               } else if (retired) {
                 statusContent = (
                   <span
-                    className={`hidden min-[390px]:inline-flex bg-[#3a1010] text-[#ff5252] font-black uppercase tracking-widest ${statusBadgeClass}`}
+                    className={`hidden min-[390px]:inline-flex bg-red-tint text-red font-black uppercase tracking-widest ${statusBadgeClass}`}
                   >
                     RET
                   </span>
@@ -2244,7 +2238,7 @@ export function LiveTiming({
                 statusContent = (
                   <span
                     title="Out lap"
-                    className={`bg-[#4b5563] text-[#d0d5dd] font-black uppercase tracking-widest ${statusBadgeClass}`}
+                    className={`bg-line text-fg/80 font-black uppercase tracking-widest ${statusBadgeClass}`}
                   >
                     {fullWidthTable ? "OUTLAP" : "OL"}
                   </span>
@@ -2252,7 +2246,7 @@ export function LiveTiming({
               } else if (inPit) {
                 statusContent = (
                   <span
-                    className={`bg-[#f5a623] text-black font-black uppercase tracking-widest ${statusBadgeClass}`}
+                    className={`bg-orange text-black font-black uppercase tracking-widest ${statusBadgeClass}`}
                   >
                     PIT
                   </span>
@@ -2262,21 +2256,21 @@ export function LiveTiming({
               let gainedContent: ReactNode;
               if (gained === null || gained === 0) {
                 gainedContent = (
-                  <span className="inline-flex items-center gap-1 text-[#8a8a91]">
+                  <span className="inline-flex items-center gap-1 text-muted">
                     <span aria-hidden="true">-</span>
                     <span>0</span>
                   </span>
                 );
               } else if (gained > 0) {
                 gainedContent = (
-                  <span className="inline-flex items-center gap-1 text-[#39d743]">
+                  <span className="inline-flex items-center gap-1 text-green-fg">
                     <span aria-hidden="true">↑</span>
                     <span>{gained}</span>
                   </span>
                 );
               } else {
                 gainedContent = (
-                  <span className="inline-flex items-center gap-1 text-[#ffd400]">
+                  <span className="inline-flex items-center gap-1 text-yellow-fg">
                     <span aria-hidden="true">↓</span>
                     <span>{Math.abs(gained)}</span>
                   </span>
@@ -2293,7 +2287,7 @@ export function LiveTiming({
                   {/* Position */}
                   {columns.position && (
                     <td
-                      className={`${mobilePositionColumnClass} ${rowCellPad} align-middle px-1.5 font-black ${dense ? "text-xs" : "text-sm"} tabular-nums text-white/90 sm:px-2`}
+                      className={`${mobilePositionColumnClass} ${rowCellPad} align-middle px-1.5 font-black ${dense ? "text-xs" : "text-sm"} tabular-nums text-fg/90 sm:px-2`}
                     >
                       {pos}
                     </td>
@@ -2318,7 +2312,7 @@ export function LiveTiming({
                           />
                           {/* Surname in CAPS */}
                           <span
-                            className={`min-w-0 truncate font-bold ${dense ? "text-[9px] min-[390px]:text-[10px]" : "text-[10px] min-[390px]:text-[11px]"} tracking-[0.03em] min-[390px]:tracking-[0.05em] uppercase ${disabledColor ? "text-white/50" : "text-white"}`}
+                            className={`min-w-0 truncate font-bold ${dense ? "text-tiny min-[390px]:text-caption" : "text-caption min-[390px]:text-small"} tracking-wider min-[390px]:tracking-wider uppercase ${disabledColor ? "text-fg/50" : "text-fg"}`}
                           >
                             {showFullLastName ? (
                               <>
@@ -2338,11 +2332,11 @@ export function LiveTiming({
                         {showTelemetry &&
                           (!dense || showDenseMobileTelemetry) && (
                             <div
-                              className={`grid grid-cols-2 gap-x-1.5 gap-y-0.5 font-mono tabular-nums sm:hidden ${dense ? "mt-0.5 text-[8px] leading-3.5" : "mt-1 text-[9px] leading-4"}`}
+                              className={`grid grid-cols-2 gap-x-1.5 gap-y-0.5 font-mono tabular-nums sm:hidden ${dense ? "mt-0.5 text-micro leading-3.5" : "mt-1 text-tiny leading-4"}`}
                             >
                               {columns.speed && (
-                                <span className="inline-flex min-w-0 items-center gap-1 text-[#7dd3fc]">
-                                  <span className="text-[#89a6bf]">
+                                <span className="inline-flex min-w-0 items-center gap-1 text-blue-fg">
+                                  <span className="text-blue-fg/70">
                                     {speedUnitCompact}
                                   </span>
                                   <span className="w-[3ch] text-right">
@@ -2351,16 +2345,16 @@ export function LiveTiming({
                                 </span>
                               )}
                               {columns.rpm && (
-                                <span className="inline-flex min-w-0 items-center gap-1 text-[#c4b5fd]">
-                                  <span className="text-[#a79ac9]">RPM</span>
+                                <span className="inline-flex min-w-0 items-center gap-1 text-purple-fg">
+                                  <span className="text-purple-fg/70">RPM</span>
                                   <span className="w-[5ch] text-right">
                                     {rpmDisplay}
                                   </span>
                                 </span>
                               )}
                               {columns.gear && (
-                                <span className="inline-flex min-w-0 items-center gap-1 text-[#fde68a]">
-                                  <span className="text-[#d2bf72]">G</span>
+                                <span className="inline-flex min-w-0 items-center gap-1 text-yellow-fg">
+                                  <span className="text-yellow-fg/70">G</span>
                                   <span className="w-[3ch] text-right">
                                     {gearDisplay}
                                   </span>
@@ -2368,9 +2362,9 @@ export function LiveTiming({
                               )}
                               {showDrs && columns.drs && (
                                 <span
-                                  className={`inline-flex min-w-0 items-center gap-1 ${car && (car.drs ?? 0) >= 10 ? "text-[#39d743]" : "text-[#9ca3af]"}`}
+                                  className={`inline-flex min-w-0 items-center gap-1 ${car && (car.drs ?? 0) >= 10 ? "text-green-fg" : "text-muted"}`}
                                 >
-                                  <span className="text-[#9ba1a8]">DRS</span>
+                                  <span className="text-muted/80">DRS</span>
                                   <span className="w-[3ch] text-right">
                                     {drsDisplay}
                                   </span>
@@ -2381,14 +2375,14 @@ export function LiveTiming({
                                   <MobilePedalMeter
                                     label="T"
                                     value={car ? car.throttle : null}
-                                    color="#39d743"
-                                    labelClassName="text-[#6eb989]"
+                                    color={TOKEN_HEX.green}
+                                    labelClassName="text-green-fg"
                                   />
                                   <MobilePedalMeter
                                     label="B"
                                     value={car ? car.brake : null}
-                                    color="#ff5252"
-                                    labelClassName="text-[#c88787]"
+                                    color={TOKEN_HEX.red}
+                                    labelClassName="text-red-fg"
                                   />
                                 </span>
                               )}
@@ -2401,7 +2395,7 @@ export function LiveTiming({
                   {/* Alerts: investigation/penalty markers + driver status */}
                   {columns.alerts && (
                     <td
-                      className={`${mobileAlertsColumnClass} ${rowCellPad} align-middle ${fullWidthTable ? "px-0 text-center font-black sm:px-0.5" : "px-0 text-center font-black"} ${dense ? "text-[8px]" : "text-[8px] min-[390px]:text-[9px]"} tabular-nums`}
+                      className={`${mobileAlertsColumnClass} ${rowCellPad} align-middle ${fullWidthTable ? "px-0 text-center font-black sm:px-0.5" : "px-0 text-center font-black"} ${dense ? "text-micro" : "text-micro min-[390px]:text-tiny"} tabular-nums`}
                     >
                       {(hasInvestigationMarker ||
                         hasPenaltyMarker ||
@@ -2412,8 +2406,8 @@ export function LiveTiming({
                               label="!"
                               tooltip={investigationTitle}
                               ariaLabel="Under investigation"
-                              badgeClassName={`bg-[#f5a623] text-black font-black uppercase tracking-widest cursor-help ${statusBadgeClass}`}
-                              tooltipAccentClassName="bg-[#f5a623]"
+                              badgeClassName={`bg-orange text-black font-black uppercase tracking-widest cursor-help ${statusBadgeClass}`}
+                              tooltipAccentClassName="bg-orange"
                             />
                           )}
                           {hasPenaltyMarker && (
@@ -2421,8 +2415,8 @@ export function LiveTiming({
                               label="!"
                               tooltip={penaltyTitle}
                               ariaLabel="Penalty issued"
-                              badgeClassName={`bg-[#ff5252] text-white font-black uppercase tracking-widest cursor-help ${statusBadgeClass}`}
-                              tooltipAccentClassName="bg-[#ff5252]"
+                              badgeClassName={`bg-red text-white font-black uppercase tracking-widest cursor-help ${statusBadgeClass}`}
+                              tooltipAccentClassName="bg-red"
                             />
                           )}
                           {statusContent}
@@ -2437,7 +2431,7 @@ export function LiveTiming({
                   {/* Best lap time */}
                   {columns.bestLap && (
                     <td
-                      className={`${mobileBestLapColumnClass} ${rowCellPad} align-middle px-1 text-right font-mono transition-colors duration-300 ${dense ? "text-[9px] min-[390px]:text-[10px]" : "text-[10px] min-[390px]:text-[11px]"} tabular-nums sm:px-1.5 ${LAP_TIME_COLOUR[lapTier]} ${timingCellFlashClass(num, "bestLap")}`}
+                      className={`${mobileBestLapColumnClass} ${rowCellPad} align-middle px-1 text-right font-mono transition-colors duration-300 ${dense ? "text-tiny min-[390px]:text-caption" : "text-caption min-[390px]:text-small"} tabular-nums sm:px-1.5 ${LAP_TIME_COLOUR[lapTier]} ${timingCellFlashClass(num, "bestLap")}`}
                     >
                       {fmtTime(bestLap?.lap_duration ?? null)}
                     </td>
@@ -2445,7 +2439,7 @@ export function LiveTiming({
 
                   {columns.lastLap && (
                     <td
-                      className={`${mobileLastLapColumnClass} ${rowCellPad} align-middle px-1 text-right font-mono transition-colors duration-300 ${dense ? "text-[9px] min-[390px]:text-[10px]" : "text-[10px] min-[390px]:text-[11px]"} tabular-nums sm:px-1.5 ${lastLapDeleted ? "text-[#8a8a91] line-through" : LAP_TIME_COLOUR[lapTimeTier(lastLap?.lap_duration ?? null, sessionBest.lap, bestLap?.lap_duration ?? null)]} ${timingCellFlashClass(num, "lastLap")}`}
+                      className={`${mobileLastLapColumnClass} ${rowCellPad} align-middle px-1 text-right font-mono transition-colors duration-300 ${dense ? "text-tiny min-[390px]:text-caption" : "text-caption min-[390px]:text-small"} tabular-nums sm:px-1.5 ${lastLapDeleted ? "text-muted line-through" : LAP_TIME_COLOUR[lapTimeTier(lastLap?.lap_duration ?? null, sessionBest.lap, bestLap?.lap_duration ?? null)]} ${timingCellFlashClass(num, "lastLap")}`}
                       title={lastLapDeleted ? "Lap time deleted" : undefined}
                     >
                       {fmtTime(lastLap?.lap_duration ?? null)}
@@ -2455,7 +2449,7 @@ export function LiveTiming({
                   {/* Gap to leader */}
                   {columns.gap && (
                     <td
-                      className={`${mobileGapColumnClass} ${rowCellPad} align-middle px-1 text-right font-mono transition-colors duration-300 ${dense ? "text-[9px] min-[390px]:text-[10px]" : "text-[10px] min-[390px]:text-[11px]"} tabular-nums text-muted sm:px-2 ${timingCellToneClass(num, "gap")}`}
+                      className={`${mobileGapColumnClass} ${rowCellPad} align-middle px-1 text-right font-mono transition-colors duration-300 ${dense ? "text-tiny min-[390px]:text-caption" : "text-caption min-[390px]:text-small"} tabular-nums text-muted sm:px-2 ${timingCellToneClass(num, "gap")}`}
                       style={timingCellToneStyle(num, "gap")}
                     >
                       {fmtGap(gapValue)}
@@ -2465,7 +2459,7 @@ export function LiveTiming({
                   {/* Interval to car ahead */}
                   {showIntervalColumn && columns.interval && (
                     <td
-                      className={`${mobileIntervalColumnClass} ${rowCellPad} align-middle px-1 text-right font-mono transition-colors duration-300 ${dense ? "text-[9px] min-[390px]:text-[10px]" : "text-[10px] min-[390px]:text-[11px]"} tabular-nums text-muted sm:px-2 ${timingCellToneClass(num, "interval")}`}
+                      className={`${mobileIntervalColumnClass} ${rowCellPad} align-middle px-1 text-right font-mono transition-colors duration-300 ${dense ? "text-tiny min-[390px]:text-caption" : "text-caption min-[390px]:text-small"} tabular-nums text-muted sm:px-2 ${timingCellToneClass(num, "interval")}`}
                       style={timingCellToneStyle(num, "interval")}
                     >
                       {fmtInterval(intervalValue)}
@@ -2486,7 +2480,7 @@ export function LiveTiming({
                           title={`S1: ${lastLap?.duration_sector_1?.toFixed(3) ?? "—"}`}
                         />
                         {wideSectors && (
-                          <span className="text-[9px] font-mono tabular-nums text-muted leading-none">
+                          <span className="text-tiny font-mono tabular-nums text-muted leading-none">
                             {lastLap?.duration_sector_1?.toFixed(3) ?? "—"}
                           </span>
                         )}
@@ -2506,7 +2500,7 @@ export function LiveTiming({
                           title={`S2: ${lastLap?.duration_sector_2?.toFixed(3) ?? "—"}`}
                         />
                         {wideSectors && (
-                          <span className="text-[9px] font-mono tabular-nums text-muted leading-none">
+                          <span className="text-tiny font-mono tabular-nums text-muted leading-none">
                             {lastLap?.duration_sector_2?.toFixed(3) ?? "—"}
                           </span>
                         )}
@@ -2526,7 +2520,7 @@ export function LiveTiming({
                           title={`S3: ${lastLap?.duration_sector_3?.toFixed(3) ?? "—"}`}
                         />
                         {wideSectors && (
-                          <span className="text-[9px] font-mono tabular-nums text-muted leading-none">
+                          <span className="text-tiny font-mono tabular-nums text-muted leading-none">
                             {lastLap?.duration_sector_3?.toFixed(3) ?? "—"}
                           </span>
                         )}
@@ -2537,7 +2531,7 @@ export function LiveTiming({
                   {/* Position gain/loss from start */}
                   {columns.posDelta && (
                     <td
-                      className={`${mobilePosDeltaColumnClass} ${rowCellPad} align-middle px-1 text-left font-black ${dense ? "text-[11px]" : "text-xs min-[390px]:text-sm"} tabular-nums sm:px-2`}
+                      className={`${mobilePosDeltaColumnClass} ${rowCellPad} align-middle px-1 text-left font-black ${dense ? "text-small" : "text-xs min-[390px]:text-sm"} tabular-nums sm:px-2`}
                       title={
                         startPos !== null
                           ? `Started P${startPos}`
@@ -2569,7 +2563,7 @@ export function LiveTiming({
                   {/* Pit stops completed up to current playhead */}
                   {columns.pit && (
                     <td
-                      className={`${mobilePitCountColumnClass} ${rowCellPad} align-middle px-1 text-center font-mono ${dense ? "text-[10px]" : "text-[11px] min-[390px]:text-[12px]"} tabular-nums text-muted sm:px-1.5`}
+                      className={`${mobilePitCountColumnClass} ${rowCellPad} align-middle px-1 text-center font-mono ${dense ? "text-caption" : "text-small min-[390px]:text-compact"} tabular-nums text-muted sm:px-1.5`}
                     >
                       {pitCountMap.get(num) ?? 0}
                     </td>
@@ -2578,7 +2572,7 @@ export function LiveTiming({
                   {/* Current lap */}
                   {columns.currentLap && (
                     <td
-                      className={`${mobileCurrentLapColumnClass} ${rowCellPad} align-middle px-2 text-center font-mono ${dense ? "text-[10px]" : "text-[11px]"} tabular-nums text-muted`}
+                      className={`${mobileCurrentLapColumnClass} ${rowCellPad} align-middle px-2 text-center font-mono ${dense ? "text-caption" : "text-small"} tabular-nums text-muted`}
                     >
                       {currentLap !== null && totalLapCount !== null
                         ? `${currentLap}/${totalLapCount}`
@@ -2609,7 +2603,7 @@ export function LiveTiming({
                       {/* Speed */}
                       {columns.speed && (
                         <td
-                          className={`${speedColumnClass} ${rowCellPad} align-middle ${telemetryPadClass} text-right font-mono text-[12px] font-bold tabular-nums leading-none text-white`}
+                          className={`${speedColumnClass} ${rowCellPad} align-middle ${telemetryPadClass} text-right font-mono text-compact font-bold tabular-nums leading-none text-fg`}
                         >
                           {car && speedValue !== null ? (
                             <span className="flex flex-col gap-[3px]">
@@ -2635,7 +2629,7 @@ export function LiveTiming({
                           {car ? (
                             <GearChip
                               gear={car.n_gear}
-                              sizeClass="mx-auto h-5 w-5 text-[11px]"
+                              sizeClass="mx-auto h-5 w-5 text-small"
                             />
                           ) : (
                             <span className="text-muted">—</span>
@@ -2645,7 +2639,7 @@ export function LiveTiming({
                       {/* RPM */}
                       {columns.rpm && (
                         <td
-                          className={`${rpmColumnClass} ${rowCellPad} align-middle ${telemetryPadClass} text-right font-mono text-[10px] tabular-nums leading-none text-white/80`}
+                          className={`${rpmColumnClass} ${rowCellPad} align-middle ${telemetryPadClass} text-right font-mono text-caption tabular-nums leading-none text-fg/80`}
                         >
                           {car ? (
                             <span
@@ -2688,7 +2682,7 @@ export function LiveTiming({
                         >
                           {car ? (
                             <span
-                              className={`mx-auto flex min-w-[2rem] items-center justify-center px-1 py-0.5 text-center leading-none text-[9px] font-black uppercase tracking-[0.08em] transition-colors duration-150 motion-reduce:transition-none ${drsBadgeClass(
+                              className={`mx-auto flex min-w-[2rem] items-center justify-center px-1 py-0.5 text-center leading-none text-tiny font-black uppercase tracking-widest transition-colors duration-150 motion-reduce:transition-none ${drsBadgeClass(
                                 (car.drs ?? 0) >= 10,
                               )}`}
                               title={`DRS raw value ${car.drs ?? 0}`}

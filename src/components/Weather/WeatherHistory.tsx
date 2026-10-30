@@ -20,6 +20,7 @@ import {
   windSpeedUnitLabel,
 } from "@/utils/units";
 import { WeatherPanel } from "./WeatherPanel";
+import { TOKEN_HEX } from "@/designTokens";
 
 type Props = Readonly<{
   entries: Weather[];
@@ -136,11 +137,11 @@ export function WeatherHistory({
                 className="min-w-0 border border-panel bg-track p-3"
               >
                 <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
-                  <h3 className="text-[10px] font-bold uppercase tracking-wider text-white">
+                  <h3 className="text-caption font-bold uppercase tracking-wider text-fg">
                     {chart.title}{" "}
                     <span className="text-muted">({chart.unit})</span>
                   </h3>
-                  <div className="flex gap-3 text-[10px]">
+                  <div className="flex gap-3 text-caption">
                     {chart.series.map((series) => (
                       <span key={series.key} style={{ color: series.color }}>
                         {series.label}
@@ -191,7 +192,7 @@ export function WeatherHistory({
                         fontSize: 12,
                       }}
                     />
-                    <ReferenceLine x={sessionTimeMs} stroke="#E8002D" />
+                    <ReferenceLine x={sessionTimeMs} stroke={TOKEN_HEX.f1red} />
                     {chart.series.map((series) => (
                       <Line
                         key={series.key}

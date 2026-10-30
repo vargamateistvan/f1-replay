@@ -113,7 +113,7 @@ describe("CornerAnalysis", () => {
       .filter((row) => within(row).queryByText(/^(VER|LEC)$/))
       .map((row) => within(row).getByText("100"));
     expect(minCells).toHaveLength(2);
-    for (const cell of minCells) expect(cell.className).toContain("text-[#b48ead]");
+    for (const cell of minCells) expect(cell.className).toContain("text-purple");
   });
 
   it("omits the delta column with a single lap", () => {

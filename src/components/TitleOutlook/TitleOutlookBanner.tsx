@@ -37,7 +37,7 @@ export function TitleOutlookBanner({ entries, remaining, scope }: Props) {
         role="status"
         className="flex items-center gap-2 border-b border-panel bg-surface px-4 py-2 text-xs"
       >
-        <Trophy className="h-4 w-4 shrink-0 text-amber-300" aria-hidden />
+        <Trophy className="h-4 w-4 shrink-0 text-yellow-fg" aria-hidden />
         <MaybeLink
           to={leader.href}
           className="font-black hover:underline"
@@ -65,7 +65,7 @@ export function TitleOutlookBanner({ entries, remaining, scope }: Props) {
     >
       <span className="flex items-center gap-2">
         <Trophy className="h-4 w-4 shrink-0 text-muted" aria-hidden />
-        <span className="font-bold text-white">
+        <span className="font-bold text-fg">
           {plural(inContention.length, scope === "team" ? "team" : "driver")} in
           contention
         </span>
@@ -78,7 +78,7 @@ export function TitleOutlookBanner({ entries, remaining, scope }: Props) {
         {inContention.map((e) => (
           <span
             key={e.key}
-            className="flex items-center gap-1.5 border border-panel px-2 py-0.5 font-mono text-[10px]"
+            className="flex items-center gap-1.5 border border-panel px-2 py-0.5 font-mono text-caption"
             title={`Can reach at most ${e.title?.maxPoints ?? e.points} pts`}
           >
             <MaybeLink

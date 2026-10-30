@@ -198,7 +198,7 @@ export function PitFeed({
                 <CommentaryRow
                   key={`${entry.driver_number}-${entry.lap_number}-${entry.date}-${idx}`}
                   ms={ms}
-                  badge={{ label: "Pit", className: "bg-[#f5a623] text-black" }}
+                  badge={{ label: "Pit", className: "bg-orange text-black" }}
                   accent={color}
                   upcoming={ms > sessionTimeMs}
                   title={
@@ -212,12 +212,12 @@ export function PitFeed({
                     stop !== null || lane !== null || nextStint ? (
                       <>
                         {stop !== null && (
-                          <span className="text-white/90">
+                          <span className="text-fg/90">
                             Stop {formatPitDuration(stop) ?? "--:--:---"}
                           </span>
                         )}
                         {lane !== null && (
-                          <span className="text-white/70">
+                          <span className="text-fg/70">
                             Lane {formatPitDuration(lane) ?? "--:--:---"}
                           </span>
                         )}
@@ -230,7 +230,7 @@ export function PitFeed({
                                 currentLap={nextStint.lap_start}
                               />
                             </span>
-                            <span className="text-white/70">
+                            <span className="text-fg/70">
                               Stint {nextStint.stint_number} · L
                               {nextStint.lap_start}–{nextStint.lap_end}
                             </span>
@@ -285,10 +285,10 @@ function PitBattleLine({
   const rival = driverByNumber.get(rivalNumber);
   const tone =
     battle.attackerAheadAfter === null
-      ? "bg-white/10 text-white/80"
+      ? "bg-fg/10 text-fg/80"
       : battle.attackerAheadAfter
-        ? "bg-[#14b8a6] text-black"
-        : "bg-white/20 text-white";
+        ? "bg-teal text-black"
+        : "bg-fg/20 text-fg";
   return (
     <span className={`${COMMENTARY_META_CLASS} mt-1.5`}>
       <span className={`${COMMENTARY_BADGE_CLASS} ${tone}`}>
@@ -304,18 +304,18 @@ function PitBattleLine({
         </span>
       </span>
       {battle.attackerGainS !== null ? (
-        <span className="font-mono tabular-nums text-white/70">
+        <span className="font-mono tabular-nums text-fg/70">
           {formatBattleGain(battle.attackerGainS)}
         </span>
       ) : (
-        <span className="text-white/50">
+        <span className="text-fg/50">
           {battle.rivalStopLap === null
             ? `${rival?.name_acronym ?? rivalNumber} still out`
             : "out-lap"}
         </span>
       )}
       {battle.neutralised && (
-        <span className="text-white/50" title="A Safety Car, VSC or red flag affected this">
+        <span className="text-fg/50" title="A Safety Car, VSC or red flag affected this">
           SC/VSC
         </span>
       )}

@@ -244,7 +244,7 @@ function RadioRow({
   return (
     <CommentaryRow
       ms={ms}
-      badge={{ label: "Radio", className: "bg-[#4da6ff] text-black" }}
+      badge={{ label: "Radio", className: "bg-blue text-black" }}
       accent={teamColor(driver?.team_colour)}
       upcoming={ms > sessionTimeMs}
       title={
@@ -265,7 +265,7 @@ function RadioRow({
             disabled={!hasAudio}
             aria-label={isPlaying ? "Stop" : "Play"}
             className={`${COMMENTARY_BUTTON_CLASS} relative w-[64px] overflow-hidden ${
-              isPlaying ? "border-f1red text-white" : ""
+              isPlaying ? "border-f1red text-fg" : ""
             }`}
           >
             {isPlaying && (

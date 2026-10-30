@@ -1,4 +1,4 @@
-import { useSettings } from "@/stores/settings";
+import { minisectorClass } from "./sectorColors";
 
 export type SectorTier = "fastest" | "personal" | "normal" | "none";
 
@@ -15,23 +15,12 @@ interface Props {
 //   personal = green (driver personal best)
 //   normal   = yellow (slower than the driver's personal best)
 //   none     = empty  (not yet set)
-function minisectorClass(code: number, lightMode: boolean): string {
-  if (code === 2051)
-    return lightMode ? "bg-[#8f4cf0] ring-1 ring-white/30" : "bg-[#9b59f5]";
-  if (code === 2048)
-    return lightMode ? "bg-[#e0b400] ring-1 ring-white/25" : "bg-[#f5d400]";
-  if (code === 2049)
-    return lightMode ? "bg-[#2e9e45] ring-1 ring-white/20" : "bg-[#39b54a]";
-  if (code === 2064)
-    return lightMode
-      ? "bg-[#3b82c4] ring-1 ring-white/20"
-      : "bg-[#4a90d9]";
-  if (code === 0)
-    return lightMode ? "bg-slate-300/95 ring-1 ring-slate-400/15" : "bg-panel";
-  return lightMode
-    ? "bg-slate-500/70 ring-1 ring-slate-400/20"
-    : "bg-slate-500/70";
-}
+const TIER_CLASS: Record<SectorTier, string> = {
+  fastest: "bg-purple",
+  personal: "bg-green",
+  normal: "bg-yellow",
+  none: "bg-panel",
+};
 
 export function SectorBar({
   tier,
@@ -40,26 +29,18 @@ export function SectorBar({
   widthClass = "w-7",
   title,
 }: Props) {
-  const lightMode = useSettings((s) => s.lightMode);
-  const colour: Record<SectorTier, string> = {
-    fastest: "bg-[#9b59f5]",
-    personal: "bg-[#39b54a]",
-    normal: "bg-[#f5d400]",
-    none: lightMode ? "bg-slate-300/95" : "bg-panel",
-  };
-
   if (showMinisectors && segments && segments.length > 0) {
     return (
       <div
         title={title}
         className={`${widthClass} shrink-0 flex flex-col gap-[2px]`}
       >
-        <span className={`block h-[7px] ${colour[tier]}`} />
-        <span className="block h-[4px] rounded-[1px] overflow-hidden flex items-stretch gap-px">
+        <span className={`block h-[7px] ${TIER_CLASS[tier]}`} />
+        <span className="block h-[4px] rounded-sm overflow-hidden flex items-stretch gap-px">
           {segments.map((code, idx) => (
             <span
               key={`${idx}-${code}`}
-              className={`h-full flex-1 ${minisectorClass(code, lightMode)}`}
+              className={`h-full flex-1 ${minisectorClass(code)}`}
             />
           ))}
         </span>
@@ -70,7 +51,7 @@ export function SectorBar({
   return (
     <div
       title={title}
-      className={`${widthClass} h-[7px] shrink-0 ${colour[tier]}`}
+      className={`${widthClass} h-[7px] shrink-0 ${TIER_CLASS[tier]}`}
     />
   );
 }

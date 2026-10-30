@@ -62,7 +62,7 @@ export function SectionHeader({ children }: { children: ReactNode }) {
   return (
     <div className="flex items-center gap-2 pb-1 pt-6 first:pt-4">
       <span aria-hidden="true" className="h-3 w-0.5 shrink-0 bg-f1red" />
-      <span className="text-[11px] font-black uppercase tracking-[0.16em] text-white">
+      <span className="text-small font-black uppercase tracking-eyebrow text-fg">
         {children}
       </span>
     </div>
@@ -93,9 +93,9 @@ export function OptionRow({
       } ${disabled ? "opacity-40" : ""}`}
     >
       <div className="min-w-0">
-        <div className="text-[13px] leading-tight text-white/90">{label}</div>
+        <div className="text-body leading-tight text-fg/90">{label}</div>
         {description && (
-          <div className="mt-0.5 text-[11px] leading-tight text-muted">
+          <div className="mt-0.5 text-small leading-tight text-muted">
             {description}
           </div>
         )}
@@ -132,10 +132,10 @@ export function Segmented<T extends string | number>({
               animateMotion(e.currentTarget, pressMotion());
               onChange(option.value);
             }}
-            className={`h-7 min-w-9 px-2.5 font-mono text-[11px] font-bold uppercase tracking-wider transition-colors focus:outline-none focus-visible:ring-1 focus-visible:ring-inset focus-visible:ring-f1red ${
+            className={`h-7 min-w-9 px-2.5 font-mono text-small font-bold uppercase tracking-wider transition-colors focus:outline-none focus-visible:ring-1 focus-visible:ring-inset focus-visible:ring-f1red ${
               active
                 ? "bg-f1red text-white"
-                : "text-muted hover:bg-panel hover:text-white"
+                : "text-muted hover:bg-panel hover:text-fg"
             } ${disabled ? "cursor-not-allowed" : ""}`}
           >
             {option.label}
@@ -172,13 +172,13 @@ export function Chip({
         onToggle();
       }}
       className={[
-        "flex items-center gap-1.5 border px-2 py-1 text-[10px] font-bold uppercase tracking-[0.08em] transition-colors",
-        "focus:outline-none focus-visible:ring-1 focus-visible:ring-white/40",
+        "flex items-center gap-1.5 border px-2 py-1 text-caption font-bold uppercase tracking-widest transition-colors",
+        "focus:outline-none focus-visible:ring-1 focus-visible:ring-fg/40",
         active
           ? color
-            ? "border-panel bg-track text-white"
+            ? "border-panel bg-track text-fg"
             : "border-f1red bg-f1red text-white"
-          : "border-panel bg-transparent text-muted hover:border-muted hover:text-white",
+          : "border-panel bg-transparent text-muted hover:border-muted hover:text-fg",
         disabled ? "cursor-not-allowed opacity-50" : "",
       ].join(" ")}
       style={active && color ? { borderColor: color } : undefined}
@@ -214,14 +214,14 @@ export function ChipField({
       <div
         className={
           muted
-            ? "text-[11px] leading-tight text-muted"
-            : "text-[13px] leading-tight text-white/90"
+            ? "text-small leading-tight text-muted"
+            : "text-body leading-tight text-fg/90"
         }
       >
         {label}
       </div>
       {description && (
-        <div className="mt-0.5 text-[11px] leading-tight text-muted">
+        <div className="mt-0.5 text-small leading-tight text-muted">
           {description}
         </div>
       )}

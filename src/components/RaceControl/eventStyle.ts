@@ -13,9 +13,9 @@ const SEVERITY_BADGE: Record<
   RaceControlSeverity,
   { label: string; cls: string }
 > = {
-  info: { label: "Info", cls: "bg-track text-white/80" },
-  warning: { label: "Warn", cls: "bg-amber-500/20 text-amber-300" },
-  critical: { label: "Critical", cls: "bg-red-500/20 text-red-300" },
+  info: { label: "Info", cls: "bg-track text-fg/80" },
+  warning: { label: "Warn", cls: "bg-orange-tint text-orange-fg" },
+  critical: { label: "Critical", cls: "bg-red-tint text-red-fg" },
 };
 
 export interface RaceControlEventBadge {
@@ -44,7 +44,7 @@ export function raceControlEventBadge(e: StyledEvent): RaceControlEventBadge {
   }
   return {
     label,
-    className: isPenalty ? "bg-red-500/25 text-red-200" : severity.cls,
+    className: isPenalty ? "bg-red-tint text-red-fg" : severity.cls,
   };
 }
 

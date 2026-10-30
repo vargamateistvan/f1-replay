@@ -24,14 +24,10 @@ import {
   windDir,
 } from "../trackMapFormat";
 
-function panelClass(lightMode: boolean, raining: boolean): string {
-  const tint = lightMode
-    ? raining
-      ? "border-l-sky-500 bg-[linear-gradient(135deg,rgba(137,186,255,0.38)_0%,rgba(238,241,250,0.95)_55%)]"
-      : "border-l-[#9ca6bc] bg-[linear-gradient(135deg,rgba(187,193,209,0.45)_0%,rgba(238,241,250,0.95)_55%)]"
-    : raining
-      ? "border-l-sky-400 bg-[linear-gradient(135deg,rgba(18,40,74,0.45)_0%,rgba(21,21,30,0.95)_55%)]"
-      : "border-l-[#4b4b57] bg-[linear-gradient(135deg,rgba(34,36,50,0.45)_0%,rgba(21,21,30,0.95)_55%)]";
+function panelClass(raining: boolean): string {
+  const tint = raining
+    ? "border-l-blue bg-gradient-to-br from-blue-tint/80 to-track/95 to-55%"
+    : "border-l-line bg-gradient-to-br from-panel/45 to-track/95 to-55%";
   return `hidden md:block border border-panel border-l-2 px-2 py-1.5 ${tint}`;
 }
 
@@ -49,12 +45,12 @@ function PanelRow({
   return (
     <div className="flex items-center justify-between gap-2">
       <span
-        className={`${icon ? "inline-flex items-center gap-1 " : ""}text-[8px] uppercase tracking-[0.12em] text-muted`}
+        className={`${icon ? "inline-flex items-center gap-1 " : ""}text-micro uppercase tracking-caps text-muted`}
       >
         {icon}
         {label}
       </span>
-      <span className="text-[10px] font-mono tabular-nums text-white text-right">
+      <span className="text-caption font-mono tabular-nums text-fg text-right">
         {children}
       </span>
     </div>
@@ -65,13 +61,11 @@ function PanelRow({
 export function TrackClockPanel({
   nowMs,
   sessionGmtOffset,
-  lightMode,
   raining,
 }: {
   /** UTC ms at the playhead. */
   nowMs: number;
   sessionGmtOffset: string | null;
-  lightMode: boolean;
   raining: boolean;
 }) {
   const trackOffsetMinutes = useMemo(
@@ -83,8 +77,8 @@ export function TrackClockPanel({
     [],
   );
   return (
-    <div className={panelClass(lightMode, raining)} style={PANEL_STYLE}>
-      <div className="flex items-center gap-1.5 text-[8px] font-black uppercase tracking-[0.14em] text-muted">
+    <div className={panelClass(raining)} style={PANEL_STYLE}>
+      <div className="flex items-center gap-1.5 text-micro font-black uppercase tracking-caps text-muted">
         <Clock3 size={10} strokeWidth={2.2} aria-hidden="true" />
         Track Time
       </div>
@@ -95,10 +89,10 @@ export function TrackClockPanel({
         <PanelRow label="Local">
           {formatTrackClock(nowMs, "local", browserTimeZone)}
         </PanelRow>
-        <span className="col-span-2 text-[7px] uppercase tracking-[0.12em] text-muted">
+        <span className="col-span-2 text-micro uppercase tracking-caps text-muted">
           Track timezone: {formatTrackTimeZoneId(trackOffsetMinutes)}
         </span>
-        <span className="col-span-2 text-[7px] uppercase tracking-[0.12em] text-muted">
+        <span className="col-span-2 text-micro uppercase tracking-caps text-muted">
           Local timezone: {browserTimeZone}
         </span>
       </div>
@@ -109,21 +103,19 @@ export function TrackClockPanel({
 export const WeatherPanel = memo(function WeatherPanel({
   weather,
   metricSystem,
-  lightMode,
 }: {
   weather: Weather;
   metricSystem: UnitSystem;
-  lightMode: boolean;
 }) {
   const raining = weather.rainfall > 0;
   const tempUnit = temperatureUnitLabel(metricSystem);
   return (
-    <div className={panelClass(lightMode, raining)} style={PANEL_STYLE}>
-      <div className="flex items-center gap-1.5 text-[8px] font-black uppercase tracking-[0.14em] text-muted">
+    <div className={panelClass(raining)} style={PANEL_STYLE}>
+      <div className="flex items-center gap-1.5 text-micro font-black uppercase tracking-caps text-muted">
         <CloudRain size={10} strokeWidth={2.2} aria-hidden="true" />
         Track Weather
         {raining && (
-          <span className="ml-auto inline-flex items-center rounded-sm bg-sky-600/85 px-1 py-0.5 text-[7px] font-black tracking-[0.12em] text-white">
+          <span className="ml-auto inline-flex items-center rounded-sm bg-blue px-1 py-0.5 text-micro font-black tracking-caps text-black">
             Rain
           </span>
         )}
@@ -172,15 +164,15 @@ export const WeatherPanel = memo(function WeatherPanel({
             {weather.pressure.toFixed(0)} hPa
           </PanelRow>
           <div className="flex items-center justify-between gap-2">
-            <span className="text-[8px] uppercase tracking-[0.12em] text-muted">
+            <span className="text-micro uppercase tracking-caps text-muted">
               Dir/Rain
             </span>
-            <span className="text-[10px] font-mono tabular-nums text-right">
-              <span className="text-white">
+            <span className="text-caption font-mono tabular-nums text-right">
+              <span className="text-fg">
                 {windDir(weather.wind_direction)}
               </span>
               <span className="text-muted"> / </span>
-              <span className={raining ? "text-[#7dd3fc]" : "text-muted"}>
+              <span className={raining ? "text-blue-fg" : "text-muted"}>
                 {raining ? "YES" : "NO"}
               </span>
             </span>

@@ -31,10 +31,10 @@ export default function Settings() {
           </svg>
         </button>
         <div className="min-w-0">
-          <h1 className="text-[15px] font-black uppercase leading-tight tracking-[0.08em] text-white">
+          <h1 className="text-base font-black uppercase leading-tight tracking-widest text-fg">
             Settings
           </h1>
-          <p className="font-mono text-[9px] uppercase tracking-[0.14em] text-muted">
+          <p className="font-mono text-tiny uppercase tracking-caps text-muted">
             Saved on this device
           </p>
         </div>

@@ -76,7 +76,7 @@ export function CommentaryRow({
   const rowClass = [
     COMMENTARY_ROW_CLASS,
     rowClickable ? "w-full cursor-pointer" : "",
-    active ? "bg-white/[0.04]" : "",
+    active ? "bg-fg/[0.04]" : "",
     upcoming ? "opacity-50" : "",
     className,
   ].join(" ");
@@ -158,8 +158,8 @@ export function CommentaryRow({
 
 const TITLE_CLASS_BY_LINES = {
   1: COMMENTARY_TITLE_CLASS,
-  2: "line-clamp-2 text-[12px] font-semibold leading-4 text-white/90",
-  all: "text-[12px] font-semibold leading-4 text-white/90",
+  2: "line-clamp-2 text-compact font-semibold leading-4 text-fg/90",
+  all: "text-compact font-semibold leading-4 text-fg/90",
 } as const;
 
 /** Team-coloured driver code, optionally followed by the muted full name. */

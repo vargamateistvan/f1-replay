@@ -10,6 +10,7 @@ import { teamColor } from "@/utils/color";
 import { lastAtOrBefore } from "@/utils/sortedTime";
 import { useSettings } from "@/stores/settings";
 import { speedUnitLabel, toDisplaySpeed } from "@/utils/units";
+import { TOKEN_HEX } from "@/designTokens";
 
 interface Props {
   readonly sessionKey: number | null;
@@ -102,7 +103,7 @@ export function FocusedTelemetry({
 
   const color = teamColor(driver?.team_colour, "#ffffff");
   const drsOn = (sample?.drs ?? 0) >= 10;
-  const compareColor = teamColor(compareDriver?.team_colour, "#4da6ff");
+  const compareColor = teamColor(compareDriver?.team_colour, TOKEN_HEX.blue);
   const compareDrsOn = (compareSample?.drs ?? 0) >= 10;
 
   const compareTelemetry = useMemo(() => {
@@ -174,7 +175,7 @@ export function FocusedTelemetry({
 
         {compareDriver && (
           <>
-            <span className="hidden sm:inline text-muted text-[10px] uppercase tracking-widest">
+            <span className="hidden sm:inline text-muted text-caption uppercase tracking-widest">
               vs
             </span>
             <DriverStrip
@@ -190,7 +191,7 @@ export function FocusedTelemetry({
         {compareDriver && onClearCompare && (
           <button
             onClick={onClearCompare}
-            className="ml-auto shrink-0 text-muted hover:text-white text-[10px] font-black uppercase tracking-widest"
+            className="ml-auto shrink-0 text-muted hover:text-fg text-caption font-black uppercase tracking-widest"
             aria-label="Clear comparison driver"
             title="Clear comparison driver"
           >
@@ -200,7 +201,7 @@ export function FocusedTelemetry({
 
         <button
           onClick={onClear}
-          className="shrink-0 text-muted hover:text-white text-sm leading-none"
+          className="shrink-0 text-muted hover:text-fg text-sm leading-none"
           aria-label="Clear focus"
           title="Clear focus"
         >
@@ -291,11 +292,11 @@ function DriverStrip({
             w="w-[1ch]"
           />
           <Metric label="RPM" value={`${Math.round(sample.rpm)}`} w="w-[5ch]" />
-          <Bar label="Thr" value={sample.throttle} color="#39d743" />
-          <Bar label="Brk" value={sample.brake} color="#ff5252" />
+          <Bar label="Thr" value={sample.throttle} color={TOKEN_HEX.green} />
+          <Bar label="Brk" value={sample.brake} color={TOKEN_HEX.red} />
           <span
-            className={`px-1.5 py-0.5 text-[10px] font-black uppercase tracking-widest ${
-              drsOn ? "bg-[#39d743] text-black" : "bg-panel text-[#636369]"
+            className={`px-1.5 py-0.5 text-caption font-black uppercase tracking-widest ${
+              drsOn ? "bg-green text-black" : "bg-panel text-faint"
             }`}
             title="DRS"
           >
@@ -322,15 +323,15 @@ function Metric({
 }) {
   return (
     <span className="flex items-baseline gap-1 shrink-0">
-      <span className="text-[10px] font-bold uppercase tracking-widest text-muted">
+      <span className="text-caption font-bold uppercase tracking-widest text-muted">
         {label}
       </span>
       <span
-        className={`font-mono font-bold tabular-nums text-white text-right inline-block ${w}`}
+        className={`font-mono font-bold tabular-nums text-fg text-right inline-block ${w}`}
       >
         {value}
       </span>
-      {unit && <span className="text-[10px] text-muted">{unit}</span>}
+      {unit && <span className="text-caption text-muted">{unit}</span>}
     </span>
   );
 }
@@ -346,7 +347,7 @@ function Bar({
 }) {
   return (
     <span className="flex items-center gap-1.5 shrink-0">
-      <span className="text-[10px] font-bold uppercase tracking-widest text-muted">
+      <span className="text-caption font-bold uppercase tracking-widest text-muted">
         {label}
       </span>
       <span className="w-12 h-2 bg-panel overflow-hidden">

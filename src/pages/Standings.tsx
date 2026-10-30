@@ -61,7 +61,7 @@ function TitleLine({ title }: { title?: TitleOutlook }) {
   return (
     <div
       className={
-        title.status === "eliminated" ? "text-muted" : "text-amber-300"
+        title.status === "eliminated" ? "text-muted" : "text-yellow-fg"
       }
     >
       {TITLE_LABEL[title.status]}
@@ -83,7 +83,7 @@ function LoadingBar({ loaded, total }: { loaded: number; total: number }) {
       <span>
         Loading championship data… {loaded}/{total}
       </span>
-      <div className="flex-1 h-1 bg-panel rounded overflow-hidden">
+      <div className="flex-1 h-1 bg-panel rounded-sm overflow-hidden">
         <div
           className="h-full bg-f1red transition-all duration-300"
           style={{ transformOrigin: "left center", width: `${pct}%` }}
@@ -104,20 +104,20 @@ function DriverTooltip({ active, payload }: TooltipProps<DriverStanding>) {
   if (!active || !payload?.[0]) return null;
   const d = payload[0].payload;
   return (
-    <div className="bg-surface border border-panel text-xs font-mono px-3 py-2 rounded shadow-lg">
+    <div className="bg-surface border border-panel text-xs font-mono px-3 py-2 rounded-sm shadow-lg">
       <div className="font-bold" style={{ color: d.color }}>
         {d.fullName}
       </div>
       <div className="text-muted">{d.team}</div>
       <div className="mt-1">
-        <span className="text-white font-bold">{d.points}</span> pts
+        <span className="text-fg font-bold">{d.points}</span> pts
         {d.pointsDelta != null && (
           <span
-            className={`ml-2 text-[10px] ${
+            className={`ml-2 text-caption ${
               d.pointsDelta > 0
-                ? "text-emerald-400"
+                ? "text-green-fg"
                 : d.pointsDelta < 0
-                  ? "text-red-400"
+                  ? "text-red-fg"
                   : "text-muted"
             }`}
           >
@@ -141,12 +141,12 @@ function ConstructorTooltip({
   if (!active || !payload?.[0]) return null;
   const c = payload[0].payload;
   return (
-    <div className="bg-surface border border-panel text-xs font-mono px-3 py-2 rounded shadow-lg">
+    <div className="bg-surface border border-panel text-xs font-mono px-3 py-2 rounded-sm shadow-lg">
       <div className="font-bold" style={{ color: c.color }}>
         {c.name}
       </div>
       <div className="mt-1">
-        <span className="text-white font-bold">{c.points}</span> pts
+        <span className="text-fg font-bold">{c.points}</span> pts
       </div>
       <div className="text-muted">
         {c.wins} win{c.wins !== 1 ? "s" : ""}
@@ -193,23 +193,23 @@ function DriverTable({ standings }: { standings: DriverStanding[] }) {
       <table className="w-full border-collapse">
         <thead>
           <tr className="sticky top-0 bg-track z-10 border-b border-panel">
-            <th className="text-left py-2 px-3 text-[10px] font-bold uppercase tracking-widest text-muted w-8">
+            <th className="text-left py-2 px-3 text-caption font-bold uppercase tracking-widest text-muted w-8">
               P
             </th>
-            <th className="text-left py-2 px-3 text-[10px] font-bold uppercase tracking-widest text-muted">
+            <th className="text-left py-2 px-3 text-caption font-bold uppercase tracking-widest text-muted">
               Driver
             </th>
             {/* In the md+ split layout the panel is ≤420px; the team moves under the name. */}
-            <th className="text-left py-2 px-3 text-[10px] font-bold uppercase tracking-widest text-muted hidden sm:table-cell md:hidden">
+            <th className="text-left py-2 px-3 text-caption font-bold uppercase tracking-widest text-muted hidden sm:table-cell md:hidden">
               Team
             </th>
-            <th className="text-right py-2 px-3 text-[10px] font-bold uppercase tracking-widest text-muted w-16">
+            <th className="text-right py-2 px-3 text-caption font-bold uppercase tracking-widest text-muted w-16">
               Pts
             </th>
-            <th className="text-right py-2 px-2 text-[10px] font-bold uppercase tracking-widest text-muted w-10 hidden sm:table-cell">
+            <th className="text-right py-2 px-2 text-caption font-bold uppercase tracking-widest text-muted w-10 hidden sm:table-cell">
               W
             </th>
-            <th className="text-right py-2 px-2 text-[10px] font-bold uppercase tracking-widest text-muted w-12 hidden sm:table-cell">
+            <th className="text-right py-2 px-2 text-caption font-bold uppercase tracking-widest text-muted w-12 hidden sm:table-cell">
               Pds
             </th>
           </tr>
@@ -225,8 +225,8 @@ function DriverTable({ standings }: { standings: DriverStanding[] }) {
                 <span>{s.position}</span>
                 {s.positionChange != null && s.positionChange !== 0 && (
                   <span
-                    className={`ml-1 text-[10px] font-normal ${
-                      s.positionChange > 0 ? "text-emerald-400" : "text-red-400"
+                    className={`ml-1 text-caption font-normal ${
+                      s.positionChange > 0 ? "text-green-fg" : "text-red-fg"
                     }`}
                   >
                     {s.positionChange > 0 ? "▲" : "▼"}
@@ -256,10 +256,10 @@ function DriverTable({ standings }: { standings: DriverStanding[] }) {
                     {s.acronym}
                   </span>
                   <span className="hidden sm:flex flex-col leading-tight">
-                    <span className="text-muted text-xs group-hover:text-white group-hover:underline">
+                    <span className="text-muted text-xs group-hover:text-fg group-hover:underline">
                       {s.fullName}
                     </span>
-                    <span className="hidden md:block text-muted/70 text-[10px]">
+                    <span className="hidden md:block text-muted/70 text-caption">
                       {s.team}
                     </span>
                   </span>
@@ -273,11 +273,11 @@ function DriverTable({ standings }: { standings: DriverStanding[] }) {
                 {s.pointsDelta != null && (
                   <span
                     data-standing-delta
-                    className={`ml-1 text-[10px] font-normal ${
+                    className={`ml-1 text-caption font-normal ${
                       s.pointsDelta > 0
-                        ? "text-emerald-400"
+                        ? "text-green-fg"
                         : s.pointsDelta < 0
-                          ? "text-red-400"
+                          ? "text-red-fg"
                           : "text-muted"
                     }`}
                   >
@@ -384,16 +384,16 @@ function ConstructorTable({ standings }: { standings: ConstructorStanding[] }) {
       <table className="w-full border-collapse">
         <thead>
           <tr className="sticky top-0 bg-track z-10 border-b border-panel">
-            <th className="text-left py-2 px-3 text-[10px] font-bold uppercase tracking-widest text-muted w-8">
+            <th className="text-left py-2 px-3 text-caption font-bold uppercase tracking-widest text-muted w-8">
               P
             </th>
-            <th className="text-left py-2 px-3 text-[10px] font-bold uppercase tracking-widest text-muted">
+            <th className="text-left py-2 px-3 text-caption font-bold uppercase tracking-widest text-muted">
               Constructor
             </th>
-            <th className="text-right py-2 px-3 text-[10px] font-bold uppercase tracking-widest text-muted w-16">
+            <th className="text-right py-2 px-3 text-caption font-bold uppercase tracking-widest text-muted w-16">
               Pts
             </th>
-            <th className="text-right py-2 px-3 text-[10px] font-bold uppercase tracking-widest text-muted w-12 hidden sm:table-cell">
+            <th className="text-right py-2 px-3 text-caption font-bold uppercase tracking-widest text-muted w-12 hidden sm:table-cell">
               Wins
             </th>
           </tr>
@@ -409,8 +409,8 @@ function ConstructorTable({ standings }: { standings: ConstructorStanding[] }) {
                 <span>{s.position}</span>
                 {s.positionChange != null && s.positionChange !== 0 && (
                   <span
-                    className={`ml-1 text-[10px] font-normal ${
-                      s.positionChange > 0 ? "text-emerald-400" : "text-red-400"
+                    className={`ml-1 text-caption font-normal ${
+                      s.positionChange > 0 ? "text-green-fg" : "text-red-fg"
                     }`}
                   >
                     {s.positionChange > 0 ? "▲" : "▼"}
@@ -441,11 +441,11 @@ function ConstructorTable({ standings }: { standings: ConstructorStanding[] }) {
                 {s.pointsDelta != null && (
                   <span
                     data-standing-delta
-                    className={`ml-1 text-[10px] font-normal ${
+                    className={`ml-1 text-caption font-normal ${
                       s.pointsDelta > 0
-                        ? "text-emerald-400"
+                        ? "text-green-fg"
                         : s.pointsDelta < 0
-                          ? "text-red-400"
+                          ? "text-red-fg"
                           : "text-muted"
                     }`}
                   >
@@ -539,7 +539,7 @@ function ChartHeader({
 }) {
   return (
     <div className="mb-3 flex flex-wrap items-center justify-between gap-x-3 gap-y-2">
-      <div className="min-w-0 text-[10px] text-muted font-bold uppercase tracking-[0.12em]">
+      <div className="min-w-0 text-caption text-muted font-bold uppercase tracking-caps">
         Points — {title}
       </div>
       <div className="flex" role="group" aria-label="Chart view">
@@ -549,10 +549,10 @@ function ChartHeader({
             type="button"
             aria-pressed={view === v}
             onClick={() => onChange(v)}
-            className={`border px-2 py-1 text-[10px] font-bold uppercase tracking-[0.12em] ${
+            className={`border px-2 py-1 text-caption font-bold uppercase tracking-caps ${
               view === v
                 ? "border-f1red bg-f1red text-white"
-                : "border-panel bg-track text-muted hover:text-white"
+                : "border-panel bg-track text-muted hover:text-fg"
             }`}
           >
             {v}
@@ -791,10 +791,10 @@ export default function Standings() {
             aria-selected={tab === t}
             aria-label={t}
             onClick={() => setTab(t)}
-            className={`flex-1 shrink-0 whitespace-nowrap border-b-2 px-1.5 py-2 text-[10px] font-bold uppercase tracking-wider transition-colors sm:flex-none sm:px-4 sm:text-[11px] ${
+            className={`flex-1 shrink-0 whitespace-nowrap border-b-2 px-1.5 py-2 text-caption font-bold uppercase tracking-wider transition-colors sm:flex-none sm:px-4 sm:text-small ${
               tab === t
-                ? "text-white border-f1red"
-                : "text-muted border-transparent hover:text-white"
+                ? "text-fg border-f1red"
+                : "text-muted border-transparent hover:text-fg"
             }`}
           >
             {TAB_SHORT_LABEL[t] ? (
@@ -806,8 +806,8 @@ export default function Standings() {
               <span className="block">{t}</span>
             )}
             <span
-              className={`mt-1 block font-mono text-[9px] leading-none tabular-nums ${
-                tab === t ? "text-white/70" : "text-muted/80"
+              className={`mt-1 block font-mono text-tiny leading-none tabular-nums ${
+                tab === t ? "text-fg/70" : "text-muted/80"
               }`}
             >
               {tabCounts[t].count}

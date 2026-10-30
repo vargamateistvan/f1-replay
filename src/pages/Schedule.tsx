@@ -91,7 +91,7 @@ function SessionRow({
     <>
       <span
         className={`min-w-0 flex-1 truncate ${
-          status === "cancelled" ? "text-muted line-through" : "text-white"
+          status === "cancelled" ? "text-muted line-through" : "text-fg"
         }`}
       >
         {session.session_name}
@@ -99,16 +99,16 @@ function SessionRow({
       <span className="w-9 shrink-0 text-muted">
         {fmt.day(session.date_start, session.gmt_offset)}
       </span>
-      <span className="w-12 shrink-0 text-right tabular-nums text-white/85">
+      <span className="w-12 shrink-0 text-right tabular-nums text-fg/85">
         {fmt.time(session.date_start, session.gmt_offset)}
       </span>
       <span className="flex w-16 shrink-0 justify-end">
         {status === "live" ? (
-          <span className="rounded-sm bg-f1red px-1.5 py-0.5 text-[9px] font-black uppercase tracking-widest text-white">
+          <span className="rounded-sm bg-f1red px-1.5 py-0.5 text-tiny font-black uppercase tracking-widest text-white">
             Live
           </span>
         ) : canReplay ? (
-          <span className="flex items-center gap-1 text-[9px] font-bold uppercase tracking-widest text-muted group-hover:text-f1red">
+          <span className="flex items-center gap-1 text-tiny font-bold uppercase tracking-widest text-muted group-hover:text-f1red">
             <Play aria-hidden="true" className="h-2.5 w-2.5" />
             Replay
           </span>
@@ -117,7 +117,7 @@ function SessionRow({
     </>
   );
   const rowCls =
-    "group flex items-center gap-2 px-3 py-1.5 font-mono text-[11px]";
+    "group flex items-center gap-2 px-3 py-1.5 font-mono text-small";
   return canReplay ? (
     <Link
       to={replayPath({
@@ -125,7 +125,7 @@ function SessionRow({
         meetingKey: session.meeting_key,
         sessionKey: session.session_key,
       })}
-      className={`${rowCls} transition-colors hover:bg-white/5`}
+      className={`${rowCls} transition-colors hover:bg-fg/5`}
       aria-label={`Replay ${session.session_name}`}
     >
       {label}
@@ -169,20 +169,20 @@ function RoundCard({
           <img
             src={flagUrl}
             alt=""
-            className="mt-0.5 h-4 w-6 shrink-0 rounded-[2px] border border-white/20 object-cover"
+            className="mt-0.5 h-4 w-6 shrink-0 rounded-sm border border-fg/20 object-cover"
             loading="lazy"
             referrerPolicy="no-referrer"
           />
         ) : (
-          <span className="mt-0.5 h-4 w-6 shrink-0 rounded-[2px] bg-panel" />
+          <span className="mt-0.5 h-4 w-6 shrink-0 rounded-sm bg-panel" />
         )}
         <div className="min-w-0 flex-1">
-          <div className="flex flex-wrap items-center gap-1.5 text-[9px] font-black uppercase tracking-widest">
+          <div className="flex flex-wrap items-center gap-1.5 text-tiny font-black uppercase tracking-widest">
             <span className={round.isNext ? "text-f1red" : "text-muted"}>
               {kicker}
             </span>
             {round.isSprint && (
-              <span className="rounded-sm border border-amber-400/50 px-1 text-amber-300">
+              <span className="rounded-sm border border-yellow-line px-1 text-yellow-fg">
                 Sprint
               </span>
             )}
@@ -193,17 +193,17 @@ function RoundCard({
               <span className="rounded-sm bg-f1red px-1 text-white">Next</span>
             )}
           </div>
-          <h2 className="truncate text-sm font-bold text-white">
+          <h2 className="truncate text-sm font-bold text-fg">
             {meeting.meeting_name}
           </h2>
-          <div className="truncate text-[11px] text-muted">
+          <div className="truncate text-small text-muted">
             {meeting.circuit_short_name} · {meeting.location}
           </div>
         </div>
-        <div className="shrink-0 text-right font-mono text-[11px] text-white/85">
+        <div className="shrink-0 text-right font-mono text-small text-fg/85">
           {fmt.range(meeting.date_start, meeting.date_end, meeting.gmt_offset)}
           {round.isNext && nextSession && (
-            <div className="mt-0.5 text-[10px] text-f1red">
+            <div className="mt-0.5 text-caption text-f1red">
               {new Date(nextSession.date_start).getTime() > now
                 ? `${nextSession.session_name} in ${formatCountdown(
                     new Date(nextSession.date_start).getTime() - now,
@@ -223,7 +223,7 @@ function RoundCard({
           ))}
         </div>
       ) : (
-        <div className="px-3 py-2 text-[11px] text-muted">
+        <div className="px-3 py-2 text-small text-muted">
           {round.status === "cancelled" ? "Event cancelled" : "Session times TBC"}
         </div>
       )}
@@ -274,7 +274,7 @@ export default function Schedule() {
       <h1 className="sr-only">{`F1 ${year} season schedule`}</h1>
       <div className={PICKER_BAR}>
         <div className="flex flex-wrap items-center gap-x-3 gap-y-1 py-1.5 pl-[max(0.75rem,env(safe-area-inset-left))] pr-[max(0.75rem,env(safe-area-inset-right))] sm:px-4">
-          <span className="font-mono text-[11px] text-muted">
+          <span className="font-mono text-small text-muted">
             {isLoading
               ? "Loading calendar…"
               : `${schedule.completedRounds}/${schedule.totalRounds} rounds completed`}
@@ -291,10 +291,10 @@ export default function Schedule() {
                 role="radio"
                 aria-checked={timeMode === mode}
                 onClick={() => setTimeMode(mode)}
-                className={`px-2 py-1 text-[10px] font-bold uppercase tracking-wider transition-colors ${
+                className={`px-2 py-1 text-caption font-bold uppercase tracking-wider transition-colors ${
                   timeMode === mode
                     ? "bg-f1red text-white"
-                    : "text-muted hover:text-white"
+                    : "text-muted hover:text-fg"
                 }`}
               >
                 {TIME_MODE_LABEL[mode]}
