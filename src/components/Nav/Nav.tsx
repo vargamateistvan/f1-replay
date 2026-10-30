@@ -19,7 +19,6 @@ import { isSessionLive } from "@/utils/live";
 import { DEFAULT_YEAR, CURRENT_SEASON_STALE_MS, YEARS } from "@/constants";
 import { useNumberParam, useStringParam } from "@/hooks/useSearchParamState";
 import { AppLogo } from "@/components/AppLogo";
-import { LiveDataNotice } from "@/components/LiveDataNotice";
 import { useTimeline } from "@/timeline/clock";
 import { useSettings } from "@/stores/settings";
 import { TOUR_TARGET } from "@/components/AppTour/targets";
@@ -1086,7 +1085,6 @@ export function Nav() {
       )}
 
       {/* ── Auth failure banner (OpenF1 gates access during live sessions) */}
-      <LiveDataNotice error={authError} />
 
       {TRACK_FACTS_ENABLED && showCircuitFacts && selectedMeeting && (
         <div

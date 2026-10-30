@@ -73,7 +73,7 @@ describe("SessionPicker", () => {
     state.live = false;
   });
 
-  it("covers latest-event flow, auth banner, and live badge", async () => {
+  it("covers latest-event flow and live badge without duplicating the shared notice", async () => {
     state.meetings = {
       data: [
         {
@@ -142,8 +142,8 @@ describe("SessionPicker", () => {
     );
 
     expect(
-      screen.getByText("Live data is currently unavailable."),
-    ).toBeInTheDocument();
+      screen.queryByText("Live data is currently unavailable."),
+    ).not.toBeInTheDocument();
     expect(screen.queryByText(/VITE_OPENF1_API_KEY/)).not.toBeInTheDocument();
     expect(screen.getByText("Street Circuit")).toBeInTheDocument();
     expect(screen.getByText("Live")).toBeInTheDocument();

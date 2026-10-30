@@ -1,7 +1,8 @@
-import { fireEvent, render, screen } from "@testing-library/react";
+import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it } from "vitest";
+import { QueryClient, QueryClientProvider, QueryObserver } from "@tanstack/react-query";
 import { OpenF1Error } from "@/api/client";
-import { LiveDataNotice } from "./LiveDataNotice";
+import { LiveDataNotice, QueryLiveDataNotice } from "./LiveDataNotice";
 import { resetLiveDataNoticeDismissal } from "./dismissal";
 
 describe("LiveDataNotice", () => {
@@ -30,6 +31,32 @@ describe("LiveDataNotice", () => {
     );
 
     expect(container).toBeEmptyDOMElement();
+  });
+
+  it("renders one shared notice for multiple denied active queries and clears when recovered", async () => {
+    const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    const observers = ["drivers", "positions"].map((key) => new QueryObserver(client, {
+      queryKey: [key, 123],
+      queryFn: async () => { throw new OpenF1Error(401, key); },
+    }));
+    const unsubscribes = observers.map((observer) => observer.subscribe(() => {}));
+    const { unmount } = render(
+      <QueryClientProvider client={client}>
+        <QueryLiveDataNotice />
+      </QueryClientProvider>,
+    );
+    try {
+      await waitFor(() => expect(screen.getAllByRole("alert")).toHaveLength(1));
+      act(() => {
+        client.setQueryData(["drivers", 123], []);
+        client.setQueryData(["positions", 123], []);
+      });
+      await waitFor(() => expect(screen.queryByRole("alert")).not.toBeInTheDocument());
+    } finally {
+      unmount();
+      unsubscribes.forEach((unsubscribe) => unsubscribe());
+      client.clear();
+    }
   });
 
   it("can be dismissed, hiding every instance without persisting to storage", () => {

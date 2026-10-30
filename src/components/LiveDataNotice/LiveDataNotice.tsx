@@ -1,10 +1,27 @@
-import { useSyncExternalStore } from "react";
+import { useCallback, useSyncExternalStore } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { X } from "lucide-react";
 import { isAuthError } from "@/api/client";
 import { dismiss, getDismissed, subscribe } from "./dismissal";
 
 interface Props {
   readonly error: unknown;
+}
+
+export function QueryLiveDataNotice() {
+  const cache = useQueryClient().getQueryCache();
+  const subscribeToQueries = useCallback(
+    (notify: () => void) => cache.subscribe(notify),
+    [cache],
+  );
+  const getError = useCallback(
+    () => cache.findAll({ type: "active" })
+      .map((query) => query.state.error)
+      .find(isAuthError),
+    [cache],
+  );
+  const error = useSyncExternalStore(subscribeToQueries, getError, getError);
+  return <LiveDataNotice error={error} />;
 }
 
 export function LiveDataNotice({ error }: Props) {

@@ -1,6 +1,7 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useMemo } from "react";
 import { api } from "@/api/endpoints";
+import { isAuthError } from "@/api/client";
 import type { Location } from "@/api/types";
 import { CHUNK_MS, LOCATION_CHUNK_MS } from "@/constants";
 
@@ -105,6 +106,7 @@ export function useLocationChunks(
     ...locationChunkQueryOptions(sessionKey!, sessionStartMs!, chunkIdx),
     enabled,
   });
+  const canPrefetch = !current.isPending && !isAuthError(current.error);
 
   const previous = useQuery<Location[]>({
     ...locationChunkQueryOptions(
@@ -112,19 +114,19 @@ export function useLocationChunks(
       sessionStartMs!,
       Math.max(0, chunkIdx - 1),
     ),
-    enabled: enabled && chunkIdx > 0 && !current.isPending,
+    enabled: enabled && chunkIdx > 0 && canPrefetch,
   });
 
   const next = useQuery<Location[]>({
     ...locationChunkQueryOptions(sessionKey!, sessionStartMs!, chunkIdx + 1),
-    enabled: enabled && includeNextChunk && !current.isPending,
+    enabled: enabled && includeNextChunk && canPrefetch,
   });
 
   // Prefetch farther ahead at high playback speeds so fast-forward does not outrun
   // the network. Base headroom is +2/+3, then +4 at 8x and +5 at 16x.
   useEffect(() => {
     if (
-      !enabled || current.isPending || !prefetchChunks ||
+      !enabled || !canPrefetch || !prefetchChunks ||
       prefetchOffsets.length === 0
     ) return;
     // Prefetch only one furthest-ahead chunk per index step to avoid
@@ -139,7 +141,7 @@ export function useLocationChunks(
     });
   }, [
     qc,
-    current.isPending,
+    canPrefetch,
     enabled,
     prefetchChunks,
     prefetchOffsets,
@@ -154,7 +156,7 @@ export function useLocationChunks(
     tMs !== undefined &&
     tMs % LOCATION_CHUNK_MS > LOCATION_CHUNK_MS - earlyPrefetchMs;
   useEffect(() => {
-    if (!enabled || current.isPending || !nearBoundary || !prefetchChunks) return;
+    if (!enabled || !canPrefetch || !nearBoundary || !prefetchChunks) return;
     qc.prefetchQuery({
       ...locationChunkQueryOptions(
         sessionKey!,
@@ -164,7 +166,7 @@ export function useLocationChunks(
     });
   }, [
     qc,
-    current.isPending,
+    canPrefetch,
     earlyPrefetchMs,
     enabled,
     furthestPrefetchOffset,

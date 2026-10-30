@@ -3,6 +3,7 @@ import { act, fireEvent, render, screen, waitFor } from "@testing-library/react"
 import { MemoryRouter } from "react-router-dom";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { api } from "@/api/endpoints";
+import { OpenF1Error } from "@/api/client";
 import type { Driver, Lap, Location, Session } from "@/api/types";
 import { TOUR_VERSION } from "@/constants";
 import * as motion from "@/lib/motion";
@@ -317,6 +318,32 @@ describe("progressive replay startup", () => {
       .not.toBeInTheDocument());
     expect(api.drivers).toHaveBeenCalledTimes(1);
     expect(api.teamRadio).toHaveBeenCalledTimes(1);
+    unmount();
+  });
+
+  it.each([401, 403])("shows a terminal access state for %s instead of loading or broken panels", async (status) => {
+    vi.mocked(api.drivers).mockRejectedValue(new OpenF1Error(status, "drivers"));
+    // Other requests can still be queued when the access failure arrives.
+    vi.mocked(api.positions).mockImplementation(() => new Promise(() => {}));
+    useTimeline.getState().setPlaying(true);
+    const { unmount } = renderReplay();
+    expect(await screen.findByRole("heading", {
+      name: "Session data requires OpenF1 access",
+    })).toBeInTheDocument();
+    expect(screen.queryByText("Loading replay")).not.toBeInTheDocument();
+    expect(screen.queryByText("Timing panel")).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Retry failed requests" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Play" })).not.toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Browse schedule" }))
+      .toHaveAttribute("href", "/schedule?year=2024");
+    const support = screen.getByRole("link", { name: "Support on Buy Me a Coffee" });
+    expect(support).toHaveAttribute("href", "https://buymeacoffee.com/matt_varga");
+    expect(support).toHaveAttribute("target", "_blank");
+    expect(support).toHaveAttribute("rel", "noopener noreferrer");
+    expect(useTimeline.getState().playing).toBe(false);
+    fireEvent.keyDown(window, { key: " " });
+    expect(useTimeline.getState().playing).toBe(false);
+    expect(api.teamRadio).not.toHaveBeenCalled();
     unmount();
   });
 });

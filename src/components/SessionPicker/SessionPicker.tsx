@@ -1,13 +1,11 @@
 import { useLatestSession, useMeetings, useSessions } from "@/hooks/useSession";
 import { ErrorMessage } from "@/components/ErrorMessage";
-import { isAuthError } from "@/api/client";
 import { isSessionLive } from "@/utils/live";
 import { YEARS } from "@/constants";
 import { useCallback, useEffect, useState, useRef } from "react";
 import { useSearchParams } from "react-router-dom";
 import { replaceHistorySearchParams, toSafeExternalUrl } from "@/utils/url";
 import { trackEvent } from "@/lib/analytics";
-import { LiveDataNotice } from "@/components/LiveDataNotice";
 
 interface Props {
   year: number;
@@ -63,11 +61,6 @@ export function SessionPicker({
     selectedMeeting?.country_flag,
   );
   const live = isSessionLive(selectedSession);
-  const authError = [
-    meetings.error,
-    sessions.error,
-    latestSessionQuery.error,
-  ].find((e) => isAuthError(e));
   const latestSession = latestSessionQuery.data ?? null;
 
   // Automatically select the latest session once sessions load
@@ -160,7 +153,6 @@ export function SessionPicker({
 
   return (
     <div>
-      <LiveDataNotice error={authError} />
       <div className="bg-surface border-b border-panel">
         <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 px-4 py-2">
           <span className="text-caption font-bold uppercase tracking-widest text-muted">

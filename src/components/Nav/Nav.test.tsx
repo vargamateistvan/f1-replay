@@ -215,14 +215,14 @@ describe("Nav", () => {
     } as typeof state.sessions;
   });
 
-  it("renders auth/live banner and handles latest/settings/help actions", async () => {
+  it("handles denied calendar access without adding a second notice", async () => {
     state.meetings.isError = true;
     state.meetings.error = { status: 401 };
     render(<Nav />);
 
     expect(
-      screen.getByText("Live data is currently unavailable."),
-    ).toBeInTheDocument();
+      screen.queryByText("Live data is currently unavailable."),
+    ).not.toBeInTheDocument();
     expect(screen.queryByText(/VITE_OPENF1_API_KEY/)).not.toBeInTheDocument();
     expect(screen.getAllByText("Live").length).toBeGreaterThan(0);
 

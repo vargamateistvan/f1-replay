@@ -3,6 +3,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { act, renderHook, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { api } from "@/api/endpoints";
+import { OpenF1Error } from "@/api/client";
 import { LIVE_POLL_SLOW_MS } from "@/utils/live";
 import {
   useOvertakes, usePits, useSessionResult, useStartingGrid, useStints,
@@ -78,6 +79,23 @@ describe("staged session feeds", () => {
       expect(api.teamRadio).toHaveBeenCalledTimes(1);
       await act(async () => { await vi.advanceTimersByTimeAsync(LIVE_POLL_SLOW_MS); });
       expect(api.teamRadio).toHaveBeenCalledTimes(2);
+    } finally {
+      unmount();
+      client.clear();
+      vi.useRealTimers();
+    }
+  });
+
+  it.each([401, 403])("stops live polling after access is denied (%s)", async (status) => {
+    vi.useFakeTimers();
+    const { client, wrapper } = setup();
+    vi.mocked(api.teamRadio).mockRejectedValue(new OpenF1Error(status, "team_radio"));
+    const { unmount } = renderHook(() => useTeamRadio(123, true), { wrapper });
+    try {
+      await act(async () => { await vi.advanceTimersByTimeAsync(0); });
+      expect(api.teamRadio).toHaveBeenCalledTimes(1);
+      await act(async () => { await vi.advanceTimersByTimeAsync(3 * LIVE_POLL_SLOW_MS); });
+      expect(api.teamRadio).toHaveBeenCalledTimes(1);
     } finally {
       unmount();
       client.clear();

@@ -25,7 +25,6 @@ import {
   SessionInfoBar,
 } from "@/components/SessionInfoBar";
 import { ErrorMessage } from "@/components/ErrorMessage";
-import { LiveDataNotice } from "@/components/LiveDataNotice";
 import { FinalClassificationDialog } from "@/components/FinalClassification";
 import {
   useDrivers,
@@ -42,7 +41,8 @@ import {
   useOvertakes,
   useSessionResult,
 } from "@/hooks/useSession";
-import { useNavigate, useSearchParams } from "react-router-dom";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
+import { buttonClass } from "@/components/Button/buttonClass";
 import { useTimeline } from "@/timeline/clock";
 import {
   battleGaps as labelBattleGaps,
@@ -529,6 +529,9 @@ export default function RaceWeekend() {
   const raceControl = useRaceControl(sessionKey, live);
   const coreQueries = [sessions, drivers, positions, intervals, laps, raceControl];
   const coreSettled = coreQueries.every((query) => !query.isPending);
+  const accessDenied = coreQueries.some((query) => isAuthError(query.error));
+  const replayUnavailable = accessDenied &&
+    (!(drivers.data?.length) || !(positions.data?.length));
   const timingReady =
     Boolean(session) &&
     drivers.isSuccess && drivers.data.length > 0 &&
@@ -544,7 +547,7 @@ export default function RaceWeekend() {
     locationReady: location.isSuccess && location.data.length > 0,
     live,
   });
-  const secondaryOptions = { enabled: secondaryEnabled };
+  const secondaryOptions = { enabled: secondaryEnabled && !accessDenied };
   const stints = useStints(sessionKey, live, secondaryOptions);
   const pits = usePits(sessionKey, live, secondaryOptions);
   // The URL meeting key is known up front; keying on session?.meeting_key
@@ -558,23 +561,11 @@ export default function RaceWeekend() {
     ...coreQueries,
     stints, pits, grid, sessionResult, overtakes, teamRadio, weather,
     ...(isMapVisible ? [location] : []),
-  ].filter((query) => query.isError);
-  const liveDataError = live
-    ? [
-        drivers.error,
-        positions.error,
-        intervals.error,
-        stints.error,
-        laps.error,
-        pits.error,
-        grid.error,
-        sessionResult.error,
-        overtakes.error,
-        raceControl.error,
-        teamRadio.error,
-        weather.error,
-      ].find(isAuthError)
-    : null;
+  ].filter((query) => query.isError && !isAuthError(query.error));
+
+  useEffect(() => {
+    if (replayUnavailable) setTimelinePlaying(false);
+  }, [replayUnavailable, setTimelinePlaying]);
 
   const timedLaps = useMemo((): TimedRow<Lap>[] => {
     if (!sessionStartMs || !laps.data?.length) return [];
@@ -837,7 +828,7 @@ export default function RaceWeekend() {
   const isLoadingSessionData =
     sessionKey !== null && !coreSettled;
   const isLoadingEventSession =
-    meetingKey !== null && (sessions.isPending || isLoadingSessionData);
+    !accessDenied && meetingKey !== null && (sessions.isPending || isLoadingSessionData);
   const queryClient = useQueryClient();
 
   const shouldTrackToasts = currentView === "tracker";
@@ -2114,7 +2105,7 @@ export default function RaceWeekend() {
     setView,
     isModalOpen: isHelpOpen || isSettingsOpen || isTourOpen || welcome.visible,
     onOpenHelp: openHelp,
-    enabled: sessionKey !== null,
+    enabled: sessionKey !== null && !replayUnavailable,
   });
 
   function setFocusSelection(
@@ -2475,6 +2466,45 @@ export default function RaceWeekend() {
 
   // ── View layouts ─────────────────────────────────────────────────────────────
 
+  if (replayUnavailable) {
+    return (
+      <div className="flex flex-1 items-center justify-center bg-track p-6">
+        <section className="w-full max-w-lg border border-panel bg-surface p-6">
+          <h1 className="text-lg font-black uppercase tracking-wider text-fg">
+            Session data requires OpenF1 access
+          </h1>
+          <p className="mt-3 text-body text-muted">
+            OpenF1 has denied access to this session. Live timing requires a paid
+            API key; during live sessions, uncached historical data can also be
+            restricted. This is not a loading delay.
+          </p>
+          <p className="mt-2 text-body text-muted">
+            Try a cached replay from the schedule, or come back after the live
+            session ends.
+          </p>
+          <p className="mt-4 text-body text-muted">
+            Enjoy F1 Replay? Consider supporting the project on Buy Me a Coffee.
+            Your support helps keep it running and work toward bringing live
+            data to the app.
+          </p>
+          <div className="mt-5 flex flex-wrap gap-2">
+            <Link to={`/schedule?year=${yearParam ?? DEFAULT_YEAR}`} className={buttonClass("primary")}>
+              Browse schedule
+            </Link>
+            <a
+              href="https://buymeacoffee.com/matt_varga"
+              target="_blank"
+              rel="noopener noreferrer"
+              className={buttonClass("secondary")}
+            >
+              Support on Buy Me a Coffee
+            </a>
+          </div>
+        </section>
+      </div>
+    );
+  }
+
   return (
     <div className="relative flex flex-col overflow-x-clip pb-[calc(9.25rem+env(safe-area-inset-bottom))] sm:pb-[calc(7.5rem+env(safe-area-inset-bottom))] md:h-full md:min-h-0 md:flex-1 md:overflow-hidden md:pb-0">
       <h1 className="sr-only">F1 Replay: Formula 1 race replay with live timing, track map and telemetry</h1>
@@ -2575,8 +2605,6 @@ export default function RaceWeekend() {
           </button>
         </div>
       )}
-
-      <LiveDataNotice error={liveDataError} />
 
       {/* Mobile: zero-height sticky anchor keeps toasts in the top-right corner while scrolling */}
       {currentView === "tracker" && isCompactViewport && (

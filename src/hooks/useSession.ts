@@ -1,5 +1,6 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { api, type QueryFilters } from "@/api/endpoints";
+import { isAuthError } from "@/api/client";
 import type { Interval, Position } from "@/api/types";
 import {
   CURRENT_SEASON_STALE_MS,
@@ -115,7 +116,8 @@ export function usePositions(sessionKey: number | null, isLive = false) {
     },
     enabled: sessionKey !== null,
     staleTime: isLive ? 0 : Infinity,
-    refetchInterval: isLive ? LIVE_POLL_FAST_MS : false,
+    refetchInterval: (query) =>
+      isLive && !isAuthError(query.state.error) ? LIVE_POLL_FAST_MS : false,
   });
 }
 
@@ -144,7 +146,8 @@ export function useIntervals(sessionKey: number | null, isLive = false) {
     },
     enabled: sessionKey !== null,
     staleTime: isLive ? 0 : Infinity,
-    refetchInterval: isLive ? LIVE_POLL_FAST_MS : false,
+    refetchInterval: (query) =>
+      isLive && !isAuthError(query.state.error) ? LIVE_POLL_FAST_MS : false,
   });
 }
 
@@ -160,7 +163,8 @@ export function useLaps(
     enabled: sessionKey !== null,
     staleTime: isLive ? 0 : Infinity,
     // Laps update less frequently than position/interval timing rows.
-    refetchInterval: isLive ? LIVE_POLL_SLOW_MS : false,
+    refetchInterval: (query) =>
+      isLive && !isAuthError(query.state.error) ? LIVE_POLL_SLOW_MS : false,
   });
 }
 
@@ -174,7 +178,8 @@ export function useStints(
     queryFn: () => api.stints(sessionKey!),
     enabled: sessionKey !== null && (options?.enabled ?? true),
     staleTime: isLive ? 0 : Infinity,
-    refetchInterval: isLive ? LIVE_POLL_SLOW_MS : false,
+    refetchInterval: (query) =>
+      isLive && !isAuthError(query.state.error) ? LIVE_POLL_SLOW_MS : false,
   });
 }
 
@@ -236,7 +241,8 @@ export function usePits(
     queryFn: () => api.pits(sessionKey!),
     enabled: sessionKey !== null && (options?.enabled ?? true),
     staleTime: isLive ? 0 : Infinity,
-    refetchInterval: isLive ? LIVE_POLL_SLOW_MS : false,
+    refetchInterval: (query) =>
+      isLive && !isAuthError(query.state.error) ? LIVE_POLL_SLOW_MS : false,
   });
 }
 
@@ -246,7 +252,8 @@ export function useRaceControl(sessionKey: number | null, isLive = false) {
     queryFn: () => api.raceControl(sessionKey!),
     enabled: sessionKey !== null,
     staleTime: isLive ? 0 : Infinity,
-    refetchInterval: isLive ? LIVE_POLL_SLOW_MS : false,
+    refetchInterval: (query) =>
+      isLive && !isAuthError(query.state.error) ? LIVE_POLL_SLOW_MS : false,
   });
 }
 
@@ -260,7 +267,8 @@ export function useTeamRadio(
     queryFn: () => api.teamRadio(sessionKey!),
     enabled: sessionKey !== null && (options?.enabled ?? true),
     staleTime: isLive ? 0 : Infinity,
-    refetchInterval: isLive ? LIVE_POLL_SLOW_MS : false,
+    refetchInterval: (query) =>
+      isLive && !isAuthError(query.state.error) ? LIVE_POLL_SLOW_MS : false,
   });
 }
 
@@ -274,7 +282,8 @@ export function useWeather(
     queryFn: () => api.weather(sessionKey!),
     enabled: sessionKey !== null && (options?.enabled ?? true),
     staleTime: isLive ? 0 : Infinity,
-    refetchInterval: isLive ? LIVE_POLL_SLOW_MS : false,
+    refetchInterval: (query) =>
+      isLive && !isAuthError(query.state.error) ? LIVE_POLL_SLOW_MS : false,
   });
 }
 
@@ -300,7 +309,8 @@ export function useOvertakes(
     queryFn: () => api.overtakes(sessionKey!),
     enabled: sessionKey !== null && (options?.enabled ?? true),
     staleTime: isLive ? 0 : Infinity,
-    refetchInterval: isLive ? LIVE_POLL_SLOW_MS : false,
+    refetchInterval: (query) =>
+      isLive && !isAuthError(query.state.error) ? LIVE_POLL_SLOW_MS : false,
   });
 }
 

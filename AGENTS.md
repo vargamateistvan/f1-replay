@@ -290,7 +290,7 @@ components/ (render to DOM; read settings from Zustand)
 | `CommentaryPanels`                                | Tabbed side panel (`CommentaryTab`: rc / radio / pits / passes / moments / chapters / weather); lazy-loads each feed. `keyMoments.ts` builds Key Moments, `CommentaryJumpButton` seeks to an item. Every feed renders items with `CommentaryRow` (time + type badge left, team-coloured driver code + title, mono meta line, actions; upcoming items dimmed in "All" mode) and styles from `commentaryList.ts`; qualifying feeds group only into Q1/Q2/Q3 (untagged messages take the phase in effect) |
 | `Pits` (`PitFeed`)                                | Pit stop feed (commentary "pits" tab); the first stopper's row shows its undercut/overcut battle (`pitBattles` prop from `RaceWeekend`) |
 | `TyreChange`                                      | Old compound + laps → new compound + age; `compact` variant for inline text              |
-| `LiveDataNotice`                                  | Dismissible notice that live timing needs paid OpenF1 access (`dismissal.ts` store)      |
+| `LiveDataNotice`                                  | Dismissible notice that live timing needs paid OpenF1 access (`dismissal.ts` store). `QueryLiveDataNotice` is mounted once below `Nav` in the route shell and observes active query auth failures; pages/pickers must not mount extra notices |
 | `AboutDialog`                                     | Mobile About dialog: version, release date, Privacy/Terms links                          |
 | `DialogHeader`                                    | Shared modal header (Settings, How it works, About, catch-up) in the legal-page style: red eyebrow strip + mono meta, black uppercase title, square close button |
 | `TooltipCard`                                     | Shared tooltip card styling                                                              |
@@ -464,6 +464,7 @@ yarn test         # Vitest with coverage
 Live sessions:
 
 - Use `refetchInterval` polling: `LIVE_POLL_FAST_MS` for timing-critical data (positions, intervals, laps), `LIVE_POLL_SLOW_MS` for the rest (weather, race control, radio, overtakes…).
+- Stop polling an endpoint after HTTP 401/403; these are access restrictions, not transient loading failures. GPS auth failures also stop adjacent-chunk prefetch. When core access is denied and drivers/positions are unavailable, `RaceWeekend` pauses playback and shows an access-required state instead of loading/broken panels; usable cached timing remains available.
 - Skip IndexedDB persistence (`staleTime: 0` marks them stale on restore).
 - Show real-time leaderboard updates.
 - `useOpenF1LiveMqtt` (mounted by `RaceWeekend`) subscribes to OpenF1 MQTT topics (`v1/position`, `v1/intervals`, `v1/laps`, `v1/race_control`, `v1/team_radio`, `v1/weather`, `v1/overtakes`) and merges rows into the same query keys via `setQueryData` (capped at `LIVE_MQTT_MAX_ROWS`). Needs `VITE_OPENF1_MQTT_*` credentials; polling remains the fallback. MQTT-only data is not persisted (Pitfall 7).
