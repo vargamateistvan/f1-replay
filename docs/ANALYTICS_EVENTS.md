@@ -263,6 +263,29 @@ require GPS. Recordings sample only 10% of sessions.
 
 #### Interactions
 
+- `replay_welcome_viewed`
+  - Trigger: first-use replay introduction dialog is shown (once, persisted).
+- `replay_welcome_dismissed`
+  - Params: `reason` (`dismiss` | `play` | `tour`)
+  - Trigger: explicit dismissal, successful preview start, or optional tour selection.
+- `replay_welcome_play_requested`
+  - Params: `mode` (`race_start` | `session_start`), `target_ms`
+  - Trigger: primary welcome action; destination GPS is loaded before playback.
+- `replay_welcome_play_started`
+  - Params: `mode`, `target_ms`
+  - Trigger: preview GPS is available and playback starts at 1x in the tracker.
+- `replay_welcome_play_failed`
+  - Params: `reason` (`empty_location` or the thrown error's name)
+  - Trigger: preview GPS is empty or fails; playback is not started.
+- `tour_started`
+  - Params: `source` (`welcome` from the introduction; other manual entry points
+    retain their existing source)
+  - Trigger: explicit tour selection, never automatic startup.
+
+Compare `replay_welcome_viewed` → `replay_welcome_play_requested` →
+`replay_welcome_play_started` with overall replay readiness and existing
+playback/driver interactions. Tour completion is not required for activation.
+
 - `raceweekend_focus_changed`
   - Params: `focus_driver`, `compare_driver`, `source`
   - Trigger: focus/compare state changes

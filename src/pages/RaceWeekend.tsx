@@ -3,12 +3,15 @@ import {
   Suspense,
   useCallback,
   useEffect,
+  useId,
   useMemo,
   useRef,
   useState,
 } from "react";
+import { createPortal } from "react-dom";
 import { useQueryClient } from "@tanstack/react-query";
-import { Settings as SettingsIcon } from "lucide-react";
+import { Play, Settings as SettingsIcon } from "lucide-react";
+import { DialogHeader } from "@/components/DialogHeader";
 import { PlaybackBar } from "@/components/PlaybackBar";
 import { TOUR_TARGET } from "@/components/AppTour/targets";
 import type { ActiveTrackVehicles } from "@/components/TrackMap/TrackMap";
@@ -67,8 +70,9 @@ import {
 import { useNumberParam, useStringParam } from "@/hooks/useSearchParamState";
 import { useTimelineUrlSync } from "@/hooks/useTimelineUrlSync";
 import { useKeyboardShortcuts } from "@/hooks/useKeyboardShortcuts";
-import { useAutoStartTour } from "@/hooks/useAutoStartTour";
+import { useReplayWelcome } from "@/hooks/useReplayWelcome";
 import { useReplayStartup } from "@/hooks/useReplayStartup";
+import { replaceHistorySearchParams } from "@/utils/url";
 import {
   lapStartTimes,
   pitTimes,
@@ -1614,7 +1618,11 @@ export default function RaceWeekend() {
     notificationMaxVisible,
     playingToastIds,
   );
-  const { summary: catchupSummary, dismiss: dismissCatchup } =
+  const {
+    summary: catchupSummary,
+    dismiss: dismissCatchup,
+    skipNextSeek: skipWelcomeCatchup,
+  } =
     useCatchupSummary(filteredToastEvents, t);
 
   const effectiveDuration = durationMs || DEFAULT_SESSION_MS;
@@ -1985,12 +1993,105 @@ export default function RaceWeekend() {
   }, [qualiPhase, sessionName]);
 
   // ── App tour ──────────────────────────────────────────────────────────────
-  // Steps point at the timing tower and map, so the tour waits for the session.
+  // The introduction and optional tour wait for the visible replay data.
   const isTourReady =
     timingReady &&
     !isLoadingSessionData &&
     (!isMapVisible || (location.isSuccess && location.data.length > 0));
-  useAutoStartTour(isTourReady);
+  const welcome = useReplayWelcome(isTourReady, live, timelinePlaying);
+  const [startingWelcomeReplay, setStartingWelcomeReplay] = useState(false);
+  const [welcomeReplayError, setWelcomeReplayError] = useState<string | null>(null);
+  const welcomeRequest = useRef({ id: 0 });
+  useEffect(() => {
+    const request = welcomeRequest.current;
+    setStartingWelcomeReplay(false);
+    setWelcomeReplayError(null);
+    return () => { request.id++; };
+  }, [sessionKey, live, timelinePlaying]);
+  const welcomeRaceStart =
+    isRaceSession && lightsOutMs !== null && lightsOutMs >= 0 &&
+    lightsOutMs <= playbackDurationMs;
+
+  function closeWelcome(tour: boolean) {
+    welcomeRequest.current.id++;
+    setStartingWelcomeReplay(false);
+    setWelcomeReplayError(null);
+    if (tour) welcome.takeTour();
+    else welcome.dismiss("dismiss");
+  }
+
+  const welcomeTitleId = useId();
+  const welcomeDescriptionId = useId();
+  const welcomeDialogRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (!welcome.visible) return;
+    const previousFocus = document.activeElement;
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    welcomeDialogRef.current?.focus();
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      if (previousFocus instanceof HTMLElement && previousFocus.isConnected) {
+        previousFocus.focus();
+      }
+    };
+  }, [welcome.visible]);
+
+  async function startWelcomeReplay() {
+    if (startingWelcomeReplay || sessionKey === null || !sessionStartMs) return;
+    const request = ++welcomeRequest.current.id;
+    const targetMs = welcomeRaceStart && lightsOutMs !== null
+      ? Math.max(0, startLightsWindow(lightsOutMs).startMs)
+      : 0;
+    setStartingWelcomeReplay(true);
+    setWelcomeReplayError(null);
+    trackEvent("replay_welcome_play_requested", {
+      mode: welcomeRaceStart ? "race_start" : "session_start",
+      target_ms: targetMs,
+    });
+    try {
+      const rows = await queryClient.fetchQuery({
+        ...locationChunkQueryOptions(
+          sessionKey, sessionStartMs, locationChunkIndexFor(targetMs),
+        ),
+        staleTime: welcomeReplayError ? 0 : Infinity,
+      });
+      if (request !== welcomeRequest.current.id) return;
+      if (rows.length === 0) {
+        setWelcomeReplayError("Track data is unavailable for this moment. Try again or explore the session.");
+        trackEvent("replay_welcome_play_failed", { reason: "empty_location" });
+        return;
+      }
+      if (targetMs !== useTimeline.getState().t) skipWelcomeCatchup();
+      setTimelineT(targetMs);
+      useTimeline.getState().setSpeed(1);
+      // Commit the view and playhead together after the clock's URL subscription.
+      setSearchParams((prev) => {
+        const next = new URLSearchParams(prev);
+        next.set("view", "tracker");
+        if (isCompactViewport) next.set("ttab", "map");
+        if (targetMs > 0) next.set("t", String(Math.round(targetMs / 1000)));
+        else next.delete("t");
+        next.delete("speed");
+        replaceHistorySearchParams(next);
+        return next;
+      }, { replace: true });
+      setTimelinePlaying(true);
+      welcome.dismiss("play");
+      trackEvent("replay_welcome_play_started", {
+        mode: welcomeRaceStart ? "race_start" : "session_start",
+        target_ms: targetMs,
+      });
+    } catch (error) {
+      if (request !== welcomeRequest.current.id) return;
+      setWelcomeReplayError("Could not load the replay. Try again or explore the session.");
+      trackEvent("replay_welcome_play_failed", {
+        reason: error instanceof Error ? error.name : "unknown",
+      });
+    } finally {
+      if (request === welcomeRequest.current.id) setStartingWelcomeReplay(false);
+    }
+  }
   // Every step points at the Driver Tracker layout.
   useEffect(() => {
     if (isTourOpen && currentView !== "tracker") setView("tracker");
@@ -2011,7 +2112,7 @@ export default function RaceWeekend() {
     eventTimes: keyMomentMarks,
     durationMs: playbackDurationMs,
     setView,
-    isModalOpen: isHelpOpen || isSettingsOpen || isTourOpen,
+    isModalOpen: isHelpOpen || isSettingsOpen || isTourOpen || welcome.visible,
     onOpenHelp: openHelp,
     enabled: sessionKey !== null,
   });
@@ -2377,6 +2478,81 @@ export default function RaceWeekend() {
   return (
     <div className="relative flex flex-col overflow-x-clip pb-[calc(9.25rem+env(safe-area-inset-bottom))] sm:pb-[calc(7.5rem+env(safe-area-inset-bottom))] md:h-full md:min-h-0 md:flex-1 md:overflow-hidden md:pb-0">
       <h1 className="sr-only">F1 Replay: Formula 1 race replay with live timing, track map and telemetry</h1>
+      {welcome.visible && createPortal(
+        <div
+          className="fixed inset-0 z-[220] flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm"
+          onClick={(event) => {
+            if (event.target === event.currentTarget) closeWelcome(false);
+          }}
+        >
+          <div
+            ref={welcomeDialogRef}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby={welcomeTitleId}
+            aria-describedby={welcomeDescriptionId}
+            tabIndex={-1}
+            className="max-h-[90dvh] w-full max-w-md overflow-y-auto border border-panel bg-surface shadow-2xl focus:outline-none"
+            onKeyDown={(event) => {
+              if (event.key === "Escape") {
+                event.preventDefault();
+                event.stopPropagation();
+                closeWelcome(false);
+              }
+              if (event.key !== "Tab") return;
+              const buttons = Array.from(
+                event.currentTarget.querySelectorAll<HTMLButtonElement>("button:not(:disabled)"),
+              );
+              const first = buttons[0];
+              const last = buttons[buttons.length - 1];
+              if (event.shiftKey && (document.activeElement === first ||
+                document.activeElement === event.currentTarget)) {
+                event.preventDefault();
+                last?.focus();
+              } else if (!event.shiftKey && (document.activeElement === last ||
+                document.activeElement === event.currentTarget)) {
+                event.preventDefault();
+                first?.focus();
+              }
+            }}
+          >
+          <DialogHeader
+            eyebrow="Try F1 Replay"
+            title={welcomeRaceStart ? "Go straight to lights out" : "See the replay in action"}
+            titleId={welcomeTitleId}
+            closeLabel="Dismiss replay introduction"
+            onClose={() => closeWelcome(false)}
+          />
+          <div className="px-4 py-5 sm:px-5">
+          <p id={welcomeDescriptionId} className="text-sm text-muted">
+            Follow every car on the track map. Pause, scrub or pick a driver as you watch.
+          </p>
+          <div className="mt-3 flex flex-wrap items-center gap-3">
+            <button
+              type="button"
+              disabled={startingWelcomeReplay}
+              onClick={() => { void startWelcomeReplay(); }}
+              className="inline-flex items-center gap-2 bg-f1red px-4 py-2 text-xs font-bold uppercase text-white disabled:cursor-wait disabled:opacity-60"
+            >
+              <Play aria-hidden="true" className="h-4 w-4" />
+              {startingWelcomeReplay
+                ? "Preparing replay..."
+                : welcomeRaceStart ? "Watch the race start" : "Play replay"}
+            </button>
+            <button
+              type="button"
+              onClick={() => closeWelcome(true)}
+              className="text-xs font-bold text-muted underline underline-offset-4 hover:text-white"
+            >
+              Take a tour
+            </button>
+          </div>
+          {welcomeReplayError && <p role="alert" className="mt-2 text-xs text-f1red">{welcomeReplayError}</p>}
+          </div>
+          </div>
+        </div>,
+        document.body,
+      )}
       {isLoadingEventSession && (
         <div role="status" className="shrink-0 border-b border-panel bg-surface px-4 py-2">
           <div className="text-f1red text-[10px] font-black uppercase tracking-[0.14em]">

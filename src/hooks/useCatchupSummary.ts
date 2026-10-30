@@ -10,12 +10,17 @@ export interface CatchupSummary {
 
 export function useCatchupSummary(events: ToastEvent[], t: number) {
   const prevTRef = useRef(t);
+  const skipNextSeekRef = useRef(false);
   const [summary, setSummary] = useState<CatchupSummary | null>(null);
 
   useEffect(() => {
     const prevT = prevTRef.current;
     const delta = t - prevT;
     prevTRef.current = t;
+    if (delta !== 0 && skipNextSeekRef.current) {
+      skipNextSeekRef.current = false;
+      return;
+    }
 
     if (delta >= CATCHUP_JUMP_THRESHOLD_MS) {
       const crossed = events.filter((e) => e.ms > prevT && e.ms <= t);
@@ -26,5 +31,6 @@ export function useCatchupSummary(events: ToastEvent[], t: number) {
   }, [t, events]);
 
   const dismiss = () => setSummary(null);
-  return { summary, dismiss };
+  const skipNextSeek = () => { skipNextSeekRef.current = true; };
+  return { summary, dismiss, skipNextSeek };
 }

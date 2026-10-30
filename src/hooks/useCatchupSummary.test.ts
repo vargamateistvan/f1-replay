@@ -63,4 +63,18 @@ describe("useCatchupSummary", () => {
     rerender({ t: 20_000 });
     expect(result.current.summary).toBeNull();
   });
+
+  it("can skip an introductory seek without disabling later catch-up summaries", () => {
+    const { result, rerender } = renderHook(
+      ({ t, rows }) => useCatchupSummary(rows, t),
+      { initialProps: { t: 0, rows: events } },
+    );
+    act(() => result.current.skipNextSeek());
+    rerender({ t: 0, rows: [...events] });
+    rerender({ t: 70_000, rows: events });
+    expect(result.current.summary).toBeNull();
+    rerender({ t: 0, rows: events });
+    rerender({ t: 90_000, rows: events });
+    expect(result.current.summary?.events).toEqual(events);
+  });
 });

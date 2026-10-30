@@ -8,11 +8,14 @@ describe("ring settings", () => {
 });
 
 describe("reset", () => {
-  it("restores defaults but keeps the tour as seen", () => {
-    useSettings.setState({ lightMode: true, tourSeenVersion: 3 });
+  it("restores defaults but keeps onboarding as seen", () => {
+    useSettings.setState({
+      lightMode: true, tourSeenVersion: 3, replayWelcomeSeen: true,
+    });
     useSettings.getState().reset();
     expect(useSettings.getState().lightMode).toBe(false);
     expect(useSettings.getState().tourSeenVersion).toBe(3);
+    expect(useSettings.getState().replayWelcomeSeen).toBe(true);
   });
 });
 

@@ -130,6 +130,8 @@ export interface AppSettings {
   // Onboarding
   /** Last `TOUR_VERSION` the user finished or skipped (0 = never). Kept on reset. */
   tourSeenVersion: number;
+  /** First-use replay prompt has been offered. Kept on reset. */
+  replayWelcomeSeen: boolean;
 }
 
 /** Setting that controls whether each corner speed class is shaded on telemetry charts. */
@@ -278,6 +280,7 @@ export const SETTINGS_DEFAULTS: AppSettings = {
   amplitudeSessionReplayEnabled: true,
   metricSystem: "metric",
   tourSeenVersion: 0,
+  replayWelcomeSeen: false,
 };
 
 /**
@@ -310,12 +313,13 @@ export const useSettings = create<SettingsStore>()(
       openTour: () => set({ isTourOpen: true }),
       closeTour: () => set({ isTourOpen: false }),
       setSetting: (key, value) => set((s) => ({ ...s, [key]: value })),
-      // Resetting preferences shouldn't replay the tour.
+      // Resetting preferences shouldn't repeat onboarding.
       reset: () =>
         set((s) => ({
           ...s,
           ...SETTINGS_DEFAULTS,
           tourSeenVersion: s.tourSeenVersion,
+          replayWelcomeSeen: s.replayWelcomeSeen,
         })),
     }),
     {

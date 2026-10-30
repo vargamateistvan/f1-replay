@@ -115,7 +115,7 @@ src/
     useTimelineUrlSync.ts — Keeps ?t= query param in sync with playhead
     useStartLightsSound.ts — Race-start light beeps (public/sounds/start-light.mp3, synth fallback)
     useVerticalResize.ts — Drag-to-resize panels
-    useAutoStartTour.ts — Opens the app tour on a first visit (per `TOUR_VERSION`, never on `?t=` links)
+    useReplayWelcome.ts — Optional first-use replay prompt, never an auto-opened tour; skips live/playing sessions, returning visitors and shared moment/focus/camera links
     useCircuitGeometry.ts — Lazy-loads baked circuit geometry JSON (static asset, bypasses the query cache)
     useOpenF1LiveMqtt.ts — Live sessions: OpenF1 MQTT topics → `setQueryData` into the polling queries' cache
     useAudioProgress.ts — 0–1 progress of an <audio> element (radio clips)
@@ -299,7 +299,7 @@ components/ (render to DOM; read settings from Zustand)
 | Store         | File                 | Persisted?                       | Purpose                                                   |
 | ------------- | -------------------- | -------------------------------- | --------------------------------------------------------- |
 | `useTimeline` | `timeline/clock.ts`  | No                               | Playback state: `t`, `playing`, `speed`, `sessionStartMs`, `realTimeWindow` (span forced to 1x, e.g. race start lights) |
-| `useSettings` | `stores/settings.ts` | Yes (localStorage via `persist`) | All `AppSettings` flags; `amplitudeSessionReplayEnabled` opts out of Amplitude Session Replay; `mapRingShowPitWindowOutcomes` is a ring-only toggle, default off |
+| `useSettings` | `stores/settings.ts` | Yes (localStorage via `persist`) | All `AppSettings` flags; `amplitudeSessionReplayEnabled` opts out of Amplitude Session Replay; `mapRingShowPitWindowOutcomes` is a ring-only toggle, default off; `replayWelcomeSeen` remembers that the first-use prompt was offered and survives settings reset |
 
 ### 6b. TanStack Query keys (convention)
 
@@ -469,6 +469,20 @@ status never covers the entire replay, and failed requests have an explicit retr
 action. `useReplayStartup.ts` reports data-readiness milestones (not map paint);
 see `docs/ANALYTICS_EVENTS.md`.
 
+First-use activation: the tour is opt-in via "Take a tour" in the dismissible
+welcome dialog or Help. The dialog uses `DialogHeader`, traps keyboard focus,
+locks background scrolling and closes via Escape, backdrop or its close button.
+The primary welcome action loads the destination GPS
+window, then switches to the tracker (map tab on phones), seeks to the start-light
+lead-in and plays at 1x. Non-race sessions or unavailable race-start timing use
+"Play replay" from session start. Empty/error GPS responses leave playback paused
+and offer retry; session switches/unmounts invalidate pending welcome playback.
+The introductory seek skips its catch-up summary (`useCatchupSummary.skipNextSeek`)
+so a second dialog does not interrupt the preview; later user seeks behave normally.
+The prompt is offered only once (`replayWelcomeSeen`, retained on reset), and
+never interrupts returning visitors, live playback or shared moment/focus/camera
+links. It does not mark the optional tour completed.
+
 Map HUDs, map lap telemetry and `FocusedTelemetry` share the same startup gate
 through their optional `telemetryEnabled` prop (default true for other callers);
 `useCarDataWindow` and `useCarDataForLap` accept an optional enabled gate while
@@ -538,7 +552,7 @@ Source maps are uploaded to Sentry only from GitHub Actions (`disable: !env.GITH
 12. **Team radio playback** (panel, toasts, catch-up) must go through `RadioAudio`, which plays the `public/sounds/radio-intro.mp3` chime and starts the clip after `RADIO_INTRO_LEAD_MS`. Don't render a bare `<audio autoPlay>` for radio.
 13. **3D map coordinates**: never hand raw OpenF1 x/y to Mapbox — project with `f1ToLngLat(getCircuitGeoref(...), x, y)`. Circuit data is kept current by `.github/workflows/update-circuits.yml` (weekly + manual): `fetch-circuits.mjs` (MultiViewer) → `bake-gps-circuits.mjs` (venues MultiViewer lacks, from the newest session's fastest clean lap, so from FP1; `source: "openf1-gps"`, no corners/marshal sectors; replaced automatically once MultiViewer has the venue) → `fetch-georef.mjs --latest` (bacinger trace matched automatically by length + best fit; `BACINGER_OVERRIDES` only if it picks wrong) → `fetch-pit-lanes.mjs` (missing circuits only; `--all` to rebuild). It runs type-check + tests and opens a PR on `bot/update-circuits`. Locally the same scripts need `node --use-system-ca` behind TLS inspection (Node ≥ 23.8). Tests fail if a geometry file has no georef or a surface polygon self-intersects. `mapbox-gl` must only be imported from the lazy `TrackMap3D` chunk (type-only imports elsewhere are fine); production needs the `VITE_MAPBOX_TOKEN` repo variable/secret.
 14. **Coarse time must stay trailing-edge**: `useCoarseTime` delivers the last value after a throttled burst. A leading-edge-only throttle leaves every `tSlow`-driven panel (flags, badges) stuck after a paused seek (e.g. restoring `?t=`).
-15. **App tour targets**: tour steps find elements by `data-tour` (`TOUR_TARGET` in `components/AppTour/targets.ts`, never class names). Desktop and phone layouts are both in the DOM, so each layout has its own target. When you move or remove a toured element, move its attribute and update `steps.ts`; bump `TOUR_VERSION` (`constants.ts`) when the tour changes enough that returning users should see it again.
+15. **App tour targets**: tour steps find elements by `data-tour` (`TOUR_TARGET` in `components/AppTour/targets.ts`, never class names). Desktop and phone layouts are both in the DOM, so each layout has its own target. When you move or remove a toured element, move its attribute and update `steps.ts`; bump `TOUR_VERSION` (`constants.ts`) when the tour meaningfully changes. Tours are opt-in, never automatically opened.
 
 ---
 
