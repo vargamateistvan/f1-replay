@@ -75,6 +75,11 @@ describe("CatchupSummary", () => {
     );
 
     expect(screen.getByText("While you were away")).toBeInTheDocument();
+    expect(screen.getByRole("dialog")).toHaveClass(
+      "w-[min(420px,92vw)]",
+      "sm:w-[min(720px,92vw)]",
+      "max-h-[75dvh]",
+    );
     expect(screen.getByText(/1 pit stop/)).toBeInTheDocument();
     expect(screen.getByText("FASTEST")).toBeInTheDocument();
     expect(screen.getByText("PENALTY")).toBeInTheDocument();

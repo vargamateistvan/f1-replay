@@ -504,7 +504,7 @@ export function CatchupSummary({
       data-testid="catchup-backdrop"
     >
       <div
-        className="flex max-h-[75dvh] w-[min(420px,92vw)] flex-col overflow-hidden border border-panel bg-surface shadow-2xl"
+        className="flex max-h-[75dvh] w-[min(420px,92vw)] flex-col overflow-hidden border border-panel bg-surface shadow-2xl sm:w-[min(720px,92vw)]"
         role="dialog"
         aria-modal="true"
         aria-labelledby={titleId}
