@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { fireEvent, render, screen } from "@testing-library/react";
+import { fireEvent, render, screen, within } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import Schedule from "./Schedule";
 import type { Meeting, Session } from "@/api/types";
@@ -172,11 +172,30 @@ describe("Schedule page", () => {
 
   it("switches between your time and track time", () => {
     setup();
+    const row = screen.getByRole("link", { name: "Replay Race" })
+      .parentElement!.parentElement!;
+    const sessionStart = NOW - 5 * DAY;
+    const format = (ms: number, timeZone?: string) =>
+      `${new Intl.DateTimeFormat(undefined, { weekday: "short", timeZone }).format(ms)} ${
+        new Intl.DateTimeFormat(undefined, {
+          hour: "2-digit",
+          minute: "2-digit",
+          timeZone,
+        }).format(ms)
+      }`;
+    const yourTime = within(row).getByText("Your time");
+    const trackTime = within(row).getByText("Track time");
+    expect(yourTime.nextElementSibling).toHaveTextContent(format(sessionStart));
+    expect(trackTime.nextElementSibling).toHaveTextContent(
+      format(sessionStart + 3 * HOUR, "UTC"),
+    );
     const local = screen.getByRole("radio", { name: "Your time" });
     expect(local.getAttribute("aria-checked")).toBe("true");
     fireEvent.click(screen.getByRole("radio", { name: "Track time" }));
     expect(
       screen.getByRole("radio", { name: "Track time" }).getAttribute("aria-checked"),
     ).toBe("true");
+    expect(within(row).getByText("Your time")).toBeInTheDocument();
+    expect(within(row).getByText("Track time")).toBeInTheDocument();
   });
 });

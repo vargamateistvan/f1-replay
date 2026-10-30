@@ -177,7 +177,7 @@ src/
     RaceWeekend.tsx     — Main page: track map + leaderboard + timeline
     Telemetry.tsx       — Lap telemetry comparison page
     Standings.tsx       — Season championship standings page
-    Schedule.tsx        — /schedule — season calendar: round cards, session times (your time / track time via ?time=), replay links for started sessions, Result button (completed sessions) → `FinalClassificationDialog`, next round + countdown
+    Schedule.tsx        — /schedule — season calendar: round cards, session times (your time and track time side by side in a separate column; ?time= selects which appears first and the round date timezone), replay links for started sessions, Result button (completed sessions) → `FinalClassificationDialog`, next round + countdown
     DriverProfile.tsx   — /standings/driver/:driverNumber — one driver's season (keeps ?year/&session)
     ConstructorProfile.tsx — /standings/team/:teamName (canonical name, `constructorPath()`) — one team's season
     Settings.tsx        — Redirect to settings modal

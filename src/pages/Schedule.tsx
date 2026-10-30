@@ -56,6 +56,11 @@ interface TimeFormatter {
   range: (startIso: string, endIso: string, gmtOffset: string) => string;
 }
 
+interface SessionTimeFormat {
+  label: string;
+  formatter: TimeFormatter;
+}
+
 // Track time shifts the instant by the venue's GMT offset and formats it as UTC.
 function makeFormatter(mode: TimeMode): TimeFormatter {
   const tz = mode === "track" ? { timeZone: "UTC" } : {};
@@ -86,12 +91,12 @@ function makeFormatter(mode: TimeMode): TimeFormatter {
 function SessionRow({
   item,
   year,
-  fmt,
+  timeFormats,
   onShowResult,
 }: {
   item: ScheduleSession;
   year: number;
-  fmt: TimeFormatter;
+  timeFormats: SessionTimeFormat[];
   onShowResult: (session: Session) => void;
 }) {
   const { session, status } = item;
@@ -103,28 +108,31 @@ function SessionRow({
     "h-8 w-[4.5rem] rounded-sm bg-track/50",
   );
   return (
-    <div className="flex items-center justify-between gap-3 px-3 py-2 font-mono text-small">
+    <div className="grid grid-cols-[minmax(0,1fr)_auto_auto] items-center gap-2 px-3 py-2 font-mono text-small">
       <div className="min-w-0">
         <div
-          className={`truncate ${
+          className={`break-words ${
             status === "cancelled" ? "text-muted line-through" : "text-fg"
           }`}
         >
           {session.session_name}
         </div>
-        <div className="mt-0.5 flex items-center gap-2 text-caption tabular-nums text-muted">
-          <span>
-            {fmt.day(session.date_start, session.gmt_offset)}{" "}
-            {fmt.time(session.date_start, session.gmt_offset)}
-          </span>
-          {status === "live" && (
-            <span className="font-bold uppercase tracking-caps text-f1red-fg">
-              Live
-            </span>
-          )}
-        </div>
+        {status === "live" && (
+          <span className="text-tiny font-bold uppercase tracking-caps text-f1red-fg">Live</span>
+        )}
       </div>
-      <div className="flex shrink-0 items-center gap-1.5">
+      <div className="grid grid-cols-2 gap-2 text-tiny tabular-nums">
+        {timeFormats.map(({ label, formatter }) => (
+          <div key={label}>
+            <span className="block whitespace-nowrap text-muted">{label}</span>
+            <span className="mt-0.5 block whitespace-nowrap text-fg/85">
+              {formatter.day(session.date_start, session.gmt_offset)}{" "}
+              {formatter.time(session.date_start, session.gmt_offset)}
+            </span>
+          </div>
+        ))}
+      </div>
+      <div className="flex w-[9.375rem] shrink-0 items-center gap-1.5">
         {canReplay && (
           <Link
             to={replayPath({
@@ -203,6 +211,7 @@ function RoundCard({
   round,
   year,
   fmt,
+  timeFormats,
   nextSession,
   now,
   onShowResult,
@@ -210,6 +219,7 @@ function RoundCard({
   round: ScheduleRound;
   year: number;
   fmt: TimeFormatter;
+  timeFormats: SessionTimeFormat[];
   nextSession: Session | null;
   now: number;
   onShowResult: (session: Session) => void;
@@ -289,7 +299,7 @@ function RoundCard({
               key={item.session.session_key}
               item={item}
               year={year}
-              fmt={fmt}
+              timeFormats={timeFormats}
               onShowResult={onShowResult}
             />
           ))}
@@ -320,6 +330,15 @@ export default function Schedule() {
     [meetingsQ.data, sessionsQ.data, now],
   );
   const fmt = useMemo(() => makeFormatter(timeMode), [timeMode]);
+  const timeFormats = useMemo(
+    () => [timeMode, ...TIME_MODES.filter((mode) => mode !== timeMode)].map(
+      (mode) => ({
+        label: TIME_MODE_LABEL[mode],
+        formatter: makeFormatter(mode),
+      }),
+    ),
+    [timeMode],
+  );
 
   const nextRound = schedule.rounds.find((r) => r.isNext) ?? null;
   const nextSession =
@@ -387,13 +406,14 @@ export default function Schedule() {
         </div>
       ) : (
         <div ref={listRef} className="md:min-h-0 md:flex-1 md:overflow-auto">
-          <div className="grid gap-3 p-3 sm:grid-cols-2 sm:p-4 xl:grid-cols-3">
+          <div className="grid gap-3 p-3 sm:p-4 md:grid-cols-2 xl:grid-cols-3">
             {schedule.rounds.map((round) => (
               <RoundCard
                 key={round.meeting.meeting_key}
                 round={round}
                 year={year}
                 fmt={fmt}
+                timeFormats={timeFormats}
                 nextSession={round.isNext ? nextSession : null}
                 now={now}
                 onShowResult={setResultSession}
