@@ -61,6 +61,22 @@ describe("SessionSimulation", () => {
       .toBe(SESSION_SIMULATION_CARS);
   });
 
+  it("mixes different speeds so a faster car catches the car ahead within one lap", () => {
+    const { container } = render(<SessionSimulation session={session} />);
+    const animations = [...container.querySelectorAll("animateMotion")];
+    const durations = animations.map((animation) =>
+      Number.parseFloat(animation.getAttribute("dur")!),
+    );
+    expect(durations.every((duration) => duration > 0)).toBe(true);
+    expect(new Set(durations).size).toBe(SESSION_SIMULATION_CARS);
+    const catchTimes = durations.slice(0, -1).flatMap((duration, index) => {
+      const closingSpeed = 1 / duration - 1 / durations[index + 1];
+      return closingSpeed > 0 ? [1 / SESSION_SIMULATION_CARS / closingSpeed] : [];
+    });
+    expect(catchTimes.length).toBeGreaterThan(1);
+    expect(Math.min(...catchTimes)).toBeLessThan(Math.min(...durations));
+  });
+
   it.each([false, true])("uses team colours with reduced motion %s", (reducedMotion) => {
     vi.mocked(useMediaQuery).mockReturnValue(reducedMotion);
     vi.mocked(useCachedSimulationDrivers).mockReturnValue([

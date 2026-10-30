@@ -52,8 +52,11 @@ export function SessionSimulation({
         <line {...outline.startLine} className="stroke-fg" strokeWidth={2} />
         {Array.from({ length: SESSION_SIMULATION_CARS }, (_, index) => {
           const progress = index / SESSION_SIMULATION_CARS;
+          const paceRank = index % 2 === 0
+            ? index / 2
+            : SESSION_SIMULATION_CARS - 1 - Math.floor(index / 2);
           const duration = SESSION_SIMULATION_LAP_SECONDS +
-            index * SESSION_SIMULATION_LAP_STEP_SECONDS;
+            paceRank * SESSION_SIMULATION_LAP_STEP_SECONDS;
           return (
             <g
               key={index}

@@ -62,7 +62,7 @@ export const TRACK_SVG_H = 400;
 export const TRACK_SVG_PAD = 24;
 export const SESSION_SIMULATION_CARS = 12;
 export const SESSION_SIMULATION_LAP_SECONDS = 32;
-export const SESSION_SIMULATION_LAP_STEP_SECONDS = 0.35;
+export const SESSION_SIMULATION_LAP_STEP_SECONDS = 1.2;
 // OpenF1 / circuit-geometry x,y are decimetres.
 export const F1_UNITS_PER_METRE = 10;
 // Schedule card circuit thumbnail (SVG units) and how much of the lap the
