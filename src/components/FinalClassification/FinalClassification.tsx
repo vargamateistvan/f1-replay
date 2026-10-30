@@ -12,11 +12,16 @@ import { isPracticeSession, isQualiSession } from "@/utils/session";
 import { Q3_GRID_SIZE } from "@/constants";
 import { DriverHeadshot } from "@/components/DriverHeadshot";
 import { DialogHeader } from "@/components/DialogHeader";
+import { MaybeLink } from "@/components/MaybeLink";
+import { driverPath } from "@/utils/driverProfile";
+import { constructorPath } from "@/utils/constructorProfile";
 
 interface Props {
   readonly results: SessionResult[];
   readonly drivers: Driver[];
   readonly sessionName?: string;
+  readonly year?: number;
+  readonly sessionKey?: number;
 }
 
 interface DialogProps extends Props {
@@ -173,13 +178,15 @@ function sortResults(results: SessionResult[]): SessionResult[] {
 const NEUTRAL_ACCENT = "rgb(var(--color-line))";
 const NEUTRAL_TEXT = "rgb(var(--color-muted))";
 
-export function FinalClassification({ results, drivers, sessionName }: Props) {
+export function FinalClassification({ results, drivers, sessionName, year, sessionKey }: Props) {
   return (
     <section className="shrink-0 border-t border-panel bg-track/95 backdrop-blur">
       <FinalClassificationContent
         results={results}
         drivers={drivers}
         sessionName={sessionName}
+        year={year}
+        sessionKey={sessionKey}
         tableClassName="max-h-[40vh] overflow-auto"
       />
     </section>
@@ -190,6 +197,8 @@ export function FinalClassificationDialog({
   results,
   drivers,
   sessionName,
+  year,
+  sessionKey,
   meta,
   subtitle,
   status = "ready",
@@ -246,6 +255,8 @@ export function FinalClassificationDialog({
             results={results}
             drivers={drivers}
             sessionName={sessionName}
+            year={year}
+            sessionKey={sessionKey}
             inDialog
             contentClassName="min-h-0 flex-1 overflow-y-auto overscroll-contain"
             tableClassName=""
@@ -289,10 +300,21 @@ function FinalClassificationContent({
   results,
   drivers,
   sessionName,
+  year,
+  sessionKey,
   inDialog = false,
   contentClassName,
   tableClassName,
 }: ContentProps) {
+  const search = new URLSearchParams();
+  if (year !== undefined) search.set("year", String(year));
+  if (sessionKey !== undefined) search.set("session", String(sessionKey));
+  const driverHref = (number: number) =>
+    year === undefined ? undefined : `${driverPath(number)}?${search}`;
+  const teamHref = (name: string | undefined) =>
+    year === undefined || !name
+      ? undefined
+      : `${constructorPath(name)}?${search}`;
   const driverByNumber = useMemo(
     () => new Map(drivers.map((driver) => [driver.driver_number, driver])),
     [drivers],
@@ -376,19 +398,29 @@ function FinalClassificationContent({
                   size="lg"
                 />
                 <div className="min-w-0 flex-1">
-                  <div
-                    className="text-compact font-black uppercase tracking-wider"
-                    style={{ color: entry.color }}
+                  <MaybeLink
+                    to={driverHref(entry.result.driver_number)}
+                    aria-label={`${entry.driver?.full_name ?? `Driver ${entry.result.driver_number}`} driver profile`}
+                    className="block hover:underline"
                   >
-                    {entry.driver?.name_acronym ?? entry.result.driver_number}
-                  </div>
-                  <div className="truncate text-small text-fg/85">
-                    {entry.driver?.full_name ??
-                      `Driver ${entry.result.driver_number}`}
-                  </div>
-                  <div className="truncate text-tiny uppercase tracking-caps text-muted">
+                    <span
+                      className="block text-compact font-black uppercase tracking-wider"
+                      style={{ color: entry.color }}
+                    >
+                      {entry.driver?.name_acronym ?? entry.result.driver_number}
+                    </span>
+                    <span className="block truncate text-small text-fg/85">
+                      {entry.driver?.full_name ??
+                        `Driver ${entry.result.driver_number}`}
+                    </span>
+                  </MaybeLink>
+                  <MaybeLink
+                    to={teamHref(entry.driver?.team_name)}
+                    aria-label={`${entry.driver?.team_name ?? "Unknown team"} constructor profile`}
+                    className="block truncate text-tiny uppercase tracking-caps text-muted hover:underline"
+                  >
                     {entry.driver?.team_name ?? "Unknown team"}
-                  </div>
+                  </MaybeLink>
                 </div>
               </div>
               <div className="mt-2.5 flex items-baseline justify-between gap-2 border-t border-panel pt-2 font-mono tabular-nums">
@@ -455,7 +487,11 @@ function FinalClassificationContent({
                       (entry.status === "CLASSIFIED" ? "—" : entry.status)}
                   </td>
                   <td className={TD}>
-                    <div className="flex min-w-0 items-center gap-2">
+                    <MaybeLink
+                      to={driverHref(entry.result.driver_number)}
+                      aria-label={`${entry.driver?.full_name ?? `Driver ${entry.result.driver_number}`} driver profile`}
+                      className="flex min-w-0 items-center gap-2 hover:underline"
+                    >
                       <DriverHeadshot
                         driver={entry.driver}
                         accent={accent}
@@ -475,10 +511,25 @@ function FinalClassificationContent({
                       <span className="hidden truncate text-muted sm:inline">
                         {entry.driver?.full_name ?? "Unknown driver"}
                       </span>
-                    </div>
+                    </MaybeLink>
+                    {entry.driver?.team_name && (
+                      <MaybeLink
+                        to={teamHref(entry.driver.team_name)}
+                        aria-label={`${entry.driver.team_name} constructor profile`}
+                        className="mt-1 block text-tiny text-muted hover:underline md:hidden"
+                      >
+                        {entry.driver.team_name}
+                      </MaybeLink>
+                    )}
                   </td>
                   <td className={`${TD} hidden text-muted md:table-cell`}>
-                    {entry.driver?.team_name ?? "—"}
+                    <MaybeLink
+                      to={teamHref(entry.driver?.team_name)}
+                      aria-label={`${entry.driver?.team_name ?? "Unknown team"} constructor profile`}
+                      className="hover:underline"
+                    >
+                      {entry.driver?.team_name ?? "—"}
+                    </MaybeLink>
                   </td>
                   <td
                     className={`${TD} hidden text-right font-mono tabular-nums sm:table-cell`}

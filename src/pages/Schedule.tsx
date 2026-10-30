@@ -185,6 +185,8 @@ function SessionResultDialog({
       results={results.data ?? []}
       drivers={drivers.data ?? []}
       sessionName={session.session_name}
+      year={session.year}
+      sessionKey={session.session_key}
       meta={`${session.circuit_short_name} · ${session.year}`}
       subtitle={meeting?.meeting_name}
       status={status}

@@ -130,6 +130,13 @@ describe("Schedule page", () => {
     const dialog = screen.getByRole("dialog", { name: "Race" });
     expect(dialog.textContent).toContain("Bahrain Grand Prix");
     expect(dialog.textContent).toContain("VER");
+    for (const link of screen.getAllByRole("link", {
+      name: "Max Verstappen driver profile",
+    })) {
+      expect(link).toHaveAttribute(
+        "href", "/standings/driver/1?year=2026&session=10",
+      );
+    }
     expect(
       screen.getByRole("link", { name: "Replay session" }).getAttribute("href"),
     ).toBe("/?year=2026&meeting=1&session=10&view=tracker");

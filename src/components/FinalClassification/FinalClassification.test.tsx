@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 import { fireEvent, render, screen } from "@testing-library/react";
+import { MemoryRouter } from "react-router-dom";
 import {
   FinalClassification,
   FinalClassificationDialog,
@@ -245,6 +246,51 @@ describe("FinalClassificationDialog", () => {
     expect(onClose).not.toHaveBeenCalled();
     fireEvent.click(screen.getByTestId("results-backdrop"));
     expect(onClose).toHaveBeenCalledTimes(1);
+  });
+
+  it("links drivers and constructors in the podium and table with session context", () => {
+    render(
+      <MemoryRouter>
+        <FinalClassificationDialog
+          results={[winner]}
+          drivers={[{ ...drivers[0], team_name: "Red Bull Racing" }]}
+          sessionName="Race"
+          year={2024}
+          sessionKey={9472}
+          onClose={vi.fn()}
+        />
+      </MemoryRouter>,
+    );
+    const driverLinks = screen.getAllByRole("link", {
+      name: "Max Verstappen driver profile",
+    });
+    expect(driverLinks).toHaveLength(2);
+    for (const link of driverLinks) {
+      expect(link).toHaveAttribute(
+        "href", "/standings/driver/1?year=2024&session=9472",
+      );
+    }
+    const teamLinks = screen.getAllByRole("link", {
+      name: "Red Bull Racing constructor profile",
+    });
+    // Podium, desktop team column and compact/mobile driver cell.
+    expect(teamLinks).toHaveLength(3);
+    for (const link of teamLinks) {
+      expect(link).toHaveAttribute(
+        "href", "/standings/team/Red%20Bull%20Racing?year=2024&session=9472",
+      );
+    }
+  });
+
+  it("keeps names unlinked without a season context", () => {
+    render(
+      <FinalClassificationDialog
+        results={[winner]}
+        drivers={drivers}
+        onClose={vi.fn()}
+      />,
+    );
+    expect(screen.queryByRole("link")).not.toBeInTheDocument();
   });
 
   it.each([

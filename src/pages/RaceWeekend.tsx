@@ -3254,6 +3254,8 @@ export default function RaceWeekend() {
             results={sessionResult.data ?? []}
             drivers={drivers.data ?? []}
             sessionName={session?.session_name}
+            year={session?.year}
+            sessionKey={sessionKey ?? undefined}
             meta={
               session
                 ? `${session.circuit_short_name} · ${session.year}`
