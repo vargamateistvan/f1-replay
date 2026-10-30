@@ -2,6 +2,80 @@
 <html lang="en">
 
 <head>
+  <script id="initial-theme">
+    try {
+      var savedSettings = JSON.parse(localStorage.getItem("f1-replay-settings") || "null");
+      document.documentElement.classList.toggle("light", savedSettings?.state?.lightMode === true);
+    } catch (error) {
+      console.warn("Could not restore the initial theme", error);
+    }
+  </script>
+  <style>
+    html {
+      background: rgb(var(--color-track));
+      color: rgb(var(--color-fg));
+      color-scheme: dark;
+    }
+    html.light { color-scheme: light; }
+    body { margin: 0; }
+    .app-loading {
+      box-sizing: border-box;
+      display: flex;
+      min-height: 100vh;
+      min-height: 100dvh;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 32px 24px;
+      background: rgb(var(--color-track));
+      color: rgb(var(--color-fg));
+      font-family: Inter, system-ui, sans-serif;
+      text-align: center;
+    }
+    .app-loading--route { min-height: 40vh; flex: 1; }
+    .app-loading__mark {
+      display: grid;
+      place-items: center;
+      width: 64px;
+      height: 64px;
+      margin-bottom: 24px;
+      border-radius: 2px;
+      background: rgb(var(--color-f1red));
+    }
+    .app-loading__title {
+      font-size: 24px;
+      font-weight: 900;
+      letter-spacing: -.04em;
+      text-transform: uppercase;
+    }
+    .app-loading__status {
+      margin-top: 12px;
+      color: rgb(var(--color-muted));
+      font: 11px/1.6 "JetBrains Mono", monospace;
+      letter-spacing: .12em;
+      text-transform: uppercase;
+    }
+    .app-loading__lights { display: flex; gap: 8px; margin-top: 28px; }
+    .app-loading__lights span {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: rgb(var(--color-f1red));
+      animation: loading-lights 1.6s ease-in-out infinite alternate;
+    }
+    @keyframes loading-lights { from { opacity: .25; } to { opacity: 1; } }
+    @media (prefers-reduced-motion: reduce) {
+      .app-loading__lights span { animation: none; }
+    }
+    .shell-summary {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      overflow: hidden;
+      clip-path: inset(50%);
+      white-space: nowrap;
+    }
+  </style>
   <!-- Google tag (gtag.js): the library itself is loaded on idle by src/lib/analytics.ts -->
   <script>
     window.dataLayer = window.dataLayer || [];
@@ -102,18 +176,25 @@
 
 <body>
   <div id="root">
-    <!-- Static loading shell: painted as soon as CSS arrives, replaced by React on first render. -->
-    <div class="flex min-h-screen items-center justify-center gap-3 text-xs uppercase tracking-[0.12em] text-muted"
-      role="status">
-      <svg width="24" height="24" viewBox="0 0 32 32" fill="none" aria-hidden="true">
-        <circle cx="16" cy="16" r="12" stroke="#E8002D" stroke-width="2.5" stroke-linecap="round"
+    <!-- Critical styles and theme tokens are inline, independent of the app bundle. -->
+    <div class="app-loading" role="status" aria-live="polite">
+      <div class="app-loading__mark">
+      <svg width="40" height="40" viewBox="0 0 32 32" fill="none" aria-hidden="true">
+        <circle cx="16" cy="16" r="12" stroke="white" stroke-width="2.5" stroke-linecap="round"
           stroke-dasharray="67 8" stroke-dashoffset="71" transform="rotate(-90 16 16)" />
-        <polygon points="12,10 12,22 23,16" fill="#E8002D" />
+        <line x1="13.5" y1="2.5" x2="13.5" y2="5.5" stroke="white" stroke-width="1.5" stroke-linecap="round" />
+        <line x1="18.5" y1="2.5" x2="18.5" y2="5.5" stroke="white" stroke-width="1.5" stroke-linecap="round" />
+        <polygon points="12,10 12,22 23,16" fill="white" />
       </svg>
-      Loading F1 Replay
+      </div>
+      <div class="app-loading__title">F1 Replay</div>
+      <div class="app-loading__status">Preparing your pit wall</div>
+      <div class="app-loading__lights" aria-hidden="true">
+        <span></span><span></span><span></span><span></span><span></span>
+      </div>
     </div>
     <!-- Crawlable summary for non-JS crawlers; route shells rewrite the h1/p per page. React replaces all of it. -->
-    <div class="sr-only">
+    <div class="shell-summary">
       <h1 id="shell-title">F1 Replay | Formula 1 Race Replay, Telemetry, Strategy &amp; Live Timing</h1>
       <p id="shell-description">Relive Formula 1 sessions with synchronized telemetry, strategy timelines, live timing, race control, weather, and track map visualizations.</p>
       <nav aria-label="Site">

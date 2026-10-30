@@ -3,16 +3,16 @@ import { defineConfig, loadEnv, type Plugin } from "vite";
 import react from "@vitejs/plugin-react";
 import { fileURLToPath, URL } from "node:url";
 import { cwd, env } from "node:process";
+import { BRAND_COLORS, NEUTRAL_COLORS } from "./src/designTokens";
 
 const sentryRelease = env.SENTRY_RELEASE;
 
 const DEFAULT_OPENF1_API_BASE = "https://api.openf1.org/v1";
 
 /**
- * Adds a `preconnect` hint for the OpenF1 API origin (which may be a proxy set
- * via VITE_OPENF1_API_BASE) so the first data requests skip DNS/TLS setup.
+ * Inlines theme tokens before first paint and preconnects to the API origin.
  */
-function apiPreconnectPlugin(mode: string): Plugin {
+function bootstrapHtmlPlugin(mode: string): Plugin {
   const viteEnv = loadEnv(mode, cwd(), "VITE_");
   const apiBase = viteEnv.VITE_OPENF1_API_BASE || DEFAULT_OPENF1_API_BASE;
   let origin: string | null = null;
@@ -22,15 +22,26 @@ function apiPreconnectPlugin(mode: string): Plugin {
     // Relative base (e.g. the dev proxy) — same origin, nothing to preconnect.
   }
   return {
-    name: "api-preconnect",
+    name: "bootstrap-html",
     transformIndexHtml() {
-      if (!origin) return [];
+      const colors = { ...NEUTRAL_COLORS, f1red: BRAND_COLORS.f1red.DEFAULT };
+      const variables = (theme: "dark" | "light") =>
+        Object.entries(colors)
+          .map(([name, value]) => `--color-${name}:${value[theme]}`)
+          .join(";");
       return [
         {
-          tag: "link",
-          attrs: { rel: "preconnect", href: origin, crossorigin: "" },
+          tag: "style",
+          children: `:root{${variables("dark")}}html.light{${variables("light")}}`,
           injectTo: "head-prepend",
         },
+        ...(origin
+          ? [{
+              tag: "link",
+              attrs: { rel: "preconnect", href: origin, crossorigin: "" },
+              injectTo: "head-prepend" as const,
+            }]
+          : []),
       ];
     },
   };
@@ -39,7 +50,7 @@ function apiPreconnectPlugin(mode: string): Plugin {
 export default defineConfig(({ mode }) => ({
   base: "/",
   plugins: [
-    apiPreconnectPlugin(mode),
+    bootstrapHtmlPlugin(mode),
     react(),
     sentryVitePlugin({
       // Only the deploy workflow uploads source maps; local builds (including

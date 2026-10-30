@@ -30,6 +30,7 @@ import {
 import { useReleaseDate } from "@/hooks/useReleaseDate";
 import { OPENF1_SITE_URL } from "@/constants";
 import { useSettings } from "@/stores/settings";
+import { AppLogo } from "@/components/AppLogo/AppLogo";
 const RaceWeekend = lazy(() => import("@/pages/RaceWeekend"));
 const Telemetry = lazy(() => import("@/pages/Telemetry"));
 const Standings = lazy(() => import("@/pages/Standings"));
@@ -66,8 +67,13 @@ function LazyModals() {
 
 function RouteFallback() {
   return (
-    <div className="flex min-h-[40vh] items-center justify-center text-xs uppercase tracking-caps text-muted">
-      Loading View
+    <div className="app-loading app-loading--route" role="status">
+      <div className="app-loading__mark"><AppLogo size={40} /></div>
+      <div className="app-loading__title">F1 Replay</div>
+      <div className="app-loading__status">Loading view</div>
+      <div className="app-loading__lights" aria-hidden="true">
+        <span /><span /><span /><span /><span />
+      </div>
     </div>
   );
 }

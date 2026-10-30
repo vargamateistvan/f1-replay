@@ -75,6 +75,8 @@ Tests sit next to the module (`foo.ts` → `foo.test.ts`); broad smoke/coverage 
 
 ## 3. Repository Layout
 
+Initial loading UI lives in `index.html` (inline critical styles and saved-theme restoration); `vite.config.ts` injects colours from `designTokens.ts` before first paint. The route Suspense fallback in `routes.tsx` reuses its `app-loading` styles. Keep it independent of app JavaScript/fonts and honour reduced motion.
+
 ```
 src/
   App.tsx               — QueryClient setup, global gates (light mode, coffee widget)
