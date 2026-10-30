@@ -2,12 +2,13 @@ import { useMemo } from "react";
 import type { Session } from "@/api/types";
 import { useCircuitGeometry } from "@/hooks/useCircuitGeometry";
 import { useMediaQuery } from "@/hooks/useMediaQuery";
+import { useCachedSimulationDrivers } from "@/hooks/useSession";
 import { circuitThumbnail } from "@/utils/circuitInfo";
+import { teamColor } from "@/utils/color";
 import {
   SESSION_SIMULATION_CARS,
   SESSION_SIMULATION_LAP_SECONDS,
   SESSION_SIMULATION_LAP_STEP_SECONDS,
-  SESSION_SIMULATION_TEAM_COLORS,
   TRACK_SVG_H,
   TRACK_SVG_PAD,
   TRACK_SVG_W,
@@ -16,9 +17,17 @@ import {
 export function SessionSimulation({
   session,
 }: {
-  session: Pick<Session, "circuit_key" | "year" | "circuit_short_name"> | undefined;
+  session: Pick<Session, "session_key" | "date_start" | "circuit_key" | "year" | "circuit_short_name"> | undefined;
 }) {
   const { data: geometry } = useCircuitGeometry(session?.circuit_key, session?.year);
+  const drivers = useCachedSimulationDrivers(session);
+  const colors = useMemo(
+    () => [...new Set(
+      drivers?.filter((driver) => driver.team_colour)
+        .map((driver) => teamColor(driver.team_colour)),
+    )],
+    [drivers],
+  );
   const reducedMotion = useMediaQuery("(prefers-reduced-motion: reduce)");
   const outline = useMemo(
     () => geometry
@@ -49,8 +58,9 @@ export function SessionSimulation({
             <g
               key={index}
               data-simulation-car=""
+              className="text-muted"
               style={{
-                color: SESSION_SIMULATION_TEAM_COLORS[index % SESSION_SIMULATION_TEAM_COLORS.length],
+                color: colors.length ? colors[index % colors.length] : undefined,
                 ...(reducedMotion ? {
                   offsetPath: `path("${outline.path}")`,
                   offsetDistance: `${progress * 100}%`,

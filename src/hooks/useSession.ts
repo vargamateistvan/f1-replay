@@ -1,7 +1,8 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useCallback, useSyncExternalStore } from "react";
 import { api, type QueryFilters } from "@/api/endpoints";
 import { isAuthError } from "@/api/client";
-import type { Interval, Position, Session } from "@/api/types";
+import type { Driver, Interval, Position, Session } from "@/api/types";
 import { LIVE_BUFFER_MS } from "@/constants";
 import {
   CURRENT_SEASON_STALE_MS,
@@ -104,6 +105,38 @@ export function useDrivers(sessionKey: number | null) {
     enabled: sessionKey !== null,
     staleTime: Infinity,
   });
+}
+
+// Decoration must not enqueue requests when session access has been denied.
+export function useCachedSimulationDrivers(
+  session: Pick<Session, "session_key" | "year" | "date_start"> | undefined,
+) {
+  const client = useQueryClient();
+  const subscribe = useCallback(
+    (notify: () => void) => client.getQueryCache().subscribe(notify),
+    [client],
+  );
+  const getSnapshot = useCallback(() => {
+    if (!session) return undefined;
+    const selected = client.getQueryData<Driver[]>(["drivers", session.session_key]);
+    if (selected?.some((driver) => driver.team_colour)) return selected;
+
+    const candidates = [
+      ...client.getQueriesData<Session[]>({ queryKey: ["sessions"] }),
+      ...client.getQueriesData<Session[]>({ queryKey: ["sessions-year"] }),
+    ].flatMap(([, rows]) => rows ?? [])
+      .filter((row) => row.year === session.year)
+      .sort((a, b) =>
+        Math.abs(Date.parse(a.date_start) - Date.parse(session.date_start)) -
+        Math.abs(Date.parse(b.date_start) - Date.parse(session.date_start)),
+      );
+    for (const candidate of candidates) {
+      const drivers = client.getQueryData<Driver[]>(["drivers", candidate.session_key]);
+      if (drivers?.some((driver) => driver.team_colour)) return drivers;
+    }
+    return undefined;
+  }, [client, session]);
+  return useSyncExternalStore(subscribe, getSnapshot, getSnapshot);
 }
 
 export function usePositions(sessionKey: number | null, isLive = false) {

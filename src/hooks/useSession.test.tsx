@@ -8,7 +8,7 @@ import type { Session } from "@/api/types";
 import { LIVE_POLL_SLOW_MS } from "@/utils/live";
 import {
   useOvertakes, usePits, useSessionResult, useStartingGrid, useStints,
-  useTeamRadio, useWeather, useSessions,
+  useTeamRadio, useWeather, useSessions, useCachedSimulationDrivers,
 } from "./useSession";
 
 vi.mock("@/api/endpoints", () => ({
@@ -105,6 +105,38 @@ describe("staged session feeds", () => {
       client.clear();
       vi.useRealTimers();
     }
+  });
+
+  it("reactively uses cached team data only from the selected year without fetching", () => {
+    const { client, wrapper } = setup();
+    const selected = {
+      session_key: 123, year: 2024, date_start: "2024-06-01T12:00:00Z",
+    };
+    const sameYear = { ...selected, session_key: 124 };
+    const otherYear = { ...selected, session_key: 125, year: 2026 };
+    const historicalDrivers = [{ team_colour: "123456" }];
+    const selectedDrivers = [{ team_colour: "ABCDEF" }];
+    client.setQueryData(["sessions-year", 2026], [otherYear]);
+    client.setQueryData(["drivers", 125], [{ team_colour: "FFFFFF" }]);
+    const { result, rerender, unmount } = renderHook(
+      ({ session }) => useCachedSimulationDrivers(session),
+      { initialProps: { session: selected }, wrapper },
+    );
+    expect(result.current).toBeUndefined();
+    act(() => {
+      client.setQueryData(["sessions", 456], [sameYear]);
+      client.setQueryData(["drivers", 124], historicalDrivers);
+    });
+    expect(result.current).toEqual(historicalDrivers);
+    act(() => {
+      client.setQueryData(["drivers", 123], selectedDrivers);
+    });
+    expect(result.current).toEqual(selectedDrivers);
+    rerender({ session: { ...selected, year: 2025, session_key: 999 } });
+    expect(result.current).toBeUndefined();
+    for (const fetch of Object.values(api)) expect(fetch).not.toHaveBeenCalled();
+    unmount();
+    client.clear();
   });
 
   it.each([401, 403])("stops live polling after access is denied (%s)", async (status) => {

@@ -2,17 +2,29 @@ import { render, screen } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { useCircuitGeometry } from "@/hooks/useCircuitGeometry";
 import { useMediaQuery } from "@/hooks/useMediaQuery";
-import { SESSION_SIMULATION_CARS, SESSION_SIMULATION_TEAM_COLORS } from "@/constants";
+import { useCachedSimulationDrivers } from "@/hooks/useSession";
+import { SESSION_SIMULATION_CARS } from "@/constants";
+import type { Driver } from "@/api/types";
 import { SessionSimulation } from "./SessionSimulation";
 
 vi.mock("@/hooks/useCircuitGeometry", () => ({ useCircuitGeometry: vi.fn() }));
 vi.mock("@/hooks/useMediaQuery", () => ({ useMediaQuery: vi.fn() }));
+vi.mock("@/hooks/useSession", () => ({ useCachedSimulationDrivers: vi.fn() }));
 
-const session = { circuit_key: 65, year: 2026, circuit_short_name: "Mexico City" };
+const session = {
+  circuit_key: 65, year: 2026, circuit_short_name: "Mexico City",
+  session_key: 11397, date_start: "2026-10-30T12:00:00Z",
+};
+const driver = (team_colour: string): Driver => ({
+  driver_number: 1, broadcast_name: "", full_name: "", name_acronym: "",
+  team_name: "", team_colour, first_name: "", last_name: "",
+  headshot_url: null, country_code: null, session_key: 11397, meeting_key: 1298,
+});
 
 describe("SessionSimulation", () => {
   beforeEach(() => {
     vi.mocked(useMediaQuery).mockReturnValue(false);
+    vi.mocked(useCachedSimulationDrivers).mockReturnValue(undefined);
     vi.mocked(useCircuitGeometry).mockReturnValue({
       isPending: false,
       data: {
@@ -51,15 +63,28 @@ describe("SessionSimulation", () => {
 
   it.each([false, true])("uses team colours with reduced motion %s", (reducedMotion) => {
     vi.mocked(useMediaQuery).mockReturnValue(reducedMotion);
+    vi.mocked(useCachedSimulationDrivers).mockReturnValue([
+      driver("123456"), driver("123456"), driver("#ABCDEF"), driver(""),
+    ]);
     const { container } = render(<SessionSimulation session={session} />);
+    expect(useCachedSimulationDrivers).toHaveBeenCalledWith(session);
     const cars = container.querySelectorAll<SVGGElement>("[data-simulation-car]");
     cars.forEach((car, index) => {
       expect(car).toHaveStyle({
-        color: SESSION_SIMULATION_TEAM_COLORS[index % SESSION_SIMULATION_TEAM_COLORS.length],
+        color: ["#123456", "#ABCDEF"][index % 2],
       });
     });
     expect(new Set([...cars].map((car) => car.style.color)).size)
-      .toBe(SESSION_SIMULATION_TEAM_COLORS.length);
+      .toBe(2);
+  });
+
+  it("uses a neutral token when the selected year's team data is unavailable", () => {
+    const { container } = render(<SessionSimulation session={session} />);
+    const cars = container.querySelectorAll<SVGGElement>("[data-simulation-car]");
+    for (const car of cars) {
+      expect(car).toHaveClass("text-muted");
+      expect(car.style.color).toBe("");
+    }
   });
 
   it("omits the simulation when circuit geometry is unavailable", () => {
