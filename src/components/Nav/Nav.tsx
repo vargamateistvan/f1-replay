@@ -132,6 +132,7 @@ export function Nav() {
     (s) => s.showNextRaceWeekendBanner,
   );
   const [searchParams, setSearchParams] = useSearchParams();
+  const location = useLocation();
   const [nowMs, setNowMs] = useState(() => Date.now());
   const [showCircuitFacts, setShowCircuitFacts] = useState(false);
   const [apiFacts, setApiFacts] = useState<CircuitFacts | null>(null);
@@ -193,6 +194,13 @@ export function Nav() {
   const authFailed = authError !== undefined;
   const queryClient = useQueryClient();
   const [isSelectingLatest, setIsSelectingLatest] = useState(false);
+  const latestSelectionRequest = useRef(0);
+
+  useEffect(() => {
+    return () => {
+      latestSelectionRequest.current += 1;
+    };
+  }, [year, meetingKey, sessionKey, location.pathname]);
 
   const selectedMeeting = meetings.data?.find(
     (m) => m.meeting_key === meetingKey,
@@ -270,6 +278,7 @@ export function Nav() {
   useEffect(() => {
     if (
       selectLatestSessionOnLoad &&
+      sessionKey === null &&
       sessions.data &&
       sessions.data.length > 0
     ) {
@@ -298,7 +307,7 @@ export function Nav() {
         setSelectLatestSessionOnLoad(false);
       }
     }
-  }, [selectLatestSessionOnLoad, sessions.data, setSearchParams, nowMs]);
+  }, [selectLatestSessionOnLoad, sessionKey, sessions.data, setSearchParams, nowMs]);
 
   const startedMeetings = useMemo(
     () =>
@@ -411,6 +420,8 @@ export function Nav() {
 
   function onYear(y: number) {
     if (Number.isNaN(y) || !Number.isFinite(y)) return;
+    latestSelectionRequest.current += 1;
+    setSelectLatestSessionOnLoad(false);
     resetPlaybackToStart();
     trackEvent("nav_year_changed", { year: y });
     setSearchParams(
@@ -429,6 +440,7 @@ export function Nav() {
 
   function onMeeting(k: number) {
     if (Number.isNaN(k) || !Number.isFinite(k)) return;
+    latestSelectionRequest.current += 1;
     resetPlaybackToStart();
     trackEvent("nav_meeting_changed", { meeting_key: k });
     setSearchParams(
@@ -447,6 +459,8 @@ export function Nav() {
 
   function onMeetingSelect(raw: string) {
     if (raw === "") {
+      latestSelectionRequest.current += 1;
+      setSelectLatestSessionOnLoad(false);
       resetPlaybackToStart();
       setSearchParams(
         (prev) => {
@@ -466,6 +480,8 @@ export function Nav() {
   }
 
   function onSessionSelect(raw: string) {
+    latestSelectionRequest.current += 1;
+    setSelectLatestSessionOnLoad(false);
     if (raw === "") {
       resetPlaybackToStart();
       setSearchParams(
@@ -501,6 +517,8 @@ export function Nav() {
   const selectLatestEvent = useCallback(
     async (source: "auto" | "manual" = "auto") => {
       if (isSelectingLatest) return;
+      const request = ++latestSelectionRequest.current;
+      setSelectLatestSessionOnLoad(false);
       setIsSelectingLatest(true);
       try {
         const now = Date.now();
@@ -544,6 +562,7 @@ export function Nav() {
             }),
           ),
         ]);
+        if (request !== latestSelectionRequest.current) return;
 
         const aliasMeeting = aliasMeetings?.[0] ?? null;
         const aliasSession = aliasSessions?.[0] ?? null;
@@ -589,6 +608,7 @@ export function Nav() {
               staleTime,
             }),
           )) ?? [];
+        if (request !== latestSelectionRequest.current) return;
         const pool: Session[] = [...meetingSessions];
         if (
           aliasSession &&
@@ -649,7 +669,7 @@ export function Nav() {
   // Standings and schedule routes only need ?year= — auto-selecting would
   // overwrite it (e.g. a shared /standings/driver/4?year=2024 link jumping to
   // this season), so the bootstrap waits until a replay route is opened.
-  const onSeasonRoute = isSeasonPath(useLocation().pathname);
+  const onSeasonRoute = isSeasonPath(location.pathname);
   useEffect(() => {
     if (autoLatestBootstrappedRef.current || onSeasonRoute) return;
     autoLatestBootstrappedRef.current = true;
@@ -671,7 +691,6 @@ export function Nav() {
   const currentView: MainView = VALID_VIEWS.has(view as MainView)
     ? (view as MainView)
     : "tracker";
-  const location = useLocation();
   const navigate = useNavigate();
   const isMainRoute = location.pathname === "/";
   const isTelemetryRoute = location.pathname === "/telemetry";

@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import type { ReactNode } from "react";
 import { Nav } from "@/components/Nav";
 
@@ -39,6 +39,9 @@ const state = vi.hoisted(() => ({
   openHelp: vi.fn(),
   setSetting: vi.fn(),
   showNextRaceWeekendBanner: false,
+  latestGate: null as Promise<void> | null,
+  sessionsGate: null as Promise<void> | null,
+  sessionsRequested: vi.fn(),
 }));
 
 vi.mock("react-router-dom", () => ({
@@ -58,13 +61,18 @@ vi.mock("@tanstack/react-query", () => ({
   useQueryClient: () => ({
     fetchQuery: async ({ queryKey }: { queryKey: readonly unknown[] }) => {
       const [root, arg] = queryKey;
-      if (root === "latestMeeting")
+      if (root === "latestMeeting") {
+        await state.latestGate;
         return state.latestMeeting ? [state.latestMeeting] : [];
+      }
       if (root === "latestSession")
         return state.latestSession ? [state.latestSession] : [];
       if (root === "meetings") return state.meetings.data;
-      if (root === "sessions")
+      if (root === "sessions") {
+        state.sessionsRequested();
+        await state.sessionsGate;
         return state.sessionsByMeeting[arg as number] ?? state.sessions.data;
+      }
       throw new Error(`unexpected query ${String(root)}`);
     },
   }),
@@ -146,6 +154,9 @@ describe("Nav", () => {
     state.openHelp.mockReset();
     state.setSetting.mockReset();
     state.pathname = "/";
+    state.latestGate = null;
+    state.sessionsGate = null;
+    state.sessionsRequested.mockReset();
     state.year = 2025;
     state.meetingKey = 22;
     state.sessionKey = 202;
@@ -389,6 +400,63 @@ describe("Nav", () => {
 
     expect(next.get("session")).toBe("101");
     expect(next.has("t")).toBe(false);
+  });
+
+  it("does not overwrite a manual session selection when an earlier Latest request finishes", async () => {
+    let finish!: () => void;
+    state.latestGate = new Promise<void>((resolve) => {
+      finish = resolve;
+    });
+    render(<Nav />);
+    fireEvent.click(screen.getByRole("button", { name: "Latest" }));
+    openPicker();
+    fireEvent.change(screen.getByLabelText("Session"), {
+      target: { value: "101" },
+    });
+    expect(state.setSearchParams).toHaveBeenCalledTimes(1);
+    await act(async () => {
+      finish();
+    });
+    expect(state.setSearchParams).toHaveBeenCalledTimes(1);
+    const [updater] = state.setSearchParams.mock.calls[0];
+    expect(updater(state.searchParams).get("session")).toBe("101");
+  });
+
+  it("ignores Latest when its session-list request finishes after a manual selection", async () => {
+    let finish!: () => void;
+    state.sessionsGate = new Promise<void>((resolve) => {
+      finish = resolve;
+    });
+    render(<Nav />);
+    fireEvent.click(screen.getByRole("button", { name: "Latest" }));
+    await waitFor(() => expect(state.sessionsRequested).toHaveBeenCalled());
+    openPicker();
+    fireEvent.change(screen.getByLabelText("Session"), {
+      target: { value: "101" },
+    });
+    await act(async () => {
+      finish();
+    });
+    expect(state.setSearchParams).toHaveBeenCalledTimes(1);
+    expect(resetTimeline).toHaveBeenCalledTimes(1);
+  });
+
+  it("cancels auto-selection when navigating to another route while it is loading", async () => {
+    state.meetingKey = null;
+    state.sessionKey = null;
+    state.searchParams = new URLSearchParams("year=2025");
+    let finish!: () => void;
+    state.latestGate = new Promise<void>((resolve) => {
+      finish = resolve;
+    });
+    const { rerender } = render(<Nav />);
+    state.pathname = "/schedule";
+    rerender(<Nav />);
+    await act(async () => {
+      finish();
+    });
+    expect(state.setSearchParams).not.toHaveBeenCalled();
+    expect(resetTimeline).not.toHaveBeenCalled();
   });
 
   it("keeps the picker closed until the navbar event is clicked", () => {

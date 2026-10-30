@@ -346,4 +346,22 @@ describe("progressive replay startup", () => {
     expect(api.teamRadio).not.toHaveBeenCalled();
     unmount();
   });
+
+  it("loads a selected historical replay despite a denied calendar refresh with cached metadata", async () => {
+    readyForWelcome();
+    useSettings.setState({ replayWelcomeSeen: true });
+    client.getQueryCache().find({ queryKey: ["sessions", 456] })!.setState({
+      error: new OpenF1Error(401, "sessions"),
+      status: "error",
+    });
+    const { unmount } = renderReplay();
+    expect(await screen.findAllByText("Track preview")).not.toHaveLength(0);
+    expect(screen.queryByRole("heading", {
+      name: "Session data requires OpenF1 access",
+    })).not.toBeInTheDocument();
+    await waitFor(() => expect(api.teamRadio).toHaveBeenCalled());
+    fireEvent.click(screen.getByRole("button", { name: "Play" }));
+    expect(useTimeline.getState().playing).toBe(true);
+    unmount();
+  });
 });

@@ -28,6 +28,7 @@ function wrapper({ children }: { children: React.ReactNode }) {
 
 describe("useTimelineUrlSync", () => {
   beforeEach(() => {
+    window.history.replaceState({}, "", "/?session=1");
     useTimeline.getState().reset();
     useTimeline.getState().setSpeed(1);
     searchParamsState.searchParams = new URLSearchParams();
@@ -35,6 +36,7 @@ describe("useTimelineUrlSync", () => {
   });
 
   afterEach(() => {
+    vi.useRealTimers();
     window.history.replaceState({}, "", "/");
   });
 
@@ -135,5 +137,53 @@ describe("useTimelineUrlSync", () => {
     useTimeline.getState().setT(6_000);
 
     expect(searchParamsState.setSearchParams).toHaveBeenCalled();
+  });
+
+  it("does not let a queued playhead write overwrite a newly selected session", () => {
+    vi.useFakeTimers();
+    window.history.replaceState({}, "", "/?meeting=1298&session=11398");
+    searchParamsState.searchParams = new URLSearchParams(window.location.search);
+    searchParamsState.setSearchParams.mockImplementation(
+      (updater: (params: URLSearchParams) => URLSearchParams) => {
+        updater(searchParamsState.searchParams);
+      },
+    );
+    const { rerender } = renderHook(
+      ({ sessionKey }) => useTimelineUrlSync(sessionKey, true),
+      { initialProps: { sessionKey: 11398 }, wrapper },
+    );
+    useTimeline.getState().setT(12_000);
+    useTimeline.getState().setT(13_000);
+    searchParamsState.setSearchParams.mockClear();
+
+    // The URL changes before the previous store subscription is cleaned up.
+    window.history.replaceState({}, "", "/?meeting=1298&session=11397");
+    vi.runOnlyPendingTimers();
+    expect(new URLSearchParams(window.location.search).get("session")).toBe("11397");
+    rerender({ sessionKey: 11397 });
+
+    expect(new URLSearchParams(window.location.search).get("session")).toBe("11397");
+    expect(searchParamsState.setSearchParams).not.toHaveBeenCalled();
+    expect(useTimeline.getState().t).toBe(0);
+  });
+
+  it("preserves current navigation params instead of the subscription's stale params", () => {
+    searchParamsState.searchParams = new URLSearchParams(
+      "session=1&view=tracker",
+    );
+    searchParamsState.setSearchParams.mockImplementation(
+      (updater: (params: URLSearchParams) => URLSearchParams) => {
+        updater(searchParamsState.searchParams);
+      },
+    );
+    renderHook(() => useTimelineUrlSync(1, true), { wrapper });
+    window.history.replaceState({}, "", "/?session=1&view=commentary&focus=44");
+
+    useTimeline.getState().setT(5_000);
+
+    const params = new URLSearchParams(window.location.search);
+    expect(params.get("view")).toBe("commentary");
+    expect(params.get("focus")).toBe("44");
+    expect(params.get("t")).toBe("5");
   });
 });

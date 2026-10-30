@@ -4,16 +4,18 @@ import { act, renderHook, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { api } from "@/api/endpoints";
 import { OpenF1Error } from "@/api/client";
+import type { Session } from "@/api/types";
 import { LIVE_POLL_SLOW_MS } from "@/utils/live";
 import {
   useOvertakes, usePits, useSessionResult, useStartingGrid, useStints,
-  useTeamRadio, useWeather,
+  useTeamRadio, useWeather, useSessions,
 } from "./useSession";
 
 vi.mock("@/api/endpoints", () => ({
   api: {
     overtakes: vi.fn(), pits: vi.fn(), sessionResult: vi.fn(),
     startingGrid: vi.fn(), stints: vi.fn(), teamRadio: vi.fn(), weather: vi.fn(),
+    sessions: vi.fn(),
   },
 }));
 
@@ -27,6 +29,7 @@ describe("staged session feeds", () => {
     vi.mocked(api.stints).mockResolvedValue([]);
     vi.mocked(api.teamRadio).mockResolvedValue([]);
     vi.mocked(api.weather).mockResolvedValue([]);
+    vi.mocked(api.sessions).mockResolvedValue([]);
   });
 
   function setup() {
@@ -51,7 +54,9 @@ describe("staged session feeds", () => {
     for (const fetch of Object.values(api)) expect(fetch).not.toHaveBeenCalled();
     rerender({ enabled: true });
     await waitFor(() => expect(result.current.every((query) => query.isSuccess)).toBe(true));
-    for (const fetch of Object.values(api)) expect(fetch).toHaveBeenCalledTimes(1);
+    for (const [name, fetch] of Object.entries(api)) {
+      if (name !== "sessions") expect(fetch).toHaveBeenCalledTimes(1);
+    }
     expect(client.getQueryData(["teamRadio", 123])).toEqual([]);
     expect(client.getQueryData(["startingGrid", 123, null])).toEqual([]);
     client.clear();
@@ -62,6 +67,22 @@ describe("staged session feeds", () => {
     const { result } = renderHook(() => useTeamRadio(123), { wrapper });
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
     expect(api.teamRadio).toHaveBeenCalledWith(123);
+    client.clear();
+  });
+
+  it("opens a historical meeting from the cached season without another calendar request", async () => {
+    const { client, wrapper } = setup();
+    const historical = {
+      meeting_key: 456, session_key: 123,
+      date_end: "2024-01-01T14:00:00Z",
+    } as Session;
+    client.setQueryData(["sessions-year", 2024], [historical]);
+    vi.mocked(api.sessions).mockRejectedValue(new OpenF1Error(401, "sessions"));
+    const { result, unmount } = renderHook(() => useSessions(456), { wrapper });
+    expect(result.current.data).toEqual([historical]);
+    expect(result.current.isSuccess).toBe(true);
+    expect(api.sessions).not.toHaveBeenCalled();
+    unmount();
     client.clear();
   });
 

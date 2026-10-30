@@ -1,7 +1,8 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { api, type QueryFilters } from "@/api/endpoints";
 import { isAuthError } from "@/api/client";
-import type { Interval, Position } from "@/api/types";
+import type { Interval, Position, Session } from "@/api/types";
+import { LIVE_BUFFER_MS } from "@/constants";
 import {
   CURRENT_SEASON_STALE_MS,
   LIVE_POLL_FAST_MS,
@@ -64,11 +65,25 @@ export function useLatestSession(options?: { enabled?: boolean }) {
 }
 
 export function useSessions(meetingKey: number | null) {
+  const queryClient = useQueryClient();
   return useQuery({
     queryKey: ["sessions", meetingKey],
     queryFn: () => api.sessions(meetingKey!),
     enabled: meetingKey !== null,
-    staleTime: CURRENT_SEASON_STALE_MS,
+    initialData: () => {
+      if (meetingKey === null) return undefined;
+      const rows = queryClient.getQueriesData<Session[]>({
+        queryKey: ["sessions-year"],
+      }).flatMap(([, sessions]) => sessions ?? [])
+        .filter((session) => session.meeting_key === meetingKey);
+      return rows.length > 0 ? rows : undefined;
+    },
+    staleTime: (query) =>
+      query.state.data?.length && query.state.data.every(
+        (session) => Date.parse(session.date_end) + LIVE_BUFFER_MS < Date.now(),
+      )
+        ? Infinity
+        : CURRENT_SEASON_STALE_MS,
   });
 }
 

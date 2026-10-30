@@ -58,10 +58,13 @@ export function useTimelineUrlSync(sessionKey: number | null, ready: boolean) {
     let trailingTimer: ReturnType<typeof setTimeout> | null = null;
 
     const write = (tSec: number, speed: number) => {
+      const current = new URLSearchParams(window.location.search);
+      // Navigation can precede this subscription's cleanup.
+      if (current.get("session") !== String(sessionKey)) return;
       lastWriteAt = Date.now();
       setParams(
-        (prev) => {
-          const p = new URLSearchParams(prev);
+        () => {
+          const p = new URLSearchParams(current);
           if (tSec > 0) p.set("t", String(tSec));
           else p.delete("t");
           if (speed !== 1) p.set("speed", String(speed));

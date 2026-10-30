@@ -272,7 +272,7 @@ components/ (render to DOM; read settings from Zustand)
 | `SettingsModal`                                   | All user preferences                                                                     |
 | `HowItWorksModal`                                 | Onboarding overlay; "Take the tour" starts `AppTour` (navigates to `/` first, keeping the session). Content is the `SECTIONS` / `SHORTCUTS` data; desktop gets a numbered contents column |
 | `AppTour`                                         | react-joyride v3 guided tour of the replay page, lazy-mounted by `RaceWeekend` while `isTourOpen` and the session has loaded. Steps (`steps.ts`, `buildTourSteps`) differ for desktop/phone, races and 3D availability; targets are `data-tour` attributes named in `targets.ts` (`visibleTourTarget` for the map view buttons, which the hidden phone Track tab can also render); custom `TourTooltip`. Finishing/skipping saves `tourSeenVersion = TOUR_VERSION` (kept by settings reset). While open: playback paused (not live), toasts hidden, shortcuts off, view forced to Driver Tracker |
-| `Nav` / `MobileNav`                               | Top nav bar / bottom mobile tabs                                                         |
+| `Nav` / `MobileNav`                               | Top nav bar / bottom mobile tabs. Explicit event/session choices cancel pending Latest selection; delayed results must not replace a newer choice |
 | `ErrorBoundary` / `ErrorDisplay` / `ErrorMessage` | Error handling chain                                                                     |
 | `DriverHeadshot`                                  | Lazy-loaded driver photo                                                                 |
 | `AppLogo`                                         | Brand mark                                                                               |
@@ -336,6 +336,8 @@ components/ (render to DOM; read settings from Zustand)
 ```
 
 **Rules**: `staleTime: Infinity` for historical sessions; `staleTime: 0` + `refetchInterval: LIVE_POLL_FAST_MS | LIVE_POLL_SLOW_MS` for active sessions. Never manually invalidate historical queries.
+
+`useSessions` seeds meeting metadata from cached `sessions-year` data and keeps fully finished meetings fresh indefinitely, so historical selections do not require a calendar request during live API restrictions. A calendar refresh auth error must not block a replay whose selected-session metadata and timing are already available.
 
 ---
 
@@ -474,6 +476,7 @@ Historical sessions:
 - All queries have `staleTime: Infinity` — data never re-fetched once cached.
 - Cache is persisted to IndexedDB (`QUERY_PERSIST_MAX_AGE_MS`).
 - Full replay scrubbing is available.
+- Playback URL sync only writes for the currently selected session and merges into the current browser URL, so queued playhead updates cannot restore an older session.
 
 Replay startup is progressive: metadata, drivers, current visible GPS, positions,
 intervals, laps and race control load first. Stints, pits, grid, results, overtakes,

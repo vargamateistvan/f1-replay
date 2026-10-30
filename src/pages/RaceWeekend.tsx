@@ -530,7 +530,11 @@ export default function RaceWeekend() {
   const raceControl = useRaceControl(sessionKey, live);
   const coreQueries = [sessions, drivers, positions, intervals, laps, raceControl];
   const coreSettled = coreQueries.every((query) => !query.isPending);
-  const accessDenied = coreQueries.some((query) => isAuthError(query.error));
+  const accessDenied =
+    (!session && isAuthError(sessions.error)) ||
+    [drivers, positions, intervals, laps, raceControl].some(
+      (query) => isAuthError(query.error),
+    );
   const replayUnavailable = accessDenied &&
     (!(drivers.data?.length) || !(positions.data?.length));
   const timingReady =
