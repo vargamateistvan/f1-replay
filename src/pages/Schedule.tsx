@@ -12,7 +12,7 @@ import { useNumberParam, useStringParam } from "@/hooks/useSearchParamState";
 import { CircuitSummary } from "@/components/CircuitSummary";
 import { ErrorMessage } from "@/components/ErrorMessage";
 import { FinalClassificationDialog } from "@/components/FinalClassification";
-import { buttonClass, FOCUS_RING } from "@/components/Button/buttonClass";
+import { buttonClass } from "@/components/Button/buttonClass";
 import { parseGmtOffsetToMinutes } from "@/components/TrackMap/trackMapFormat";
 import { PICKER_BAR } from "@/components/Nav/pickerStyles";
 import { DEFAULT_YEAR, SCHEDULE_CLOCK_TICK_MS } from "@/constants";
@@ -96,70 +96,61 @@ function SessionRow({
 }) {
   const { session, status } = item;
   const canReplay = status === "completed" || status === "live";
-  // Live sessions have no final classification yet.
   const hasResult = status === "completed";
-  const label = (
-    <>
-      <span
-        className={`min-w-0 flex-1 truncate ${
-          status === "cancelled" ? "text-muted line-through" : "text-fg"
-        }`}
-      >
-        {session.session_name}
-      </span>
-      <span className="w-9 shrink-0 text-muted">
-        {fmt.day(session.date_start, session.gmt_offset)}
-      </span>
-      <span className="w-12 shrink-0 text-right tabular-nums text-fg/85">
-        {fmt.time(session.date_start, session.gmt_offset)}
-      </span>
-      <span className="flex w-16 shrink-0 justify-end">
-        {status === "live" ? (
-          <span className="rounded-sm bg-f1red px-1.5 py-0.5 text-tiny font-black uppercase tracking-widest text-white">
-            Live
-          </span>
-        ) : canReplay ? (
-          <span className="flex items-center gap-1 text-tiny font-bold uppercase tracking-widest text-muted group-hover:text-f1red">
-            <Play aria-hidden="true" className="h-2.5 w-2.5" />
-            Replay
-          </span>
-        ) : null}
-      </span>
-    </>
+  const actionClass = buttonClass(
+    "quiet",
+    "sm",
+    "h-8 w-[4.5rem] rounded-sm bg-track/50",
   );
-  const labelCls = "flex min-w-0 flex-1 items-center gap-2 py-1.5 pl-3";
   return (
-    <div className="flex items-center gap-1 pr-2 font-mono text-small">
-      {canReplay ? (
-        <Link
-          to={replayPath({
-            year,
-            meetingKey: session.meeting_key,
-            sessionKey: session.session_key,
-          })}
-          className={`group ${labelCls} transition-colors hover:bg-fg/5 ${FOCUS_RING}`}
-          aria-label={`Replay ${session.session_name}`}
+    <div className="flex items-center justify-between gap-3 px-3 py-2 font-mono text-small">
+      <div className="min-w-0">
+        <div
+          className={`truncate ${
+            status === "cancelled" ? "text-muted line-through" : "text-fg"
+          }`}
         >
-          {label}
-        </Link>
-      ) : (
-        <div className={labelCls}>{label}</div>
-      )}
-      {/* Fixed-width slot keeps day/time columns aligned across rows. */}
-      <span className="flex w-7 shrink-0 justify-end lg:w-[4.25rem]">
+          {session.session_name}
+        </div>
+        <div className="mt-0.5 flex items-center gap-2 text-caption tabular-nums text-muted">
+          <span>
+            {fmt.day(session.date_start, session.gmt_offset)}{" "}
+            {fmt.time(session.date_start, session.gmt_offset)}
+          </span>
+          {status === "live" && (
+            <span className="font-bold uppercase tracking-caps text-f1red-fg">
+              Live
+            </span>
+          )}
+        </div>
+      </div>
+      <div className="flex shrink-0 items-center gap-1.5">
+        {canReplay && (
+          <Link
+            to={replayPath({
+              year,
+              meetingKey: session.meeting_key,
+              sessionKey: session.session_key,
+            })}
+            className={actionClass}
+            aria-label={`Replay ${session.session_name}`}
+          >
+            <Play aria-hidden="true" className="h-3 w-3" />
+            Replay
+          </Link>
+        )}
         {hasResult && (
           <button
             type="button"
             onClick={() => onShowResult(session)}
             aria-label={`${session.session_name} result`}
-            title="Result"
-            className={buttonClass("quiet", "sm", "w-full px-0 lg:px-1.5")}
+            className={actionClass}
           >
             <ListOrdered aria-hidden="true" className="h-3 w-3" />
-            <span className="hidden lg:inline">Result</span>
+            Result
           </button>
         )}
-      </span>
+      </div>
     </div>
   );
 }

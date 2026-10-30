@@ -97,6 +97,17 @@ describe("Schedule page", () => {
     expect(screen.queryByRole("link", { name: "Replay Practice 1" })).toBeNull();
   });
 
+  it("renders Replay and Result as matching, separately labelled actions", () => {
+    setup();
+    const replay = screen.getByRole("link", { name: "Replay Race" });
+    const result = screen.getByRole("button", { name: "Race result" });
+    expect(replay).toHaveTextContent("Replay");
+    expect(result).toHaveTextContent("Result");
+    expect(replay.className).toBe(result.className);
+    expect(replay.parentElement).toBe(result.parentElement);
+    expect(replay).not.toContainElement(result);
+  });
+
   it("shows a completed session's result in a dialog", () => {
     mockUseSessionResult.mockReturnValue({
       data: [
