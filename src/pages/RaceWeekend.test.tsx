@@ -336,10 +336,18 @@ describe("progressive replay startup", () => {
     expect(screen.queryByRole("button", { name: "Play" })).not.toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Browse schedule" }))
       .toHaveAttribute("href", "/schedule?year=2024");
-    const support = screen.getByRole("link", { name: "Support on Buy Me a Coffee" });
-    expect(support).toHaveAttribute("href", "https://buymeacoffee.com/matt_varga");
-    expect(support).toHaveAttribute("target", "_blank");
-    expect(support).toHaveAttribute("rel", "noopener noreferrer");
+    expect(screen.getByText(/This session's data is currently unavailable/)).toBeInTheDocument();
+    const openF1 = screen.getByRole("link", { name: "OpenF1" });
+    expect(openF1).toHaveAttribute("href", "https://openf1.org/");
+    expect(openF1).toHaveAttribute("target", "_blank");
+    expect(openF1).toHaveAttribute("rel", "noopener noreferrer");
+    expect(screen.getByText(/Enjoy F1 Replay\? Buy me a coffee/)).toBeInTheDocument();
+    const supportButton = screen.getByRole("link", {
+      name: "Support on Buy Me a Coffee",
+    });
+    expect(supportButton).toHaveAttribute("href", "https://buymeacoffee.com/matt_varga");
+    expect(supportButton).toHaveAttribute("target", "_blank");
+    expect(supportButton).toHaveAttribute("rel", "noopener noreferrer");
     expect(useTimeline.getState().playing).toBe(false);
     fireEvent.keyDown(window, { key: " " });
     expect(useTimeline.getState().playing).toBe(false);

@@ -2480,18 +2480,25 @@ export default function RaceWeekend() {
             Session data requires OpenF1 access
           </h1>
           <p className="mt-3 text-body text-muted">
-            OpenF1 has denied access to this session. Live timing requires a paid
-            API key; during live sessions, uncached historical data can also be
-            restricted. This is not a loading delay.
+            This session's data is currently unavailable.{" "}
+            <a
+              href="https://openf1.org/"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-fg underline underline-offset-2 hover:text-f1red"
+            >
+              OpenF1
+            </a>{" "}
+            requires paid access for live timing and may also restrict uncached
+            replays while a live session is running.
           </p>
           <p className="mt-2 text-body text-muted">
-            Try a cached replay from the schedule, or come back after the live
-            session ends.
+            Browse the schedule for a cached replay, or try this session again
+            after the live action ends.
           </p>
           <p className="mt-4 text-body text-muted">
-            Enjoy F1 Replay? Consider supporting the project on Buy Me a Coffee.
-            Your support helps keep it running and work toward bringing live
-            data to the app.
+            Enjoy F1 Replay? Buy me a coffee to help keep the project running
+            and bring live data to the app. Every contribution makes a difference.
           </p>
           <div className="mt-5 flex flex-wrap gap-2">
             <Link to={`/schedule?year=${yearParam ?? DEFAULT_YEAR}`} className={buttonClass("primary")}>
@@ -2501,7 +2508,7 @@ export default function RaceWeekend() {
               href="https://buymeacoffee.com/matt_varga"
               target="_blank"
               rel="noopener noreferrer"
-              className={buttonClass("secondary")}
+              className={`${buttonClass("secondary")} ml-auto`}
             >
               Support on Buy Me a Coffee
             </a>
