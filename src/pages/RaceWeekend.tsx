@@ -25,6 +25,7 @@ import {
   SessionInfoBar,
 } from "@/components/SessionInfoBar";
 import { ErrorMessage } from "@/components/ErrorMessage";
+import { SessionSimulation } from "@/components/LiveDataNotice/SessionSimulation";
 import { FinalClassificationDialog } from "@/components/FinalClassification";
 import {
   useDrivers,
@@ -2468,8 +2469,9 @@ export default function RaceWeekend() {
 
   if (replayUnavailable) {
     return (
-      <div className="flex flex-1 items-center justify-center bg-track p-6">
-        <section className="w-full max-w-lg border border-panel bg-surface p-6">
+      <div className="relative isolate flex min-h-[32rem] flex-1 items-center justify-center overflow-hidden bg-track px-6 pb-6 pt-16">
+        <SessionSimulation session={session} />
+        <section className="relative w-full max-w-lg border border-panel bg-surface/95 p-6 shadow-2xl backdrop-blur-sm">
           <h1 className="text-lg font-black uppercase tracking-wider text-fg">
             Session data requires OpenF1 access
           </h1>
