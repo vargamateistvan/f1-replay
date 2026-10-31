@@ -1,6 +1,6 @@
 # F1 Replay — Agent Documentation
 
-> Last updated: 2026-10-30
+> Last updated: 2026-10-31
 > The single source of truth for agents. Provides concise, agent-readable architecture notes, conventions, and guardrails. `docs/` holds mostly historical plans — see Section 12 before trusting one.
 
 ---
@@ -211,7 +211,7 @@ scripts/                — Node build/bake scripts: sitemap + route shells + SE
                           warm-proxy-cache.mjs, resolve-release-version.mjs
 public/                 — Static assets: sounds/, models/f1-car.glb, og-cover.png/svg, CNAME
 seo-routes.json         — Route list for sitemap, shells and <head> meta
-.github/workflows/      — ci (validate SEO, tsc, lint, test, build on PRs/main), deploy (GitHub Pages), deploy-proxy (Worker),
+.github/workflows/      — ci (validate SEO, tsc, lint, test, build on PRs), deploy (same checks + GitHub Pages on main), deploy-proxy (Worker),
                           versioning (tags + release notes), warm-cache (hourly on race weekends), update-circuits (weekly)
 .husky/pre-commit       — runs `yarn lint && yarn test && yarn build` (slow; expect it on every commit)
 ```
