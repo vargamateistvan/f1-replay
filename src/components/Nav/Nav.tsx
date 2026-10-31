@@ -16,7 +16,12 @@ import { api } from "@/api/endpoints";
 import type { Meeting, Session } from "@/api/types";
 import { isAuthError } from "@/api/client";
 import { isSessionLive } from "@/utils/live";
-import { DEFAULT_YEAR, CURRENT_SEASON_STALE_MS, YEARS } from "@/constants";
+import {
+  DEFAULT_YEAR,
+  CURRENT_SEASON_STALE_MS,
+  LIVE_BUFFER_MS,
+  YEARS,
+} from "@/constants";
 import { useNumberParam, useStringParam } from "@/hooks/useSearchParamState";
 import { AppLogo } from "@/components/AppLogo";
 import { useTimeline } from "@/timeline/clock";
@@ -54,6 +59,13 @@ const VALID_VIEWS = new Set<MainView>(["leaderboard", "tracker", "commentary"]);
 const TRACK_FACTS_ENABLED = false;
 // How old cached calendar/alias data may be before the Latest button refetches.
 const LATEST_MANUAL_STALE_MS = 5 * 60 * 1000;
+
+// A meeting/session counts as started once its live window opens
+// (LIVE_BUFFER_MS before the start, as in isSessionLive), so visitors land on
+// a session that is about to go live instead of the previous one.
+function hasStartedOrGoingLive(dateStart: string, nowMs: number) {
+  return new Date(dateStart).getTime() - LIVE_BUFFER_MS <= nowMs;
+}
 
 // Pages that only need ?year= (no meeting/session picker).
 function isSeasonPath(pathname: string) {
@@ -282,8 +294,8 @@ export function Nav() {
       sessions.data &&
       sessions.data.length > 0
     ) {
-      const startedSessions = sessions.data.filter(
-        (s) => new Date(s.date_start).getTime() <= nowMs,
+      const startedSessions = sessions.data.filter((s) =>
+        hasStartedOrGoingLive(s.date_start, nowMs),
       );
       const pool = startedSessions.length > 0 ? startedSessions : sessions.data;
       const liveSession = pool.find((s) => isSessionLive(s));
@@ -312,15 +324,15 @@ export function Nav() {
   const startedMeetings = useMemo(
     () =>
       (meetings.data ?? []).filter(
-        (m) => !m.is_cancelled && new Date(m.date_start).getTime() <= nowMs,
+        (m) => !m.is_cancelled && hasStartedOrGoingLive(m.date_start, nowMs),
       ),
     [meetings.data, nowMs],
   );
 
   const startedSessions = useMemo(
     () =>
-      (sessions.data ?? []).filter(
-        (s) => new Date(s.date_start).getTime() <= nowMs,
+      (sessions.data ?? []).filter((s) =>
+        hasStartedOrGoingLive(s.date_start, nowMs),
       ),
     [sessions.data, nowMs],
   );
@@ -569,7 +581,7 @@ export function Nav() {
         const calendarMeetings = calendar ?? [];
 
         const hasStarted = (dateStart: string) =>
-          new Date(dateStart).getTime() <= now;
+          hasStartedOrGoingLive(dateStart, now);
 
         type Candidate = Pick<Meeting, "year" | "meeting_key" | "date_start">;
         const candidates: Candidate[] = [];

@@ -469,6 +469,7 @@ yarn test         # Vitest with coverage
 ## 9. Live vs Historical Sessions
 
 `isSessionLive(session)` returns `true` when `now` falls within `[date_start - 30 min, date_end + 30 min]`.
+`Nav`'s cold-load / Latest selection and its event picker treat a meeting or session as started from that same pre-start buffer, so visitors land on a session about to go live (and see the access-required panel if OpenF1 is gated) rather than the previous one.
 
 Live sessions:
 

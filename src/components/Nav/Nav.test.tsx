@@ -344,6 +344,48 @@ describe("Nav", () => {
     expect(resetTimeline).toHaveBeenCalled();
   });
 
+  it("Latest picks a session whose live window has opened before it starts", async () => {
+    state.live = false;
+    const inMinutes = (min: number) =>
+      new Date(Date.now() + min * 60_000).toISOString();
+    state.meetings.data = [
+      ...state.meetings.data,
+      {
+        ...state.meetings.data[0],
+        meeting_key: 50,
+        meeting_name: "Mexico City Grand Prix",
+        meeting_official_name: "FORMULA 1 MEXICO CITY GRAND PRIX",
+        date_start: inMinutes(20),
+        date_end: inMinutes(3 * 24 * 60),
+      },
+    ];
+    state.sessionsByMeeting[50] = [
+      {
+        session_key: 501,
+        session_name: "Practice 1",
+        date_start: inMinutes(20),
+        date_end: inMinutes(80),
+      },
+      {
+        session_key: 502,
+        session_name: "Practice 2",
+        date_start: inMinutes(45),
+        date_end: inMinutes(105),
+      },
+    ];
+
+    render(<Nav />);
+    fireEvent.click(screen.getByRole("button", { name: "Latest" }));
+
+    await waitFor(() => expect(state.setSearchParams).toHaveBeenCalled());
+    const [updater] = state.setSearchParams.mock.calls[0] as [
+      (params: URLSearchParams) => URLSearchParams,
+    ];
+    const next = updater(state.searchParams);
+    expect(next.get("meeting")).toBe("50");
+    expect(next.get("session")).toBe("501");
+  });
+
   it("Latest uses the session alias when it is newer than the meeting alias", async () => {
     state.live = false;
     // Meeting alias lags one round behind; the session alias is current and
