@@ -412,6 +412,7 @@ components/ (render to DOM; read settings from Zustand)
 - Preferred: static `circuitGeometry` data keyed by `circuit_key` (pre-processed SVG paths).
 - Fallback: derive from first clean lap's GPS trace via convex hull + polyline simplification.
 - Final transform: normalise coordinates into `TRACK_SVG_W × TRACK_SVG_H = 600 × 400` SVG viewport with `TRACK_SVG_PAD = 24` padding.
+- The outline is fitted before the broadcast rotation, so `TrackMap` refits the rotated outline to the visible pane (`fitRotatedTrack` / `visibleViewSize` in `trackCamera.ts`): scale ≤ `TRACK_FIT_ZOOM`, centred, `TRACK_SVG_PAD` margin. The user's zoom is relative to that fit; the fit fades out as the follow-cam zooms in.
 
 ---
 

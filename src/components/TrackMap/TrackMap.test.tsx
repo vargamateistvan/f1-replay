@@ -547,8 +547,18 @@ describe("TrackMap sector flag state rendering", () => {
   });
 
   it("uses baked circuit rotation as the default track heading", () => {
+    // locationToSvg is mocked as identity: a 500-unit-wide outline, turned
+    // 92°, is taller than the 400-unit view.
     vi.mocked(useTrackOutline).mockReturnValue(
-      mockTrackOutlineQueryResult(mockOutline),
+      mockTrackOutlineQueryResult({
+        ...mockOutline,
+        points: [
+          { x: 26, y: 150 },
+          { x: 526, y: 150 },
+          { x: 526, y: 200 },
+          { x: 26, y: 200 },
+        ],
+      }),
     );
     vi.mocked(getCircuitGeometry).mockReturnValue({
       circuitKey: 123,
@@ -574,11 +584,15 @@ describe("TrackMap sector flag state rendering", () => {
     );
 
     expect(
-      container.querySelector('g[transform^="rotate(-92.0 300.0 200.0)"]'),
+      container.querySelector('g[transform*="rotate(-92.0 300.0 200.0)"]'),
     ).toBeInTheDocument();
-    expect(
-      container.querySelector('g[transform*="scale(1.15)"]'),
-    ).toBeInTheDocument();
+    // The fit shrinks it below the default 1.15 zoom.
+    const transform =
+      container
+        .querySelector('g[transform*="rotate(-92.0 300.0 200.0)"]')
+        ?.getAttribute("transform") ?? "";
+    const scale = Number(/scale\(([\d.]+)\)/.exec(transform)?.[1]);
+    expect(scale).toBeCloseTo(352 / 500, 1);
   });
 
   it("converts the Cartesian circuit rotation for the SVG coordinate system", () => {
@@ -613,7 +627,7 @@ describe("TrackMap sector flag state rendering", () => {
     );
 
     expect(
-      container.querySelector('g[transform^="rotate(-92.0 300.0 200.0)"]'),
+      container.querySelector('g[transform*="rotate(-92.0 300.0 200.0)"]'),
     ).toBeInTheDocument();
   });
 

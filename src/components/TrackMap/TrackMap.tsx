@@ -25,6 +25,7 @@ import type { Driver, Location, Stint, Weather } from "@/api/types";
 import {
   TRACK_SVG_W as SVG_W,
   TRACK_SVG_H as SVG_H,
+  TRACK_SVG_PAD,
   TRACK_FIT_ZOOM,
   FOLLOW_ZOOM_W,
   FOLLOW_ZOOM_H,
@@ -33,7 +34,9 @@ import { getCircuitLayout } from "@/data/circuits";
 import { useCircuitGeometry } from "@/hooks/useCircuitGeometry";
 import {
   clampFollowView,
+  fitRotatedTrack,
   lerpCameraView,
+  visibleViewSize,
   type CameraView,
 } from "./trackCamera";
 import {
@@ -206,6 +209,22 @@ export function TrackMap({
   const svgRef = useRef<SVGSVGElement>(null);
   const prevFocusDriverRef = useRef<number | null>(focusDriver);
   const cameraViewRef = useRef<CameraView>({ x: 0, y: 0, w: SVG_W, h: SVG_H });
+  // Map pane width / height: the SVG letterboxes its viewBox, so a wide pane
+  // shows extra room either side and a narrow one above and below.
+  const [paneAspect, setPaneAspect] = useState(SVG_W / SVG_H);
+  const paneObserverRef = useRef<ResizeObserver | null>(null);
+  const paneRef = useCallback((el: HTMLDivElement | null) => {
+    paneObserverRef.current?.disconnect();
+    paneObserverRef.current = null;
+    if (!el || typeof ResizeObserver === "undefined") return;
+    const observer = new ResizeObserver(([entry]) => {
+      const { width, height } = entry?.contentRect ?? { width: 0, height: 0 };
+      if (width <= 0 || height <= 0) return;
+      setPaneAspect(Math.round((width / height) * 100) / 100);
+    });
+    observer.observe(el);
+    paneObserverRef.current = observer;
+  }, []);
 
   useEffect(() => {
     cameraViewRef.current = { x: 0, y: 0, w: SVG_W, h: SVG_H };
@@ -365,6 +384,21 @@ export function TrackMap({
       setRotationDeg(defaultRotationDeg);
     }
   }, [isCompactViewport, zoomStorageKey, defaultRotationDeg]);
+
+  // Fit the rotated outline to the visible pane: never larger than the default
+  // fit zoom, and centred, so broadcast rotations (e.g. Mexico City) don't clip.
+  const trackFit = useMemo(() => {
+    const visible = visibleViewSize(SVG_W, SVG_H, paneAspect);
+    return fitRotatedTrack(
+      trackGeometry?.svgPts ?? [],
+      rotationDeg,
+      SVG_W / 2,
+      SVG_H / 2,
+      visible.w - TRACK_SVG_PAD * 2,
+      visible.h - TRACK_SVG_PAD * 2,
+      TRACK_FIT_ZOOM,
+    );
+  }, [trackGeometry, rotationDeg, paneAspect]);
 
   const rotateBy = useCallback(
     (direction: "left" | "right") => {
@@ -581,8 +615,18 @@ export function TrackMap({
   const viewBox = `${viewX.toFixed(1)} ${viewY.toFixed(1)} ${viewW.toFixed(1)} ${viewH.toFixed(1)}`;
   const pivotX = viewX + viewW / 2;
   const pivotY = viewY + viewH / 2;
-  const zoomTransform = `translate(${pivotX.toFixed(1)} ${pivotY.toFixed(1)}) scale(${zoomLevel.toFixed(2)}) translate(${-pivotX.toFixed(1)} ${-pivotY.toFixed(1)})`;
-  const trackTransform = `rotate(${rotationDeg.toFixed(1)} ${pivotX.toFixed(1)} ${pivotY.toFixed(1)}) ${zoomTransform}`;
+  // The fit applies to the full view and fades out as the follow-cam zooms in,
+  // so following a car keeps it centred at the usual follow zoom.
+  const fitWeight = Math.max(
+    0,
+    Math.min(1, (viewW - FOLLOW_ZOOM_W) / (SVG_W - FOLLOW_ZOOM_W)),
+  );
+  const fitScale = 1 + (trackFit.scale / TRACK_FIT_ZOOM - 1) * fitWeight;
+  const scale = zoomLevel * fitScale;
+  const shiftX = trackFit.dx * fitWeight * (zoomLevel / TRACK_FIT_ZOOM);
+  const shiftY = trackFit.dy * fitWeight * (zoomLevel / TRACK_FIT_ZOOM);
+  const zoomTransform = `translate(${pivotX.toFixed(1)} ${pivotY.toFixed(1)}) scale(${scale.toFixed(3)}) translate(${-pivotX.toFixed(1)} ${-pivotY.toFixed(1)})`;
+  const trackTransform = `translate(${shiftX.toFixed(1)} ${shiftY.toFixed(1)}) rotate(${rotationDeg.toFixed(1)} ${pivotX.toFixed(1)} ${pivotY.toFixed(1)}) ${zoomTransform}`;
 
   // Pit rejoin: rank after adding the circuit's pit loss to the focused car's
   // gap, and place a ghost where that car was `loss` seconds ago — the cars
@@ -625,7 +669,7 @@ export function TrackMap({
   });
 
   return (
-    <div className="relative w-full h-full">
+    <div ref={paneRef} className="relative w-full h-full">
       <StatusBadges badges={statusBadges} />
 
       <svg
