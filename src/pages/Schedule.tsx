@@ -108,8 +108,8 @@ function SessionRow({
     "h-8 w-[4.5rem] rounded-sm bg-track/50",
   );
   return (
-    <div className="grid grid-cols-[minmax(0,1fr)_auto_auto] items-center gap-2 px-3 py-2 font-mono text-small">
-      <div className="min-w-0">
+    <div className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-2 gap-y-1 px-3 py-2 font-mono text-small sm:grid-cols-[minmax(0,1fr)_auto_auto] sm:gap-2">
+      <div className="col-start-1 row-start-1 min-w-0">
         <div
           className={`break-words ${
             status === "cancelled" ? "text-muted line-through" : "text-fg"
@@ -121,7 +121,7 @@ function SessionRow({
           <span className="text-tiny font-bold uppercase tracking-caps text-f1red-fg">Live</span>
         )}
       </div>
-      <div className="grid grid-cols-2 gap-2 text-tiny tabular-nums">
+      <div className="col-span-2 row-start-2 grid grid-cols-2 gap-2 text-tiny tabular-nums sm:col-span-1 sm:row-auto">
         {timeFormats.map(({ label, formatter }) => (
           <div key={label}>
             <span className="block whitespace-nowrap text-muted">{label}</span>
@@ -132,33 +132,35 @@ function SessionRow({
           </div>
         ))}
       </div>
-      <div className="flex w-[9.375rem] shrink-0 items-center gap-1.5">
-        {canReplay && (
-          <Link
-            to={replayPath({
-              year,
-              meetingKey: session.meeting_key,
-              sessionKey: session.session_key,
-            })}
-            className={actionClass}
-            aria-label={`Replay ${session.session_name}`}
-          >
-            <Play aria-hidden="true" className="h-3 w-3" />
-            Replay
-          </Link>
-        )}
-        {hasResult && (
-          <button
-            type="button"
-            onClick={() => onShowResult(session)}
-            aria-label={`${session.session_name} result`}
-            className={actionClass}
-          >
-            <ListOrdered aria-hidden="true" className="h-3 w-3" />
-            Result
-          </button>
-        )}
-      </div>
+      {(canReplay || hasResult) && (
+        <div className="col-start-2 row-start-1 flex w-auto items-center justify-end gap-1.5 sm:col-span-1 sm:col-start-auto sm:row-auto sm:w-[9.375rem] sm:shrink-0">
+          {canReplay && (
+            <Link
+              to={replayPath({
+                year,
+                meetingKey: session.meeting_key,
+                sessionKey: session.session_key,
+              })}
+              className={actionClass}
+              aria-label={`Replay ${session.session_name}`}
+            >
+              <Play aria-hidden="true" className="h-3 w-3" />
+              Replay
+            </Link>
+          )}
+          {hasResult && (
+            <button
+              type="button"
+              onClick={() => onShowResult(session)}
+              aria-label={`${session.session_name} result`}
+              className={actionClass}
+            >
+              <ListOrdered aria-hidden="true" className="h-3 w-3" />
+              Result
+            </button>
+          )}
+        </div>
+      )}
     </div>
   );
 }

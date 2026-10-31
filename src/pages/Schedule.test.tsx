@@ -108,6 +108,19 @@ describe("Schedule page", () => {
     expect(replay).not.toContainElement(result);
   });
 
+  it("shows session names and actions inline with times on a second line", () => {
+    setup();
+    const row = screen.getByRole("link", { name: "Replay Race" }).parentElement
+      ?.parentElement;
+
+    expect(row).toHaveClass("grid-cols-[minmax(0,1fr)_auto]");
+    expect(row).toHaveClass("sm:grid-cols-[minmax(0,1fr)_auto_auto]");
+    expect(row?.children[0]).toHaveClass("col-start-1", "row-start-1");
+    expect(row?.children[1]).toHaveClass("col-span-2");
+    expect(row?.children[1]).toHaveClass("row-start-2");
+    expect(row?.children[2]).toHaveClass("col-start-2", "row-start-1");
+  });
+
   it("shows a completed session's result in a dialog", () => {
     mockUseSessionResult.mockReturnValue({
       data: [
