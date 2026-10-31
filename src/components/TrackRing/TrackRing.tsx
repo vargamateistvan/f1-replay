@@ -52,6 +52,7 @@ import { exportTrackSnapshot } from "../TrackMap/exportSnapshot";
 import { FocusedDriverHud } from "../TrackMap/overlays/FocusedDriverHud";
 import { TrackClockPanel, WeatherPanel } from "../TrackMap/overlays/InfoPanels";
 import { SectorChips } from "../TrackMap/overlays/MapCornerWidgets";
+import { StartReplayHint } from "../TrackMap/overlays/StartReplayHint";
 import { StatusBadges } from "../TrackMap/overlays/StatusBadges";
 import { TrackControls, type TrackControlButton } from "../TrackMap/overlays/TrackControls";
 import { buildStatusBadges, type ActiveTrackVehicles } from "../TrackMap/statusBadges";
@@ -86,7 +87,6 @@ import {
   RingTrack,
   type RingStatus,
 } from "./RingLayers";
-import { TOKEN_HEX } from "@/designTokens";
 
 interface Props {
   readonly sessionKey: number | null;
@@ -687,20 +687,9 @@ export function TrackRing({
           onSelectDriver={onSelectDriver}
           onHoverDriver={setHoverDriver}
         />
-        {!hasCars && (
-          <text
-            x={CX}
-            y={CY}
-            textAnchor="middle"
-            dominantBaseline="middle"
-            fill={TOKEN_HEX.faint}
-            fontSize={11}
-            fontFamily="Inter, sans-serif"
-          >
-            Press ▶ to start replay
-          </text>
-        )}
       </svg>
+
+      {!hasCars && <StartReplayHint />}
 
       <TrackControls
         showTrackControls={false}

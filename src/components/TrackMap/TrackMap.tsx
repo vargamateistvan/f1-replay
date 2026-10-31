@@ -88,9 +88,9 @@ import { TrackClockPanel, WeatherPanel } from "./overlays/InfoPanels";
 import { FocusedDriverHud, LapSpeedLegend } from "./overlays/FocusedDriverHud";
 import { Compass, SectorChips } from "./overlays/MapCornerWidgets";
 import { PitRejoinPanel } from "./overlays/PitRejoinPanel";
+import { StartReplayHint } from "./overlays/StartReplayHint";
 import { teamColor } from "@/utils/color";
 import { parsePitLoss, pitRejoinView } from "@/utils/pitRejoin";
-import { TOKEN_HEX } from "@/designTokens";
 
 export type { ActiveTrackVehicles } from "./statusBadges";
 
@@ -834,24 +834,9 @@ export function TrackMap({
           />
         </g>
 
-        {/* No-data hint — kept in a separate transformed group so it rotates with track */}
-        {locationIndexes.size === 0 && (
-          <g transform={trackTransform}>
-            <text
-              x={SVG_W / 2}
-              y={SVG_H / 2}
-              textAnchor="middle"
-              dominantBaseline="middle"
-              transform={`rotate(${-rotationDeg.toFixed(1)} ${SVG_W / 2} ${SVG_H / 2})`}
-              fill={TOKEN_HEX.faint}
-              fontSize={11}
-              fontFamily="Inter, sans-serif"
-            >
-              Press ▶ to start replay
-            </text>
-          </g>
-        )}
       </svg>
+
+      {locationIndexes.size === 0 && <StartReplayHint />}
 
       <TrackControls
         showTrackControls={showTrackControls}

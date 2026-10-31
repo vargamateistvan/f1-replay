@@ -183,8 +183,8 @@ dimension** instead of relying on the built-in App version report:
   - Params: `speed`
   - Trigger: speed chip click
 - `playback_toggle`
-  - Params: `action`, `current_ms`
-  - Trigger: play/pause click
+  - Params: `action`, `current_ms`, `source?` (`map_hint` from the map's start-replay card)
+  - Trigger: play/pause click, or the play button on the map / ring view while no cars are shown
 - `playback_jump`
   - Params: `action`, `current_ms`, `target_ms`
   - Trigger: jump controls/chips
