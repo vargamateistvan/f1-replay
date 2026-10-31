@@ -78,6 +78,7 @@ describe("HighlightsDialog", () => {
     expect(watch).toHaveAttribute("href", "https://www.youtube.com/watch?v=xyz789");
     expect(watch).toHaveAttribute("target", "_blank");
     expect(screen.queryByTestId("highlights-player")).toBeNull();
+    expect(screen.queryByRole("link", { name: "Open on YouTube" })).toBeNull();
     expect(screen.getByText(/owner doesn't allow it to play outside YouTube/)).toBeTruthy();
     expect(mockTrackEvent).toHaveBeenCalledWith("highlights_player_fallback", {
       session_key: 42,
