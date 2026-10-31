@@ -332,6 +332,15 @@ playback/driver interactions. Tour completion is not required for activation.
   - Params: `slot`, `preset`
   - Trigger: best/latest quick action
 
+### Schedule Page
+
+- `schedule_highlights_opened`
+  - Params: `session_key`, `meeting_key`, `year`
+  - Trigger: session highlights button (opens the highlights dialog)
+- `highlights_player_fallback`
+  - Params: `session_key`, `reason` (`error_<YouTube error code>`, e.g. `error_150` = owner blocks embedding; `script`; `timeout`)
+  - Trigger: the highlights dialog couldn't play the video and switched to the thumbnail + YouTube link
+
 ## Notes For Contributors
 
 - If you add or rename analytics events, update this file in the same PR.

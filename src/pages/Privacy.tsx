@@ -2,7 +2,7 @@ import { Link } from "react-router-dom";
 import { buttonClass } from "@/components/Button/buttonClass";
 
 export default function Privacy() {
-  const updatedOn = "2026-10-25";
+  const updatedOn = "2026-10-31";
 
   return (
     <section className="relative flex min-h-0 flex-1 flex-col overflow-y-auto overscroll-contain bg-track px-4 py-5 [-webkit-overflow-scrolling:touch] sm:px-6 sm:py-8">
@@ -83,6 +83,13 @@ export default function Privacy() {
               Amplitude under their respective terms and privacy policies.
               Review their policies for information about their processing and
               retention practices.
+              </p>
+              <p className="mt-2 text-sm leading-6 text-fg/80">
+              Session highlights are FORMULA 1 videos shown through YouTube's
+              player in privacy-enhanced mode (youtube-nocookie.com). The
+              player and its script load only when you open a highlight;
+              YouTube (Google) then processes data under its own terms and
+              privacy policy.
               </p>
             </section>
 

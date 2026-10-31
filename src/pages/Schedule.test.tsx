@@ -15,6 +15,25 @@ vi.mock("@/hooks/useSession", () => ({
   useDrivers: (...args: unknown[]) => mockUseDrivers(...args),
 }));
 
+const mockTrackEvent = vi.fn();
+vi.mock("@/lib/analytics", () => ({
+  trackEvent: (...args: unknown[]) => mockTrackEvent(...args),
+}));
+
+const RACE_HIGHLIGHT = {
+  videoId: "abc123",
+  title: "Race Highlights | 2026 Bahrain Grand Prix",
+  publishedAt: "2026-04-05T20:00:00Z",
+};
+vi.mock("@/data/sessionHighlights", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@/data/sessionHighlights")>()),
+  getSessionHighlight: (key: number | null | undefined) =>
+    key === 10 ? RACE_HIGHLIGHT : null,
+}));
+vi.mock("@/lib/youtubePlayer", () => ({
+  loadYouTubeApi: () => new Promise(() => {}),
+}));
+
 const HOUR = 3_600_000;
 const DAY = 24 * HOUR;
 const NOW = Date.UTC(2026, 3, 10, 12);
@@ -166,6 +185,31 @@ describe("Schedule page", () => {
     ).toBe("/?year=2026&meeting=1&session=10&view=tracker");
 
     fireEvent.click(screen.getByRole("button", { name: "Close results dialog" }));
+    expect(screen.queryByRole("dialog")).toBeNull();
+  });
+
+  it("opens a completed session's YouTube highlights in a dialog", () => {
+    setup();
+    expect(screen.queryByRole("button", { name: "Practice 1 highlights" })).toBeNull();
+
+    const button = screen.getByRole("button", { name: "Race highlights" });
+    expect(button.parentElement).toBe(
+      screen.getByRole("button", { name: "Race result" }).parentElement,
+    );
+    fireEvent.click(button);
+
+    expect(mockTrackEvent).toHaveBeenCalledWith("schedule_highlights_opened", {
+      session_key: 10,
+      meeting_key: 1,
+      year: 2026,
+    });
+    const dialog = screen.getByRole("dialog", { name: "Race" });
+    expect(dialog.textContent).toContain("Bahrain Grand Prix");
+    expect(
+      within(dialog).getByRole("link", { name: "Open on YouTube" }),
+    ).toHaveAttribute("href", "https://www.youtube.com/watch?v=abc123");
+
+    fireEvent.keyDown(window, { key: "Escape" });
     expect(screen.queryByRole("dialog")).toBeNull();
   });
 

@@ -27,6 +27,7 @@
 | Tyre degradation / race pace                      | `utils/racePace.ts` (clean laps, per-stint fit), `components/TyreDeg` (tracker tab `deg`)    |
 | Undercut / overcut                                | `utils/undercut.ts` (`detectPitBattles`), shown in `PitFeed` rows + `undercut` toast         |
 | Season schedule / calendar                        | `pages/Schedule.tsx` (`/schedule`), `utils/schedule.ts` (`buildSeasonSchedule`), `useSeasonSessions` in `hooks/useSession.ts`; per-card track outline + facts in `components/CircuitSummary` (`utils/circuitInfo.ts`); completed sessions' Result button opens `FinalClassificationDialog` |
+| Session highlight videos                          | `scripts/fetch-highlights.mjs` → `data/session-highlights.json` (`utils/highlights.ts` title matching), `data/sessionHighlights.ts`, `components/HighlightsDialog` (opened from `pages/Schedule.tsx` session rows), `lib/youtubePlayer.ts`, `.github/workflows/update-highlights.yml`. FOM blocks most embeds, so the dialog's thumbnail + YouTube link fallback is the common path |
 | Standings / profiles                              | `hooks/useStandings.ts`, `utils/standings.ts`, `utils/championship.ts`, `pages/Standings.tsx` |
 | Telemetry comparison                              | `pages/Telemetry.tsx`, `components/TelemetryChart`, `components/CornerAnalysis`, `utils/telemetry.ts` |
 | SEO / new route                                   | `routes.tsx`, `seo-routes.json`, `components/Seo/seo.ts` (Pitfall 10)                        |
@@ -162,6 +163,7 @@ src/
     finish.ts           — findLeaderFinishMs(), deriveFinishedDrivers(): who has taken the chequered flag (timed sessions: first crossing after the flag)
     lapDeletions.ts     — parseLapDeletions() / deletedLapKeys(): race-control lap-time deletions (track limits) and reinstatements, matched on driver + lap time (the message's LAP number is one ahead of OpenF1's)
     weather.ts          — weatherAtSessionTime()
+    highlights.ts       — parseHighlightTitle(), matchHighlightSession(): F1 YouTube highlight titles → OpenF1 session_key (type-only imports; used by scripts/fetch-highlights.mjs)
     url.ts              — toSafeExternalUrl(), replaceHistorySearchParams(), replayPath() / roundReplayPath()
 
   data/
@@ -172,12 +174,14 @@ src/
     circuitGeoref.ts    — getCircuitGeoref(): lookup matching the resolved geometry year
     pit-lanes.json      — Baked pit-lane paths (F1 frame) per circuit_key (`node --use-system-ca scripts/fetch-pit-lanes.mjs`)
     pitLanes.ts         — getPitLane(circuitKey)
+    session-highlights.json — Baked F1 YouTube highlight videos per session_key (`scripts/fetch-highlights.mjs`, update-highlights workflow)
+    sessionHighlights.ts — getSessionHighlight(sessionKey), youTubeWatchUrl(), youTubeThumbnailUrl()
 
   pages/
     RaceWeekend.tsx     — Main page: track map + leaderboard + timeline
     Telemetry.tsx       — Lap telemetry comparison page
     Standings.tsx       — Season championship standings page
-    Schedule.tsx        — /schedule — season calendar: round cards, session times (your time and track time side by side in a separate column; ?time= selects which appears first and the round date timezone), replay links for started sessions, Result button (completed sessions) → `FinalClassificationDialog`, next round + countdown
+    Schedule.tsx        — /schedule — season calendar: round cards, session times (your time and track time side by side in a separate column; ?time= selects which appears first and the round date timezone), replay links for started sessions, Result button (completed sessions) → `FinalClassificationDialog`, highlights button (completed sessions with a baked video) → `HighlightsDialog`, next round + countdown
     DriverProfile.tsx   — /standings/driver/:driverNumber — one driver's season (keeps ?year/&session)
     ConstructorProfile.tsx — /standings/team/:teamName (canonical name, `constructorPath()`) — one team's season
     Settings.tsx        — Redirect to settings modal
@@ -196,6 +200,7 @@ src/
     sentry.ts / sentrySdk.ts — Lazy Sentry facade (calls queued until the SDK chunk loads; no-op in dev/tests)
     appVersion.ts       — VITE_APP_VERSION formatting, GitHub releases URLs
     idle.ts             — runWhenIdle(), loadScriptOnce()
+    youtubePlayer.ts    — loadYouTubeApi(): lazy YouTube IFrame Player API (reports embed-blocked errors 101/150), retry after a script error
     staleChunkReload.ts — After a deploy, old tabs 404 on removed hashed chunks: reloads once on `vite:preloadError` (sessionStorage cooldown `STALE_CHUNK_RELOAD_COOLDOWN_MS` stops loops); `ErrorBoundary` shows "Loading the latest version…" meanwhile
     motion.ts           — anime.js presets (fadeUp, modal, tab swap…), prefersReducedMotion()
 
@@ -208,11 +213,12 @@ Outside `src/`:
 ```
 proxy/                  — Cloudflare Worker: OpenF1 proxy + KV cache (own package.json, wrangler.toml; TTL table in proxy/README.md)
 scripts/                — Node build/bake scripts: sitemap + route shells + SEO validation, circuit/georef/pit-lane bakes,
-                          warm-proxy-cache.mjs, resolve-release-version.mjs
+                          fetch-highlights.mjs (YouTube highlights), warm-proxy-cache.mjs, resolve-release-version.mjs
 public/                 — Static assets: sounds/, models/f1-car.glb, og-cover.png/svg, CNAME
 seo-routes.json         — Route list for sitemap, shells and <head> meta
 .github/workflows/      — ci (validate SEO, tsc, lint, test, build on PRs), deploy (same checks + GitHub Pages on main), deploy-proxy (Worker),
-                          versioning (tags + release notes), warm-cache (hourly on race weekends), update-circuits (weekly)
+                          versioning (tags + release notes), warm-cache (hourly on race weekends), update-circuits (weekly),
+                          update-highlights (every 2 h on race weekends; commits to main + dispatches deploy; manual backfill needs YOUTUBE_API_KEY)
 .husky/pre-commit       — runs `yarn lint && yarn test && yarn build` (slow; expect it on every commit)
 ```
 
@@ -279,6 +285,7 @@ components/ (render to DOM; read settings from Zustand)
 | `Seo` / `RouteSeo`                                | Per-route `<head>` meta tags + JSON-LD from `seo-routes.json` (helpers in `Seo/seo.ts`); data-driven pages (driver/team profiles) override via `hooks/usePageSeo.ts` |
 | `ResizeHandle`                                    | Drag handle for split-panel layouts                                                      |
 | `Weather`                                         | Weather icon/badge overlay                                                               |
+| `HighlightsDialog`                                | Session highlights from the FORMULA 1 YouTube channel (Schedule session rows): tries the privacy-enhanced player (`youtube-nocookie.com` via `lib/youtubePlayer.ts`); on a player error (FOM blocks most embeds), a script failure or `HIGHLIGHTS_PLAYER_TIMEOUT_MS` it shows the thumbnail + "Watch on YouTube" and tracks `highlights_player_fallback`. "Open on YouTube" is always shown |
 | `CircuitSummary`                                  | Schedule card strip: baked-geometry track outline (start/finish tick, red direction arrow) + length (unit setting), turns, direction, circuit type, pit loss (normal · SC). Geometry loads per card via `useCircuitGeometry` |
 | `PointsProgression` (`PointsProgressionChart`)    | Cumulative championship points per round (Standings → Progression)                       |
 | `TitleOutlook` (`TitleOutlookBanner`)             | "N drivers in contention / X clinched" summary above the standings tables                |

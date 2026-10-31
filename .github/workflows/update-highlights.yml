@@ -1,0 +1,107 @@
+name: Update Session Highlights
+
+# Matches FORMULA 1 YouTube highlight videos ("Race Highlights | 2026 …") to
+# OpenF1 sessions and bakes them into src/data/session-highlights.json, which
+# the Schedule page reads.
+#
+# Scheduled runs use the channel's uploads RSS feed (no key, ~a week of
+# videos): every 2 hours Friday–Monday (UTC), when highlights are published,
+# and daily otherwise so nothing ages out of the feed.
+#
+# Manual runs can backfill older seasons through the YouTube Data API: set the
+# `backfill_since` input (e.g. 2023) and the YOUTUBE_API_KEY repository secret
+# (a key with YouTube Data API v3 enabled; a backfill costs ~1 quota unit per
+# 50 uploads).
+#
+# Changes are committed straight to main (data only, after type-check and
+# tests), then the deploy workflow is dispatched: pushes made with the
+# workflow token don't trigger other workflows on their own.
+on:
+  schedule:
+    - cron: "15 */2 * * 5,6,0,1"
+    - cron: "15 6 * * 2-4"
+  workflow_dispatch:
+    inputs:
+      backfill_since:
+        description: "Backfill from this season via the YouTube Data API (needs YOUTUBE_API_KEY); empty = RSS feed only"
+        required: false
+        default: ""
+
+permissions:
+  contents: write
+  actions: write
+
+concurrency:
+  group: update-highlights
+  cancel-in-progress: false
+
+env:
+  DATA_PATH: src/data/session-highlights.json
+
+jobs:
+  update-highlights:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: yarn
+
+      - name: Install dependencies
+        run: yarn install --frozen-lockfile
+
+      - name: Fetch highlights
+        env:
+          YOUTUBE_API_KEY: ${{ inputs.backfill_since && secrets.YOUTUBE_API_KEY || '' }}
+          BACKFILL_SINCE: ${{ inputs.backfill_since }}
+        run: |
+          if [ -n "$BACKFILL_SINCE" ] && [ -z "$YOUTUBE_API_KEY" ]; then
+            echo "::error::backfill_since needs the YOUTUBE_API_KEY secret"
+            exit 1
+          fi
+          node scripts/fetch-highlights.mjs ${BACKFILL_SINCE:+--since "$BACKFILL_SINCE"}
+
+      - name: Check for changes
+        id: diff
+        run: |
+          if git diff --quiet -- "$DATA_PATH"; then
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Type-check
+        if: steps.diff.outputs.changed == 'true'
+        run: yarn tsc -b
+
+      - name: Test
+        if: steps.diff.outputs.changed == 'true'
+        run: yarn vitest run src/utils/highlights.test.ts src/pages/Schedule.test.tsx src/components/HighlightsDialog
+
+      - name: Commit and deploy
+        if: steps.diff.outputs.changed == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add "$DATA_PATH"
+          git commit -m "chore(highlights): update session highlights"
+          git pull --rebase origin main
+          git push origin HEAD:main
+          gh workflow run deploy.yml --ref main
+          {
+            echo "## 🎬 Session highlights updated"
+            echo
+            echo "$(git show --stat --format= HEAD | tail -1). Deploy dispatched."
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: No changes summary
+        if: steps.diff.outputs.changed == 'false'
+        run: |
+          echo "## 🎬 Session highlights check" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "ℹ️ No new highlight videos." >> "$GITHUB_STEP_SUMMARY"

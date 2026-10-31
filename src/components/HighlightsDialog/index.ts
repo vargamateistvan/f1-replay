@@ -1,0 +1,1 @@
+export { HighlightsDialog } from "./HighlightsDialog";

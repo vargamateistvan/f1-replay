@@ -46,6 +46,9 @@ export const URL_SYNC_THROTTLE_MS = 1_000;
 export const CURRENT_SEASON_STALE_MS = 6 * 60 * 60 * 1000;
 // How often the season schedule re-evaluates live/next badges and countdowns.
 export const SCHEDULE_CLOCK_TICK_MS = 30_000;
+// Highlights dialog: fall back to the YouTube link preview when the embedded
+// player hasn't reported ready by then (script blocked, slow network).
+export const HIGHLIGHTS_PLAYER_TIMEOUT_MS = 12_000;
 // Public OpenF1 homepage, linked as the data-source attribution.
 export const OPENF1_SITE_URL = "https://openf1.org/";
 // OpenF1 MQTT-over-WebSocket endpoint for browser clients.

@@ -1,6 +1,6 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "react-router-dom";
-import { ListOrdered, Play } from "lucide-react";
+import { Clapperboard, ListOrdered, Play } from "lucide-react";
 import type { Meeting, Session } from "@/api/types";
 import {
   useDrivers,
@@ -12,6 +12,7 @@ import { useNumberParam, useStringParam } from "@/hooks/useSearchParamState";
 import { CircuitSummary } from "@/components/CircuitSummary";
 import { ErrorMessage } from "@/components/ErrorMessage";
 import { FinalClassificationDialog } from "@/components/FinalClassification";
+import { HighlightsDialog } from "@/components/HighlightsDialog";
 import { buttonClass } from "@/components/Button/buttonClass";
 import { parseGmtOffsetToMinutes } from "@/components/TrackMap/trackMapFormat";
 import { PICKER_BAR } from "@/components/Nav/pickerStyles";
@@ -25,6 +26,8 @@ import {
   type ScheduleStatus,
 } from "@/utils/schedule";
 import { replayPath, toSafeExternalUrl } from "@/utils/url";
+import { getSessionHighlight } from "@/data/sessionHighlights";
+import { trackEvent } from "@/lib/analytics";
 
 type TimeMode = "local" | "track";
 const TIME_MODES: TimeMode[] = ["local", "track"];
@@ -93,15 +96,18 @@ function SessionRow({
   year,
   timeFormats,
   onShowResult,
+  onShowHighlights,
 }: {
   item: ScheduleSession;
   year: number;
   timeFormats: SessionTimeFormat[];
   onShowResult: (session: Session) => void;
+  onShowHighlights: (session: Session) => void;
 }) {
   const { session, status } = item;
   const canReplay = status === "completed" || status === "live";
   const hasResult = status === "completed";
+  const highlight = hasResult ? getSessionHighlight(session.session_key) : null;
   const actionClass = buttonClass(
     "quiet",
     "sm",
@@ -133,7 +139,7 @@ function SessionRow({
         ))}
       </div>
       {(canReplay || hasResult) && (
-        <div className="col-start-2 row-start-1 flex w-auto items-center justify-end gap-1.5 sm:col-span-1 sm:col-start-auto sm:row-auto sm:w-[9.375rem] sm:shrink-0">
+        <div className="col-start-2 row-start-1 flex w-auto items-center justify-end gap-1.5 sm:col-span-1 sm:col-start-auto sm:row-auto sm:w-[11.75rem] sm:shrink-0 sm:justify-start">
           {canReplay && (
             <Link
               to={replayPath({
@@ -157,6 +163,17 @@ function SessionRow({
             >
               <ListOrdered aria-hidden="true" className="h-3 w-3" />
               Result
+            </button>
+          )}
+          {highlight && (
+            <button
+              type="button"
+              onClick={() => onShowHighlights(session)}
+              aria-label={`${session.session_name} highlights`}
+              title="Highlights"
+              className={buttonClass("quiet", "sm", "h-8 w-8 rounded-sm bg-track/50 px-0")}
+            >
+              <Clapperboard aria-hidden="true" className="h-3.5 w-3.5" />
             </button>
           )}
         </div>
@@ -217,6 +234,7 @@ function RoundCard({
   nextSession,
   now,
   onShowResult,
+  onShowHighlights,
 }: {
   round: ScheduleRound;
   year: number;
@@ -225,6 +243,7 @@ function RoundCard({
   nextSession: Session | null;
   now: number;
   onShowResult: (session: Session) => void;
+  onShowHighlights: (session: Session) => void;
 }) {
   const { meeting } = round;
   const flagUrl = toSafeExternalUrl(meeting.country_flag);
@@ -303,6 +322,7 @@ function RoundCard({
               year={year}
               timeFormats={timeFormats}
               onShowResult={onShowResult}
+              onShowHighlights={onShowHighlights}
             />
           ))}
         </div>
@@ -323,6 +343,17 @@ export default function Schedule() {
   const now = useNow(SCHEDULE_CLOCK_TICK_MS);
   const listRef = useRef<HTMLDivElement>(null);
   const [resultSession, setResultSession] = useState<Session | null>(null);
+  const [highlightsSession, setHighlightsSession] = useState<Session | null>(null);
+  const highlight = getSessionHighlight(highlightsSession?.session_key);
+  const showHighlights = useCallback((session: Session) => {
+    trackEvent("schedule_highlights_opened", {
+      session_key: session.session_key,
+      meeting_key: session.meeting_key,
+      year: session.year,
+    });
+    setHighlightsSession(session);
+  }, []);
+  const closeHighlights = useCallback(() => setHighlightsSession(null), []);
 
   const meetingsQ = useMeetings(year);
   const sessionsQ = useSeasonSessions(year);
@@ -419,6 +450,7 @@ export default function Schedule() {
                 nextSession={round.isNext ? nextSession : null}
                 now={now}
                 onShowResult={setResultSession}
+                onShowHighlights={showHighlights}
               />
             ))}
           </div>
@@ -432,6 +464,20 @@ export default function Schedule() {
             (m) => m.meeting_key === resultSession.meeting_key,
           )}
           onClose={() => setResultSession(null)}
+        />
+      )}
+
+      {highlightsSession && highlight && (
+        <HighlightsDialog
+          highlight={highlight}
+          sessionKey={highlightsSession.session_key}
+          sessionName={highlightsSession.session_name}
+          meta={`${highlightsSession.circuit_short_name} · ${highlightsSession.year}`}
+          subtitle={
+            meetingsQ.data?.find((m) => m.meeting_key === highlightsSession.meeting_key)
+              ?.meeting_name
+          }
+          onClose={closeHighlights}
         />
       )}
     </div>
