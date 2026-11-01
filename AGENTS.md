@@ -1,6 +1,6 @@
 # F1 Replay — Agent Documentation
 
-> Last updated: 2026-10-31
+> Last updated: 2026-11-01
 > The single source of truth for agents. Provides concise, agent-readable architecture notes, conventions, and guardrails. `docs/` holds mostly historical plans — see Section 12 before trusting one.
 
 ---
@@ -27,6 +27,7 @@
 | Tyre degradation / race pace                      | `utils/racePace.ts` (clean laps, per-stint fit), `components/TyreDeg` (tracker tab `deg`)    |
 | Undercut / overcut                                | `utils/undercut.ts` (`detectPitBattles`), shown in `PitFeed` rows + `undercut` toast         |
 | Season schedule / calendar                        | `pages/Schedule.tsx` (`/schedule`), `utils/schedule.ts` (`buildSeasonSchedule`), `useSeasonSessions` in `hooks/useSession.ts`; per-card track outline + facts in `components/CircuitSummary` (`utils/circuitInfo.ts`); completed sessions' Result button opens `FinalClassificationDialog` |
+| Schedule world map                                | `components/ScheduleMap` (lazy chunk, `?layout=map&round=<meeting_key>` on `/schedule`), `utils/worldMap.ts` (projection, camera, clustering), `data/circuitLocations.ts` (from georef origins), `data/worldLand.ts` (`scripts/bake-world-map.mjs`); tuning in `SCHEDULE_MAP_*` constants |
 | Session highlight videos                          | `scripts/fetch-highlights.mjs` → `data/session-highlights.json` (`utils/highlights.ts` title matching), `data/sessionHighlights.ts`, `components/HighlightsDialog` (opened from `pages/Schedule.tsx` session rows), `lib/youtubePlayer.ts`, `.github/workflows/update-highlights.yml`. FOM blocks most embeds, so the dialog's thumbnail + YouTube link fallback is the common path |
 | Standings / profiles                              | `hooks/useStandings.ts`, `utils/standings.ts`, `utils/championship.ts`, `pages/Standings.tsx` |
 | Telemetry comparison                              | `pages/Telemetry.tsx`, `components/TelemetryChart`, `components/CornerAnalysis`, `utils/telemetry.ts` |
@@ -139,6 +140,7 @@ src/
     retirement.ts       — Retirement detection from race control
     session.ts          — Session utility helpers
     circuitInfo.ts      — circuitStats() (centerline length, distinct turns, direction from shoelace sign; F1 frame is decimetres, Y-up), circuitThumbnail() (outline path oriented like the 2D map, start tick, direction arrow)
+    worldMap.ts         — Schedule world map maths: equirectangular projectLngLat() (x = lng + 180, y = 90 − lat), camera fit/clamp/zoom/lerp, screen ↔ map, clusterMarkers(), haversine travelDistanceKm(), legArcPath()
     schedule.ts         — buildSeasonSchedule(): meetings + sessions → numbered rounds (testing/cancelled unnumbered), per-session status, next round; scheduleFocusRound() (live weekend → latest finished → first upcoming; the page opens scrolled to it); formatCountdown()
     standings.ts        — computeStandings(), completed-session + wins/podiums tallies
     championship.ts     — Points progression, per-race results grid, title-outlook maths, teammate head-to-heads
@@ -172,6 +174,9 @@ src/
     circuits.ts         — Coarse fallback layouts (sectors, DRS zones) via getCircuitLayout()
     circuit-georef.json — Baked F1-frame → lng/lat fit per geometry file (`node scripts/fetch-georef.mjs`)
     circuitGeoref.ts    — getCircuitGeoref(): lookup matching the resolved geometry year
+    circuitLocations.ts — getCircuitLocation(circuitKey): lng/lat from the georef origins (schedule world map; lazy chunks only)
+    world-land.json     — Baked Natural Earth 1:110m land outline as one SVG path in the worldMap.ts frame (`node scripts/bake-world-map.mjs`)
+    worldLand.ts        — WORLD_LAND_PATH (lazy chunks only)
     pit-lanes.json      — Baked pit-lane paths (F1 frame) per circuit_key (`node --use-system-ca scripts/fetch-pit-lanes.mjs`)
     pitLanes.ts         — getPitLane(circuitKey)
     session-highlights.json — Baked F1 YouTube highlight videos per session_key (`scripts/fetch-highlights.mjs`, update-highlights workflow)
@@ -181,7 +186,7 @@ src/
     RaceWeekend.tsx     — Main page: track map + leaderboard + timeline
     Telemetry.tsx       — Lap telemetry comparison page
     Standings.tsx       — Season championship standings page
-    Schedule.tsx        — /schedule — season calendar: round cards, session times (your time and track time side by side in a separate column; ?time= selects which appears first and the round date timezone), replay links for started sessions, Result button (completed sessions) → `FinalClassificationDialog`, highlights button (completed sessions with a baked video) → `HighlightsDialog`, next round + countdown
+    Schedule.tsx        — /schedule — season calendar: round cards, session times (your time and track time side by side in a separate column; ?time= selects which appears first and the round date timezone), replay links for started sessions, Result button (completed sessions) → `FinalClassificationDialog`, highlights button (completed sessions with a baked video) → `HighlightsDialog`, next round + countdown. Cards / Map toggle (`?layout=map`, selected round in `?round=`; not `view`/`meeting`, which the nav carries to the replay page) lazy-loads `ScheduleMap`
     DriverProfile.tsx   — /standings/driver/:driverNumber — one driver's season (keeps ?year/&session)
     ConstructorProfile.tsx — /standings/team/:teamName (canonical name, `constructorPath()`) — one team's season
     Settings.tsx        — Redirect to settings modal
@@ -213,7 +218,7 @@ Outside `src/`:
 ```
 proxy/                  — Cloudflare Worker: OpenF1 proxy + KV cache (own package.json, wrangler.toml; TTL table in proxy/README.md)
 scripts/                — Node build/bake scripts: sitemap + route shells + SEO validation, circuit/georef/pit-lane bakes,
-                          fetch-highlights.mjs (YouTube highlights), warm-proxy-cache.mjs, resolve-release-version.mjs
+                          fetch-highlights.mjs (YouTube highlights), bake-world-map.mjs (schedule map land), warm-proxy-cache.mjs, resolve-release-version.mjs
 public/                 — Static assets: sounds/, models/f1-car.glb, og-cover.png/svg, CNAME
 seo-routes.json         — Route list for sitemap, shells and <head> meta
 .github/workflows/      — ci (validate SEO, tsc, lint, test, build on PRs), deploy (same checks + GitHub Pages on main), deploy-proxy (Worker),
@@ -287,6 +292,7 @@ components/ (render to DOM; read settings from Zustand)
 | `Weather`                                         | Weather icon/badge overlay                                                               |
 | `HighlightsDialog`                                | Session highlights from the FORMULA 1 YouTube channel (Schedule session rows): tries the privacy-enhanced player (`youtube-nocookie.com` via `lib/youtubePlayer.ts`); on a player error (FOM blocks most embeds), a script failure or `HIGHLIGHTS_PLAYER_TIMEOUT_MS` it shows the thumbnail + "Watch on YouTube" and tracks `highlights_player_fallback`. While the player is up, the footer also links to YouTube |
 | `CircuitSummary`                                  | Schedule card strip: baked-geometry track outline (start/finish tick, red direction arrow) + length (unit setting), turns, direction, circuit type, pit loss (normal · SC). Geometry loads per card via `useCircuitGeometry` |
+| `ScheduleMap`                                     | Schedule page Map layout: SVG world map (baked land, graticule), one marker per round (round number; next/live red, completed muted), screen-space clusters (click zooms in, or lists co-located rounds such as testing + GP), season route arcs (completed solid, remaining red dashed), drag pan, desktop wheel zoom, +/−/fit buttons, legend + season travel distance below the map, selected round's card (rendered by the page) in a side panel with prev/next. Side by side from `lg`, stacked below |
 | `PointsProgression` (`PointsProgressionChart`)    | Cumulative championship points per round (Standings → Progression)                       |
 | `TitleOutlook` (`TitleOutlookBanner`)             | "N drivers in contention / X clinched" summary above the standings tables                |
 | `TeammateComparison`                              | Qualifying / race / points head-to-heads per team (Standings → Teammates)                |

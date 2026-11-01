@@ -1,6 +1,6 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { Suspense, lazy, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "react-router-dom";
-import { Clapperboard, ListOrdered, Play } from "lucide-react";
+import { Clapperboard, Earth, LayoutGrid, ListOrdered, Play } from "lucide-react";
 import type { Meeting, Session } from "@/api/types";
 import {
   useDrivers,
@@ -28,6 +28,24 @@ import {
 import { replayPath, toSafeExternalUrl } from "@/utils/url";
 import { getSessionHighlight } from "@/data/sessionHighlights";
 import { trackEvent } from "@/lib/analytics";
+
+// The world map (land outline, circuit positions) is its own chunk.
+const ScheduleMap = lazy(() =>
+  import("@/components/ScheduleMap").then((m) => ({ default: m.ScheduleMap })),
+);
+
+type ViewMode = "cards" | "map";
+const VIEW_MODES: { mode: ViewMode; label: string; Icon: typeof LayoutGrid }[] = [
+  { mode: "cards", label: "Cards", Icon: LayoutGrid },
+  { mode: "map", label: "Map", Icon: Earth },
+];
+const MAP_PLACEHOLDER = (
+  <div
+    role="status"
+    aria-label="Loading map"
+    className="h-[55vh] min-h-64 animate-pulse bg-sunken md:h-auto md:flex-1"
+  />
+);
 
 type TimeMode = "local" | "track";
 const TIME_MODES: TimeMode[] = ["local", "track"];
@@ -340,6 +358,11 @@ export default function Schedule() {
   const year = yearParam ?? DEFAULT_YEAR;
   const [timeParam, setTimeMode] = useStringParam<TimeMode>("time", "local");
   const timeMode: TimeMode = TIME_MODES.includes(timeParam) ? timeParam : "local";
+  // Own param names: `view` and `meeting` belong to the replay page and the
+  // nav carries the query string between pages.
+  const [viewParam, setViewParam] = useStringParam<ViewMode>("layout", "cards");
+  const view: ViewMode = viewParam === "map" ? "map" : "cards";
+  const [meetingParam, setMeetingParam] = useNumberParam("round", null);
   const now = useNow(SCHEDULE_CLOCK_TICK_MS);
   const listRef = useRef<HTMLDivElement>(null);
   const [resultSession, setResultSession] = useState<Session | null>(null);
@@ -387,11 +410,34 @@ export default function Schedule() {
   // every clock tick, so it never fights the user's own scrolling.
   const scrolledForYear = useRef<number | null>(null);
   useEffect(() => {
-    if (focusKey === null || scrolledForYear.current === year) return;
+    if (focusKey === null || view !== "cards" || scrolledForYear.current === year) return;
     scrolledForYear.current = year;
     const card = listRef.current?.querySelector(`[data-meeting-key="${focusKey}"]`);
     card?.scrollIntoView?.({ block: "start" });
-  }, [focusKey, year]);
+  }, [focusKey, year, view]);
+
+  // Map view: the round from ?round= (a meeting key) when it belongs to this season, else
+  // the same round the card list opens on.
+  const mapSelectedKey = schedule.rounds.some((r) => r.meeting.meeting_key === meetingParam)
+    ? meetingParam
+    : focusKey;
+  const changeView = (next: ViewMode) => {
+    if (next === view) return;
+    trackEvent("schedule_view_changed", { view: next, year });
+    setViewParam(next);
+  };
+  const renderRoundCard = (round: ScheduleRound) => (
+    <RoundCard
+      round={round}
+      year={year}
+      fmt={fmt}
+      timeFormats={timeFormats}
+      nextSession={round.isNext ? nextSession : null}
+      now={now}
+      onShowResult={setResultSession}
+      onShowHighlights={showHighlights}
+    />
+  );
   const isError = meetingsQ.isError;
 
   return (
@@ -406,8 +452,29 @@ export default function Schedule() {
           </span>
           <div
             role="radiogroup"
-            aria-label="Time zone"
+            aria-label="Layout"
             className="ml-auto flex overflow-hidden rounded-sm border border-panel"
+          >
+            {VIEW_MODES.map(({ mode, label, Icon }) => (
+              <button
+                key={mode}
+                type="button"
+                role="radio"
+                aria-checked={view === mode}
+                onClick={() => changeView(mode)}
+                className={`flex items-center gap-1 px-2 py-1 text-caption font-bold uppercase tracking-wider transition-colors ${
+                  view === mode ? "bg-f1red text-white" : "text-muted hover:text-fg"
+                }`}
+              >
+                <Icon aria-hidden="true" className="h-3 w-3" />
+                {label}
+              </button>
+            ))}
+          </div>
+          <div
+            role="radiogroup"
+            aria-label="Time zone"
+            className="flex overflow-hidden rounded-sm border border-panel"
           >
             {TIME_MODES.map((mode) => (
               <button
@@ -437,6 +504,20 @@ export default function Schedule() {
         <div className="flex-1">
           <ErrorMessage message={`No ${year} events published yet`} variant="empty" />
         </div>
+      ) : view === "map" ? (
+        isLoading ? (
+          MAP_PLACEHOLDER
+        ) : (
+          <Suspense fallback={MAP_PLACEHOLDER}>
+            <ScheduleMap
+              key={year}
+              rounds={schedule.rounds}
+              selectedKey={mapSelectedKey}
+              onSelect={setMeetingParam}
+              renderRound={renderRoundCard}
+            />
+          </Suspense>
+        )
       ) : (
         <div ref={listRef} className="md:min-h-0 md:flex-1 md:overflow-auto">
           <div className="grid gap-3 p-3 sm:p-4 md:grid-cols-2 xl:grid-cols-3">

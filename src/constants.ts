@@ -74,6 +74,25 @@ export const SCHEDULE_OUTLINE_W = 120;
 export const SCHEDULE_OUTLINE_H = 80;
 export const SCHEDULE_OUTLINE_PAD = 6;
 export const SCHEDULE_OUTLINE_ARROW_FRACTION = 0.06;
+// Schedule world map (equirectangular degrees, see utils/worldMap.ts). The
+// latitude crop drops the polar regions no circuit is near.
+export const SCHEDULE_MAP_MAX_LAT = 75;
+export const SCHEDULE_MAP_MIN_LAT = -56;
+// Closest zoom: the narrowest view, in degrees of longitude.
+export const SCHEDULE_MAP_MIN_VIEW_DEG = 6;
+// Screen margin around the circuits when fitting the view: clears the
+// markers themselves and the zoom buttons.
+export const SCHEDULE_MAP_FIT_PAD_PX = 48;
+// Markers closer than this on screen merge into one cluster bubble.
+export const SCHEDULE_MAP_CLUSTER_PX = 26;
+export const SCHEDULE_MAP_ZOOM_STEP = 1.6;
+// Mouse-wheel zoom per 100 px of scroll delta.
+export const SCHEDULE_MAP_WHEEL_ZOOM = 1.25;
+export const SCHEDULE_MAP_ANIM_MS = 450;
+// Travel legs bow sideways by this fraction of their length (flight-path look).
+export const SCHEDULE_MAP_ARC_BOW = 0.18;
+// Pointer movement (px) before a press on the map becomes a pan.
+export const SCHEDULE_MAP_DRAG_THRESHOLD_PX = 4;
 // Slightly enlarge the fit so the track uses the available map area while
 // leaving enough room for the ribbon, markers, and labels.
 export const TRACK_FIT_ZOOM = 1.15;

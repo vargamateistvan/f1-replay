@@ -227,6 +227,25 @@ describe("Schedule page", () => {
     }
   });
 
+  it("switches to the world map layout on the latest finished round", async () => {
+    setup();
+    fireEvent.click(screen.getByRole("radio", { name: "Map" }));
+    expect(screen.getByRole("radio", { name: "Map" })).toHaveAttribute("aria-checked", "true");
+    expect(mockTrackEvent).toHaveBeenCalledWith("schedule_view_changed", {
+      view: "map",
+      year: 2026,
+    });
+    expect(await screen.findByRole("group", { name: "Season map" })).toBeInTheDocument();
+    const panel = screen.getByRole("complementary", { name: "Selected round" });
+    expect(
+      within(panel).getByRole("heading", { level: 2, name: "Bahrain Grand Prix" }),
+    ).toBeInTheDocument();
+    fireEvent.click(within(panel).getByRole("button", { name: "Next round" }));
+    expect(
+      within(panel).getByRole("heading", { level: 2, name: "Japanese Grand Prix" }),
+    ).toBeInTheDocument();
+  });
+
   it("switches between your time and track time", () => {
     setup();
     const row = screen.getByRole("link", { name: "Replay Race" })

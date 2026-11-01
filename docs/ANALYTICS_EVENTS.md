@@ -337,6 +337,9 @@ playback/driver interactions. Tour completion is not required for activation.
 - `schedule_highlights_opened`
   - Params: `session_key`, `meeting_key`, `year`
   - Trigger: session highlights button (opens the highlights dialog)
+- `schedule_view_changed`
+  - Params: `view` (`cards` | `map`), `year`
+  - Trigger: Cards / Map layout toggle in the schedule picker bar
 - `highlights_player_fallback`
   - Params: `session_key`, `reason` (`error_<YouTube error code>`, e.g. `error_150` = owner blocks embedding; `script`; `timeout`)
   - Trigger: the highlights dialog couldn't play the video and switched to the thumbnail + YouTube link
