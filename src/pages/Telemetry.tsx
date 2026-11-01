@@ -1881,7 +1881,7 @@ export default function Telemetry() {
               className="fixed inset-0 z-50 flex items-stretch justify-center bg-black/75 p-2 backdrop-blur-sm sm:items-center sm:p-4"
               onClick={(e) => { if (e.target === e.currentTarget) setIsTrackDialogOpen(false); }}
             >
-              <div className="relative flex h-full w-full max-w-[calc(100vw-1rem)] min-h-0 flex-col gap-2 overflow-y-auto overscroll-contain rounded-sm border border-panel bg-track p-2 shadow-2xl sm:h-[92dvh] sm:max-w-6xl sm:gap-3 sm:overflow-hidden sm:p-4 lg:max-w-7xl">
+              <div className="relative flex h-full w-full max-w-[calc(100vw-1rem)] min-h-0 flex-col gap-2 overflow-y-auto overscroll-contain rounded-sm border border-panel bg-track p-2 shadow-2xl sm:h-[92dvh] sm:max-w-6xl sm:gap-3 sm:p-4 lg:max-w-7xl">
                 {/* Dialog header */}
                 <div className="sticky -top-2 z-10 -mx-2 -mt-2 flex shrink-0 flex-wrap items-center gap-2 bg-track px-2 pt-2 pb-1 sm:static sm:m-0 sm:p-0">
                   <span className="text-caption font-black uppercase tracking-caps text-muted">
@@ -1904,7 +1904,7 @@ export default function Telemetry() {
                 </div>
 
                 {/* Track SVG — interactive */}
-                <div className="relative aspect-[3/2] shrink-0 overflow-hidden border border-panel bg-track sm:aspect-auto sm:min-h-[28rem] sm:flex-1 sm:shrink">
+                <div className="relative aspect-[3/2] shrink-0 overflow-hidden border border-panel bg-track sm:aspect-auto sm:min-h-[14rem] sm:flex-1 sm:shrink">
                   <svg
                     viewBox={`0 0 ${TRACK_SVG_W} ${TRACK_SVG_H}`}
                     className="relative h-full w-full cursor-crosshair touch-none"
