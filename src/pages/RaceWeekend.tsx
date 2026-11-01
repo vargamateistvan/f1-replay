@@ -10,7 +10,7 @@ import {
 } from "react";
 import { createPortal } from "react-dom";
 import { useQueryClient } from "@tanstack/react-query";
-import { Play, Settings as SettingsIcon } from "lucide-react";
+import { Coffee, Play, Settings as SettingsIcon } from "lucide-react";
 import { DialogHeader } from "@/components/DialogHeader";
 import { PlaybackBar } from "@/components/PlaybackBar";
 import { TOUR_TARGET } from "@/components/AppTour/targets";
@@ -2496,20 +2496,30 @@ export default function RaceWeekend() {
             Browse the schedule for a cached replay, or try this session again
             after the live action ends.
           </p>
-          <p className="mt-4 text-body text-muted">
-            Enjoy F1 Replay? Buy me a coffee to help keep the project running
-            and bring live data to the app. Every contribution makes a difference.
-          </p>
-          <div className="mt-5 flex flex-wrap gap-2">
-            <Link to={`/schedule?year=${yearParam ?? DEFAULT_YEAR}`} className={buttonClass("primary")}>
+          <div className="mt-4">
+            <Link
+              to={`/schedule?year=${yearParam ?? DEFAULT_YEAR}`}
+              className={buttonClass("secondary")}
+            >
               Browse schedule
             </Link>
+          </div>
+          <div className="mt-6 border border-f1red/40 border-l-4 border-l-f1red bg-f1red/10 p-4">
+            <p className="flex items-center gap-2 text-caption font-bold uppercase tracking-eyebrow text-f1red-fg">
+              <Coffee width={14} height={14} aria-hidden="true" />
+              Support F1 Replay
+            </p>
+            <p className="mt-2 text-body text-fg">
+              Enjoy F1 Replay? Buy me a coffee to help keep the project running
+              and bring live data to the app. Every contribution makes a difference.
+            </p>
             <a
               href="https://buymeacoffee.com/matt_varga"
               target="_blank"
               rel="noopener noreferrer"
-              className={`${buttonClass("secondary")} ml-auto`}
+              className={buttonClass("primary", "md", "mt-4 w-full sm:w-auto")}
             >
+              <Coffee width={14} height={14} aria-hidden="true" />
               Support on Buy Me a Coffee
             </a>
           </div>
