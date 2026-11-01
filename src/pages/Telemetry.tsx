@@ -1566,7 +1566,7 @@ export default function Telemetry() {
           const TrackSvg = (
             <svg
               viewBox={`0 0 ${TRACK_SVG_W} ${TRACK_SVG_H}`}
-              className="relative h-full w-full"
+              className="relative h-full w-full lg:absolute lg:inset-0"
               role="img"
               aria-label="Lap track preview"
             >
@@ -1842,7 +1842,7 @@ export default function Telemetry() {
 
             <div
               ref={trackPreviewRef}
-              className="h-full lg:h-[276px] border border-panel bg-track p-1.5 flex flex-col"
+              className="flex h-full min-w-0 flex-col border border-panel bg-track p-2"
             >
               <div className="mb-1 flex items-center gap-1.5">
                 <span className="text-caption font-black uppercase tracking-caps text-muted">
@@ -2558,11 +2558,24 @@ function DriverLapCard({
   const isLatestSelected =
     lap !== null && latestLap !== null && Number(lap) === Number(latestLap);
 
+  const metricSystem = useSettings((s) => s.metricSystem);
+  const speedUnit = speedUnitLabel(metricSystem);
+  const hasLapTime = /^\d/.test(lapMeta.timeText);
+  const chip =
+    "inline-flex h-5 shrink-0 items-center border px-1.5 text-tiny font-bold tracking-widest";
+  const presetClass = (selected: boolean, selectedTone: string) =>
+    `inline-flex h-6 items-center px-2 text-tiny font-bold uppercase tracking-widest transition-colors disabled:cursor-not-allowed disabled:opacity-40 ${
+      selected ? selectedTone : "text-muted hover:text-fg"
+    }`;
+
   return (
-    <div className="h-full lg:h-[276px] border border-panel bg-track p-1.5">
-      <div className="mb-1.5 flex items-center justify-between gap-1.5">
+    <div
+      className="flex h-full min-w-0 flex-col border border-t-2 border-panel bg-track p-2"
+      style={{ borderTopColor: accent }}
+    >
+      <div className="mb-2 flex items-center justify-between gap-2">
         <div className="flex min-w-0 items-center gap-2">
-          <div className="relative h-7 w-7 shrink-0 overflow-hidden border border-panel bg-surface">
+          <div className="relative h-8 w-8 shrink-0 overflow-hidden rounded-sm border border-panel bg-surface">
             {hasHeadshot ? (
               <img
                 src={safeHeadshotUrl}
@@ -2579,25 +2592,22 @@ function DriverLapCard({
           </div>
 
           <div className="min-w-0">
-            <span className="block text-caption font-black uppercase tracking-caps text-muted">
+            <span className="block text-tiny font-black uppercase tracking-caps text-muted">
               {slotLabel}
             </span>
-            <div className="mt-0.5 flex items-center gap-2">
-              <span
-                className="truncate text-small font-black uppercase tracking-widest"
-                style={{ color: accent }}
-                title={driverName}
-              >
-                {driverTag}
-              </span>
-              <span
-                className="h-0.5 w-6"
-                style={{ backgroundColor: accent }}
-              />
-            </div>
+            <span
+              className="block truncate text-small font-black uppercase leading-tight tracking-widest"
+              style={{ color: accent }}
+              title={driverName}
+            >
+              {driverTag}
+            </span>
           </div>
         </div>
-        <div className="flex items-center gap-1">
+        <div
+          className="flex shrink-0 items-center gap-1"
+          title={`Sectors won on the selected lap: ${sectorWins.total} of 3`}
+        >
           <SectorChip
             label="S1"
             active={sectorWins.s1}
@@ -2613,21 +2623,10 @@ function DriverLapCard({
             active={sectorWins.s3}
             animationSeed={sectorAnimationSeed}
           />
-          <span
-            key={`wins-${sectorAnimationSeed ?? "none"}-${sectorWins.total}`}
-            className={`border px-1.5 py-0.5 text-tiny font-black uppercase tracking-widest ${
-              sectorWins.total > 0
-                ? "border-purple-line bg-purple-tint text-purple-fg animate-[pulse_0.45s_ease-out_1]"
-                : "border-panel bg-surface text-muted"
-            }`}
-            title="Total sector wins for selected lap"
-          >
-            W{sectorWins.total}
-          </span>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 gap-1.5 sm:grid-cols-[minmax(0,1fr)_108px]">
+      <div className="grid grid-cols-1 gap-2 sm:grid-cols-[minmax(0,1fr)_108px]">
         <DriverSelect
           label="Driver"
           value={driver}
@@ -2655,76 +2654,85 @@ function DriverLapCard({
         </div>
       </div>
 
-      <div className="mt-1.5 flex flex-wrap items-center gap-1">
-        <button
-          onClick={onBest}
-          disabled={driver === null || bestLap === null}
-          className={`border px-2 font-bold uppercase tracking-caps disabled:opacity-50 ${
-            compact ? "h-5 text-tiny" : "h-6 text-caption"
-          } ${
-            isBestSelected
-              ? "border-purple-line bg-purple-tint text-purple-fg"
-              : "border-panel bg-surface text-fg"
-          }`}
-          title="Select best valid lap"
-        >
-          Best {bestLap !== null ? `L${bestLap}` : ""}
-        </button>
+      <div className="mt-2 border border-panel bg-surface px-2 py-1.5">
+        <div className="flex flex-wrap items-center gap-x-2 gap-y-1.5">
+          <span
+            className={
+              hasLapTime
+                ? "font-mono text-base font-bold leading-none tabular-nums text-fg"
+                : "text-caption font-bold uppercase tracking-widest text-muted"
+            }
+          >
+            {lapMeta.timeText}
+          </span>
+          <span className={`${chip} uppercase ${lapMeta.statusClass}`}>
+            {lapMeta.statusLabel}
+          </span>
+          <span
+            className={`${chip} ${/\d/.test(deltaHint.text) ? "font-mono" : "uppercase"} ${deltaHint.className}`}
+            title="Estimated lap-end delta versus Driver A"
+          >
+            {deltaHint.text}
+          </span>
+          <div
+            className="ml-auto flex shrink-0 divide-x divide-panel border border-panel bg-track"
+            role="group"
+            aria-label={`${slotLabel} quick lap`}
+          >
+            <button
+              type="button"
+              onClick={onBest}
+              disabled={driver === null || bestLap === null}
+              aria-pressed={isBestSelected}
+              className={presetClass(
+                isBestSelected,
+                "bg-purple-tint text-purple-fg",
+              )}
+              title="Select best valid lap"
+            >
+              Best{bestLap !== null ? ` L${bestLap}` : ""}
+            </button>
+            <button
+              type="button"
+              onClick={onLatest}
+              disabled={driver === null || latestLap === null}
+              aria-pressed={isLatestSelected}
+              className={presetClass(
+                isLatestSelected,
+                "bg-panel text-fg",
+              )}
+              title="Select latest valid lap"
+            >
+              Latest{latestLap !== null ? ` L${latestLap}` : ""}
+            </button>
+          </div>
+        </div>
 
-        <button
-          onClick={onLatest}
-          disabled={driver === null || latestLap === null}
-          className={`border px-2 font-bold uppercase tracking-caps disabled:opacity-50 ${
-            compact ? "h-5 text-tiny" : "h-6 text-caption"
-          } ${
-            isLatestSelected
-              ? "border-blue-line bg-blue-tint text-blue-fg"
-              : "border-panel bg-surface text-fg"
-          }`}
-          title="Select latest valid lap"
-        >
-          Latest {latestLap !== null ? `L${latestLap}` : ""}
-        </button>
+        <LapConditionsRow conditions={conditions} />
       </div>
-
-      <div className="mt-1.5 flex flex-wrap items-center gap-1">
-        <span className="border border-panel bg-surface px-2 py-1 text-caption font-bold uppercase tracking-widest text-muted">
-          {lapMeta.timeText}
-        </span>
-        <span
-          className={`border px-2 py-1 text-caption font-bold uppercase tracking-widest ${lapMeta.statusClass}`}
-        >
-          {lapMeta.statusLabel}
-        </span>
-        <span
-          className={`border px-2 py-1 text-caption font-bold uppercase tracking-widest ${deltaHint.className}`}
-          title="Estimated lap-end delta versus Driver A"
-        >
-          {deltaHint.text}
-        </span>
-      </div>
-
-      <LapConditionsRow conditions={conditions} />
 
       {!compact && (
-        <div className="mt-1.5 overflow-hidden border border-panel bg-surface">
+        <div className="mt-2 flex min-h-0 flex-1 flex-col overflow-hidden border border-panel bg-surface">
           <div className="flex items-center justify-between border-b border-panel px-2 py-1">
             <span className="text-caption font-bold uppercase tracking-caps text-muted">
               Speed trace
             </span>
             {speedStats && (
-              <span className="text-caption font-semibold text-muted">
-                AVG {Math.round(speedStats.avg)} · MAX{" "}
-                {Math.round(speedStats.max)}
+              <span className="font-mono text-tiny text-muted">
+                AVG{" "}
+                <span className="text-fg">
+                  {Math.round(toDisplaySpeed(speedStats.avg, metricSystem))}
+                </span>{" "}
+                · MAX{" "}
+                <span className="text-fg">
+                  {Math.round(toDisplaySpeed(speedStats.max, metricSystem))}
+                </span>{" "}
+                {speedUnit}
               </span>
             )}
           </div>
-          <div className="px-2 py-1">
-            <SpeedSparkline
-              values={speedTrace}
-              color={accent}
-              driverTag={driverTag}
-            />
+          <div className="flex flex-1 items-center px-2 py-1.5">
+            <SpeedSparkline values={speedTrace} color={accent} />
           </div>
         </div>
       )}
@@ -2740,40 +2748,49 @@ function LapConditionsRow({ conditions }: { conditions: LapConditions }) {
   const tempUnit = `°${temperatureUnitLabel(metricSystem)}`;
   const fmtTemp = (c: number) =>
     `${Math.round(toDisplayTemperature(c, metricSystem))}${tempUnit}`;
-  const chip =
-    "inline-flex items-center gap-1 border border-panel bg-surface px-1.5 py-0.5 text-caption font-bold uppercase tracking-widest text-muted";
+  const item =
+    "inline-flex items-center gap-1 text-tiny font-bold uppercase tracking-widest text-muted";
 
   return (
-    <div className="mt-1 flex flex-wrap items-center gap-1" data-testid="lap-conditions">
+    <div
+      className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 border-t border-panel pt-1.5"
+      data-testid="lap-conditions"
+    >
       {tyre && (
         <span
-          className={chip}
+          className={item}
           title={`${tyre.compound} tyre · ${tyre.age} lap${tyre.age === 1 ? "" : "s"} old at lap start · stint ${tyre.stintNumber}`}
         >
-          <span className="scale-75">
+          <span className="-my-1 scale-75">
             <CompoundRing compound={tyre.compound} />
           </span>
           <span className="text-fg">
             {tyre.compound === "INTERMEDIATE" ? "INTER" : tyre.compound}
           </span>
-          <span className="font-mono normal-case">
+          <span className="font-mono normal-case tracking-normal">
             {tyre.age} lap{tyre.age === 1 ? "" : "s"}
           </span>
         </span>
       )}
       {trackTempC !== null && (
-        <span className={chip} title="Track temperature at lap start">
-          Track <span className="font-mono text-fg">{fmtTemp(trackTempC)}</span>
+        <span className={item} title="Track temperature at lap start">
+          Track{" "}
+          <span className="font-mono tracking-normal text-fg">
+            {fmtTemp(trackTempC)}
+          </span>
         </span>
       )}
       {airTempC !== null && (
-        <span className={chip} title="Air temperature at lap start">
-          Air <span className="font-mono text-fg">{fmtTemp(airTempC)}</span>
+        <span className={item} title="Air temperature at lap start">
+          Air{" "}
+          <span className="font-mono tracking-normal text-fg">
+            {fmtTemp(airTempC)}
+          </span>
         </span>
       )}
       {rainfall && (
         <span
-          className="inline-flex items-center border border-blue-line bg-blue-tint px-1.5 py-0.5 text-caption font-bold uppercase tracking-widest text-blue-fg"
+          className="inline-flex h-5 items-center border border-blue-line bg-blue-tint px-1.5 text-tiny font-bold uppercase tracking-widest text-blue-fg"
           title="Rainfall reported at lap start"
         >
           Rain
@@ -2795,7 +2812,7 @@ function SectorChip({
   return (
     <span
       key={`${label}-${animationSeed ?? "none"}-${active ? 1 : 0}`}
-      className={`border px-1.5 py-0.5 text-tiny font-black uppercase tracking-widest ${
+      className={`inline-flex h-5 items-center border px-1.5 text-tiny font-black uppercase tracking-widest ${
         active
           ? "border-purple-line bg-purple-tint text-purple-fg animate-[pulse_0.45s_ease-out_1]"
           : "border-panel bg-surface text-muted"
@@ -2810,16 +2827,16 @@ function SectorChip({
 function SpeedSparkline({
   values,
   color,
-  driverTag,
 }: {
   values: number[];
   color: string;
-  driverTag: string;
 }) {
   const traceRef = useRef<SVGPolylineElement | null>(null);
 
   const width = 320;
   const height = 34;
+  // Keep the 2px stroke inside the viewBox at the trace's min/max.
+  const inset = 1.5;
   const hasTrace = values.length >= 2;
   const min = hasTrace ? Math.min(...values) : 0;
   const max = hasTrace ? Math.max(...values) : 0;
@@ -2829,7 +2846,8 @@ function SpeedSparkline({
     ? values
         .map((value, index) => {
           const x = (index / (values.length - 1)) * width;
-          const y = height - ((value - min) / span) * height;
+          const y =
+            height - inset - ((value - min) / span) * (height - inset * 2);
           return `${x.toFixed(2)},${y.toFixed(2)}`;
         })
         .join(" ")
@@ -2855,9 +2873,6 @@ function SpeedSparkline({
   }
 
   const areaPoints = `0,${height} ${points} ${width},${height}`;
-  const startY = height - ((values[0]! - min) / span) * height;
-  const endY = height - ((values[values.length - 1]! - min) / span) * height;
-  const tag = driverTag.toUpperCase().slice(0, 3);
 
   return (
     <svg
@@ -2877,57 +2892,6 @@ function SpeedSparkline({
         strokeLinejoin="round"
         strokeLinecap="round"
       />
-
-      <circle cx={0} cy={startY} r="2.8" fill={color} />
-      <circle cx={width} cy={endY} r="2.8" fill={color} />
-
-      <g transform={`translate(8,${Math.max(9, startY - 7)})`}>
-        <rect
-          x="0"
-          y="-8"
-          width="24"
-          height="12"
-          rx="3"
-          fill="#11131d"
-          stroke={color}
-          strokeWidth="1"
-        />
-        <text
-          x="12"
-          y="1"
-          textAnchor="middle"
-          fontSize="7"
-          fontWeight="700"
-          fill={color}
-          letterSpacing="0.6"
-        >
-          {tag}
-        </text>
-      </g>
-
-      <g transform={`translate(${width - 32},${Math.max(9, endY - 7)})`}>
-        <rect
-          x="0"
-          y="-8"
-          width="24"
-          height="12"
-          rx="3"
-          fill="#11131d"
-          stroke={color}
-          strokeWidth="1"
-        />
-        <text
-          x="12"
-          y="1"
-          textAnchor="middle"
-          fontSize="7"
-          fontWeight="700"
-          fill={color}
-          letterSpacing="0.6"
-        >
-          {tag}
-        </text>
-      </g>
     </svg>
   );
 }
