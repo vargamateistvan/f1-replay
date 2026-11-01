@@ -558,6 +558,25 @@ describe("Nav", () => {
     expect(state.setSearchParams).not.toHaveBeenCalled();
   });
 
+  it("opens the landing page from the logo, keeping the selected session", () => {
+    render(<Nav />);
+    fireEvent.click(screen.getByRole("button", { name: "F1 Replay home" }));
+    expect(state.navigate).toHaveBeenCalledWith(
+      "/home?year=2025&meeting=22&session=202&view=tracker&t=123",
+    );
+  });
+
+  it("does not auto-select a session on the landing page", async () => {
+    state.pathname = "/home";
+    state.searchParams = new URLSearchParams();
+    state.meetingKey = null;
+    state.sessionKey = null;
+    render(<Nav />);
+    await new Promise((r) => setTimeout(r, 20));
+    expect(state.setSearchParams).not.toHaveBeenCalled();
+    expect(screen.queryByText("SELECT SESSION")).not.toBeInTheDocument();
+  });
+
   describe("next race weekend banner", () => {
     beforeEach(() => {
       state.showNextRaceWeekendBanner = true;

@@ -9,6 +9,7 @@ import type { MainView } from "@/components/Nav";
 import { AboutDialog } from "@/components/AboutDialog";
 import { trackEvent } from "@/lib/analytics";
 import { appVersionLabel, formatReleaseDate } from "@/lib/appVersion";
+import { HOME_PATH } from "@/utils/url";
 
 const VALID_VIEWS = new Set<MainView>(["leaderboard", "tracker", "commentary"]);
 
@@ -64,6 +65,12 @@ export function MobileNav() {
     >
       {showMore && (
         <div className="grid grid-cols-3 gap-px border-b border-panel bg-track px-2 py-2">
+          <button
+            onClick={() => goTo(`${HOME_PATH}?${searchParams}`)}
+            className="h-10 rounded-sm bg-panel px-2 text-caption font-black uppercase tracking-caps text-fg"
+          >
+            Home
+          </button>
           <button
             onClick={() => goTo(`/telemetry?${searchParams}`)}
             className="h-10 rounded-sm bg-panel px-2 text-caption font-black uppercase tracking-caps text-fg"
@@ -173,6 +180,7 @@ export function MobileNav() {
           }}
           className={btn(
             showMore ||
+              location.pathname === HOME_PATH ||
               location.pathname === "/telemetry" ||
               location.pathname === "/schedule" ||
               location.pathname.startsWith("/standings") ||

@@ -38,6 +38,10 @@ export interface ReplayTarget {
   focus?: number;
 }
 
+// Landing page (features overview + support), opened from the nav logo.
+// `/` stays the replay page.
+export const HOME_PATH = "/home";
+
 // Replay page (tracker view) for one session — e.g. a results row on the
 // standings pages. Playback starts from the beginning (no ?t=).
 export function replayPath({ year, meetingKey, sessionKey, focus }: ReplayTarget): string {

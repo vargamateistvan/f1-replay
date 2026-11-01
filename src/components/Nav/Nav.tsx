@@ -37,7 +37,11 @@ import {
   fetchCircuitFactsFromApi,
   type CircuitFacts,
 } from "@/api/circuitFactsLookup";
-import { replaceHistorySearchParams, toSafeExternalUrl } from "@/utils/url";
+import {
+  HOME_PATH,
+  replaceHistorySearchParams,
+  toSafeExternalUrl,
+} from "@/utils/url";
 import { trackEvent } from "@/lib/analytics";
 import {
   ChevronDown,
@@ -681,13 +685,15 @@ export function Nav() {
   // Standings and schedule routes only need ?year= — auto-selecting would
   // overwrite it (e.g. a shared /standings/driver/4?year=2024 link jumping to
   // this season), so the bootstrap waits until a replay route is opened.
-  const onSeasonRoute = isSeasonPath(location.pathname);
+  // The landing page needs no session either.
+  const skipLatestBootstrap =
+    isSeasonPath(location.pathname) || location.pathname === HOME_PATH;
   useEffect(() => {
-    if (autoLatestBootstrappedRef.current || onSeasonRoute) return;
+    if (autoLatestBootstrappedRef.current || skipLatestBootstrap) return;
     autoLatestBootstrappedRef.current = true;
     if (meetingKey !== null || sessionKey !== null) return;
     void selectLatestEvent("auto");
-  }, [meetingKey, sessionKey, selectLatestEvent, onSeasonRoute]);
+  }, [meetingKey, sessionKey, selectLatestEvent, skipLatestBootstrap]);
 
   const eventLabel = selectedMeeting
     ? `${selectedMeeting.country_name.toUpperCase()} ${selectedMeeting.year}`
@@ -707,6 +713,7 @@ export function Nav() {
   const isMainRoute = location.pathname === "/";
   const isTelemetryRoute = location.pathname === "/telemetry";
   const isSeasonRoute = isSeasonPath(location.pathname);
+  const isHomeRoute = location.pathname === HOME_PATH;
 
   function viewHref(id: MainView) {
     const params = new URLSearchParams(searchParams);
@@ -730,7 +737,8 @@ export function Nav() {
         <button
           onClick={() => {
             trackEvent("nav_logo_clicked", { destination: "home" });
-            navigate(viewHref(currentView));
+            const search = searchParams.toString();
+            navigate(search ? `${HOME_PATH}?${search}` : HOME_PATH);
           }}
           className="flex items-center gap-1.5 mr-2 sm:mr-6 select-none shrink-0 hover:opacity-80 transition-opacity"
           aria-label="F1 Replay home"
@@ -789,7 +797,7 @@ export function Nav() {
                 className="pointer-events-none absolute right-1.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-white/75"
               />
             </label>
-          ) : (
+          ) : isHomeRoute ? null : (
             <>
               {live && (
                 <span

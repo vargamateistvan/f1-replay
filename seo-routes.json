@@ -10,6 +10,16 @@
     "prerender": false
   },
   {
+    "path": "/home",
+    "title": "F1 Replay Features | Race Replay, Live Timing, Telemetry & Standings",
+    "description": "Everything F1 Replay can do: replay any Formula 1 session on a live track map, follow timing, race control and team radio, compare telemetry, and explore the schedule and standings.",
+    "keywords": "F1 Replay features, Formula 1 replay app, F1 track map, F1 telemetry, F1 schedule, F1 standings",
+    "noindex": false,
+    "changefreq": "monthly",
+    "priority": "0.9",
+    "prerender": true
+  },
+  {
     "path": "/telemetry",
     "title": "F1 Telemetry Comparison | Lap-by-Lap Driver Analysis",
     "description": "Compare Formula 1 driver laps with synchronized speed, throttle, brake, gear, and RPM traces to uncover where lap time is won or lost.",

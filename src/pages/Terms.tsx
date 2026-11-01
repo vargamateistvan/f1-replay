@@ -5,7 +5,7 @@ export default function Terms() {
   const updatedOn = "2026-10-25";
 
   return (
-    <section className="relative flex min-h-0 flex-1 flex-col overflow-y-auto overscroll-contain bg-track px-4 py-5 [-webkit-overflow-scrolling:touch] sm:px-6 sm:py-8">
+    <section className="relative flex min-h-0 flex-1 flex-col bg-track md:overflow-y-auto md:overscroll-contain px-4 py-5 [-webkit-overflow-scrolling:touch] sm:px-6 sm:py-8">
       <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top,_rgb(var(--color-f1red)/0.16),_transparent_58%)]" />
 
       <article className="relative z-10 mx-auto my-auto w-full max-w-4xl shrink-0 border border-panel bg-surface">

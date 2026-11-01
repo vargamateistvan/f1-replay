@@ -112,7 +112,7 @@ dimension** instead of relying on the built-in App version report:
 
 - `nav_logo_clicked`
   - Params: `destination`
-  - Trigger: logo click
+  - Trigger: logo click (opens the `/home` landing page)
 - `nav_view_changed`
   - Params: `view`, `source`
   - Trigger: main view tab switch (desktop/mobile)
@@ -278,8 +278,8 @@ require GPS. Recordings sample only 10% of sessions.
   - Params: `reason` (`empty_location` or the thrown error's name)
   - Trigger: preview GPS is empty or fails; playback is not started.
 - `tour_started`
-  - Params: `source` (`welcome` from the introduction; other manual entry points
-    retain their existing source)
+  - Params: `source` (`welcome` from the introduction, `home` from the landing
+    page; other manual entry points retain their existing source)
   - Trigger: explicit tour selection, never automatic startup.
 
 Compare `replay_welcome_viewed` → `replay_welcome_play_requested` →
@@ -331,6 +331,18 @@ playback/driver interactions. Tour completion is not required for activation.
 - `telemetry_lap_preset`
   - Params: `slot`, `preset`
   - Trigger: best/latest quick action
+
+### Home (Landing) Page
+
+- `home_link_clicked`
+  - Params: `destination` (`tracker_cta`, `schedule_cta`, or a feature card id:
+    `tracker`, `leaderboard`, `commentary`, `telemetry`, `schedule`, `standings`)
+  - Trigger: hero call-to-action or feature card on `/home`
+- `home_support_clicked`
+  - Params: `target` (`coffee`, `github_star`, `issues`)
+  - Trigger: support section links on `/home`
+- `nav_help_opened` / `nav_settings_opened` / `tour_started` also fire from the
+  landing page with `source: "home"`.
 
 ### Schedule Page
 

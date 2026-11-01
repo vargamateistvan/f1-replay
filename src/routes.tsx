@@ -31,7 +31,9 @@ import { useReleaseDate } from "@/hooks/useReleaseDate";
 import { OPENF1_SITE_URL } from "@/constants";
 import { useSettings } from "@/stores/settings";
 import { AppLogo } from "@/components/AppLogo/AppLogo";
+import { HOME_PATH } from "@/utils/url";
 const RaceWeekend = lazy(() => import("@/pages/RaceWeekend"));
+const Home = lazy(() => import("@/pages/Home"));
 const Telemetry = lazy(() => import("@/pages/Telemetry"));
 const Standings = lazy(() => import("@/pages/Standings"));
 const Schedule = lazy(() => import("@/pages/Schedule"));
@@ -187,6 +189,7 @@ export function AppRouter() {
             <Suspense fallback={<RouteFallback />}>
               <Routes>
                 <Route path="/" element={<RaceWeekend />} />
+                <Route path={HOME_PATH} element={<Home />} />
                 <Route path="/telemetry" element={<Telemetry />} />
                 <Route path="/schedule" element={<Schedule />} />
                 <Route path="/standings" element={<Standings />} />
