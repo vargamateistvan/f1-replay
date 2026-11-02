@@ -4,9 +4,11 @@
  * corners take more of the circle, and the angle between two cars is the gap
  * between them in time.
  *
- * Built from cars' latest full laps in the loaded location data; laps within
- * `RING_REF_LAP_SPREAD` of the fastest are averaged (so slow laps, pit laps
- * and traffic don't skew it).
+ * Built from full laps traced in the loaded location data. Laps within
+ * `RING_REF_LAP_SPREAD` of the fastest are combined with a per-point median, so
+ * slow laps, pit laps, traffic and odd GPS traces don't skew it. The ring keeps
+ * a pool of the session's laps (`LapPool`) so the shape stays put as the
+ * playhead moves; only fast laps ever join the shape.
  */
 import { RING_REF_LAP_GRID, RING_REF_LAP_SPREAD } from "@/constants";
 
@@ -15,9 +17,9 @@ export interface LapTimeProfile {
   readonly dist: Float64Array;
   /** Time fraction at each grid point, 0…1, non-decreasing. */
   readonly time: Float64Array;
-  /** Reference lap time (mean of the averaged laps), ms. */
+  /** Reference lap time, ms. */
   readonly lapMs: number;
-  /** Number of laps averaged. */
+  /** Number of laps combined. */
   readonly laps: number;
 }
 
@@ -29,6 +31,8 @@ export interface TraceSample {
 
 /** One full lap, start line to start line: points as [distance, ms since the line]. */
 export interface LapTrace {
+  /** Session ms of the start-line crossing. */
+  startMs: number;
   durationMs: number;
   points: [number, number][];
 }
@@ -41,14 +45,14 @@ const MIN_CROSSING_GAP_MS = 10_000;
 const MAX_SAMPLE_GAP_MS = 5_000;
 
 /**
- * The latest complete lap in `samples` (oldest first): two consecutive
- * start-line crossings with no pit samples or long data gaps between them and
- * a plausible duration. Null when there is none.
+ * Every complete lap in `samples` (oldest first): two consecutive start-line
+ * crossings with no pit samples or long data gaps between them and a plausible
+ * duration.
  */
-export function latestFullLap(
+export function fullLaps(
   samples: readonly TraceSample[],
   limits: { minMs: number; maxMs: number },
-): LapTrace | null {
+): LapTrace[] {
   // Start-line crossings: fraction wraps from near 1 to near 0.
   const crossings: { t: number; i: number }[] = [];
   for (let i = 1; i < samples.length; i++) {
@@ -64,7 +68,8 @@ export function latestFullLap(
     }
   }
 
-  for (let k = crossings.length - 1; k > 0; k--) {
+  const laps: LapTrace[] = [];
+  for (let k = 1; k < crossings.length; k++) {
     const start = crossings[k - 1]!;
     const end = crossings[k]!;
     const durationMs = end.t - start.t;
@@ -88,9 +93,18 @@ export function latestFullLap(
     }
     if (!ok || end.t - lastT > MAX_SAMPLE_GAP_MS) continue;
     points.push([1, durationMs]);
-    return { durationMs, points };
+    laps.push({ startMs: start.t, durationMs, points });
   }
-  return null;
+  return laps;
+}
+
+/** The latest complete lap in `samples` (see `fullLaps`), or null. */
+export function latestFullLap(
+  samples: readonly TraceSample[],
+  limits: { minMs: number; maxMs: number },
+): LapTrace | null {
+  const laps = fullLaps(samples, limits);
+  return laps[laps.length - 1] ?? null;
 }
 
 /** Time fraction at distance `f` along one lap trace (linear between points). */
@@ -109,25 +123,72 @@ function traceTimeAt(trace: LapTrace, f: number): number {
   return (t0 + (t1 - t0) * u) / trace.durationMs;
 }
 
-/** Average laps within `RING_REF_LAP_SPREAD` of the fastest into one profile. */
-export function buildLapTimeProfile(traces: readonly LapTrace[]): LapTimeProfile | null {
-  if (!traces.length) return null;
-  const fastest = Math.min(...traces.map((tr) => tr.durationMs));
-  const used = traces.filter((tr) => tr.durationMs <= fastest * (1 + RING_REF_LAP_SPREAD));
+/** A lap resampled onto the profile grid (time fraction per grid point). */
+export interface GridLap {
+  startMs: number;
+  durationMs: number;
+  time: Float32Array;
+}
+
+export function toGridLap(trace: LapTrace): GridLap {
+  const n = RING_REF_LAP_GRID;
+  const time = new Float32Array(n + 1);
+  for (let g = 0; g <= n; g++) time[g] = traceTimeAt(trace, g / n);
+  return { startMs: trace.startMs, durationMs: trace.durationMs, time };
+}
+
+/** Median per grid point of the laps within `RING_REF_LAP_SPREAD` of the fastest. */
+export function profileFromGridLaps(laps: readonly GridLap[]): LapTimeProfile | null {
+  if (!laps.length) return null;
+  const fastest = Math.min(...laps.map((l) => l.durationMs));
+  const used = laps.filter((l) => l.durationMs <= fastest * (1 + RING_REF_LAP_SPREAD));
   const n = RING_REF_LAP_GRID;
   const dist = new Float64Array(n + 1);
   const time = new Float64Array(n + 1);
+  const column = new Float64Array(used.length);
+  let prev = 0;
   for (let g = 0; g <= n; g++) {
-    const f = g / n;
-    dist[g] = f;
-    let sum = 0;
-    for (const tr of used) sum += traceTimeAt(tr, f);
-    time[g] = sum / used.length;
+    dist[g] = g / n;
+    for (let i = 0; i < used.length; i++) column[i] = used[i]!.time[g]!;
+    // Medians per point can dip below their neighbour; keep time non-decreasing.
+    prev = Math.max(prev, median(column));
+    time[g] = prev;
   }
   time[0] = 0;
   time[n] = 1;
-  const lapMs = used.reduce((a, tr) => a + tr.durationMs, 0) / used.length;
+  const lapMs = median(Float64Array.from(used, (l) => l.durationMs));
   return { dist, time, lapMs, laps: used.length };
+}
+
+/** Combine laps within `RING_REF_LAP_SPREAD` of the fastest into one profile. */
+export function buildLapTimeProfile(traces: readonly LapTrace[]): LapTimeProfile | null {
+  return profileFromGridLaps(traces.map(toGridLap));
+}
+
+/** Sorts `values` in place. */
+function median(values: Float64Array): number {
+  values.sort();
+  const mid = values.length >> 1;
+  return values.length % 2 ? values[mid]! : (values[mid - 1]! + values[mid]!) / 2;
+}
+
+/** Laps seen so far in a session, keyed by driver and start time. */
+export type LapPool = Map<string, GridLap>;
+
+export function addToLapPool(pool: LapPool, driver: number, laps: readonly LapTrace[]): void {
+  for (const lap of laps) {
+    const key = `${driver}:${Math.round(lap.startMs / 1000)}`;
+    if (!pool.has(key)) pool.set(key, toGridLap(lap));
+  }
+}
+
+/** The `max` fastest pooled laps finished by `tNow` (nothing from the future). */
+export function poolLapsAt(pool: LapPool, tNow: number, max: number): GridLap[] {
+  const done: GridLap[] = [];
+  for (const lap of pool.values()) {
+    if (lap.startMs + lap.durationMs <= tNow) done.push(lap);
+  }
+  return done.sort((a, b) => a.durationMs - b.durationMs).slice(0, max);
 }
 
 /** Time fraction (0…1) at distance fraction `f` (0…1). */

@@ -6,6 +6,9 @@ import {
   RING_NEARBY_CARS_PER_SIDE,
   RING_REF_LAP_MAX_MS,
   RING_REF_LAP_MIN_MS,
+  RING_REF_PACE_HOLD_MS,
+  RING_REF_PACE_MAX_SLOWDOWN,
+  RING_REF_POOL_MAX_LAPS,
   RING_REF_TRACE_WINDOW_MS,
   RING_SEARCH_WINDOW,
 } from "@/constants";
@@ -23,9 +26,13 @@ import {
 } from "@/utils/lapProgress";
 import { projectToSvg, type TrackGeometry } from "../TrackMap/trackGeometry";
 import {
+  addToLapPool,
   buildLapTimeProfile,
-  latestFullLap,
+  fullLaps,
+  poolLapsAt,
+  profileFromGridLaps,
   timeAtDistance,
+  type LapPool,
   type LapTimeProfile,
   type LapTrace,
   type TraceSample,
@@ -325,19 +332,58 @@ export function gapAtTimeFraction(
 }
 
 /** Reference lap profile from every car's latest full lap before `tNow`. */
-export function buildReferenceProfile(
+/** Every full lap per car in the `RING_REF_TRACE_WINDOW_MS` before `tNow`. */
+export function traceReferenceLaps(
   model: RingModel,
   geom: TrackGeometry,
   indexes: ReadonlyMap<number, LocationIndex>,
   tNow: number,
-): LapTimeProfile | null {
-  const laps: LapTrace[] = [];
-  for (const index of indexes.values()) {
+): Map<number, LapTrace[]> {
+  const out = new Map<number, LapTrace[]>();
+  for (const [driver, index] of indexes) {
     const samples = traceLap(model, geom, index, tNow - RING_REF_TRACE_WINDOW_MS, tNow);
-    const lap = latestFullLap(samples, { minMs: RING_REF_LAP_MIN_MS, maxMs: RING_REF_LAP_MAX_MS });
-    if (lap) laps.push(lap);
+    const laps = fullLaps(samples, { minMs: RING_REF_LAP_MIN_MS, maxMs: RING_REF_LAP_MAX_MS });
+    if (laps.length) out.set(driver, laps);
   }
-  return buildLapTimeProfile(laps);
+  return out;
+}
+
+/** What the time-based ring remembers between reference lap refreshes. */
+export interface RingReferenceState {
+  pool: LapPool;
+  /** Current-pace lap time and the playhead it was measured at. */
+  pace: { lapMs: number; t: number } | null;
+}
+
+export function createRingReferenceState(): RingReferenceState {
+  return { pool: new Map(), pace: null };
+}
+
+/**
+ * Reference lap at `tNow`. The shape (where corners, sectors and the pit lane
+ * sit on the dial) comes from the fastest pooled laps of the session so far,
+ * so it doesn't jump with whichever laps are recent. The lap time follows the
+ * cars' latest laps, except that much slower ones (safety car) don't replace
+ * a recent faster pace.
+ */
+export function updateReferenceProfile(
+  state: RingReferenceState,
+  laps: ReadonlyMap<number, readonly LapTrace[]>,
+  tNow: number,
+): LapTimeProfile | null {
+  for (const [driver, driverLaps] of laps) addToLapPool(state.pool, driver, driverLaps);
+  const shape = profileFromGridLaps(poolLapsAt(state.pool, tNow, RING_REF_POOL_MAX_LAPS));
+  if (!shape) return null;
+
+  const latest = [...laps.values()].flatMap((l) => l.slice(-1));
+  const current = buildLapTimeProfile(latest);
+  const prev = state.pace;
+  const prevNearby = prev !== null && Math.abs(tNow - prev.t) <= RING_REF_PACE_HOLD_MS;
+  if (current && (!prevNearby || current.lapMs <= prev.lapMs * RING_REF_PACE_MAX_SLOWDOWN)) {
+    state.pace = { lapMs: current.lapMs, t: tNow };
+  }
+  const pace = state.pace && Math.abs(tNow - state.pace.t) <= RING_REF_PACE_HOLD_MS ? state.pace : null;
+  return { ...shape, lapMs: pace?.lapMs ?? shape.lapMs };
 }
 
 /**

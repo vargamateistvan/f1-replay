@@ -408,7 +408,7 @@ components/ (render to DOM; read settings from Zustand)
 ### Ring view (`utils/lapProgress.ts`, `components/TrackRing/`) — details in `docs/RING_VIEW.md`
 
 - A dial spaced by **time** (MultiViewer's "Circle of Doom"): the angle between two cars is their gap, a pit stop is a fixed slice.
-- Cars are projected onto the 2D outline's nearest segment (windowed search, `RING_SEARCH_WINDOW`) → lap fraction; `lapTimeProfile.ts` turns distance into time from recent clean laps. `toDisplay` / `displayArc` (`ringModel.ts`) apply the profile and the flip to everything drawn.
+- Cars are projected onto the 2D outline's nearest segment (windowed search, `RING_SEARCH_WINDOW`) → lap fraction; `lapTimeProfile.ts` turns distance into time: the shape comes from the session's fastest pooled clean laps (stable markers), the lap time from recent laps. `toDisplay` / `displayArc` (`ringModel.ts`) apply the profile and the flip to everything drawn.
 - Pit-lane cars use the baked path (`data/pitLanes.ts`) on an inner arc. Only `RaceWeekend`'s position-timeline leader reads LEAD (OpenF1 reports stale 0 s intervals during pit cycles).
 
 ### 3D map (`components/TrackMap3D/`, `utils/georef.ts`) — details in `docs/TRACK_MAP_3D.md`

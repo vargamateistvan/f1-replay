@@ -58,10 +58,9 @@ import { TrackControls, type TrackControlButton } from "../TrackMap/overlays/Tra
 import { buildStatusBadges, type ActiveTrackVehicles } from "../TrackMap/statusBadges";
 import { buildTrackGeometry, carDataAt, projectToSvg } from "../TrackMap/trackGeometry";
 import { mapBackgroundColor, overlayBackgroundColor, windDir } from "../TrackMap/trackMapFormat";
-import type { LapTimeProfile } from "./lapTimeProfile";
 import {
-  buildReferenceProfile,
   buildRingModel,
+  createRingReferenceState,
   findPitEntry,
   formatFocusGap,
   formatLapTime,
@@ -73,6 +72,8 @@ import {
   placeCar,
   signedTimeDelta,
   toDisplay,
+  traceReferenceLaps,
+  updateReferenceProfile,
   type RingCar,
   type RingModel,
   type RingScale,
@@ -245,9 +246,8 @@ export function TrackRing({
   // Last matched lap segment per car: keeps the search local (and on the right
   // stretch where a track crosses itself). Reset with the geometry.
   const hintsRef = useRef(new Map<number, number>());
-  // Last good reference lap (and the playhead it was built at). A new one
-  // replaces it unless it is much slower (safety car laps) and nearby in time.
-  const profileRef = useRef<{ profile: LapTimeProfile; t: number } | null>(null);
+  // Pooled session laps and current pace behind the reference lap.
+  const referenceRef = useRef(createRingReferenceState());
   // Pit entry of the focused car while it is in the pits (null entry: none
   // found within the lookback), so the location scan runs once per stop.
   const pitEntryRef = useRef<{
@@ -259,7 +259,7 @@ export function TrackRing({
   } | null>(null);
   useEffect(() => {
     hintsRef.current = new Map();
-    profileRef.current = null;
+    referenceRef.current = createRingReferenceState();
     pitEntryRef.current = null;
   }, [model]);
 
@@ -267,17 +267,8 @@ export function TrackRing({
   const profile = useMemo(() => {
     if (!timeScale || !model || !trackGeometry) return null;
     const tNow = refBucket * RING_REF_REFRESH_MS;
-    const fresh = buildReferenceProfile(model, trackGeometry, locationIndexes, tNow);
-    const prev = profileRef.current;
-    if (
-      fresh &&
-      (!prev ||
-        fresh.lapMs <= prev.profile.lapMs * 1.15 ||
-        Math.abs(tNow - prev.t) > 10 * 60_000)
-    ) {
-      profileRef.current = { profile: fresh, t: tNow };
-    }
-    return profileRef.current?.profile ?? null;
+    const laps = traceReferenceLaps(model, trackGeometry, locationIndexes, tNow);
+    return updateReferenceProfile(referenceRef.current, laps, tNow);
   }, [timeScale, model, trackGeometry, locationIndexes, refBucket]);
   const scale: RingScale = useMemo(() => ({ profile, reverse }), [profile, reverse]);
 

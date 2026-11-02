@@ -121,6 +121,12 @@ export const RING_REF_LAP_MAX_MS = 240_000;
 export const RING_REF_TRACE_WINDOW_MS = 300_000;
 /** Time-based ring: how often the reference lap is rebuilt (playhead ms). */
 export const RING_REF_REFRESH_MS = 20_000;
+/** Time-based ring: fastest session laps (so far) combined into the dial's shape. */
+export const RING_REF_POOL_MAX_LAPS = 40;
+/** Time-based ring: a lap-time pace this much slower (safety car) doesn't replace a recent one… */
+export const RING_REF_PACE_MAX_SLOWDOWN = 1.15;
+/** …measured within this much playhead (ms). */
+export const RING_REF_PACE_HOLD_MS = 10 * 60_000;
 /** Outline segments searched either side of a car's last match before a full scan. */
 export const RING_SEARCH_WINDOW = 24;
 /** Metres off the centerline at which a car counts as off the racing line (pit/garage). */

@@ -1,8 +1,12 @@
 import { describe, expect, it } from "vitest";
 import {
+  addToLapPool,
   buildLapTimeProfile,
+  fullLaps,
   latestFullLap,
+  poolLapsAt,
   timeAtDistance,
+  type LapPool,
   type TraceSample,
 } from "./lapTimeProfile";
 
@@ -57,6 +61,15 @@ describe("latestFullLap", () => {
   });
 });
 
+describe("fullLaps", () => {
+  it("returns every complete lap, oldest first, with its start time", () => {
+    const laps = fullLaps(trace(90_000, 4.5, 0.5, 1_000), LIMITS);
+    expect(laps).toHaveLength(3);
+    expect(laps[0]!.startMs).toBeCloseTo(91_000, -2);
+    expect(laps[2]!.startMs).toBeCloseTo(271_000, -2);
+  });
+});
+
 describe("buildLapTimeProfile", () => {
   it("maps distance to time so slow stretches take more of the lap", () => {
     // First half of the distance takes 70 % of the time.
@@ -79,7 +92,31 @@ describe("buildLapTimeProfile", () => {
     expect(p.lapMs).toBeCloseTo(91_000, -2);
   });
 
+  it("isn't pulled around by one odd lap", () => {
+    const good = [0.6, 0.6, 0.6, 0.6].map((share, i) =>
+      latestFullLap(trace(90_000 + i * 500, 2.5, share, 1_000), LIMITS)!,
+    );
+    const odd = latestFullLap(trace(90_000, 2.5, 0.9, 1_000), LIMITS)!;
+    const p = buildLapTimeProfile([...good, odd])!;
+    expect(p.laps).toBe(5);
+    expect(timeAtDistance(p, 0.5)).toBeCloseTo(0.6, 2);
+  });
+
   it("is null without laps", () => {
     expect(buildLapTimeProfile([])).toBeNull();
+  });
+});
+
+describe("lap pool", () => {
+  it("keeps each lap once and only hands back finished laps, fastest first", () => {
+    const pool: LapPool = new Map();
+    const laps = fullLaps(trace(90_000, 4.5, 0.5, 1_000), LIMITS);
+    addToLapPool(pool, 1, laps);
+    addToLapPool(pool, 1, laps.slice(1));
+    addToLapPool(pool, 2, fullLaps(trace(85_000, 2.5, 0.5, 2_000), LIMITS));
+    expect(pool.size).toBe(4);
+    // Car 1's laps end ≈ 181 s, 271 s, 361 s; car 2's ≈ 172 s.
+    expect(poolLapsAt(pool, 200_000, 10).map((l) => Math.round(l.durationMs / 1000))).toEqual([85, 90]);
+    expect(poolLapsAt(pool, 400_000, 2)).toHaveLength(2);
   });
 });

@@ -14,12 +14,14 @@ import {
   signedTimeDelta,
   timeArc,
   toDisplay,
+  createRingReferenceState,
+  updateReferenceProfile,
   type RingModel,
   type RingScale,
 } from "./ringModel";
 import { ringArcPath } from "@/utils/lapProgress";
 import { buildIndex } from "@/timeline/interpolate";
-import { buildLapTimeProfile } from "./lapTimeProfile";
+import { buildLapTimeProfile, timeAtDistance, type LapTrace } from "./lapTimeProfile";
 
 // 1 km square in the F1 frame (decimetres), sampled every 50 m, starting at
 // the origin and heading up the x = 0 side first.
@@ -167,7 +169,7 @@ describe("gapAtTimeFraction", () => {
 describe("ring scale", () => {
   // First half of the distance takes 70 % of the lap.
   const profile = buildLapTimeProfile([
-    { durationMs: 100_000, points: [[0, 0], [0.5, 70_000], [1, 100_000]] },
+    { startMs: 0, durationMs: 100_000, points: [[0, 0], [0.5, 70_000], [1, 100_000]] },
   ])!;
   const time: RingScale = { profile, reverse: false };
   const distance: RingScale = { profile: null, reverse: false };
@@ -283,5 +285,39 @@ describe("formatRingGap", () => {
 
   it("does not invent a timing gap when only lap counts are available", () => {
     expect(formatRingGap({ interval: "+1 LAP", gap_to_leader: "+1 LAP" }, "interval", false)).toBe("+1L");
+  });
+});
+
+describe("updateReferenceProfile", () => {
+  // A lap whose first half (by distance) takes `share` of `ms`.
+  const lap = (startMs: number, ms: number, share: number): LapTrace => ({
+    startMs,
+    durationMs: ms,
+    points: [[0, 0], [0.5, ms * share], [1, ms]],
+  });
+  const greenLaps = (from: number) =>
+    new Map([1, 2, 3, 4, 5].map((d) => [d, [lap(from + d * 1000, 90_000, 0.6)]]));
+
+  it("keeps the dial's shape when recent laps are slow, but follows their pace", () => {
+    const state = createRingReferenceState();
+    updateReferenceProfile(state, greenLaps(0), 100_000);
+    // Safety car deployed mid-lap: the first half fast, the second half slow, 12 % slower overall.
+    const scLaps = new Map([1, 2, 3, 4, 5].map((d) => [d, [lap(100_000 + d * 1000, 100_800, 0.45)]]));
+    const p = updateReferenceProfile(state, scLaps, 210_000)!;
+    expect(timeAtDistance(p, 0.5)).toBeCloseTo(0.6, 3);
+    expect(p.lapMs).toBeCloseTo(100_800, -1);
+  });
+
+  it("ignores a much slower pace nearby in time", () => {
+    const state = createRingReferenceState();
+    updateReferenceProfile(state, greenLaps(0), 100_000);
+    const sc = new Map([[1, [lap(100_000, 140_000, 0.5)]]]);
+    expect(updateReferenceProfile(state, sc, 250_000)!.lapMs).toBeCloseTo(90_000, -1);
+  });
+
+  it("doesn't use laps that finish after the playhead", () => {
+    const state = createRingReferenceState();
+    updateReferenceProfile(state, greenLaps(600_000), 800_000);
+    expect(updateReferenceProfile(state, new Map(), 100_000)).toBeNull();
   });
 });
