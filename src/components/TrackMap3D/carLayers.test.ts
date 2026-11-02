@@ -145,6 +145,19 @@ describe("carStyle", () => {
   it("respects the acronym setting", () => {
     expect(carStyle(1, input({ showAcronym: false })).showLabel).toBe(false);
   });
+
+  it("keeps the focused car's pit window rivals bright with a ring", () => {
+    const state = input({ focusDriver: 16, pitWindowDrivers: new Set([1]) });
+    expect(carStyle(1, state)).toMatchObject({ opacity: 1, pitWindowRadius: 8 });
+    expect(carStyle(16, state).pitWindowRadius).toBe(0);
+    const battling = input({
+      focusDriver: 16,
+      pitWindowDrivers: new Set([1]),
+      battlingDrivers: new Set([1]),
+    });
+    expect(carStyle(1, battling)).toMatchObject({ battleRadius: 8, pitWindowRadius: 10.5 });
+    expect(carIconExtent(carStyle(1, battling))).toBeCloseTo(12.5);
+  });
 });
 
 describe("buildCarFeatures", () => {

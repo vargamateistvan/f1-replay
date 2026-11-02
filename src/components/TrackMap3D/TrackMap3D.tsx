@@ -5,6 +5,7 @@ import {
   Camera,
   CircleDot,
   Crosshair,
+  Flame,
   Gauge,
   Maximize,
   Navigation,
@@ -31,8 +32,10 @@ import {
   buildDeltaSegments,
   buildElevationSegments,
   buildHeatSegments,
+  buildTrackGeometry,
   carDataAt,
 } from "@/components/TrackMap/trackGeometry";
+import { usePitWindow } from "@/components/TrackMap/usePitWindow";
 import { overlayBackgroundColor } from "@/components/TrackMap/trackMapFormat";
 import {
   MAP3D_CHASE_ALPHA,
@@ -64,7 +67,7 @@ import { useCircuitGeometry } from "@/hooks/useCircuitGeometry";
 import { useCoarseTime } from "@/hooks/useCoarseTime";
 import { chunkIndexFor } from "@/hooks/useLocationChunks";
 import { useStartLightsSound } from "@/hooks/useStartLightsSound";
-import { isOffTrackPlaceholder } from "@/hooks/useTrackMap";
+import { computeTrackBounds, isOffTrackPlaceholder } from "@/hooks/useTrackMap";
 import { trackEvent } from "@/lib/analytics";
 import { useSettings } from "@/stores/settings";
 import { useTimeline } from "@/timeline/clock";
@@ -89,7 +92,6 @@ import {
 import { startLightsState } from "@/timeline/startLights";
 import { teamColor } from "@/utils/color";
 import { enuToLngLat, f1ToEnu, f1ToLngLat } from "@/utils/georef";
-import { parsePitLoss, pitRejoinView } from "@/utils/pitRejoin";
 import { TOUR_TARGET } from "@/components/AppTour/targets";
 import {
   addOverlayLayers,
@@ -100,6 +102,9 @@ import {
   SRC_HOTSPOTS,
   SRC_GAP_LABELS,
   SRC_GAP_RIBBONS,
+  SRC_PIT_LABELS,
+  SRC_PIT_TICKS,
+  SRC_PIT_WINDOW,
   SRC_TRAIL,
   LAYER_TRAIL,
 } from "./overlayLayers";
@@ -107,6 +112,7 @@ import {
   buildArcPolyline,
   buildGapRibbons,
   buildHotspotPoints,
+  buildPitWindowFeatures,
   buildTrailPath,
   gradientFromSegments,
   heatColors,
@@ -285,6 +291,8 @@ interface Props {
   readonly focusDriverLap?: number | null;
   /** Latest gap to leader per driver; enables the pit rejoin ghost (races only). */
   readonly pitRejoinGaps?: ReadonlyMap<number, number> | null;
+  /** Current race leader; stale 0 s gaps on other cars are ignored. */
+  readonly leaderNumber?: number | null;
   readonly showFocusedHud?: boolean;
   readonly sharedAllDriverWindow?: boolean;
   readonly telemetryEnabled?: boolean;
@@ -334,6 +342,7 @@ export function TrackMap3D({
   showEnhancedVisuals = true,
   focusDriverLap = null,
   pitRejoinGaps = null,
+  leaderNumber = null,
   showFocusedHud = true,
   sharedAllDriverWindow = false,
   telemetryEnabled = true,
@@ -366,6 +375,9 @@ export function TrackMap3D({
   const carModelsEnabled = useSettings((s) => s.mapView3dCarModels);
   const speedTrailEnabled = useSettings((s) => s.mapView3dSpeedTrail);
   const battleGapsEnabled = useSettings((s) => s.mapView3dBattleGaps);
+  const followFocused = useSettings((s) => s.mapFollowFocusedCar);
+  const showHeatmap = useSettings((s) => s.mapShowDriverHeatmap);
+  const setSetting = useSettings((s) => s.setSetting);
   const mapShowDriverNumberInside = useSettings(
     (s) => s.mapShowDriverNumberInside,
   );
@@ -403,18 +415,44 @@ export function TrackMap3D({
     [drivers],
   );
 
+  // Pit rejoin and window for the focused car (shared with the 2D map).
+  const pitWindowTrack = useMemo(() => {
+    if (!circuitGeom || circuitGeom.x.length < 2) return null;
+    const points = circuitGeom.x.map((x, i) => ({ x, y: circuitGeom.y[i]! }));
+    return {
+      geom: buildTrackGeometry({ points, bounds: computeTrackBounds(points) }),
+      points,
+      toScale: true,
+    };
+  }, [circuitGeom]);
+  const pitRejoin = usePitWindow({
+    track: pitWindowTrack,
+    circuitGeom,
+    circuitKey,
+    indexes,
+    focusDriver,
+    t,
+    gaps: pitRejoinGaps,
+    leaderNumber,
+    trackVehicles: activeTrackVehicles,
+    excluded: retiredDrivers,
+  });
+  const pitWindowDrivers = pitRejoin?.highlight;
+
   // ── Telemetry overlays (same data and builders as the 2D map) ─────────────
   const arc = useMemo(
     () => (circuitGeom && geo ? buildArcPolyline(circuitGeom, geo) : null),
     [circuitGeom, geo],
   );
+  // Driver heatmap (setting shared with 2D): off skips the lap's car data.
+  const heatDriver = showHeatmap ? focusDriver : null;
   const heatData = useCarDataForLap(
-    sessionKey, focusDriver, focusDriverLap ?? null,
+    sessionKey, heatDriver, focusDriverLap ?? null,
     { enabled: telemetryEnabled },
   );
   const referenceHeatData = useCarDataForLap(
     sessionKey,
-    focusDriver,
+    heatDriver,
     focusDriverLap != null && focusDriverLap > 1 ? focusDriverLap - 1 : null,
     { enabled: telemetryEnabled },
   );
@@ -487,6 +525,7 @@ export function TrackMap3D({
     driverByNumber,
     focusDriver,
     battlingDrivers,
+    pitWindowDrivers,
     retiredDrivers,
     pulseDrivers: pulseSet,
     activeCompounds,
@@ -508,6 +547,7 @@ export function TrackMap3D({
     driverByNumber,
     focusDriver,
     battlingDrivers,
+    pitWindowDrivers,
     retiredDrivers,
     pulseSet,
     activeCompounds,
@@ -589,10 +629,18 @@ export function TrackMap3D({
     el.style.opacity = "0";
   }, []);
   const [directorShot, setDirectorShot] = useState<DirectorShot | null>(null);
+  // The plain "follow" camera only tracks the focused car once the user opts
+  // in (toolbar toggle, remembered); chase, onboard and orbit are explicit.
+  const followFocusedRef = useRef(followFocused);
   /** Whether the camera tracks a car (focused, or the TV director's pick). */
   const followingRef = useRef(
-    () => liveRef.current.focusDriver != null || cameraModeRef.current === "tv",
+    () =>
+      cameraModeRef.current === "tv" ||
+      (liveRef.current.focusDriver != null &&
+        (cameraModeRef.current !== "follow" || followFocusedRef.current)),
   );
+  // Following state last applied to the camera, so turning it off zooms out.
+  const wasFollowingRef = useRef(false);
   // Chase camera smoothing state (local metres), reset on mode/focus change.
   const chaseRef = useRef<{ eye: { x: number; y: number } | null; heading: number | null }>({
     eye: null,
@@ -997,17 +1045,35 @@ export function TrackMap3D({
     chaseRef.current = { eye: null, heading: null };
     setFollowSuspended(false);
     // Markers grow while following, as the 2D follow camera's zoom does.
-    // Picking a car while the director runs means "watch this one".
+    // Picking a car ends the director; the follow camera then tracks it only
+    // with following switched on.
     if (focusDriver != null && cameraModeRef.current === "tv") {
       cameraModeRef.current = "follow";
       setCameraMode("follow");
       onCameraModeChangeRef.current?.("follow");
     }
     if (mapRef.current) syncCarScale(mapRef.current, followingRef.current());
-    if (!followingRef.current() && styleReady) fitOverview(1200);
+    // Back to the overview when the camera stops tracking a car; picking a car
+    // without following keeps the user's view.
+    const following = followingRef.current();
+    if (!following && wasFollowingRef.current && styleReady) fitOverview(1200);
+    wasFollowingRef.current = following;
     // Re-run only on focus changes, not when the overview callback changes.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [focusDriver]);
+
+  // Follow toggle (shared with the 2D map's setting).
+  useEffect(() => {
+    if (followFocusedRef.current === followFocused) return;
+    followFocusedRef.current = followFocused;
+    followRef.current = { suspended: false, approaching: true };
+    setFollowSuspended(false);
+    const following = followingRef.current();
+    if (mapRef.current) syncCarScale(mapRef.current, following);
+    if (!following && wasFollowingRef.current && styleReady) fitOverview(800);
+    wasFollowingRef.current = following;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [followFocused]);
 
   // ── Per-frame loop: car markers + follow camera ───────────────────────────
   useEffect(() => {
@@ -1112,7 +1178,7 @@ export function TrackMap3D({
             ? cameraForShot(shot.kind)
             : "follow"
           : cameraModeRef.current;
-      const target = shot?.driver ?? live.focusDriver;
+      const target = shot?.driver ?? (followingRef.current() ? live.focusDriver : null);
       // Raw frame time drives the smoothing (slow frames catch up more); the
       // orbit uses a capped one so a stall doesn't spin the map.
       const frameMs = now - lastFrame;
@@ -1255,6 +1321,32 @@ export function TrackMap3D({
     if (!followingRef.current()) fitOverview(800);
   }, [fitOverview]);
 
+  // Follow camera with a focused car: off → follow, following but dragged
+  // away → resume, following → stop (back to the overview).
+  const toggleFollow = useCallback(() => {
+    if (followFocused && followSuspended) {
+      recenter();
+      return;
+    }
+    trackEvent("trackmap_follow_toggled", { following: !followFocused, view: "3d" });
+    setSetting("mapFollowFocusedCar", !followFocused);
+  }, [followFocused, followSuspended, recenter, setSetting]);
+  const toggleHeatmap = useCallback(() => {
+    trackEvent("trackmap_heatmap_toggled", { shown: !showHeatmap, view: "3d" });
+    setSetting("mapShowDriverHeatmap", !showHeatmap);
+  }, [showHeatmap, setSetting]);
+  const heatmapTitle = showHeatmap ? "Hide the driver heatmap" : "Show the driver heatmap";
+  const followToggle = focusDriver != null && cameraMode === "follow";
+  const followTitle = !followToggle
+    ? focusDriver != null
+      ? "Recentre on the focused car"
+      : "Fit track"
+    : !followFocused
+      ? "Follow the focused car"
+      : followSuspended
+        ? "Resume following the focused car"
+        : "Stop following the focused car";
+
   const applyCameraMode = useCallback(
     (next: CameraMode) => {
       const wasFollowing = followingRef.current();
@@ -1271,6 +1363,7 @@ export function TrackMap3D({
       if (!map) return;
       syncCarScale(map, followingRef.current());
       if (wasFollowing && !followingRef.current()) fitOverview(800);
+      wasFollowingRef.current = followingRef.current();
     },
     [syncCarScale, fitOverview],
   );
@@ -1351,20 +1444,6 @@ export function TrackMap3D({
     [hudRawData, sessionStartMs, t, focusDriver],
   );
 
-  const pitLoss = useMemo(() => parsePitLoss(circuitGeom?.pitLoss), [circuitGeom]);
-  const pitRejoin = useMemo(
-    () =>
-      pitRejoinView({
-        gaps: pitRejoinGaps,
-        pitLoss,
-        track: activeTrackVehicles,
-        focusDriver,
-        excluded: retiredDrivers,
-        index: focusDriver !== null ? indexes.get(focusDriver) : undefined,
-        t,
-      }),
-    [pitRejoinGaps, pitLoss, activeTrackVehicles, focusDriver, retiredDrivers, indexes, t],
-  );
   const focusColor =
     focusDriver !== null
       ? teamColor(driverByNumber.get(focusDriver)?.team_colour, "#ffffff")
@@ -1389,13 +1468,30 @@ export function TrackMap3D({
         ? [
             {
               type: "Feature",
-              properties: { color: focusColor, position: pitRejoin.projection.position },
+              properties: {
+                color: focusColor,
+                label: `${pitRejoin.inPit ? "REJOIN" : "PIT"} P${pitRejoin.projection.position}`,
+              },
               geometry: { type: "Point", coordinates: f1ToLngLat(geo, ghost.x, ghost.y) },
             },
           ]
         : [],
     });
   }, [pitRejoin, focusColor, geo, styleReady]);
+
+  // Pit window bands and condition ticks.
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || !geo) return;
+    const bands = map.getSource(SRC_PIT_WINDOW) as mapboxgl.GeoJSONSource | undefined;
+    const ticks = map.getSource(SRC_PIT_TICKS) as mapboxgl.GeoJSONSource | undefined;
+    const labels = map.getSource(SRC_PIT_LABELS) as mapboxgl.GeoJSONSource | undefined;
+    if (!bands || !ticks || !labels) return;
+    const features = buildPitWindowFeatures(geo, pitRejoin);
+    bands.setData(features.bands);
+    ticks.setData(features.ticks);
+    labels.setData(features.labels);
+  }, [pitRejoin, geo, styleReady]);
 
   // Speed trail: the RAF loop recolours the trail on each refresh from this.
   const trailSpeedAt = useMemo(
@@ -1547,16 +1643,33 @@ export function TrackMap3D({
         {showTrackControls && (
           <button
             type="button"
-            className={buttonClass}
-            title={focusDriver != null ? "Follow focused car" : "Fit track"}
-            aria-label={focusDriver != null ? "Follow focused car" : "Fit track"}
-            onClick={recenter}
+            className={
+              followToggle && followFocused && !followSuspended
+                ? `${buttonClass} !border-f1red text-fg`
+                : buttonClass
+            }
+            title={followTitle}
+            aria-label={followTitle}
+            aria-pressed={followToggle ? followFocused && !followSuspended : undefined}
+            onClick={followToggle ? toggleFollow : recenter}
           >
             {focusDriver != null ? (
               <Crosshair size={14} strokeWidth={2.2} aria-hidden="true" />
             ) : (
               <Maximize size={14} strokeWidth={2.2} aria-hidden="true" />
             )}
+          </button>
+        )}
+        {focusDriver != null && (
+          <button
+            type="button"
+            className={showHeatmap ? `${buttonClass} !border-f1red text-fg` : buttonClass}
+            title={heatmapTitle}
+            aria-label={heatmapTitle}
+            aria-pressed={showHeatmap}
+            onClick={toggleHeatmap}
+          >
+            <Flame size={14} strokeWidth={2.2} aria-hidden="true" />
           </button>
         )}
         {showTrackControls && (
@@ -1661,6 +1774,7 @@ export function TrackMap3D({
               projection={pitRejoin.projection}
               lossS={pitRejoin.lossS}
               condition={pitRejoin.condition}
+              inPit={pitRejoin.inPit}
               color={focusColor}
               background={lightMode ? "rgba(247,249,254,0.94)" : "rgba(21,21,30,0.85)"}
               driverByNumber={driverByNumber}

@@ -127,11 +127,11 @@ const SECTIONS: Section[] = [
       },
       {
         term: "Driver Focus",
-        text: "Click a driver in timing or on-map to focus the camera and follow that car around the circuit",
+        text: "Click a driver in timing or on-map to focus them; the crosshair button makes the camera follow that car around the circuit",
       },
       {
         term: "Driver Heatmap",
-        text: "Focus mode can overlay lap-based speed heatmap colors on the track map for quick pace reads",
+        text: "With a driver focused, the flame button on the map toolbar colours the track with their last lap (speed, time gained or lost, braking points)",
       },
       {
         term: "Circuit Details",

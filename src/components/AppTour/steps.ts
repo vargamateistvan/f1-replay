@@ -50,7 +50,7 @@ const trackMap: Step = {
   placement: "left",
   title: "Live track map",
   content:
-    "Every car, animated from GPS. Click a car to focus it and follow it around the lap.",
+    "Every car, animated from GPS. Click a car to focus it; the crosshair button makes the camera follow it around the lap.",
 };
 
 function mapViews({ has3d }: TourContext): Step {

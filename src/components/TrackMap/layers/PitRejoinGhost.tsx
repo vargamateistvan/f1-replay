@@ -3,7 +3,8 @@ import { memo } from "react";
 /**
  * Dashed "ghost" car where the focused driver would rejoin if they pitted
  * now: the spot they occupied `pit loss` seconds ago, which is where the cars
- * they would come out among are right now.
+ * they would come out among are right now. With `inPit` the car is already in
+ * the pit lane and the ghost is where it will rejoin.
  */
 export const PitRejoinGhost = memo(function PitRejoinGhost({
   x,
@@ -11,12 +12,14 @@ export const PitRejoinGhost = memo(function PitRejoinGhost({
   color,
   position,
   rotationDeg,
+  inPit = false,
 }: {
   x: number;
   y: number;
   color: string;
   position: number;
   rotationDeg: number;
+  inPit?: boolean;
 }) {
   const labelX = 9;
   const labelY = 10;
@@ -49,7 +52,7 @@ export const PitRejoinGhost = memo(function PitRejoinGhost({
         fontWeight="900"
         letterSpacing="0.04em"
       >
-        {`PIT P${position}`}
+        {`${inPit ? "REJOIN" : "PIT"} P${position}`}
       </text>
     </g>
   );

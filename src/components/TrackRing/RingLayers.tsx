@@ -1,12 +1,18 @@
 import { memo } from "react";
 import { CloudRain, CloudSun, Droplets, Thermometer, Wind } from "lucide-react";
 import type { Driver, Stint } from "@/api/types";
-import { COMPOUND_COLORS, FLAG_COLORS, SAFETY_CAR_NUMBERS } from "@/constants";
+import {
+  COMPOUND_COLORS,
+  FLAG_COLORS,
+  PIT_MARKER_COLOR,
+  PIT_WINDOW_COLOR,
+  SAFETY_CAR_NUMBERS,
+} from "@/constants";
 import type { TimingSectorFlags } from "@/timeline/raceControl";
 import { trackEvent } from "@/lib/analytics";
 import { teamColor } from "@/utils/color";
 import { forwardSpan, ringPoint, wrapFraction } from "@/utils/lapProgress";
-import type { PitLossCondition } from "@/utils/pitRejoin";
+import { PIT_CONDITION_LABEL, type PitLossCondition } from "@/utils/pitRejoin";
 import { SPECIAL_TRACK_VEHICLES } from "../TrackMap/layers/specialVehicles";
 import { mapBackgroundColor } from "../TrackMap/trackMapFormat";
 import {
@@ -435,10 +441,6 @@ export function RingCenter({
     </g>
   );
 }
-
-const PIT_WINDOW_COLOR = "#9b4dca";
-const PIT_MARKER_COLOR = "#ff8a1f";
-const PIT_CONDITION_LABEL: Record<PitLossCondition, string> = { normal: "GREEN", vsc: "VSC", sc: "SC" };
 
 /**
  * Pit window for the focused car, on the ring itself: the band behind it is

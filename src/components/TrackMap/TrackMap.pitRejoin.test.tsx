@@ -166,6 +166,37 @@ describe("TrackMap pit rejoin projection", () => {
     expect(panel.textContent).toContain("Loss 13.0s · SC");
   });
 
+  it("draws the pit window behind the car, the other conditions' ticks and rings the rivals", () => {
+    geometry = bakedGeometry;
+    timelineT = 30_000;
+    const parked = (driver_number: number, x: number): Location => ({
+      date: new Date(START + 30_000).toISOString(),
+      driver_number,
+      meeting_key: 1,
+      session_key: 1,
+      x,
+      y: 0,
+      z: 0,
+    });
+    renderMap({
+      locationData: [...locationData, parked(16, 40), parked(44, 95), parked(63, 5)],
+    });
+
+    // From the ghost (x = 28 at t = 9 s) forward to the car (x = 70), on the outline.
+    expect(screen.getByTestId("pit-window-behind").getAttribute("d")).toBe(
+      "M52.0,24.0L94.0,24.0",
+    );
+    // No reference lap yet: no band ahead.
+    expect(screen.queryByTestId("pit-window-ahead")).toBeNull();
+    // SC (13 s) and VSC (15 s) ticks; green is the current condition.
+    expect(screen.getByTestId("pit-window-marker-sc").textContent).toBe("SC");
+    expect(screen.getByTestId("pit-window-marker-vsc").textContent).toBe("VSC");
+    expect(screen.queryByTestId("pit-window-marker-normal")).toBeNull();
+    // LEC (15 s) would pass a 23 s car; HAM (0 s) would drop behind if he
+    // pitted instead. RUS (30 s) is outside the window.
+    expect(screen.getAllByTestId("pit-window-ring")).toHaveLength(2);
+  });
+
   it("hides the ghost when the look-back is before the loaded location data", () => {
     geometry = bakedGeometry;
     timelineT = 10_000;

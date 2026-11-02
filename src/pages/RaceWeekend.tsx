@@ -2384,6 +2384,7 @@ export default function RaceWeekend() {
       showEnhancedVisuals={mapShowEnhancedVisuals}
       focusDriverLap={focusDriverLap}
       pitRejoinGaps={pitRejoinGaps}
+      leaderNumber={isRaceSession ? currentLeaderNumber : null}
       showTrackScreenshot={trackScreenshotPngEnabled}
       weatherOverlay={mapShowWeather ? weatherAtT : null}
       weather={weatherAtT}
@@ -2418,6 +2419,7 @@ export default function RaceWeekend() {
       focusDriverLap={focusDriverLap}
       showFocusedHud={mapShowDriverHud}
       pitRejoinGaps={pitRejoinGaps}
+      leaderNumber={isRaceSession ? currentLeaderNumber : null}
       sharedAllDriverWindow={telemetryEnabled}
       telemetryEnabled={secondaryEnabled}
       trackFlagState={mapShowSectorFlags ? trackFlagState : null}

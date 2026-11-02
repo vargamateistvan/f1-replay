@@ -25,6 +25,13 @@ export function parsePitLoss(
 
 export type PitLossCondition = "normal" | "vsc" | "sc";
 
+/** Short on-map label for each pit-loss condition (pit window ticks). */
+export const PIT_CONDITION_LABEL: Record<PitLossCondition, string> = {
+  normal: "GREEN",
+  vsc: "VSC",
+  sc: "SC",
+};
+
 /** Pit loss for the current neutralisation; SC beats VSC beats green running. */
 export function pitLossFor(
   loss: PitLossSeconds,

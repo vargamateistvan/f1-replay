@@ -133,6 +133,10 @@ export const RING_SEARCH_WINDOW = 24;
 export const RING_OFF_TRACK_M = 25;
 /** Ring pit window: how far back to look for when a car in the pits left the track (ms); longer reads as a garage stop. */
 export const RING_PIT_ENTRY_LOOKBACK_MS = 120_000;
+/** Pit window band (ring, 2D and 3D maps): how far the focused car would fall if it pitted now. */
+export const PIT_WINDOW_COLOR = "#9b4dca";
+/** Pit window ticks for the pit loss under the other track conditions (SC, VSC, green). */
+export const PIT_MARKER_COLOR = "#ff8a1f";
 // Duration (ms) to show the race leader notification badge on the track map after a lead change.
 export const RACE_LEADER_NOTIFICATION_MS = 5_000;
 // Lap used to derive the track outline (a clean early lap; falls back to lap 3, then any).

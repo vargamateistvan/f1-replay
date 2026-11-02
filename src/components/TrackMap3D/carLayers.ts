@@ -23,6 +23,7 @@ import {
   MAP3D_MODEL_NEAR_ZOOM,
   MAP3D_MODEL_SCALE_FAR,
   MAP3D_MODEL_SCALE_NEAR,
+  PIT_WINDOW_COLOR,
   SAFETY_CAR_NUMBERS,
   TRACK_FIT_ZOOM,
   TRACK_SVG_H,
@@ -56,6 +57,8 @@ export interface CarFeatureInput {
   driverByNumber: ReadonlyMap<number, Driver>;
   focusDriver: number | null;
   battlingDrivers?: ReadonlySet<number>;
+  /** Cars inside the focused car's pit window: kept bright, purple dashed ring. */
+  pitWindowDrivers?: ReadonlySet<number>;
   retiredDrivers?: ReadonlySet<number>;
   pulseDrivers?: ReadonlySet<number>;
   activeCompounds?: ReadonlyMap<
@@ -128,6 +131,7 @@ export type CarStyle = {
   haloRadius: number;
   haloColor: string;
   battleRadius: number;
+  pitWindowRadius: number;
   specialRingRadius: number;
   specialRingColor: string;
   safetyRingRadius: number;
@@ -152,7 +156,8 @@ export function carStyle(
   const isSafetyCar = SAFETY_CAR_NUMBERS.has(num);
   const siren = isSafetyCar && input.safetyCarSirenOn;
   const focused = input.focusDriver === num;
-  const dimmed = input.focusDriver !== null && !focused;
+  const inPitWindow = !focused && (input.pitWindowDrivers?.has(num) ?? false);
+  const dimmed = input.focusDriver !== null && !focused && !inPitWindow;
   const pulsing = input.pulseDrivers?.has(num) ?? false;
   const battling = input.battlingDrivers?.has(num) ?? false;
   const compound = input.activeCompounds?.get(num)?.compound;
@@ -189,6 +194,7 @@ export function carStyle(
     haloRadius: focused ? dotRadius + 2.5 : 0,
     haloColor: special ? special.halo : color,
     battleRadius: battling && !pulsing ? (focused ? 13 : 8) : 0,
+    pitWindowRadius: inPitWindow ? (battling ? 10.5 : 8) : 0,
     specialRingRadius: special ? serviceRadius + 1.8 : 0,
     specialRingColor: special?.stroke ?? "#000000",
     safetyRingRadius: isSafetyCar && !siren ? serviceRadius + 3.4 : 0,
@@ -244,6 +250,7 @@ const ICON_FIELDS = [
   "haloRadius",
   "haloColor",
   "battleRadius",
+  "pitWindowRadius",
   "specialRingRadius",
   "specialRingColor",
   "safetyRingRadius",
@@ -273,6 +280,7 @@ export function carIconExtent(style: CarStyle): number {
       style.radius + style.strokeWidth,
       style.haloRadius + 1,
       style.battleRadius + 1,
+      style.pitWindowRadius + 1,
       style.specialRingRadius + 1,
       style.safetyRingRadius + 1,
       compound,
@@ -313,6 +321,7 @@ export function drawCarIcon(
   };
 
   ring(style.battleRadius, BATTLE_COLOR, 1.5, 0.75, [3, 2]);
+  ring(style.pitWindowRadius, PIT_WINDOW_COLOR, 1.5, 0.9, [3, 2]);
   ring(style.haloRadius, style.haloColor, 1.5, 0.5);
   ring(style.specialRingRadius, style.specialRingColor, 1.1, 0.8, [2.2, 1.6]);
   ring(style.safetyRingRadius, SAFETY_RING_COLOR, 0.9, 0.34);

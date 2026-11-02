@@ -339,7 +339,18 @@ export function TrackMapSettings({
             "Mark the track between cars within 1 s and show the gap (races). Focused car: its battles only",
           )}
         {row("mapShowDriverHud", "Focused driver HUD", "Speed, gear and throttle for the selected driver")}
-        {!isRing && row("mapShowPitRejoin", "Pit rejoin projection", "Where the focused driver would rejoin if they pitted now (races)")}
+        {!isRing &&
+          row(
+            "mapShowDriverHeatmap",
+            "Driver heatmap",
+            "Colour the track with the focused driver's last lap: speed, time gained or lost against their previous lap, and braking points. Also on the map toolbar",
+          )}
+        {!isRing &&
+          row(
+            "mapShowPitRejoin",
+            "Pit rejoin projection",
+            "Where the focused driver would rejoin if they pitted now, with the pit window on the track and the rivals in it ringed (races)",
+          )}
         {row("mapShowRaceLeader", "Race leader badge", "Show the P1 race leader badge with headshot")}
 
         <SectionHeader>Flags & Sectors</SectionHeader>

@@ -82,6 +82,8 @@ import {
 } from "./layers/CircuitLayers";
 import { CarLayer, type CarPosition } from "./layers/CarLayer";
 import { PitRejoinGhost } from "./layers/PitRejoinGhost";
+import { PitWindowBands, PitWindowMarkers } from "./layers/PitWindowLayer";
+import { usePitWindow } from "./usePitWindow";
 import { StatusBadges } from "./overlays/StatusBadges";
 import { TrackControls } from "./overlays/TrackControls";
 import { TrackClockPanel, WeatherPanel } from "./overlays/InfoPanels";
@@ -90,7 +92,6 @@ import { Compass, SectorChips } from "./overlays/MapCornerWidgets";
 import { PitRejoinPanel } from "./overlays/PitRejoinPanel";
 import { StartReplayHint } from "./overlays/StartReplayHint";
 import { teamColor } from "@/utils/color";
-import { parsePitLoss, pitRejoinView } from "@/utils/pitRejoin";
 
 export type { ActiveTrackVehicles } from "./statusBadges";
 
@@ -122,6 +123,8 @@ interface Props {
   /** Latest gap to leader per driver; enables the pit rejoin projection for
    * the focused driver when set (races only). */
   readonly pitRejoinGaps?: ReadonlyMap<number, number> | null;
+  /** Current race leader; stale 0 s gaps on other cars are ignored. */
+  readonly leaderNumber?: number | null;
   readonly weatherOverlay?: Weather | null;
   readonly trackFlagState?: TrackFlagState | null;
   readonly activeTrackVehicles?: ActiveTrackVehicles | null;
@@ -171,6 +174,7 @@ export function TrackMap({
   retiredDrivers,
   focusDriverLap = null,
   pitRejoinGaps = null,
+  leaderNumber = null,
   weatherOverlay = null,
   trackFlagState = null,
   activeTrackVehicles = null,
@@ -203,6 +207,9 @@ export function TrackMap({
   const mapShowRaceLeader = useSettings((s) => s.mapShowRaceLeader);
   const mapStartLightsSound = useSettings((s) => s.mapStartLightsSound);
   const mapShowClock = useSettings((s) => s.mapShowClock);
+  const followFocused = useSettings((s) => s.mapFollowFocusedCar);
+  const showHeatmap = useSettings((s) => s.mapShowDriverHeatmap);
+  const setSetting = useSettings((s) => s.setSetting);
   const isCompactViewport = useMediaQuery("(max-width: 767px)");
   const [zoomLevel, setZoomLevel] = useState(TRACK_FIT_ZOOM);
   const [rotationDeg, setRotationDeg] = useState(0);
@@ -446,19 +453,29 @@ export function TrackMap({
     trackEvent("trackmap_snapshot_export", { format: "png" });
     exportTrackSnapshot(svgRef.current);
   }, []);
+  const toggleFollow = useCallback(() => {
+    trackEvent("trackmap_follow_toggled", { following: !followFocused, view: "2d" });
+    setSetting("mapFollowFocusedCar", !followFocused);
+  }, [followFocused, setSetting]);
+  const toggleHeatmap = useCallback(() => {
+    trackEvent("trackmap_heatmap_toggled", { shown: !showHeatmap, view: "2d" });
+    setSetting("mapShowDriverHeatmap", !showHeatmap);
+  }, [showHeatmap, setSetting]);
 
-  // Fetch telemetry for the focused driver's last completed lap.
-  // Only fires when a driver is focused and a lap number is known; result is
-  // cached forever (staleTime: Infinity) so lap changes cost one extra API call.
+  // Fetch telemetry for the focused driver's last completed lap (driver
+  // heatmap). Only fires when a driver is focused, the heatmap is on and a lap
+  // number is known; result is cached forever (staleTime: Infinity) so lap
+  // changes cost one extra API call.
+  const heatDriver = showHeatmap ? focusDriver : null;
   const heatData = useCarDataForLap(
     sessionKey,
-    focusDriver,
+    heatDriver,
     focusDriverLap ?? null,
     { enabled: telemetryEnabled },
   );
   const referenceHeatData = useCarDataForLap(
     sessionKey,
-    focusDriver,
+    heatDriver,
     focusDriverLap != null && focusDriverLap > 1 ? focusDriverLap - 1 : null,
     { enabled: telemetryEnabled },
   );
@@ -513,10 +530,30 @@ export function TrackMap({
     [trackGeometry, circuitGeom],
   );
 
-  const pitLoss = useMemo(
-    () => parsePitLoss(circuitGeom?.pitLoss),
-    [circuitGeom],
+  const pitWindowTrack = useMemo(
+    () =>
+      outline && trackGeometry
+        ? {
+            geom: trackGeometry,
+            points: outline.points,
+            toScale: outline.source !== "layout",
+          }
+        : null,
+    [outline, trackGeometry],
   );
+  // Pit rejoin and window for the focused car (shared with the 3D map).
+  const pitWindow = usePitWindow({
+    track: pitWindowTrack,
+    circuitGeom,
+    circuitKey,
+    indexes: locationIndexes,
+    focusDriver,
+    t,
+    gaps: pitRejoinGaps,
+    leaderNumber,
+    trackVehicles: activeTrackVehicles,
+    excluded: retiredDrivers,
+  });
 
   // Current-moment car telemetry for the focused driver — binary search on the
   // rolling 5-min window (same source as FocusedTelemetry). O(log n) per tick.
@@ -573,14 +610,15 @@ export function TrackMap({
     carPositions.push({ num, ...pos });
   }
 
-  // Follow-cam: smoothly zooms/pans towards the focused driver. If a focused
-  // car sample is temporarily missing, keep the previous camera to avoid snap-back.
+  // Follow-cam (opt-in from the toolbar): smoothly zooms/pans towards the
+  // focused driver. If a focused car sample is temporarily missing, keep the
+  // previous camera to avoid snap-back.
   const focusedPos =
     focusDriver !== null
       ? carPositions.find((c) => c.num === focusDriver)
       : undefined;
   let nextViewTarget: CameraView = { x: 0, y: 0, w: SVG_W, h: SVG_H };
-  if (focusDriver !== null) {
+  if (focusDriver !== null && followFocused) {
     if (focusedPos) {
       const { sx, sy } = projectToSvg(
         trackGeometry,
@@ -628,26 +666,10 @@ export function TrackMap({
   const zoomTransform = `translate(${pivotX.toFixed(1)} ${pivotY.toFixed(1)}) scale(${scale.toFixed(3)}) translate(${-pivotX.toFixed(1)} ${-pivotY.toFixed(1)})`;
   const trackTransform = `translate(${shiftX.toFixed(1)} ${shiftY.toFixed(1)}) rotate(${rotationDeg.toFixed(1)} ${pivotX.toFixed(1)} ${pivotY.toFixed(1)}) ${zoomTransform}`;
 
-  // Pit rejoin: rank after adding the circuit's pit loss to the focused car's
-  // gap, and place a ghost where that car was `loss` seconds ago — the cars
-  // around that spot now are the ones it would rejoin among.
-  const rejoinView = focusedPos
-    ? pitRejoinView({
-        gaps: pitRejoinGaps,
-        pitLoss,
-        track: activeTrackVehicles,
-        focusDriver,
-        excluded: retiredDrivers,
-        index: focusDriver !== null ? locationIndexes.get(focusDriver) : undefined,
-        t,
-      })
-    : null;
-  const pitRejoin = rejoinView && {
-    ...rejoinView,
-    ghost: rejoinView.ghost
-      ? projectToSvg(trackGeometry, rejoinView.ghost.x, rejoinView.ghost.y)
-      : null,
-  };
+  const pitRejoinGhost =
+    pitWindow?.ghost && focusedPos
+      ? projectToSvg(trackGeometry, pitWindow.ghost.x, pitWindow.ghost.y)
+      : null;
   const focusColor =
     focusDriver !== null
       ? teamColor(driverByNumber.get(focusDriver)?.team_colour, "#ffffff")
@@ -734,6 +756,9 @@ export function TrackMap({
               circuitLayout={circuitLayout}
             />
           )}
+          {pitWindow && focusedPos && (
+            <PitWindowBands geom={trackGeometry} window={pitWindow} />
+          )}
           <SpeedHeatLayer segments={heatSegments} />
           {showEnhancedVisuals && (
             <TintedSegmentLayer
@@ -807,13 +832,22 @@ export function TrackMap({
             </>
           )}
 
-          {pitRejoin?.ghost && (
-            <PitRejoinGhost
-              x={pitRejoin.ghost.sx}
-              y={pitRejoin.ghost.sy}
-              color={focusColor}
-              position={pitRejoin.projection.position}
+          {pitWindow && focusedPos && (
+            <PitWindowMarkers
+              geom={trackGeometry}
+              window={pitWindow}
               rotationDeg={rotationDeg}
+            />
+          )}
+
+          {pitWindow && pitRejoinGhost && (
+            <PitRejoinGhost
+              x={pitRejoinGhost.sx}
+              y={pitRejoinGhost.sy}
+              color={focusColor}
+              position={pitWindow.projection.position}
+              rotationDeg={rotationDeg}
+              inPit={pitWindow.inPit}
             />
           )}
 
@@ -824,6 +858,7 @@ export function TrackMap({
             focusDriver={focusDriver}
             pulseDrivers={pulseDrivers}
             battlingDrivers={battlingDrivers}
+            pitWindowDrivers={pitWindow?.highlight}
             activeCompounds={activeCompounds}
             safetyCarSirenOn={safetyCarSirenOn}
             rotationDeg={rotationDeg}
@@ -852,6 +887,10 @@ export function TrackMap({
         onOpenSettings={onOpenSettings}
         onEnter3d={onEnter3d}
         onEnterRing={onEnterRing}
+        onToggleFollow={focusDriver !== null ? toggleFollow : undefined}
+        following={followFocused}
+        onToggleHeatmap={focusDriver !== null ? toggleHeatmap : undefined}
+        heatmapOn={showHeatmap}
       />
 
       {focusDriver !== null && heatSegments.length > 0 && heatData.data && (
@@ -893,7 +932,7 @@ export function TrackMap({
       </div>
 
       {/* Top-left: focused-driver HUD + pit rejoin projection */}
-      {((showFocusedHud && hudData) || pitRejoin) && focusDriver !== null && (
+      {((showFocusedHud && hudData) || (pitWindow && focusedPos)) && focusDriver !== null && (
         <div className="absolute top-2 left-2 pointer-events-none flex flex-col gap-1">
           {showFocusedHud && hudData && (
             <FocusedDriverHud
@@ -903,11 +942,12 @@ export function TrackMap({
               lightMode={lightMode}
             />
           )}
-          {pitRejoin && (
+          {pitWindow && focusedPos && (
             <PitRejoinPanel
-              projection={pitRejoin.projection}
-              lossS={pitRejoin.lossS}
-              condition={pitRejoin.condition}
+              projection={pitWindow.projection}
+              lossS={pitWindow.lossS}
+              condition={pitWindow.condition}
+              inPit={pitWindow.inPit}
               color={focusColor}
               background={
                 lightMode ? "rgba(247,249,254,0.94)" : "rgba(21,21,30,0.85)"

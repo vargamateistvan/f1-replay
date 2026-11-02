@@ -17,6 +17,7 @@ import {
   buildSectorMarkers,
   buildGapRibbons,
   buildTrailPath,
+  buildPitWindowFeatures,
   speedLookup,
   trailFeature,
   trailGradient,
@@ -275,5 +276,51 @@ describe("buildGapRibbons", () => {
       null,
     );
     expect(lines.features).toHaveLength(1);
+  });
+});
+
+describe("buildPitWindowFeatures", () => {
+  const flat = {
+    originLng: 0,
+    originLat: 0,
+    scale: 0.1,
+    rotation: 0,
+    flipY: false,
+    tx: 0,
+    ty: 0,
+    rmsM: 0,
+    maxM: 0,
+  };
+
+  it("draws both bands and a labelled tick across the track per condition", () => {
+    const { bands, ticks, labels } = buildPitWindowFeatures(flat, {
+      behind: [
+        { x: 0, y: 0 },
+        { x: 500, y: 0 },
+      ],
+      ahead: [
+        { x: 500, y: 0 },
+        { x: 900, y: 0 },
+      ],
+      markers: [{ condition: "sc", x: 200, y: 0, dx: 1, dy: 0 }],
+    });
+    expect(bands.features.map((f) => f.properties.opacity)).toEqual([0.25, 0.55]);
+    expect(bands.features[1]!.geometry.coordinates).toHaveLength(2);
+
+    // Tick 20 m long, across the eastward track (north–south), at x = 20 m.
+    const [a, b] = ticks.features[0]!.geometry.coordinates.map(([lng, lat]) =>
+      lngLatToEnu(0, 0, lng, lat),
+    );
+    expect(a!.x).toBeCloseTo(20);
+    expect(b!.x).toBeCloseTo(20);
+    expect(Math.abs(b!.y - a!.y)).toBeCloseTo(20);
+    expect(labels.features[0]!.properties.label).toBe("SC");
+  });
+
+  it("is empty without a window", () => {
+    const { bands, ticks, labels } = buildPitWindowFeatures(flat, null);
+    expect(bands.features).toHaveLength(0);
+    expect(ticks.features).toHaveLength(0);
+    expect(labels.features).toHaveLength(0);
   });
 });

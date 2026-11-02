@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   addToLapPool,
   buildLapTimeProfile,
+  distanceAtTime,
   fullLaps,
   latestFullLap,
   poolLapsAt,
@@ -104,6 +105,18 @@ describe("buildLapTimeProfile", () => {
 
   it("is null without laps", () => {
     expect(buildLapTimeProfile([])).toBeNull();
+  });
+
+  it("inverts time back to distance", () => {
+    const lap = latestFullLap(trace(100_000, 2.5, 0.7, 1_000), LIMITS)!;
+    const p = buildLapTimeProfile([lap])!;
+    expect(distanceAtTime(p, 0)).toBe(0);
+    expect(distanceAtTime(p, 1)).toBe(1);
+    expect(distanceAtTime(p, 0.7)).toBeCloseTo(0.5, 2);
+    expect(distanceAtTime(p, 0.35)).toBeCloseTo(0.25, 2);
+    for (const f of [0.1, 0.42, 0.8]) {
+      expect(distanceAtTime(p, timeAtDistance(p, f))).toBeCloseTo(f, 3);
+    }
   });
 });
 

@@ -31,14 +31,12 @@ import { useStartLightsSound } from "@/hooks/useStartLightsSound";
 import { isOffTrackPlaceholder, useTrackOutline } from "@/hooks/useTrackMap";
 import { trackEvent } from "@/lib/analytics";
 import { useSettings } from "@/stores/settings";
-import { buildDriverIndexes, interpolateXY, type LocationIndex } from "@/timeline/interpolate";
+import { buildDriverIndexes, interpolateXY } from "@/timeline/interpolate";
 import {
   alternativePitLosses,
   parsePitLoss,
-  pitLossFor,
   pitRejoinView,
   pitWindowRivals,
-  rankAtGap,
   type PitRejoinNeighbour,
   type PitRejoinProjection,
 } from "@/utils/pitRejoin";
@@ -61,11 +59,9 @@ import { mapBackgroundColor, overlayBackgroundColor, windDir } from "../TrackMap
 import {
   buildRingModel,
   createRingReferenceState,
-  findPitEntry,
   formatFocusGap,
   formatLapTime,
   formatRingGap,
-  gapAtTimeFraction,
   lapTimeFraction,
   layoutRingCars,
   nearbyRingDrivers,
@@ -75,9 +71,9 @@ import {
   traceReferenceLaps,
   updateReferenceProfile,
   type RingCar,
-  type RingModel,
   type RingScale,
 } from "./ringModel";
+import { cachedPitEntry, cleanRejoinGaps, createPitEntryCache, inPitRejoin } from "./pitWindow";
 import {
   RingCars,
   RingCenter,
@@ -250,17 +246,11 @@ export function TrackRing({
   const referenceRef = useRef(createRingReferenceState());
   // Pit entry of the focused car while it is in the pits (null entry: none
   // found within the lookback), so the location scan runs once per stop.
-  const pitEntryRef = useRef<{
-    driver: number;
-    index: LocationIndex;
-    model: RingModel;
-    scannedAt: number;
-    entry: { t: number; fraction: number } | null;
-  } | null>(null);
+  const pitEntryRef = useRef(createPitEntryCache());
   useEffect(() => {
     hintsRef.current = new Map();
     referenceRef.current = createRingReferenceState();
-    pitEntryRef.current = null;
+    pitEntryRef.current = createPitEntryCache();
   }, [model]);
 
   const refBucket = Math.floor(t / RING_REF_REFRESH_MS);
@@ -273,16 +263,10 @@ export function TrackRing({
   const scale: RingScale = useMemo(() => ({ profile, reverse }), [profile, reverse]);
 
   const pitLoss = useMemo(() => parsePitLoss(circuitGeom?.pitLoss), [circuitGeom]);
-  // Stale 0 s gaps on cars that don't lead would make the rejoin order
-  // ambiguous (projectPitRejoin then gives up): drop them.
-  const rejoinGaps = useMemo(() => {
-    if (!pitRejoinGaps || leaderNumber === null) return pitRejoinGaps;
-    const out = new Map<number, number>();
-    for (const [num, gap] of pitRejoinGaps) {
-      if (gap > 0 || num === leaderNumber) out.set(num, gap);
-    }
-    return out;
-  }, [pitRejoinGaps, leaderNumber]);
+  const rejoinGaps = useMemo(
+    () => cleanRejoinGaps(pitRejoinGaps, leaderNumber),
+    [pitRejoinGaps, leaderNumber],
+  );
   // "Gap to the focused car" needs one; otherwise fall back to intervals.
   const focusGapRow = focusDriver === null ? undefined : intervalRows?.get(focusDriver);
   const effectiveGapMode = gapMode === "focus" && !focusGapRow ? "interval" : gapMode;
@@ -370,7 +354,7 @@ export function TrackRing({
     if (!placed.inPit) timeFractions.set(num, lapTimeFraction(scale, placed.fraction));
     else if (num === focusDriver) focusInPit = true;
   }
-  if (!focusInPit) pitEntryRef.current = null;
+  if (!focusInPit) pitEntryRef.current.current = null;
   const focusTimeFraction = focusDriver === null ? null : (timeFractions.get(focusDriver) ?? null);
   const carLayout = layoutRingCars(ringCars, {
     cx: CX,
@@ -436,42 +420,45 @@ export function TrackRing({
   // Already in the pits (time dial): the rejoin point is where the car would
   // be had it stayed out (its pit entry, moved on at field speed) minus the
   // pit loss, so it holds still against the field until the car rejoins.
-  let inPitRejoin: PitRejoinProjection | null = null;
+  let inPitRejoinResult: PitRejoinProjection | null = null;
   const focusIndex = focusDriver === null ? undefined : locationIndexes.get(focusDriver);
   if (focusInPit && focusDriver !== null && focusIndex && profile && pitLoss && rejoinGaps?.has(focusDriver)) {
-    const cached = pitEntryRef.current;
-    const reuse =
-      cached !== null &&
-      cached.driver === focusDriver &&
-      cached.index === focusIndex &&
-      cached.model === model &&
-      t >= (cached.entry?.t ?? cached.scannedAt) &&
-      t - (cached.entry?.t ?? cached.scannedAt) <= RING_PIT_ENTRY_LOOKBACK_MS;
-    const entry = reuse
-      ? cached.entry
-      : findPitEntry(model, trackGeometry, focusIndex, t, RING_PIT_ENTRY_LOOKBACK_MS);
-    if (!reuse) {
-      pitEntryRef.current = { driver: focusDriver, index: focusIndex, model, scannedAt: t, entry };
-    }
-    if (entry) {
-      const lossS = pitLossFor(pitLoss, activeTrackVehicles).seconds;
-      const carTf = lapTimeFraction(scale, entry.fraction) + (t - entry.t) / profile.lapMs;
-      const behindTf = carTf - (lossS * 1000) / profile.lapMs;
-      const gapS = gapAtTimeFraction(behindTf, timeFractions, rejoinGaps, profile.lapMs);
-      const projection = gapS === null ? null : rankAtGap(rejoinGaps, focusDriver, gapS, retiredDrivers);
-      if (projection) {
-        inPitRejoin = projection;
-        pitWindow = {
-          carTf,
-          behindTf,
-          aheadTf: null,
-          markers: [],
-          position: projection.position,
-          lossS,
-          inPit: true,
-        };
-        for (const n of [projection.ahead, projection.behind]) if (n) highlightDrivers.add(n.driverNumber);
-      }
+    const entry = cachedPitEntry(
+      pitEntryRef.current,
+      model,
+      trackGeometry,
+      focusDriver,
+      focusIndex,
+      t,
+      RING_PIT_ENTRY_LOOKBACK_MS,
+    );
+    const rejoinInPit = entry
+      ? inPitRejoin({
+          driver: focusDriver,
+          entry,
+          entryTf: lapTimeFraction(scale, entry.fraction),
+          t,
+          lapMs: profile.lapMs,
+          pitLoss,
+          track: activeTrackVehicles,
+          timeFractions,
+          gaps: rejoinGaps,
+          excluded: retiredDrivers,
+        })
+      : null;
+    if (rejoinInPit) {
+      const { projection } = rejoinInPit;
+      inPitRejoinResult = projection;
+      pitWindow = {
+        carTf: rejoinInPit.carTf,
+        behindTf: rejoinInPit.behindTf,
+        aheadTf: null,
+        markers: [],
+        position: projection.position,
+        lossS: rejoinInPit.lossS,
+        inPit: true,
+      };
+      for (const n of [projection.ahead, projection.behind]) if (n) highlightDrivers.add(n.driverNumber);
     }
   }
 
@@ -716,20 +703,20 @@ export function TrackRing({
         </div>
       )}
 
-      {showPitWindowOutcomes && inPitRejoin && (
+      {showPitWindowOutcomes && inPitRejoinResult && (
         <div
           role="status"
           aria-label="Pit rejoin"
           className="absolute top-12 right-2 z-20 max-w-[min(18rem,calc(100%-1rem))] rounded-sm border border-purple-line bg-track/90 px-2.5 py-2 text-caption leading-snug text-fg shadow-lg backdrop-blur"
         >
           <p className="font-black uppercase tracking-wider text-purple-fg">
-            {focusAcronym} in the pits → P{inPitRejoin.position}
+            {focusAcronym} in the pits → P{inPitRejoinResult.position}
           </p>
           <p className="mt-1">
-            <span className="font-bold">Rejoins behind:</span> {neighbourText(inPitRejoin.ahead, driverByNumber)}
+            <span className="font-bold">Rejoins behind:</span> {neighbourText(inPitRejoinResult.ahead, driverByNumber)}
           </p>
           <p>
-            <span className="font-bold">Ahead of:</span> {neighbourText(inPitRejoin.behind, driverByNumber)}
+            <span className="font-bold">Ahead of:</span> {neighbourText(inPitRejoinResult.behind, driverByNumber)}
           </p>
         </div>
       )}

@@ -3,6 +3,8 @@ import {
   buildArcPath,
   forwardSpan,
   layoutRingLabels,
+  locateOnPath,
+  pathSlice,
   projectOntoPath,
   ringArcPath,
   ringPoint,
@@ -112,6 +114,43 @@ describe("fractions", () => {
   it("measures the forward span across the start/finish line", () => {
     expect(forwardSpan(0.95, 0.05)).toBeCloseTo(0.1);
     expect(forwardSpan(0.2, 0.3)).toBeCloseTo(0.1);
+  });
+});
+
+describe("locateOnPath / pathSlice", () => {
+  it("finds the segment and the position along it", () => {
+    expect(locateOnPath(square, 0.125)).toEqual({ i: 0, j: 1, u: 0.5 });
+    expect(locateOnPath(square, 0.5)).toEqual({ i: 2, j: 3, u: 0 });
+    // Closing segment (last point → first), and wrapping.
+    expect(locateOnPath(square, 0.875)).toEqual({ i: 3, j: 0, u: 0.5 });
+    expect(locateOnPath(square, 1.125)).toEqual({ i: 0, j: 1, u: 0.5 });
+  });
+
+  it("clamps an open path at its ends", () => {
+    const line = buildArcPath(
+      [
+        { sx: 0, sy: 0 },
+        { sx: 10, sy: 0 },
+      ],
+      false,
+    );
+    expect(locateOnPath(line, 1.5)).toEqual({ i: 0, j: 1, u: 1 });
+    expect(locateOnPath(line, -1)).toEqual({ i: 0, j: 1, u: 0 });
+  });
+
+  it("slices forward between two fractions, across the start line", () => {
+    expect(pathSlice(square, 0.125, 0.375)).toEqual([
+      { i: 0, j: 1, u: 0.5 },
+      { i: 1, j: 1, u: 0 },
+      { i: 1, j: 2, u: 0.5 },
+    ]);
+    expect(pathSlice(square, 0.875, 0.125)).toEqual([
+      { i: 3, j: 0, u: 0.5 },
+      { i: 0, j: 0, u: 0 },
+      { i: 0, j: 1, u: 0.5 },
+    ]);
+    // Within one segment: just the ends.
+    expect(pathSlice(square, 0.05, 0.2)).toHaveLength(2);
   });
 });
 

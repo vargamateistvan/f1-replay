@@ -5,6 +5,7 @@ import {
 } from "./TrackMap";
 import type { Location } from "@/api/types";
 import { useTrackOutline } from "@/hooks/useTrackMap";
+import { useCarDataForLap } from "@/hooks/useCarDataForLap";
 import type { TrackFlagState } from "@/timeline/raceControl";
 import {
   START_LIGHT_INTERVAL_MS,
@@ -14,6 +15,7 @@ import {
 import { getCircuitGeometry } from "@/data/circuitGeometry";
 
 let timelineT = 0;
+const follow = vi.hoisted(() => ({ on: false, heatmap: true, setSetting: vi.fn() }));
 
 vi.mock("@/timeline/clock", () => ({
   useTimeline: vi.fn(
@@ -86,6 +88,9 @@ vi.mock("@/stores/settings", () => ({
       mapShowCornerNumbers: false,
       mapShowElevation: false,
       mapShowClock: false,
+      mapFollowFocusedCar: follow.on,
+      mapShowDriverHeatmap: follow.heatmap,
+      setSetting: follow.setSetting,
     }),
   ),
 }));
@@ -149,15 +154,84 @@ function mockTrackOutlineQueryResult(
 describe("TrackMap sector flag state rendering", () => {
   beforeEach(() => {
     timelineT = 0;
+    follow.on = false;
+    follow.heatmap = true;
+    follow.setSetting.mockReset();
     vi.mocked(useTrackOutline).mockReturnValue(
       mockTrackOutlineQueryResult(null),
     );
+  });
+
+  it("only follows the focused car once following is switched on", () => {
+    vi.mocked(useTrackOutline).mockReturnValue(
+      mockTrackOutlineQueryResult(mockOutline),
+    );
+    timelineT = 10_000;
+    const props = {
+      sessionKey: 1,
+      drivers: [mockDriver],
+      locationData: mockLocationData,
+      sessionStartMs: 0,
+      focusDriver: 1,
+    };
+    const viewW = (container: HTMLElement) =>
+      Number(container.querySelector("svg")?.getAttribute("viewBox")?.split(" ")[2]);
+
+    const first = render(<TrackMap {...props} />);
+    expect(viewW(first.container)).toBe(600);
+    const button = screen.getByRole("button", { name: "Follow the focused car" });
+    expect(button).toHaveAttribute("aria-pressed", "false");
+    fireEvent.click(button);
+    expect(follow.setSetting).toHaveBeenCalledWith("mapFollowFocusedCar", true);
+    first.unmount();
+
+    follow.on = true;
+    const second = render(<TrackMap {...props} />);
+    expect(viewW(second.container)).toBeLessThan(600);
+    expect(
+      screen.getByRole("button", { name: "Stop following the focused car" }),
+    ).toHaveAttribute("aria-pressed", "true");
+    second.unmount();
+
+    // No focused car: no follow toggle.
+    render(<TrackMap {...props} focusDriver={null} />);
+    expect(screen.queryByRole("button", { name: /focused car/ })).toBeNull();
+  });
+
+  it("toggles the driver heatmap and skips its lap data when off", () => {
+    vi.mocked(useTrackOutline).mockReturnValue(
+      mockTrackOutlineQueryResult(mockOutline),
+    );
+    const props = {
+      sessionKey: 1,
+      drivers: [mockDriver],
+      locationData: mockLocationData,
+      sessionStartMs: 0,
+      focusDriver: 1,
+      focusDriverLap: 5,
+    };
+    vi.mocked(useCarDataForLap).mockClear();
+    const on = render(<TrackMap {...props} />);
+    expect(vi.mocked(useCarDataForLap)).toHaveBeenCalledWith(1, 1, 5, expect.anything());
+    fireEvent.click(screen.getByRole("button", { name: "Hide the driver heatmap" }));
+    expect(follow.setSetting).toHaveBeenCalledWith("mapShowDriverHeatmap", false);
+    on.unmount();
+
+    follow.heatmap = false;
+    vi.mocked(useCarDataForLap).mockClear();
+    render(<TrackMap {...props} />);
+    expect(vi.mocked(useCarDataForLap)).not.toHaveBeenCalledWith(1, 1, 5, expect.anything());
+    expect(vi.mocked(useCarDataForLap)).toHaveBeenCalledWith(1, null, 5, expect.anything());
+    expect(
+      screen.getByRole("button", { name: "Show the driver heatmap" }),
+    ).toHaveAttribute("aria-pressed", "false");
   });
 
   it("keeps follow-camera viewport stable when focused sample is temporarily missing", () => {
     vi.mocked(useTrackOutline).mockReturnValue(
       mockTrackOutlineQueryResult(mockOutline),
     );
+    follow.on = true;
 
     timelineT = 10_000;
     const { container, rerender } = render(

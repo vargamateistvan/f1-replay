@@ -33,7 +33,7 @@ function NeighbourRow({
   );
 }
 
-/** "If they pit now" summary for the focused driver. */
+/** "If they pit now" summary for the focused driver ("Rejoin" while already in the pits). */
 export function PitRejoinPanel({
   projection,
   lossS,
@@ -41,6 +41,7 @@ export function PitRejoinPanel({
   color,
   background,
   driverByNumber,
+  inPit = false,
 }: {
   projection: PitRejoinProjection;
   lossS: number;
@@ -48,6 +49,7 @@ export function PitRejoinPanel({
   color: string;
   background: string;
   driverByNumber: ReadonlyMap<number, Driver>;
+  inPit?: boolean;
 }) {
   return (
     <div
@@ -62,7 +64,7 @@ export function PitRejoinPanel({
     >
       <div className="flex items-baseline justify-between gap-2">
         <span className="text-micro font-black uppercase tracking-caps text-muted">
-          Pit now
+          {inPit ? "Rejoin" : "Pit now"}
         </span>
         <span
           className="text-sm font-black tabular-nums leading-none"

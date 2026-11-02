@@ -199,3 +199,22 @@ export function timeAtDistance(profile: LapTimeProfile, f: number): number {
   const u = x - i;
   return profile.time[i]! + (profile.time[i + 1]! - profile.time[i]!) * u;
 }
+
+/** Distance fraction (0…1) at time fraction `tf` (0…1): the inverse of {@link timeAtDistance}. */
+export function distanceAtTime(profile: LapTimeProfile, tf: number): number {
+  const { dist, time } = profile;
+  const n = time.length - 1;
+  const x = Math.min(Math.max(tf, 0), 1);
+  let lo = 0;
+  let hi = n - 1;
+  // Last grid segment starting at or before x.
+  while (lo < hi) {
+    const mid = (lo + hi + 1) >>> 1;
+    if (time[mid]! <= x) lo = mid;
+    else hi = mid - 1;
+  }
+  const t0 = time[lo]!;
+  const t1 = time[lo + 1]!;
+  const u = t1 > t0 ? Math.min(1, (x - t0) / (t1 - t0)) : 0;
+  return dist[lo]! + (dist[lo + 1]! - dist[lo]!) * u;
+}

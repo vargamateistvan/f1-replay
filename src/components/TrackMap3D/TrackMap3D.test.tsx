@@ -144,6 +144,9 @@ const { settings, DEFAULT_SETTINGS } = vi.hoisted(() => {
     mapView3dWeatherEffects: true,
     mapView3dBuildings: true,
     mapView3dCarModels: true,
+    mapFollowFocusedCar: false,
+    mapShowDriverHeatmap: true,
+    setSetting: vi.fn(),
   };
   return { settings: { ...DEFAULT_SETTINGS }, DEFAULT_SETTINGS };
 });
@@ -193,6 +196,30 @@ describe("TrackMap3D", () => {
     FakeMap.instances = [];
     vi.mocked(mapboxToken).mockReturnValue("pk.test");
     Object.assign(settings, DEFAULT_SETTINGS);
+    settings.setSetting.mockReset();
+  });
+
+  it("follows the focused car only after opting in with the toolbar toggle", () => {
+    const off = renderMap({ focusDriver: 16 });
+    const follow = screen.getByRole("button", { name: "Follow the focused car" });
+    expect(follow).toHaveAttribute("aria-pressed", "false");
+    fireEvent.click(follow);
+    expect(settings.setSetting).toHaveBeenCalledWith("mapFollowFocusedCar", true);
+    off.unmount();
+
+    settings.mapFollowFocusedCar = true;
+    const on = renderMap({ focusDriver: 16 });
+    fireEvent.click(screen.getByRole("button", { name: "Stop following the focused car" }));
+    expect(settings.setSetting).toHaveBeenCalledWith("mapFollowFocusedCar", false);
+    on.unmount();
+
+    renderMap({ focusDriver: 16 });
+    fireEvent.click(screen.getAllByRole("button", { name: "Hide the driver heatmap" })[0]!);
+    expect(settings.setSetting).toHaveBeenCalledWith("mapShowDriverHeatmap", false);
+
+    // Chase is an explicit camera: the button just recentres.
+    renderMap({ focusDriver: 16, initialCameraMode: "chase" });
+    expect(screen.getByRole("button", { name: "Recentre on the focused car" })).toBeInTheDocument();
   });
 
   it("explains the missing token and offers a way back to 2D", () => {

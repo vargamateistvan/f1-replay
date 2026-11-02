@@ -8,7 +8,7 @@ import type {
   LayerSpecification,
   Map as MapboxMap,
 } from "mapbox-gl";
-import { MAP3D_GAP_RIBBON_COLOR } from "@/constants";
+import { MAP3D_GAP_RIBBON_COLOR, PIT_MARKER_COLOR, PIT_WINDOW_COLOR } from "@/constants";
 import type { CircuitGeometry } from "@/data/circuitGeometryTypes";
 import type { CircuitGeoref } from "@/utils/georef";
 import { groundWidthExpression, type FeatureCollection, type LineFeature, type PointFeature } from "./mapFeatures";
@@ -25,6 +25,9 @@ import type { ArcPolyline } from "@/components/TrackMap/trackGeometry";
 export const SRC_OVERLAYS = "map3d-overlays";
 export const SRC_HOTSPOTS = "map3d-hotspots";
 export const SRC_GHOST = "map3d-pit-ghost";
+export const SRC_PIT_WINDOW = "map3d-pit-window";
+export const SRC_PIT_TICKS = "map3d-pit-ticks";
+export const SRC_PIT_LABELS = "map3d-pit-labels";
 export const SRC_TRAIL = "map3d-trail";
 export const LAYER_TRAIL = "map3d-trail";
 export const SRC_GAP_RIBBONS = "map3d-gap-ribbons";
@@ -109,6 +112,9 @@ export function addOverlayLayers(map: MapboxMap, ctx: OverlayContext): void {
   map.addSource(SRC_OVERLAYS, { type: "geojson", data: buildArcLine(arc), lineMetrics: true });
   map.addSource(SRC_HOTSPOTS, { type: "geojson", data: empty<PointFeature>() });
   map.addSource(SRC_GHOST, { type: "geojson", data: empty<PointFeature>() });
+  map.addSource(SRC_PIT_WINDOW, { type: "geojson", data: empty<LineFeature>() });
+  map.addSource(SRC_PIT_TICKS, { type: "geojson", data: empty<LineFeature>() });
+  map.addSource(SRC_PIT_LABELS, { type: "geojson", data: empty<PointFeature>() });
   // lineMetrics enables `line-progress` for the trail's fade.
   map.addSource(SRC_TRAIL, { type: "geojson", data: empty<LineFeature>(), lineMetrics: true });
   map.addSource(SRC_GAP_RIBBONS, { type: "geojson", data: empty<LineFeature>() });
@@ -146,6 +152,53 @@ export function addOverlayLayers(map: MapboxMap, ctx: OverlayContext): void {
 
   const markup = (layer: LayerSpecification) =>
     map.addLayer({ ...layer, slot: "top" } as LayerSpecification, ctx.markupBefore);
+
+  // Pit window: bands along the track (behind / ahead of the focused car) and
+  // SC / VSC / green ticks, under everything else drawn on top of the road.
+  markup({
+    id: SRC_PIT_WINDOW,
+    type: "line",
+    source: SRC_PIT_WINDOW,
+    layout: { "line-cap": "butt", "line-join": "round" },
+    paint: {
+      "line-emissive-strength": 1,
+      "line-color": PIT_WINDOW_COLOR,
+      "line-opacity": ["get", "opacity"],
+      "line-width": groundWidthExpression(12, lat, 4),
+    },
+  });
+  markup({
+    id: SRC_PIT_TICKS,
+    type: "line",
+    source: SRC_PIT_TICKS,
+    layout: { "line-cap": "butt" },
+    paint: {
+      "line-emissive-strength": 1,
+      "line-color": PIT_MARKER_COLOR,
+      "line-width": 3 * scale,
+      "line-dasharray": [1.2, 0.9],
+    },
+  });
+  markup({
+    id: SRC_PIT_LABELS,
+    type: "symbol",
+    source: SRC_PIT_LABELS,
+    layout: {
+      "text-field": ["get", "label"],
+      "text-font": ["Inter Black"],
+      "text-size": 6 * scale,
+      "text-letter-spacing": 0.04,
+      "text-allow-overlap": true,
+      "text-ignore-placement": true,
+    },
+    paint: {
+      "text-emissive-strength": 1,
+      "text-occlusion-opacity": 1,
+      "text-color": PIT_MARKER_COLOR,
+      "text-halo-color": "rgba(0,0,0,0.55)",
+      "text-halo-width": 0.6 * scale,
+    },
+  });
 
   markup({
     id: LAYER_TRAIL,
@@ -269,7 +322,7 @@ export function addOverlayLayers(map: MapboxMap, ctx: OverlayContext): void {
       "icon-image": ["concat", IMG_GHOST_PREFIX, ["get", "color"]],
       "icon-allow-overlap": true,
       "icon-ignore-placement": true,
-      "text-field": ["concat", "PIT P", ["to-string", ["get", "position"]]],
+      "text-field": ["get", "label"],
       "text-font": ["Inter Black"],
       "text-size": 7 * scale,
       "text-letter-spacing": 0.04,

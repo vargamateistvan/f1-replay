@@ -38,6 +38,10 @@ export interface AppSettings {
   mapShowCornerNumbers: boolean;
   mapShowElevation: boolean;
   mapShowPitRejoin: boolean;
+  /** 2D / 3D map: the camera follows the focused car (toggled from the map toolbar). */
+  mapFollowFocusedCar: boolean;
+  /** 2D / 3D map: colour the track with the focused driver's lap (speed, delta, braking, legend). */
+  mapShowDriverHeatmap: boolean;
   /** Track map view: SVG map, Mapbox 3D map (when available), or the lap-progress ring. */
   mapViewMode: MapViewMode;
   /** Ring view: space the circle by lap time (reference lap) instead of distance. */
@@ -207,6 +211,8 @@ export const SETTINGS_DEFAULTS: AppSettings = {
   mapShowCornerNumbers: false,
   mapShowElevation: false,
   mapShowPitRejoin: true,
+  mapFollowFocusedCar: false,
+  mapShowDriverHeatmap: false,
   mapViewMode: "2d",
   mapRingTimeScale: true,
   mapRingGapMode: "interval",

@@ -18,6 +18,8 @@ import type {
   SpeedSegment,
 } from "@/components/TrackMap/trackGeometry";
 import { speedToColor } from "@/components/TrackMap/trackMapFormat";
+import type { MapPitWindow } from "@/components/TrackMap/usePitWindow";
+import { PIT_CONDITION_LABEL } from "@/utils/pitRejoin";
 import {
   type CircuitGeoref,
   enuToLngLat,
@@ -487,6 +489,66 @@ export function buildGapRibbons(
   }
   return {
     lines: { type: "FeatureCollection", features: lines },
+    labels: { type: "FeatureCollection", features: labels },
+  };
+}
+
+/** Half-length of a pit window condition tick across the track, in metres. */
+const PIT_TICK_HALF_M = 10;
+
+/**
+ * The focused car's pit window (see `usePitWindow`), as on the ring and 2D
+ * map: bands along the centerline behind and ahead of the car (`opacity`
+ * property), and a tick across the track with a label beside it for the pit
+ * loss under each other track condition.
+ */
+export function buildPitWindowFeatures(
+  geo: CircuitGeoref,
+  window: Pick<MapPitWindow, "behind" | "ahead" | "markers"> | null,
+): {
+  bands: FeatureCollection<LineFeature>;
+  ticks: FeatureCollection<LineFeature>;
+  labels: FeatureCollection<PointFeature>;
+} {
+  const bands: LineFeature[] = [];
+  const ticks: LineFeature[] = [];
+  const labels: PointFeature[] = [];
+  const toLL = (p: Enu): LngLat => enuToLngLat(geo.originLng, geo.originLat, p.x, p.y);
+  if (window) {
+    for (const [points, opacity] of [
+      [window.ahead, 0.25],
+      [window.behind, 0.55],
+    ] as const) {
+      if (points.length < 2) continue;
+      bands.push({
+        type: "Feature",
+        properties: { opacity },
+        geometry: { type: "LineString", coordinates: points.map((p) => f1ToLngLat(geo, p.x, p.y)) },
+      });
+    }
+    for (const m of window.markers) {
+      const c = f1ToEnu(geo, m.x, m.y);
+      const next = f1ToEnu(geo, m.x + m.dx, m.y + m.dy);
+      const len = Math.hypot(next.x - c.x, next.y - c.y) || 1;
+      // Normal to the direction of travel, in local metres.
+      const nx = -(next.y - c.y) / len;
+      const ny = (next.x - c.x) / len;
+      const at = (d: number): Enu => ({ x: c.x + nx * d, y: c.y + ny * d });
+      ticks.push({
+        type: "Feature",
+        properties: { condition: m.condition },
+        geometry: { type: "LineString", coordinates: [toLL(at(-PIT_TICK_HALF_M)), toLL(at(PIT_TICK_HALF_M))] },
+      });
+      labels.push({
+        type: "Feature",
+        properties: { label: PIT_CONDITION_LABEL[m.condition] },
+        geometry: { type: "Point", coordinates: toLL(at(PIT_TICK_HALF_M + 8)) },
+      });
+    }
+  }
+  return {
+    bands: { type: "FeatureCollection", features: bands },
+    ticks: { type: "FeatureCollection", features: ticks },
     labels: { type: "FeatureCollection", features: labels },
   };
 }

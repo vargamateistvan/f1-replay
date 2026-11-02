@@ -3,6 +3,8 @@ import type { MouseEvent, ReactNode } from "react";
 import {
   Camera,
   CircleDot,
+  Crosshair,
+  Flame,
   Maximize,
   RotateCcw,
   RotateCw,
@@ -79,6 +81,10 @@ export const TrackControls = memo(function TrackControls({
   onEnter2d,
   onEnter3d,
   onEnterRing,
+  onToggleFollow,
+  following = false,
+  onToggleHeatmap,
+  heatmapOn = false,
   extraButtons,
 }: {
   showTrackControls: boolean;
@@ -101,6 +107,13 @@ export const TrackControls = memo(function TrackControls({
   onEnter3d?: () => void;
   /** When set, shows a button that switches to the ring (lap progress) view. */
   onEnterRing?: () => void;
+  /** When set (a driver is focused), shows the follow-camera toggle. */
+  onToggleFollow?: () => void;
+  /** The camera follows the focused car (highlights the follow toggle). */
+  following?: boolean;
+  /** When set (a driver is focused), shows the driver heatmap toggle. */
+  onToggleHeatmap?: () => void;
+  heatmapOn?: boolean;
   /** View-specific toggles, shown after the view switch. */
   extraButtons?: readonly TrackControlButton[];
 }) {
@@ -133,6 +146,30 @@ export const TrackControls = memo(function TrackControls({
       <span key="views" data-tour={TOUR_TARGET.mapViews} className="flex items-center gap-1">
         {views}
       </span>,
+    );
+  }
+  if (onToggleFollow) {
+    top.push(
+      <ControlButton
+        key="follow"
+        title={following ? "Stop following the focused car" : "Follow the focused car"}
+        onPress={onToggleFollow}
+        active={following}
+      >
+        <Crosshair {...icon} />
+      </ControlButton>,
+    );
+  }
+  if (onToggleHeatmap) {
+    top.push(
+      <ControlButton
+        key="heatmap"
+        title={heatmapOn ? "Hide the driver heatmap" : "Show the driver heatmap"}
+        onPress={onToggleHeatmap}
+        active={heatmapOn}
+      >
+        <Flame {...icon} />
+      </ControlButton>,
     );
   }
   if (extraButtons?.length) {

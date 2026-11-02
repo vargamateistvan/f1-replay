@@ -129,6 +129,53 @@ export function wrapFraction(f: number): number {
   return w >= 1 ? 0 : w;
 }
 
+/** A spot on a path: between points `i` and `j`, `u` of the way along. */
+export interface PathLocation {
+  i: number;
+  j: number;
+  u: number;
+}
+
+/** Where fraction `f` (0–1; wrapped on a closed path, clamped on an open one) falls on the path. */
+export function locateOnPath(path: ArcPath, f: number): PathLocation | null {
+  const n = path.xs.length;
+  if (n < 2 || path.length <= 0) return null;
+  const x = path.closed ? wrapFraction(f) : Math.min(1, Math.max(0, f));
+  // Last point with arc ≤ x.
+  let lo = 0;
+  let hi = n - 1;
+  while (lo < hi) {
+    const mid = (lo + hi + 1) >>> 1;
+    if (path.arc[mid]! <= x) lo = mid;
+    else hi = mid - 1;
+  }
+  if (!path.closed && lo === n - 1) return { i: n - 2, j: n - 1, u: 1 };
+  const j = lo + 1 === n ? 0 : lo + 1;
+  const a0 = path.arc[lo]!;
+  const a1 = j === 0 ? 1 : path.arc[j]!;
+  return { i: lo, j, u: a1 > a0 ? (x - a0) / (a1 - a0) : 0 };
+}
+
+/**
+ * The stretch of a closed path from `from` forward to `to` (fractions): both
+ * ends plus every point in between, as path locations.
+ */
+export function pathSlice(path: ArcPath, from: number, to: number): PathLocation[] {
+  const start = locateOnPath(path, from);
+  const end = locateOnPath(path, to);
+  if (!start || !end) return [];
+  const out: PathLocation[] = [start];
+  const span = forwardSpan(from, to);
+  const n = path.xs.length;
+  for (let k = 0, p = start.j; k < n; k++, p = (p + 1) % n) {
+    const ahead = forwardSpan(from, path.arc[p]!);
+    if (ahead <= 0 || ahead >= span) break;
+    out.push({ i: p, j: p, u: 0 });
+  }
+  out.push(end);
+  return out;
+}
+
 /**
  * Fraction of the way from `from` to `to` going forward round the lap (so a
  * pit lane that crosses the start/finish line still spans its short way).

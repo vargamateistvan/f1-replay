@@ -1,5 +1,5 @@
 import type { Driver, Stint } from "@/api/types";
-import { COMPOUND_COLORS, SAFETY_CAR_NUMBERS } from "@/constants";
+import { COMPOUND_COLORS, PIT_WINDOW_COLOR, SAFETY_CAR_NUMBERS } from "@/constants";
 import { SPECIAL_TRACK_VEHICLES } from "./specialVehicles";
 import { trackEvent } from "@/lib/analytics";
 import { teamColor } from "@/utils/color";
@@ -21,6 +21,8 @@ interface CarLayerProps {
   focusDriver: number | null;
   pulseDrivers?: readonly number[];
   battlingDrivers?: ReadonlySet<number>;
+  /** Cars inside the focused car's pit window: kept bright, purple dashed ring. */
+  pitWindowDrivers?: ReadonlySet<number>;
   activeCompounds?: ReadonlyMap<
     number,
     { compound: Stint["compound"]; age: number }
@@ -70,6 +72,7 @@ function CarMarker({
   focusDriver,
   pulsing,
   battlingDrivers,
+  pitWindowDrivers,
   activeCompounds,
   safetyCarSirenOn,
   rotationDeg,
@@ -90,7 +93,8 @@ function CarMarker({
     : teamColor(driver?.team_colour, "#ffffff");
   const { sx, sy } = projectToSvg(geom, x, y);
   const focused = focusDriver === num;
-  const dimmed = focusDriver !== null && !focused;
+  const inPitWindow = !focused && (pitWindowDrivers?.has(num) ?? false);
+  const dimmed = focusDriver !== null && !focused && !inPitWindow;
   const showLabel = (focusDriver === null || focused) && showAcronym;
   const isBattling = battlingDrivers?.has(num) ?? false;
   const compoundInfo = activeCompounds?.get(num);
@@ -134,6 +138,18 @@ function CarMarker({
           strokeWidth={1.5}
           strokeOpacity={0.75}
           strokeDasharray="3 2"
+        />
+      )}
+      {/* Pit window: dashed purple ring for cars the focused car would swap places with */}
+      {inPitWindow && (
+        <circle
+          r={isBattling ? 10.5 : 8}
+          fill="none"
+          stroke={PIT_WINDOW_COLOR}
+          strokeWidth={1.5}
+          strokeOpacity={0.9}
+          strokeDasharray="3 2"
+          data-testid="pit-window-ring"
         />
       )}
       {pulsing && (

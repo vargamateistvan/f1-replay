@@ -221,6 +221,12 @@ dimension** instead of relying on the built-in App version report:
 - `trackmap_snapshot_export`
   - Params: `format`, `view` (`3d` from the 3D map; absent for 2D)
   - Trigger: PNG export click
+- `trackmap_heatmap_toggled`
+  - Params: `shown` (new state), `view` (`2d` | `3d`)
+  - Trigger: driver heatmap toggle (flame) on the map toolbar, with a focused car
+- `trackmap_follow_toggled`
+  - Params: `following` (new state), `view` (`2d` | `3d`)
+  - Trigger: follow toggle (crosshair) with a focused car; on the 3D map only in the "follow" camera mode
 - `trackmap_view_mode_changed`
   - Params: `mode` (`2d` | `3d`)
   - Trigger: 3D button on the 2D map / 2D button on the 3D map
@@ -231,7 +237,7 @@ dimension** instead of relying on the built-in App version report:
   - Params: `circuit_key`
   - Trigger: a Mapbox map instance is created (each is a billed map load). The map is kept across sessions at the same circuit.
 - `trackmap3d_recenter`
-  - Trigger: fit-track / follow-car button, or "Resume follow" after panning the 3D map
+  - Trigger: fit-track / recentre button, or "Resume follow" after panning the 3D map
 
 ### RaceWeekend View Logic
 
