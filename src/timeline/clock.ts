@@ -13,38 +13,41 @@ export interface TimelineStore {
   speed: number; // playback multiplier: 1, 2, 4, 8, 16
   sessionStartMs: number | null; // UTC ms of session start
   /**
-   * Session-relative window that always plays at 1x (the race start lights).
-   * Crossing into it at a higher speed drops to 1x until `endMs`, then the
-   * previous speed resumes.
+   * Session-relative windows that always play at 1x (race start and standing
+   * restart lights). Crossing into one at a higher speed drops to 1x until its
+   * `endMs`, then the previous speed resumes.
    */
-  realTimeWindow: RealTimeWindow | null;
+  realTimeWindows: readonly RealTimeWindow[];
 
   setT: (t: number) => void;
   setPlaying: (playing: boolean) => void;
   setSpeed: (speed: number) => void;
   setSessionStart: (ms: number) => void;
-  setRealTimeWindow: (window: RealTimeWindow | null) => void;
+  setRealTimeWindows: (windows: readonly RealTimeWindow[]) => void;
   toggle: () => void;
   reset: () => void;
 }
 
-// Speed to resume once playback leaves the real-time window.
+// Speed to resume once playback leaves the real-time window, and when.
 let speedToRestore: number | null = null;
+let restoreAtMs: number | null = null;
+const NO_WINDOWS: readonly RealTimeWindow[] = [];
 
 export const useTimeline = create<TimelineStore>((set) => ({
   t: 0,
   playing: false,
   speed: 1,
   sessionStartMs: null,
-  realTimeWindow: null,
+  realTimeWindows: NO_WINDOWS,
 
   setT: (t) => set({ t }),
   setPlaying: (playing) => set({ playing }),
   setSpeed: (speed) => set({ speed }),
   setSessionStart: (ms) => set({ sessionStartMs: ms }),
-  setRealTimeWindow: (realTimeWindow) => {
+  setRealTimeWindows: (realTimeWindows) => {
     speedToRestore = null;
-    set({ realTimeWindow });
+    restoreAtMs = null;
+    set({ realTimeWindows });
   },
   toggle: () => set((s) => ({ playing: !s.playing })),
   reset: () => set({ t: 0, playing: false }),
@@ -83,23 +86,25 @@ export function startClock() {
       let nextT = currentT + realDelta * speed;
       let mustWrite = false;
 
-      const realTime = store.realTimeWindow;
-      if (
-        realTime &&
-        speed > 1 &&
-        currentT <= realTime.startMs &&
-        nextT >= realTime.startMs
-      ) {
-        nextT = realTime.startMs;
+      const entered =
+        speed > 1
+          ? store.realTimeWindows.find(
+              (w) => currentT <= w.startMs && nextT >= w.startMs,
+            )
+          : undefined;
+      if (entered) {
+        nextT = entered.startMs;
         speedToRestore = speed;
+        restoreAtMs = entered.endMs;
         speed = 1;
         mustWrite = true;
       } else if (
         speedToRestore !== null &&
-        (!realTime || nextT >= realTime.endMs)
+        (restoreAtMs === null || nextT >= restoreAtMs)
       ) {
         speed = speedToRestore;
         speedToRestore = null;
+        restoreAtMs = null;
         mustWrite = true;
       }
 
@@ -134,5 +139,6 @@ export function stopClock() {
     currentT = 0;
     lastWrittenT = null;
     speedToRestore = null;
+    restoreAtMs = null;
   }
 }

@@ -1,6 +1,6 @@
 # F1 Replay — Agent Documentation
 
-> Last updated: 2026-11-01
+> Last updated: 2026-11-02
 > The single source of truth for agents. Provides concise, agent-readable architecture notes, conventions, and guardrails. `docs/` holds mostly historical plans — see Section 12 before trusting one.
 
 ---
@@ -22,6 +22,7 @@
 | Ring view                                         | `components/TrackRing/`, `utils/lapProgress.ts`, `docs/RING_VIEW.md`                         |
 | Toasts / catch-up                                 | `timeline/events.ts`, `hooks/useEventToasts.ts`, `hooks/useCatchupSummary.ts`                |
 | Race control / flags                              | `timeline/raceControl.ts`, `utils/raceControlFlags.ts`                                       |
+| Start lights / standing restarts                  | `timeline/startLights.ts` (`activeLightsOut`), `utils/standingRestart.ts`, `hooks/useStandingRestarts.ts`; 1x windows in `timeline/clock.ts` |
 | Side-panel feeds (RC, radio, pits, passes…)       | `components/CommentaryPanels/` (tabs: `rc` `radio` `pits` `passes` `moments` `chapters` `weather`) |
 | Live sessions                                     | `utils/live.ts`, polling in `hooks/useSession.ts`, MQTT push in `hooks/useOpenF1LiveMqtt.ts` |
 | Tyre degradation / race pace                      | `utils/racePace.ts` (clean laps, per-stint fit), `components/TyreDeg` (tracker tab `deg`)    |
@@ -99,7 +100,7 @@ src/
     events.ts           — Toast event normalisation (radio, flag, pit, overtake…)
     interpolate.ts      — Typed-array binary search + linear interpolation for location
     raceControl.ts      — Race control event enrichment and flag-state machine
-    startLights.ts      — Start-light sequence state for the track-map badge
+    startLights.ts      — Start-light sequence state for the track-map badge; activeLightsOut() picks the race start or a standing restart
     director.ts         — TV-camera shot picker for the 3D map (overtake > pit > battle > leader)
 
   stores/
@@ -112,6 +113,7 @@ src/
     useTrackMap.ts      — Track outline derivation (GPS → SVG coordinate transform)
     useEventToasts.ts   — Playhead-driven toast queue
     useCatchupSummary.ts — "You skipped X events" catchup overlay
+    useStandingRestarts.ts — Lights out of standing restarts after a red flag (one leader `car_data` request each)
     useStandings.ts     — Season standings aggregation hook
     useCarDataWindow.ts — Sliding car-data window for leaderboard telemetry
     useAllCarDataWindow.ts — All-driver variant of the above
@@ -166,6 +168,7 @@ src/
     finish.ts           — findLeaderFinishMs(), deriveFinishedDrivers(): who has taken the chequered flag (timed sessions: first crossing after the flag)
     lapDeletions.ts     — parseLapDeletions() / deletedLapKeys(): race-control lap-time deletions (track limits) and reinstatements, matched on driver + lap time (the message's LAP number is one ahead of OpenF1's)
     weather.ts          — weatherAtSessionTime()
+    standingRestart.ts  — standingRestartSearches() (red flag → "STANDING START" → search window), leaderAt(), detectLightsOut() (leader's last stationary grid sample)
     highlights.ts       — parseHighlightTitle(), matchHighlightSession(): F1 YouTube highlight titles → OpenF1 session_key (type-only imports; used by scripts/fetch-highlights.mjs)
     url.ts              — toSafeExternalUrl(), replaceHistorySearchParams(), HOME_PATH, replayPath() / roundReplayPath()
 
@@ -261,7 +264,7 @@ components/ (render to DOM; read settings from Zustand)
 | `TrackRing`                                       | Ring view (third map mode, `mapViewMode: "ring"`): every circuit as a dial spaced by lap time (reference lap profile, `lapTimeProfile.ts`), start/finish at 12 o'clock; gap labels (to car ahead / leader / focused car, retaining numeric timing next to lap deficits), pit window band and named rejoin outcomes for the focused car (rivals in it highlighted, SC/VSC loss ticks; while it is in the pits a "REJOIN P{n}" ghost that moves with the field, via `findPitEntry` / `gapAtTimeFraction`), nearby-driver emphasis, hover gap measure, optional `?` legend, pit-lane cars on an inner arc. The centre keeps lap/status/reference in fixed positions without explanatory captions, then shows weather with compact icons when no driver is focused, or focused-driver position, gaps ahead/behind, tyre and available speed/gear instead. Nearby count is tuned by `RING_NEARBY_CARS_PER_SIDE` in `constants.ts`. Pure model in `ringModel.ts` (lap/pit paths, sector boundaries, corner ticks, `placeCar`, `toDisplay`, `layoutRingCars`, `nearbyRingDrivers`, `formatRingGap`, `formatFocusGap`, `timeArc`); SVG layers in `RingLayers.tsx`. Reuses the 2D map's outline, overlays and toolbar (`extraButtons` for gap mode / time spacing / flip / legend) |
 | `TrackMap3D`                                      | Opt-in Mapbox 3D map (Standard style, optional terrain), desktop and mobile. `TrackMap3D.tsx` owns the map and one RAF loop (cars, trail, camera); pure builders: `mapFeatures.ts` (track, flags), `trackSurface.ts` (asphalt/verge/kerb/pit/start-grid polygons; layers in `surfaceLayers.ts`), `carLayers.ts` (2D-identical car icons drawn on canvas + CC0 3D models), `trackOverlays.ts` (start/finish, S1/S2, arrows, heat/delta/elevation gradients, pit ghost, trail), `atmosphere.ts` (sun-based light preset, rain), `cameraModes.ts` (follow / chase / orbit). Layers in `overlayLayers.ts`; gate with `availability.ts` (token + WebGL2). `?debug=map3d` logs per-frame cost |
 | `LiveTiming`                                      | Real-time leaderboard: positions, intervals, mini-sectors, telemetry columns. Practice/qualifying rank on best laps, skipping race-control-deleted times and laps begun after the final chequered flag (the lap in progress at the flag still counts) |
-| `PlaybackBar`                                     | Scrubber (race-control, race-start and chequered-flag markers) / speed controls / chips |
+| `PlaybackBar`                                     | Scrubber (race-control, race-start, standing-restart and chequered-flag markers) / speed controls / chips |
 | `RaceControl`                                     | Race control message feed                                                                |
 | `TeamRadio`                                       | Audio player for team radio clips                                                        |
 | `RadioAudio`                                      | Shared radio `<audio>`: plays `public/sounds/radio-intro.mp3` chime, then the clip       |
@@ -319,7 +322,7 @@ components/ (render to DOM; read settings from Zustand)
 
 | Store         | File                 | Persisted?                       | Purpose                                                   |
 | ------------- | -------------------- | -------------------------------- | --------------------------------------------------------- |
-| `useTimeline` | `timeline/clock.ts`  | No                               | Playback state: `t`, `playing`, `speed`, `sessionStartMs`, `realTimeWindow` (span forced to 1x, e.g. race start lights) |
+| `useTimeline` | `timeline/clock.ts`  | No                               | Playback state: `t`, `playing`, `speed`, `sessionStartMs`, `realTimeWindows` (spans forced to 1x: race start and standing restart lights) |
 | `useSettings` | `stores/settings.ts` | Yes (localStorage via `persist`) | All `AppSettings` flags; `amplitudeSessionReplayEnabled` opts out of Amplitude Session Replay; `mapRingShowPitWindowOutcomes` is a ring-only toggle, default off; `replayWelcomeSeen` remembers that the first-use prompt was offered and survives settings reset |
 
 ### 6b. TanStack Query keys (convention)
@@ -348,6 +351,7 @@ components/ (render to DOM; read settings from Zustand)
 ["carDataWindow", sessionKey, driverNumber, windowIndex]
 ["allCarDataWindow", sessionKey, windowIndex]
 ["carDataForLap", sessionKey, driverNumber, lapNumber]
+["standingRestart", sessionKey, driverNumber, searchFromMs]
 ```
 
 **Rules**: `staleTime: Infinity` for historical sessions; `staleTime: 0` + `refetchInterval: LIVE_POLL_FAST_MS | LIVE_POLL_SLOW_MS` for active sessions. Never manually invalidate historical queries.
@@ -583,7 +587,7 @@ Source maps are uploaded to Sentry only from GitHub Actions (`disable: !env.GITH
 8. **`Float32Array` coords in `LocationIndex`** have reduced precision vs JS `number`. This is intentional for performance. Do not convert back to `number[]` arrays in hot paths.
 9. **`SPEEDS`** (`[1,2,4,8,16]`) and `MAX_FRAME_STEP_MS` (`250`) are the only safe values for playback. Do not introduce arbitrary speed multipliers.
 10. **SEO routes** are generated at build time from `seo-routes.json`. Add new deep-linkable pages to this file and run `yarn generate:sitemap`. Parametrised routes go in `PATTERN_ROUTES` (`Seo/seo.ts`) and call `usePageSeo` once their data loads. Social images must be PNG (`public/og-cover.png`, rasterised from `og-cover.svg`) — SVG `og:image` is ignored by X/Facebook/Slack. Route shells rewrite the crawlable `#shell-title` / `#shell-description` in `index.html`, and the `#route-jsonld` script id is shared by `index.html`, the shells and `RouteSeo` so it's replaced, never duplicated.
-11. **Start-light sounds** play `public/sounds/start-light.mp3` as each light comes on (synthesized beep if it's missing); lights out is silent. Only commit audio you have the rights to. Light pacing is `START_LIGHT_INTERVAL_MS` / `START_LIGHTS_HOLD_MS` in `constants.ts`. The sequence always plays at 1x: the clock drops to 1x when it enters `realTimeWindow` and restores the previous speed at lights out.
+11. **Start-light sounds** play `public/sounds/start-light.mp3` as each light comes on (synthesized beep if it's missing); lights out is silent. Only commit audio you have the rights to. Light pacing is `START_LIGHT_INTERVAL_MS` / `START_LIGHTS_HOLD_MS` in `constants.ts`. The sequence always plays at 1x: the clock drops to 1x when it enters a `realTimeWindows` span and restores the previous speed at lights out. Standing restarts after a red flag get the same sequence: race control only announces "STANDING START", so `useStandingRestarts` reads lights out from the leader's car data.
 12. **Team radio playback** (panel, toasts, catch-up) must go through `RadioAudio`, which plays the `public/sounds/radio-intro.mp3` chime and starts the clip after `RADIO_INTRO_LEAD_MS`. Don't render a bare `<audio autoPlay>` for radio.
 13. **3D map coordinates**: never hand raw OpenF1 x/y to Mapbox — project with `f1ToLngLat(getCircuitGeoref(...), x, y)`. Circuit data is kept current by `.github/workflows/update-circuits.yml` (weekly + manual): `fetch-circuits.mjs` (MultiViewer) → `bake-gps-circuits.mjs` (venues MultiViewer lacks, from the newest session's fastest clean lap, so from FP1; `source: "openf1-gps"`, no corners/marshal sectors; replaced automatically once MultiViewer has the venue) → `fetch-georef.mjs --latest` (bacinger trace matched automatically by length + best fit; `BACINGER_OVERRIDES` only if it picks wrong) → `fetch-pit-lanes.mjs` (missing circuits only; `--all` to rebuild). It runs type-check + tests and opens a PR on `bot/update-circuits`. Locally the same scripts need `node --use-system-ca` behind TLS inspection (Node ≥ 23.8). Tests fail if a geometry file has no georef or a surface polygon self-intersects. `mapbox-gl` must only be imported from the lazy `TrackMap3D` chunk (type-only imports elsewhere are fine); production needs the `VITE_MAPBOX_TOKEN` repo variable/secret.
 14. **Coarse time must stay trailing-edge**: `useCoarseTime` delivers the last value after a throttled burst. A leading-edge-only throttle leaves every `tSlow`-driven panel (flags, badges) stuck after a paused seek (e.g. restoring `?t=`).

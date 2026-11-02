@@ -7,6 +7,7 @@ import {
   START_LIGHTS_SEQUENCE_MS,
 } from "@/constants";
 import {
+  activeLightsOut,
   isNewStartLight,
   startLightsState,
   startLightsWindow,
@@ -97,5 +98,29 @@ describe("startLightsWindow", () => {
       phase: "sequence",
       lit: 0,
     });
+  });
+});
+
+describe("activeLightsOut", () => {
+  const RESTART = 3_000_000;
+
+  it("shows the race start until its lights-out notice has gone", () => {
+    expect(activeLightsOut([LIGHTS_OUT, RESTART], 0)).toBe(LIGHTS_OUT);
+    expect(
+      activeLightsOut([LIGHTS_OUT, RESTART], LIGHTS_OUT + LIGHTS_OUT_NOTICE_MS - 1),
+    ).toBe(LIGHTS_OUT);
+  });
+
+  it("then moves on to the standing restart", () => {
+    expect(
+      activeLightsOut([LIGHTS_OUT, RESTART], LIGHTS_OUT + LIGHTS_OUT_NOTICE_MS),
+    ).toBe(RESTART);
+    expect(activeLightsOut([LIGHTS_OUT, RESTART], RESTART + 600_000)).toBe(
+      RESTART,
+    );
+  });
+
+  it("is null without any start", () => {
+    expect(activeLightsOut([], 1_000)).toBeNull();
   });
 });

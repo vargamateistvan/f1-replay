@@ -140,6 +140,26 @@ describe("PlaybackBar marker interactions", () => {
     );
   });
 
+  it("marks standing restarts and jumps to their start-light lead-in", () => {
+    render(
+      <PlaybackBar
+        durationMs={6_000_000}
+        raceStartMs={222_000}
+        restartMs={[3_000_000]}
+      />,
+    );
+
+    const marker = screen.getByRole("button", {
+      name: "Jump to standing restart: lights out at 50:00",
+    });
+    expect(marker).toHaveStyle({ left: "50%" });
+    fireEvent.click(marker);
+
+    expect(timelineState.setT).toHaveBeenCalledWith(
+      startLightsWindow(3_000_000).startMs,
+    );
+  });
+
   it("shows the time under the pointer when hovering the scrubber", () => {
     render(<PlaybackBar durationMs={6_000_000} raceStartMs={222_000} />);
     const scrubber = screen.getByRole("slider", { name: "Seek" })

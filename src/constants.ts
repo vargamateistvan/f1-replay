@@ -416,6 +416,13 @@ export const START_LIGHTS_SEQUENCE_MS =
 export const START_LIGHTS_LEAD_IN_MS = 700;
 // How long "Lights Out" stays up after the start.
 export const LIGHTS_OUT_NOTICE_MS = 3_500;
+// Standing restart after a red flag: race control only announces it, so lights
+// out is read from the leader's car data — the moment it pulls away after
+// standing still on the grid for at least STANDING_RESTART_MIN_STOP_MS.
+export const STANDING_RESTART_SEARCH_MS = 10 * 60_000;
+export const STANDING_RESTART_MIN_STOP_MS = 5_000;
+// At or below this speed (km/h) the car counts as stationary.
+export const STANDING_RESTART_STOPPED_KMH = 1;
 // Above this playback speed the beeps would run together, so they're skipped.
 export const START_LIGHTS_SOUND_MAX_SPEED = 4;
 // Beep played as each light comes on (lights out is silent). If the file is

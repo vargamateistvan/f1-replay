@@ -54,7 +54,7 @@ import {
   type BattleGap,
   type DirectorData,
 } from "@/timeline/director";
-import { startLightsWindow } from "@/timeline/startLights";
+import { activeLightsOut, startLightsWindow } from "@/timeline/startLights";
 import { useCoarseTime } from "@/hooks/useCoarseTime";
 import { useMediaQuery } from "@/hooks/useMediaQuery";
 import { useOpenF1LiveMqtt } from "@/hooks/useOpenF1LiveMqtt";
@@ -72,6 +72,7 @@ import { useNumberParam, useStringParam } from "@/hooks/useSearchParamState";
 import { useTimelineUrlSync } from "@/hooks/useTimelineUrlSync";
 import { useKeyboardShortcuts } from "@/hooks/useKeyboardShortcuts";
 import { useReplayWelcome } from "@/hooks/useReplayWelcome";
+import { useStandingRestarts } from "@/hooks/useStandingRestarts";
 import { useReplayStartup } from "@/hooks/useReplayStartup";
 import { replaceHistorySearchParams } from "@/utils/url";
 import {
@@ -868,6 +869,28 @@ export default function RaceWeekend() {
     }
     return min === Infinity ? null : min;
   }, [timedLaps]);
+  const restartLightsOutAbsMs = useStandingRestarts(
+    sessionKey,
+    raceControl.data,
+    positions.data,
+    { enabled: isRaceSession && secondaryEnabled && !accessDenied, isLive: live },
+  );
+  // Session-relative lights out of standing restarts after a red flag.
+  const restartLightsOutMs = useMemo(
+    () =>
+      sessionStartMs
+        ? restartLightsOutAbsMs.map((ms) => ms - sessionStartMs)
+        : [],
+    [restartLightsOutAbsMs, sessionStartMs],
+  );
+  const raceStartsMs = useMemo(() => {
+    if (!isRaceSession) return [];
+    const starts = [...restartLightsOutMs];
+    if (lightsOutMs !== null) starts.push(lightsOutMs);
+    return starts.sort((a, b) => a - b);
+  }, [isRaceSession, lightsOutMs, restartLightsOutMs]);
+  // The start whose lights the maps show (race start, then any restart).
+  const activeStartLightsOutMs = activeLightsOut(raceStartsMs, t);
   const pitMarks = useMemo(
     () => pitTimes(pits.data ?? [], sessionStartMs),
     [pits.data, sessionStartMs],
@@ -1545,14 +1568,10 @@ export default function RaceWeekend() {
 
   // The start-light sequence always plays at 1x, whatever the playback speed.
   useEffect(() => {
-    const { setRealTimeWindow } = useTimeline.getState();
-    setRealTimeWindow(
-      isRaceSession && lightsOutMs != null
-        ? startLightsWindow(lightsOutMs)
-        : null,
-    );
-    return () => setRealTimeWindow(null);
-  }, [isRaceSession, lightsOutMs]);
+    const { setRealTimeWindows } = useTimeline.getState();
+    setRealTimeWindows(raceStartsMs.map(startLightsWindow));
+    return () => setRealTimeWindows([]);
+  }, [raceStartsMs]);
 
   const toastEvents = useMemo(() => {
     if (!shouldBuildToastEvents || !sessionStartMs) return [];
@@ -2330,7 +2349,7 @@ export default function RaceWeekend() {
       safetyCarSirenOn={safetyCarSirenOn}
       retiredDrivers={retiredDrivers}
       raceLeader={isRaceSession && mapShowRaceLeader ? raceLeaderDriver : null}
-      lightsOutMs={isRaceSession ? lightsOutMs : null}
+      lightsOutMs={activeStartLightsOutMs}
       onSelectDriver={toggleFocus}
       onOpenSettings={
         isCompactViewport ? undefined : () => openSettingsTab("track")
@@ -2370,7 +2389,7 @@ export default function RaceWeekend() {
       weather={weatherAtT}
       activeTrackVehicles={activeTrackVehicles}
       raceLeader={isRaceSession && mapShowRaceLeader ? raceLeaderDriver : null}
-      lightsOutMs={isRaceSession ? lightsOutMs : null}
+      lightsOutMs={activeStartLightsOutMs}
       director={director}
       battleGaps={battleGaps}
       initialCameraMode={parseCameraMode(camParam)}
@@ -2412,7 +2431,7 @@ export default function RaceWeekend() {
       safetyCarSirenOn={safetyCarSirenOn}
       retiredDrivers={retiredDrivers}
       raceLeader={isRaceSession && mapShowRaceLeader ? raceLeaderDriver : null}
-      lightsOutMs={isRaceSession ? lightsOutMs : null}
+      lightsOutMs={activeStartLightsOutMs}
       onSelectDriver={toggleFocus}
       onOpenSettings={
         isCompactViewport ? undefined : () => openSettingsTab("track")
@@ -3340,6 +3359,7 @@ export default function RaceWeekend() {
         q2StartMs={qualiPhaseStartTimes.q2StartMs}
         q3StartMs={qualiPhaseStartTimes.q3StartMs}
         raceStartMs={isRaceSession ? lightsOutMs : null}
+        restartMs={isRaceSession ? restartLightsOutMs : undefined}
         chequeredMs={isRaceSession ? chequeredMs : null}
         onSeek={prefetchPlaybackWindows}
         showSpeedControls={showPlaybackSpeedControls}

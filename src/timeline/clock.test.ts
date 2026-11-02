@@ -28,7 +28,7 @@ beforeEach(() => {
   });
   vi.stubGlobal("cancelAnimationFrame", () => {});
   useTimeline.setState({ t: 0, playing: false, speed: 1 });
-  useTimeline.getState().setRealTimeWindow(null);
+  useTimeline.getState().setRealTimeWindows([]);
   startClock();
   runFrames(2);
 });
@@ -66,7 +66,7 @@ describe("real-time window", () => {
   const WINDOW = { startMs: 10_000, endMs: 16_000 };
 
   beforeEach(() => {
-    useTimeline.getState().setRealTimeWindow(WINDOW);
+    useTimeline.getState().setRealTimeWindows([WINDOW]);
   });
 
   it("drops to 1x on entering the window and restores the speed at its end", () => {
@@ -99,6 +99,18 @@ describe("real-time window", () => {
   it("does not slow down at 1x or when seeking into the window", () => {
     useTimeline.setState({ t: 12_000, playing: true, speed: 16 });
     runFrames(5);
+    expect(useTimeline.getState().speed).toBe(16);
+  });
+
+  it("also slows down for a later window, e.g. a standing restart", () => {
+    const RESTART = { startMs: 60_000, endMs: 66_000 };
+    useTimeline.getState().setRealTimeWindows([WINDOW, RESTART]);
+    useTimeline.setState({ t: 59_000, playing: true, speed: 16 });
+    runFrames(10);
+    expect(useTimeline.getState().speed).toBe(1);
+    expect(useTimeline.getState().t).toBeLessThan(RESTART.startMs + 10 * 16);
+
+    runFrames(Math.ceil((RESTART.endMs - RESTART.startMs) / 16) + 2);
     expect(useTimeline.getState().speed).toBe(16);
   });
 });

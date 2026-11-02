@@ -61,3 +61,17 @@ export function isNewStartLight(
     prev === null ? 0 : prev.phase === "sequence" ? prev.lit : null;
   return prevLit !== null && next.lit === prevLit + 1;
 }
+
+/**
+ * The lights-out time whose sequence is upcoming or still showing at `t`:
+ * the race start, then each standing restart once the previous start's
+ * "Lights Out" notice has gone. `starts` must be ascending.
+ */
+export function activeLightsOut(
+  starts: readonly number[],
+  t: number,
+): number | null {
+  return (
+    starts.find((ms) => t < ms + LIGHTS_OUT_NOTICE_MS) ?? starts.at(-1) ?? null
+  );
+}

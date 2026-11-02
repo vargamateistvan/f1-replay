@@ -60,6 +60,8 @@ interface Props {
   q3StartMs?: number | null;
   /** Session-relative lights-out time (races/sprints); shows a race-start marker. */
   raceStartMs?: number | null;
+  /** Session-relative lights out of standing restarts (after a red flag). */
+  restartMs?: readonly number[];
   /** Session-relative chequered-flag time (races/sprints); shows a finish marker. */
   chequeredMs?: number | null;
   /** Starts loading the target's session-aligned replay windows before seeking. */
@@ -68,6 +70,8 @@ interface Props {
   showSpeedControls?: boolean;
   showEventChips?: boolean;
 }
+
+const NO_RESTARTS: readonly number[] = [];
 
 function fmtTime(ms: number) {
   if (ms < 0) ms = 0;
@@ -197,6 +201,7 @@ export function PlaybackBar({
   q2StartMs = null,
   q3StartMs = null,
   raceStartMs = null,
+  restartMs = NO_RESTARTS,
   chequeredMs = null,
   onSeek,
   mobileInline = false,
@@ -346,7 +351,7 @@ export function PlaybackBar({
     const tooltip = markerTooltip(label, ms);
     return (
       <button
-        key={label}
+        key={`${label}-${ms}`}
         type="button"
         title={tooltip}
         aria-label={ariaLabel}
@@ -389,6 +394,7 @@ export function PlaybackBar({
   const hasMarkers =
     raceControlMarkers.length > 0 ||
     raceStartMs !== null ||
+    restartMs.length > 0 ||
     chequeredMs !== null ||
     qualiStarts.some(({ ms }) => ms !== null);
 
@@ -619,6 +625,15 @@ export function PlaybackBar({
                 // Land at the "get ready" lead-in so the light sequence plays.
                 targetMs: startLightsWindow(raceStartMs).startMs,
               })}
+            {restartMs.map((ms) =>
+              renderLandmark({
+                ms,
+                label: "Standing restart",
+                ariaLabel: `Jump to standing restart: lights out at ${fmtTime(ms)}`,
+                swatchClassName: "bg-green",
+                targetMs: startLightsWindow(ms).startMs,
+              }),
+            )}
             {chequeredMs !== null &&
               renderLandmark({
                 ms: chequeredMs,
