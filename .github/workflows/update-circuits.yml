@@ -10,11 +10,9 @@ name: Update Circuit Data
 #   4. fetch-pit-lanes     — pit-lane paths for circuits that don't have one
 #
 # Runs every Monday 06:00 UTC (the morning after a race weekend) and on demand.
-# Changes land as a pull request; checks run here because PRs opened with the
-# workflow token don't trigger other workflows. Merging the PR deploys.
-#
-# Needs: Settings → Actions → General → "Allow GitHub Actions to create and
-# approve pull requests".
+# Changes are committed straight to main (data only, after type-check and
+# tests), then the deploy workflow is dispatched: pushes made with the
+# workflow token don't trigger other workflows on their own.
 on:
   schedule:
     - cron: "0 6 * * 1"
@@ -22,14 +20,13 @@ on:
 
 permissions:
   contents: write
-  pull-requests: write
+  actions: write
 
 concurrency:
   group: update-circuits
   cancel-in-progress: false
 
 env:
-  BRANCH: bot/update-circuits
   DATA_PATHS: src/data/circuit-geometry/ src/data/circuit-georef.json src/data/pit-lanes.json
 
 jobs:
@@ -80,44 +77,39 @@ jobs:
         if: steps.diff.outputs.changed == 'true'
         run: yarn test
 
-      - name: Open or update pull request
+      - name: Commit and deploy
         if: steps.diff.outputs.changed == 'true'
         env:
           GH_TOKEN: ${{ github.token }}
+          # Skip the Husky pre-commit hook (lint + full test + build): checks
+          # ran above, and its build rewrites public/sitemap.xml (lastmod =
+          # today), leaving the tree dirty so `git pull --rebase` fails.
+          HUSKY: "0"
         run: |
           git config user.name  "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
 
-          ADDED=$(git diff --name-only --diff-filter=A -- src/data/circuit-geometry/ | sed 's|.*/||;s|\.json||' | tr '\n' ' ')
-          MODIFIED=$(git diff --name-only --diff-filter=M -- src/data/circuit-geometry/ | sed 's|.*/||;s|\.json||' | tr '\n' ' ')
-
-          git checkout -B "$BRANCH"
           git add $DATA_PATHS
-          git commit -m "chore(circuits): update baked circuit data"
-          git push --force origin "$BRANCH"
+          ADDED=$(git diff --cached --name-only --diff-filter=A -- src/data/circuit-geometry/ | sed 's|.*/||;s|\.json||' | tr '\n' ' ')
+          MODIFIED=$(git diff --cached --name-only --diff-filter=M -- src/data/circuit-geometry/ | sed 's|.*/||;s|\.json||' | tr '\n' ' ')
 
           {
-            echo "Automated weekly refresh of the baked circuit data."
-            echo
             echo "- **New geometry**: ${ADDED:-none}"
             echo "- **Updated geometry**: ${MODIFIED:-none}"
             echo "- Georeference / pit lanes: see the diff"
-            echo
-            echo "Type-check and tests passed in the update job."
-          } > /tmp/pr-body.md
+          } > /tmp/changes.md
 
-          if gh pr view "$BRANCH" --json state -q .state 2>/dev/null | grep -q OPEN; then
-            gh pr edit "$BRANCH" --body-file /tmp/pr-body.md
-          else
-            gh pr create --base main --head "$BRANCH" \
-              --title "chore(circuits): update baked circuit data" \
-              --body-file /tmp/pr-body.md
-          fi
+          git commit -m "chore(circuits): update baked circuit data" -m "$(cat /tmp/changes.md)"
+          git pull --rebase origin main
+          git push origin HEAD:main
+          gh workflow run deploy.yml --ref main
 
           {
             echo "## 🏁 Circuit data updated"
             echo
-            cat /tmp/pr-body.md
+            cat /tmp/changes.md
+            echo
+            echo "$(git show --stat --format= HEAD | tail -1). Type-check and tests passed; deploy dispatched."
           } >> "$GITHUB_STEP_SUMMARY"
 
       - name: No changes summary
