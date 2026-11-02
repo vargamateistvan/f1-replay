@@ -2919,8 +2919,11 @@ export default function RaceWeekend() {
                 {activeTrackerTab === "chart" && (
                   <div
                     data-motion-card
-                    className="h-[52vh] min-h-[280px] bg-sunken"
+                    className={`${PANEL} flex h-[60vh] min-h-[340px] flex-col overflow-hidden border-0`}
                   >
+                    <div className={`${PANEL_TITLE} shrink-0`}>
+                      Lap Chart
+                    </div>
                     <Suspense fallback={<PanelFallback />}>
                       <LapChart
                         drivers={drivers.data ?? []}
@@ -2929,6 +2932,8 @@ export default function RaceWeekend() {
                         sessionStartMs={sessionStartMs}
                         sessionTimeMs={t}
                         currentLap={currentLap}
+                        focusDriver={focusDriver}
+                        onSelectDriver={toggleFocus}
                       />
                     </Suspense>
                   </div>
@@ -2937,8 +2942,11 @@ export default function RaceWeekend() {
                 {activeTrackerTab === "gap" && (
                   <div
                     data-motion-card
-                    className="h-[52vh] min-h-[280px] bg-sunken"
+                    className={`${PANEL} flex h-[60vh] min-h-[340px] flex-col overflow-hidden border-0`}
                   >
+                    <div className={`${PANEL_TITLE} shrink-0`}>
+                      Gap to Leader
+                    </div>
                     <Suspense fallback={<PanelFallback />}>
                       <GapChart
                         drivers={drivers.data ?? []}
@@ -2948,6 +2956,8 @@ export default function RaceWeekend() {
                         sessionStartMs={sessionStartMs}
                         sessionTimeMs={t}
                         retiredDrivers={retiredDrivers}
+                        focusDriver={focusDriver}
+                        onSelectDriver={toggleFocus}
                       />
                     </Suspense>
                   </div>
@@ -3053,29 +3063,51 @@ export default function RaceWeekend() {
                     </div>
                   )}
                   {activeTrackerTab === "chart" && (
-                    <Suspense fallback={<PanelFallback />}>
-                      <LapChart
-                        drivers={drivers.data ?? []}
-                        positions={positions.data ?? []}
-                        lapStarts={lapMarks}
-                        sessionStartMs={sessionStartMs}
-                        sessionTimeMs={t}
-                        currentLap={currentLap}
-                      />
-                    </Suspense>
+                    <div
+                      className={`${PANEL} flex-1 flex flex-col overflow-hidden border-0`}
+                    >
+                      <div className={`${PANEL_TITLE} shrink-0`}>
+                        Lap Chart
+                      </div>
+                      <div className="min-h-0 flex-1 flex flex-col">
+                        <Suspense fallback={<PanelFallback />}>
+                          <LapChart
+                            drivers={drivers.data ?? []}
+                            positions={positions.data ?? []}
+                            lapStarts={lapMarks}
+                            sessionStartMs={sessionStartMs}
+                            sessionTimeMs={t}
+                            currentLap={currentLap}
+                            focusDriver={focusDriver}
+                            onSelectDriver={toggleFocus}
+                          />
+                        </Suspense>
+                      </div>
+                    </div>
                   )}
                   {activeTrackerTab === "gap" && (
-                    <Suspense fallback={<PanelFallback />}>
-                      <GapChart
-                        drivers={drivers.data ?? []}
-                        intervals={intervals.data ?? []}
-                        lapStarts={lapMarks}
-                        currentLap={currentLap}
-                        sessionStartMs={sessionStartMs}
-                        sessionTimeMs={t}
-                        retiredDrivers={retiredDrivers}
-                      />
-                    </Suspense>
+                    <div
+                      className={`${PANEL} flex-1 flex flex-col overflow-hidden border-0`}
+                    >
+                      <div className={`${PANEL_TITLE} shrink-0`}>
+                        Gap to Leader
+                      </div>
+                      <div className="min-h-0 flex-1 flex flex-col">
+                        <Suspense fallback={<PanelFallback />}>
+                          <GapChart
+                            drivers={drivers.data ?? []}
+                            intervals={intervals.data ?? []}
+                            lapStarts={lapMarks}
+                            currentLap={currentLap}
+                            sessionStartMs={sessionStartMs}
+                            sessionTimeMs={t}
+                            retiredDrivers={retiredDrivers}
+                            focusDriver={focusDriver}
+                            onSelectDriver={toggleFocus}
+                          />
+                        </Suspense>
+                      </div>
+                    </div>
                   )}
                 </div>
 

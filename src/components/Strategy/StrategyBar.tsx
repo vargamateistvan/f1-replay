@@ -7,6 +7,7 @@ import {
 } from "@/constants";
 import { FOCUS_RING } from "@/components/Button/buttonClass";
 import { CompoundRing } from "@/components/LiveTiming/TyreBadge";
+import { LapRangeToggle } from "@/components/RaceChart/LapRangeToggle";
 import { useSettings } from "@/stores/settings";
 import { teamColor } from "@/utils/color";
 import { formatPitDuration, pitStopTime } from "@/utils/pit";
@@ -182,23 +183,11 @@ export function StrategyBar({
               Pit
             </span>
           </div>
-          <button
-            type="button"
-            onClick={() => setShowAllLaps((v) => !v)}
-            aria-pressed={showAllLaps}
-            className={`h-5 shrink-0 border px-2 text-tiny font-black uppercase tracking-widest transition-colors ${FOCUS_RING} ${
-              showAllLaps
-                ? "border-f1red bg-f1red text-white"
-                : "border-panel bg-track text-muted hover:text-fg"
-            }`}
-            title={
-              showAllLaps
-                ? "Showing every lap; laps still to come are dimmed"
-                : "Showing laps run so far"
-            }
-          >
-            {showAllLaps ? "All" : "Elapsed"}
-          </button>
+          <LapRangeToggle
+            showAll={showAllLaps}
+            onToggle={() => setShowAllLaps((v) => !v)}
+            allTitle="Showing every lap; laps still to come are dimmed"
+          />
         </div>
 
         {/* Column header + lap axis */}

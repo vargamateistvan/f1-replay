@@ -8,13 +8,25 @@ import {
   Tooltip,
   ResponsiveContainer,
   ReferenceLine,
+  ReferenceArea,
 } from "recharts";
 import type { Driver, Interval } from "@/api/types";
 import { teamColor } from "@/utils/color";
 import { TOKEN_HEX } from "@/designTokens";
-
-// Cap the Y axis so lapped cars don't collapse the interesting battle zone.
-const MAX_GAP_SEC = 120;
+import {
+  GAP_CHART_AXIS_STEPS_SEC,
+  GAP_CHART_MAX_TICKS,
+  GAP_CHART_MAX_SEC,
+  GAP_CHART_TOP_N,
+  RACE_CHART_MARGIN,
+  RACE_CHART_NOW_Z,
+  RACE_CHART_VEIL_Z,
+  RACE_CHART_X_AXIS_HEIGHT,
+} from "@/constants";
+import { FOCUS_RING } from "@/components/Button/buttonClass";
+import { ChartTooltipCard } from "@/components/RaceChart/ChartTooltipCard";
+import { DriverEndLabels, type EndLabel } from "@/components/RaceChart/DriverEndLabels";
+import { LapRangeToggle } from "@/components/RaceChart/LapRangeToggle";
 
 interface Props {
   readonly drivers: Driver[];
@@ -24,6 +36,10 @@ interface Props {
   readonly lapStarts?: number[];
   readonly currentLap?: number;
   readonly retiredDrivers?: ReadonlySet<number>;
+  /** Highlighted line (the app's focused driver). */
+  readonly focusDriver?: number | null;
+  /** End-label click. */
+  readonly onSelectDriver?: (driverNumber: number) => void;
 }
 
 // Gap-to-leader over session time. Each line is one driver; Y=0 is the leader,
@@ -37,6 +53,8 @@ export function GapChart({
   lapStarts = [],
   currentLap = 0,
   retiredDrivers,
+  focusDriver = null,
+  onSelectDriver,
 }: Props) {
   const activeDrivers = useMemo(
     () =>
@@ -46,9 +64,11 @@ export function GapChart({
     [drivers, retiredDrivers],
   );
   const [showAllLaps, setShowAllLaps] = useState(false);
+  const [topOnly, setTopOnly] = useState(false);
+  const [hovered, setHovered] = useState<number | null>(null);
 
   // Per-driver sorted arrays of {ms, gap}. Strings like "1 LAP" are excluded;
-  // gaps are capped at MAX_GAP_SEC so lapped cars don't distort the Y axis.
+  // gaps are capped at GAP_CHART_MAX_SEC so lapped cars don't distort the Y axis.
   const byDriver = useMemo(() => {
     const m = new Map<number, Array<{ ms: number; gap: number }>>();
     for (const iv of intervals) {
@@ -61,7 +81,7 @@ export function GapChart({
         arr = [];
         m.set(iv.driver_number, arr);
       }
-      arr.push({ ms, gap: Math.min(iv.gap_to_leader, MAX_GAP_SEC) });
+      arr.push({ ms, gap: Math.min(iv.gap_to_leader, GAP_CHART_MAX_SEC) });
     }
     for (const arr of m.values()) arr.sort((a, b) => a.ms - b.ms);
     return m;
@@ -121,79 +141,175 @@ export function GapChart({
   const useLapAxis = lapRows.length > 0;
   const rows = useLapAxis ? lapRows : timeRows;
 
+  const driverByNumber = useMemo(
+    () => new Map(drivers.map((d) => [d.driver_number, d])),
+    [drivers],
+  );
+
+  // Order at the last plotted point; "Top N" keeps the front of it.
+  const endLabels = useMemo((): EndLabel[] => {
+    const last = rows.at(-1);
+    if (!last) return [];
+    const labels = activeDrivers
+      .filter((d) => typeof last[String(d.driver_number)] === "number")
+      .map((d) => ({ driverNumber: d.driver_number, value: last[String(d.driver_number)]! }))
+      .sort((a, b) => a.value - b.value);
+    return topOnly ? labels.slice(0, GAP_CHART_TOP_N) : labels;
+  }, [rows, activeDrivers, topOnly]);
+
+  const shownDrivers = useMemo(() => {
+    if (!topOnly) return activeDrivers;
+    const keep = new Set(endLabels.map((l) => l.driverNumber));
+    return activeDrivers.filter((d) => keep.has(d.driver_number));
+  }, [activeDrivers, endLabels, topOnly]);
+
+  // Y axis fits the plotted gaps: the smallest step giving at most
+  // GAP_CHART_MAX_TICKS intervals, rounded up to it, capped.
+  const yAxis = useMemo(() => {
+    let max = 0;
+    for (const row of rows)
+      for (const d of shownDrivers) {
+        const v = row[String(d.driver_number)];
+        if (v !== undefined && v > max) max = v;
+      }
+    max = Math.min(Math.max(max, 1), GAP_CHART_MAX_SEC);
+    const step =
+      GAP_CHART_AXIS_STEPS_SEC.find((s) => max / s <= GAP_CHART_MAX_TICKS) ??
+      GAP_CHART_AXIS_STEPS_SEC[GAP_CHART_AXIS_STEPS_SEC.length - 1];
+    const top = Math.min(GAP_CHART_MAX_SEC, Math.ceil(max / step) * step);
+    const ticks: number[] = [];
+    for (let v = 0; v <= top; v += step) ticks.push(v);
+    return { max: top, ticks };
+  }, [rows, shownDrivers]);
+  const yMax = yAxis.max;
+
   if (rows.length === 0) {
     return (
-      <div className="flex items-center justify-center h-full text-muted text-sm">
+      <div className="flex min-h-[160px] flex-1 items-center justify-center px-4 text-center text-muted text-sm">
         No gap data available yet
       </div>
     );
   }
 
-  return (
-    <div className="relative h-full w-full">
-      {lapStarts.length > 0 && (
-        <div className="absolute right-2 top-2 z-20">
-          <button
-            type="button"
-            onClick={() => setShowAllLaps((v) => !v)}
-            className={`h-5 px-2 text-tiny font-black uppercase tracking-widest border transition-colors ${
-              showAllLaps
-                ? "border-f1red bg-f1red text-white"
-                : "border-panel bg-track text-muted hover:text-fg"
-            }`}
-            title={showAllLaps ? "Showing all laps" : "Showing elapsed laps"}
-          >
-            {showAllLaps ? "All" : "Elapsed"}
-          </button>
-        </div>
-      )}
+  const highlight = hovered ?? focusDriver;
+  const lineOrder = [...shownDrivers].sort(
+    (a, b) => Number(a.driver_number === highlight) - Number(b.driver_number === highlight),
+  );
 
-      <ResponsiveContainer width="100%" height="100%">
-        <LineChart
-          data={rows}
-          margin={{ top: 8, right: 12, left: 0, bottom: 4 }}
+  return (
+    <div className="flex min-h-0 flex-1 flex-col">
+      <div className="flex shrink-0 items-center gap-2 border-b border-panel bg-track px-2 py-1.5 sm:px-3">
+        <span className="min-w-0 flex-1 truncate text-caption text-muted">
+          Gap to leader
+          <span className="hidden sm:inline"> · pick a name to focus</span>
+        </span>
+        <button
+          type="button"
+          onClick={() => setTopOnly((v) => !v)}
+          aria-pressed={topOnly}
+          className={`h-5 shrink-0 border px-2 text-tiny font-black uppercase tracking-widest transition-colors ${FOCUS_RING} ${
+            topOnly
+              ? "border-f1red bg-f1red text-white"
+              : "border-panel bg-track text-muted hover:text-fg"
+          }`}
+          title={topOnly ? `Showing the top ${GAP_CHART_TOP_N}` : "Showing every car"}
         >
-          <CartesianGrid stroke="rgb(var(--color-panel))" />
-          <XAxis
-            dataKey={useLapAxis ? "lap" : "ms"}
-            type="number"
-            domain={["dataMin", "dataMax"]}
-            tickFormatter={useLapAxis ? (v: number) => `L${v}` : msToMin}
-            tick={{ fill: TOKEN_HEX.faint, fontSize: 10 }}
-            axisLine={{ stroke: "rgb(var(--color-panel))" }}
-            tickLine={false}
-          />
-          <YAxis
-            domain={[0, MAX_GAP_SEC]}
-            width={32}
-            tick={{ fill: TOKEN_HEX.faint, fontSize: 10 }}
-            axisLine={false}
-            tickLine={false}
-            tickFormatter={(v: number) => `${v}s`}
-          />
-          <Tooltip
-            content={<GapTooltip axisMode={useLapAxis ? "lap" : "time"} />}
-          />
-          <ReferenceLine
-            x={useLapAxis ? currentLap : sessionTimeMs}
-            stroke={TOKEN_HEX.f1red}
-            strokeWidth={1}
-          />
-          {activeDrivers.map((d) => (
-            <Line
-              key={d.driver_number}
-              type="monotone"
-              dataKey={String(d.driver_number)}
-              name={d.name_acronym}
-              stroke={teamColor(d.team_colour)}
-              strokeWidth={1.5}
-              dot={false}
-              isAnimationActive={false}
-              connectNulls
-            />
-          ))}
-        </LineChart>
-      </ResponsiveContainer>
+          Top {GAP_CHART_TOP_N}
+        </button>
+        {lapStarts.length > 0 && (
+          <LapRangeToggle showAll={showAllLaps} onToggle={() => setShowAllLaps((v) => !v)} />
+        )}
+      </div>
+
+      <div className="relative min-h-[240px] flex-1 bg-sunken">
+        <div className="absolute inset-0">
+          <ResponsiveContainer width="100%" height="100%">
+            <LineChart data={rows} margin={RACE_CHART_MARGIN}>
+              <CartesianGrid stroke="rgb(var(--color-panel))" vertical={false} />
+              <XAxis
+                dataKey={useLapAxis ? "lap" : "ms"}
+                type="number"
+                domain={["dataMin", "dataMax"]}
+                height={RACE_CHART_X_AXIS_HEIGHT}
+                tickFormatter={useLapAxis ? undefined : msToMin}
+                allowDecimals={false}
+                tick={{ fill: TOKEN_HEX.faint, fontSize: 10 }}
+                axisLine={{ stroke: "rgb(var(--color-panel))" }}
+                tickLine={false}
+              />
+              <YAxis
+                reversed
+                domain={[0, yMax]}
+                ticks={yAxis.ticks}
+                allowDataOverflow
+                width={34}
+                tick={{ fill: TOKEN_HEX.faint, fontSize: 10 }}
+                axisLine={false}
+                tickLine={false}
+                tickFormatter={(v: number) => (v === 0 ? "LEAD" : `+${v}s`)}
+              />
+              <Tooltip
+                cursor={{ stroke: "rgb(var(--color-line))" }}
+                content={
+                  <GapTooltip
+                    axisMode={useLapAxis ? "lap" : "time"}
+                    driverByNumber={driverByNumber}
+                    highlight={highlight}
+                  />
+                }
+              />
+              {lineOrder.map((d) => {
+                const isHighlight = d.driver_number === highlight;
+                return (
+                  <Line
+                    key={d.driver_number}
+                    type="monotone"
+                    dataKey={String(d.driver_number)}
+                    name={d.name_acronym}
+                    stroke={teamColor(d.team_colour)}
+                    strokeWidth={isHighlight ? 3 : 1.5}
+                    strokeOpacity={highlight === null || isHighlight ? 1 : 0.25}
+                    dot={false}
+                    activeDot={isHighlight ? { r: 3 } : false}
+                    isAnimationActive={false}
+                    connectNulls
+                  />
+                );
+              })}
+              {/* Laps still to come (All mode) are veiled. */}
+              {useLapAxis && showAllLaps && currentLap > 0 && currentLap < lapStarts.length && (
+                <ReferenceArea
+                  x1={currentLap}
+                  x2={lapStarts.length}
+                  fill="rgb(var(--color-sunken))"
+                  fillOpacity={0.7}
+                  strokeOpacity={0}
+                  ifOverflow="hidden"
+                  zIndex={RACE_CHART_VEIL_Z}
+                />
+              )}
+              <ReferenceLine
+                x={useLapAxis ? currentLap : sessionTimeMs}
+                stroke={TOKEN_HEX.f1red}
+                strokeWidth={2}
+                zIndex={RACE_CHART_NOW_Z}
+              />
+            </LineChart>
+          </ResponsiveContainer>
+        </div>
+        <DriverEndLabels
+          className="absolute inset-y-0 right-0"
+          labels={endLabels}
+          drivers={drivers}
+          domain={[0, yMax]}
+          plotTop={RACE_CHART_MARGIN.top}
+          plotBottom={RACE_CHART_MARGIN.bottom + RACE_CHART_X_AXIS_HEIGHT}
+          highlight={highlight}
+          onHover={setHovered}
+          onSelect={onSelectDriver}
+          widthPx={RACE_CHART_MARGIN.right}
+        />
+      </div>
     </div>
   );
 }
@@ -219,17 +335,13 @@ function msToMin(ms: number): string {
   return s === 0 ? `${m}'` : `${m}'${s.toString().padStart(2, "0")}`;
 }
 
-interface TooltipPayload {
-  name: string;
-  value: number;
-  stroke: string;
-}
-
 interface GapTooltipProps {
   active?: boolean;
   label?: number;
-  payload?: TooltipPayload[];
+  payload?: Array<{ dataKey?: string | number; value?: number }>;
   axisMode?: "time" | "lap";
+  driverByNumber: ReadonlyMap<number, Driver>;
+  highlight: number | null;
 }
 
 function GapTooltip({
@@ -237,22 +349,28 @@ function GapTooltip({
   label,
   payload,
   axisMode = "time",
+  driverByNumber,
+  highlight,
 }: GapTooltipProps) {
   if (!active || !payload?.length || label == null) return null;
-  const sorted = [...payload].sort((a, b) => a.value - b.value);
+  const rows = payload
+    .filter((p): p is { dataKey: string | number; value: number } => typeof p.value === "number")
+    .sort((a, b) => a.value - b.value)
+    .map((p) => {
+      const num = Number(p.dataKey);
+      const driver = driverByNumber.get(num);
+      return {
+        key: String(num),
+        label: driver?.name_acronym ?? String(num),
+        color: teamColor(driver?.team_colour),
+        value: p.value === 0 ? "Leader" : `+${p.value.toFixed(3)}`,
+        emphasis: num === highlight,
+      };
+    });
   return (
-    <div className="bg-surface border border-panel px-2 py-1.5 text-caption">
-      <div className="text-muted mb-1 font-bold uppercase tracking-widest">
-        {axisMode === "lap" ? `Lap ${label}` : msToMin(label)}
-      </div>
-      {sorted.map((p) => (
-        <div key={p.name} className="flex gap-2 items-center">
-          <span style={{ color: p.stroke }} className="font-bold w-8">
-            {p.name}
-          </span>
-          <span className="text-fg">+{p.value.toFixed(3)}s</span>
-        </div>
-      ))}
-    </div>
+    <ChartTooltipCard
+      title={axisMode === "lap" ? `Lap ${label}` : msToMin(label)}
+      rows={rows}
+    />
   );
 }

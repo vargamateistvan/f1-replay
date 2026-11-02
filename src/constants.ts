@@ -397,6 +397,24 @@ export const COMPOUND_LETTERS = {
   UNKNOWN: "?",
 } as const;
 
+// ── Tracker lap / gap charts ────────────────────────────────────────────────--
+// Chart margins (px); the right margin is the gutter for the driver end labels.
+export const RACE_CHART_MARGIN = { top: 10, right: 44, bottom: 4, left: 0 } as const;
+export const RACE_CHART_X_AXIS_HEIGHT = 20;
+// Closest two driver end labels may sit (px) before they are spread apart.
+export const CHART_END_LABEL_GAP_PX = 11;
+// Recharts 3 layers by zIndex (lines 400, axes 500): the All-mode veil over
+// future laps sits above the lines, the current-lap line above the veil.
+export const RACE_CHART_VEIL_Z = 450;
+export const RACE_CHART_NOW_Z = 460;
+// Gap chart: Y axis cap (s) so lapped cars don't flatten the battle zone, the
+// tick steps it picks from (each divides the cap), how many ticks it aims for,
+// and how many cars the "Top N" filter keeps.
+export const GAP_CHART_MAX_SEC = 120;
+export const GAP_CHART_AXIS_STEPS_SEC = [1, 2, 5, 10, 15, 30] as const;
+export const GAP_CHART_MAX_TICKS = 6;
+export const GAP_CHART_TOP_N = 10;
+
 // ── Championship points ─────────────────────────────────────────────────────--
 export const RACE_POINTS = [25, 18, 15, 12, 10, 8, 6, 4, 2, 1] as const;
 export const SPRINT_POINTS = [8, 7, 6, 5, 4, 3, 2, 1] as const;

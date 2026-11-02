@@ -26,6 +26,7 @@
 | Start lights / standing restarts                  | `timeline/startLights.ts` (`activeLightsOut`), `utils/standingRestart.ts`, `hooks/useStandingRestarts.ts`; 1x windows in `timeline/clock.ts` |
 | Side-panel feeds (RC, radio, pits, passes…)       | `components/CommentaryPanels/` (tabs: `rc` `radio` `pits` `passes` `moments` `chapters` `weather`) |
 | Live sessions                                     | `utils/live.ts`, polling in `hooks/useSession.ts`, MQTT push in `hooks/useOpenF1LiveMqtt.ts` |
+| Laps / Gap charts (tracker tabs `chart` / `gap`)  | `components/LapChart`, `components/GapChart`, shared `components/RaceChart`                  |
 | Tyre degradation / race pace                      | `utils/racePace.ts` (clean laps, per-stint fit), `components/TyreDeg` (tracker tab `deg`)    |
 | Undercut / overcut                                | `utils/undercut.ts` (`detectPitBattles`), shown in `PitFeed` rows + `undercut` toast         |
 | Season schedule / calendar                        | `pages/Schedule.tsx` (`/schedule`), `utils/schedule.ts` (`buildSeasonSchedule`), `useSeasonSessions` in `hooks/useSession.ts`; per-card track outline + facts in `components/CircuitSummary` (`utils/circuitInfo.ts`); completed sessions' Result button opens `FinalClassificationDialog` |
@@ -169,6 +170,7 @@ src/
     finish.ts           — findLeaderFinishMs(), deriveFinishedDrivers(): who has taken the chequered flag (timed sessions: first crossing after the flag)
     lapDeletions.ts     — parseLapDeletions() / deletedLapKeys(): race-control lap-time deletions (track limits) and reinstatements, matched on driver + lap time (the message's LAP number is one ahead of OpenF1's)
     weather.ts          — weatherAtSessionTime()
+    chartLabels.ts      — spreadLabels(): non-overlapping 1D label placement (chart end labels)
     standingRestart.ts  — standingRestartSearches() (red flag → "STANDING START" → search window), leaderAt(), detectLightsOut() (leader's last stationary grid sample)
     highlights.ts       — parseHighlightTitle(), matchHighlightSession(): F1 YouTube highlight titles → OpenF1 session_key (type-only imports; used by scripts/fetch-highlights.mjs)
     url.ts              — toSafeExternalUrl(), replaceHistorySearchParams(), HOME_PATH, replayPath() / roundReplayPath()
@@ -270,9 +272,10 @@ components/ (render to DOM; read settings from Zustand)
 | `TeamRadio`                                       | Audio player for team radio clips                                                        |
 | `RadioAudio`                                      | Shared radio `<audio>`: plays `public/sounds/radio-intro.mp3` chime, then the clip       |
 | `TelemetryChart`                                  | uPlot-based telemetry overlay (speed/throttle/brake/RPM/gear)                            |
-| `GapChart`                                        | Recharts gap-to-leader chart                                                             |
+| `GapChart`                                        | Tracker tab `gap`: gap to leader per lap (time axis fallback), leader at the top; Y axis fits the plotted gaps (`GAP_CHART_*`, capped), "Top 10" filter, Elapsed/All (future laps veiled), focused/hovered line emphasised, `RaceChart` end labels + tooltip |
 | `CornerAnalysis`                                  | Telemetry page: per-corner speeds/brake/throttle + time gained/lost per lap segment      |
-| `LapChart`                                        | Lap time evolution chart                                                                 |
+| `LapChart`                                        | Tracker tab `chart`: position-by-lap chart, Elapsed/All (future laps veiled), focused/hovered line emphasised, `RaceChart` end labels (running order) + tooltip |
+| `RaceChart`                                       | Shared parts of the tracker's lap/gap/strategy charts: `LapRangeToggle` (Elapsed/All), `DriverEndLabels` (team-coloured acronyms at the right edge, spread with `spreadLabels`; hover highlights, click focuses), `ChartTooltipCard`. Chart geometry in `RACE_CHART_*` (`constants.ts`); Recharts 3 layers by `zIndex`, not JSX order |
 | `Strategy`                                        | Tyre strategy chart (tracker tab `strategy`): rows in position order at the playhead (`positionByDriver`, any session type), current tyre age + `CompoundRing`, stint segments (letter + laps), pit ticks at the end of the in-lap (untimed lap-1 pre-race exits skipped), Elapsed/All (future laps dimmed); rows focus a driver (`focusDriver` / `onSelectDriver`) |
 | `TyreDeg`                                         | Tracker tab `deg`: per-compound field summary (`compoundPaceSummary`, noisy fits excluded), lap time vs tyre age scatter + fitted line per stint (dash style per selected driver), table grouped by driver in race order with deg bars; optional fuel correction (off by default) |
 | `FinalClassification`                             | Session classification (podium + table; Q1–Q3 for qualifying, points for races). Optional `year` / `sessionKey` enable driver and constructor profile links in the podium and table (team below driver on mobile). `FinalClassificationDialog` uses `DialogHeader` and takes `meta` / `subtitle` / `status` (loading · error · ready) / `footer`; opened by `RaceWeekend` at the session end and by the Schedule page's Result buttons |

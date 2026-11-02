@@ -143,6 +143,7 @@ vi.mock("recharts", () => {
     CartesianGrid: Box,
     Tooltip: Box,
     ReferenceLine: Box,
+    ReferenceArea: Box,
     BarChart: Box,
     Bar: Box,
     Legend: Box,
