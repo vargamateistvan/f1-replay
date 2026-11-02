@@ -413,6 +413,9 @@ export const RACE_CHART_NOW_Z = 460;
 export const GAP_CHART_MAX_SEC = 120;
 export const GAP_CHART_AXIS_STEPS_SEC = [1, 2, 5, 10, 15, 30] as const;
 export const GAP_CHART_MAX_TICKS = 6;
+// Time-axis fallback (no lap starts): interval rows are bucketed to this so
+// every driver shares the same x values.
+export const GAP_CHART_TIME_BUCKET_MS = 5_000;
 export const GAP_CHART_TOP_N = 10;
 
 // ── Championship points ─────────────────────────────────────────────────────--

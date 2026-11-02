@@ -17,6 +17,7 @@ import {
   GAP_CHART_AXIS_STEPS_SEC,
   GAP_CHART_MAX_TICKS,
   GAP_CHART_MAX_SEC,
+  GAP_CHART_TIME_BUCKET_MS,
   GAP_CHART_TOP_N,
   RACE_CHART_MARGIN,
   RACE_CHART_NOW_Z,
@@ -56,13 +57,6 @@ export function GapChart({
   focusDriver = null,
   onSelectDriver,
 }: Props) {
-  const activeDrivers = useMemo(
-    () =>
-      drivers.filter(
-        (driver) => !retiredDrivers?.has(driver.driver_number),
-      ),
-    [drivers, retiredDrivers],
-  );
   const [showAllLaps, setShowAllLaps] = useState(false);
   const [topOnly, setTopOnly] = useState(false);
   const [hovered, setHovered] = useState<number | null>(null);
@@ -72,7 +66,6 @@ export function GapChart({
   const byDriver = useMemo(() => {
     const m = new Map<number, Array<{ ms: number; gap: number }>>();
     for (const iv of intervals) {
-      if (retiredDrivers?.has(iv.driver_number)) continue;
       if (typeof iv.gap_to_leader !== "number") continue;
       const ms = new Date(iv.date).getTime() - sessionStartMs;
       if (ms < 0) continue;
@@ -85,21 +78,32 @@ export function GapChart({
     }
     for (const arr of m.values()) arr.sort((a, b) => a.ms - b.ms);
     return m;
-  }, [intervals, retiredDrivers, sessionStartMs]);
+  }, [intervals, sessionStartMs]);
+
+  // A retired car's line ends at its last sample instead of carrying its final
+  // gap on to the flag.
+  const gapAt = useMemo(() => {
+    return (driverNumber: number, arr: Array<{ ms: number; gap: number }>, ms: number) => {
+      if (retiredDrivers?.has(driverNumber)) {
+        const last = arr[arr.length - 1];
+        if (!last || ms > last.ms + GAP_CHART_TIME_BUCKET_MS) return null;
+      }
+      return stepGap(arr, ms);
+    };
+  }, [retiredDrivers]);
 
   // Shared time axis: bucket all interval timestamps to the nearest 5 s so
   // different drivers' rows align on the same x values.
   const timeBuckets = useMemo(() => {
     const seen = new Set<number>();
     for (const iv of intervals) {
-      if (retiredDrivers?.has(iv.driver_number)) continue;
       const ms =
-        Math.round((new Date(iv.date).getTime() - sessionStartMs) / 5_000) *
-        5_000;
+        Math.round((new Date(iv.date).getTime() - sessionStartMs) / GAP_CHART_TIME_BUCKET_MS) *
+        GAP_CHART_TIME_BUCKET_MS;
       if (ms >= 0) seen.add(ms);
     }
     return Array.from(seen).sort((a, b) => a - b);
-  }, [intervals, retiredDrivers, sessionStartMs]);
+  }, [intervals, sessionStartMs]);
 
   // Build one chart row per time bucket up to the current playhead (fallback mode).
   const timeRows = useMemo(() => {
@@ -109,12 +113,12 @@ export function GapChart({
       .map((ms) => {
         const row: Record<string, number> = { ms };
         for (const [num, arr] of byDriver) {
-          const gap = stepGap(arr, ms);
+          const gap = gapAt(num, arr, ms);
           if (gap !== null) row[String(num)] = gap;
         }
         return row;
       });
-  }, [timeBuckets, sessionTimeMs, byDriver]);
+  }, [timeBuckets, sessionTimeMs, byDriver, gapAt]);
 
   // Preferred mode: one row per lap boundary, so the chart tracks replay lap progression.
   const lapRows = useMemo(() => {
@@ -130,13 +134,13 @@ export function GapChart({
       const boundaryMs = lapStarts[i]!;
       const row: Record<string, number> = { lap };
       for (const [num, arr] of byDriver) {
-        const gap = stepGap(arr, boundaryMs);
+        const gap = gapAt(num, arr, boundaryMs);
         if (gap !== null) row[String(num)] = gap;
       }
       rows.push(row);
     }
     return rows;
-  }, [lapStarts, currentLap, byDriver, showAllLaps]);
+  }, [lapStarts, currentLap, byDriver, showAllLaps, gapAt]);
 
   const useLapAxis = lapRows.length > 0;
   const rows = useLapAxis ? lapRows : timeRows;
@@ -150,18 +154,38 @@ export function GapChart({
   const endLabels = useMemo((): EndLabel[] => {
     const last = rows.at(-1);
     if (!last) return [];
-    const labels = activeDrivers
+    const labels = drivers
+      .filter((d) => !retiredDrivers?.has(d.driver_number))
       .filter((d) => typeof last[String(d.driver_number)] === "number")
       .map((d) => ({ driverNumber: d.driver_number, value: last[String(d.driver_number)]! }))
       .sort((a, b) => a.value - b.value);
     return topOnly ? labels.slice(0, GAP_CHART_TOP_N) : labels;
-  }, [rows, activeDrivers, topOnly]);
+  }, [rows, drivers, retiredDrivers, topOnly]);
 
+  // Retired cars stay on the chart (their line ends where they stopped) unless
+  // "Top N" narrows it to the front of the running order.
   const shownDrivers = useMemo(() => {
-    if (!topOnly) return activeDrivers;
+    if (!topOnly) return drivers;
     const keep = new Set(endLabels.map((l) => l.driverNumber));
-    return activeDrivers.filter((d) => keep.has(d.driver_number));
-  }, [activeDrivers, endLabels, topOnly]);
+    return drivers.filter((d) => keep.has(d.driver_number));
+  }, [drivers, endLabels, topOnly]);
+
+  // Index of each retired car's last plotted row, where its line gets the × marker.
+  const retiredEndIndex = useMemo(() => {
+    const m = new Map<number, number>();
+    for (const d of shownDrivers) {
+      if (!retiredDrivers?.has(d.driver_number)) continue;
+      const key = String(d.driver_number);
+      for (let i = rows.length - 1; i >= 0; i--) {
+        if (rows[i]![key] !== undefined) {
+          m.set(d.driver_number, i);
+          break;
+        }
+      }
+    }
+    return m;
+  }, [rows, shownDrivers, retiredDrivers]);
+  const hasRetired = retiredEndIndex.size > 0;
 
   // Y axis fits the plotted gaps: the smallest step giving at most
   // GAP_CHART_MAX_TICKS intervals, rounded up to it, capped.
@@ -202,6 +226,7 @@ export function GapChart({
         <span className="min-w-0 flex-1 truncate text-caption text-muted">
           Gap to leader
           <span className="hidden sm:inline"> · pick a name to focus</span>
+          {hasRetired && <span className="hidden sm:inline"> · × retired</span>}
         </span>
         <button
           type="button"
@@ -260,16 +285,36 @@ export function GapChart({
               />
               {lineOrder.map((d) => {
                 const isHighlight = d.driver_number === highlight;
+                const color = teamColor(d.team_colour);
+                const endIndex = retiredEndIndex.get(d.driver_number);
+                const retired = endIndex !== undefined;
                 return (
                   <Line
                     key={d.driver_number}
                     type="monotone"
                     dataKey={String(d.driver_number)}
                     name={d.name_acronym}
-                    stroke={teamColor(d.team_colour)}
+                    stroke={color}
                     strokeWidth={isHighlight ? 3 : 1.5}
-                    strokeOpacity={highlight === null || isHighlight ? 1 : 0.25}
-                    dot={false}
+                    strokeDasharray={retired ? "4 3" : undefined}
+                    strokeOpacity={
+                      highlight === null ? (retired ? 0.7 : 1) : isHighlight ? 1 : 0.25
+                    }
+                    dot={
+                      retired
+                        ? (props: { cx?: number; cy?: number; index?: number }) => (
+                            <RetiredMarker
+                              key={`out-${d.driver_number}-${props.index}`}
+                              cx={props.cx}
+                              cy={props.cy}
+                              show={props.index === endIndex}
+                              color={color}
+                              label={d.name_acronym}
+                              dimmed={highlight !== null && !isHighlight}
+                            />
+                          )
+                        : false
+                    }
                     activeDot={isHighlight ? { r: 3 } : false}
                     isAnimationActive={false}
                     connectNulls
@@ -311,6 +356,46 @@ export function GapChart({
         />
       </div>
     </div>
+  );
+}
+
+/** × where a retired car's line ends, with its code. */
+function RetiredMarker({
+  cx,
+  cy,
+  show,
+  color,
+  label,
+  dimmed,
+}: {
+  cx?: number;
+  cy?: number;
+  show: boolean;
+  color: string;
+  label: string;
+  dimmed: boolean;
+}) {
+  if (!show || cx === undefined || cy === undefined) return <g />;
+  const r = 3.5;
+  return (
+    <g opacity={dimmed ? 0.35 : 1} aria-label={`${label} retired`}>
+      <path
+        d={`M${cx - r},${cy - r}L${cx + r},${cy + r}M${cx + r},${cy - r}L${cx - r},${cy + r}`}
+        stroke={color}
+        strokeWidth={2}
+        strokeLinecap="round"
+      />
+      <text
+        x={cx + r + 3}
+        y={cy}
+        dominantBaseline="central"
+        fill={color}
+        fontSize={9}
+        fontWeight={900}
+      >
+        {label}
+      </text>
+    </g>
   );
 }
 

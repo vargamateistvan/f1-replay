@@ -9,9 +9,20 @@ vi.mock("recharts", () => {
   const Line = ({ dataKey, name }: { dataKey?: string; name?: string }) => (
     <div data-testid={dataKey ?? name}>{name ?? dataKey}</div>
   );
+  const LineChart = ({
+    children,
+    data,
+  }: {
+    children?: ReactNode;
+    data?: Array<Record<string, number>>;
+  }) => (
+    <div data-testid="chart" data-rows={JSON.stringify(data ?? [])}>
+      {children}
+    </div>
+  );
   return {
     ResponsiveContainer: Box,
-    LineChart: Box,
+    LineChart,
     Line,
     XAxis: Box,
     YAxis: Box,
@@ -90,7 +101,7 @@ describe("GapChart", () => {
     expect(screen.getByRole("button", { name: "All" })).toBeInTheDocument();
   });
 
-  it("hides retired drivers from the rendered gap lines", () => {
+  it("keeps retired drivers' lines but leaves them out of the end labels", () => {
     const sessionStartMs = Date.parse("2024-01-01T00:00:00.000Z");
     render(
       <GapChart
@@ -104,7 +115,7 @@ describe("GapChart", () => {
             },
             {
               driver_number: 16,
-              date: "2024-01-01T00:00:12.000Z",
+              date: "2024-01-01T00:00:09.000Z",
               gap_to_leader: 2.5,
             },
           ] as unknown as Interval[]
@@ -112,11 +123,44 @@ describe("GapChart", () => {
         sessionTimeMs={20_000}
         sessionStartMs={sessionStartMs}
         retiredDrivers={new Set([16])}
+        onSelectDriver={() => {}}
       />,
     );
 
     expect(screen.getByTestId("1")).toBeInTheDocument();
-    expect(screen.queryByTestId("16")).not.toBeInTheDocument();
+    expect(screen.getByTestId("16")).toBeInTheDocument();
+    expect(screen.getByText(/× retired/)).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Focus LEC" })).not.toBeInTheDocument();
+  });
+
+  it("ends a retired driver's line at their last sample", () => {
+    const sessionStartMs = Date.parse("2024-01-01T00:00:00.000Z");
+    const intervals = [
+      { driver_number: 1, date: "2024-01-01T00:00:05.000Z", gap_to_leader: 0 },
+      { driver_number: 16, date: "2024-01-01T00:00:05.000Z", gap_to_leader: 2.5 },
+      { driver_number: 1, date: "2024-01-01T00:00:25.000Z", gap_to_leader: 0 },
+    ] as unknown as Interval[];
+    const rowsFor = (retired?: ReadonlySet<number>) => {
+      const { unmount } = render(
+        <GapChart
+          drivers={drivers}
+          intervals={intervals}
+          sessionTimeMs={35_000}
+          sessionStartMs={sessionStartMs}
+          lapStarts={[10_000, 20_000, 30_000]}
+          currentLap={3}
+          retiredDrivers={retired}
+        />,
+      );
+      const rows = JSON.parse(
+        screen.getByTestId("chart").getAttribute("data-rows")!,
+      ) as Array<Record<string, number>>;
+      unmount();
+      return rows.map((r) => r["16"]);
+    };
+
+    expect(rowsFor()).toEqual([2.5, 2.5, 2.5]);
+    expect(rowsFor(new Set([16]))).toEqual([2.5, undefined, undefined]);
   });
 
   it("covers time-axis fallback when lap starts are missing", () => {
