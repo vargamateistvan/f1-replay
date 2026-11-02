@@ -137,10 +137,84 @@ describe("StrategyBar", () => {
     expect(screen.getAllByText("VER").length).toBeGreaterThan(0);
     expect(screen.getAllByText("LEC").length).toBeGreaterThan(0);
     expect(screen.getByText("Pit")).toBeInTheDocument();
-    expect(screen.getByText("Age = laps on tyre")).toBeInTheDocument();
+    expect(screen.getByText("Tyre")).toHaveAttribute("title", "Laps on the current tyre");
     expect(screen.getByTitle(/Pit L2/)).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole("button", { name: "Elapsed" }));
     expect(screen.getByRole("button", { name: "All" })).toBeInTheDocument();
+  });
+
+  it("orders rows by the current position when known", () => {
+    const stint = (driver_number: number) =>
+      ({
+        compound: "MEDIUM",
+        driver_number,
+        lap_end: 10,
+        lap_start: 1,
+        meeting_key: 1,
+        session_key: 1,
+        stint_number: 1,
+        tyre_age_at_start: 0,
+      }) as Stint;
+    const props = {
+      stints: [stint(1), stint(16)],
+      drivers,
+      laps: [],
+      pits: [],
+      sessionTimeMs: 0,
+      sessionStartMs: 0,
+    };
+    const rowOrder = () =>
+      screen.getAllByText(/^(VER|LEC)$/).map((el) => el.textContent);
+
+    const { rerender } = render(<StrategyBar {...props} />);
+    expect(rowOrder()).toEqual(["VER", "LEC"]);
+
+    rerender(
+      <StrategyBar
+        {...props}
+        positionByDriver={
+          new Map([
+            [16, 1],
+            [1, 2],
+          ])
+        }
+      />,
+    );
+    expect(rowOrder()).toEqual(["LEC", "VER"]);
+  });
+
+  it("highlights the focused driver and selects on row click", () => {
+    const selected: number[] = [];
+    render(
+      <StrategyBar
+        stints={
+          [
+            {
+              compound: "SOFT",
+              driver_number: 1,
+              lap_end: 10,
+              lap_start: 1,
+              meeting_key: 1,
+              session_key: 1,
+              stint_number: 1,
+              tyre_age_at_start: 0,
+            },
+          ] as Stint[]
+        }
+        drivers={drivers}
+        laps={[]}
+        pits={[]}
+        sessionTimeMs={0}
+        sessionStartMs={0}
+        focusDriver={1}
+        onSelectDriver={(n) => selected.push(n)}
+      />,
+    );
+
+    const row = screen.getByRole("button", { name: "Unfocus VER" });
+    expect(row).toHaveAttribute("aria-pressed", "true");
+    fireEvent.click(row);
+    expect(selected).toEqual([1]);
   });
 });

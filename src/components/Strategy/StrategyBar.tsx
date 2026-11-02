@@ -1,6 +1,13 @@
 import { useMemo, useState } from "react";
 import type { Stint, Driver, Lap, Pit } from "@/api/types";
-import { COMPOUND_COLORS, COMPOUND_LETTERS } from "@/constants";
+import {
+  COMPOUND_COLORS,
+  COMPOUND_HARD_LIGHT_COLOR,
+  COMPOUND_LETTERS,
+} from "@/constants";
+import { FOCUS_RING } from "@/components/Button/buttonClass";
+import { CompoundRing } from "@/components/LiveTiming/TyreBadge";
+import { useSettings } from "@/stores/settings";
 import { teamColor } from "@/utils/color";
 import { formatPitDuration, pitStopTime } from "@/utils/pit";
 
@@ -12,6 +19,12 @@ interface Props {
   readonly sessionTimeMs: number;
   readonly sessionStartMs: number;
   readonly currentLap?: number;
+  /** Position per driver at the playhead; rows follow it when given. */
+  readonly positionByDriver?: ReadonlyMap<number, number> | null;
+  /** Highlighted row (the app's focused driver). */
+  readonly focusDriver?: number | null;
+  /** Row click; rows are buttons only when given. */
+  readonly onSelectDriver?: (driverNumber: number) => void;
 }
 
 export function StrategyBar({
@@ -22,8 +35,12 @@ export function StrategyBar({
   sessionTimeMs,
   sessionStartMs,
   currentLap,
+  positionByDriver = null,
+  focusDriver = null,
+  onSelectDriver,
 }: Props) {
   const [showAllLaps, setShowAllLaps] = useState(false);
+  const lightMode = useSettings((s) => s.lightMode);
   const currentT = sessionStartMs + sessionTimeMs;
 
   const driverByNumber = useMemo(
@@ -31,11 +48,13 @@ export function StrategyBar({
     [drivers],
   );
 
-  // Derive ordering from drivers array (qualifying/race grid order as returned by API)
-  const driverOrder = useMemo(
-    () => drivers.map((d) => d.driver_number),
-    [drivers],
-  );
+  // Current position order; drivers without a position keep the API list order after them.
+  const driverOrder = useMemo(() => {
+    const listOrder = new Map(drivers.map((d, i) => [d.driver_number, i]));
+    const rank = (n: number) =>
+      positionByDriver?.get(n) ?? 1000 + (listOrder.get(n) ?? 0);
+    return drivers.map((d) => d.driver_number).sort((a, b) => rank(a) - rank(b));
+  }, [drivers, positionByDriver]);
 
   const maxLap = useMemo(
     () => Math.max(...laps.map((l) => l.lap_number), 1),
@@ -61,11 +80,13 @@ export function StrategyBar({
     return Math.min(playbackLap, maxLap);
   }, [showAllLaps, playbackLap, maxLap]);
 
-  // Pit stops per driver (only those that occurred before currentT)
+  // Pit stops per driver (only those that occurred before currentT). Untimed
+  // lap-1 entries are pre-race pit exits to the grid, not stops.
   const pitsByDriver = useMemo(() => {
     const m = new Map<number, Pit[]>();
     for (const p of pits) {
       if (new Date(p.date).getTime() > currentT) continue;
+      if (p.lap_number <= 1 && pitStopTime(p) === null) continue;
       if (!m.has(p.driver_number)) m.set(p.driver_number, []);
       m.get(p.driver_number)!.push(p);
     }
@@ -82,40 +103,45 @@ export function StrategyBar({
   }, [stints]);
 
   const activeStintByDriver = useMemo(() => {
+    // Before the start, show the tyre each car starts on.
+    const lap = Math.max(playbackLap, 1);
     const m = new Map<number, { compound: Stint["compound"]; age: number }>();
     for (const [driverNumber, driverStintList] of driverStints) {
       const active = driverStintList.find(
-        (stint) =>
-          stint.lap_start <= playbackLap && playbackLap <= stint.lap_end,
+        (stint) => stint.lap_start <= lap && lap <= stint.lap_end,
       );
       if (!active) continue;
       m.set(driverNumber, {
         compound: active.compound,
-        age: playbackLap - active.lap_start + active.tyre_age_at_start,
+        age: Math.max(playbackLap, active.lap_start) - active.lap_start + active.tyre_age_at_start,
       });
     }
     return m;
   }, [driverStints, playbackLap]);
 
-  // Ordered list: drivers with stint data, in API order
+  // Ordered list: drivers with stint data, in current order
   const driverNumbers = useMemo(
     () => driverOrder.filter((n) => driverStints.has(n)),
     [driverOrder, driverStints],
   );
 
-  // Lap axis ticks — roughly every 10 laps
+  // Compounds raced this session, in the usual dry → wet order.
+  const usedCompounds = useMemo(() => {
+    const seen = new Set(stints.map((s) => s.compound));
+    return LEGEND_COMPOUNDS.filter((c) => seen.has(c));
+  }, [stints]);
+
+  // Lap axis ticks; the final lap replaces a regular tick that would collide with it.
   const axisTicks = useMemo(() => {
-    const ticks: number[] = [1];
     const step = visibleMaxLap <= 30 ? 5 : visibleMaxLap <= 60 ? 10 : 15;
-    for (let l = step; l < visibleMaxLap; l += step) ticks.push(l);
-    if (ticks[ticks.length - 1] !== visibleMaxLap) ticks.push(visibleMaxLap);
+    const ticks: number[] = [1];
+    for (let l = step; l <= visibleMaxLap - step / 2; l += step) ticks.push(l);
+    if (visibleMaxLap > 1) ticks.push(visibleMaxLap);
     return ticks;
   }, [visibleMaxLap]);
 
-  const currentLapPct =
-    visibleMaxLap > 0
-      ? (Math.min(playbackLap, visibleMaxLap) / visibleMaxLap) * 100
-      : 0;
+  const lapPct = (lap: number) => (lap / visibleMaxLap) * 100;
+  const nowPct = lapPct(Math.min(Math.max(playbackLap, 0), visibleMaxLap));
 
   if (driverNumbers.length === 0) {
     return (
@@ -134,35 +160,74 @@ export function StrategyBar({
   }
 
   return (
-    <div className="px-2 py-1.5 space-y-0.5 md:overflow-auto md:h-full sm:px-3 sm:py-2">
-      <div className="mb-1 flex items-center justify-end">
-        <button
-          type="button"
-          onClick={() => setShowAllLaps((v) => !v)}
-          className={`h-5 px-2 text-tiny font-black uppercase tracking-widest border transition-colors ${
-            showAllLaps
-              ? "border-f1red bg-f1red text-white"
-              : "border-panel bg-track text-muted hover:text-fg"
-          }`}
-          title={showAllLaps ? "Showing all laps" : "Showing elapsed laps"}
-        >
-          {showAllLaps ? "All" : "Elapsed"}
-        </button>
-      </div>
-
-      {/* Lap axis */}
-      <div className="relative mb-1 flex h-4 items-center pl-8 pr-1 sm:pl-10">
-        {axisTicks.map((lap) => (
-          <span
-            key={lap}
-            className="absolute -translate-x-1/2 text-tiny font-mono text-muted sm:text-caption"
-            style={{
-              left: `calc(2rem + ${(lap / visibleMaxLap) * 100}% * (100% - 2rem) / 100%)`,
-            }}
+    <div className="flex flex-col">
+      <div className="sticky top-0 z-30 bg-surface">
+        {/* Toolbar: legend + lap range */}
+        <div className="flex items-center gap-2 border-b border-panel bg-track px-2 py-1.5 sm:px-3">
+          <div className="flex min-w-0 flex-1 flex-wrap items-center gap-x-2.5 gap-y-1">
+            {usedCompounds.map((c) => (
+              <span
+                key={c}
+                className="flex items-center gap-1 text-tiny font-bold uppercase tracking-widest text-muted"
+              >
+                <CompoundRing compound={c} size="sm" />
+                <span className="hidden sm:inline">{COMPOUND_NAMES[c]}</span>
+              </span>
+            ))}
+            <span
+              className="flex items-center gap-1 text-tiny font-bold uppercase tracking-widest text-muted"
+              title="Pit stop (end of the in-lap)"
+            >
+              <span className="inline-block h-3.5 w-px bg-fg/60" aria-hidden="true" />
+              Pit
+            </span>
+          </div>
+          <button
+            type="button"
+            onClick={() => setShowAllLaps((v) => !v)}
+            aria-pressed={showAllLaps}
+            className={`h-5 shrink-0 border px-2 text-tiny font-black uppercase tracking-widest transition-colors ${FOCUS_RING} ${
+              showAllLaps
+                ? "border-f1red bg-f1red text-white"
+                : "border-panel bg-track text-muted hover:text-fg"
+            }`}
+            title={
+              showAllLaps
+                ? "Showing every lap; laps still to come are dimmed"
+                : "Showing laps run so far"
+            }
           >
-            {lap}
+            {showAllLaps ? "All" : "Elapsed"}
+          </button>
+        </div>
+
+        {/* Column header + lap axis */}
+        <div
+          className={`flex h-6 items-center border-b border-panel ${HEADER_TEXT}`}
+        >
+          <span className={COL_POS}>P</span>
+          <span className={COL_DRIVER}>Driver</span>
+          <span className={`${COL_TYRE} text-center`} title="Laps on the current tyre">
+            Tyre
           </span>
-        ))}
+          <div className={`${COL_BAR} h-full font-mono tracking-normal`}>
+            {axisTicks.map((lap, i) => {
+              const first = i === 0;
+              const last = i === axisTicks.length - 1 && !first;
+              return (
+                <span
+                  key={lap}
+                  className={`absolute top-1/2 -translate-y-1/2 tabular-nums ${
+                    first ? "" : last ? "-translate-x-full" : "-translate-x-1/2"
+                  }`}
+                  style={{ left: `${first ? 0 : lapPct(lap)}%` }}
+                >
+                  {lap}
+                </span>
+              );
+            })}
+          </div>
+        </div>
       </div>
 
       {/* Driver rows */}
@@ -172,120 +237,165 @@ export function StrategyBar({
         const dPits = pitsByDriver.get(num) ?? [];
         const color = teamColor(driver?.team_colour);
         const activeStint = activeStintByDriver.get(num) ?? null;
+        const position = positionByDriver?.get(num);
+        const focused = focusDriver === num;
+        const acronym = driver?.name_acronym ?? String(num);
 
-        return (
-          <div key={num} className="flex h-[18px] items-center gap-1 sm:h-5">
-            {/* Driver label */}
-            <span
-              className="w-7 shrink-0 truncate text-right text-tiny font-black sm:w-9 sm:text-caption"
-              style={{ color }}
-            >
-              {driver?.name_acronym ?? num}
+        const cells = (
+          <>
+            <span className={`${COL_POS} font-mono text-caption font-bold text-muted tabular-nums`}>
+              {position ?? ""}
             </span>
-
             <span
-              className="w-7 shrink-0 text-center text-micro font-black uppercase tracking-wider text-fg/70 tabular-nums sm:w-10 sm:text-tiny sm:tracking-widest"
+              className={`${COL_DRIVER} truncate text-small font-black`}
+              style={{ color: focused ? color : undefined }}
+            >
+              {acronym}
+            </span>
+            <span
+              className={`${COL_TYRE} flex items-center justify-center gap-1`}
               title={
                 activeStint
                   ? `${activeStint.compound} · ${activeStint.age} lap${activeStint.age === 1 ? "" : "s"} old`
                   : "No active stint"
               }
             >
-              {activeStint ? `${activeStint.age}L` : "—"}
+              {activeStint ? (
+                <>
+                  <span className="w-4 text-right font-mono text-caption font-bold tabular-nums text-fg">
+                    {activeStint.age}
+                  </span>
+                  <CompoundRing compound={activeStint.compound} size="sm" />
+                </>
+              ) : (
+                <span className="text-caption text-muted">—</span>
+              )}
             </span>
 
             {/* Timeline bar */}
-            <div className="relative flex h-3.5 flex-1 overflow-hidden bg-track sm:h-4">
-              {/* Stint segments */}
-              {dStints.map((s) => {
-                const visibleStart = Math.max(1, s.lap_start);
-                const visibleEnd = Math.min(s.lap_end, visibleMaxLap);
-                if (visibleEnd < visibleStart) return null;
-                const left = ((visibleStart - 1) / visibleMaxLap) * 100;
-                const width =
-                  ((visibleEnd - visibleStart + 1) / visibleMaxLap) * 100;
-                const bg = COMPOUND_COLORS[s.compound] ?? COMPOUND_COLORS.UNKNOWN;
-                const isHard = s.compound === "HARD";
-                return (
-                  <div
-                    key={s.stint_number}
-                    title={`${s.compound} (new+${s.tyre_age_at_start}) L${s.lap_start}–${s.lap_end}`}
-                    className="absolute top-0 h-full flex items-center justify-center"
-                    style={{
-                      left: `${left}%`,
-                      width: `${width}%`,
-                      background: bg,
-                      borderRight: "1px solid rgb(var(--color-track))",
-                      outline: isHard ? "1px solid #555" : undefined,
-                    }}
-                  >
-                    {width > 10 && (
-                      <span className="select-none text-micro font-black leading-none text-black/70 sm:text-tiny">
-                        {COMPOUND_LETTERS[s.compound] ?? COMPOUND_LETTERS.UNKNOWN}
-                      </span>
-                    )}
-                  </div>
-                );
-              })}
+            <div className={`${COL_BAR} h-4`}>
+              <div className="absolute inset-0 overflow-hidden bg-track">
+                {dStints.map((s) => {
+                  const visibleStart = Math.max(1, s.lap_start);
+                  const visibleEnd = Math.min(s.lap_end, visibleMaxLap);
+                  if (visibleEnd < visibleStart) return null;
+                  const width = lapPct(visibleEnd - visibleStart + 1);
+                  const laps = s.lap_end - s.lap_start + 1;
+                  const isHard = s.compound === "HARD";
+                  const darkLetter = !(isHard && lightMode);
+                  return (
+                    <div
+                      key={s.stint_number}
+                      title={`${COMPOUND_NAMES[s.compound]} · L${s.lap_start}–${s.lap_end} (${laps} lap${laps === 1 ? "" : "s"}${s.tyre_age_at_start > 0 ? `, ${s.tyre_age_at_start} old at start` : ", new"})`}
+                      className="absolute inset-y-0 flex items-center justify-center gap-1 overflow-hidden border-r border-track"
+                      style={{
+                        left: `${lapPct(visibleStart - 1)}%`,
+                        width: `${width}%`,
+                        background: compoundColor(s.compound, lightMode),
+                        boxShadow:
+                          isHard && !lightMode
+                            ? "inset 0 0 0 1px rgb(var(--color-line))"
+                            : undefined,
+                      }}
+                    >
+                      {width > 6 && (
+                        <span
+                          className={`select-none text-micro font-black leading-none sm:text-tiny ${
+                            darkLetter ? "text-black/75" : "text-white"
+                          }`}
+                        >
+                          {COMPOUND_LETTERS[s.compound] ?? COMPOUND_LETTERS.UNKNOWN}
+                          {width > 14 && (
+                            <span className="ml-1 font-mono font-bold opacity-70">
+                              {visibleEnd - visibleStart + 1}
+                            </span>
+                          )}
+                        </span>
+                      )}
+                    </div>
+                  );
+                })}
 
-              {/* Pit stop markers */}
+                {/* Laps still to come (All mode) */}
+                {nowPct < 100 && playbackLap > 0 && (
+                  <div
+                    className="pointer-events-none absolute inset-y-0 right-0 z-10 bg-track/70"
+                    style={{ width: `${100 - nowPct}%` }}
+                  />
+                )}
+              </div>
+
+              {/* Pit stops: at the end of the in-lap, poking out of the bar */}
               {dPits.map((p, i) => {
                 if (p.lap_number > visibleMaxLap) return null;
-                const left = ((p.lap_number - 1) / visibleMaxLap) * 100;
                 const stop = pitStopTime(p);
                 return (
                   <div
                     key={i}
                     title={`Pit L${p.lap_number}${stop !== null ? ` (${formatPitDuration(stop) ?? "--:--:---"})` : ""}`}
-                    className="absolute top-0 h-full w-px bg-faint z-10"
-                    style={{ left: `${left}%` }}
+                    className="absolute -inset-y-0.5 z-20 w-px -translate-x-1/2 bg-fg/60"
+                    style={{ left: `${lapPct(p.lap_number)}%` }}
                   />
                 );
               })}
 
-              {/* Current-lap marker */}
+              {/* Current lap */}
               {playbackLap > 0 && (
                 <div
-                  className="absolute top-0 h-full w-px bg-f1red z-20 pointer-events-none"
-                  style={{ left: `${currentLapPct}%` }}
+                  className="pointer-events-none absolute -inset-y-0.5 z-20 w-0.5 bg-f1red"
+                  style={{ right: `${100 - nowPct}%` }}
                 />
               )}
             </div>
+          </>
+        );
+
+        const rowClass = `flex h-6 w-full items-center border-b border-panel text-left transition-colors ${
+          focused ? "bg-panel/60 text-fg" : "text-fg/80"
+        }`;
+        const rowStyle = { boxShadow: `inset ${focused ? 4 : 2}px 0 0 ${color}` };
+
+        return onSelectDriver ? (
+          <button
+            key={num}
+            type="button"
+            onClick={() => onSelectDriver(num)}
+            aria-pressed={focused}
+            aria-label={`${focused ? "Unfocus" : "Focus"} ${acronym}`}
+            className={`${rowClass} hover:bg-panel/40 ${FOCUS_RING}`}
+            style={rowStyle}
+          >
+            {cells}
+          </button>
+        ) : (
+          <div key={num} className={rowClass} style={rowStyle}>
+            {cells}
           </div>
         );
       })}
-
-      {/* Legend */}
-      <div className="mt-1.5 flex flex-wrap gap-x-2 gap-y-0.5 border-t border-panel pt-1.5 sm:gap-x-3">
-        {Object.entries(COMPOUND_COLORS)
-          .filter(([c]) => c !== "UNKNOWN")
-          .map(([c, color]) => (
-            <span key={c} className="flex items-center gap-1">
-              <span
-                className="inline-block h-2 w-2 sm:h-2.5 sm:w-2.5"
-                style={{ background: color }}
-              />
-              <span className="text-muted text-tiny font-bold uppercase sm:text-caption">
-                {c[0]}
-              </span>
-            </span>
-          ))}
-        <span className="flex items-center gap-1 ml-2">
-          <span className="w-px h-3 bg-faint inline-block" />
-          <span className="text-muted text-tiny font-bold uppercase sm:text-caption">
-            Pit
-          </span>
-        </span>
-        <span className="text-muted text-caption font-bold uppercase">
-          Age = laps on tyre
-        </span>
-        <span className="flex items-center gap-1">
-          <span className="w-px h-3 bg-f1red inline-block" />
-          <span className="text-muted text-caption font-bold uppercase">
-            Now
-          </span>
-        </span>
-      </div>
     </div>
   );
+}
+
+const LEGEND_COMPOUNDS = ["SOFT", "MEDIUM", "HARD", "INTERMEDIATE", "WET"] as const;
+
+const COMPOUND_NAMES: Record<Stint["compound"], string> = {
+  SOFT: "Soft",
+  MEDIUM: "Medium",
+  HARD: "Hard",
+  INTERMEDIATE: "Inter",
+  WET: "Wet",
+  UNKNOWN: "Unknown",
+};
+
+// Shared column widths keep the header and the rows aligned.
+const COL_POS = "w-6 shrink-0 pr-1 text-right";
+const COL_DRIVER = "w-10 shrink-0 pl-1.5";
+const COL_TYRE = "w-11 shrink-0";
+const COL_BAR = "relative ml-1.5 mr-2 flex-1 sm:mr-3";
+const HEADER_TEXT = "text-tiny font-bold uppercase tracking-widest text-muted";
+
+function compoundColor(compound: Stint["compound"], lightMode: boolean): string {
+  if (lightMode && compound === "HARD") return COMPOUND_HARD_LIGHT_COLOR;
+  return COMPOUND_COLORS[compound] ?? COMPOUND_COLORS.UNKNOWN;
 }

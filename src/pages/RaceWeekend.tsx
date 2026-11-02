@@ -1201,6 +1201,22 @@ export default function RaceWeekend() {
     [activeTrackerTab, director, sessionStartMs, tSlow],
   );
 
+  // Tyre Strategy rows follow the current order at the playhead (any session type).
+  const strategyPositionIndex = useMemo(
+    () =>
+      activeTrackerTab === "strategy"
+        ? (directorBase?.positions ?? buildPositionIndex(positions.data ?? []))
+        : null,
+    [activeTrackerTab, directorBase, positions.data],
+  );
+  const strategyPositions = useMemo(
+    () =>
+      strategyPositionIndex && strategyPositionIndex.size > 0
+        ? positionsAt(strategyPositionIndex, sessionStartMs + tSlow)
+        : null,
+    [strategyPositionIndex, sessionStartMs, tSlow],
+  );
+
   // 3D gap ribbons: who each battling car is chasing, and by how much.
   const battleGaps = useMemo((): BattleGap[] | null => {
     if (!director || !intervalSeconds) return null;
@@ -2875,6 +2891,9 @@ export default function RaceWeekend() {
                           sessionTimeMs={t}
                           sessionStartMs={sessionStartMs}
                           currentLap={currentLap}
+                          positionByDriver={strategyPositions}
+                          focusDriver={focusDriver}
+                          onSelectDriver={toggleFocus}
                         />
                       </Suspense>
                     </div>
@@ -3011,6 +3030,9 @@ export default function RaceWeekend() {
                             sessionTimeMs={t}
                             sessionStartMs={sessionStartMs}
                             currentLap={currentLap}
+                            positionByDriver={strategyPositions}
+                            focusDriver={focusDriver}
+                            onSelectDriver={toggleFocus}
                           />
                         </Suspense>
                       </div>
