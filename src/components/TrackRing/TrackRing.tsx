@@ -50,7 +50,7 @@ import {
 import { startLightsState } from "@/timeline/startLights";
 import { exportTrackSnapshot } from "../TrackMap/exportSnapshot";
 import { FocusedDriverHud } from "../TrackMap/overlays/FocusedDriverHud";
-import { TrackClockPanel, WeatherPanel } from "../TrackMap/overlays/InfoPanels";
+import { TrackClockPanel } from "../TrackMap/overlays/InfoPanels";
 import { SectorChips } from "../TrackMap/overlays/MapCornerWidgets";
 import { StartReplayHint } from "../TrackMap/overlays/StartReplayHint";
 import { StatusBadges } from "../TrackMap/overlays/StatusBadges";
@@ -747,9 +747,6 @@ export function TrackRing({
             sessionGmtOffset={sessionGmtOffset}
             raining={(weatherOverlay?.rainfall ?? 0) > 0}
           />
-        )}
-        {weatherOverlay && (
-          <WeatherPanel weather={weatherOverlay} metricSystem={metricSystem} />
         )}
       </div>
 

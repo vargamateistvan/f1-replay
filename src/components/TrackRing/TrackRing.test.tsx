@@ -255,6 +255,7 @@ describe("TrackRing", () => {
     expect(centerWeather.querySelector(".lucide-droplets")).not.toBeNull();
     expect(centerWeather.querySelector(".lucide-wind")).not.toBeNull();
     expect(centerWeather.querySelector(".lucide-cloud-sun")).not.toBeNull();
+    expect(screen.queryByText("Track Weather")).not.toBeInTheDocument();
 
     rerender(
       <TrackRing
