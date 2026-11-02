@@ -33,7 +33,11 @@ describe("CircuitSummary", () => {
     expect(screen.getByText("14")).toBeTruthy();
     expect(screen.getByText("Clockwise")).toBeTruthy();
     expect(screen.getByText("Street")).toBeTruthy();
-    expect(screen.getByText("20.8s · SC 13.2s")).toBeTruthy();
+    // Pit loss comes from MultiViewer and changes when update-circuits refreshes the bake.
+    const { normal, sc } = melbourne.pitLoss;
+    expect(
+      screen.getByText(`${Number(normal).toFixed(1)}s · SC ${Number(sc).toFixed(1)}s`),
+    ).toBeTruthy();
   });
 
   it("converts length to miles for imperial users", () => {
