@@ -358,6 +358,9 @@ playback/driver interactions. Tour completion is not required for activation.
 - `schedule_view_changed`
   - Params: `view` (`cards` | `map`), `year`
   - Trigger: Cards / Map layout toggle in the schedule picker bar
+- `schedule_map_current_weekend`
+  - Params: `meeting_key` (the live or next round; the last round after the season)
+  - Trigger: "Current weekend" button on the schedule world map
 - `highlights_player_fallback`
   - Params: `session_key`, `reason` (`error_<YouTube error code>`, e.g. `error_150` = owner blocks embedding; `script`; `timeout`)
   - Trigger: the highlights dialog couldn't play the video and switched to the thumbnail + YouTube link

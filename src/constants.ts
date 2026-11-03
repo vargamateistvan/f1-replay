@@ -86,6 +86,8 @@ export const SCHEDULE_MAP_FIT_PAD_PX = 48;
 // Markers closer than this on screen merge into one cluster bubble.
 export const SCHEDULE_MAP_CLUSTER_PX = 26;
 export const SCHEDULE_MAP_ZOOM_STEP = 1.6;
+// "Current weekend" zooms to at most this view width (degrees of longitude).
+export const SCHEDULE_MAP_FOCUS_VIEW_DEG = 40;
 // Mouse-wheel zoom per 100 px of scroll delta.
 export const SCHEDULE_MAP_WHEEL_ZOOM = 1.25;
 export const SCHEDULE_MAP_ANIM_MS = 450;

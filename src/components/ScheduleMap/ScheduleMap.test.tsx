@@ -152,6 +152,22 @@ describe("ScheduleMap", () => {
     expect(screen.queryByRole("list", { name: "Rounds at this location" })).toBeNull();
   });
 
+  it("jumps to the current weekend, zooming in on it", () => {
+    const { container, onSelect } = setup(1);
+    fireEvent.click(screen.getByRole("button", { name: "Current weekend" }));
+    // Monaco (meeting 4) is the next round at T0 + 17 days.
+    expect(onSelect).toHaveBeenCalledWith(4);
+    expect(viewBoxWidth(container)).toBeLessThanOrEqual(40);
+    const [x, y, w, h] = container
+      .querySelector("svg")!
+      .getAttribute("viewBox")!
+      .split(" ")
+      .map(Number);
+    // Monaco sits in the middle of the new view.
+    expect(x + w / 2).toBeCloseTo(7.43 + 180, 0);
+    expect(y + h / 2).toBeCloseTo(90 - 43.74, 0);
+  });
+
   it("zooms with the buttons and returns to the whole season", () => {
     const { container } = setup();
     const season = viewBoxWidth(container);

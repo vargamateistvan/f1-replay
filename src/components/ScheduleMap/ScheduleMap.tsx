@@ -8,15 +8,27 @@ import {
   type PointerEvent as ReactPointerEvent,
   type ReactNode,
 } from "react";
-import { ChevronLeft, ChevronRight, Maximize2, Minus, Plus } from "lucide-react";
+import {
+  ChevronLeft,
+  ChevronRight,
+  LocateFixed,
+  Maximize2,
+  Minus,
+  Plus,
+} from "lucide-react";
 import { getCircuitLocation } from "@/data/circuitLocations";
 import { WORLD_LAND_PATH } from "@/data/worldLand";
 import { FOCUS_RING, buttonClass } from "@/components/Button/buttonClass";
 import { useMediaQuery } from "@/hooks/useMediaQuery";
+import { trackEvent } from "@/lib/analytics";
 import { prefersReducedMotion } from "@/lib/motion";
 import { useSettings } from "@/stores/settings";
 import { distanceUnitLabel, toDisplayDistanceKm } from "@/utils/units";
-import type { ScheduleRound, ScheduleStatus } from "@/utils/schedule";
+import {
+  scheduleFocusRound,
+  type ScheduleRound,
+  type ScheduleStatus,
+} from "@/utils/schedule";
 import {
   cameraViewBox,
   clampCamera,
@@ -40,6 +52,7 @@ import {
   SCHEDULE_MAP_CLUSTER_PX,
   SCHEDULE_MAP_DRAG_THRESHOLD_PX,
   SCHEDULE_MAP_FIT_PAD_PX,
+  SCHEDULE_MAP_FOCUS_VIEW_DEG,
   SCHEDULE_MAP_MAX_LAT,
   SCHEDULE_MAP_MIN_LAT,
   SCHEDULE_MAP_MIN_VIEW_DEG,
@@ -253,12 +266,13 @@ export function ScheduleMap({
   );
 
   // Keep the selected round on screen when it changes from outside the map
-  // (panel arrows, URL) — but not on every clock tick or resize.
+  // (panel arrows, URL) — but not on every clock tick or resize, and not
+  // while the map is already flying somewhere (e.g. to the current weekend).
   useEffect(() => {
     const item = selectedKey === null ? undefined : byKeyRef.current.get(selectedKey);
     const cam = cameraRef.current;
     const { width, height } = sizeRef.current;
-    if (!item || !cam || !aspectRef.current) return;
+    if (!item || !cam || !aspectRef.current || animRef.current !== null) return;
     const p = mapToScreen(item.point, cameraViewBox(cam, aspectRef.current), width, height);
     const inside =
       p.x >= EDGE_MARGIN_PX &&
@@ -369,6 +383,24 @@ export function ScheduleMap({
   const select = (meetingKey: number) => {
     setOpenCluster(null);
     onSelect(meetingKey);
+  };
+
+  // The weekend under way, else the next one; after the season, the last.
+  const currentRound = rounds.find((r) => r.isNext) ?? scheduleFocusRound(rounds);
+  const jumpToCurrent = () => {
+    if (!currentRound) return;
+    const key = currentRound.meeting.meeting_key;
+    trackEvent("schedule_map_current_weekend", { meeting_key: key });
+    const item = byKey.get(key);
+    const cam = cameraRef.current;
+    if (item && cam) {
+      flyTo({
+        cx: item.point.x,
+        cy: item.point.y,
+        w: Math.min(cam.w, SCHEDULE_MAP_FOCUS_VIEW_DEG),
+      });
+    }
+    select(key);
   };
 
   // ── Side panel ──────────────────────────────────────────────────────────
@@ -547,6 +579,18 @@ export function ScheduleMap({
               );
             })}
           </div>
+
+          {currentRound && (
+            <button
+              type="button"
+              onClick={jumpToCurrent}
+              title={`Jump to ${currentRound.meeting.meeting_name}`}
+              className={`absolute left-2 top-2 z-30 flex h-8 items-center gap-1.5 rounded-sm border border-panel bg-surface px-2.5 text-caption font-bold uppercase tracking-caps text-fg shadow-md transition-colors hover:border-f1red hover:text-f1red-fg ${FOCUS_RING}`}
+            >
+              <LocateFixed aria-hidden="true" className="h-3.5 w-3.5 text-f1red-fg" />
+              {currentRound.status === "live" ? "Live weekend" : "Current weekend"}
+            </button>
+          )}
 
           <div className="absolute right-2 top-2 z-30 flex flex-col divide-y divide-panel overflow-hidden rounded-sm border border-panel shadow-md">
             <button
