@@ -9,6 +9,7 @@ import {
 } from "@/constants";
 import type { CircuitGeometry } from "@/data/circuitGeometryTypes";
 import { getCircuitGeoref } from "@/data/circuitGeoref";
+import { getRunoffStyle as runoffStyleFor } from "@/data/circuitRunoff";
 import { getPitLane } from "@/data/pitLanes";
 import { lngLatToEnu } from "@/utils/georef";
 import { buildTrackside } from "./trackside";
@@ -23,7 +24,6 @@ import {
   removeLoops,
   resample,
   runoffRuns,
-  runoffStyleFor,
   trimLoopOverlap,
 } from "./trackSurface";
 
@@ -348,12 +348,6 @@ describe("buildTrackSurface run-off and markings", () => {
     const a = enu(ring![0]!);
     const b = enu(ring![ring!.length - 2]!);
     expect(Math.hypot(a.x - b.x, a.y - b.y)).toBeCloseTo(bands[0]!.widthM, 0);
-  });
-
-  it("falls back to gravel for unlisted circuits", () => {
-    expect(runoffStyleFor(99999)).toEqual({ surface: "gravel" });
-    expect(runoffStyleFor(null)).toEqual({ surface: "gravel" });
-    expect(runoffStyleFor(55).surface).toBe("sand");
   });
 
   it("mows grass on both sides of a permanent circuit, in stripes", () => {

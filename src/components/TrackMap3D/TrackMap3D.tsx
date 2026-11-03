@@ -60,6 +60,7 @@ import {
   MAP3D_TRAIL_STEP_MS,
 } from "@/constants";
 import { getCircuitGeoref } from "@/data/circuitGeoref";
+import { getRunoffStyle } from "@/data/circuitRunoff";
 import { getPitLane } from "@/data/pitLanes";
 import { useCarDataForLap } from "@/hooks/useCarDataForLap";
 import { useCarDataWindow } from "@/hooks/useCarDataWindow";
@@ -142,7 +143,6 @@ import {
   buildFlagZones,
   buildSectorZones,
   buildTrackSurface,
-  runoffStyleFor,
 } from "./trackSurface";
 import { buildTrackside } from "./trackside";
 import {
@@ -749,7 +749,7 @@ export function TrackMap3D({
     if (map.getLayer(LAYER_TRACK_SURFACE)) {
       map.setPaintProperty(LAYER_TRACK_SURFACE, "line-color", ribbonColorFor(lightPreset));
     }
-    applyTrackPalette(map, lightPreset, wetTrack, runoffStyleFor(circuitKey).surface);
+    applyTrackPalette(map, lightPreset, wetTrack, getRunoffStyle(circuitKey).surface);
     applyTracksidePalette(map, lightPreset);
   }, [lightPreset, wetTrack, styleReady, circuitGeom, circuitKey]);
 
@@ -904,7 +904,7 @@ export function TrackMap3D({
 
       // Real-width asphalt, verge, pit lane, kerbs and start grid, under the
       // flag band and telemetry overlays.
-      const runoffSurface = runoffStyleFor(circuitKey).surface;
+      const runoffSurface = getRunoffStyle(circuitKey).surface;
       addTrackSurfaceLayers(
         map,
         buildTrackSurface(circuitGeom, geo, pitLane),

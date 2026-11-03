@@ -18,19 +18,17 @@ import {
   MAP3D_GRID_SLOTS,
   MAP3D_KERB_BLOCK_M,
   MAP3D_KERB_WIDTH_M,
-  MAP3D_NO_RUNOFF_CIRCUITS,
   MAP3D_PIT_LANE_HALF_WIDTH_M,
   MAP3D_RUNOFF_EXTEND_M,
   MAP3D_RUNOFF_M,
-  MAP3D_RUNOFF_STYLES,
   MAP3D_SECTOR_RIBBON_M,
   MAP3D_START_GRID_COLUMNS,
   MAP3D_START_GRID_DEPTH_M,
   MAP3D_START_GRID_ROWS,
   MAP3D_TRACK_HALF_WIDTH_M,
   MAP3D_VERGE_M,
-  type RunoffStyle,
 } from "@/constants";
+import { getRunoffStyle } from "@/data/circuitRunoff";
 import { type CircuitGeoref, enuToLngLat, f1ToEnu } from "@/utils/georef";
 import { timingSectorForMarshalPost } from "@/timeline/raceControl";
 import type { FeatureCollection, LineFeature, LngLat } from "./mapFeatures";
@@ -587,7 +585,7 @@ export interface TrackSurface {
   /** Mown grass beyond the verge, plus every other block for the stripes (permanent circuits). */
   grass: PolygonCollection;
   grassStripes: PolygonCollection;
-  /** Run-off outside the corners (empty on street circuits); look per `runoffStyleFor`. */
+  /** Run-off outside the corners (empty on street circuits); look per `getRunoffStyle`. */
   runoff: PolygonCollection;
   /** Painted bands on tarmac run-off, parallel to the track; each feature carries its `color`. */
   runoffBands: PolygonCollection;
@@ -692,11 +690,6 @@ export function buildGridSlots(
   return out;
 }
 
-/** The circuit's run-off look (gravel unless listed in MAP3D_RUNOFF_STYLES). */
-export function runoffStyleFor(circuitKey: number | null | undefined): RunoffStyle {
-  return (circuitKey != null ? MAP3D_RUNOFF_STYLES[circuitKey] : undefined) ?? { surface: "gravel" };
-}
-
 export function buildTrackSurface(
   geom: CircuitGeometry,
   geo: CircuitGeoref,
@@ -704,7 +697,8 @@ export function buildTrackSurface(
 ): TrackSurface {
   const { center, nrm, toLL } = sampledCenterline(geom, geo);
   const half = MAP3D_TRACK_HALF_WIDTH_M;
-  const street = MAP3D_NO_RUNOFF_CIRCUITS.has(geom.circuitKey);
+  const runoffStyle = getRunoffStyle(geom.circuitKey);
+  const street = runoffStyle.surface === "street";
 
   const chunk = Math.round(STRIP_CHUNK_M / STEP_M);
   // Verge as two bands outside the asphalt (not one wide band under it), so
@@ -786,7 +780,7 @@ export function buildTrackSurface(
   if (!street) {
     const inner = half + MAP3D_VERGE_M;
     const outer = inner + MAP3D_RUNOFF_M;
-    const bands = runoffStyleFor(geom.circuitKey).bands ?? [];
+    const bands = runoffStyle.bands ?? [];
     for (const run of runoffRuns(kerbs, n, Math.round(MAP3D_RUNOFF_EXTEND_M / STEP_M))) {
       for (let s = run.from; s < run.to; s += chunk) {
         const { pts, nr } = along(s, Math.min(s + chunk, run.to));

@@ -210,38 +210,9 @@ export const MAP3D_RUNOFF_M = 18;
 export const MAP3D_RUNOFF_EXTEND_M = 30;
 export type RunoffSurface = "gravel" | "sand" | "tarmac";
 /**
- * A circuit's run-off look; `bands` are painted on tarmac parallel to the
- * track, outward from the verge in order, with plain run-off beyond.
+ * Run-off colours per surface and Standard light preset, dry and wet. Each
+ * circuit's surface comes from src/data/circuit-runoff.json (`getRunoffStyle`).
  */
-export interface RunoffStyle {
-  surface: RunoffSurface;
-  bands?: readonly { color: string; widthM: number }[];
-}
-/**
- * Each circuit's dominant run-off (most mix gravel and tarmac), keyed by
- * circuit_key; anything not listed is gravel. Tarmac: Sepang, Interlagos,
- * Red Bull Ring, Shanghai, Bahrain, Mexico City, Yas Marina; COTA's has
- * red and blue bands split by a white line; Zandvoort's traps are dune sand.
- */
-export const MAP3D_RUNOFF_STYLES: Readonly<Record<number, RunoffStyle>> = {
-  9: {
-    surface: "tarmac",
-    bands: [
-      { color: "#c8102e", widthM: 3.5 },
-      { color: "#f2f2f2", widthM: 0.6 },
-      { color: "#1d4f9c", widthM: 3.5 },
-    ],
-  },
-  12: { surface: "tarmac" },
-  14: { surface: "tarmac" },
-  19: { surface: "tarmac" },
-  49: { surface: "tarmac" },
-  55: { surface: "sand" },
-  63: { surface: "tarmac" },
-  65: { surface: "tarmac" },
-  70: { surface: "tarmac" },
-};
-/** Run-off colours per surface and Standard light preset, dry and wet. */
 export const MAP3D_RUNOFF_PALETTE = {
   gravel: {
     dawn: { dry: "#b9a07e", wet: "#8f7b60" },
@@ -266,13 +237,6 @@ export const MAP3D_RUNOFF_PALETTE = {
   RunoffSurface,
   Record<"dawn" | "day" | "dusk" | "night", { dry: string; wet: string }>
 >;
-/**
- * Street circuits (walls, not gravel) that get no run-off: Monaco, Singapore,
- * Baku, Jeddah, Miami, Las Vegas, Madring. Keyed by circuit_key.
- */
-export const MAP3D_NO_RUNOFF_CIRCUITS: ReadonlySet<number> = new Set([
-  22, 61, 144, 149, 151, 152, 153,
-]);
 /** Painted white track-limit line along each asphalt edge (width, colour). */
 export const MAP3D_EDGE_LINE_M = 0.4;
 export const MAP3D_EDGE_LINE_COLOR = "#f4f4f4";

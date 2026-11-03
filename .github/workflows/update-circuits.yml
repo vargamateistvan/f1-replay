@@ -8,6 +8,9 @@ name: Update Circuit Data
 #   3. fetch-georef        — 3D-map georeference, matched automatically against
 #                            the latest bacinger/f1-circuits traces
 #   4. fetch-pit-lanes     — pit-lane paths for circuits that don't have one
+#   5. fetch-runoff        — 3D-map run-off look (gravel / sand / tarmac /
+#                            street walls) for new circuits, classified from
+#                            OpenStreetMap; hand-curated entries are kept
 #
 # Runs every Monday 06:00 UTC (the morning after a race weekend) and on demand.
 # Changes are committed straight to main (data only, after type-check and
@@ -27,7 +30,7 @@ concurrency:
   cancel-in-progress: false
 
 env:
-  DATA_PATHS: src/data/circuit-geometry/ src/data/circuit-georef.json src/data/pit-lanes.json
+  DATA_PATHS: src/data/circuit-geometry/ src/data/circuit-georef.json src/data/pit-lanes.json src/data/circuit-runoff.json
 
 jobs:
   update-circuits:
@@ -55,6 +58,11 @@ jobs:
 
       - name: Bake missing pit lanes
         run: node scripts/fetch-pit-lanes.mjs
+
+      # Needs the georeference above. New venues only; if OpenStreetMap is
+      # unreachable they get provisional gravel and are retried next run.
+      - name: Classify run-off for new circuits
+        run: node scripts/fetch-runoff.mjs
 
       - name: Check for changes
         id: diff
@@ -93,9 +101,13 @@ jobs:
           ADDED=$(git diff --cached --name-only --diff-filter=A -- src/data/circuit-geometry/ | sed 's|.*/||;s|\.json||' | tr '\n' ' ')
           MODIFIED=$(git diff --cached --name-only --diff-filter=M -- src/data/circuit-geometry/ | sed 's|.*/||;s|\.json||' | tr '\n' ' ')
 
+          # Names of run-off entries added or re-classified by this run.
+          RUNOFF=$(git diff --cached -U0 -- src/data/circuit-runoff.json | sed -n 's/^+ *"name": "\(.*\)",$/\1/p' | paste -sd, - | sed 's/,/, /g')
+
           {
             echo "- **New geometry**: ${ADDED:-none}"
             echo "- **Updated geometry**: ${MODIFIED:-none}"
+            echo "- **Run-off classified from OpenStreetMap** (review, then mark \`curated\`): ${RUNOFF:-none}"
             echo "- Georeference / pit lanes: see the diff"
           } > /tmp/changes.md
 
@@ -117,4 +129,4 @@ jobs:
         run: |
           echo "## 🏁 Circuit data check" >> "$GITHUB_STEP_SUMMARY"
           echo "" >> "$GITHUB_STEP_SUMMARY"
-          echo "ℹ️ No changes: geometry, georeferences and pit lanes are up to date." >> "$GITHUB_STEP_SUMMARY"
+          echo "ℹ️ No changes: geometry, georeferences, pit lanes and run-off are up to date." >> "$GITHUB_STEP_SUMMARY"

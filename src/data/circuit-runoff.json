@@ -1,0 +1,149 @@
+{
+  "source": "Hand-picked, or classified from \u00a9 OpenStreetMap contributors (ODbL) by scripts/fetch-runoff.mjs",
+  "circuits": {
+    "2": {
+      "name": "Silverstone",
+      "surface": "gravel",
+      "source": "curated"
+    },
+    "4": {
+      "name": "Hungaroring",
+      "surface": "gravel",
+      "source": "curated"
+    },
+    "6": {
+      "name": "Imola",
+      "surface": "gravel",
+      "source": "curated"
+    },
+    "7": {
+      "name": "Spa-Francorchamps",
+      "surface": "gravel",
+      "source": "curated"
+    },
+    "9": {
+      "name": "Austin",
+      "surface": "tarmac",
+      "source": "curated",
+      "bands": [
+        {
+          "color": "#c8102e",
+          "widthM": 3.5
+        },
+        {
+          "color": "#f2f2f2",
+          "widthM": 0.6
+        },
+        {
+          "color": "#1d4f9c",
+          "widthM": 3.5
+        }
+      ]
+    },
+    "10": {
+      "name": "Melbourne",
+      "surface": "gravel",
+      "source": "curated"
+    },
+    "12": {
+      "name": "Kuala Lumpur",
+      "surface": "tarmac",
+      "source": "curated"
+    },
+    "14": {
+      "name": "Interlagos",
+      "surface": "tarmac",
+      "source": "curated"
+    },
+    "15": {
+      "name": "Catalunya",
+      "surface": "gravel",
+      "source": "curated"
+    },
+    "19": {
+      "name": "Spielberg",
+      "surface": "tarmac",
+      "source": "curated"
+    },
+    "22": {
+      "name": "Monte Carlo",
+      "surface": "street",
+      "source": "curated"
+    },
+    "23": {
+      "name": "Montreal",
+      "surface": "gravel",
+      "source": "curated"
+    },
+    "39": {
+      "name": "Monza",
+      "surface": "gravel",
+      "source": "curated"
+    },
+    "46": {
+      "name": "Suzuka",
+      "surface": "gravel",
+      "source": "curated"
+    },
+    "49": {
+      "name": "Shanghai",
+      "surface": "tarmac",
+      "source": "curated"
+    },
+    "55": {
+      "name": "Zandvoort",
+      "surface": "sand",
+      "source": "curated"
+    },
+    "61": {
+      "name": "Singapore",
+      "surface": "street",
+      "source": "curated"
+    },
+    "63": {
+      "name": "Sakhir",
+      "surface": "tarmac",
+      "source": "curated"
+    },
+    "65": {
+      "name": "Mexico City",
+      "surface": "tarmac",
+      "source": "curated"
+    },
+    "70": {
+      "name": "Yas Marina Circuit",
+      "surface": "tarmac",
+      "source": "curated"
+    },
+    "144": {
+      "name": "Baku",
+      "surface": "street",
+      "source": "curated"
+    },
+    "149": {
+      "name": "Jeddah",
+      "surface": "street",
+      "source": "curated"
+    },
+    "150": {
+      "name": "Losail",
+      "surface": "gravel",
+      "source": "curated"
+    },
+    "151": {
+      "name": "Miami",
+      "surface": "street",
+      "source": "curated"
+    },
+    "152": {
+      "name": "Las Vegas",
+      "surface": "street",
+      "source": "curated"
+    },
+    "153": {
+      "name": "Madring",
+      "surface": "street",
+      "source": "curated"
+    }
+  }
+}

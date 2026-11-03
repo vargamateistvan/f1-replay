@@ -13,8 +13,8 @@ import {
   MAP3D_TRACK_HALF_WIDTH_M,
   MAP3D_TRACK_PALETTE,
   MAP3D_TRACK_WET_PALETTE,
-  type RunoffSurface,
 } from "@/constants";
+import type { RunoffStyle } from "@/data/circuitRunoff";
 import { isActiveTrackFlag, type TimingSectorFlags } from "@/timeline/raceControl";
 import type { LightPreset } from "./atmosphere";
 import { groundWidthExpression } from "./mapFeatures";
@@ -67,7 +67,7 @@ export function fadeOut(opacity: number): ExpressionSpecification {
 export function surfacePaint(
   preset: LightPreset,
   wet = false,
-  runoffSurface: RunoffSurface = "gravel",
+  runoffSurface: RunoffStyle["surface"] = "gravel",
 ): Record<string, { color: string | ExpressionSpecification; opacity: number; emissive: number }> {
   const p = MAP3D_TRACK_PALETTE[preset];
   const asphalt = wet ? MAP3D_TRACK_WET_PALETTE[preset] : p;
@@ -76,7 +76,10 @@ export function surfacePaint(
     [LAYERS.grass]: { color: p.grass, opacity: 1, emissive: p.emissive },
     [LAYERS.grassStripes]: { color: p.grassStripe, opacity: 1, emissive: p.emissive },
     [LAYERS.runoff]: {
-      color: MAP3D_RUNOFF_PALETTE[runoffSurface][preset][wet ? "wet" : "dry"],
+      // Street circuits draw no run-off; any colour will do.
+      color: MAP3D_RUNOFF_PALETTE[runoffSurface === "street" ? "gravel" : runoffSurface][preset][
+        wet ? "wet" : "dry"
+      ],
       opacity: 1,
       emissive: p.emissive,
     },
@@ -101,7 +104,7 @@ export function addTrackSurfaceLayers(
   surface: TrackSurface,
   preset: LightPreset,
   before: string,
-  runoffSurface: RunoffSurface = "gravel",
+  runoffSurface: RunoffStyle["surface"] = "gravel",
 ): void {
   const paint = surfacePaint(preset, false, runoffSurface);
   const add = (key: keyof typeof LAYERS) => {
@@ -146,7 +149,7 @@ export function applyTrackPalette(
   map: MapboxMap,
   preset: LightPreset,
   wet = false,
-  runoffSurface: RunoffSurface = "gravel",
+  runoffSurface: RunoffStyle["surface"] = "gravel",
 ): void {
   for (const [id, p] of Object.entries(surfacePaint(preset, wet, runoffSurface))) {
     if (!map.getLayer(id)) continue;

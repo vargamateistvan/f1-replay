@@ -16,7 +16,6 @@ import {
   MAP3D_FENCE_HEIGHT_M,
   MAP3D_GANTRY_BEAM_M,
   MAP3D_GANTRY_CLEARANCE_M,
-  MAP3D_NO_RUNOFF_CIRCUITS,
   MAP3D_PIT_LANE_HALF_WIDTH_M,
   MAP3D_PIT_WALL_MAX_GAP_M,
   MAP3D_RUNOFF_EXTEND_M,
@@ -28,6 +27,7 @@ import {
   MAP3D_WALL_GAP_M,
   MAP3D_WALL_HEIGHT_M,
 } from "@/constants";
+import { isStreetCircuit } from "@/data/circuitRunoff";
 import type { CircuitGeoref } from "@/utils/georef";
 import type { LngLat } from "./mapFeatures";
 import {
@@ -155,7 +155,7 @@ export function buildTrackside(
   const n = center.length;
   const half = MAP3D_TRACK_HALF_WIDTH_M;
   const edge = half + MAP3D_VERGE_M;
-  const street = MAP3D_NO_RUNOFF_CIRCUITS.has(geom.circuitKey);
+  const street = isStreetCircuit(geom.circuitKey);
   const thick = MAP3D_BARRIER_THICKNESS_M;
   const chunk = Math.round(STRIP_CHUNK_M);
   const minRun = Math.round(MAP3D_BARRIER_MIN_RUN_M);
