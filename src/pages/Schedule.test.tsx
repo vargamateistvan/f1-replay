@@ -99,12 +99,50 @@ describe("Schedule page", () => {
 
   it("lists rounds in order with progress and the next round highlighted", () => {
     const { container } = setup();
-    expect(screen.getByText("1/2 rounds completed")).toBeTruthy();
+    expect(screen.getByRole("progressbar", { name: "Season progress" })).toHaveAttribute(
+      "aria-valuetext",
+      "1 of 2 rounds completed",
+    );
     const titles = screen.getAllByRole("heading", { level: 2 }).map((h) => h.textContent);
     expect(titles).toEqual(["Bahrain Grand Prix", "Japanese Grand Prix"]);
     const next = container.querySelector("[data-next-round]");
     expect(next?.textContent).toContain("Japanese Grand Prix");
     expect(next?.textContent).toContain("Practice 1 in 5d 0h");
+  });
+
+  it("pins the next round above the cards with a countdown to its next session", () => {
+    setup();
+    const strip = screen.getByRole("region", { name: "Up next" });
+    expect(strip).toHaveTextContent("Japanese Grand Prix");
+    expect(strip).toHaveTextContent("Round 2");
+    expect(within(strip).getByRole("timer")).toHaveAccessibleName("Practice 1 in 5d 0h");
+    expect(within(strip).getByText("05")).toBeInTheDocument();
+  });
+
+  it("opens the next round on the map from the strip", async () => {
+    setup();
+    const strip = screen.getByRole("region", { name: "Up next" });
+    fireEvent.click(within(strip).getByRole("button", { name: "Map" }));
+    expect(screen.getByRole("radio", { name: "Map" })).toHaveAttribute("aria-checked", "true");
+    expect(mockTrackEvent).toHaveBeenCalledWith("schedule_next_round_action", {
+      action: "map",
+    });
+    const panel = await screen.findByRole("complementary", { name: "Selected round" });
+    expect(
+      within(panel).getByRole("heading", { level: 2, name: "Japanese Grand Prix" }),
+    ).toBeInTheDocument();
+  });
+
+  it("shows each round's dates as a day range and month", () => {
+    const { container } = setup();
+    const card = container.querySelector('[data-meeting-key="2"]') as HTMLElement;
+    const start = new Date(NOW + 5 * DAY);
+    const end = new Date(NOW + 7 * DAY);
+    const day = (d: Date) => new Intl.DateTimeFormat(undefined, { day: "2-digit" }).format(d);
+    expect(card).toHaveTextContent(`${day(start)}–${day(end)}`);
+    expect(card).toHaveTextContent(
+      new Intl.DateTimeFormat(undefined, { month: "short" }).format(start).toUpperCase(),
+    );
   });
 
   it("links completed sessions to the replay and leaves upcoming ones plain", () => {

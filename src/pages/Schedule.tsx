@@ -1,6 +1,13 @@
 import { Suspense, lazy, useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Link } from "react-router-dom";
-import { Clapperboard, Earth, LayoutGrid, ListOrdered, Play } from "lucide-react";
+import { Link, useSearchParams } from "react-router-dom";
+import {
+  ArrowDown,
+  Clapperboard,
+  Earth,
+  LayoutGrid,
+  ListOrdered,
+  Play,
+} from "lucide-react";
 import type { Meeting, Session } from "@/api/types";
 import {
   useDrivers,
@@ -19,13 +26,13 @@ import { PICKER_BAR } from "@/components/Nav/pickerStyles";
 import { DEFAULT_YEAR, SCHEDULE_CLOCK_TICK_MS } from "@/constants";
 import {
   buildSeasonSchedule,
+  countdownParts,
   scheduleFocusRound,
   formatCountdown,
   type ScheduleRound,
   type ScheduleSession,
-  type ScheduleStatus,
 } from "@/utils/schedule";
-import { replayPath, toSafeExternalUrl } from "@/utils/url";
+import { replaceHistorySearchParams, replayPath, toSafeExternalUrl } from "@/utils/url";
 import { getSessionHighlight } from "@/data/sessionHighlights";
 import { trackEvent } from "@/lib/analytics";
 
@@ -54,12 +61,25 @@ const TIME_MODE_LABEL: Record<TimeMode, string> = {
   track: "Track time",
 };
 
-const STATUS_BADGE: Record<ScheduleStatus, { label: string; cls: string } | null> = {
-  completed: null,
-  live: { label: "Live weekend", cls: "bg-f1red text-white" },
-  upcoming: null,
-  cancelled: { label: "Cancelled", cls: "bg-panel text-muted" },
-};
+const CHIP = "px-1.5 py-0.5 text-tiny font-black uppercase tracking-widest";
+
+function LiveDot() {
+  return (
+    <span
+      aria-hidden="true"
+      className="h-1.5 w-1.5 shrink-0 rounded-full bg-white motion-safe:animate-pulse"
+    />
+  );
+}
+
+// Race and sprint rows lead the weekend; practice and qualifying sit back.
+const isMainEvent = (session: Session) =>
+  session.session_type === "Race" || session.session_type === "Sprint";
+
+function roundKicker(round: ScheduleRound): string {
+  if (round.isTesting) return "Testing";
+  return round.round !== null ? `Round ${round.round}` : "—";
+}
 
 // Re-renders periodically so live/next badges and countdowns stay current.
 function useNow(tickMs: number) {
@@ -75,6 +95,12 @@ interface TimeFormatter {
   day: (iso: string, gmtOffset: string) => string;
   time: (iso: string, gmtOffset: string) => string;
   range: (startIso: string, endIso: string, gmtOffset: string) => string;
+  /** Date block parts: "06–08" + "NOV", or "30–01" + "OCT–NOV". */
+  block: (
+    startIso: string,
+    endIso: string,
+    gmtOffset: string,
+  ) => { days: string; month: string };
 }
 
 interface SessionTimeFormat {
@@ -96,6 +122,8 @@ function makeFormatter(mode: TimeMode): TimeFormatter {
     month: "short",
     ...tz,
   });
+  const dayNumFmt = new Intl.DateTimeFormat(undefined, { day: "2-digit", ...tz });
+  const monthFmt = new Intl.DateTimeFormat(undefined, { month: "short", ...tz });
   const shift = (iso: string, gmtOffset: string) =>
     new Date(
       new Date(iso).getTime() +
@@ -106,6 +134,18 @@ function makeFormatter(mode: TimeMode): TimeFormatter {
     time: (iso, off) => timeFmt.format(shift(iso, off)),
     range: (startIso, endIso, off) =>
       dateFmt.formatRange(shift(startIso, off), shift(endIso, off)),
+    block: (startIso, endIso, off) => {
+      const start = shift(startIso, off);
+      const end = shift(endIso, off);
+      const [d1, d2] = [dayNumFmt.format(start), dayNumFmt.format(end)];
+      const [m1, m2] = [monthFmt.format(start), monthFmt.format(end)].map((m) =>
+        m.replace(".", "").toUpperCase(),
+      );
+      return {
+        days: d1 === d2 && m1 === m2 ? d1 : `${d1}–${d2}`,
+        month: m1 === m2 ? m1 : `${m1}–${m2}`,
+      };
+    },
   };
 }
 
@@ -126,30 +166,44 @@ function SessionRow({
   const canReplay = status === "completed" || status === "live";
   const hasResult = status === "completed";
   const highlight = hasResult ? getSessionHighlight(session.session_key) : null;
-  const actionClass = buttonClass(
-    "quiet",
-    "sm",
-    "h-8 w-[4.5rem] rounded-sm bg-track/50",
-  );
+  const actionClass = buttonClass("quiet", "sm", "h-8 w-[4.5rem] bg-track/50");
+  const main = isMainEvent(session);
   return (
-    <div className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-2 gap-y-1 px-3 py-2 font-mono text-small sm:grid-cols-[minmax(0,1fr)_auto_auto] sm:gap-2">
-      <div className="col-start-1 row-start-1 min-w-0">
-        <div
-          className={`break-words ${
-            status === "cancelled" ? "text-muted line-through" : "text-fg"
+    <div
+      className={`relative grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-2 gap-y-1 px-3 py-2 text-small sm:grid-cols-[minmax(0,1fr)_auto_auto] sm:gap-2 ${
+        status === "live" ? "bg-f1red/10" : ""
+      } ${
+        status === "live" || main
+          ? "before:absolute before:inset-y-0 before:left-0 before:w-0.5 before:bg-f1red"
+          : ""
+      }`}
+    >
+      <div className="col-start-1 row-start-1 flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1">
+        <span
+          className={`break-words uppercase tracking-wider ${
+            status === "cancelled"
+              ? "font-bold text-muted line-through"
+              : main
+                ? "font-black text-fg"
+                : "font-bold text-fg/80"
           }`}
         >
           {session.session_name}
-        </div>
+        </span>
         {status === "live" && (
-          <span className="text-tiny font-bold uppercase tracking-caps text-f1red-fg">Live</span>
+          <span className={`inline-flex items-center gap-1 bg-f1red text-white ${CHIP}`}>
+            <LiveDot />
+            Live
+          </span>
         )}
       </div>
-      <div className="col-span-2 row-start-2 grid grid-cols-2 gap-2 text-tiny tabular-nums sm:col-span-1 sm:row-auto">
+      <div className="col-span-2 row-start-2 grid grid-cols-2 gap-2 sm:col-span-1 sm:row-auto">
         {timeFormats.map(({ label, formatter }) => (
           <div key={label}>
-            <span className="block whitespace-nowrap text-muted">{label}</span>
-            <span className="mt-0.5 block whitespace-nowrap text-fg/85">
+            <span className="block whitespace-nowrap text-micro font-bold uppercase tracking-widest text-faint">
+              {label}
+            </span>
+            <span className="mt-0.5 block whitespace-nowrap font-mono text-tiny tabular-nums text-fg/85">
               {formatter.day(session.date_start, session.gmt_offset)}{" "}
               {formatter.time(session.date_start, session.gmt_offset)}
             </span>
@@ -189,7 +243,7 @@ function SessionRow({
               onClick={() => onShowHighlights(session)}
               aria-label={`${session.session_name} highlights`}
               title="Highlights"
-              className={buttonClass("quiet", "sm", "h-8 w-8 rounded-sm bg-track/50 px-0")}
+              className={buttonClass("quiet", "sm", "h-8 w-8 bg-track/50 px-0")}
             >
               <Clapperboard aria-hidden="true" className="h-3.5 w-3.5" />
             </button>
@@ -263,76 +317,102 @@ function RoundCard({
   onShowResult: (session: Session) => void;
   onShowHighlights: (session: Session) => void;
 }) {
-  const { meeting } = round;
+  const { meeting, status } = round;
   const flagUrl = toSafeExternalUrl(meeting.country_flag);
-  const badge = STATUS_BADGE[round.status];
-  const kicker = round.isTesting
-    ? "Testing"
-    : round.round !== null
-      ? `Round ${round.round}`
-      : "—";
+  const live = status === "live";
+  const highlighted = live || round.isNext;
+  const done = status === "completed" || status === "cancelled";
+  const date = fmt.block(meeting.date_start, meeting.date_end, meeting.gmt_offset);
+  const nextStart = nextSession ? new Date(nextSession.date_start).getTime() : null;
   return (
     <article
       data-next-round={round.isNext || undefined}
       data-meeting-key={meeting.meeting_key}
       className={`flex scroll-mt-3 flex-col overflow-hidden rounded-sm border bg-surface ${
-        round.isNext ? "border-f1red/80 ring-1 ring-f1red/40" : "border-panel"
-      } ${round.status === "completed" || round.status === "cancelled" ? "opacity-80" : ""}`}
+        highlighted ? "border-f1red" : "border-panel"
+      }`}
     >
-      <header className="flex items-start gap-3 border-b border-panel px-3 py-2.5">
-        {flagUrl ? (
-          <img
-            src={flagUrl}
-            alt=""
-            className="mt-0.5 h-4 w-6 shrink-0 rounded-sm border border-fg/20 object-cover"
-            loading="lazy"
-            referrerPolicy="no-referrer"
-          />
-        ) : (
-          <span className="mt-0.5 h-4 w-6 shrink-0 rounded-sm bg-panel" />
-        )}
-        <div className="min-w-0 flex-1">
+      {highlighted && (
+        <div className="flex h-6 items-center justify-between gap-2 bg-f1red px-3 text-tiny font-black uppercase tracking-widest text-white">
+          <span className="flex items-center gap-1.5">
+            {live && <LiveDot />}
+            {live ? "Live weekend" : round.isTesting ? "Up next" : "Next race"}
+          </span>
+          {nextSession && nextStart !== null && (
+            <span className="truncate font-mono font-bold normal-case tracking-normal">
+              {nextStart > now
+                ? `${nextSession.session_name} in ${formatCountdown(nextStart - now)}`
+                : `${nextSession.session_name} now`}
+            </span>
+          )}
+        </div>
+      )}
+      <header className="flex items-stretch border-b border-panel">
+        <div
+          aria-label={fmt.range(meeting.date_start, meeting.date_end, meeting.gmt_offset)}
+          className="flex w-[4.5rem] shrink-0 flex-col items-center justify-center gap-1 border-r border-panel px-1 py-2.5"
+        >
+          <span
+            aria-hidden="true"
+            className={`whitespace-nowrap text-base font-black leading-none tabular-nums ${
+              done ? "text-muted" : "text-fg"
+            }`}
+          >
+            {date.days}
+          </span>
+          <span
+            aria-hidden="true"
+            className={`whitespace-nowrap ${CHIP} ${
+              highlighted ? "bg-f1red text-white" : done ? "bg-panel text-muted" : "bg-panel text-fg"
+            }`}
+          >
+            {date.month}
+          </span>
+        </div>
+        <div className="min-w-0 flex-1 px-3 py-2.5">
           <div className="flex flex-wrap items-center gap-1.5 text-tiny font-black uppercase tracking-widest">
-            <span className={round.isNext ? "text-f1red" : "text-muted"}>
-              {kicker}
+            <span className={highlighted ? "text-f1red-fg" : "text-muted"}>
+              {roundKicker(round)}
             </span>
             {round.isSprint && (
-              <span className="rounded-sm border border-yellow-line px-1 text-yellow-fg">
+              <span className={`border border-yellow-line bg-yellow-tint text-yellow-fg ${CHIP}`}>
                 Sprint
               </span>
             )}
-            {badge && (
-              <span className={`rounded-sm px-1 ${badge.cls}`}>{badge.label}</span>
-            )}
-            {round.isNext && round.status === "upcoming" && (
-              <span className="rounded-sm bg-f1red px-1 text-white">Next</span>
+            {status === "cancelled" && (
+              <span className={`bg-panel text-muted ${CHIP}`}>Cancelled</span>
             )}
           </div>
-          <h2 className="truncate text-sm font-bold text-fg">
-            {meeting.meeting_name}
-          </h2>
-          <div className="truncate text-small text-muted">
+          <div className="mt-1 flex min-w-0 items-center gap-2">
+            {flagUrl ? (
+              <img
+                src={flagUrl}
+                alt=""
+                className="h-3.5 w-5 shrink-0 border border-fg/20 object-cover"
+                loading="lazy"
+                referrerPolicy="no-referrer"
+              />
+            ) : (
+              <span className="h-3.5 w-5 shrink-0 bg-panel" />
+            )}
+            <h2
+              className={`truncate text-sm font-black uppercase tracking-wider ${
+                status === "cancelled" ? "text-muted line-through" : "text-fg"
+              }`}
+            >
+              {meeting.meeting_name}
+            </h2>
+          </div>
+          <div className="mt-0.5 truncate text-small text-muted">
             {meeting.circuit_short_name} · {meeting.location}
           </div>
         </div>
-        <div className="shrink-0 text-right font-mono text-small text-fg/85">
-          {fmt.range(meeting.date_start, meeting.date_end, meeting.gmt_offset)}
-          {round.isNext && nextSession && (
-            <div className="mt-0.5 text-caption text-f1red">
-              {new Date(nextSession.date_start).getTime() > now
-                ? `${nextSession.session_name} in ${formatCountdown(
-                    new Date(nextSession.date_start).getTime() - now,
-                  )}`
-                : `${nextSession.session_name} now`}
-            </div>
-          )}
-        </div>
       </header>
-      {/* Grows to fill the stretched card, so the fastest lap and sessions
-          line up at the bottom across a row even when facts are missing. */}
+      {/* Grows to fill the stretched card, so the sessions line up at the
+          bottom across a row even when facts are missing. */}
       <CircuitSummary meeting={meeting} year={year} className="flex-1" />
       {round.sessions.length > 0 ? (
-        <div className="divide-y divide-panel/60 py-0.5">
+        <div className="divide-y divide-panel/60">
           {round.sessions.map((item) => (
             <SessionRow
               key={item.session.session_key}
@@ -345,11 +425,173 @@ function RoundCard({
           ))}
         </div>
       ) : (
-        <div className="px-3 py-2 text-small text-muted">
-          {round.status === "cancelled" ? "Event cancelled" : "Session times TBC"}
+        <div className="px-3 py-2 text-small uppercase tracking-wider text-muted">
+          {status === "cancelled" ? "Event cancelled" : "Session times TBC"}
         </div>
       )}
     </article>
+  );
+}
+
+// One segment per numbered round: completed red, the live/next round white.
+function SeasonProgress({ rounds }: { rounds: ScheduleRound[] }) {
+  const numbered = rounds.filter((r) => r.round !== null);
+  const completed = numbered.filter((r) => r.status === "completed").length;
+  return (
+    <div className="flex min-w-0 items-center gap-2">
+      <span className="text-tiny font-bold uppercase tracking-widest text-muted">Season</span>
+      <div
+        role="progressbar"
+        aria-label="Season progress"
+        aria-valuemin={0}
+        aria-valuemax={numbered.length}
+        aria-valuenow={completed}
+        aria-valuetext={`${completed} of ${numbered.length} rounds completed`}
+        className="flex h-1.5 w-28 gap-px sm:w-44"
+      >
+        {numbered.map((r) => (
+          <span
+            key={r.meeting.meeting_key}
+            className={`flex-1 ${
+              r.status === "completed"
+                ? "bg-f1red"
+                : r.isNext || r.status === "live"
+                  ? "bg-fg"
+                  : "bg-line"
+            }`}
+          />
+        ))}
+      </div>
+      <span className="font-mono text-small tabular-nums text-fg">
+        {completed}
+        <span className="text-muted">/{numbered.length}</span>
+      </span>
+    </div>
+  );
+}
+
+function CountdownTile({ value, label }: { value: number; label: string }) {
+  return (
+    <div className="flex min-w-11 flex-col items-center border border-panel bg-track px-1.5 py-1">
+      <span className="font-mono text-lg font-bold leading-tight tabular-nums text-fg">
+        {String(value).padStart(2, "0")}
+      </span>
+      <span className="text-micro font-bold uppercase tracking-widest text-muted">{label}</span>
+    </div>
+  );
+}
+
+// The live or next round, pinned above the cards with a countdown to its
+// next session.
+function NextRoundStrip({
+  round,
+  nextSession,
+  now,
+  fmt,
+  year,
+  onShowCard,
+  onShowOnMap,
+}: {
+  round: ScheduleRound;
+  nextSession: Session | null;
+  now: number;
+  fmt: TimeFormatter;
+  year: number;
+  onShowCard: () => void;
+  onShowOnMap: () => void;
+}) {
+  const { meeting } = round;
+  const flagUrl = toSafeExternalUrl(meeting.country_flag);
+  const live = round.status === "live";
+  const nextStart = nextSession ? new Date(nextSession.date_start).getTime() : null;
+  const sessionLive = nextSession !== null && nextStart !== null && nextStart <= now;
+  const parts = countdownParts(nextStart !== null ? nextStart - now : 0);
+  return (
+    <section
+      aria-label={live ? "Live weekend" : "Up next"}
+      className="flex shrink-0 flex-wrap items-center gap-x-5 gap-y-3 border-b border-l-4 border-panel border-l-f1red bg-surface px-3 py-3 sm:px-4"
+    >
+      <div className="flex w-full min-w-0 items-center gap-3 lg:w-auto lg:flex-1">
+        {flagUrl && (
+          <img
+            src={flagUrl}
+            alt=""
+            className="h-6 w-9 shrink-0 border border-fg/20 object-cover"
+            referrerPolicy="no-referrer"
+          />
+        )}
+        <div className="min-w-0">
+          <div className="flex flex-wrap items-center gap-2 text-tiny font-black uppercase tracking-widest">
+            <span className={`inline-flex items-center gap-1 bg-f1red text-white ${CHIP}`}>
+              {live && <LiveDot />}
+              {live ? "Live now" : "Up next"}
+            </span>
+            <span className="text-muted">{roundKicker(round)}</span>
+            {round.isSprint && (
+              <span className={`border border-yellow-line bg-yellow-tint text-yellow-fg ${CHIP}`}>
+                Sprint
+              </span>
+            )}
+          </div>
+          <p className="mt-1 truncate text-lg font-black uppercase leading-tight tracking-wider text-fg sm:text-xl">
+            {meeting.meeting_name}
+          </p>
+          <p className="truncate text-small text-muted">
+            {meeting.circuit_short_name} ·{" "}
+            <span className="font-mono tabular-nums text-fg/85">
+              {fmt.range(meeting.date_start, meeting.date_end, meeting.gmt_offset)}
+            </span>
+          </p>
+        </div>
+      </div>
+
+      {nextSession && (
+        <div className="flex items-center gap-3">
+          <div className="text-right">
+            <div className="text-tiny font-bold uppercase tracking-widest text-muted">
+              {sessionLive ? "On track now" : "Starts in"}
+            </div>
+            <div className="text-small font-black uppercase tracking-wider text-fg">
+              {nextSession.session_name}
+            </div>
+          </div>
+          {sessionLive ? (
+            <Link
+              to={replayPath({
+                year,
+                meetingKey: nextSession.meeting_key,
+                sessionKey: nextSession.session_key,
+              })}
+              className={buttonClass("primary")}
+            >
+              <Play aria-hidden="true" className="h-3 w-3" />
+              Watch
+            </Link>
+          ) : (
+            <div
+              className="flex gap-1"
+              role="timer"
+              aria-label={`${nextSession.session_name} in ${formatCountdown(nextStart! - now)}`}
+            >
+              <CountdownTile value={parts.days} label="Days" />
+              <CountdownTile value={parts.hours} label="Hrs" />
+              <CountdownTile value={parts.minutes} label="Min" />
+            </div>
+          )}
+        </div>
+      )}
+
+      <div className="flex gap-1.5">
+        <button type="button" onClick={onShowCard} className={buttonClass("quiet", "sm", "h-8")}>
+          <ArrowDown aria-hidden="true" className="h-3 w-3" />
+          Session times
+        </button>
+        <button type="button" onClick={onShowOnMap} className={buttonClass("quiet", "sm", "h-8")}>
+          <Earth aria-hidden="true" className="h-3 w-3" />
+          Map
+        </button>
+      </div>
+    </section>
   );
 }
 
@@ -421,6 +663,22 @@ export default function Schedule() {
   const mapSelectedKey = schedule.rounds.some((r) => r.meeting.meeting_key === meetingParam)
     ? meetingParam
     : focusKey;
+  // Layout and round change together in one URL update; two separate
+  // setters would each start from the same params and drop the other.
+  const [, setSearchParams] = useSearchParams();
+  const showRoundOnMap = (meetingKey: number) => {
+    trackEvent("schedule_view_changed", { view: "map", year });
+    setSearchParams(
+      (prev) => {
+        const params = new URLSearchParams(prev);
+        params.set("layout", "map");
+        params.set("round", String(meetingKey));
+        replaceHistorySearchParams(params);
+        return params;
+      },
+      { replace: true },
+    );
+  };
   const changeView = (next: ViewMode) => {
     if (next === view) return;
     trackEvent("schedule_view_changed", { view: next, year });
@@ -445,11 +703,13 @@ export default function Schedule() {
       <h1 className="sr-only">{`F1 ${year} season schedule`}</h1>
       <div className={PICKER_BAR}>
         <div className="flex flex-wrap items-center gap-x-3 gap-y-1 py-1.5 pl-[max(0.75rem,env(safe-area-inset-left))] pr-[max(0.75rem,env(safe-area-inset-right))] sm:px-4">
-          <span className="font-mono text-small text-muted">
-            {isLoading
-              ? "Loading calendar…"
-              : `${schedule.completedRounds}/${schedule.totalRounds} rounds completed`}
-          </span>
+          {isLoading ? (
+            <span className="text-tiny font-bold uppercase tracking-widest text-muted">
+              Loading calendar…
+            </span>
+          ) : (
+            <SeasonProgress rounds={schedule.rounds} />
+          )}
           <div
             role="radiogroup"
             aria-label="Layout"
@@ -519,23 +779,44 @@ export default function Schedule() {
           </Suspense>
         )
       ) : (
-        <div ref={listRef} className="md:min-h-0 md:flex-1 md:overflow-auto">
-          <div className="grid gap-3 p-3 sm:p-4 md:grid-cols-2 xl:grid-cols-3">
-            {schedule.rounds.map((round) => (
-              <RoundCard
-                key={round.meeting.meeting_key}
-                round={round}
-                year={year}
-                fmt={fmt}
-                timeFormats={timeFormats}
-                nextSession={round.isNext ? nextSession : null}
-                now={now}
-                onShowResult={setResultSession}
-                onShowHighlights={showHighlights}
-              />
-            ))}
+        <>
+          {nextRound && (
+            <NextRoundStrip
+              round={nextRound}
+              nextSession={nextSession}
+              now={now}
+              fmt={fmt}
+              year={year}
+              onShowCard={() => {
+                trackEvent("schedule_next_round_action", { action: "session_times" });
+                listRef.current
+                  ?.querySelector(`[data-meeting-key="${nextRound.meeting.meeting_key}"]`)
+                  ?.scrollIntoView?.({ block: "start", behavior: "smooth" });
+              }}
+              onShowOnMap={() => {
+                trackEvent("schedule_next_round_action", { action: "map" });
+                showRoundOnMap(nextRound.meeting.meeting_key);
+              }}
+            />
+          )}
+          <div ref={listRef} className="md:min-h-0 md:flex-1 md:overflow-auto">
+            <div className="grid gap-3 p-3 sm:p-4 md:grid-cols-2 xl:grid-cols-3">
+              {schedule.rounds.map((round) => (
+                <RoundCard
+                  key={round.meeting.meeting_key}
+                  round={round}
+                  year={year}
+                  fmt={fmt}
+                  timeFormats={timeFormats}
+                  nextSession={round.isNext ? nextSession : null}
+                  now={now}
+                  onShowResult={setResultSession}
+                  onShowHighlights={showHighlights}
+                />
+              ))}
+            </div>
           </div>
-        </div>
+        </>
       )}
 
       {resultSession && (

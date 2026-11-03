@@ -22,13 +22,20 @@ function formatPitLoss(raw: string | undefined): string | null {
   return raw && Number.isFinite(seconds) ? `${seconds.toFixed(1)}s` : null;
 }
 
-function Fact({ label, value }: { label: string; value: string }) {
+// Numbers read in mono; words (direction, type) stay in the UI face.
+function Fact({ label, value, mono = true }: { label: string; value: string; mono?: boolean }) {
   return (
     <div className="min-w-0">
       <dt className="text-tiny font-bold uppercase tracking-widest text-muted">
         {label}
       </dt>
-      <dd className="truncate font-mono text-small text-fg/90">{value}</dd>
+      <dd
+        className={`truncate text-small text-fg/90 ${
+          mono ? "font-mono tabular-nums" : "font-semibold"
+        }`}
+      >
+        {value}
+      </dd>
     </div>
   );
 }
@@ -135,9 +142,10 @@ export function CircuitSummary({
           <Fact
             label="Direction"
             value={stats.direction === "clockwise" ? "Clockwise" : "Anticlockwise"}
+            mono={false}
           />
         )}
-        <Fact label="Type" value={typeLabel} />
+        <Fact label="Type" value={typeLabel} mono={false} />
         {pitLoss && (
           <Fact
             label="Pit loss"

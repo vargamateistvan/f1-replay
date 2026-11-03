@@ -358,6 +358,9 @@ playback/driver interactions. Tour completion is not required for activation.
 - `schedule_view_changed`
   - Params: `view` (`cards` | `map`), `year`
   - Trigger: Cards / Map layout toggle in the schedule picker bar
+- `schedule_next_round_action`
+  - Params: `action` (`session_times` scrolls to the round's card, `map` opens it on the world map)
+  - Trigger: buttons in the "Up next" strip above the schedule cards
 - `schedule_map_current_weekend`
   - Params: `meeting_key` (the live or next round; the last round after the season)
   - Trigger: "Current weekend" button on the schedule world map

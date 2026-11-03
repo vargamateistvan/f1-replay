@@ -125,11 +125,18 @@ export function scheduleFocusRound(rounds: ScheduleRound[]): ScheduleRound | nul
 
 // "3d 4h", "5h 12m", "8m" — coarse countdown to the next session.
 export function formatCountdown(ms: number): string {
-  const totalMin = Math.max(0, Math.floor(ms / 60_000));
-  const days = Math.floor(totalMin / 1440);
-  const hours = Math.floor((totalMin % 1440) / 60);
-  const mins = totalMin % 60;
+  const { days, hours, minutes } = countdownParts(ms);
   if (days > 0) return `${days}d ${hours}h`;
-  if (hours > 0) return `${hours}h ${mins}m`;
-  return `${mins}m`;
+  if (hours > 0) return `${hours}h ${minutes}m`;
+  return `${minutes}m`;
+}
+
+// Whole days / hours / minutes left (never negative), for countdown tiles.
+export function countdownParts(ms: number): { days: number; hours: number; minutes: number } {
+  const totalMin = Math.max(0, Math.floor(ms / 60_000));
+  return {
+    days: Math.floor(totalMin / 1440),
+    hours: Math.floor((totalMin % 1440) / 60),
+    minutes: totalMin % 60,
+  };
 }

@@ -3,6 +3,7 @@ import type { Meeting, Session } from "@/api/types";
 import { LIVE_BUFFER_MS } from "@/constants";
 import {
   buildSeasonSchedule,
+  countdownParts,
   formatCountdown,
   isTestingMeeting,
   scheduleFocusRound,
@@ -133,6 +134,17 @@ describe("formatCountdown", () => {
     expect(formatCountdown(5 * HOUR + 12 * 60_000)).toBe("5h 12m");
     expect(formatCountdown(8 * 60_000 + 30_000)).toBe("8m");
     expect(formatCountdown(-1)).toBe("0m");
+  });
+});
+
+describe("countdownParts", () => {
+  it("splits into whole days, hours and minutes", () => {
+    expect(countdownParts(3 * DAY + 4 * HOUR + 12 * 60_000 + 59_000)).toEqual({
+      days: 3,
+      hours: 4,
+      minutes: 12,
+    });
+    expect(countdownParts(-5 * HOUR)).toEqual({ days: 0, hours: 0, minutes: 0 });
   });
 });
 
