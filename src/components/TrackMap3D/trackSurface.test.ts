@@ -1,13 +1,20 @@
 import { describe, expect, it } from "vitest";
 import silverstoneJson from "@/data/circuit-geometry/2-2025.json";
 import monacoJson from "@/data/circuit-geometry/22-2025.json";
-import { MAP3D_EDGE_LINE_M, MAP3D_TRACK_HALF_WIDTH_M } from "@/constants";
+import {
+  MAP3D_EDGE_LINE_M,
+  MAP3D_GRID_FIRST_SLOT_M,
+  MAP3D_GRID_SLOTS,
+  MAP3D_TRACK_HALF_WIDTH_M,
+} from "@/constants";
 import type { CircuitGeometry } from "@/data/circuitGeometryTypes";
 import { getCircuitGeoref } from "@/data/circuitGeoref";
 import { getPitLane } from "@/data/pitLanes";
 import { lngLatToEnu } from "@/utils/georef";
+import { buildTrackside } from "./trackside";
 import {
   buildFlagZones,
+  buildGridSlots,
   buildSectorZones,
   buildTrackSurface,
   kerbRuns,
@@ -16,6 +23,7 @@ import {
   removeLoops,
   resample,
   runoffRuns,
+  runoffStyleFor,
   trimLoopOverlap,
 } from "./trackSurface";
 
@@ -186,10 +194,18 @@ describe.each(LATEST_LAYOUTS)("buildTrackSurface draws only simple polygons — 
     const s = buildTrackSurface(g, getCircuitGeoref(key, year)!, getPitLane(key));
     const geoRef = getCircuitGeoref(key, year)!;
     const sectors = buildSectorZones(g, geoRef);
+    const trackside = buildTrackside(g, geoRef, getPitLane(key));
     for (const f of [
+      ...s.grass.features,
+      ...s.grassStripes.features,
+      ...s.pitLaneLines.features,
+      ...s.gridSlots.features,
+      ...trackside.solid.features,
+      ...trackside.fence.features,
       ...s.track.features,
       ...s.verge.features,
       ...s.runoff.features,
+      ...s.runoffBands.features,
       ...s.edgeLines.features,
       ...s.pitLane.features,
       ...s.kerbsBase.features,
@@ -299,8 +315,54 @@ describe("buildTrackSurface run-off and markings", () => {
     expect(surface.runoff.features.length).toBeGreaterThan(10);
   });
 
-  it("leaves street circuits (walls) without gravel", () => {
-    expect(buildTrackSurface(monaco, geo, getPitLane(22)).runoff.features).toHaveLength(0);
+  it("leaves street circuits (walls) without gravel or grass", () => {
+    const street = buildTrackSurface(monaco, geo, getPitLane(22));
+    expect(street.runoff.features).toHaveLength(0);
+    expect(street.grass.features).toHaveLength(0);
+    expect(street.grassStripes.features).toHaveLength(0);
+  });
+
+  it("paints no bands on gravel run-off", () => {
+    expect(runoffStyleFor(2).surface).toBe("gravel");
+    expect(surface.runoffBands.features).toHaveLength(0);
+  });
+
+  it("paints COTA's tarmac run-off in bands parallel to the track", async () => {
+    const style = runoffStyleFor(9);
+    expect(style.surface).toBe("tarmac");
+    const cotaGeo = getCircuitGeoref(9, 2025)!;
+    const { loadCircuitGeometry } = await import("@/data/circuitGeometry");
+    const cota = (await loadCircuitGeometry(9, 2025))!;
+    const painted = buildTrackSurface(cota, cotaGeo, getPitLane(9));
+    const bands = style.bands!;
+    // Every run-off piece gets each band, in order.
+    expect(painted.runoffBands.features.length).toBeGreaterThanOrEqual(
+      painted.runoff.features.length * bands.length,
+    );
+    const colors = new Set(painted.runoffBands.features.map((f) => f.properties.color));
+    expect(colors).toEqual(new Set(bands.map((b) => b.color)));
+    // The first band spans its width across the track direction, not along it.
+    const first = painted.runoffBands.features.find((f) => f.properties.color === bands[0]!.color)!;
+    const [ring] = first.geometry.coordinates;
+    const enu = ([lng, lat]: number[]) => lngLatToEnu(cotaGeo.originLng, cotaGeo.originLat, lng!, lat!);
+    const a = enu(ring![0]!);
+    const b = enu(ring![ring!.length - 2]!);
+    expect(Math.hypot(a.x - b.x, a.y - b.y)).toBeCloseTo(bands[0]!.widthM, 0);
+  });
+
+  it("falls back to gravel for unlisted circuits", () => {
+    expect(runoffStyleFor(99999)).toEqual({ surface: "gravel" });
+    expect(runoffStyleFor(null)).toEqual({ surface: "gravel" });
+    expect(runoffStyleFor(55).surface).toBe("sand");
+  });
+
+  it("mows grass on both sides of a permanent circuit, in stripes", () => {
+    expect(surface.grass.features.length).toBe(surface.verge.features.length);
+    expect(surface.grassStripes.features.length).toBeGreaterThan(surface.grass.features.length);
+  });
+
+  it("lines both edges of the pit lane", () => {
+    expect(surface.pitLaneLines.features.length).toBeGreaterThanOrEqual(2);
   });
 
   it("paints a white line just inside each asphalt edge", () => {
@@ -346,5 +408,52 @@ describe("buildSectorZones", () => {
     };
     expect(width(zones.paint.features[2]!.geometry.coordinates[0]!)).toBeCloseTo(15, 0);
     expect(width(zones.ribbon.features[2]!.geometry.coordinates[0]!)).toBeCloseTo(23, 0);
+  });
+});
+
+describe("buildGridSlots", () => {
+  // A 2 km loop: 600 m straight, then a gentle bend, sampled every metre
+  // anticlockwise with the line at index 0 part-way along the straight.
+  const straightLoop = () => {
+    const pts: Array<{ x: number; y: number }> = [];
+    for (let x = 300; x < 900; x++) pts.push({ x, y: 0 });
+    for (let a = 0; a < 180; a++) {
+      const t = (a * Math.PI) / 180;
+      pts.push({ x: 900 + 200 * Math.sin(t), y: 200 - 200 * Math.cos(t) });
+    }
+    for (let x = 900; x > -300; x--) pts.push({ x, y: 400 });
+    for (let a = 0; a < 180; a++) {
+      const t = (a * Math.PI) / 180;
+      pts.push({ x: -300 - 200 * Math.sin(t), y: 200 + 200 * Math.cos(t) });
+    }
+    for (let x = -300; x < 300; x++) pts.push({ x, y: 0 });
+    const center = resample(pts, 1, true);
+    return { center, nrm: normals(center, true, 12) };
+  };
+  const toLL = (p: { x: number; y: number }): [number, number] => [p.x, p.y];
+
+  it("lays the full staggered grid behind the line on a long straight", () => {
+    const { center, nrm } = straightLoop();
+    const slots = buildGridSlots(center, nrm, [{ from: 600, to: 700, side: 1 }], toLL);
+    // Three bars per slot: the front bar and two legs.
+    expect(slots).toHaveLength(MAP3D_GRID_SLOTS * 3);
+    const front = (k: number) => slots[k * 3]![0]!;
+    // Pole is first, behind the line, on the inside (left) of the first corner.
+    const pole = front(0);
+    expect(Math.max(...pole.map((p) => p[0]!))).toBeLessThan(300 - MAP3D_GRID_FIRST_SLOT_M + 0.5);
+    expect(Math.min(...pole.map((p) => p[1]!))).toBeGreaterThan(0);
+    // P2 sits on the other side of the track.
+    expect(Math.max(...front(1).map((p) => p[1]!))).toBeLessThan(0);
+  });
+
+  it("stops where the track behind the line bends away", () => {
+    const { center, nrm } = straightLoop();
+    // Start the lap 10 m after the bend onto the straight.
+    const k = center.findIndex((p, i) => i > center.length / 2 && Math.abs(p.y) < 1e-6 && p.x >= -290);
+    const shifted = [...center.slice(k), ...center.slice(0, k)];
+    const shiftedNrm = [...nrm.slice(k), ...nrm.slice(0, k)];
+    const slots = buildGridSlots(shifted, shiftedNrm, [], toLL);
+    expect(slots.length / 3).toBeGreaterThan(2);
+    expect(slots.length / 3).toBeLessThan(MAP3D_GRID_SLOTS / 2);
   });
 });

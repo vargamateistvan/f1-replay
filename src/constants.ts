@@ -203,11 +203,69 @@ export const MAP3D_KERB_COLORS: readonly [string, string] = [
   "#e2231a",
 ];
 /**
- * Gravel run-off on the outside of each corner: band width beyond the verge,
- * and how far it reaches before and after the corner.
+ * Run-off on the outside of each corner: band width beyond the verge, and how
+ * far it reaches before and after the corner.
  */
 export const MAP3D_RUNOFF_M = 18;
 export const MAP3D_RUNOFF_EXTEND_M = 30;
+export type RunoffSurface = "gravel" | "sand" | "tarmac";
+/**
+ * A circuit's run-off look; `bands` are painted on tarmac parallel to the
+ * track, outward from the verge in order, with plain run-off beyond.
+ */
+export interface RunoffStyle {
+  surface: RunoffSurface;
+  bands?: readonly { color: string; widthM: number }[];
+}
+/**
+ * Each circuit's dominant run-off (most mix gravel and tarmac), keyed by
+ * circuit_key; anything not listed is gravel. Tarmac: Sepang, Interlagos,
+ * Red Bull Ring, Shanghai, Bahrain, Mexico City, Yas Marina; COTA's has
+ * red and blue bands split by a white line; Zandvoort's traps are dune sand.
+ */
+export const MAP3D_RUNOFF_STYLES: Readonly<Record<number, RunoffStyle>> = {
+  9: {
+    surface: "tarmac",
+    bands: [
+      { color: "#c8102e", widthM: 3.5 },
+      { color: "#f2f2f2", widthM: 0.6 },
+      { color: "#1d4f9c", widthM: 3.5 },
+    ],
+  },
+  12: { surface: "tarmac" },
+  14: { surface: "tarmac" },
+  19: { surface: "tarmac" },
+  49: { surface: "tarmac" },
+  55: { surface: "sand" },
+  63: { surface: "tarmac" },
+  65: { surface: "tarmac" },
+  70: { surface: "tarmac" },
+};
+/** Run-off colours per surface and Standard light preset, dry and wet. */
+export const MAP3D_RUNOFF_PALETTE = {
+  gravel: {
+    dawn: { dry: "#b9a07e", wet: "#8f7b60" },
+    day: { dry: "#c8b58e", wet: "#9e8d6c" },
+    dusk: { dry: "#a48c74", wet: "#7d6a57" },
+    night: { dry: "#5e5a52", wet: "#46433d" },
+  },
+  sand: {
+    dawn: { dry: "#d8c49a", wet: "#a8966f" },
+    day: { dry: "#e8d8ab", wet: "#bcaa80" },
+    dusk: { dry: "#c1aa8a", wet: "#907e64" },
+    night: { dry: "#6d6858", wet: "#4e4a40" },
+  },
+  // Lighter than the racing surface so the track edge still reads.
+  tarmac: {
+    dawn: { dry: "#5c606a", wet: "#43464f" },
+    day: { dry: "#6e727b", wet: "#4f535b" },
+    dusk: { dry: "#555862", wet: "#3d4049" },
+    night: { dry: "#40444e", wet: "#2e3139" },
+  },
+} as const satisfies Record<
+  RunoffSurface,
+  Record<"dawn" | "day" | "dusk" | "night", { dry: string; wet: string }>
+>;
 /**
  * Street circuits (walls, not gravel) that get no run-off: Monaco, Singapore,
  * Baku, Jeddah, Miami, Las Vegas, Madring. Keyed by circuit_key.
@@ -222,10 +280,59 @@ export const MAP3D_EDGE_LINE_COLOR = "#f4f4f4";
 export const MAP3D_START_GRID_COLUMNS = 6;
 export const MAP3D_START_GRID_ROWS = 3;
 export const MAP3D_START_GRID_DEPTH_M = 7.5;
+/**
+ * Grid slots behind the start line: count, distance of pole behind the line,
+ * spacing between consecutive (staggered) slots, and the white bracket's
+ * width, line thickness and leg length.
+ */
+export const MAP3D_GRID_SLOTS = 22;
+export const MAP3D_GRID_FIRST_SLOT_M = 8;
+export const MAP3D_GRID_SLOT_SPACING_M = 8;
+export const MAP3D_GRID_SLOT_WIDTH_M = 3;
+export const MAP3D_GRID_SLOT_LINE_M = 0.35;
+export const MAP3D_GRID_SLOT_LEG_M = 1.8;
+/** Grid slots stop where the track behind the line has turned more than this. */
+export const MAP3D_GRID_MAX_BEND_DEG = 12;
+/** Mown grass beyond the verge (permanent circuits) and its stripe length. */
+export const MAP3D_GRASS_M = 10;
+export const MAP3D_GRASS_STRIPE_M = 10;
+/**
+ * Trackside 3D objects: barrier distance beyond the verge (grass stretches,
+ * street-circuit walls, and beyond the gravel), how far it sweeps between
+ * those, and its thickness / height; catch fence above it.
+ */
+export const MAP3D_BARRIER_GAP_M = 8;
+export const MAP3D_WALL_GAP_M = 0.8;
+export const MAP3D_BARRIER_RUNOFF_GAP_M = 1.5;
+export const MAP3D_BARRIER_RAMP_M = 25;
+export const MAP3D_BARRIER_THICKNESS_M = 0.7;
+export const MAP3D_BARRIER_HEIGHT_M = 1.1;
+export const MAP3D_WALL_HEIGHT_M = 1.4;
+export const MAP3D_FENCE_HEIGHT_M = 4.5;
+/** Barrier pieces shorter than this (between clipped stretches) are dropped. */
+export const MAP3D_BARRIER_MIN_RUN_M = 10;
+/** Tyre-wall colour blocks behind the gravel. */
+export const MAP3D_TYRE_WALL_BLOCK_M = 3;
+/** Track barriers keep this far from the pit-lane centerline (the pit wall takes over). */
+export const MAP3D_BARRIER_PIT_CLEAR_M = 11;
+/** Pit wall only where the pit lane runs within this distance of the track. */
+export const MAP3D_PIT_WALL_MAX_GAP_M = 60;
+/** Start-light gantry: beam height (underside) and depth along the track. */
+export const MAP3D_GANTRY_CLEARANCE_M = 6.5;
+export const MAP3D_GANTRY_BEAM_M = 1.4;
+export const MAP3D_TRACKSIDE_COLORS = {
+  wall: "#dfe1e6",
+  tyres: ["#d71920", "#f4f4f4"],
+  fence: "#30353e",
+  gantry: "#262a31",
+  lights: "#e10600",
+} as const;
+/** Trackside objects fade in around this zoom (they're under a pixel further out). */
+export const MAP3D_TRACKSIDE_MIN_ZOOM = 14.5;
 /** Below this zoom the track draws as lines; above it as real-width polygons. */
 export const MAP3D_SURFACE_MIN_ZOOM = 13.5;
 /**
- * Asphalt / verge / gravel colours per Standard light preset. Emissive
+ * Asphalt / verge / grass colours per Standard light preset (run-off: MAP3D_RUNOFF_PALETTE). Emissive
  * strength rises at night so the surface still reads without glowing by day.
  */
 export const MAP3D_TRACK_PALETTE = {
@@ -234,40 +341,44 @@ export const MAP3D_TRACK_PALETTE = {
     casing: "#ffd9a8",
     casingOpacity: 0.45,
     emissive: 0.3,
-    gravel: "#b9a07e",
+    grass: "#86b376",
+    grassStripe: "#93c083",
   },
   day: {
     surface: "#4a4d55",
     casing: "#ffffff",
     casingOpacity: 0.6,
     emissive: 0.1,
-    gravel: "#c8b58e",
+    grass: "#8cc576",
+    grassStripe: "#9bd285",
   },
   dusk: {
     surface: "#3a3d47",
     casing: "#ffb488",
     casingOpacity: 0.45,
     emissive: 0.35,
-    gravel: "#a48c74",
+    grass: "#6d9264",
+    grassStripe: "#799f6f",
   },
   night: {
     surface: "#2f333d",
     casing: "#9aa3b5",
     casingOpacity: 0.5,
     emissive: 0.6,
-    gravel: "#5e5a52",
+    grass: "#2b3f2e",
+    grassStripe: "#324835",
   },
 } as const;
 /**
  * Asphalt while it rains: darker, with more emissive so floodlights read as
- * a wet sheen at night; gravel darkens too. Verge and kerbs keep the dry
+ * a wet sheen at night (run-off darkens via MAP3D_RUNOFF_PALETTE). Verge and kerbs keep the dry
  * palette.
  */
 export const MAP3D_TRACK_WET_PALETTE = {
-  dawn: { surface: "#2c2f38", emissive: 0.35, gravel: "#8f7b60" },
-  day: { surface: "#33363d", emissive: 0.15, gravel: "#9e8d6c" },
-  dusk: { surface: "#282a33", emissive: 0.4, gravel: "#7d6a57" },
-  night: { surface: "#22252d", emissive: 0.75, gravel: "#46433d" },
+  dawn: { surface: "#2c2f38", emissive: 0.35 },
+  day: { surface: "#33363d", emissive: 0.15 },
+  dusk: { surface: "#282a33", emissive: 0.4 },
+  night: { surface: "#22252d", emissive: 0.75 },
 } as const;
 /**
  * Rain haze (Mapbox fog) per light preset. Only applied while raining; the

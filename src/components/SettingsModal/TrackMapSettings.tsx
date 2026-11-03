@@ -394,6 +394,12 @@ export function TrackMapSettings({
         {is3d && row("mapView3dBuildings", "3D buildings and trees", "Buildings, trees and landmarks around the circuit")}
         {is3d &&
           row(
+            "mapView3dTrackside",
+            "Trackside barriers",
+            "Tyre walls, barriers and catch fences, the pit wall and the start-light gantry",
+          )}
+        {is3d &&
+          row(
             "mapView3dTerrain",
             "Terrain",
             "Hills and elevation (e.g. Spa, COTA). Street-level detail looks softer with it on",

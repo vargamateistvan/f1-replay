@@ -1,24 +1,35 @@
 /**
  * Ground-truth track surface for the 3D map: real-width asphalt, verge and
- * pit-lane polygons, white edge lines, striped kerbs and gravel run-off at the
- * corners and a chequered start grid, all built by offsetting the baked
- * centerline in local metres.
+ * pit-lane polygons, white edge and pit-lane lines, striped kerbs, mown grass,
+ * gravel run-off at the corners, grid slots and a chequered start line, all
+ * built by offsetting the baked centerline in local metres.
  */
 import type { CircuitGeometry } from "@/data/circuitGeometryTypes";
 import {
   MAP3D_EDGE_LINE_M,
+  MAP3D_GRASS_M,
+  MAP3D_GRASS_STRIPE_M,
+  MAP3D_GRID_FIRST_SLOT_M,
+  MAP3D_GRID_MAX_BEND_DEG,
+  MAP3D_GRID_SLOT_LEG_M,
+  MAP3D_GRID_SLOT_LINE_M,
+  MAP3D_GRID_SLOT_SPACING_M,
+  MAP3D_GRID_SLOT_WIDTH_M,
+  MAP3D_GRID_SLOTS,
   MAP3D_KERB_BLOCK_M,
   MAP3D_KERB_WIDTH_M,
   MAP3D_NO_RUNOFF_CIRCUITS,
   MAP3D_PIT_LANE_HALF_WIDTH_M,
   MAP3D_RUNOFF_EXTEND_M,
   MAP3D_RUNOFF_M,
+  MAP3D_RUNOFF_STYLES,
   MAP3D_SECTOR_RIBBON_M,
   MAP3D_START_GRID_COLUMNS,
   MAP3D_START_GRID_DEPTH_M,
   MAP3D_START_GRID_ROWS,
   MAP3D_TRACK_HALF_WIDTH_M,
   MAP3D_VERGE_M,
+  type RunoffStyle,
 } from "@/constants";
 import { type CircuitGeoref, enuToLngLat, f1ToEnu } from "@/utils/georef";
 import { timingSectorForMarshalPost } from "@/timeline/raceControl";
@@ -145,33 +156,47 @@ export function removeLoops(points: readonly P[], window = 80): P[] {
 /** Share of the local turning radius an inside offset may use. */
 const INSIDE_RADIUS_SHARE = 0.9;
 
+/** An offset in metres: one value for the whole line, or one per sample. */
+export type Offset = number | readonly number[];
+const offsetAt = (d: Offset, i: number) => (typeof d === "number" ? d : d[i]!);
+const sliceOffset = (d: Offset, start: number, end?: number): Offset =>
+  typeof d === "number" ? d : d.slice(start, end);
+
+/**
+ * The offset actually used at sample `i`: toward the inside of a bend it is
+ * capped at 90 % of the local turning radius (from how fast the normals
+ * turn), so the inside edge of a hairpin tighter than `|d|` never crosses
+ * past the turn's centre.
+ */
+export function cappedOffset(pts: readonly P[], nrm: readonly P[], i: number, d: number): number {
+  const last = pts.length - 1;
+  const a = nrm[Math.max(0, i - 1)]!;
+  const b = nrm[Math.min(last, i + 1)]!;
+  const pa = pts[Math.max(0, i - 1)]!;
+  const pb = pts[Math.min(last, i + 1)]!;
+  const ds = Math.hypot(pb.x - pa.x, pb.y - pa.y);
+  // Signed turn of the normal (+ = turning left); the inside is that side.
+  const turn = Math.atan2(a.x * b.y - a.y * b.x, a.x * b.x + a.y * b.y);
+  if (ds > 0 && turn * d > 0) {
+    const radius = ds / Math.abs(turn);
+    return Math.sign(d) * Math.min(Math.abs(d), INSIDE_RADIUS_SHARE * radius);
+  }
+  return d;
+}
+
 /**
  * Offset a resampled polyline by `d` metres along its left normal (negative =
- * right). Toward the inside of a bend the offset is capped at 90 % of the
- * local turning radius (from how fast the normals turn), so the inside edge
- * of a hairpin tighter than `|d|` never crosses past the turn's centre. Any
- * point that would still run backwards is dropped and leftover loops are cut.
+ * right), capped toward the inside of bends (`cappedOffset`). Any point that
+ * would still run backwards is dropped and leftover loops are cut.
  */
 export function offsetLine(
   pts: readonly P[],
   nrm: readonly P[],
-  d: number,
+  d: Offset,
 ): P[] {
   const out: P[] = [];
-  const last = pts.length - 1;
   for (let i = 0; i < pts.length; i++) {
-    let di = d;
-    const a = nrm[Math.max(0, i - 1)]!;
-    const b = nrm[Math.min(last, i + 1)]!;
-    const pa = pts[Math.max(0, i - 1)]!;
-    const pb = pts[Math.min(last, i + 1)]!;
-    const ds = Math.hypot(pb.x - pa.x, pb.y - pa.y);
-    // Signed turn of the normal (+ = turning left); the inside is that side.
-    const turn = Math.atan2(a.x * b.y - a.y * b.x, a.x * b.x + a.y * b.y);
-    if (ds > 0 && turn * d > 0) {
-      const radius = ds / Math.abs(turn);
-      di = Math.sign(d) * Math.min(Math.abs(d), INSIDE_RADIUS_SHARE * radius);
-    }
+    const di = cappedOffset(pts, nrm, i, offsetAt(d, i));
     const p = { x: pts[i]!.x + nrm[i]!.x * di, y: pts[i]!.y + nrm[i]!.y * di };
     const prev = out[out.length - 1];
     if (prev && i > 0) {
@@ -235,11 +260,11 @@ export function ringSelfIntersects(ring: readonly P[]): boolean {
  * retried, so Mapbox only ever gets simple polygons; a piece too small to
  * split that still crosses is dropped.
  */
-function stripPolygons(
+export function stripPolygons(
   pts: readonly P[],
   nrm: readonly P[],
-  a: number,
-  b: number,
+  a: Offset,
+  b: Offset,
   toLL: (p: P) => LngLat,
   depth = 0,
 ): LngLat[][][] {
@@ -249,8 +274,22 @@ function stripPolygons(
     if (pts.length <= 3 || depth >= 8) return [];
     const mid = Math.floor(pts.length / 2);
     return [
-      ...stripPolygons(pts.slice(0, mid + 1), nrm.slice(0, mid + 1), a, b, toLL, depth + 1),
-      ...stripPolygons(pts.slice(mid), nrm.slice(mid), a, b, toLL, depth + 1),
+      ...stripPolygons(
+        pts.slice(0, mid + 1),
+        nrm.slice(0, mid + 1),
+        sliceOffset(a, 0, mid + 1),
+        sliceOffset(b, 0, mid + 1),
+        toLL,
+        depth + 1,
+      ),
+      ...stripPolygons(
+        pts.slice(mid),
+        nrm.slice(mid),
+        sliceOffset(a, mid),
+        sliceOffset(b, mid),
+        toLL,
+        depth + 1,
+      ),
     ];
   }
   const ll = ring.map(toLL);
@@ -314,7 +353,7 @@ export function kerbRuns(
   return runs;
 }
 
-type SideRun = { from: number; to: number; side: 1 | -1 };
+export type SideRun = { from: number; to: number; side: 1 | -1 };
 
 /**
  * Sample ranges for the gravel outside each corner: the opposite side of every
@@ -405,7 +444,7 @@ export function buildFlagZones(geom: CircuitGeometry, geo: CircuitGeoref): Polyg
 }
 
 /** The baked centerline resampled at 1 m in local metres, with smoothed normals. */
-function sampledCenterline(geom: CircuitGeometry, geo: CircuitGeoref) {
+export function sampledCenterline(geom: CircuitGeometry, geo: CircuitGeoref) {
   const center = resample(
     trimLoopOverlap(geom.x.map((x, i) => f1ToEnu(geo, x, geom.y[i]!))),
     STEP_M,
@@ -545,14 +584,23 @@ export function buildSectorZones(geom: CircuitGeometry, geo: CircuitGeoref): Sec
 }
 
 export interface TrackSurface {
-  /** Gravel outside the corners (empty on street circuits). */
+  /** Mown grass beyond the verge, plus every other block for the stripes (permanent circuits). */
+  grass: PolygonCollection;
+  grassStripes: PolygonCollection;
+  /** Run-off outside the corners (empty on street circuits); look per `runoffStyleFor`. */
   runoff: PolygonCollection;
+  /** Painted bands on tarmac run-off, parallel to the track; each feature carries its `color`. */
+  runoffBands: PolygonCollection;
   verge: PolygonCollection;
   track: PolygonCollection;
   edgeLines: PolygonCollection;
   pitLane: PolygonCollection;
+  /** White lines along both pit-lane edges. */
+  pitLaneLines: PolygonCollection;
   kerbsBase: PolygonCollection;
   kerbsStripes: PolygonCollection;
+  /** Staggered white grid-slot brackets behind the start line. */
+  gridSlots: PolygonCollection;
   startBase: PolygonCollection;
   startSquares: PolygonCollection;
 }
@@ -561,23 +609,102 @@ const STEP_M = 1;
 /** Edge directions are averaged over ±this many metres. */
 const NORMAL_SPAN_M = 12;
 /** Length of each asphalt / verge strip polygon. */
-const STRIP_CHUNK_M = 50;
+export const STRIP_CHUNK_M = 50;
 /** Curvature is sampled at this spacing for kerb detection. */
 const KERB_SAMPLE_M = 5;
+
+/**
+ * Kerb runs at 1 m resolution: `kerbRuns` on a 5 m-spaced copy of the
+ * centerline, mapped back to sample indices (may run past `n`, wrapping).
+ */
+export function cornerRuns(center: readonly P[]): SideRun[] {
+  const every = Math.round(KERB_SAMPLE_M / STEP_M);
+  const coarse = center.filter((_, i) => i % every === 0);
+  return kerbRuns(coarse, KERB_SAMPLE_M).map((run) => ({
+    from: run.from * every,
+    to: run.to * every + every,
+    side: run.side,
+  }));
+}
+
+/** Resampled pit-lane centerline in local metres, with smoothed normals. */
+export function sampledPitLane(
+  pitLane: { x: readonly number[]; y: readonly number[] } | null | undefined,
+  geo: CircuitGeoref,
+): { lane: P[]; laneNrm: P[] } | null {
+  if (!pitLane || pitLane.x.length < 2) return null;
+  const lane = resample(
+    pitLane.x.map((x, i) => f1ToEnu(geo, x, pitLane.y[i]!)),
+    STEP_M,
+    false,
+  );
+  return { lane, laneNrm: normals(lane, false, Math.round(NORMAL_SPAN_M / STEP_M)) };
+}
+
+/** A box in the local frame of sample `p` (tangent `t`, left normal `nr`). */
+export function frameQuad(
+  p: P,
+  t: P,
+  nr: P,
+  toLL: (p: P) => LngLat,
+): (a0: number, a1: number, c0: number, c1: number) => LngLat[][] {
+  const at = (along: number, across: number): LngLat =>
+    toLL({ x: p.x + t.x * along + nr.x * across, y: p.y + t.y * along + nr.y * across });
+  return (a0, a1, c0, c1) => [[at(a0, c0), at(a1, c0), at(a1, c1), at(a0, c1), at(a0, c0)]];
+}
+
+/**
+ * F1 grid slots: staggered white brackets every `MAP3D_GRID_SLOT_SPACING_M`
+ * behind the line, laid along the centerline (grids aren't always straight).
+ * Pole sits on the inside of the first corner — the usual racing-line side.
+ */
+export function buildGridSlots(
+  center: readonly P[],
+  nrm: readonly P[],
+  kerbs: readonly SideRun[],
+  toLL: (p: P) => LngLat,
+): LngLat[][][] {
+  const n = center.length;
+  const firstCorner = [...kerbs].sort(
+    (a, b) => (((a.from % n) + n) % n) - (((b.from % n) + n) % n),
+  )[0];
+  const poleSide = firstCorner?.side ?? 1;
+  const out: LngLat[][][] = [];
+  const across = MAP3D_TRACK_HALF_WIDTH_M * 0.45;
+  const w = MAP3D_GRID_SLOT_WIDTH_M / 2;
+  const line = MAP3D_GRID_SLOT_LINE_M;
+  const leg = MAP3D_GRID_SLOT_LEG_M;
+  const n0 = nrm[0]!;
+  const maxBend = Math.cos((MAP3D_GRID_MAX_BEND_DEG * Math.PI) / 180);
+  for (let k = 0; k < MAP3D_GRID_SLOTS; k++) {
+    const behind = MAP3D_GRID_FIRST_SLOT_M + k * MAP3D_GRID_SLOT_SPACING_M;
+    const i = (((n - Math.round(behind / STEP_M)) % n) + n) % n;
+    const nr = nrm[i]!;
+    // Grids sit on the straight: stop once the track bends away behind it.
+    if (nr.x * n0.x + nr.y * n0.y < maxBend) break;
+    const quad = frameQuad(center[i]!, { x: nr.y, y: -nr.x }, nr, toLL);
+    const c = (k % 2 === 0 ? poleSide : -poleSide) * across;
+    // Front bar across the slot, and a short leg back from each end.
+    out.push(quad(-line, 0, c - w, c + w));
+    out.push(quad(-leg, -line, c - w, c - w + line));
+    out.push(quad(-leg, -line, c + w - line, c + w));
+  }
+  return out;
+}
+
+/** The circuit's run-off look (gravel unless listed in MAP3D_RUNOFF_STYLES). */
+export function runoffStyleFor(circuitKey: number | null | undefined): RunoffStyle {
+  return (circuitKey != null ? MAP3D_RUNOFF_STYLES[circuitKey] : undefined) ?? { surface: "gravel" };
+}
 
 export function buildTrackSurface(
   geom: CircuitGeometry,
   geo: CircuitGeoref,
   pitLane?: { x: readonly number[]; y: readonly number[] } | null,
 ): TrackSurface {
-  const toLL = (p: P): LngLat => enuToLngLat(geo.originLng, geo.originLat, p.x, p.y);
-  const center = resample(
-    trimLoopOverlap(geom.x.map((x, i) => f1ToEnu(geo, x, geom.y[i]!))),
-    STEP_M,
-    true,
-  );
-  const nrm = normals(center, true, Math.round(NORMAL_SPAN_M / STEP_M));
+  const { center, nrm, toLL } = sampledCenterline(geom, geo);
   const half = MAP3D_TRACK_HALF_WIDTH_M;
+  const street = MAP3D_NO_RUNOFF_CIRCUITS.has(geom.circuitKey);
 
   const chunk = Math.round(STRIP_CHUNK_M / STEP_M);
   // Verge as two bands outside the asphalt (not one wide band under it), so
@@ -593,17 +720,37 @@ export function buildTrackSurface(
     ...loopStrips(center, nrm, -(half - edge), -half, chunk, toLL),
   ]);
 
+  // Mown grass out to the barriers, with TV-style stripes across it; street
+  // circuits run between walls instead.
+  const grass: LngLat[][][] = [];
+  const grassStripes: LngLat[][][] = [];
+  if (!street) {
+    const inner = half + MAP3D_VERGE_M;
+    const outer = inner + MAP3D_GRASS_M;
+    for (const side of [1, -1]) {
+      grass.push(...loopStrips(center, nrm, side * inner, side * outer, chunk, toLL));
+    }
+    const block = Math.max(1, Math.round(MAP3D_GRASS_STRIPE_M / STEP_M));
+    const n = center.length;
+    for (let s = 0; s + block <= n; s += block * 2) {
+      const pts = center.slice(s, s + block + 1);
+      const nr = nrm.slice(s, s + block + 1);
+      for (const side of [1, -1]) {
+        grassStripes.push(...stripPolygons(pts, nr, side * inner, side * outer, toLL));
+      }
+    }
+  }
+
   let pit: PolygonCollection = polygons([]);
-  if (pitLane && pitLane.x.length > 1) {
-    const lane = resample(
-      pitLane.x.map((x, i) => f1ToEnu(geo, x, pitLane.y[i]!)),
-      STEP_M,
-      false,
-    );
+  let pitLaneLines: PolygonCollection = polygons([]);
+  const lane = sampledPitLane(pitLane, geo);
+  if (lane) {
     const pitHalf = MAP3D_PIT_LANE_HALF_WIDTH_M;
-    pit = polygons(
-      stripPolygons(lane, normals(lane, false, Math.round(NORMAL_SPAN_M / STEP_M)), pitHalf, -pitHalf, toLL),
-    );
+    pit = polygons(stripPolygons(lane.lane, lane.laneNrm, pitHalf, -pitHalf, toLL));
+    pitLaneLines = polygons([
+      ...stripPolygons(lane.lane, lane.laneNrm, pitHalf - edge, pitHalf, toLL),
+      ...stripPolygons(lane.lane, lane.laneNrm, -(pitHalf - edge), -pitHalf, toLL),
+    ]);
   }
 
   // Kerbs on the inside of every stretch that turns, as a base strip plus
@@ -628,25 +775,30 @@ export function buildTrackSurface(
       );
     }
   };
-  const every = Math.round(KERB_SAMPLE_M / STEP_M);
-  const coarse = center.filter((_, i) => i % every === 0);
-  const kerbs = kerbRuns(coarse, KERB_SAMPLE_M).map((run) => ({
-    from: run.from * every,
-    to: run.to * every + every,
-    side: run.side,
-  }));
+  const kerbs = cornerRuns(center);
   for (const run of kerbs) addKerb(run.from, run.to, run.side);
 
-  // Gravel beyond the verge on the outside of each corner, in strip-sized
-  // pieces like the asphalt; street circuits have walls instead.
+  // Run-off beyond the verge on the outside of each corner, in strip-sized
+  // pieces like the asphalt; street circuits have walls instead. Painted
+  // tarmac adds its colour bands parallel to the track, from the verge out.
   const runoff: LngLat[][][] = [];
-  if (!MAP3D_NO_RUNOFF_CIRCUITS.has(geom.circuitKey)) {
+  const runoffBands: PolygonFeature[] = [];
+  if (!street) {
     const inner = half + MAP3D_VERGE_M;
     const outer = inner + MAP3D_RUNOFF_M;
+    const bands = runoffStyleFor(geom.circuitKey).bands ?? [];
     for (const run of runoffRuns(kerbs, n, Math.round(MAP3D_RUNOFF_EXTEND_M / STEP_M))) {
       for (let s = run.from; s < run.to; s += chunk) {
         const { pts, nr } = along(s, Math.min(s + chunk, run.to));
         runoff.push(...stripPolygons(pts, nr, run.side * inner, run.side * outer, toLL));
+        let from = inner;
+        for (const { color, widthM } of bands) {
+          const to = Math.min(outer, from + widthM);
+          for (const coordinates of stripPolygons(pts, nr, run.side * from, run.side * to, toLL)) {
+            runoffBands.push({ type: "Feature", properties: { color }, geometry: { type: "Polygon", coordinates } });
+          }
+          from = to;
+        }
       }
     }
   }
@@ -655,17 +807,8 @@ export function buildTrackSurface(
   const depth = MAP3D_START_GRID_DEPTH_M;
   const rows = MAP3D_START_GRID_ROWS;
   const cols = MAP3D_START_GRID_COLUMNS;
-  const p0 = center[0]!;
   const nr0 = nrm[0]!;
-  const t0 = { x: nr0.y, y: -nr0.x }; // forward tangent
-  const at = (along: number, across: number): LngLat =>
-    toLL({
-      x: p0.x + t0.x * along + nr0.x * across,
-      y: p0.y + t0.y * along + nr0.y * across,
-    });
-  const quad = (a0: number, a1: number, c0: number, c1: number) => [
-    [at(a0, c0), at(a1, c0), at(a1, c1), at(a0, c1), at(a0, c0)],
-  ];
+  const quad = frameQuad(center[0]!, { x: nr0.y, y: -nr0.x }, nr0, toLL);
   const startBase = polygons([quad(-depth / 2, depth / 2, -half, half)]);
   const squares: LngLat[][][] = [];
   const rowM = depth / rows;
@@ -680,13 +823,18 @@ export function buildTrackSurface(
   }
 
   return {
+    grass: polygons(grass),
+    grassStripes: polygons(grassStripes),
     runoff: polygons(runoff),
+    runoffBands: { type: "FeatureCollection", features: runoffBands },
     verge,
     track,
     edgeLines,
     pitLane: pit,
+    pitLaneLines,
     kerbsBase: polygons(kerbBase),
     kerbsStripes: polygons(kerbStripes),
+    gridSlots: polygons(buildGridSlots(center, nrm, kerbs, toLL)),
     startBase,
     startSquares: polygons(squares),
   };

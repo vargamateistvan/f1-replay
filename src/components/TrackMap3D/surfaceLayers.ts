@@ -7,11 +7,13 @@ import {
   FLAG_COLORS,
   MAP3D_EDGE_LINE_COLOR,
   MAP3D_KERB_COLORS,
+  MAP3D_RUNOFF_PALETTE,
   MAP3D_SECTOR_RIBBON_M,
   MAP3D_SURFACE_MIN_ZOOM,
   MAP3D_TRACK_HALF_WIDTH_M,
   MAP3D_TRACK_PALETTE,
   MAP3D_TRACK_WET_PALETTE,
+  type RunoffSurface,
 } from "@/constants";
 import { isActiveTrackFlag, type TimingSectorFlags } from "@/timeline/raceControl";
 import type { LightPreset } from "./atmosphere";
@@ -19,13 +21,18 @@ import { groundWidthExpression } from "./mapFeatures";
 import type { SectorZones, TrackSurface } from "./trackSurface";
 
 const LAYERS = {
+  grass: "map3d-surface-grass",
+  grassStripes: "map3d-surface-grass-stripes",
   runoff: "map3d-surface-runoff",
+  runoffBands: "map3d-surface-runoff-bands",
   verge: "map3d-surface-verge",
   pitLane: "map3d-surface-pit-lane",
+  pitLaneLines: "map3d-surface-pit-lane-lines",
   track: "map3d-surface-track",
   edgeLines: "map3d-surface-edge-lines",
   kerbsBase: "map3d-surface-kerbs-base",
   kerbsStripes: "map3d-surface-kerbs-stripes",
+  gridSlots: "map3d-surface-grid-slots",
   startBase: "map3d-surface-start-base",
   startSquares: "map3d-surface-start-squares",
 } as const;
@@ -57,22 +64,32 @@ export function fadeOut(opacity: number): ExpressionSpecification {
 }
 
 /** Fill colour, opacity and emissive strength for each surface layer. */
-export function surfacePaint(preset: LightPreset, wet = false) {
+export function surfacePaint(
+  preset: LightPreset,
+  wet = false,
+  runoffSurface: RunoffSurface = "gravel",
+): Record<string, { color: string | ExpressionSpecification; opacity: number; emissive: number }> {
   const p = MAP3D_TRACK_PALETTE[preset];
   const asphalt = wet ? MAP3D_TRACK_WET_PALETTE[preset] : p;
   const [kerbBase, kerbStripe] = MAP3D_KERB_COLORS;
   return {
+    [LAYERS.grass]: { color: p.grass, opacity: 1, emissive: p.emissive },
+    [LAYERS.grassStripes]: { color: p.grassStripe, opacity: 1, emissive: p.emissive },
     [LAYERS.runoff]: {
-      color: wet ? MAP3D_TRACK_WET_PALETTE[preset].gravel : p.gravel,
+      color: MAP3D_RUNOFF_PALETTE[runoffSurface][preset][wet ? "wet" : "dry"],
       opacity: 1,
       emissive: p.emissive,
     },
+    // Each painted band carries its own colour.
+    [LAYERS.runoffBands]: { color: ["get", "color"], opacity: 0.9, emissive: p.emissive },
     [LAYERS.verge]: { color: p.casing, opacity: p.casingOpacity, emissive: p.emissive },
     [LAYERS.pitLane]: { color: asphalt.surface, opacity: 1, emissive: asphalt.emissive },
+    [LAYERS.pitLaneLines]: { color: MAP3D_EDGE_LINE_COLOR, opacity: 0.9, emissive: p.emissive },
     [LAYERS.track]: { color: asphalt.surface, opacity: 1, emissive: asphalt.emissive },
     [LAYERS.edgeLines]: { color: MAP3D_EDGE_LINE_COLOR, opacity: 0.9, emissive: p.emissive },
     [LAYERS.kerbsBase]: { color: kerbBase, opacity: 1, emissive: p.emissive },
     [LAYERS.kerbsStripes]: { color: kerbStripe, opacity: 1, emissive: p.emissive },
+    [LAYERS.gridSlots]: { color: MAP3D_EDGE_LINE_COLOR, opacity: 0.95, emissive: p.emissive },
     [LAYERS.startBase]: { color: "#ffffff", opacity: 1, emissive: p.emissive },
     [LAYERS.startSquares]: { color: "#111111", opacity: 1, emissive: p.emissive },
   };
@@ -84,8 +101,9 @@ export function addTrackSurfaceLayers(
   surface: TrackSurface,
   preset: LightPreset,
   before: string,
+  runoffSurface: RunoffSurface = "gravel",
 ): void {
-  const paint = surfacePaint(preset);
+  const paint = surfacePaint(preset, false, runoffSurface);
   const add = (key: keyof typeof LAYERS) => {
     const id = LAYERS[key];
     map.addSource(id, { type: "geojson", data: surface[key] });
@@ -107,20 +125,30 @@ export function addTrackSurfaceLayers(
     );
   };
   // Bottom to top.
+  add("grass");
+  add("grassStripes");
   add("runoff");
+  add("runoffBands");
   add("verge");
   add("pitLane");
+  add("pitLaneLines");
   add("track");
   add("edgeLines");
   add("kerbsBase");
   add("kerbsStripes");
+  add("gridSlots");
   add("startBase");
   add("startSquares");
 }
 
 /** Recolour the surface for a new light preset. */
-export function applyTrackPalette(map: MapboxMap, preset: LightPreset, wet = false): void {
-  for (const [id, p] of Object.entries(surfacePaint(preset, wet))) {
+export function applyTrackPalette(
+  map: MapboxMap,
+  preset: LightPreset,
+  wet = false,
+  runoffSurface: RunoffSurface = "gravel",
+): void {
+  for (const [id, p] of Object.entries(surfacePaint(preset, wet, runoffSurface))) {
     if (!map.getLayer(id)) continue;
     map.setPaintProperty(id, "fill-color", p.color);
     map.setPaintProperty(id, "fill-opacity", fadeIn(p.opacity));

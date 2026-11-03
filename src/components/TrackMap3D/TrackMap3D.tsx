@@ -138,7 +138,18 @@ import {
   fadeOut,
   setSectorRibbonVisibility,
 } from "./surfaceLayers";
-import { buildFlagZones, buildSectorZones, buildTrackSurface } from "./trackSurface";
+import {
+  buildFlagZones,
+  buildSectorZones,
+  buildTrackSurface,
+  runoffStyleFor,
+} from "./trackSurface";
+import { buildTrackside } from "./trackside";
+import {
+  addTracksideLayers,
+  applyTracksidePalette,
+  setTracksideVisibility,
+} from "./tracksideLayers";
 import { createFrameProbe, map3dDebugEnabled } from "./frameProbe";
 import {
   cameraTime,
@@ -372,6 +383,7 @@ export function TrackMap3D({
   const sectorRibbonEnabled = useSettings((s) => s.mapView3dSectorRibbon);
   const weatherEffectsEnabled = useSettings((s) => s.mapView3dWeatherEffects);
   const buildingsEnabled = useSettings((s) => s.mapView3dBuildings);
+  const tracksideEnabled = useSettings((s) => s.mapView3dTrackside);
   const carModelsEnabled = useSettings((s) => s.mapView3dCarModels);
   const speedTrailEnabled = useSettings((s) => s.mapView3dSpeedTrail);
   const battleGapsEnabled = useSettings((s) => s.mapView3dBattleGaps);
@@ -737,8 +749,9 @@ export function TrackMap3D({
     if (map.getLayer(LAYER_TRACK_SURFACE)) {
       map.setPaintProperty(LAYER_TRACK_SURFACE, "line-color", ribbonColorFor(lightPreset));
     }
-    applyTrackPalette(map, lightPreset, wetTrack);
-  }, [lightPreset, wetTrack, styleReady, circuitGeom]);
+    applyTrackPalette(map, lightPreset, wetTrack, runoffStyleFor(circuitKey).surface);
+    applyTracksidePalette(map, lightPreset);
+  }, [lightPreset, wetTrack, styleReady, circuitGeom, circuitKey]);
 
   useEffect(() => {
     const map = mapRef.current;
@@ -773,6 +786,12 @@ export function TrackMap3D({
     if (!map || !styleReady) return;
     map.setConfigProperty("basemap", "show3dObjects", buildingsEnabled);
   }, [buildingsEnabled, styleReady]);
+
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || !styleReady) return;
+    setTracksideVisibility(map, tracksideEnabled);
+  }, [tracksideEnabled, styleReady, circuitGeom]);
 
   useEffect(() => {
     const map = mapRef.current;
@@ -885,13 +904,23 @@ export function TrackMap3D({
 
       // Real-width asphalt, verge, pit lane, kerbs and start grid, under the
       // flag band and telemetry overlays.
+      const runoffSurface = runoffStyleFor(circuitKey).surface;
       addTrackSurfaceLayers(
         map,
         buildTrackSurface(circuitGeom, geo, pitLane),
         lightPresetRef.current,
         "map3d-flags",
+        runoffSurface,
       );
-      if (wetTrackRef.current) applyTrackPalette(map, lightPresetRef.current, true);
+      if (wetTrackRef.current) applyTrackPalette(map, lightPresetRef.current, true, runoffSurface);
+      // Barriers, fences, pit wall and start gantry.
+      addTracksideLayers(
+        map,
+        buildTrackside(circuitGeom, geo, pitLane),
+        lightPresetRef.current,
+        useSettings.getState().mapView3dTrackside,
+        "map3d-flags",
+      );
       // The 2D map's sector flag colours: condition ribbon + sector paint.
       sectorZones = buildSectorZones(circuitGeom, geo);
       // Flags painted onto the asphalt, one polygon per marshal post.

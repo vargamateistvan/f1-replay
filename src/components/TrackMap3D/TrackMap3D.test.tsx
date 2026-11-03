@@ -144,6 +144,7 @@ const { settings, DEFAULT_SETTINGS } = vi.hoisted(() => {
     mapView3dWeatherEffects: true,
     mapView3dBuildings: true,
     mapView3dCarModels: true,
+    mapView3dTrackside: true,
     mapFollowFocusedCar: false,
     mapShowDriverHeatmap: true,
     setSetting: vi.fn(),
@@ -349,6 +350,27 @@ describe("TrackMap3D", () => {
       (map!.layers.get("map3d-cars") as { paint: Record<string, unknown> }).paint["icon-opacity"],
     ).toEqual(["get", "opacity"]);
     expect(map!.setLayoutProperty).toHaveBeenCalledWith("map3d-sector-ribbon", "visibility", "none");
+  });
+
+  it("builds barriers, fences and the start gantry", () => {
+    const { map } = renderMap();
+    act(() => map!.emit("style.load"));
+    expect(map!.layers.get("map3d-trackside-solid")).toMatchObject({
+      type: "fill-extrusion",
+      layout: { visibility: "visible" },
+    });
+    expect(map!.layers.get("map3d-trackside-fence")).toMatchObject({ type: "fill-extrusion" });
+    const data = map!.sources.get("map3d-trackside-solid")!.data as { features: unknown[] };
+    expect(data.features.length).toBeGreaterThan(50);
+  });
+
+  it("hides the trackside objects when the setting is off", () => {
+    settings.mapView3dTrackside = false;
+    const { map } = renderMap();
+    act(() => map!.emit("style.load"));
+    expect(map!.layers.get("map3d-trackside-solid")).toMatchObject({
+      layout: { visibility: "none" },
+    });
   });
 
   it("selects a driver when their marker is clicked", () => {
