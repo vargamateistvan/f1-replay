@@ -80,16 +80,20 @@ export function TeammateComparison({
   }
 
   return (
-    <div className="grid gap-px bg-panel sm:grid-cols-2 xl:grid-cols-3">
+    <div className="grid gap-2 p-2 sm:grid-cols-2 sm:p-3 xl:grid-cols-3">
       {comparisons.map((c) => (
         <section
           key={c.team}
           data-standing-row
-          className="bg-track p-4"
+          className="relative overflow-hidden rounded-sm border border-panel bg-surface p-4 pt-5"
           aria-label={`${c.team} teammate comparison`}
         >
+          <span
+            aria-hidden="true"
+            className="absolute inset-x-0 top-0 h-1"
+            style={{ background: c.color }}
+          />
           <header className="mb-3 flex items-center gap-2">
-            <span className="h-4 w-[3px]" style={{ background: c.color }} />
             <h3
               className="text-xs font-black uppercase tracking-caps"
               style={{ color: c.color }}

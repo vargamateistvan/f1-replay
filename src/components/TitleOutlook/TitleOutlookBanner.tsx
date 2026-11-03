@@ -19,6 +19,8 @@ interface Props {
   readonly scope: "driver" | "team";
 }
 
+const CHIP = "px-1.5 py-0.5 text-tiny font-black uppercase tracking-widest";
+
 function plural(n: number, word: string): string {
   return `${n} ${word}${n === 1 ? "" : "s"}`;
 }
@@ -35,9 +37,12 @@ export function TitleOutlookBanner({ entries, remaining, scope }: Props) {
     return (
       <div
         role="status"
-        className="flex items-center gap-2 border-b border-panel bg-surface px-4 py-2 text-xs"
+        className="flex items-center gap-2 border-b border-l-4 border-panel border-l-podium-gold bg-surface px-4 py-2 text-xs"
       >
-        <Trophy className="h-4 w-4 shrink-0 text-yellow-fg" aria-hidden />
+        <span className={`inline-flex items-center gap-1 bg-podium-gold text-black ${CHIP}`}>
+          <Trophy className="h-3 w-3 shrink-0" aria-hidden />
+          Champion
+        </span>
         <MaybeLink
           to={leader.href}
           className="font-black hover:underline"
@@ -61,10 +66,13 @@ export function TitleOutlookBanner({ entries, remaining, scope }: Props) {
   return (
     <div
       role="status"
-      className="flex flex-wrap items-center gap-x-3 gap-y-1.5 border-b border-panel bg-surface px-4 py-2 text-xs"
+      className="flex flex-wrap items-center gap-x-3 gap-y-1.5 border-b border-l-4 border-panel border-l-f1red bg-surface px-4 py-2 text-xs"
     >
       <span className="flex items-center gap-2">
-        <Trophy className="h-4 w-4 shrink-0 text-muted" aria-hidden />
+        <span className={`inline-flex items-center gap-1 bg-f1red text-white ${CHIP}`}>
+          <Trophy className="h-3 w-3 shrink-0" aria-hidden />
+          Title fight
+        </span>
         <span className="font-bold text-fg">
           {plural(inContention.length, scope === "team" ? "team" : "driver")} in
           contention

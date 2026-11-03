@@ -32,6 +32,7 @@ import {
 import { TitleOutlookBanner } from "@/components/TitleOutlook/TitleOutlookBanner";
 import { TeammateComparison } from "@/components/TeammateComparison/TeammateComparison";
 import { ResultsGrid } from "@/components/ResultsGrid/ResultsGrid";
+import { StandingsPodium } from "@/components/StandingsPodium";
 import type { TitleOutlook } from "@/utils/championship";
 import { constructorPath } from "@/utils/constructorProfile";
 import { driverPath } from "@/utils/driverProfile";
@@ -71,6 +72,12 @@ function TitleLine({ title }: { title?: TitleOutlook }) {
     </div>
   );
 }
+
+const MEDAL_TEXT: Record<number, string> = {
+  1: "text-podium-gold",
+  2: "text-podium-silver",
+  3: "text-podium-bronze",
+};
 
 // ── Loading progress bar ──────────────────────────────────────────────────────
 function LoadingBar({ loaded, total }: { loaded: number; total: number }) {
@@ -221,8 +228,8 @@ function DriverTable({ standings }: { standings: DriverStanding[] }) {
               data-standing-row
               className="border-b border-panel"
             >
-              <td className="py-3 px-3 font-black text-sm tabular-nums">
-                <span>{s.position}</span>
+              <td className="py-2.5 px-3 font-black text-sm tabular-nums">
+                <span className={MEDAL_TEXT[s.position] ?? ""}>{s.position}</span>
                 {s.positionChange != null && s.positionChange !== 0 && (
                   <span
                     className={`ml-1 text-caption font-normal ${
@@ -234,11 +241,11 @@ function DriverTable({ standings }: { standings: DriverStanding[] }) {
                   </span>
                 )}
               </td>
-              <td className="py-3 px-3">
+              <td className="w-full max-w-0 py-2.5 px-3">
                 <Link
                   to={`${driverPath(s.driverNumber)}${search}`}
                   aria-label={`${s.fullName} driver profile`}
-                  className="group flex items-center gap-2"
+                  className="group flex min-w-0 items-center gap-2"
                 >
                   <DriverHeadshot
                     driver={s.driver}
@@ -255,20 +262,20 @@ function DriverTable({ standings }: { standings: DriverStanding[] }) {
                   >
                     {s.acronym}
                   </span>
-                  <span className="hidden sm:flex flex-col leading-tight">
-                    <span className="text-muted text-xs group-hover:text-fg group-hover:underline">
+                  <span className="hidden min-w-0 sm:flex flex-col leading-tight">
+                    <span className="truncate text-fg/85 text-xs font-semibold group-hover:text-fg group-hover:underline">
                       {s.fullName}
                     </span>
-                    <span className="hidden md:block text-muted/70 text-caption">
+                    <span className="hidden truncate md:block text-muted text-caption">
                       {s.team}
                     </span>
                   </span>
                 </Link>
               </td>
-              <td className="py-3 px-3 text-muted text-xs hidden sm:table-cell md:hidden">
+              <td className="py-2.5 px-3 text-muted text-xs whitespace-nowrap hidden sm:table-cell md:hidden">
                 {s.team}
               </td>
-              <td className="py-3 px-3 text-right font-mono tabular-nums font-bold text-sm">
+              <td className="py-2.5 px-3 text-right font-mono tabular-nums font-bold text-sm whitespace-nowrap">
                 {s.points}
                 {s.pointsDelta != null && (
                   <span
@@ -286,10 +293,10 @@ function DriverTable({ standings }: { standings: DriverStanding[] }) {
                   </span>
                 )}
               </td>
-              <td className="py-3 px-3 text-right font-mono tabular-nums text-muted text-xs hidden sm:table-cell">
+              <td className="py-2.5 px-3 text-right font-mono tabular-nums text-muted text-xs hidden sm:table-cell">
                 {s.wins}
               </td>
-              <td className="py-3 px-3 text-right font-mono tabular-nums text-muted text-xs hidden sm:table-cell">
+              <td className="py-2.5 px-3 text-right font-mono tabular-nums text-muted text-xs hidden sm:table-cell">
                 {s.podiums}
               </td>
             </tr>
@@ -353,7 +360,7 @@ function DriverChart({
           />
           <Bar
             dataKey="points"
-            radius={[0, 3, 3, 0]}
+            radius={0}
             className="cursor-pointer"
             onClick={(_, index) => onSelect(standings[index])}
           >
@@ -405,8 +412,8 @@ function ConstructorTable({ standings }: { standings: ConstructorStanding[] }) {
               data-standing-row
               className="border-b border-panel"
             >
-              <td className="py-3 px-3 font-black text-sm tabular-nums">
-                <span>{s.position}</span>
+              <td className="py-2.5 px-3 font-black text-sm tabular-nums">
+                <span className={MEDAL_TEXT[s.position] ?? ""}>{s.position}</span>
                 {s.positionChange != null && s.positionChange !== 0 && (
                   <span
                     className={`ml-1 text-caption font-normal ${
@@ -418,25 +425,25 @@ function ConstructorTable({ standings }: { standings: ConstructorStanding[] }) {
                   </span>
                 )}
               </td>
-              <td className="py-3 px-3">
+              <td className="w-full max-w-0 py-2.5 px-3">
                 <Link
                   to={`${constructorPath(s.name)}${search}`}
                   aria-label={`${s.name} team profile`}
-                  className="group flex items-center gap-2"
+                  className="group flex min-w-0 items-center gap-2"
                 >
                   <span
                     className="w-[3px] h-4 shrink-0"
                     style={{ background: s.color }}
                   />
                   <span
-                    className="font-black text-xs group-hover:underline"
+                    className="truncate font-black text-xs uppercase tracking-wider group-hover:underline"
                     style={{ color: s.color }}
                   >
                     {s.name}
                   </span>
                 </Link>
               </td>
-              <td className="py-3 px-3 text-right font-mono tabular-nums font-bold text-sm">
+              <td className="py-2.5 px-3 text-right font-mono tabular-nums font-bold text-sm whitespace-nowrap">
                 {s.points}
                 {s.pointsDelta != null && (
                   <span
@@ -454,7 +461,7 @@ function ConstructorTable({ standings }: { standings: ConstructorStanding[] }) {
                   </span>
                 )}
               </td>
-              <td className="py-3 px-3 text-right font-mono tabular-nums text-muted text-xs hidden sm:table-cell">
+              <td className="py-2.5 px-3 text-right font-mono tabular-nums text-muted text-xs hidden sm:table-cell">
                 {s.wins}
               </td>
             </tr>
@@ -473,6 +480,7 @@ function ConstructorChart({
   onSelect: (team: ConstructorStanding) => void;
 }) {
   const maxPts = standings[0]?.points ?? 1;
+  const isMobileViewport = useMediaQuery("(max-width: 767px)");
   const [chartRoot, setChartRoot] = useState<HTMLDivElement | null>(null);
   useChartBarReveal(chartRoot, standings.length > 0, [
     standings.length,
@@ -487,7 +495,7 @@ function ConstructorChart({
         <BarChart
           data={standings}
           layout="vertical"
-          margin={{ top: 4, right: 48, left: 8, bottom: 4 }}
+          margin={{ top: 4, right: isMobileViewport ? 16 : 48, left: 0, bottom: 4 }}
           barSize={18}
         >
           <CartesianGrid horizontal={false} stroke="rgb(var(--color-panel))" />
@@ -504,16 +512,15 @@ function ConstructorChart({
             tick={{ fill: "rgb(var(--color-muted))", fontSize: 10 }}
             axisLine={false}
             tickLine={false}
-            width={0}
-            hide
+            width={isMobileViewport ? 72 : 104}
           />
           <Tooltip
-            cursor={{ fill: "#1e2d4a33" }}
+            cursor={{ fill: "rgb(var(--color-panel) / 0.2)" }}
             content={<ConstructorTooltip />}
           />
           <Bar
             dataKey="points"
-            radius={[0, 3, 3, 0]}
+            radius={0}
             className="cursor-pointer"
             onClick={(_, index) => onSelect(standings[index])}
           >
@@ -539,9 +546,11 @@ function ChartHeader({
 }) {
   return (
     <div className="mb-3 flex flex-wrap items-center justify-between gap-x-3 gap-y-2">
-      <div className="min-w-0 text-caption text-muted font-bold uppercase tracking-caps">
-        Points — {title}
-      </div>
+      <h2 className="flex min-w-0 items-center gap-2 text-caption font-bold uppercase tracking-caps text-fg before:block before:h-3.5 before:w-1 before:shrink-0 before:bg-f1red">
+        <span className="truncate">
+          Points <span className="text-muted">— {title}</span>
+        </span>
+      </h2>
       <div className="flex" role="group" aria-label="Chart view">
         {CHART_VIEWS.map((v) => (
           <button
@@ -876,6 +885,34 @@ export default function Standings() {
                 color: c.color,
                 points: c.points,
                 title: c.title,
+                href: teamHref(c.name),
+              }))}
+            />
+          )}
+          {tab === "drivers" ? (
+            <StandingsPodium
+              label="Driver championship top three"
+              entries={driverStandings.map((d) => ({
+                key: String(d.driverNumber),
+                position: d.position,
+                label: d.acronym,
+                detail: `${d.fullName} · ${d.team}`,
+                color: d.color,
+                points: d.points,
+                driver: d.driver,
+                href: driverHref(d.driverNumber),
+              }))}
+            />
+          ) : (
+            <StandingsPodium
+              label="Constructor championship top three"
+              entries={constructorStandings.map((c) => ({
+                key: c.name,
+                position: c.position,
+                label: c.name,
+                detail: `${c.wins} ${c.wins === 1 ? "win" : "wins"}`,
+                color: c.color,
+                points: c.points,
                 href: teamHref(c.name),
               }))}
             />
