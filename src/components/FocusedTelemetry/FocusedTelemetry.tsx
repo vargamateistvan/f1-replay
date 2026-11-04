@@ -1,5 +1,6 @@
 import { useMemo } from "react";
-import type { Driver } from "@/api/types";
+import { X } from "lucide-react";
+import type { CarData, Driver } from "@/api/types";
 import { useCoarseTime } from "@/hooks/useCoarseTime";
 import { useCarDataWindow } from "@/hooks/useCarDataWindow";
 import { useCarDataForLap } from "@/hooks/useCarDataForLap";
@@ -11,6 +12,23 @@ import { lastAtOrBefore } from "@/utils/sortedTime";
 import { useSettings } from "@/stores/settings";
 import { speedUnitLabel, toDisplaySpeed } from "@/utils/units";
 import { TOKEN_HEX } from "@/designTokens";
+import { DriverHeadshot } from "@/components/DriverHeadshot";
+import {
+  FOCUSED_TELEMETRY_TICK_MS,
+  TELEMETRY_SHIFT_LIGHTS,
+  TELEMETRY_SPEED_BAR_MAX_KMH,
+  TELEMETRY_TRACE_WINDOW_MS,
+} from "@/constants";
+import {
+  buildSpeedTrace,
+  drsState,
+  shiftLightTone,
+  shiftLightsLit,
+  type DrsState,
+  type ShiftLightTone,
+  type SpeedTrace,
+  type TraceSample,
+} from "./hudModel";
 
 interface Props {
   readonly sessionKey: number | null;
@@ -41,9 +59,9 @@ export function FocusedTelemetry({
   onClear,
   onClearCompare,
 }: Props) {
-  // chunkIndexFor(t) only changes every 5 minutes — 500 ms resolution is more
-  // than sufficient and avoids 60-fps re-renders from a direct useTimeline() call.
-  const t = useCoarseTime(500);
+  // car_data arrives at ~3.7 Hz, so a coarse playhead keeps the HUD smooth
+  // without 60-fps re-renders from a direct useTimeline() call.
+  const t = useCoarseTime(FOCUSED_TELEMETRY_TICK_MS);
   const metricSystem = useSettings((s) => s.metricSystem);
   const chunkIdx = chunkIndexFor(t);
   const { data } = useCarDataWindow(
@@ -73,38 +91,26 @@ export function FocusedTelemetry({
     { enabled: telemetryEnabled },
   );
 
-  // Samples sorted by session-relative time for a step lookup.
   const samples = useMemo(
-    () =>
-      data
-        .map((d) => ({ ms: new Date(d.date).getTime() - sessionStartMs, d }))
-        .sort((a, b) => a.ms - b.ms),
+    () => toTimedSamples(data, sessionStartMs),
     [data, sessionStartMs],
   );
-
-  // Last sample at or before the playhead (binary search).
   const sample = useMemo(
     () => lastAtOrBefore(samples, t, (entry) => entry.ms)?.d ?? null,
     [samples, t],
   );
 
   const compareSamples = useMemo(
-    () =>
-      compareData
-        .map((d) => ({ ms: new Date(d.date).getTime() - sessionStartMs, d }))
-        .sort((a, b) => a.ms - b.ms),
+    () => toTimedSamples(compareData, sessionStartMs),
     [compareData, sessionStartMs],
   );
-
   const compareSample = useMemo(
     () => lastAtOrBefore(compareSamples, t, (entry) => entry.ms)?.d ?? null,
     [compareSamples, t],
   );
 
   const color = teamColor(driver?.team_colour, "#ffffff");
-  const drsOn = (sample?.drs ?? 0) >= 10;
   const compareColor = teamColor(compareDriver?.team_colour, TOKEN_HEX.blue);
-  const compareDrsOn = (compareSample?.drs ?? 0) >= 10;
 
   const compareTelemetry = useMemo(() => {
     if (!lapData.data?.length || !compareLapData.data?.length || !compareDriver)
@@ -164,56 +170,57 @@ export function FocusedTelemetry({
 
   return (
     <div className="shrink-0 border-t border-panel bg-track px-3 py-2 text-xs">
-      <div className="flex flex-wrap items-center gap-4">
-        <DriverStrip
-          acronym={driver?.name_acronym ?? "—"}
-          color={color}
-          sample={sample}
-          drsOn={drsOn}
-          metricSystem={metricSystem}
-        />
-
-        {compareDriver && (
-          <>
-            <span className="hidden sm:inline text-muted text-caption uppercase tracking-widest">
-              vs
-            </span>
-            <DriverStrip
-              acronym={compareDriver.name_acronym}
+      <div className="flex items-start gap-3">
+        <div className="flex min-w-0 flex-1 flex-col gap-1.5">
+          <DriverHud
+            driver={driver}
+            color={color}
+            lap={driverLap}
+            sample={sample}
+            samples={samples}
+            t={t}
+            metricSystem={metricSystem}
+            emptyLabel={
+              compareDriver
+                ? "No live sample"
+                : "No telemetry at this point — scrub into the session"
+            }
+          />
+          {compareDriver && (
+            <DriverHud
+              driver={compareDriver}
               color={compareColor}
+              lap={compareDriverLap}
               sample={compareSample}
-              drsOn={compareDrsOn}
+              samples={compareSamples}
+              t={t}
               metricSystem={metricSystem}
+              emptyLabel="No live sample"
             />
-          </>
-        )}
-
-        {compareDriver && onClearCompare && (
-          <button
-            onClick={onClearCompare}
-            className="ml-auto shrink-0 text-muted hover:text-fg text-caption font-black uppercase tracking-widest"
-            aria-label="Clear comparison driver"
-            title="Clear comparison driver"
-          >
-            Clear compare
-          </button>
-        )}
-
-        <button
-          onClick={onClear}
-          className="shrink-0 text-muted hover:text-fg text-sm leading-none"
-          aria-label="Clear focus"
-          title="Clear focus"
-        >
-          ✕
-        </button>
-      </div>
-
-      {sample === null && !compareDriver && (
-        <div className="mt-2 text-muted">
-          No telemetry at this point — scrub into the session
+          )}
         </div>
-      )}
+
+        <div className="flex shrink-0 flex-col items-end gap-2 pt-1">
+          <button
+            onClick={onClear}
+            className="flex h-6 w-6 items-center justify-center rounded-sm border border-panel text-muted transition-colors hover:border-line hover:text-fg"
+            aria-label="Clear focus"
+            title="Clear focus"
+          >
+            <X size={12} strokeWidth={2.5} aria-hidden />
+          </button>
+          {compareDriver && onClearCompare && (
+            <button
+              onClick={onClearCompare}
+              className="text-tiny font-black uppercase tracking-widest text-muted hover:text-fg"
+              aria-label="Clear comparison driver"
+              title="Clear comparison driver"
+            >
+              Clear compare
+            </button>
+          )}
+        </div>
+      </div>
 
       {compareTelemetry && (
         <div className="mt-3 grid gap-2 lg:grid-cols-3">
@@ -245,120 +252,305 @@ export function FocusedTelemetry({
   );
 }
 
-function DriverStrip({
-  acronym,
+interface TimedSample extends TraceSample {
+  readonly d: CarData;
+}
+
+function toTimedSamples(
+  data: readonly CarData[],
+  sessionStartMs: number,
+): TimedSample[] {
+  return data
+    .map((d) => ({
+      ms: new Date(d.date).getTime() - sessionStartMs,
+      speed: d.speed,
+      brake: d.brake,
+      d,
+    }))
+    .sort((a, b) => a.ms - b.ms);
+}
+
+const TRACE_W = 112;
+const TRACE_H = 32;
+
+const SHIFT_LIGHT_CLASS: Record<ShiftLightTone, string> = {
+  green: "bg-green",
+  red: "bg-red",
+  blue: "bg-blue",
+};
+
+const DRS_CLASS: Record<DrsState, string> = {
+  open: "bg-green text-black shadow-[0_0_8px_rgba(57,215,67,0.6)]",
+  eligible: "border border-green-line bg-green-tint text-green-fg",
+  off: "border border-panel text-faint",
+};
+
+const DRS_TITLE: Record<DrsState, string> = {
+  open: "DRS open",
+  eligible: "DRS eligible",
+  off: "DRS closed",
+};
+
+function DriverHud({
+  driver,
   color,
+  lap,
   sample,
-  drsOn,
+  samples,
+  t,
   metricSystem,
+  emptyLabel,
 }: {
-  acronym: string;
+  driver: Driver | null;
   color: string;
-  sample: {
-    speed: number;
-    n_gear: number;
-    rpm: number;
-    throttle: number;
-    brake: number;
-  } | null;
-  drsOn: boolean;
+  lap: number | null;
+  sample: CarData | null;
+  samples: readonly TimedSample[];
+  t: number;
   metricSystem: "metric" | "imperial";
+  emptyLabel: string;
 }) {
-  const speedValue = sample
-    ? Math.round(toDisplaySpeed(sample.speed, metricSystem))
-    : null;
-  const speedUnit = speedUnitLabel(metricSystem);
+  const trace = useMemo(
+    () =>
+      sample
+        ? buildSpeedTrace(
+            samples,
+            t,
+            TELEMETRY_TRACE_WINDOW_MS,
+            TRACE_W,
+            TRACE_H,
+            TELEMETRY_SPEED_BAR_MAX_KMH,
+          )
+        : null,
+    [sample, samples, t],
+  );
 
   return (
-    <span className="flex items-center gap-4 min-w-0">
-      <span className="flex items-center gap-2 shrink-0">
-        <span className="w-[3px] h-4" style={{ background: color }} />
-        <span className="font-black" style={{ color }}>
-          {acronym}
-        </span>
-      </span>
+    <div
+      className="flex min-w-0 flex-wrap items-center gap-x-4 gap-y-2 rounded-sm border-l-[3px] py-1.5 pl-2 pr-2"
+      style={{
+        borderLeftColor: color,
+        background: `linear-gradient(90deg, ${color}2e, ${color}0a 45%, transparent 80%)`,
+      }}
+    >
+      <DriverIdentity driver={driver} color={color} lap={lap} />
 
       {sample ? (
         <>
-          <Metric
-            label="Speed"
-            value={`${speedValue}`}
-            unit={speedUnit}
-            w="w-[3ch]"
-          />
-          <Metric
-            label="Gear"
-            value={sample.n_gear === 0 ? "N" : String(sample.n_gear)}
-            w="w-[1ch]"
-          />
-          <Metric label="RPM" value={`${Math.round(sample.rpm)}`} w="w-[5ch]" />
-          <Bar label="Thr" value={sample.throttle} color={TOKEN_HEX.green} />
-          <Bar label="Brk" value={sample.brake} color={TOKEN_HEX.red} />
-          <span
-            className={`px-1.5 py-0.5 text-caption font-black uppercase tracking-widest ${
-              drsOn ? "bg-green text-black" : "bg-panel text-faint"
-            }`}
-            title="DRS"
-          >
-            DRS
-          </span>
+          <SpeedReadout speed={sample.speed} metricSystem={metricSystem} />
+          {trace && <SpeedTraceSparkline trace={trace} color={color} />}
+          <GearBox gear={sample.n_gear} />
+          <ShiftLights rpm={sample.rpm} />
+          <Pedals throttle={sample.throttle} brake={sample.brake} />
+          <DrsBadge drs={sample.drs} />
         </>
       ) : (
-        <span className="text-muted">No live sample</span>
+        <span className="text-muted">{emptyLabel}</span>
       )}
+    </div>
+  );
+}
+
+function HudLabel({ children }: { children: string }) {
+  return (
+    <span className="text-micro font-bold uppercase leading-none tracking-widest text-muted">
+      {children}
     </span>
   );
 }
 
-function Metric({
-  label,
-  value,
-  unit,
-  w = "w-auto",
+function DriverIdentity({
+  driver,
+  color,
+  lap,
 }: {
-  label: string;
-  value: string;
-  unit?: string;
-  w?: string;
+  driver: Driver | null;
+  color: string;
+  lap: number | null;
 }) {
   return (
-    <span className="flex items-baseline gap-1 shrink-0">
-      <span className="text-caption font-bold uppercase tracking-widest text-muted">
-        {label}
+    <span className="flex w-[6.5rem] shrink-0 items-center gap-2">
+      <DriverHeadshot driver={driver ?? undefined} accent={color} size="sm" />
+      <span className="flex min-w-0 flex-col gap-1 leading-none">
+        <span
+          className="truncate text-sm font-black tracking-wider"
+          style={{ color }}
+        >
+          {driver?.name_acronym ?? "—"}
+        </span>
+        <span className="font-mono text-tiny tabular-nums text-muted">
+          {driver ? `#${driver.driver_number}` : ""}
+          {lap != null && ` · L${lap}`}
+        </span>
       </span>
-      <span
-        className={`font-mono font-bold tabular-nums text-fg text-right inline-block ${w}`}
-      >
-        {value}
-      </span>
-      {unit && <span className="text-caption text-muted">{unit}</span>}
     </span>
   );
 }
 
-function Bar({
-  label,
-  value,
+function SpeedReadout({
+  speed,
+  metricSystem,
+}: {
+  speed: number;
+  metricSystem: "metric" | "imperial";
+}) {
+  return (
+    <span className="flex shrink-0 flex-col gap-1">
+      <HudLabel>Speed</HudLabel>
+      <span className="flex items-baseline gap-1 leading-none">
+        <span className="inline-block w-[3ch] text-right font-mono text-stat font-black tabular-nums text-fg">
+          {Math.round(toDisplaySpeed(speed, metricSystem))}
+        </span>
+        <span className="text-tiny font-semibold text-muted">
+          {speedUnitLabel(metricSystem)}
+        </span>
+      </span>
+    </span>
+  );
+}
+
+function SpeedTraceSparkline({
+  trace,
   color,
 }: {
-  label: string;
-  value: number;
+  trace: SpeedTrace;
   color: string;
 }) {
   return (
-    <span className="flex items-center gap-1.5 shrink-0">
-      <span className="text-caption font-bold uppercase tracking-widest text-muted">
+    <svg
+      viewBox={`0 0 ${TRACE_W} ${TRACE_H}`}
+      preserveAspectRatio="none"
+      className="hidden h-8 w-28 shrink-0 overflow-visible rounded-sm bg-sunken sm:block xl:w-44"
+      aria-hidden="true"
+      data-testid="focused-speed-trace"
+    >
+      <title>Speed · last 15 s (red: braking)</title>
+      <polygon
+        points={`${trace.x0},${TRACE_H} ${trace.points} ${trace.x1},${TRACE_H}`}
+        fill={`${color}26`}
+      />
+      <polyline
+        points={trace.points}
+        fill="none"
+        stroke={color}
+        strokeWidth={1.5}
+        strokeLinejoin="round"
+        vectorEffect="non-scaling-stroke"
+      />
+      {trace.brakeSpans.map(([a, b]) => (
+        <rect
+          key={a}
+          x={a}
+          y={TRACE_H - 3}
+          width={Math.max(1.5, b - a)}
+          height={3}
+          fill={TOKEN_HEX.red}
+        />
+      ))}
+    </svg>
+  );
+}
+
+function GearBox({ gear }: { gear: number }) {
+  const neutral = gear === 0;
+  return (
+    <span className="flex shrink-0 flex-col items-center gap-1">
+      <HudLabel>Gear</HudLabel>
+      <span
+        className={`flex h-7 w-7 items-center justify-center rounded-sm border font-mono text-lg font-black leading-none tabular-nums ${
+          neutral
+            ? "border-orange-line bg-orange-tint text-orange-fg"
+            : "border-line bg-panel text-fg"
+        }`}
+        title={neutral ? "Neutral" : `Gear ${gear}`}
+      >
+        {neutral ? "N" : gear}
+      </span>
+    </span>
+  );
+}
+
+function ShiftLights({ rpm }: { rpm: number }) {
+  const rounded = Math.max(0, Math.round(rpm));
+  const lit = shiftLightsLit(rounded);
+  const atShift = lit === TELEMETRY_SHIFT_LIGHTS;
+  return (
+    <span className="flex shrink-0 flex-col gap-1">
+      <span className="flex items-baseline justify-between gap-2">
+        <HudLabel>RPM</HudLabel>
+        <span className="font-mono text-compact font-bold leading-none tabular-nums text-fg">
+          {rounded}
+        </span>
+      </span>
+      <span
+        role="img"
+        aria-label={`${rounded} rpm`}
+        className="flex items-center gap-[2px]"
+      >
+        {Array.from({ length: TELEMETRY_SHIFT_LIGHTS }, (_, i) => (
+          <span
+            key={i}
+            className={`h-1.5 w-1.5 rounded-full transition-colors duration-100 motion-reduce:transition-none ${
+              i < lit
+                ? atShift
+                  ? "bg-blue animate-pulse motion-reduce:animate-none"
+                  : SHIFT_LIGHT_CLASS[shiftLightTone(i)]
+                : "bg-panel"
+            }`}
+          />
+        ))}
+      </span>
+    </span>
+  );
+}
+
+function Pedals({ throttle, brake }: { throttle: number; brake: number }) {
+  return (
+    <span className="flex shrink-0 flex-col gap-1">
+      <PedalBar label="Thr" value={throttle} barClass="bg-green" />
+      <PedalBar label="Brk" value={brake} barClass="bg-red" />
+    </span>
+  );
+}
+
+function PedalBar({
+  label,
+  value,
+  barClass,
+}: {
+  label: string;
+  value: number;
+  barClass: string;
+}) {
+  const pct = Math.max(0, Math.min(100, Math.round(value)));
+  return (
+    <span className="flex items-center gap-1.5">
+      <span className="w-6 text-micro font-bold uppercase leading-none tracking-widest text-muted">
         {label}
       </span>
-      <span className="w-12 h-2 bg-panel overflow-hidden">
+      <span className="h-1.5 w-16 overflow-hidden rounded-sm bg-panel sm:w-20">
         <span
-          className="block h-full"
-          style={{
-            width: `${Math.max(0, Math.min(100, value))}%`,
-            background: color,
-          }}
+          className={`block h-full transition-[width] duration-200 ease-out motion-reduce:transition-none ${barClass}`}
+          style={{ width: `${pct}%` }}
         />
       </span>
+      <span className="w-[3ch] text-right font-mono text-tiny leading-none tabular-nums text-fg/80">
+        {pct}
+      </span>
+    </span>
+  );
+}
+
+function DrsBadge({ drs }: { drs: number | null }) {
+  const state = drsState(drs);
+  // Sessions without DRS data (e.g. 2026 active-aero cars) hide the badge.
+  if (state === null) return null;
+  return (
+    <span
+      className={`shrink-0 rounded-sm px-1.5 py-1 text-caption font-black uppercase leading-none tracking-widest transition-colors duration-150 motion-reduce:transition-none ${DRS_CLASS[state]}`}
+      title={`${DRS_TITLE[state]} (raw value ${drs})`}
+    >
+      DRS
     </span>
   );
 }

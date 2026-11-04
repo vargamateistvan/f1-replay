@@ -2338,6 +2338,32 @@ export default function RaceWeekend() {
   const enter3d = useCallback(() => setMapViewMode("3d"), [setMapViewMode]);
   const enterRing = useCallback(() => setMapViewMode("ring"), [setMapViewMode]);
 
+  const focusedTelemetryPanel =
+    focusDriver === null ? null : (
+      <div className="shrink-0 border-t border-panel">
+        <Suspense fallback={<PanelFallback />}>
+          <FocusedTelemetry
+            sessionKey={sessionKey}
+            driver={
+              drivers.data?.find((d) => d.driver_number === focusDriver) ??
+              null
+            }
+            compareDriver={
+              drivers.data?.find((d) => d.driver_number === compareDriver) ??
+              null
+            }
+            sessionStartMs={sessionStartMs}
+            driverLap={focusDriverLap}
+            compareDriverLap={compareDriverLap}
+            sharedAllDriverWindow={telemetryEnabled}
+            telemetryEnabled={secondaryEnabled}
+            onClear={clearFocusSelection}
+            onClearCompare={() => setFocusSelection(focusDriver, null)}
+          />
+        </Suspense>
+      </div>
+    );
+
   const trackMap = mapViewMode === "ring" ? (
     <TrackRing
       sessionKey={sessionKey}
@@ -2820,34 +2846,7 @@ export default function RaceWeekend() {
                       )}
                     </div>
                     {/* Focused telemetry */}
-                    {focusDriver !== null && (
-                      <div className="shrink-0 border-t border-panel">
-                        <Suspense fallback={<PanelFallback />}>
-                          <FocusedTelemetry
-                            sessionKey={sessionKey}
-                            driver={
-                              drivers.data?.find(
-                                (d) => d.driver_number === focusDriver,
-                              ) ?? null
-                            }
-                            compareDriver={
-                              drivers.data?.find(
-                                (d) => d.driver_number === compareDriver,
-                              ) ?? null
-                            }
-                            sessionStartMs={sessionStartMs}
-                            driverLap={focusDriverLap}
-                            compareDriverLap={compareDriverLap}
-                            sharedAllDriverWindow={telemetryEnabled}
-                            telemetryEnabled={secondaryEnabled}
-                            onClear={clearFocusSelection}
-                            onClearCompare={() =>
-                              setFocusSelection(focusDriver, null)
-                            }
-                          />
-                        </Suspense>
-                      </div>
-                    )}
+                    {focusedTelemetryPanel}
                   </>
                 )}
 
@@ -2870,6 +2869,7 @@ export default function RaceWeekend() {
                         </span>
                       )}
                     </div>
+                    {focusedTelemetryPanel}
                   </div>
                 )}
 
@@ -3112,34 +3112,7 @@ export default function RaceWeekend() {
                 </div>
 
                 {/* Focused driver telemetry */}
-                {focusDriver !== null && (
-                  <div className="shrink-0 border-t border-panel">
-                    <Suspense fallback={<PanelFallback />}>
-                      <FocusedTelemetry
-                        sessionKey={sessionKey}
-                        driver={
-                          drivers.data?.find(
-                            (d) => d.driver_number === focusDriver,
-                          ) ?? null
-                        }
-                        compareDriver={
-                          drivers.data?.find(
-                            (d) => d.driver_number === compareDriver,
-                          ) ?? null
-                        }
-                        sessionStartMs={sessionStartMs}
-                        driverLap={focusDriverLap}
-                        compareDriverLap={compareDriverLap}
-                        sharedAllDriverWindow={telemetryEnabled}
-                        telemetryEnabled={secondaryEnabled}
-                        onClear={clearFocusSelection}
-                        onClearCompare={() =>
-                          setFocusSelection(focusDriver, null)
-                        }
-                      />
-                    </Suspense>
-                  </div>
-                )}
+                {focusedTelemetryPanel}
               </div>
 
               <ResizeHandle

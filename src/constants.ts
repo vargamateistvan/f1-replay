@@ -625,6 +625,20 @@ export const TELEMETRY_RPM_HIGH = 10_500;
 /** Speed (km/h) at which the leaderboard speed bar is full. */
 export const TELEMETRY_SPEED_BAR_MAX_KMH = 350;
 
+// ── Focused driver telemetry HUD ──────────────────────────────────────────────
+/** Playhead resolution (ms) of the focused-driver HUD (car_data is ~3.7 Hz). */
+export const FOCUSED_TELEMETRY_TICK_MS = 250;
+/** Number of steering-wheel shift lights (green · red · blue thirds). */
+export const TELEMETRY_SHIFT_LIGHTS = 15;
+/** RPM at which the first shift light comes on; all are lit at TELEMETRY_RPM_SHIFT. */
+export const TELEMETRY_SHIFT_LIGHTS_MIN_RPM = 8_500;
+/** Span of recent speed history drawn in the HUD speed trace. */
+export const TELEMETRY_TRACE_WINDOW_MS = 15_000;
+/** OpenF1 car_data `drs` value meaning "eligible / detected" (≥ 10 is open). */
+export const DRS_ELIGIBLE_VALUE = 8;
+/** OpenF1 car_data `drs` value from which the flap is open. */
+export const DRS_OPEN_MIN_VALUE = 10;
+
 // ── Deferred loading ──────────────────────────────────────────────────────────
 /** Max wait (ms) for an idle period before running deferred non-critical work. */
 export const IDLE_CALLBACK_TIMEOUT_MS = 4_000;

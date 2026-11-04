@@ -12,7 +12,10 @@ const state = vi.hoisted(() => ({
 }));
 
 vi.mock("@/timeline/clock", () => ({
-  useTimeline: () => ({ t: state.t }),
+  useTimeline: Object.assign(() => ({ t: state.t }), {
+    getState: () => ({ t: state.t }),
+    subscribe: () => () => {},
+  }),
 }));
 
 vi.mock("@/hooks/useLocationChunks", () => ({
@@ -73,6 +76,72 @@ describe("FocusedTelemetry", () => {
     ).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "Clear focus" }));
     expect(onClear).toHaveBeenCalled();
+  });
+
+  it("renders the HUD readouts for the focused driver", () => {
+    state.windowData = [
+      {
+        date: "2024-01-01T00:00:05.000Z",
+        speed: 250,
+        n_gear: 6,
+        rpm: 10000,
+        throttle: 100,
+        brake: 0,
+        drs: 0,
+      },
+      {
+        date: "2024-01-01T00:00:10.000Z",
+        speed: 312,
+        n_gear: 0,
+        rpm: 11000,
+        throttle: 64,
+        brake: 0,
+        drs: 12,
+      },
+    ];
+
+    render(
+      <FocusedTelemetry
+        sessionKey={1}
+        driver={driverA}
+        sessionStartMs={Date.parse("2024-01-01T00:00:00.000Z")}
+        driverLap={23}
+        onClear={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByText("312")).toBeInTheDocument();
+    expect(screen.getByTitle("Neutral")).toHaveTextContent("N");
+    expect(screen.getByRole("img", { name: "11000 rpm" })).toBeInTheDocument();
+    expect(screen.getByTitle(/^DRS open/)).toBeInTheDocument();
+    expect(screen.getByText(/#1 · L23/)).toBeInTheDocument();
+    expect(screen.getByTestId("focused-speed-trace")).toBeInTheDocument();
+  });
+
+  it("hides the DRS badge when the session has no DRS data", () => {
+    state.windowData = [
+      {
+        date: "2024-01-01T00:00:10.000Z",
+        speed: 280,
+        n_gear: 7,
+        rpm: 11500,
+        throttle: 100,
+        brake: 0,
+        drs: null,
+      },
+    ];
+
+    render(
+      <FocusedTelemetry
+        sessionKey={1}
+        driver={driverA}
+        sessionStartMs={Date.parse("2024-01-01T00:00:00.000Z")}
+        onClear={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByTitle("Gear 7")).toBeInTheDocument();
+    expect(screen.queryByText("DRS")).not.toBeInTheDocument();
   });
 
   it("renders compare controls and telemetry charts", () => {
