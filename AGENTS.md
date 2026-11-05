@@ -1,6 +1,6 @@
 # F1 Replay — Agent Documentation
 
-> Last updated: 2026-11-04
+> Last updated: 2026-11-05
 > The single source of truth for agents. Provides concise, agent-readable architecture notes, conventions, and guardrails. `docs/` holds mostly historical plans — see Section 12 before trusting one.
 
 ---
@@ -288,7 +288,7 @@ components/ (render to DOM; read settings from Zustand)
 | `QualifyingBanner`                                | Qualifying session elimination indicator                                                 |
 | `SessionInfoBar`                                  | Circuit name, session type, current lap                                                  |
 | `SessionPicker`                                   | Year / meeting / session picker                                                          |
-| `FocusedTelemetry`                                | Focused driver HUD under the timing tower and, on phones, under the Track tab map (`focusedTelemetryPanel` in `RaceWeekend`; one row per driver, stacked in compare mode): team-tinted identity + lap, speed with a `TELEMETRY_TRACE_WINDOW_MS` speed trace (brake spans red), gear box, steering-wheel shift lights (`TELEMETRY_SHIFT_LIGHTS`, all blue at `TELEMETRY_RPM_SHIFT`), throttle/brake bars, DRS open/eligible/off badge (hidden when `drs` is null, e.g. 2026). Pure maths in `hudModel.ts`; compare mode adds lap speed/throttle/delta charts |
+| `FocusedTelemetry`                                | Focused driver HUD under the timing tower and, on phones, under the Track tab map when `mapShowDriverHud` is on (`focusedTelemetryPanel` in `RaceWeekend`; on phones it replaces the maps' in-map HUD overlay; one row per driver, stacked in compare mode): team-tinted identity + lap, speed with a `TELEMETRY_TRACE_WINDOW_MS` speed trace (brake spans red), gear box, steering-wheel shift lights (`TELEMETRY_SHIFT_LIGHTS`, all blue at `TELEMETRY_RPM_SHIFT`), throttle/brake bars, DRS open/eligible/off badge (hidden when `drs` is null, e.g. 2026). Pure maths in `hudModel.ts`; compare mode adds lap speed/throttle/delta charts |
 | `CatchupSummary`                                  | "You skipped X events" modal; rows reuse the commentary feeds' `CommentaryRow` (jump button replays from a few seconds earlier and closes the dialog) |
 | `EventToast` (stack)                              | Bottom-right toast notifications                                                         |
 | `SettingsModal`                                   | All user preferences                                                                     |

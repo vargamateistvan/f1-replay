@@ -327,25 +327,34 @@ function DriverHud({
 
   return (
     <div
-      className="flex min-w-0 flex-wrap items-center gap-x-4 gap-y-2 rounded-sm border-l-[3px] py-1.5 pl-2 pr-2"
+      className="grid min-w-0 grid-cols-[minmax(0,1fr)_auto_auto] items-center gap-x-2 gap-y-2 rounded-sm border-l-[3px] py-1.5 pl-2 pr-2 sm:flex sm:flex-wrap sm:gap-x-4"
       style={{
         borderLeftColor: color,
         background: `linear-gradient(90deg, ${color}2e, ${color}0a 45%, transparent 80%)`,
       }}
     >
-      <DriverIdentity driver={driver} color={color} lap={lap} />
+      <div className="contents sm:flex sm:items-center sm:gap-3">
+        <DriverIdentity driver={driver} color={color} lap={lap} />
+        {sample && (
+          <>
+            <SpeedReadout speed={sample.speed} metricSystem={metricSystem} />
+            <GearBox gear={sample.n_gear} />
+          </>
+        )}
+      </div>
+
+      {sample && trace && <SpeedTraceSparkline trace={trace} color={color} />}
 
       {sample ? (
-        <>
-          <SpeedReadout speed={sample.speed} metricSystem={metricSystem} />
-          {trace && <SpeedTraceSparkline trace={trace} color={color} />}
-          <GearBox gear={sample.n_gear} />
-          <ShiftLights rpm={sample.rpm} />
+        <div className="col-span-3 flex min-w-0 items-center justify-between gap-2 sm:contents">
+          <div className="min-w-0">
+            <ShiftLights rpm={sample.rpm} />
+          </div>
           <Pedals throttle={sample.throttle} brake={sample.brake} />
           <DrsBadge drs={sample.drs} />
-        </>
+        </div>
       ) : (
-        <span className="text-muted">{emptyLabel}</span>
+        <span className="col-span-3 text-muted sm:col-auto">{emptyLabel}</span>
       )}
     </div>
   );

@@ -2380,7 +2380,7 @@ export default function RaceWeekend() {
       focusCompound={focusDriver === null ? null : (activeCompounds.get(focusDriver) ?? null)}
       positionByDriver={ringPositions}
       battlingDrivers={mapShowBattleRings ? battlingDrivers : undefined}
-      showFocusedHud={mapShowDriverHud}
+      showFocusedHud={mapShowDriverHud && !isCompactViewport}
       sharedAllDriverWindow={telemetryEnabled}
       telemetryEnabled={secondaryEnabled}
       trackFlagState={mapShowSectorFlags ? trackFlagState : null}
@@ -2418,7 +2418,7 @@ export default function RaceWeekend() {
       pulseDrivers={pulseDrivers}
       activeCompounds={mapShowCompoundBadges ? activeCompounds : undefined}
       safetyCarSirenOn={safetyCarSirenOn}
-      showFocusedHud={mapShowDriverHud}
+      showFocusedHud={mapShowDriverHud && !isCompactViewport}
       sharedAllDriverWindow={telemetryEnabled}
       telemetryEnabled={secondaryEnabled}
       trackFlagState={mapShowSectorFlags ? trackFlagState : null}
@@ -2459,7 +2459,7 @@ export default function RaceWeekend() {
       activeCompounds={mapShowCompoundBadges ? activeCompounds : undefined}
       battlingDrivers={mapShowBattleRings ? battlingDrivers : undefined}
       focusDriverLap={focusDriverLap}
-      showFocusedHud={mapShowDriverHud}
+      showFocusedHud={mapShowDriverHud && !isCompactViewport}
       pitRejoinGaps={pitRejoinGaps}
       leaderNumber={isRaceSession ? currentLeaderNumber : null}
       sharedAllDriverWindow={telemetryEnabled}
@@ -2846,7 +2846,7 @@ export default function RaceWeekend() {
                       )}
                     </div>
                     {/* Focused telemetry */}
-                    {focusedTelemetryPanel}
+                    {isCompactViewport && focusedTelemetryPanel}
                   </>
                 )}
 
@@ -2869,7 +2869,9 @@ export default function RaceWeekend() {
                         </span>
                       )}
                     </div>
-                    {focusedTelemetryPanel}
+                    {isCompactViewport &&
+                      mapShowDriverHud &&
+                      focusedTelemetryPanel}
                   </div>
                 )}
 
@@ -3112,7 +3114,7 @@ export default function RaceWeekend() {
                 </div>
 
                 {/* Focused driver telemetry */}
-                {focusedTelemetryPanel}
+                {!isCompactViewport && focusedTelemetryPanel}
               </div>
 
               <ResizeHandle

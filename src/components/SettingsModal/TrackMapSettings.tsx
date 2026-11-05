@@ -338,7 +338,11 @@ export function TrackMapSettings({
             "Battle gap ribbons",
             "Mark the track between cars within 1 s and show the gap (races). Focused car: its battles only",
           )}
-        {row("mapShowDriverHud", "Focused driver HUD", "Speed, gear and throttle for the selected driver")}
+        {row(
+          "mapShowDriverHud",
+          "Focused driver HUD",
+          "Speed, gear and throttle for the selected driver. On phones it appears below the map",
+        )}
         {!isRing &&
           row(
             "mapShowDriverHeatmap",

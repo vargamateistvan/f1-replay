@@ -21,6 +21,13 @@ vi.mock("@/components/TrackMap/TrackMap", () => ({
 vi.mock("@/components/LiveTiming/LiveTiming", () => ({
   default: () => <div>Timing panel</div>,
 }));
+vi.mock("@/components/FocusedTelemetry/FocusedTelemetry", () => ({
+  FocusedTelemetry: ({
+    driver,
+  }: {
+    driver: { name_acronym: string } | null;
+  }) => <div data-testid="focused-telemetry">{driver?.name_acronym}</div>,
+}));
 vi.mock("@/components/TrackMap3D/availability", () => ({
   isMap3dAvailable: () => false,
 }));
@@ -211,6 +218,34 @@ describe("progressive replay startup", () => {
       .toBe(String(Math.round(startLightsWindow(firstLapStartMs).startMs / 1000)));
     expect(new URLSearchParams(window.location.search).has("speed")).toBe(false);
     expect(screen.getAllByText("Track preview")).not.toHaveLength(0);
+    unmount();
+  });
+
+  it("shows one selected-driver HUD on the phone map when its setting is enabled", async () => {
+    vi.spyOn(media, "useMediaQuery").mockReturnValue(true);
+    useSettings.setState({ mapShowDriverHud: true });
+    const driver: Driver = {
+      driver_number: 44,
+      broadcast_name: "L HAMILTON",
+      full_name: "Lewis Hamilton",
+      first_name: "Lewis",
+      last_name: "Hamilton",
+      name_acronym: "HAM",
+      team_name: "Mercedes",
+      team_colour: "27F4D2",
+      headshot_url: null,
+      country_code: null,
+      session_key: 123,
+      meeting_key: 456,
+    };
+    client.setQueryData(["drivers", 123], [driver]);
+
+    const { unmount } = renderReplay(
+      "/?year=2024&meeting=456&session=123&focus=44&ttab=map",
+    );
+
+    expect(await screen.findAllByTestId("focused-telemetry")).toHaveLength(1);
+    expect(screen.getByTestId("focused-telemetry")).toHaveTextContent("HAM");
     unmount();
   });
 
