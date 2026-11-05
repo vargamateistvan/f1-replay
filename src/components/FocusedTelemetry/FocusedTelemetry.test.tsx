@@ -74,7 +74,9 @@ describe("FocusedTelemetry", () => {
     expect(
       screen.getByText("No telemetry at this point — scrub into the session"),
     ).toBeInTheDocument();
-    fireEvent.click(screen.getByRole("button", { name: "Clear focus" }));
+    const clearFocus = screen.getByRole("button", { name: "Clear focus" });
+    expect(clearFocus).toHaveClass("hidden", "sm:flex");
+    fireEvent.click(clearFocus);
     expect(onClear).toHaveBeenCalled();
   });
 

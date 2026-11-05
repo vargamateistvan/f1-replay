@@ -203,7 +203,7 @@ export function FocusedTelemetry({
         <div className="flex shrink-0 flex-col items-end gap-2 pt-1">
           <button
             onClick={onClear}
-            className="flex h-6 w-6 items-center justify-center rounded-sm border border-panel text-muted transition-colors hover:border-line hover:text-fg"
+            className="hidden h-6 w-6 items-center justify-center rounded-sm border border-panel text-muted transition-colors hover:border-line hover:text-fg sm:flex"
             aria-label="Clear focus"
             title="Clear focus"
           >
