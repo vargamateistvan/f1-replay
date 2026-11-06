@@ -38,7 +38,6 @@ import {
   pitRejoinView,
   pitWindowRivals,
   type PitRejoinNeighbour,
-  type PitRejoinProjection,
 } from "@/utils/pitRejoin";
 import {
   isActiveTrackFlag,
@@ -50,6 +49,7 @@ import { exportTrackSnapshot } from "../TrackMap/exportSnapshot";
 import { FocusedDriverHud } from "../TrackMap/overlays/FocusedDriverHud";
 import { TrackClockPanel } from "../TrackMap/overlays/InfoPanels";
 import { SectorChips } from "../TrackMap/overlays/MapCornerWidgets";
+import { PitRejoinPanel } from "../TrackMap/overlays/PitRejoinPanel";
 import { StartReplayHint } from "../TrackMap/overlays/StartReplayHint";
 import { StatusBadges } from "../TrackMap/overlays/StatusBadges";
 import { TrackControls, type TrackControlButton } from "../TrackMap/overlays/TrackControls";
@@ -420,7 +420,7 @@ export function TrackRing({
   // Already in the pits (time dial): the rejoin point is where the car would
   // be had it stayed out (its pit entry, moved on at field speed) minus the
   // pit loss, so it holds still against the field until the car rejoins.
-  let inPitRejoinResult: PitRejoinProjection | null = null;
+  let inPitRejoinResult: ReturnType<typeof inPitRejoin> = null;
   const focusIndex = focusDriver === null ? undefined : locationIndexes.get(focusDriver);
   if (focusInPit && focusDriver !== null && focusIndex && profile && pitLoss && rejoinGaps?.has(focusDriver)) {
     const entry = cachedPitEntry(
@@ -448,7 +448,7 @@ export function TrackRing({
       : null;
     if (rejoinInPit) {
       const { projection } = rejoinInPit;
-      inPitRejoinResult = projection;
+      inPitRejoinResult = rejoinInPit;
       pitWindow = {
         carTf: rejoinInPit.carTf,
         behindTf: rejoinInPit.behindTf,
@@ -492,6 +492,21 @@ export function TrackRing({
         title: "Spaced by distance",
       };
   const focusDriverData = focusDriver === null ? undefined : driverByNumber.get(focusDriver);
+  const pitRejoinPanel = inPitRejoinResult
+    ? {
+        projection: inPitRejoinResult.projection,
+        lossS: inPitRejoinResult.lossS,
+        condition: inPitRejoinResult.condition,
+        inPit: true,
+      }
+    : rejoin
+      ? {
+          projection: rejoin.projection,
+          lossS: rejoin.lossS,
+          condition: rejoin.condition,
+          inPit: false,
+        }
+      : null;
   const focusPosition = focusDriver === null ? null : (positionByDriver?.get(focusDriver) ?? null);
   const focusTyre = focusDriver === null ? undefined : focusCompound ?? activeCompounds?.get(focusDriver);
   const focusGapAhead =
@@ -710,13 +725,13 @@ export function TrackRing({
           className="absolute top-12 right-2 z-20 max-w-[min(18rem,calc(100%-1rem))] rounded-sm border border-purple-line bg-track/90 px-2.5 py-2 text-caption leading-snug text-fg shadow-lg backdrop-blur"
         >
           <p className="font-black uppercase tracking-wider text-purple-fg">
-            {focusAcronym} in the pits → P{inPitRejoinResult.position}
+            {focusAcronym} in the pits → P{inPitRejoinResult.projection.position}
           </p>
           <p className="mt-1">
-            <span className="font-bold">Rejoins behind:</span> {neighbourText(inPitRejoinResult.ahead, driverByNumber)}
+            <span className="font-bold">Rejoins behind:</span> {neighbourText(inPitRejoinResult.projection.ahead, driverByNumber)}
           </p>
           <p>
-            <span className="font-bold">Ahead of:</span> {neighbourText(inPitRejoinResult.behind, driverByNumber)}
+            <span className="font-bold">Ahead of:</span> {neighbourText(inPitRejoinResult.projection.behind, driverByNumber)}
           </p>
         </div>
       )}
@@ -737,15 +752,26 @@ export function TrackRing({
         )}
       </div>
 
-      {showFocusedHud && hudData && focusDriver !== null && (
-        <div className="absolute top-2 left-2 pointer-events-none">
-          <FocusedDriverHud
-            sample={hudData}
-            driver={driverByNumber.get(focusDriver)}
-            metricSystem={metricSystem}
-            lightMode={lightMode}
-          />
-        </div>
+      {focusDriver !== null &&
+        ((showFocusedHud && hudData) || pitRejoinPanel) && (
+          <div className="absolute top-2 left-2 pointer-events-none flex flex-col gap-1">
+            {showFocusedHud && hudData && (
+              <FocusedDriverHud
+                sample={hudData}
+                driver={focusDriverData}
+                metricSystem={metricSystem}
+                lightMode={lightMode}
+              />
+            )}
+            {pitRejoinPanel && (
+              <PitRejoinPanel
+                {...pitRejoinPanel}
+                color={teamColor(focusDriverData?.team_colour, "#ffffff")}
+                background={overlayBackground}
+                driverByNumber={driverByNumber}
+              />
+            )}
+          </div>
       )}
 
       {hasCars && showSectorBox && hasTrackConditionDisplay && (

@@ -445,6 +445,10 @@ describe("TrackRing", () => {
     expect(window).toHaveTextContent("PIT → P2");
     expect(window).toHaveTextContent("SC");
     expect(window).toHaveTextContent("VSC");
+    const pitPanel = screen.getByTestId("pit-rejoin-panel");
+    expect(pitPanel).toHaveTextContent(/Pit now/i);
+    expect(pitPanel).toHaveTextContent("P2");
+    expect(pitPanel).toHaveTextContent(/Loss 20.0s · Green/i);
     expect(screen.queryByRole("status", { name: "Pit window outcomes" })).not.toBeInTheDocument();
     ring.showPitWindowOutcomes = true;
     rerender(cloneElement(props));
@@ -500,6 +504,8 @@ describe("TrackRing", () => {
     expect(panel).toHaveTextContent("VER in the pits → P2");
     expect(panel).toHaveTextContent(/Rejoins behind: LEC by 1\.\ds/);
     expect(panel).toHaveTextContent(/Ahead of: HAM by 3\d\.\ds/);
+    expect(screen.getByTestId("pit-rejoin-panel")).toHaveTextContent(/Rejoin/i);
+    expect(screen.getByTestId("pit-rejoin-panel")).toHaveTextContent("P2");
     expect(screen.queryByRole("status", { name: "Pit window outcomes" })).not.toBeInTheDocument();
 
     // The rejoin point moves on at field speed: 5 s later it is 4 s past the
