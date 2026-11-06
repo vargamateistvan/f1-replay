@@ -68,7 +68,7 @@ export function PitRejoinPanel({
   const losses = parsePitLoss(pitLoss);
   return (
     <div
-      className="pointer-events-none w-32 overflow-hidden rounded-sm border border-panel border-l-2 bg-surface/95 text-fg shadow-sm backdrop-blur-sm"
+      className="pointer-events-none w-32 overflow-hidden rounded-sm border border-panel border-l-2 bg-surface/60 text-fg shadow-sm backdrop-blur-sm"
       style={{ borderLeftColor: color }}
       data-testid="pit-rejoin-panel"
     >
@@ -96,7 +96,7 @@ export function PitRejoinPanel({
           />
         </div>
       )}
-      <div className="grid grid-cols-3 gap-0.5 border-t border-panel bg-sunken/50 px-1 py-1" aria-label="Pit time loss">
+      <div className="grid grid-cols-3 gap-0.5 border-t border-panel bg-sunken/20 px-1 py-1" aria-label="Pit time loss">
         {(["normal", "sc", "vsc"] as const).map((key) => {
           const active = key === condition;
           const seconds = active ? lossS : losses?.[key];

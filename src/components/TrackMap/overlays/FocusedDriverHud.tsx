@@ -18,7 +18,7 @@ export function FocusedDriverHud({
   const color = teamColor(driver?.team_colour);
   return (
     <div
-      className="pointer-events-none w-32 overflow-hidden rounded-sm border border-panel border-l-2 bg-surface/95 text-fg shadow-sm backdrop-blur-sm"
+      className="pointer-events-none w-32 overflow-hidden rounded-sm border border-panel border-l-2 bg-surface/60 text-fg shadow-sm backdrop-blur-sm"
       style={{ borderLeftColor: color }}
     >
       <div className="flex items-center justify-between gap-1 border-b border-panel px-1.5 py-0.5">

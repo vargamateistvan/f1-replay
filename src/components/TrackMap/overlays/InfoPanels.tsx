@@ -29,7 +29,7 @@ function panelClass(raining: boolean): string {
   const tint = raining
     ? "border-l-blue"
     : "border-l-line";
-  return `hidden md:block w-56 overflow-hidden rounded-sm border border-panel border-l-2 bg-surface/95 text-fg shadow-sm backdrop-blur-sm ${tint}`;
+  return `hidden md:block w-56 overflow-hidden rounded-sm border border-panel border-l-2 bg-surface/60 text-fg shadow-sm backdrop-blur-sm ${tint}`;
 }
 
 const HEADER_CLASS = "flex items-center gap-1.5 border-b border-panel px-2 py-1 text-micro font-black uppercase tracking-caps text-muted";
@@ -146,7 +146,7 @@ export const WeatherPanel = memo(function WeatherPanel({
           </div>
         ))}
       </div>
-      <div className="grid grid-cols-2 gap-x-3 gap-y-0.5 border-t border-panel bg-sunken/50 px-2 py-1">
+      <div className="grid grid-cols-2 gap-x-3 gap-y-0.5 border-t border-panel bg-sunken/20 px-2 py-1">
         <PanelRow
           icon={<Droplets size={9} strokeWidth={2.1} aria-hidden="true" />}
           label="Hum"
