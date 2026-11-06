@@ -164,6 +164,12 @@ green/red fills. A compact three-column footer shows Green, SC and VSC pit losse
 highlighting the current condition with a semantic tint; missing estimates show a dash.
 These shared overlays are used by the 2D, 3D and ring maps; CSS tokens handle both themes.
 
+**Map clock and weather cards:** `InfoPanels` uses matching `w-56` token-based
+surface cards with divided uppercase headers. Track/local clocks sit side by side
+with timezone metadata below; weather emphasises track/air temperatures above a
+compact humidity, pressure and wind footer. A blue Rain badge and left border mark
+wet conditions; Dry stays neutral. These overlays remain desktop-only.
+
 ### 4.3 Buttons
 
 **F1.com pattern:** Sharp rectangle, uppercase bold text, no border-radius.
