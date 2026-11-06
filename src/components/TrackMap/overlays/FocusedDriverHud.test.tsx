@@ -93,7 +93,7 @@ describe("map overlay cards", () => {
     if (condition !== "vsc") {
       expect(screen.getByText("VSC").parentElement).toHaveClass("border-transparent");
     }
-    expect(screen.getByTestId("pit-rejoin-panel")).toHaveClass("w-32", "bg-surface/80");
+    expect(screen.getByTestId("pit-rejoin-panel")).toHaveClass("hidden", "md:block", "w-32", "bg-surface/80");
     expect(screen.getByText(label)).toHaveClass("text-tiny");
     expect(screen.getByText("22.8s")).toHaveClass("text-caption");
     for (const [key, value] of [["normal", "22.8s"], ["sc", "12.5s"], ["vsc", "15.4s"]] as const) {
