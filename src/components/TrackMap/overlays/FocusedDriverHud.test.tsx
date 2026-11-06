@@ -35,13 +35,13 @@ const sample: CarData = {
 describe("map overlay cards", () => {
   it("labels the driver, speed units, gear and pedal values", () => {
     const { container } = render(<FocusedDriverHud sample={sample} driver={driver} metricSystem="metric" />);
-    expect(container.firstElementChild).toHaveClass("w-32");
+    expect(container.firstElementChild).toHaveClass("w-32", "bg-surface/80");
     expect(screen.getByText("SAI")).toBeInTheDocument();
-    expect(screen.getByText("Telemetry")).toBeInTheDocument();
+    expect(screen.getByText("Telemetry")).toHaveClass("text-tiny");
     expect(screen.getByText("89")).toBeInTheDocument();
-    expect(screen.getByText("km/h")).toBeInTheDocument();
+    expect(screen.getByText("km/h")).toHaveClass("text-tiny");
     expect(screen.getByTitle("Gear 1")).toHaveTextContent("1");
-    expect(screen.getByText("50")).toBeInTheDocument();
+    expect(screen.getByText("50")).toHaveClass("text-caption", "text-fg/80");
   });
 
   it("preserves imperial units and neutral gear, and clamps pedal bars", () => {
@@ -93,7 +93,9 @@ describe("map overlay cards", () => {
     if (condition !== "vsc") {
       expect(screen.getByText("VSC").parentElement).toHaveClass("border-transparent");
     }
-    expect(screen.getByTestId("pit-rejoin-panel")).toHaveClass("w-32");
+    expect(screen.getByTestId("pit-rejoin-panel")).toHaveClass("w-32", "bg-surface/80");
+    expect(screen.getByText(label)).toHaveClass("text-tiny");
+    expect(screen.getByText("22.8s")).toHaveClass("text-caption");
     for (const [key, value] of [["normal", "22.8s"], ["sc", "12.5s"], ["vsc", "15.4s"]] as const) {
       const title = key === "normal" ? "Green" : key.toUpperCase();
       expect(screen.getByTitle(`${title} pit time loss${key === condition ? " (current)" : ""}`))

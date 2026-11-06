@@ -18,14 +18,14 @@ export function FocusedDriverHud({
   const color = teamColor(driver?.team_colour);
   return (
     <div
-      className="pointer-events-none w-32 overflow-hidden rounded-sm border border-panel border-l-2 bg-surface/60 text-fg shadow-sm backdrop-blur-sm"
+      className="pointer-events-none w-32 overflow-hidden rounded-sm border border-panel border-l-2 bg-surface/80 text-fg shadow-sm backdrop-blur-sm"
       style={{ borderLeftColor: color }}
     >
       <div className="flex items-center justify-between gap-1 border-b border-panel px-1.5 py-0.5">
         <span className="text-caption font-black tracking-wider">
           {driver?.name_acronym ?? `#${sample.driver_number}`}
         </span>
-        <span className="text-micro font-bold uppercase tracking-caps text-muted">
+        <span className="text-tiny font-bold uppercase tracking-caps text-muted">
           Telemetry
         </span>
       </div>
@@ -35,7 +35,7 @@ export function FocusedDriverHud({
             <span className="w-[3ch] text-right font-mono text-lg font-black tabular-nums leading-none">
               {Math.round(toDisplaySpeed(sample.speed, metricSystem))}
             </span>
-            <span className="text-micro font-semibold text-muted">
+            <span className="text-tiny font-semibold text-muted">
               {speedUnitLabel(metricSystem)}
             </span>
           </div>
@@ -73,14 +73,14 @@ function HudBar({
   const pct = Math.max(0, Math.min(100, Math.round(value)));
   return (
     <div className="flex items-center gap-1.5">
-      <span className="w-5 shrink-0 text-micro font-bold tracking-wider text-muted">{label}</span>
+      <span className="w-5 shrink-0 text-tiny font-bold tracking-wider text-muted">{label}</span>
       <div className="h-1.5 min-w-0 flex-1 overflow-hidden rounded-sm bg-panel">
         <div
           className={`h-full ${barClass} rounded-sm transition-none`}
           style={{ width: `${pct}%` }}
         />
       </div>
-      <span className="w-[3ch] text-right font-mono text-tiny tabular-nums text-muted">{pct}</span>
+      <span className="w-[3ch] text-right font-mono text-caption tabular-nums text-fg/80">{pct}</span>
     </div>
   );
 }

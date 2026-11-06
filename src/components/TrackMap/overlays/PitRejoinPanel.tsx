@@ -37,8 +37,8 @@ function NeighbourRow({
   if (!neighbour) return null;
   const driver = driverByNumber.get(neighbour.driverNumber);
   return (
-    <div className="flex items-center justify-between gap-2 text-tiny">
-      <span className="text-micro font-bold uppercase tracking-caps text-muted">{label}</span>
+    <div className="flex items-center justify-between gap-2 text-caption">
+      <span className="text-tiny font-bold uppercase tracking-caps text-muted">{label}</span>
       <span className="whitespace-nowrap font-mono font-semibold tabular-nums text-fg">
         {driver?.name_acronym ?? `#${neighbour.driverNumber}`}{" "}
         <span className="text-muted">{neighbour.gapS.toFixed(1)}s</span>
@@ -68,7 +68,7 @@ export function PitRejoinPanel({
   const losses = parsePitLoss(pitLoss);
   return (
     <div
-      className="pointer-events-none w-32 overflow-hidden rounded-sm border border-panel border-l-2 bg-surface/60 text-fg shadow-sm backdrop-blur-sm"
+      className="pointer-events-none w-32 overflow-hidden rounded-sm border border-panel border-l-2 bg-surface/80 text-fg shadow-sm backdrop-blur-sm"
       style={{ borderLeftColor: color }}
       data-testid="pit-rejoin-panel"
     >
@@ -108,8 +108,8 @@ export function PitRejoinPanel({
               }`}
               title={`${CONDITION_LABEL[key]} pit time loss${active ? " (current)" : ""}`}
             >
-              <span className="text-micro font-bold uppercase">{CONDITION_LABEL[key]}</span>
-              <span className="font-mono text-tiny font-semibold tabular-nums">
+              <span className="text-tiny font-bold uppercase">{CONDITION_LABEL[key]}</span>
+              <span className="font-mono text-caption font-semibold tabular-nums">
                 {seconds == null ? "—" : `${seconds.toFixed(1)}s`}
               </span>
             </div>

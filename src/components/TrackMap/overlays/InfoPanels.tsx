@@ -29,10 +29,10 @@ function panelClass(raining: boolean): string {
   const tint = raining
     ? "border-l-blue"
     : "border-l-line";
-  return `hidden md:block w-56 overflow-hidden rounded-sm border border-panel border-l-2 bg-surface/60 text-fg shadow-sm backdrop-blur-sm ${tint}`;
+  return `hidden md:block w-56 overflow-hidden rounded-sm border border-panel border-l-2 bg-surface/80 text-fg shadow-sm backdrop-blur-sm ${tint}`;
 }
 
-const HEADER_CLASS = "flex items-center gap-1.5 border-b border-panel px-2 py-1 text-micro font-black uppercase tracking-caps text-muted";
+const HEADER_CLASS = "flex items-center gap-1.5 border-b border-panel px-2 py-1 text-caption font-black uppercase tracking-caps text-fg/80";
 
 function PanelRow({
   icon,
@@ -46,12 +46,12 @@ function PanelRow({
   return (
     <div className="flex min-w-0 items-center justify-between gap-1">
       <span
-        className={`${icon ? "inline-flex items-center gap-1 " : ""}text-micro uppercase tracking-wider text-muted`}
+        className={`${icon ? "inline-flex items-center gap-1 " : ""}text-tiny uppercase tracking-wider text-muted`}
       >
         {icon}
         {label}
       </span>
-      <span className="whitespace-nowrap text-tiny font-mono tabular-nums text-fg text-right">
+      <span className="whitespace-nowrap text-caption font-mono tabular-nums text-fg text-right">
         {children}
       </span>
     </div>
@@ -85,7 +85,7 @@ export function TrackClockPanel({
       </div>
       <div className="grid grid-cols-2 divide-x divide-panel">
         <div className="min-w-0 px-2 py-1">
-          <div className="text-micro font-bold uppercase tracking-caps text-muted">Track</div>
+          <div className="text-tiny font-bold uppercase tracking-caps text-muted">Track</div>
           <div className="font-mono text-compact font-semibold tabular-nums leading-snug">
             {formatClockAtOffset(nowMs, trackOffsetMinutes)}
           </div>
@@ -94,7 +94,7 @@ export function TrackClockPanel({
           </div>
         </div>
         <div className="min-w-0 px-2 py-1">
-          <div className="text-micro font-bold uppercase tracking-caps text-muted">Local</div>
+          <div className="text-tiny font-bold uppercase tracking-caps text-muted">Local</div>
           <div className="font-mono text-compact font-semibold tabular-nums leading-snug">
             {formatTrackClock(nowMs, "local", browserTimeZone)}
           </div>
@@ -123,7 +123,7 @@ export const WeatherPanel = memo(function WeatherPanel({
           ? <CloudRain size={10} strokeWidth={2.2} aria-hidden="true" />
           : <Sun size={10} strokeWidth={2.2} aria-hidden="true" />}
         Track Weather
-        <span className={`ml-auto rounded-sm border px-1 text-micro font-bold ${
+        <span className={`ml-auto rounded-sm border px-1 text-tiny font-bold ${
           raining ? "border-blue-line bg-blue-tint text-blue-fg" : "border-panel bg-sunken text-muted"
         }`}>
           {raining ? "Rain" : "Dry"}
@@ -135,7 +135,7 @@ export const WeatherPanel = memo(function WeatherPanel({
           ["Air", weather.air_temperature],
         ] as const).map(([label, temperature]) => (
           <div key={label} className="px-2 py-1">
-            <div className="flex items-center gap-1 text-micro font-bold uppercase tracking-caps text-muted">
+            <div className="flex items-center gap-1 text-tiny font-bold uppercase tracking-caps text-muted">
               <Thermometer size={9} strokeWidth={2.1} aria-hidden="true" />
               {label}
             </div>

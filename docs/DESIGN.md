@@ -155,7 +155,7 @@ Or as a left-border accent:
 - `bg-surface border border-panel rounded-sm` (`rounded-sm` is the only corner radius; `rounded-full` is for dots and avatars)
 
 **Focused-driver map overlays:** the telemetry and pit-rejoin cards share a compact
-`w-32` frame with tight padding, `bg-surface/60`, `border-panel`, `rounded-sm` and a team-colour left
+`w-32` frame with tight padding, `bg-surface/80`, `border-panel`, `rounded-sm` and a team-colour left
 accent. Headers use uppercase labels; numbers use neutral `text-fg` and tabular
 mono type. Gear and rejoin position sit in bordered boxes. Pedals retain semantic
 green/red fills. A compact three-column footer shows Green, SC and VSC pit losses,
@@ -163,12 +163,14 @@ highlighting the current condition with a semantic tint; missing estimates show 
 These shared overlays are used by the 2D, 3D and ring maps; CSS tokens handle both themes.
 
 **Map clock and weather cards:** `InfoPanels` uses matching `w-56` token-based
-surface cards with divided uppercase headers. All four map cards use 60% surface
+surface cards with divided uppercase headers. All four map cards use 80% surface
 opacity with backdrop blur, keeping text fully opaque and footer fills at 20%.
 Track/local clocks sit side by side
 with timezone metadata below; weather emphasises track/air temperatures above a
 compact humidity, pressure and wind footer. A blue Rain badge and left border mark
 wet conditions; Dry stays neutral. These overlays remain desktop-only.
+Small labels use at least `text-tiny`; key secondary readouts use `text-caption`
+with stronger foreground contrast for readability over the map.
 
 ### 4.3 Buttons
 
