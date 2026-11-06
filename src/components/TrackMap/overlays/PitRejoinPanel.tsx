@@ -19,6 +19,12 @@ const CONDITION_CLASS: Record<PitLossCondition, string> = {
   sc: "border-orange-line bg-orange-tint text-orange-fg",
 };
 
+const CONDITION_TEXT: Record<PitLossCondition, string> = {
+  normal: "text-green-fg",
+  vsc: "text-yellow-fg",
+  sc: "text-orange-fg",
+};
+
 function NeighbourRow({
   label,
   neighbour,
@@ -98,7 +104,7 @@ export function PitRejoinPanel({
             <div
               key={key}
               className={`flex flex-col items-center rounded-sm border py-0.5 ${
-                active ? CONDITION_CLASS[key] : "border-transparent text-muted"
+                active ? CONDITION_CLASS[key] : `border-transparent ${CONDITION_TEXT[key]}`
               }`}
               title={`${CONDITION_LABEL[key]} pit time loss${active ? " (current)" : ""}`}
             >

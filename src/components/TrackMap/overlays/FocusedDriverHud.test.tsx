@@ -85,6 +85,14 @@ describe("map overlay cards", () => {
     expect(screen.getByText("#23", { exact: false })).toHaveTextContent("1.7s");
     expect(screen.getByText("22.8s")).toBeInTheDocument();
     expect(screen.getByText(label).parentElement).toHaveClass(badgeClass);
+    expect(screen.getByText("SC").parentElement).toHaveClass("text-orange-fg");
+    expect(screen.getByText("VSC").parentElement).toHaveClass("text-yellow-fg");
+    if (condition !== "sc") {
+      expect(screen.getByText("SC").parentElement).toHaveClass("border-transparent");
+    }
+    if (condition !== "vsc") {
+      expect(screen.getByText("VSC").parentElement).toHaveClass("border-transparent");
+    }
     expect(screen.getByTestId("pit-rejoin-panel")).toHaveClass("w-32");
     for (const [key, value] of [["normal", "22.8s"], ["sc", "12.5s"], ["vsc", "15.4s"]] as const) {
       const title = key === "normal" ? "Green" : key.toUpperCase();
