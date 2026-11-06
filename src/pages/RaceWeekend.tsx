@@ -2648,7 +2648,7 @@ export default function RaceWeekend() {
               type="button"
               disabled={startingWelcomeReplay}
               onClick={() => { void startWelcomeReplay(); }}
-              className="inline-flex items-center gap-2 bg-f1red px-4 py-2 text-xs font-bold uppercase text-white disabled:cursor-wait disabled:opacity-60"
+              className={buttonClass("primary", "md", "gap-2 disabled:opacity-60")}
             >
               <Play aria-hidden="true" className="h-4 w-4" />
               {startingWelcomeReplay

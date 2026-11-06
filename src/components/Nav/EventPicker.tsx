@@ -150,7 +150,7 @@ export function EventPicker({
               </span>
             )}
             {selectedMeeting.is_cancelled && (
-              <span className="bg-white text-f1red text-tiny font-bold uppercase tracking-widest px-1.5 py-0.5 rounded-sm shrink-0">
+              <span className="bg-f1red text-white text-tiny font-bold uppercase tracking-widest px-1.5 py-0.5 rounded-sm shrink-0">
                 Cancelled
               </span>
             )}

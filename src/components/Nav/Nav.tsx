@@ -43,6 +43,7 @@ import {
   toSafeExternalUrl,
 } from "@/utils/url";
 import { trackEvent } from "@/lib/analytics";
+import { DialogHeader } from "@/components/DialogHeader";
 import {
   ChevronDown,
   Settings as SettingsIcon,
@@ -828,7 +829,7 @@ export function Nav() {
                     </span>
                   )}
                   {selectedMeeting.is_cancelled && (
-                    <span className="bg-white text-f1red text-tiny font-bold uppercase tracking-widest px-1.5 py-0.5 rounded-sm shrink-0">
+                    <span className="bg-f1red text-white text-tiny font-bold uppercase tracking-widest px-1.5 py-0.5 rounded-sm shrink-0">
                       Cancelled
                     </span>
                   )}
@@ -1063,31 +1064,19 @@ export function Nav() {
             }
           }}
         >
-          <div className="w-full max-w-2xl max-h-[88dvh] overflow-hidden rounded-sm border border-panel bg-surface shadow-2xl">
-            <div className="flex items-center justify-between border-b border-panel px-5 py-3.5">
-              <div className="min-w-0">
-                <div className="text-body font-bold text-fg tracking-wide truncate">
-                  {nextMeeting.meeting_name} Agenda
-                </div>
-                <div className="text-caption text-muted uppercase tracking-widest truncate">
-                  {nextMeeting.country_name} · {nextMeeting.circuit_short_name}
-                </div>
-              </div>
-              <button
-                type="button"
-                onClick={() => {
-                  trackEvent("nav_next_agenda_closed", { reason: "button" });
-                  setShowNextAgenda(false);
-                }}
-                className="w-7 h-7 flex items-center justify-center rounded-sm text-muted hover:text-fg hover:bg-panel transition-colors text-base"
-                aria-label="Close agenda"
-                title="Close"
-              >
-                ×
-              </button>
-            </div>
+          <div className="flex max-h-[88dvh] w-full max-w-2xl flex-col overflow-hidden border border-panel bg-surface shadow-2xl">
+            <DialogHeader
+              eyebrow="Next weekend"
+              meta={`${nextMeeting.country_name} · ${nextMeeting.circuit_short_name}`}
+              title={`${nextMeeting.meeting_name} Agenda`}
+              closeLabel="Close agenda"
+              onClose={() => {
+                trackEvent("nav_next_agenda_closed", { reason: "button" });
+                setShowNextAgenda(false);
+              }}
+            />
 
-            <div className="p-4 overflow-y-auto max-h-[calc(88dvh-60px)]">
+            <div className="min-h-0 flex-1 overflow-y-auto p-4">
               <div className="mb-3 text-caption font-black uppercase tracking-caps text-muted">
                 Event Time
               </div>
@@ -1132,28 +1121,16 @@ export function Nav() {
             if (e.target === e.currentTarget) setShowCircuitFacts(false);
           }}
         >
-          <div className="w-full max-w-2xl max-h-[88dvh] overflow-hidden rounded-sm border border-panel bg-surface shadow-2xl">
-            <div className="flex items-center justify-between border-b border-panel px-5 py-3.5">
-              <div className="min-w-0">
-                <div className="text-body font-bold text-fg tracking-wide truncate">
-                  {selectedMeeting.circuit_short_name} Track Facts
-                </div>
-                <div className="text-caption text-muted uppercase tracking-widest truncate">
-                  {selectedMeeting.country_name}
-                </div>
-              </div>
-              <button
-                type="button"
-                onClick={() => setShowCircuitFacts(false)}
-                className="w-7 h-7 flex items-center justify-center rounded-sm text-muted hover:text-fg hover:bg-panel transition-colors text-base"
-                aria-label="Close track facts"
-                title="Close"
-              >
-                ×
-              </button>
-            </div>
+          <div className="flex max-h-[88dvh] w-full max-w-2xl flex-col overflow-hidden border border-panel bg-surface shadow-2xl">
+            <DialogHeader
+              eyebrow="Circuit guide"
+              meta={selectedMeeting.country_name}
+              title={`${selectedMeeting.circuit_short_name} Track Facts`}
+              closeLabel="Close track facts"
+              onClose={() => setShowCircuitFacts(false)}
+            />
 
-            <div className="p-4 overflow-y-auto max-h-[calc(88dvh-60px)]">
+            <div className="min-h-0 flex-1 overflow-y-auto p-4">
               {selectedCircuitImageUrl && !isCircuitImageBroken && (
                 <div className="mb-3 rounded-sm border border-panel/80 bg-track/70 p-2">
                   <div className="rounded-sm border border-black/10 bg-white p-2">

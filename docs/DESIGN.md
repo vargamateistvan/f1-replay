@@ -123,13 +123,11 @@ Small sizes are named tokens (font-size only): `text-micro` 8px, `text-tiny` 9px
 └─────────────────────────────────────────────────────────────┘
 ```
 
-**Changes from current:**
-- Background: `#15151e` (not surface)
-- Active state: `border-b-2 border-f1red text-white` (remove `bg-f1red` pill)
-- Inactive: `text-muted hover:text-fg` (no hover background)
-- Link style: `text-xs font-bold uppercase tracking-caps py-4 px-4`
-- Remove `rounded` from all nav links
-- Bottom border: `1px solid #2a2a35`
+**Implementation:**
+- Background: `bg-track` with a `border-b border-panel` divider. Tokens keep the bar correct in both themes.
+- Active state: `border-b-2 border-f1red text-fg`; inactive links use `text-muted hover:text-fg`.
+- The event picker uses `bg-surface` / `bg-panel` controls with token borders; LIVE remains a red status chip.
+- Keep nav controls sharp and compact; use token colours rather than literal palette values.
 
 ### 4.2 Panel / Card
 
@@ -272,6 +270,12 @@ YEAR  [2024 ▾]   EVENT  [Bahrain GP ▾]   SESSION  [Race ▾]   ● LIVE
 - Full bar: `bg-sunken border-b border-panel` (`PICKER_BAR` in `components/Nav/pickerStyles.ts`)
 - Labels: `text-tiny font-bold uppercase tracking-widest text-muted`
 - LIVE chip: `bg-f1red px-1.5 py-0.5 text-caption font-black uppercase tracking-widest`
+
+### 4.10 Dialog Header
+
+Use the shared `DialogHeader` for modal headings so dialogs share the red eyebrow strip,
+uppercase title, optional mono metadata and square close control. Keep the dialog body
+scrollable independently from the header when content can exceed the viewport.
 
 ---
 
