@@ -448,7 +448,10 @@ describe("TrackRing", () => {
     const pitPanel = screen.getByTestId("pit-rejoin-panel");
     expect(pitPanel).toHaveTextContent(/Pit now/i);
     expect(pitPanel).toHaveTextContent("P2");
-    expect(pitPanel).toHaveTextContent(/Loss 20.0s · Green/i);
+    expect(pitPanel).toHaveTextContent(/Green20.0s/i);
+    expect(screen.getByTitle("SC pit time loss")).toHaveTextContent("10.0s");
+    expect(screen.getByTitle("VSC pit time loss")).toHaveTextContent("14.0s");
+    expect(pitPanel).toHaveTextContent("Green");
     expect(screen.queryByRole("status", { name: "Pit window outcomes" })).not.toBeInTheDocument();
     ring.showPitWindowOutcomes = true;
     rerender(cloneElement(props));

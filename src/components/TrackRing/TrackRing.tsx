@@ -760,14 +760,13 @@ export function TrackRing({
                 sample={hudData}
                 driver={focusDriverData}
                 metricSystem={metricSystem}
-                lightMode={lightMode}
               />
             )}
             {pitRejoinPanel && (
               <PitRejoinPanel
                 {...pitRejoinPanel}
+                pitLoss={circuitGeom?.pitLoss}
                 color={teamColor(focusDriverData?.team_colour, "#ffffff")}
-                background={overlayBackground}
                 driverByNumber={driverByNumber}
               />
             )}

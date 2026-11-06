@@ -146,7 +146,10 @@ describe("TrackMap pit rejoin projection", () => {
     expect(panel.textContent).toContain("P3");
     expect(panel.textContent).toContain("LEC 8.0s");
     expect(panel.textContent).toContain("RUS 7.0s");
-    expect(panel.textContent).toContain("Loss 21.0s · Green");
+    expect(screen.getByTitle("Green pit time loss (current)")).toHaveTextContent("21.0s");
+    expect(screen.getByTitle("SC pit time loss")).toHaveTextContent("13.0s");
+    expect(screen.getByTitle("VSC pit time loss")).toHaveTextContent("15.0s");
+    expect(panel.textContent).toContain("Green");
 
     // Ghost sits where car 1 was 21 s ago: x = 10 + 9 * 2 (+ SVG padding).
     const ghost = screen.getByTestId("pit-rejoin-ghost");
@@ -163,7 +166,10 @@ describe("TrackMap pit rejoin projection", () => {
     const panel = screen.getByTestId("pit-rejoin-panel");
     // 2 + 13 = 15 → ties with LEC, who keeps the place.
     expect(panel.textContent).toContain("P3");
-    expect(panel.textContent).toContain("Loss 13.0s · SC");
+    expect(screen.getByTitle("SC pit time loss (current)")).toHaveTextContent("13.0s");
+    expect(screen.getByTitle("Green pit time loss")).toHaveTextContent("21.0s");
+    expect(screen.getByTitle("VSC pit time loss")).toHaveTextContent("15.0s");
+    expect(panel.textContent).toContain("SC");
   });
 
   it("draws the pit window behind the car, the other conditions' ticks and rings the rivals", () => {

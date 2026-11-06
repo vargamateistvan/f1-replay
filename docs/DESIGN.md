@@ -156,6 +156,14 @@ Or as a left-border accent:
 **Panel wrapper:**
 - `bg-surface border border-panel rounded-sm` (`rounded-sm` is the only corner radius; `rounded-full` is for dots and avatars)
 
+**Focused-driver map overlays:** the telemetry and pit-rejoin cards share a compact
+`w-32` frame with tight padding, `bg-surface/95`, `border-panel`, `rounded-sm` and a team-colour left
+accent. Headers use uppercase labels; numbers use neutral `text-fg` and tabular
+mono type. Gear and rejoin position sit in bordered boxes. Pedals retain semantic
+green/red fills. A compact three-column footer shows Green, SC and VSC pit losses,
+highlighting the current condition with a semantic tint; missing estimates show a dash.
+These shared overlays are used by the 2D, 3D and ring maps; CSS tokens handle both themes.
+
 ### 4.3 Buttons
 
 **F1.com pattern:** Sharp rectangle, uppercase bold text, no border-radius.

@@ -4,52 +4,59 @@ import type { TelemetrySample } from "@/hooks/useCarDataForLap";
 import { teamColor } from "@/utils/color";
 import { speedUnitLabel, toDisplaySpeed, type UnitSystem } from "@/utils/units";
 import { computeSpeedStats } from "../trackGeometry";
-import { TOKEN_HEX } from "@/designTokens";
 
 /** Focused-driver HUD — speed / gear / throttle + brake bars. */
 export function FocusedDriverHud({
   sample,
   driver,
   metricSystem,
-  lightMode,
 }: {
   sample: CarData;
   driver: Driver | undefined;
   metricSystem: UnitSystem;
-  lightMode: boolean;
 }) {
   const color = teamColor(driver?.team_colour);
   return (
     <div
-      className="pointer-events-none flex flex-col gap-1 px-2 py-1.5"
-      style={{
-        background: lightMode
-          ? "rgba(247,249,254,0.94)"
-          : "rgba(21,21,30,0.85)",
-        backdropFilter: "blur(4px)",
-        minWidth: 100,
-        border: `1px solid ${color}33`,
-      }}
+      className="pointer-events-none w-32 overflow-hidden rounded-sm border border-panel border-l-2 bg-surface/95 text-fg shadow-sm backdrop-blur-sm"
+      style={{ borderLeftColor: color }}
     >
-      <div className="flex items-baseline gap-2">
-        <span
-          className="text-stat font-black tabular-nums leading-none"
-          style={{ color }}
-        >
-          {Math.round(toDisplaySpeed(sample.speed, metricSystem))}
+      <div className="flex items-center justify-between gap-1 border-b border-panel px-1.5 py-0.5">
+        <span className="text-caption font-black tracking-wider">
+          {driver?.name_acronym ?? `#${sample.driver_number}`}
         </span>
-        <span className="text-tiny text-muted uppercase tracking-widest leading-none self-end pb-0.5">
-          {speedUnitLabel(metricSystem)}
-        </span>
-        <span
-          className="ml-auto text-lg font-black tabular-nums leading-none"
-          style={{ color: sample.n_gear === 0 ? TOKEN_HEX.red : color }}
-        >
-          {sample.n_gear === 0 ? "N" : sample.n_gear}
+        <span className="text-micro font-bold uppercase tracking-caps text-muted">
+          Telemetry
         </span>
       </div>
-      <HudBar label="THR" value={sample.throttle} barClass="bg-green" />
-      <HudBar label="BRK" value={sample.brake} barClass="bg-f1red" />
+      <div className="flex flex-col gap-1 px-1.5 py-1">
+        <div className="flex items-center justify-between gap-1">
+          <div className="flex items-baseline gap-1">
+            <span className="w-[3ch] text-right font-mono text-lg font-black tabular-nums leading-none">
+              {Math.round(toDisplaySpeed(sample.speed, metricSystem))}
+            </span>
+            <span className="text-micro font-semibold text-muted">
+              {speedUnitLabel(metricSystem)}
+            </span>
+          </div>
+          <div className="flex items-center">
+            <span
+              className={`flex h-5 w-5 items-center justify-center rounded-sm border font-mono text-compact font-black tabular-nums leading-none ${
+                sample.n_gear === 0
+                  ? "border-orange-line bg-orange-tint text-orange-fg"
+                  : "border-line bg-panel text-fg"
+              }`}
+              title={sample.n_gear === 0 ? "Neutral" : `Gear ${sample.n_gear}`}
+            >
+              {sample.n_gear === 0 ? "N" : sample.n_gear}
+            </span>
+          </div>
+        </div>
+        <div className="flex flex-col gap-0.5">
+          <HudBar label="THR" value={sample.throttle} barClass="bg-green" />
+          <HudBar label="BRK" value={sample.brake} barClass="bg-red" />
+        </div>
+      </div>
     </div>
   );
 }
@@ -63,15 +70,17 @@ function HudBar({
   value: number;
   barClass: string;
 }) {
+  const pct = Math.max(0, Math.min(100, Math.round(value)));
   return (
     <div className="flex items-center gap-1.5">
-      <span className="text-micro text-muted w-5 shrink-0">{label}</span>
-      <div className="flex-1 h-1.5 bg-panel rounded-sm overflow-hidden">
+      <span className="w-5 shrink-0 text-micro font-bold tracking-wider text-muted">{label}</span>
+      <div className="h-1.5 min-w-0 flex-1 overflow-hidden rounded-sm bg-panel">
         <div
           className={`h-full ${barClass} rounded-sm transition-none`}
-          style={{ width: `${value}%` }}
+          style={{ width: `${pct}%` }}
         />
       </div>
+      <span className="w-[3ch] text-right font-mono text-tiny tabular-nums text-muted">{pct}</span>
     </div>
   );
 }

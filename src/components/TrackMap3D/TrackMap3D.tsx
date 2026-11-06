@@ -1795,17 +1795,16 @@ export function TrackMap3D({
               sample={hudData}
               driver={driverByNumber.get(focusDriver)}
               metricSystem={metricSystem}
-              lightMode={lightMode}
             />
           )}
           {focusDriver !== null && pitRejoin && (
             <PitRejoinPanel
               projection={pitRejoin.projection}
               lossS={pitRejoin.lossS}
+              pitLoss={circuitGeom?.pitLoss}
               condition={pitRejoin.condition}
               inPit={pitRejoin.inPit}
               color={focusColor}
-              background={lightMode ? "rgba(247,249,254,0.94)" : "rgba(21,21,30,0.85)"}
               driverByNumber={driverByNumber}
             />
           )}
