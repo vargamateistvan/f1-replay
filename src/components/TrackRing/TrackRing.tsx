@@ -90,6 +90,7 @@ interface Props {
   readonly drivers: Driver[];
   readonly locationData: Location[];
   readonly sessionStartMs: number;
+  readonly previewTimeMs?: number;
   readonly sessionGmtOffset?: string | null;
   readonly focusDriver?: number | null;
   readonly pulseDrivers?: readonly number[];
@@ -143,6 +144,7 @@ export function TrackRing({
   drivers,
   locationData,
   sessionStartMs,
+  previewTimeMs,
   sessionGmtOffset = "+00:00",
   focusDriver = null,
   pulseDrivers,
@@ -174,7 +176,8 @@ export function TrackRing({
   onEnter2d,
   onEnter3d,
 }: Props) {
-  const t = useCoarseTime(100);
+  const timelineT = useCoarseTime(100);
+  const t = previewTimeMs ?? timelineT;
   const lightMode = useSettings((s) => s.lightMode);
   const metricSystem = useSettings((s) => s.metricSystem);
   const showAcronym = useSettings((s) => s.mapShowDriverAcronym);

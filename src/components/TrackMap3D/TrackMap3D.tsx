@@ -280,6 +280,7 @@ interface Props {
   readonly drivers: Driver[];
   readonly locationData: Location[];
   readonly sessionStartMs: number;
+  readonly previewTimeMs?: number;
   readonly sessionGmtOffset?: string | null;
   readonly focusDriver?: number | null;
   readonly circuitKey?: number | null;
@@ -335,6 +336,7 @@ export function TrackMap3D({
   drivers,
   locationData,
   sessionStartMs,
+  previewTimeMs,
   sessionGmtOffset = "+00:00",
   focusDriver = null,
   circuitKey = null,
@@ -368,7 +370,8 @@ export function TrackMap3D({
   onExit3d,
   onEnterRing,
 }: Props) {
-  const t = useCoarseTime(100);
+  const timelineT = useCoarseTime(100);
+  const t = previewTimeMs ?? timelineT;
   const lightMode = useSettings((s) => s.lightMode);
   const metricSystem = useSettings((s) => s.metricSystem);
   const mapShowCornerNumbers = useSettings((s) => s.mapShowCornerNumbers);
@@ -1142,7 +1145,8 @@ export function TrackMap3D({
     };
 
     const step = (now: number) => {
-      const { t: playhead } = useTimeline.getState();
+      const { t: timelinePlayhead } = useTimeline.getState();
+      const playhead = previewTimeMs ?? timelinePlayhead;
       const live = liveRef.current;
 
       if ((playhead !== lastT || live.dirty) && canSendCars(carSync, now)) {
@@ -1341,7 +1345,7 @@ export function TrackMap3D({
       cancelAnimationFrame(raf);
       map.off("sourcedata", onCarData);
     };
-  }, [styleReady, geo]);
+  }, [styleReady, geo, previewTimeMs]);
 
   const recenter = useCallback(() => {
     trackEvent("trackmap3d_recenter");

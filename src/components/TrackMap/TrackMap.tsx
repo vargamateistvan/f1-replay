@@ -107,6 +107,7 @@ interface Props {
   readonly drivers: Driver[];
   readonly locationData: Location[];
   readonly sessionStartMs: number;
+  readonly previewTimeMs?: number;
   readonly sessionGmtOffset?: string | null;
   readonly focusDriver?: number | null;
   readonly pulseDrivers?: readonly number[];
@@ -143,6 +144,7 @@ interface Props {
   readonly lightsOutMs?: number | null;
   readonly showTrackScreenshot?: boolean;
   readonly showEnhancedVisuals?: boolean;
+  readonly showStartReplayHint?: boolean;
   readonly onSelectDriver?: (driverNumber: number) => void;
   /** When set, shows a shortcut to the track map settings. */
   readonly onOpenSettings?: () => void;
@@ -163,6 +165,7 @@ export function TrackMap({
   drivers,
   locationData,
   sessionStartMs,
+  previewTimeMs,
   sessionGmtOffset = "+00:00",
   focusDriver = null,
   pulseDrivers,
@@ -189,12 +192,14 @@ export function TrackMap({
   telemetryEnabled = true,
   showTrackScreenshot = true,
   showEnhancedVisuals = true,
+  showStartReplayHint = true,
   onSelectDriver,
   onOpenSettings,
   onEnter3d,
   onEnterRing,
 }: Props) {
-  const t = useCoarseTime(100);
+  const timelineT = useCoarseTime(100);
+  const t = previewTimeMs ?? timelineT;
   const lightMode = useSettings((s) => s.lightMode);
   const metricSystem = useSettings((s) => s.metricSystem);
   const mapShowDriverAcronym = useSettings((s) => s.mapShowDriverAcronym);
@@ -871,7 +876,7 @@ export function TrackMap({
 
       </svg>
 
-      {locationIndexes.size === 0 && <StartReplayHint />}
+      {showStartReplayHint && locationIndexes.size === 0 && <StartReplayHint />}
 
       <TrackControls
         showTrackControls={showTrackControls}

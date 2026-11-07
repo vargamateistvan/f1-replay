@@ -4,9 +4,10 @@ import { TrackMap } from "@/components/TrackMap/TrackMap";
 import { isMap3dAvailable } from "@/components/TrackMap3D/availability";
 import { hasCircuitGeometry } from "@/data/circuitGeometry";
 import { useLocationChunks } from "@/hooks/useLocationChunks";
-import { useDrivers, useLatestMeeting, useSessions } from "@/hooks/useSession";
+import { useDrivers, useLatestMeeting, useLaps, useSessions } from "@/hooks/useSession";
 import { trackEvent } from "@/lib/analytics";
 import type { AppSettings, MapViewMode } from "@/stores/settings";
+import type { BattleGap } from "@/timeline/director";
 import type { TrackFlagState } from "@/timeline/raceControl";
 import { SectionHeader, SettingRow } from "./SettingsPrimitives";
 
@@ -24,7 +25,7 @@ type Toggle = (key: keyof AppSettings) => (value: boolean) => void;
 type MapView = MapViewMode;
 
 /** Latest race weekend's data plus a few staged extras, so every setting is visible. */
-function usePreviewData() {
+function usePreviewData(loadHeatmapLap: boolean) {
   const latestMeeting = useLatestMeeting();
   const meeting = latestMeeting.data;
   const sessions = useSessions(meeting?.meeting_key ?? null);
@@ -38,6 +39,17 @@ function usePreviewData() {
   }, [sessions.data]);
   const sessionStartMs = session ? Date.parse(session.date_start) : 0;
   const drivers = useDrivers(session?.session_key ?? null);
+  const previewDrivers = useMemo(() => drivers.data?.slice(0, 3) ?? [], [drivers.data]);
+  const previewFocusDriver = previewDrivers[0] ?? null;
+  const laps = useLaps(
+    loadHeatmapLap ? session?.session_key ?? null : null,
+    previewFocusDriver?.driver_number,
+  );
+  const completedPreviewLaps = laps.data?.filter(
+    (lap) => lap.date_start != null && lap.lap_duration != null,
+  );
+  const previewLap =
+    completedPreviewLaps?.[completedPreviewLaps.length - 1]?.lap_number ?? null;
   const location = useLocationChunks(
     session?.session_key ?? null,
     Number.isFinite(sessionStartMs) ? sessionStartMs : null,
@@ -45,7 +57,15 @@ function usePreviewData() {
     0,
     { includeNextChunk: false, prefetchChunks: false },
   );
-  const previewDrivers = useMemo(() => drivers.data?.slice(0, 3) ?? [], [drivers.data]);
+  const previewTimeMs = useMemo(() => {
+    let latestOnTrackTime = Number.NEGATIVE_INFINITY;
+    for (const point of location.data) {
+      if (point.x === 0 && point.y === 0) continue;
+      const time = Date.parse(point.date) - sessionStartMs;
+      if (Number.isFinite(time)) latestOnTrackTime = Math.max(latestOnTrackTime, time);
+    }
+    return Number.isFinite(latestOnTrackTime) ? latestOnTrackTime : null;
+  }, [location.data, sessionStartMs]);
   const activeCompounds = useMemo(
     () =>
       new Map(
@@ -61,6 +81,23 @@ function usePreviewData() {
   );
   const battlingDrivers = useMemo(
     () => new Set(previewDrivers.slice(0, 2).map((driver) => driver.driver_number)),
+    [previewDrivers],
+  );
+  const pitRejoinGaps = useMemo(
+    () => new Map(previewDrivers.map((driver, index) => [driver.driver_number, index * 5])),
+    [previewDrivers],
+  );
+  const battleGaps = useMemo<BattleGap[]>(
+    () =>
+      previewDrivers.length > 1
+        ? [
+            {
+              chaser: previewDrivers[1]!.driver_number,
+              ahead: previewDrivers[0]!.driver_number,
+              gap: 0.8,
+            },
+          ]
+        : [],
     [previewDrivers],
   );
   const weather: Weather | null = session
@@ -90,9 +127,14 @@ function usePreviewData() {
     sessionStartMs,
     drivers: drivers.data ?? [],
     locationData: location.data,
+    previewTimeMs,
     previewDrivers,
+    previewFocusDriver,
+    previewLap,
     activeCompounds,
     battlingDrivers,
+    pitRejoinGaps,
+    battleGaps,
     weather,
     trackFlagState,
     unavailable: latestMeeting.isError || sessions.isError,
@@ -141,7 +183,7 @@ function TrackMapPreview({
   settings: AppSettings;
   onExit3d: () => void;
 }) {
-  const data = usePreviewData();
+  const data = usePreviewData(view !== "ring" && settings.mapShowDriverHeatmap);
   const { session } = data;
   const common = session
     ? {
@@ -152,15 +194,26 @@ function TrackMapPreview({
         sessionGmtOffset: session.gmt_offset,
         circuitKey: session.circuit_key,
         year: session.year,
-        focusDriver: null,
+        previewTimeMs: data.previewTimeMs ?? undefined,
+        focusDriver: data.previewFocusDriver?.driver_number ?? null,
+        focusDriverLap: data.previewLap,
         pulseDrivers: data.previewDrivers.slice(0, 1).map((d) => d.driver_number),
         activeCompounds: settings.mapShowCompoundBadges ? data.activeCompounds : undefined,
         battlingDrivers: settings.mapShowBattleRings ? data.battlingDrivers : undefined,
+        pitRejoinGaps:
+          (view === "ring"
+            ? settings.mapRingShowPitWindowOutcomes
+            : settings.mapShowPitRejoin)
+            ? data.pitRejoinGaps
+            : undefined,
+        leaderNumber: data.previewFocusDriver?.driver_number ?? null,
+        battleGaps: data.battleGaps,
         weatherOverlay: settings.mapShowWeather ? data.weather : null,
         showTrackControls: settings.mapShowTrackControls,
         showFocusedHud: settings.mapShowDriverHud,
         showTrackScreenshot: settings.trackScreenshotPngEnabled,
         showEnhancedVisuals: settings.mapShowEnhancedVisuals,
+        showStartReplayHint: false,
         raceLeader: settings.mapShowRaceLeader ? (data.previewDrivers[0] ?? null) : null,
       }
     : null;
@@ -186,9 +239,7 @@ function TrackMapPreview({
         <TrackRing
           {...common}
           circuitShortName={session.circuit_short_name}
-          trackFlagState={
-            settings.mapShowSectorFlags || settings.mapShowSectorBox ? data.trackFlagState : null
-          }
+          trackFlagState={flagState}
           showSectorBox={settings.mapShowSectorBox}
         />
       </Suspense>
@@ -210,9 +261,7 @@ function TrackMapPreview({
       <TrackMap
         {...common}
         circuitShortName={session.circuit_short_name}
-        trackFlagState={
-          settings.mapShowSectorFlags || settings.mapShowSectorBox ? data.trackFlagState : null
-        }
+        trackFlagState={flagState}
         showSectorBox={settings.mapShowSectorBox}
         showCompass={settings.mapShowCompass}
       />

@@ -7,6 +7,8 @@ const state = vi.hoisted(() => ({
   reset: vi.fn(),
   mapViewMode: "2d" as "2d" | "3d" | "ring",
   available3d: true,
+  showPitRejoin: true,
+  showRingPitOutcomes: true,
 }));
 
 vi.mock("@/stores/settings", () => ({
@@ -81,6 +83,7 @@ vi.mock("@/stores/settings", () => ({
     mapShowCompoundBadges: true,
     mapShowBattleRings: true,
     mapShowDriverHud: true,
+    mapShowPitRejoin: state.showPitRejoin,
     mapShowSectorFlags: true,
     mapShowSectorBox: true,
     mapShowTrackControls: true,
@@ -91,6 +94,9 @@ vi.mock("@/stores/settings", () => ({
     mapShowDriverNumberInside: false,
     mapShowRaceLeader: true,
     mapShowEnhancedVisuals: true,
+    mapShowDriverHeatmap: true,
+    mapRingShowPitWindowOutcomes: state.showRingPitOutcomes,
+    mapView3dBattleGaps: true,
     trackScreenshotPngEnabled: true,
     mapViewMode: state.mapViewMode,
     mapView3dTerrain: false,
@@ -129,11 +135,26 @@ vi.mock("@/hooks/useSession", () => ({
     ],
     isError: false,
   }),
-  useDrivers: () => ({ data: [] }),
+  useDrivers: () => ({
+    data: [
+      { driver_number: 55, name_acronym: "SAI", team_colour: "E8002D" },
+      { driver_number: 16, name_acronym: "LEC", team_colour: "E8002D" },
+      { driver_number: 4, name_acronym: "NOR", team_colour: "FF8000" },
+    ],
+  }),
+  useLaps: () => ({
+    data: [{ date_start: "2026-09-01T12:20:00Z", lap_duration: 90, lap_number: 12 }],
+  }),
 }));
 
 vi.mock("@/hooks/useLocationChunks", () => ({
-  useLocationChunks: () => ({ data: [] }),
+  useLocationChunks: () => ({
+    data: [
+      { date: "2026-09-01T12:00:30Z", driver_number: 55, x: 100, y: 120 },
+      { date: "2026-09-01T12:00:30Z", driver_number: 16, x: 200, y: 220 },
+      { date: "2026-09-01T12:00:30Z", driver_number: 4, x: 300, y: 320 },
+    ],
+  }),
 }));
 
 vi.mock("@/components/TrackMap3D/availability", () => ({
@@ -145,14 +166,52 @@ vi.mock("@/data/circuitGeometry", () => ({
 }));
 
 vi.mock("@/components/TrackMap3D/TrackMap3D", () => ({
-  TrackMap3D: ({ circuitKey }: { circuitKey: number }) => (
-    <div role="img" aria-label={`circuit ${circuitKey} 3D track map`} />
+  TrackMap3D: ({
+    circuitKey,
+    previewTimeMs,
+    focusDriver,
+    focusDriverLap,
+    pitRejoinGaps,
+    battleGaps,
+  }: {
+    circuitKey: number;
+    previewTimeMs?: number;
+    focusDriver: number | null;
+    focusDriverLap: number | null;
+    pitRejoinGaps?: Map<number, number>;
+    battleGaps: { chaser: number; ahead: number; gap: number }[];
+  }) => (
+    <div
+      role="img"
+      aria-label={`circuit ${circuitKey} 3D track map`}
+      data-preview-time={previewTimeMs ?? "timeline"}
+      data-focus={focusDriver ?? "none"}
+      data-lap={focusDriverLap ?? "none"}
+      data-pit-gaps={pitRejoinGaps?.size ?? 0}
+      data-battle-gaps={battleGaps.length}
+    />
   ),
 }));
 
 vi.mock("@/components/TrackRing/TrackRing", () => ({
-  TrackRing: ({ circuitKey }: { circuitKey: number }) => (
-    <div role="img" aria-label={`circuit ${circuitKey} ring view`} />
+  TrackRing: ({
+    circuitKey,
+    previewTimeMs,
+    focusDriver,
+    pitRejoinGaps,
+  }: {
+    circuitKey: number;
+    previewTimeMs?: number;
+    focusDriver: number | null;
+    pitRejoinGaps?: Map<number, number>;
+  }) => (
+    <div
+      role="img"
+      aria-label={`circuit ${circuitKey} ring view`}
+      data-preview-time={previewTimeMs ?? "timeline"}
+      data-focus={focusDriver ?? "none"}
+      data-pit-gaps={pitRejoinGaps?.size ?? 0}
+    />
   ),
 }));
 
@@ -163,12 +222,24 @@ vi.mock("@/components/TrackMap/TrackMap", () => ({
     weatherOverlay,
     showSectorBox,
     showTrackScreenshot,
+    focusDriver,
+    focusDriverLap,
+    pitRejoinGaps,
+    battleGaps,
+    showStartReplayHint,
+    previewTimeMs,
   }: {
     circuitShortName: string;
     trackFlagState: { marshalFlags: Record<number, string> } | null;
     weatherOverlay: unknown;
     showSectorBox?: boolean;
     showTrackScreenshot?: boolean;
+    focusDriver: number | null;
+    focusDriverLap: number | null;
+    pitRejoinGaps?: Map<number, number>;
+    battleGaps: { chaser: number; ahead: number; gap: number }[];
+    showStartReplayHint?: boolean;
+    previewTimeMs?: number;
   }) => (
     <div
       role="img"
@@ -177,6 +248,12 @@ vi.mock("@/components/TrackMap/TrackMap", () => ({
       data-weather={weatherOverlay ? "visible" : "hidden"}
       data-sector-box={showSectorBox ? "visible" : "hidden"}
       data-png={showTrackScreenshot ? "visible" : "hidden"}
+      data-focus={focusDriver ?? "none"}
+      data-lap={focusDriverLap ?? "none"}
+      data-preview-time={previewTimeMs ?? "timeline"}
+      data-pit-gaps={pitRejoinGaps?.size ?? 0}
+      data-battle-gaps={battleGaps.length}
+      data-start-replay-hint={showStartReplayHint === false ? "hidden" : "visible"}
     />
   ),
 }));
@@ -187,6 +264,8 @@ describe("SettingsControls", () => {
     state.reset.mockReset();
     state.mapViewMode = "2d";
     state.available3d = true;
+    state.showPitRejoin = true;
+    state.showRingPitOutcomes = true;
   });
 
   it("updates key settings and supports reset", () => {
@@ -312,6 +391,11 @@ describe("SettingsControls", () => {
     expect(
       screen.getByRole("img", { name: "Monza production track map" }),
     ).toHaveAttribute("data-weather", "visible");
+    const map = screen.getByRole("img", { name: "Monza production track map" });
+    expect(map).toHaveAttribute("data-focus", "55");
+    expect(map).toHaveAttribute("data-pit-gaps", "3");
+    expect(map).toHaveAttribute("data-start-replay-hint", "hidden");
+    expect(map).toHaveAttribute("data-preview-time", "30000");
   });
 
   it("mirrors the sector status box and PNG snapshot settings in the preview", () => {
@@ -321,6 +405,24 @@ describe("SettingsControls", () => {
     const map = screen.getByRole("img", { name: "Monza production track map" });
     expect(map).toHaveAttribute("data-sector-box", "visible");
     expect(map).toHaveAttribute("data-png", "visible");
+  });
+
+  it("only stages pit projections when the active map view has them enabled", async () => {
+    state.showPitRejoin = false;
+    const mapView = render(<SettingsBody initialTab="track" />);
+    expect(screen.getByRole("img", { name: "Monza production track map" })).toHaveAttribute(
+      "data-pit-gaps",
+      "0",
+    );
+
+    mapView.unmount();
+    state.mapViewMode = "ring";
+    state.showRingPitOutcomes = false;
+    render(<SettingsBody initialTab="track" />);
+    expect(await screen.findByRole("img", { name: "circuit 1 ring view" })).toHaveAttribute(
+      "data-pit-gaps",
+      "0",
+    );
   });
 
   it("groups the track map settings into subgroups", () => {
@@ -361,6 +463,12 @@ describe("SettingsControls", () => {
     expect(screen.getByRole("radio", { name: "3D map" })).toHaveAttribute("aria-checked", "true");
     expect(await screen.findByRole("img", { name: "circuit 1 3D track map" })).toBeInTheDocument();
     expect(screen.getByText("Live preview · 3D")).toBeInTheDocument();
+    const map = screen.getByRole("img", { name: "circuit 1 3D track map" });
+    expect(map).toHaveAttribute("data-focus", "55");
+    expect(map).toHaveAttribute("data-lap", "12");
+    expect(map).toHaveAttribute("data-pit-gaps", "3");
+    expect(map).toHaveAttribute("data-battle-gaps", "1");
+    expect(map).toHaveAttribute("data-preview-time", "30000");
     for (const label of [
       "3D car models",
       "Flag colours on track",
@@ -381,7 +489,11 @@ describe("SettingsControls", () => {
     state.mapViewMode = "ring";
     render(<SettingsBody initialTab="track" />);
     expect(screen.getByRole("radio", { name: "Ring" })).toHaveAttribute("aria-checked", "true");
-    expect(await screen.findByRole("img", { name: "circuit 1 ring view" })).toBeInTheDocument();
+    const map = await screen.findByRole("img", { name: "circuit 1 ring view" });
+    expect(map).toBeInTheDocument();
+    expect(map).toHaveAttribute("data-focus", "55");
+    expect(map).toHaveAttribute("data-pit-gaps", "3");
+    expect(map).toHaveAttribute("data-preview-time", "30000");
     expect(screen.getByText("Live preview · Ring")).toBeInTheDocument();
     expect(screen.getByText("Corner numbers")).toBeInTheDocument();
     expect(screen.getByText("Sector status box")).toBeInTheDocument();
