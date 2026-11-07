@@ -169,7 +169,7 @@ describe("TrackMap sector flag state rendering", () => {
     vi.mocked(getPitLane).mockReturnValue(null);
   });
 
-  it("shows a dashed pit lane when baked circuit geometry is available", () => {
+  it("shows a thin solid pit lane when baked circuit geometry is available", () => {
     vi.mocked(useTrackOutline).mockReturnValue(mockTrackOutlineQueryResult(mockOutline));
     vi.mocked(getCircuitGeometry).mockReturnValue({
       circuitKey: 22,
@@ -189,7 +189,9 @@ describe("TrackMap sector flag state rendering", () => {
     );
     const pitLane = screen.getByTestId("pit-lane");
     expect(pitLane).toHaveAttribute("d", "M49.0,49.0 L74.0,84.0");
-    expect(pitLane).toHaveAttribute("stroke-dasharray", "3 2");
+    expect(pitLane).not.toHaveAttribute("stroke-dasharray");
+    expect(pitLane).toHaveAttribute("stroke-width", "1.5");
+    expect(pitLane).toHaveAttribute("stroke-linecap", "round");
     expect(pitLane).toHaveAttribute("stroke-opacity", "0.6");
 
     vi.mocked(getCircuitGeometry).mockReturnValue(null);

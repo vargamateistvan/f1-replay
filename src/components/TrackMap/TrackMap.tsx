@@ -768,8 +768,7 @@ export function TrackMap({
               stroke={lightMode ? TOKEN_HEX_LIGHT.fg : TOKEN_HEX.fg}
               strokeWidth={1.5}
               strokeOpacity={0.6}
-              strokeDasharray="3 2"
-              strokeLinecap="butt"
+              strokeLinecap="round"
               strokeLinejoin="round"
               aria-hidden="true"
             />
