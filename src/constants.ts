@@ -65,7 +65,9 @@ export const TRACK_SVG_H = 400;
 export const TRACK_SVG_PAD = 24;
 export const TRACK_BACKGROUND_GRID_SIZE = 40;
 export const TRACK_BACKGROUND_GLOW_OPACITY = 0.07;
+export const TRACK_BACKGROUND_GLOW_OPACITY_LIGHT = 0.1;
 export const TRACK_BACKGROUND_LINE_OPACITY = 0.07;
+export const TRACK_BACKGROUND_LINE_OPACITY_LIGHT = 0.14;
 /** Mouse-wheel zoom sensitivity and normalization for the 2D track map. */
 export const TRACK_WHEEL_ZOOM_PER_PIXEL = 0.002;
 export const TRACK_WHEEL_LINE_PIXELS = 16;
@@ -130,6 +132,8 @@ export const RING_BACKGROUND_TICK_LENGTH = 4;
 export const RING_BACKGROUND_MAJOR_TICK_LENGTH = 8;
 export const RING_BACKGROUND_TICK_OPACITY = 0.18;
 export const RING_BACKGROUND_MAJOR_TICK_OPACITY = 0.32;
+export const RING_BACKGROUND_TICK_OPACITY_LIGHT = 0.28;
+export const RING_BACKGROUND_MAJOR_TICK_OPACITY_LIGHT = 0.44;
 export const RING_BACKGROUND_START_TICK_OPACITY = 0.72;
 /** Radius of the inner pit-lane arc. */
 export const RING_PIT_RADIUS = 92;

@@ -9,9 +9,13 @@ import {
   RING_BACKGROUND_TICK_INSET,
   RING_BACKGROUND_TICK_LENGTH,
   RING_BACKGROUND_TICK_OPACITY,
+  RING_BACKGROUND_TICK_OPACITY_LIGHT,
+  RING_BACKGROUND_MAJOR_TICK_OPACITY_LIGHT,
   TRACK_BACKGROUND_GLOW_OPACITY,
+  TRACK_BACKGROUND_GLOW_OPACITY_LIGHT,
   TRACK_BACKGROUND_GRID_SIZE,
   TRACK_BACKGROUND_LINE_OPACITY,
+  TRACK_BACKGROUND_LINE_OPACITY_LIGHT,
 } from "@/constants";
 import { TOKEN_HEX, TOKEN_HEX_LIGHT } from "@/designTokens";
 
@@ -26,13 +30,15 @@ export function MapBackground({ view, lightMode, ring }: Props) {
   const glowId = `map-glow-${id}`;
   const gridId = `map-grid-${id}`;
   const ink = lightMode ? TOKEN_HEX_LIGHT.fg : TOKEN_HEX.fg;
+  const glowOpacity = lightMode ? TRACK_BACKGROUND_GLOW_OPACITY_LIGHT : TRACK_BACKGROUND_GLOW_OPACITY;
+  const lineOpacity = lightMode ? TRACK_BACKGROUND_LINE_OPACITY_LIGHT : TRACK_BACKGROUND_LINE_OPACITY;
   const outerRingRadius = ring ? ring.radius + Math.max(...RING_BACKGROUND_OFFSETS) : 0;
 
   return (
     <g aria-hidden="true" pointerEvents="none" data-testid="map-background">
       <defs>
         <radialGradient id={glowId}>
-          <stop offset="0%" stopColor={ink} stopOpacity={TRACK_BACKGROUND_GLOW_OPACITY} />
+          <stop offset="0%" stopColor={ink} stopOpacity={glowOpacity} />
           <stop offset="100%" stopColor={ink} stopOpacity="0" />
         </radialGradient>
         {!ring && (
@@ -41,8 +47,8 @@ export function MapBackground({ view, lightMode, ring }: Props) {
               d={`M ${TRACK_BACKGROUND_GRID_SIZE} 0 H 0 V ${TRACK_BACKGROUND_GRID_SIZE}`}
               fill="none"
               stroke={ink}
-              strokeOpacity={TRACK_BACKGROUND_LINE_OPACITY}
-              strokeWidth="0.5"
+              strokeOpacity={lineOpacity}
+              strokeWidth={lightMode ? "0.65" : "0.5"}
             />
           </pattern>
         )}
@@ -58,8 +64,8 @@ export function MapBackground({ view, lightMode, ring }: Props) {
               r={ring.radius + offset}
               fill="none"
               stroke={ink}
-              strokeOpacity={TRACK_BACKGROUND_LINE_OPACITY}
-              strokeWidth="0.5"
+              strokeOpacity={lineOpacity}
+              strokeWidth={lightMode ? "0.65" : "0.5"}
             />
           ))}
           <g data-layer="ring-background-ticks">
@@ -85,8 +91,12 @@ export function MapBackground({ view, lightMode, ring }: Props) {
                     isStart
                       ? RING_BACKGROUND_START_TICK_OPACITY
                       : isMajor
-                        ? RING_BACKGROUND_MAJOR_TICK_OPACITY
-                        : RING_BACKGROUND_TICK_OPACITY
+                        ? lightMode
+                          ? RING_BACKGROUND_MAJOR_TICK_OPACITY_LIGHT
+                          : RING_BACKGROUND_MAJOR_TICK_OPACITY
+                        : lightMode
+                          ? RING_BACKGROUND_TICK_OPACITY_LIGHT
+                          : RING_BACKGROUND_TICK_OPACITY
                   }
                   strokeWidth={isMajor ? "1" : "0.75"}
                 />

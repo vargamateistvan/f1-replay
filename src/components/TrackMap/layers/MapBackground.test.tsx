@@ -1,9 +1,13 @@
 import { render } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 import {
+  RING_BACKGROUND_MAJOR_TICK_EVERY,
   RING_BACKGROUND_OFFSETS,
+  RING_BACKGROUND_MAJOR_TICK_OPACITY_LIGHT,
   RING_BACKGROUND_TICK_COUNT,
+  RING_BACKGROUND_TICK_OPACITY_LIGHT,
   TRACK_BACKGROUND_GRID_SIZE,
+  TRACK_BACKGROUND_LINE_OPACITY_LIGHT,
 } from "@/constants";
 import { TOKEN_HEX, TOKEN_HEX_LIGHT } from "@/designTokens";
 import { MapBackground } from "./MapBackground";
@@ -22,6 +26,7 @@ describe("MapBackground", () => {
     expect(background.querySelector("rect")).toHaveAttribute("width", "600");
     rerender(<svg><MapBackground view={view} lightMode /></svg>);
     expect(background.querySelector("pattern path")).toHaveAttribute("stroke", TOKEN_HEX_LIGHT.fg);
+    expect(background.querySelector("pattern path")).toHaveAttribute("stroke-opacity", String(TRACK_BACKGROUND_LINE_OPACITY_LIGHT));
   });
 
   it("uses concentric rings rather than a grid and gives each instance unique gradients", () => {
@@ -40,6 +45,9 @@ describe("MapBackground", () => {
       .toHaveLength(RING_BACKGROUND_TICK_COUNT);
     expect(backgrounds[0]!.querySelector('[data-layer="ring-background-ticks"] path'))
       .toHaveAttribute("stroke", TOKEN_HEX.f1red);
+    const lightTicks = backgrounds[1]!.querySelectorAll('[data-layer="ring-background-ticks"] path');
+    expect(lightTicks[RING_BACKGROUND_MAJOR_TICK_EVERY]).toHaveAttribute("stroke-opacity", String(RING_BACKGROUND_MAJOR_TICK_OPACITY_LIGHT));
+    expect(lightTicks[1]).toHaveAttribute("stroke-opacity", String(RING_BACKGROUND_TICK_OPACITY_LIGHT));
     const firstId = backgrounds[0]!.querySelector("radialGradient")!.id;
     const secondId = backgrounds[1]!.querySelector("radialGradient")!.id;
     expect(firstId).not.toBe(secondId);
