@@ -15,8 +15,9 @@ describe("MapBackground", () => {
     const { container, rerender } = render(<svg><MapBackground view={view} lightMode={false} /></svg>);
     const background = container.querySelector('[data-testid="map-background"]')!;
     expect(background).toHaveAttribute("pointer-events", "none");
-    expect(background.querySelector("pattern")).toHaveAttribute("width", String(TRACK_BACKGROUND_GRID_SIZE));
-    expect(background.querySelector("pattern path")).toHaveAttribute("stroke", TOKEN_HEX.fg);
+    const pattern = background.querySelector("pattern");
+    expect(pattern).toHaveAttribute("width", String(TRACK_BACKGROUND_GRID_SIZE));
+    expect(pattern?.querySelector("path")).toHaveAttribute("stroke", TOKEN_HEX.fg);
     expect(background.querySelector("rect")).toHaveAttribute("x", "-30");
     expect(background.querySelector("rect")).toHaveAttribute("width", "600");
     rerender(<svg><MapBackground view={view} lightMode /></svg>);
