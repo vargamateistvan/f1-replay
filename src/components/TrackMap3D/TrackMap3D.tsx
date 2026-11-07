@@ -63,6 +63,9 @@ import {
   MAP3D_EDGE_LINE_COLOR,
   TRACK_PIT_ACCESS_MARKER_RADIUS,
   TRACK_PIT_ACCESS_GLOW_SCALE,
+  TRACK_PIT_EXIT_LIGHT_RADIUS,
+  TRACK_PIT_EXIT_LIGHT_WIDTH,
+  TRACK_PIT_EXIT_LIGHT_HEIGHT,
 } from "@/constants";
 import { getCircuitGeoref } from "@/data/circuitGeoref";
 import { getRunoffStyle } from "@/data/circuitRunoff";
@@ -211,6 +214,33 @@ const SRC_MARSHAL = "map3d-marshal";
 const SRC_FLAG_ZONES = "map3d-flag-zones";
 const SRC_CORNERS = "map3d-corners";
 const SRC_PIT_LANE = "map3d-pit-lane";
+const PIT_EXIT_LIGHT_IMAGES = { open: "map3d-pit-exit-open", closed: "map3d-pit-exit-closed" } as const;
+
+function addPitExitLightImages(map: mapboxgl.Map) {
+  const ratio = 2;
+  for (const state of ["closed", "open"] as const) {
+    const canvas = document.createElement("canvas");
+    canvas.width = TRACK_PIT_EXIT_LIGHT_WIDTH * ratio;
+    canvas.height = TRACK_PIT_EXIT_LIGHT_HEIGHT * ratio;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) throw new Error("Cannot draw the 3D pit exit light: canvas is unavailable");
+    ctx.scale(ratio, ratio);
+    ctx.fillStyle = TOKEN_HEX.track;
+    ctx.fillRect(0, 0, TRACK_PIT_EXIT_LIGHT_WIDTH, TRACK_PIT_EXIT_LIGHT_HEIGHT);
+    ctx.strokeStyle = TOKEN_HEX.faint;
+    ctx.lineWidth = 0.5;
+    ctx.strokeRect(0.25, 0.25, TRACK_PIT_EXIT_LIGHT_WIDTH - 0.5, TRACK_PIT_EXIT_LIGHT_HEIGHT - 0.5);
+    ctx.beginPath();
+    ctx.arc(TRACK_PIT_EXIT_LIGHT_WIDTH / 2, TRACK_PIT_EXIT_LIGHT_HEIGHT / 2,
+      TRACK_PIT_EXIT_LIGHT_RADIUS, 0, Math.PI * 2);
+    ctx.fillStyle = state === "closed" ? TOKEN_HEX.red : TOKEN_HEX.green;
+    ctx.shadowColor = ctx.fillStyle;
+    ctx.shadowBlur = TRACK_PIT_EXIT_LIGHT_RADIUS * 2;
+    ctx.fill();
+    if (map.hasImage(PIT_EXIT_LIGHT_IMAGES[state])) map.removeImage(PIT_EXIT_LIGHT_IMAGES[state]);
+    map.addImage(PIT_EXIT_LIGHT_IMAGES[state], ctx.getImageData(0, 0, canvas.width, canvas.height), { pixelRatio: ratio });
+  }
+}
 const SRC_DEM = "map3d-dem";
 const LAYER_TRACK_SURFACE = "map3d-track-surface";
 const LAYER_CORNERS = "map3d-corners";
@@ -924,6 +954,7 @@ export function TrackMap3D({
         });
         const coordinates = pitLine.geometry.coordinates;
         if (coordinates.length >= 2) {
+          addPitExitLightImages(map);
           map.addSource("map3d-pit-access", {
             type: "geojson",
             data: {
@@ -978,6 +1009,21 @@ export function TrackMap3D({
               "circle-stroke-color": TOKEN_HEX.track,
               "circle-emissive-strength": 1,
             },
+          });
+          map.addLayer({
+            id: "map3d-pit-exit-light",
+            type: "symbol",
+            source: "map3d-pit-access",
+            slot: "middle",
+            filter: ["in", ["get", "part"], ["literal", []]],
+            layout: {
+              "icon-image": PIT_EXIT_LIGHT_IMAGES.closed,
+              "icon-allow-overlap": true,
+              "icon-ignore-placement": true,
+              "icon-rotation-alignment": "viewport",
+              "icon-pitch-alignment": "viewport",
+            },
+            paint: { "icon-emissive-strength": 1 },
           });
         }
       }
@@ -1134,10 +1180,8 @@ export function TrackMap3D({
         !pitLaneAccess || pitLaneAccess === "unknown" ? MAP3D_EDGE_LINE_COLOR : color);
     }
     if (map.getLayer("map3d-pit-access")) {
-      const parts = [
-        ...(pitEntryAccess && pitEntryAccess !== "unknown" ? ["entry"] : []),
-        ...(pitExitAccess && pitExitAccess !== "unknown" ? ["exit"] : []),
-      ];
+      const parts = pitEntryAccess && pitEntryAccess !== "unknown" ? ["entry"] : [];
+      const exitParts = pitExitAccess && pitExitAccess !== "unknown" ? ["exit"] : [];
       const filter = ["in", ["get", "part"], ["literal", parts]];
       const signalColor: ExpressionSpecification = [
         "match", ["get", "part"],
@@ -1147,6 +1191,9 @@ export function TrackMap3D({
       ];
       map.setFilter("map3d-pit-access-glow", filter);
       map.setFilter("map3d-pit-access", filter);
+      map.setFilter("map3d-pit-exit-light", ["in", ["get", "part"], ["literal", exitParts]]);
+      map.setLayoutProperty("map3d-pit-exit-light", "icon-image",
+        pitExitAccess === "open" ? PIT_EXIT_LIGHT_IMAGES.open : PIT_EXIT_LIGHT_IMAGES.closed);
       map.setPaintProperty("map3d-pit-access-glow", "circle-color", signalColor);
       map.setPaintProperty("map3d-pit-access", "circle-color", signalColor);
     }

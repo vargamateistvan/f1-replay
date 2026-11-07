@@ -317,6 +317,9 @@ describe("TrackMap sector flag state rendering", () => {
     expect(screen.getByTestId("pit-exit-glow")).toBeInTheDocument();
     expect(screen.getByRole("img", { name: "Pit exit closed, last reported" })).toBeInTheDocument();
     expect(screen.getByTestId("pit-lane")).toHaveAttribute("stroke", TOKEN_HEX.fg);
+    rerender(<TrackMap {...props} pitLaneStatus={{ lane: "unknown", entry: "unknown", exit: "open" }} />);
+    expect(screen.getByTestId("pit-exit-status")).toHaveAttribute("fill", TOKEN_HEX.green);
+    expect(screen.getByRole("img", { name: "Pit exit open, last reported" }).querySelectorAll('[data-testid="pit-exit-status"]')).toHaveLength(1);
     rerender(<TrackMap {...props} pitLaneStatus={{ lane: "closed", entry: "open", exit: "unknown" }} />);
     expect(screen.getByTestId("pit-lane")).toHaveAttribute("stroke", TOKEN_HEX.red);
     expect(screen.getByTestId("pit-entry-status")).toHaveAttribute("fill", TOKEN_HEX.green);

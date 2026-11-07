@@ -77,6 +77,10 @@ export const TRACK_PIT_CAR_SCALE = 0.7;
 export const TRACK_PIT_ACCESS_MARKER_RADIUS = 3.5;
 /** Pit access signal halo radius, relative to the illuminated lamp. */
 export const TRACK_PIT_ACCESS_GLOW_SCALE = 2.7;
+/** Dimensions of the start-light-style pit-exit signal in SVG units / map pixels. */
+export const TRACK_PIT_EXIT_LIGHT_RADIUS = 3;
+export const TRACK_PIT_EXIT_LIGHT_WIDTH = 11;
+export const TRACK_PIT_EXIT_LIGHT_HEIGHT = 11;
 export const SESSION_SIMULATION_CARS = 12;
 export const SESSION_SIMULATION_LAP_SECONDS = 32;
 export const SESSION_SIMULATION_LAP_STEP_SECONDS = 1.2;

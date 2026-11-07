@@ -904,6 +904,7 @@ export function TrackMap({
                 state={state}
                 x={point.sx}
                 y={point.sy}
+                rotationDeg={rotationDeg}
               />
             );
           })}

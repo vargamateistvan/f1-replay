@@ -1,5 +1,5 @@
 import { act, fireEvent, render, screen } from "@testing-library/react";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { Driver, Location } from "@/api/types";
 import monacoJson from "@/data/circuit-geometry/22-2025.json";
 import type { CircuitGeometry } from "@/data/circuitGeometryTypes";
@@ -195,11 +195,17 @@ function renderMap(props: Partial<Parameters<typeof TrackMap3D>[0]> = {}) {
 
 describe("TrackMap3D", () => {
   beforeEach(() => {
+    const context = new Proxy({} as CanvasRenderingContext2D, {
+      get: (_target, key) => key === "getImageData" ? () => ({}) : () => undefined,
+      set: () => true,
+    });
+    vi.spyOn(HTMLCanvasElement.prototype, "getContext").mockReturnValue(context);
     FakeMap.instances = [];
     vi.mocked(mapboxToken).mockReturnValue("pk.test");
     Object.assign(settings, DEFAULT_SETTINGS);
     settings.setSetting.mockReset();
   });
+  afterEach(() => vi.restoreAllMocks());
 
   it("follows the focused car only after opting in with the toolbar toggle", () => {
     const off = renderMap({ focusDriver: 16 });
@@ -300,12 +306,16 @@ describe("TrackMap3D", () => {
     expect(map!.getLayer("map3d-pit-access-glow")).toMatchObject({
       paint: { "circle-blur": 1, "circle-emissive-strength": 1 },
     });
-    expect(map!.setFilter).toHaveBeenCalledWith("map3d-pit-access-glow", ["in", ["get", "part"], ["literal", ["exit"]]]);
-    expect(map!.setFilter).toHaveBeenLastCalledWith("map3d-pit-access", ["in", ["get", "part"], ["literal", ["exit"]]]);
+    expect(map!.addImage).toHaveBeenCalledWith("map3d-pit-exit-closed", expect.anything(), { pixelRatio: 2 });
+    expect(map!.addImage).toHaveBeenCalledWith("map3d-pit-exit-open", expect.anything(), { pixelRatio: 2 });
+    expect(map!.setFilter).toHaveBeenCalledWith("map3d-pit-access-glow", ["in", ["get", "part"], ["literal", []]]);
+    expect(map!.setFilter).toHaveBeenLastCalledWith("map3d-pit-exit-light", ["in", ["get", "part"], ["literal", ["exit"]]]);
+    expect(map!.setLayoutProperty).toHaveBeenCalledWith("map3d-pit-exit-light", "icon-image", "map3d-pit-exit-closed");
     rerender(<TrackMap3D sessionKey={1} drivers={[lec]} locationData={locations} sessionStartMs={0}
       circuitKey={22} year={2025} onExit3d={vi.fn()} pitLaneStatus={{ lane: "closed", entry: "unknown", exit: "open" }} />);
     expect(map!.setPaintProperty).toHaveBeenCalledWith("map3d-pit-lane", "line-color", "#ff5252");
     expect(map!.setPaintProperty).toHaveBeenCalledWith("map3d-surface-pit-lane-lines", "fill-color", "#ff5252");
+    expect(map!.setLayoutProperty).toHaveBeenCalledWith("map3d-pit-exit-light", "icon-image", "map3d-pit-exit-open");
     expect(map!.setPaintProperty).toHaveBeenLastCalledWith("map3d-pit-access", "circle-color",
       ["match", ["get", "part"], "entry", "#ff5252", "exit", "#39b54a", "#ff5252"]);
     expect(map!.setPaintProperty).toHaveBeenCalledWith("map3d-pit-access-glow", "circle-color",
@@ -314,7 +324,7 @@ describe("TrackMap3D", () => {
       circuitKey={22} year={2025} onExit3d={vi.fn()} />);
     expect(map!.setPaintProperty).toHaveBeenCalledWith("map3d-pit-lane", "line-color", "#e9ecf3");
     expect(map!.setFilter).toHaveBeenCalledWith("map3d-pit-access-glow", ["in", ["get", "part"], ["literal", []]]);
-    expect(map!.setFilter).toHaveBeenLastCalledWith("map3d-pit-access", ["in", ["get", "part"], ["literal", []]]);
+    expect(map!.setFilter).toHaveBeenLastCalledWith("map3d-pit-exit-light", ["in", ["get", "part"], ["literal", []]]);
   });
 
   it("paints flagged marshal posts through feature state", () => {
