@@ -927,7 +927,6 @@ export function TrackMap({
 
       <TrackControls
         showTrackControls={showTrackControls}
-        overlayBackground={overlayBackground}
         onRotateLeft={rotateLeft}
         onRotateRight={rotateRight}
         onZoomOut={zoomOut}

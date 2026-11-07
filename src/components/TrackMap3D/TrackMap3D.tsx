@@ -36,6 +36,7 @@ import {
   carDataAt,
 } from "@/components/TrackMap/trackGeometry";
 import { usePitWindow } from "@/components/TrackMap/usePitWindow";
+import { TRACK_CONTROL_SURFACE } from "@/components/TrackMap/overlays/TrackControls";
 import { overlayBackgroundColor } from "@/components/TrackMap/trackMapFormat";
 import {
   MAP3D_CHASE_ALPHA,
@@ -1641,8 +1642,9 @@ export function TrackMap3D({
         {content}
       </div>
       <div
-        className="absolute top-2 right-2 z-20 flex items-center gap-1 p-1"
-        style={{ background: overlayBackground, backdropFilter: "blur(4px)" }}
+        className={`absolute top-2 right-2 z-20 flex items-center gap-1 p-1 ${TRACK_CONTROL_SURFACE}`}
+        role="toolbar"
+        aria-label="Track map controls"
       >
         {exitButton}
         {settingsButton}
@@ -1692,8 +1694,9 @@ export function TrackMap3D({
       <StatusBadges badges={statusBadges} />
 
       <div
-        className="absolute top-2 right-2 z-20 flex items-center gap-1 p-1"
-        style={{ background: overlayBackground, backdropFilter: "blur(4px)" }}
+        className={`absolute top-2 right-2 z-20 flex items-center gap-1 p-1 ${TRACK_CONTROL_SURFACE}`}
+        role="toolbar"
+        aria-label="Track map controls"
       >
         {exitButton}
         {showTrackControls && (

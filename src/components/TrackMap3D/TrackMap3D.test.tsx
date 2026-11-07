@@ -242,10 +242,22 @@ describe("TrackMap3D", () => {
     const onOpenSettings = vi.fn();
     const { onExit3d } = renderMap({ circuitKey: 9999, onOpenSettings });
     expect(screen.getByText(/isn't available for this circuit/i)).toBeInTheDocument();
+    expect(screen.getByRole("toolbar", { name: "Track map controls" })).toHaveClass(
+      "bg-surface/70", "backdrop-blur-sm",
+    );
     fireEvent.click(screen.getByLabelText("Track map settings"));
     expect(onOpenSettings).toHaveBeenCalled();
     fireEvent.click(screen.getByTitle("Switch to 2D map"));
     expect(onExit3d).toHaveBeenCalled();
+  });
+
+  it("uses the translucent toolbar surface when the map is available", () => {
+    renderMap({ onOpenSettings: vi.fn(), onEnterRing: vi.fn() });
+    const toolbar = screen.getByRole("toolbar", { name: "Track map controls" });
+    expect(toolbar).toHaveClass("bg-surface/70", "backdrop-blur-sm");
+    expect(toolbar).toContainElement(screen.getByTitle("Switch to 2D map"));
+    expect(toolbar).toContainElement(screen.getByLabelText("Switch to ring view (lap progress)"));
+    expect(toolbar).toContainElement(screen.getByLabelText("Track map settings"));
   });
 
   it("offers the ring view only when it's wired up", () => {

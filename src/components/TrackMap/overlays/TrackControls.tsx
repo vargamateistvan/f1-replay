@@ -19,6 +19,8 @@ import { TOUR_TARGET } from "@/components/AppTour/targets";
 const BUTTON_CLASS =
   "h-7 min-w-7 px-1.5 flex items-center justify-center border border-panel text-fg/85 hover:text-fg hover:border-fg/50 transition-colors text-caption font-black tracking-widest disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:border-panel";
 
+export const TRACK_CONTROL_SURFACE = "bg-surface/70 backdrop-blur-sm";
+
 export interface TrackControlButton {
   key: string;
   title: string;
@@ -68,7 +70,6 @@ const icon = { size: 14, strokeWidth: 2.2, "aria-hidden": true } as const;
  */
 export const TrackControls = memo(function TrackControls({
   showTrackControls,
-  overlayBackground,
   onRotateLeft,
   onRotateRight,
   onZoomOut,
@@ -88,7 +89,6 @@ export const TrackControls = memo(function TrackControls({
   extraButtons,
 }: {
   showTrackControls: boolean;
-  overlayBackground: string;
   onRotateLeft: () => void;
   onRotateRight: () => void;
   onZoomOut: () => void;
@@ -250,8 +250,7 @@ export const TrackControls = memo(function TrackControls({
 
   return (
     <div
-      className="absolute top-2 right-2 z-20 flex flex-col items-end gap-1 p-1"
-      style={{ background: overlayBackground, backdropFilter: "blur(4px)" }}
+      className={`absolute top-2 right-2 z-20 flex flex-col items-end gap-1 p-1 ${TRACK_CONTROL_SURFACE}`}
       role="toolbar"
       aria-label="Track map controls"
     >

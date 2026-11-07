@@ -19,8 +19,10 @@ const handlers = () => ({
 describe("TrackControls", () => {
   it("shows one toolbar with view switch, rotate, zoom/fit, snapshot and settings", () => {
     const h = handlers();
-    render(<TrackControls showTrackControls overlayBackground="#000" {...h} />);
-    expect(screen.getByRole("toolbar", { name: "Track map controls" })).toBeInTheDocument();
+    render(<TrackControls showTrackControls {...h} />);
+    expect(screen.getByRole("toolbar", { name: "Track map controls" })).toHaveClass(
+      "bg-surface/70", "backdrop-blur-sm",
+    );
     for (const [label, fn] of [
       ["Switch to 3D map", h.onEnter3d],
       ["Switch to ring view (lap progress)", h.onEnterRing],
@@ -38,7 +40,7 @@ describe("TrackControls", () => {
   });
 
   it("keeps the view switch, snapshot and settings when track controls are off", () => {
-    render(<TrackControls showTrackControls={false} overlayBackground="#000" {...handlers()} />);
+    render(<TrackControls showTrackControls={false} {...handlers()} />);
     expect(screen.getByRole("button", { name: "Switch to 3D map" })).toBeInTheDocument();
     expect(
       screen.getByRole("button", { name: "Switch to ring view (lap progress)" }),
@@ -52,7 +54,6 @@ describe("TrackControls", () => {
     render(
       <TrackControls
         showTrackControls
-        overlayBackground="#000"
         {...handlers()}
         viewModified
         snapshotDisabled
@@ -70,7 +71,6 @@ describe("TrackControls", () => {
     const { container } = render(
       <TrackControls
         showTrackControls={false}
-        overlayBackground="#000"
         onRotateLeft={vi.fn()}
         onRotateRight={vi.fn()}
         onZoomOut={vi.fn()}

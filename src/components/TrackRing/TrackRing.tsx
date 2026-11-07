@@ -689,7 +689,6 @@ export function TrackRing({
 
       <TrackControls
         showTrackControls={false}
-        overlayBackground={overlayBackground}
         onRotateLeft={noop}
         onRotateRight={noop}
         onZoomOut={noop}
