@@ -172,7 +172,9 @@ wet conditions; Dry stays neutral. These overlays remain desktop-only.
 
 **Replay notifications:** toast cards use a 70% token-based surface with backdrop
 blur, including the purple fastest-lap card. Text, controls and flag-coloured
-headers retain their own styling and do not inherit reduced opacity.
+headers retain their own styling and do not inherit reduced opacity. On desktop
+they sit below the map toolbar, with extra clearance for the 2D rotate/zoom rows;
+mobile keeps its sticky notification anchor.
 Small labels use at least `text-tiny`; key secondary readouts use `text-caption`
 with stronger foreground contrast for readability over the map.
 

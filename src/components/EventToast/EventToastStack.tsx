@@ -25,6 +25,8 @@ interface Props {
   drivers: Driver[];
   onDismiss: (id: string) => void;
   layout?: "overlay" | "inline";
+  /** Position a desktop map overlay below its toolbar; 2D may have three rows. */
+  mapControls?: "single-row" | "expanded";
   radioAutoplay?: boolean;
   soundsEnabled?: boolean;
   maxVisible?: 2 | 4 | 6 | 8;
@@ -69,6 +71,7 @@ export function EventToastStack({
   drivers,
   onDismiss,
   layout = "overlay",
+  mapControls,
   radioAutoplay = false,
   soundsEnabled = false,
   maxVisible = 4,
@@ -130,7 +133,13 @@ export function EventToastStack({
         className={[
           "pointer-events-none flex flex-col gap-1.5",
           layout === "overlay"
-            ? "absolute z-40 top-2 right-2 w-[198px] md:top-4 md:right-4 md:w-[220px]"
+            ? `absolute z-40 top-2 right-2 w-[198px] md:right-4 md:w-[220px] ${
+                mapControls === "expanded"
+                  ? "md:top-28"
+                  : mapControls === "single-row"
+                    ? "md:top-12"
+                    : "md:top-4"
+              }`
             : "relative z-10 w-[198px] ml-auto px-1 pt-0.5 pb-0.5 md:self-end md:w-[220px] md:px-0 md:pt-1 md:pb-1",
         ].join(" ")}
         role="region"

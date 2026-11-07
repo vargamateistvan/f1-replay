@@ -2528,6 +2528,14 @@ export default function RaceWeekend() {
       soundsEnabled={toastSoundsEnabled}
       maxVisible={notificationMaxVisible}
       layout="overlay"
+      mapControls={
+        isCompactViewport
+          ? undefined
+          : mapShowTrackControls && mapViewMode !== "ring" &&
+              !(map3dAvailable && mapViewMode === "3d")
+            ? "expanded"
+            : "single-row"
+      }
       onPlayingIdsChange={setPlayingToastIds}
     />
   );
@@ -2780,9 +2788,6 @@ export default function RaceWeekend() {
             data-motion-card
             className="flex flex-col md:flex-1 md:min-h-0 md:overflow-hidden relative"
           >
-            {/* Desktop toast overlay — mobile renders it at the page root */}
-            {!isCompactViewport && !isTourOpen && eventToastStack}
-
             {/* Phone layout: tab-switched (md:hidden) */}
             <div className="md:hidden flex flex-col w-full">
               {/* Pinned header: tab chips + race control ticker */}
@@ -3132,6 +3137,7 @@ export default function RaceWeekend() {
                 className="flex-1 min-w-0 bg-sunken flex flex-col"
               >
                 <div className="relative flex-1 min-h-0">
+                  {!isCompactViewport && !isTourOpen && eventToastStack}
                   {drivers.isError ? (
                     <ErrorMessage message="Failed to load driver data" />
                   ) : (

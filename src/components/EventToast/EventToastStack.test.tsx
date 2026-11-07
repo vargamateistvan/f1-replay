@@ -112,6 +112,31 @@ describe("EventToastStack", () => {
     );
   });
 
+  it.each([
+    ["single-row", "md:top-12"],
+    ["expanded", "md:top-28"],
+  ] as const)("positions notifications below %s map controls", (mapControls, offset) => {
+    render(
+      <EventToastStack
+        toasts={[{
+          addedAt: Date.now(),
+          event: {
+            id: "flag",
+            ms: 1000,
+            kind: "flag",
+            priority: "high",
+            payload: { flag: "YELLOW", message: "Yellow flag", lapNumber: 2 },
+          },
+        }]}
+        drivers={drivers}
+        onDismiss={vi.fn()}
+        mapControls={mapControls}
+      />,
+    );
+    expect(screen.getByRole("region", { name: "Live race notifications" }))
+      .toHaveClass("top-2", offset);
+  });
+
   it("shows pit duration and tyre data inline with the driver", () => {
     render(
       <EventToastStack
