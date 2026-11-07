@@ -2,9 +2,11 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { cloneElement } from "react";
 import { fireEvent, render, screen } from "@testing-library/react";
 import type { Driver, Location, Weather } from "@/api/types";
-import { RING_RADIUS, RING_SVG_H, RING_SVG_W } from "@/constants";
+import { RING_RADIUS, RING_SVG_H, RING_SVG_W, TRACK_PIT_CAR_SCALE } from "@/constants";
 import { useCircuitGeometry } from "@/hooks/useCircuitGeometry";
 import { TrackRing } from "./TrackRing";
+import { RingCars } from "./RingLayers";
+import type { RingCarLayout } from "./ringModel";
 
 const clock = vi.hoisted(() => ({ t: 500 }));
 const ring = vi.hoisted(() => ({
@@ -113,6 +115,33 @@ beforeEach(() => {
 });
 
 const LAP_MS = 60_000;
+
+describe("RingCars", () => {
+  it("scales pit dots and numbers, restores them on rejoin, and leaves special vehicles unchanged", () => {
+    const car = (num: number, inPit: boolean, x: number): RingCarLayout => ({
+      num, inPit, x, y: 10, fraction: 0, labelX: x, labelY: 20, anchor: "middle",
+      leader: { x1: x, y1: 10, x2: x, y2: 20 },
+    });
+    const props = {
+      driverByNumber: new Map(drivers.map((d) => [d.driver_number, d])),
+      focusDriver: 1,
+      safetyCarSirenOn: false,
+      lightMode: false,
+      showAcronym: false,
+      showNumberInside: true,
+    };
+    const cars = [car(1, true, 10), car(16, true, 20), car(241, true, 30)];
+    const { container, rerender } = render(<svg><RingCars {...props} cars={cars} /></svg>);
+    const marker = (x: number) => container.querySelector(`g[transform="translate(${x.toFixed(1)},10.0)"]`)!;
+    expect(Number(marker(10).querySelectorAll("circle")[1]!.getAttribute("r"))).toBeCloseTo(8 * TRACK_PIT_CAR_SCALE);
+    expect(Number(marker(10).querySelector("text")!.getAttribute("font-size"))).toBeCloseTo(6.2 * TRACK_PIT_CAR_SCALE);
+    expect(Number(marker(20).querySelector("circle")!.getAttribute("r"))).toBeCloseTo(6.6 * TRACK_PIT_CAR_SCALE);
+    expect(marker(30).querySelector("circle")!.getAttribute("r")).toBe("6.6");
+    rerender(<svg><RingCars {...props} cars={[car(1, false, 10)]} /></svg>);
+    expect(marker(10).querySelectorAll("circle")[1]!.getAttribute("r")).toBe("8");
+    expect(marker(10).querySelector("text")!.getAttribute("font-size")).toBe("6.2");
+  });
+});
 
 // VER laps the 800-unit square in 60 s; the first half of the distance takes
 // 70 % of the time. LEC is parked a quarter of the way round (35 % in time).

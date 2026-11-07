@@ -7,9 +7,12 @@ import {
   MAP3D_CAR_SHADOW_RADIUS,
   MAP3D_MODEL_HEADING_OFFSET,
   MAP3D_MODEL_MIN_ZOOM,
+  TRACK_PIT_CAR_SCALE,
 } from "@/constants";
 import { buildIndex } from "@/timeline/interpolate";
 import type { CircuitGeoref } from "@/utils/georef";
+import { buildTrackGeometry } from "../TrackMap/trackGeometry";
+import { buildRingModel } from "../TrackRing/ringModel";
 import {
   animatedCarPaint,
   buildCarFeatures,
@@ -146,6 +149,16 @@ describe("carStyle", () => {
     expect(carStyle(1, input({ showAcronym: false })).showLabel).toBe(false);
   });
 
+  it("scales pit dots and numbers without scaling special vehicles", () => {
+    const state = input({ focusDriver: 1, showNumberInside: true });
+    const pit = carStyle(1, state, true);
+    expect(pit.radius).toBeCloseTo(8 * TRACK_PIT_CAR_SCALE);
+    expect(pit.markerSize).toBeCloseTo(5.8 * TRACK_PIT_CAR_SCALE);
+    expect(pit.icon).not.toBe(carStyle(1, state).icon);
+    expect(carStyle(16, state, true).radius).toBeCloseTo(6.6 * TRACK_PIT_CAR_SCALE);
+    expect(carStyle(241, state, true)).toEqual(carStyle(241, state));
+  });
+
   it("keeps the focused car's pit window rivals bright with a ring", () => {
     const state = input({ focusDriver: 16, pitWindowDrivers: new Set([1]) });
     expect(carStyle(1, state)).toMatchObject({ opacity: 1, pitWindowRadius: 8 });
@@ -161,6 +174,36 @@ describe("carStyle", () => {
 });
 
 describe("buildCarFeatures", () => {
+  it("sizes interpolated pit positions and restores the dot on rejoining", () => {
+    const points = [
+      ...Array.from({ length: 20 }, (_, i) => ({ x: 0, y: i * 500 })),
+      ...Array.from({ length: 20 }, (_, i) => ({ x: i * 500, y: 10000 })),
+      ...Array.from({ length: 20 }, (_, i) => ({ x: 10000, y: 10000 - i * 500 })),
+      ...Array.from({ length: 20 }, (_, i) => ({ x: 10000 - i * 500, y: 0 })),
+    ];
+    const geom = buildTrackGeometry({
+      points,
+      bounds: { minX: 0, maxX: 10000, minY: 0, maxY: 10000, width: 10000, height: 10000 },
+    });
+    const model = buildRingModel({
+      geom,
+      circuitGeom: null,
+      pitLane: { x: [-50, -300, -300, -300, -50], y: [1000, 1500, 2500, 3500, 4000] },
+      totalMarshalPosts: 0,
+      toScale: true,
+    });
+    const indexes = new Map([
+      [1, buildIndex([{ t: 0, x: -300, y: 2500 }, { t: 1000, x: 0, y: 2500 }])],
+      [241, buildIndex([{ t: 0, x: -300, y: 2500 }, { t: 1000, x: 0, y: 2500 }])],
+    ]);
+    const state = input({ indexes, pitPlacement: { geom, model, hints: new Map() } });
+    const pit = buildCarFeatures(unitGeo, 0, state).features;
+    expect(pit[0]!.properties.radius).toBeCloseTo(4.5 * TRACK_PIT_CAR_SCALE);
+    expect(pit[1]!.properties.radius).toBe(carStyle(241, state).radius);
+    expect(buildCarFeatures(unitGeo, 1000, state).features[0]!.properties.radius).toBe(4.5);
+    expect(buildCarFeatures(unitGeo, 0, input({ indexes })).features[0]!.properties.radius).toBe(4.5);
+  });
+
   it("interpolates positions and drops retired and off-track cars", () => {
     const track = (x: number) =>
       buildIndex([

@@ -9,6 +9,8 @@
 import type { LayerSpecification } from "mapbox-gl";
 import type { Driver, Stint } from "@/api/types";
 import { SPECIAL_TRACK_VEHICLES } from "@/components/TrackMap/layers/specialVehicles";
+import { projectToSvg, type TrackGeometry } from "@/components/TrackMap/trackGeometry";
+import { placeCar, type RingModel } from "@/components/TrackRing/ringModel";
 import { mapBackgroundColor } from "@/components/TrackMap/trackMapFormat";
 import {
   COMPOUND_COLORS,
@@ -26,6 +28,7 @@ import {
   PIT_WINDOW_COLOR,
   SAFETY_CAR_NUMBERS,
   TRACK_FIT_ZOOM,
+  TRACK_PIT_CAR_SCALE,
   TRACK_SVG_H,
   TRACK_SVG_W,
 } from "@/constants";
@@ -69,6 +72,12 @@ export interface CarFeatureInput {
   showAcronym: boolean;
   showNumberInside: boolean;
   lightMode: boolean;
+  /** Shared pit placement geometry and per-car lap-segment hints. */
+  pitPlacement?: {
+    geom: TrackGeometry;
+    model: RingModel;
+    hints: Map<number, number>;
+  } | null;
 }
 
 /** Pixels per SVG unit on the 2D map for a panel of this size (and follow state). */
@@ -100,10 +109,20 @@ export function buildCarFeatures(
     if (!pos || isOffTrackPlaceholder(pos)) continue;
     const prev = interpolateXY(idx, t - MAP3D_HEADING_LOOKBACK_MS);
     const heading = prev ? (headingDeg(geo, prev, pos) ?? 0) : 0;
+    let inPit = false;
+    if (input.pitPlacement?.model.pit && !SPECIAL_TRACK_VEHICLES[num]) {
+      const { geom, model, hints } = input.pitPlacement;
+      const { sx, sy } = projectToSvg(geom, pos.x, pos.y);
+      const placement = placeCar(model, sx, sy, hints.get(num) ?? -1);
+      if (placement) {
+        hints.set(num, placement.segment);
+        inPit = placement.inPit;
+      }
+    }
     features.push({
       type: "Feature",
       properties: {
-        ...carStyle(num, input),
+        ...carStyle(num, input, inPit),
         // Model yaw (degrees); the model layer reads it as [x, y, z].
         rotation: [0, 0, heading + MAP3D_MODEL_HEADING_OFFSET],
       },
@@ -150,6 +169,7 @@ export type CarStyle = {
 export function carStyle(
   num: number,
   input: CarFeatureInput,
+  inPit = false,
 ): CarStyle & { icon: string } {
   const driver = input.driverByNumber.get(num);
   const special = SPECIAL_TRACK_VEHICLES[num];
@@ -163,13 +183,14 @@ export function carStyle(
   const compound = input.activeCompounds?.get(num)?.compound;
   const color = special ? special.fill : teamColor(driver?.team_colour, "#ffffff");
 
-  const dotRadius = input.showNumberInside
+  const markerScale = inPit && !special ? TRACK_PIT_CAR_SCALE : 1;
+  const dotRadius = markerScale * (input.showNumberInside
     ? focused
       ? 8
       : 6.6
     : focused
       ? 6.5
-      : 4.5;
+      : 4.5);
   const serviceRadius = focused ? dotRadius + 0.7 : dotRadius + 0.4;
   const markerTextColor = special
     ? input.lightMode
@@ -202,7 +223,7 @@ export function carStyle(
     sirenColor: special?.fill ?? TOKEN_HEX.orange,
     compoundColor: compound ? COMPOUND_COLORS[compound] : "",
     marker: special ? special.shortLabel : String(num),
-    markerSize: !showMarker
+    markerSize: markerScale * (!showMarker
       ? 0
       : special
         ? focused
@@ -212,7 +233,7 @@ export function carStyle(
           ? num >= 10
             ? 5.2
             : 5.8
-          : 4.4,
+          : 4.4),
     markerTextColor,
     showLabel: (input.focusDriver === null || focused) && input.showAcronym,
     label: special

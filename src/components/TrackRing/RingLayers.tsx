@@ -7,6 +7,7 @@ import {
   PIT_MARKER_COLOR,
   PIT_WINDOW_COLOR,
   SAFETY_CAR_NUMBERS,
+  TRACK_PIT_CAR_SCALE,
 } from "@/constants";
 import type { TimingSectorFlags } from "@/timeline/raceControl";
 import { trackEvent } from "@/lib/analytics";
@@ -665,7 +666,8 @@ function RingCarMarker({
   const highlighted = highlightDrivers?.has(num) ?? false;
   const hasInspection = focused || (highlightDrivers?.size ?? 0) > 0;
   const dimmed = hasInspection && !focused && !highlighted;
-  const r = showNumberInside || special ? (focused ? 8 : 6.6) : focused ? 6.5 : 5;
+  const markerScale = car.inPit && !special ? TRACK_PIT_CAR_SCALE : 1;
+  const r = markerScale * (showNumberInside || special ? (focused ? 8 : 6.6) : focused ? 6.5 : 5);
   const compound = activeCompounds?.get(num);
   const label = special ? special.shortLabel : (driver?.name_acronym ?? String(num));
   const gap = special ? null : (gapText?.get(num) ?? null);
@@ -760,7 +762,7 @@ function RingCarMarker({
           <text
             textAnchor="middle"
             dominantBaseline="central"
-            fontSize={special ? 4 : focused ? (num >= 10 ? 5.6 : 6.2) : 4.8}
+            fontSize={markerScale * (special ? 4 : focused ? (num >= 10 ? 5.6 : 6.2) : 4.8)}
             fill={special ? (lightMode ? special.text : (special.textDark ?? special.text)) : "#ffffff"}
             stroke="rgba(0,0,0,0.58)"
             strokeWidth={0.6}

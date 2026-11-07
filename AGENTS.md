@@ -263,6 +263,8 @@ components/ (render to DOM; read settings from Zustand)
 
 ## 5. Component Catalogue
 
+Racing-driver dots and in-dot numbers use `TRACK_PIT_CAR_SCALE` in the pit lane across 2D, 3D and ring views. The 2D and 3D maps require a baked pit path and real-scale geometry; special vehicles and 3D models retain their normal size.
+
 | Component (folder, then export if different)      | Purpose                                                                                  |
 | ------------------------------------------------- | ---------------------------------------------------------------------------------------- |
 | `TrackMap`                                        | Animated SVG track map: driver blobs (smaller in the pit lane using ring-view placement when a baked pit path is available), sector flags, opt-in follow-cam (toolbar crosshair, `mapFollowFocusedCar`, shared with 3D, default off), driver heatmap toggle (toolbar flame, `mapShowDriverHeatmap`, shared with 3D), compass, weather overlay, status badges (start lights, SC/VSC, chequered flag), baked solid pit-lane path, pit rejoin projection and pit window for the focused driver (baked `pitLoss`, races only; `usePitWindow.ts`, shared with 3D and built on the ring model: band behind / ahead, SC/VSC/GREEN ticks, rejoin ghost incl. in the pit lane, rivals ringed in purple). `TrackMap.tsx` orchestrates; memoized SVG layers in `layers/`, HTML overlays in `overlays/`, pure derivations in `trackGeometry.ts` / `statusBadges.ts` |

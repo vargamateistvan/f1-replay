@@ -62,6 +62,7 @@ import {
 import { getCircuitGeoref } from "@/data/circuitGeoref";
 import { getRunoffStyle } from "@/data/circuitRunoff";
 import { getPitLane } from "@/data/pitLanes";
+import { buildRingModel } from "@/components/TrackRing/ringModel";
 import { useCarDataForLap } from "@/hooks/useCarDataForLap";
 import { useCarDataWindow } from "@/hooks/useCarDataWindow";
 import { useCircuitGeometry } from "@/hooks/useCircuitGeometry";
@@ -440,6 +441,25 @@ export function TrackMap3D({
       toScale: true,
     };
   }, [circuitGeom]);
+  const pitPlacement = useMemo(() => {
+    if (!pitWindowTrack) return null;
+    const pitLane = getPitLane(circuitKey);
+    if (!pitLane) return null;
+    return {
+      geom: pitWindowTrack.geom,
+      model: buildRingModel({
+        geom: pitWindowTrack.geom,
+        circuitGeom: null,
+        pitLane,
+        totalMarshalPosts: 0,
+        toScale: true,
+      }),
+      hints: new Map<number, number>(),
+    };
+  }, [pitWindowTrack, circuitKey]);
+  useEffect(() => {
+    pitPlacement?.hints.clear();
+  }, [pitPlacement, sessionKey]);
   const pitRejoin = usePitWindow({
     track: pitWindowTrack,
     circuitGeom,
@@ -548,6 +568,7 @@ export function TrackMap3D({
     showAcronym: mapShowDriverAcronym,
     showNumberInside: mapShowDriverNumberInside,
     lightMode,
+    pitPlacement,
   };
   const liveRef = useRef<CarFeatureInput & { dirty: boolean }>({
     ...carInput,
@@ -570,6 +591,8 @@ export function TrackMap3D({
     mapShowDriverAcronym,
     mapShowDriverNumberInside,
     lightMode,
+    pitPlacement,
+    sessionKey,
   ]);
   // Focused car's trail colouring for the RAF loop: speed lookup (null = team
   // colour only) and the team colour for samples without car data.
