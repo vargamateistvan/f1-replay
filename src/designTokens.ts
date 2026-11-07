@@ -166,6 +166,7 @@ const toHex = (channels: string): string =>
  * In class names use the Tailwind token (`bg-purple`) instead.
  */
 export const TOKEN_HEX = {
+  fg: toHex(NEUTRAL_COLORS.fg.dark),
   purple: toHex(TONE_COLORS.purple.DEFAULT.dark),
   green: toHex(TONE_COLORS.green.DEFAULT.dark),
   greenFg: toHex(TONE_COLORS.green.fg.dark),
@@ -178,4 +179,9 @@ export const TOKEN_HEX = {
   f1red: toHex(BRAND_COLORS.f1red.DEFAULT.dark),
   f1redFg: toHex(BRAND_COLORS.f1red.fg.dark),
   faint: toHex(NEUTRAL_COLORS.faint.dark),
+} as const;
+
+/** Light-theme hex values needed by SVG presentation attributes. */
+export const TOKEN_HEX_LIGHT = {
+  fg: toHex(NEUTRAL_COLORS.fg.light),
 } as const;

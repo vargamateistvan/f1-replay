@@ -85,6 +85,23 @@ export function projectToSvg(
   return { sx: sx + PAD, sy: sy + PAD };
 }
 
+/** Project a baked, open pit-lane path into SVG space. */
+export function buildPitLanePath(
+  geom: Pick<TrackGeometry, "bounds" | "innerW" | "innerH"> | null,
+  lane: { x: readonly number[]; y: readonly number[] } | null | undefined,
+): string | null {
+  if (!geom || !lane || lane.x.length < 2 || lane.x.length !== lane.y.length) {
+    return null;
+  }
+  const points = lane.x.map((x, i) => projectToSvg(geom, x, lane.y[i]!));
+  if (points.some(({ sx, sy }) => !Number.isFinite(sx) || !Number.isFinite(sy))) {
+    return null;
+  }
+  return points
+    .map(({ sx, sy }, i) => `${i === 0 ? "M" : "L"}${sx.toFixed(1)},${sy.toFixed(1)}`)
+    .join(" ");
+}
+
 /** Project an axis-aligned OpenF1 bounding box into a padded SVG rectangle. */
 export function projectBoundsToSvgRect(
   geom: Pick<TrackGeometry, "bounds" | "innerW" | "innerH">,

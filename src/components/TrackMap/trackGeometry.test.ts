@@ -5,6 +5,7 @@ import {
   buildBrakingHotspots,
   buildHeatSegments,
   buildMarshalHeatmapSegments,
+  buildPitLanePath,
   buildTrackGeometry,
   carDataAt,
   computeSpeedStats,
@@ -47,6 +48,25 @@ describe("buildTrackGeometry", () => {
     for (let i = 1; i < geom.normArc.length; i++) {
       expect(geom.normArc[i]!).toBeGreaterThan(geom.normArc[i - 1]!);
     }
+  });
+});
+
+describe("buildPitLanePath", () => {
+  it("projects an open pit lane in the same SVG frame as the track", () => {
+    const geom = buildTrackGeometry(squareOutline);
+    const path = buildPitLanePath(geom, { x: [20, 40, 60], y: [10, 30, 50] });
+    expect(path).toMatch(/^M/);
+    expect(path?.match(/ L/g)).toHaveLength(2);
+    expect(path).not.toContain("Z");
+  });
+
+  it("omits unavailable or invalid paths", () => {
+    const geom = buildTrackGeometry(squareOutline);
+    expect(buildPitLanePath(null, { x: [0, 1], y: [0, 1] })).toBeNull();
+    expect(buildPitLanePath(geom, null)).toBeNull();
+    expect(buildPitLanePath(geom, { x: [0], y: [0] })).toBeNull();
+    expect(buildPitLanePath(geom, { x: [0, 1], y: [0] })).toBeNull();
+    expect(buildPitLanePath(geom, { x: [0, NaN], y: [0, 1] })).toBeNull();
   });
 });
 

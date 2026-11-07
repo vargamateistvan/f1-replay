@@ -3,7 +3,7 @@
  * `node scripts/fetch-pit-lanes.mjs` from a real car's GPS trace through a
  * pit stop; pit lanes rarely change, so one path per circuit.
  *
- * Import only from the lazily-loaded 3D map and ring view chunks.
+ * Import only from map and ring features, not app-wide modules.
  */
 import baked from "./pit-lanes.json";
 

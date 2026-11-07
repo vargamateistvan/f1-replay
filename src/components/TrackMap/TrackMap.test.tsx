@@ -13,6 +13,7 @@ import {
   TRACK_SVG_PAD,
 } from "@/constants";
 import { getCircuitGeometry } from "@/data/circuitGeometry";
+import { getPitLane } from "@/data/pitLanes";
 
 let timelineT = 0;
 const follow = vi.hoisted(() => ({ on: false, heatmap: true, setSetting: vi.fn() }));
@@ -74,6 +75,10 @@ vi.mock("@/data/circuitGeometry", () => ({
   // Geometry is served synchronously via getCircuitGeometry in tests.
   hasCircuitGeometry: () => false,
   loadCircuitGeometry: async () => null,
+}));
+
+vi.mock("@/data/pitLanes", () => ({
+  getPitLane: vi.fn(() => null),
 }));
 
 vi.mock("@/stores/settings", () => ({
@@ -160,6 +165,39 @@ describe("TrackMap sector flag state rendering", () => {
     vi.mocked(useTrackOutline).mockReturnValue(
       mockTrackOutlineQueryResult(null),
     );
+    vi.mocked(getCircuitGeometry).mockReturnValue(null);
+    vi.mocked(getPitLane).mockReturnValue(null);
+  });
+
+  it("shows a dashed pit lane when baked circuit geometry is available", () => {
+    vi.mocked(useTrackOutline).mockReturnValue(mockTrackOutlineQueryResult(mockOutline));
+    vi.mocked(getCircuitGeometry).mockReturnValue({
+      circuitKey: 22,
+      circuitName: "Monaco",
+      year: 2025,
+      rotation: 0,
+      x: [],
+      y: [],
+      corners: [],
+      marshalSectors: [],
+      marshalLights: [],
+    });
+    vi.mocked(getPitLane).mockReturnValue({ x: [25, 50], y: [25, 60] });
+    const { rerender } = render(
+      <TrackMap sessionKey={1} drivers={[mockDriver]} locationData={mockLocationData}
+        sessionStartMs={0} circuitKey={22} year={2025} />,
+    );
+    const pitLane = screen.getByTestId("pit-lane");
+    expect(pitLane).toHaveAttribute("d", "M49.0,49.0 L74.0,84.0");
+    expect(pitLane).toHaveAttribute("stroke-dasharray", "3 2");
+    expect(pitLane).toHaveAttribute("stroke-opacity", "0.6");
+
+    vi.mocked(getCircuitGeometry).mockReturnValue(null);
+    rerender(
+      <TrackMap sessionKey={1} drivers={[mockDriver]} locationData={mockLocationData}
+        sessionStartMs={0} circuitKey={999} year={2025} />,
+    );
+    expect(screen.queryByTestId("pit-lane")).toBeNull();
   });
 
   it("only follows the focused car once following is switched on", () => {

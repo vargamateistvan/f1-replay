@@ -31,6 +31,8 @@ import {
   FOLLOW_ZOOM_H,
 } from "@/constants";
 import { getCircuitLayout } from "@/data/circuits";
+import { getPitLane } from "@/data/pitLanes";
+import { TOKEN_HEX, TOKEN_HEX_LIGHT } from "@/designTokens";
 import { useCircuitGeometry } from "@/hooks/useCircuitGeometry";
 import {
   clampFollowView,
@@ -50,6 +52,7 @@ import {
   buildElevationSegments,
   buildHeatSegments,
   buildMarshalHeatmapSegments,
+  buildPitLanePath,
   buildTrackGeometry,
   carDataAt,
   projectToSvg,
@@ -356,6 +359,10 @@ export function TrackMap({
   const trackGeometry = useMemo(
     () => (outline ? buildTrackGeometry(outline) : null),
     [outline],
+  );
+  const pitLanePath = useMemo(
+    () => circuitGeom ? buildPitLanePath(trackGeometry, getPitLane(circuitKey)) : null,
+    [circuitGeom, circuitKey, trackGeometry],
   );
 
   const defaultRotationDeg = useMemo(
@@ -753,6 +760,20 @@ export function TrackMap({
             gradientId={trackSurfaceGradientId}
             lightMode={lightMode}
           />
+          {pitLanePath && (
+            <path
+              data-testid="pit-lane"
+              d={pitLanePath}
+              fill="none"
+              stroke={lightMode ? TOKEN_HEX_LIGHT.fg : TOKEN_HEX.fg}
+              strokeWidth={1.5}
+              strokeOpacity={0.6}
+              strokeDasharray="3 2"
+              strokeLinecap="butt"
+              strokeLinejoin="round"
+              aria-hidden="true"
+            />
+          )}
           {trackFlagState && (
             <TrackFlagColors
               pathData={pathData}
