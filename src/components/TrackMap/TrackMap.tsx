@@ -29,6 +29,9 @@ import {
   TRACK_FIT_ZOOM,
   FOLLOW_ZOOM_W,
   FOLLOW_ZOOM_H,
+  TRACK_WHEEL_ZOOM_PER_PIXEL,
+  TRACK_WHEEL_LINE_PIXELS,
+  TRACK_WHEEL_MAX_DELTA,
 } from "@/constants";
 import { getCircuitLayout } from "@/data/circuits";
 import { getPitLane } from "@/data/pitLanes";
@@ -223,6 +226,8 @@ export function TrackMap({
   const setSetting = useSettings((s) => s.setSetting);
   const isCompactViewport = useMediaQuery("(max-width: 767px)");
   const [zoomLevel, setZoomLevel] = useState(TRACK_FIT_ZOOM);
+  const zoomLevelRef = useRef(zoomLevel);
+  zoomLevelRef.current = zoomLevel;
   const [rotationDeg, setRotationDeg] = useState(0);
   const svgRef = useRef<SVGSVGElement>(null);
   const prevFocusDriverRef = useRef<number | null>(focusDriver);
@@ -452,17 +457,39 @@ export function TrackMap({
 
   const zoomBy = useCallback(
     (delta: number) => {
-      const next = Math.min(ZOOM_MAX, Math.max(ZOOM_MIN, zoomLevel + delta));
+      const next = Math.min(ZOOM_MAX, Math.max(ZOOM_MIN, zoomLevelRef.current + delta));
+      if (next === zoomLevelRef.current) return;
+      zoomLevelRef.current = next;
       setZoomLevel(next);
       persistZoomLevel(next);
       trackEvent("trackmap_zoom_changed", { zoom: next });
     },
-    [zoomLevel, persistZoomLevel],
+    [persistZoomLevel],
   );
+  useEffect(() => {
+    const svg = svgRef.current;
+    if (!svg) return;
+    const onWheel = (event: WheelEvent) => {
+      if (event.deltaY === 0 || !Number.isFinite(event.deltaY)) return;
+      event.preventDefault();
+      const pixels = event.deltaY * (
+        event.deltaMode === WheelEvent.DOM_DELTA_LINE
+          ? TRACK_WHEEL_LINE_PIXELS
+          : event.deltaMode === WheelEvent.DOM_DELTA_PAGE
+            ? svg.clientHeight
+            : 1
+      );
+      const delta = Math.max(-TRACK_WHEEL_MAX_DELTA, Math.min(TRACK_WHEEL_MAX_DELTA, pixels));
+      zoomBy(-delta * TRACK_WHEEL_ZOOM_PER_PIXEL);
+    };
+    svg.addEventListener("wheel", onWheel, { passive: false });
+    return () => svg.removeEventListener("wheel", onWheel);
+  }, [zoomBy, sessionKey, outline, trackGeometry, isPending]);
   const zoomOut = useCallback(() => zoomBy(-ZOOM_STEP), [zoomBy]);
   const zoomIn = useCallback(() => zoomBy(ZOOM_STEP), [zoomBy]);
   const zoomReset = useCallback(() => {
     trackEvent("trackmap_zoom_reset");
+    zoomLevelRef.current = TRACK_FIT_ZOOM;
     setZoomLevel(TRACK_FIT_ZOOM);
     persistZoomLevel(TRACK_FIT_ZOOM);
   }, [persistZoomLevel]);

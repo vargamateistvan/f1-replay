@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { fireEvent, render, screen } from "@testing-library/react";
+import { act, fireEvent, render, screen } from "@testing-library/react";
 import {
   TrackMap,
 } from "./TrackMap";
@@ -175,6 +175,57 @@ describe("TrackMap sector flag state rendering", () => {
     vi.mocked(useTrackOutline).mockReturnValue(mockTrackOutlineQueryResult(mockOutline));
     render(<TrackMap sessionKey={1} drivers={[mockDriver]} locationData={mockLocationData} sessionStartMs={0} />);
     expect(screen.getByTestId("map-background").querySelector("pattern")).not.toBeNull();
+  });
+
+  it("zooms with the wheel, persists rapid input, respects limits and resets", () => {
+    vi.mocked(useTrackOutline).mockReturnValue(mockTrackOutlineQueryResult(mockOutline));
+    const key = "f1-replay:track-zoom:v2:987:22";
+    window.localStorage.removeItem(key);
+    const { container, unmount } = render(
+      <TrackMap sessionKey={987} circuitKey={22} drivers={[mockDriver]} locationData={mockLocationData}
+        sessionStartMs={0} showTrackControls />,
+    );
+    const svg = container.querySelector("svg")!;
+    const zoom = () => Number(window.localStorage.getItem(key));
+    expect(fireEvent.wheel(svg, { deltaY: -100, cancelable: true })).toBe(false);
+    expect(zoom()).toBeCloseTo(1.35);
+    act(() => {
+      fireEvent.wheel(svg, { deltaY: -100, cancelable: true });
+      fireEvent.wheel(svg, { deltaY: -100, cancelable: true });
+    });
+    expect(zoom()).toBeCloseTo(1.75);
+    fireEvent.wheel(svg, { deltaY: 1, deltaMode: 1, cancelable: true });
+    expect(zoom()).toBeCloseTo(1.718);
+    fireEvent.wheel(svg, { deltaY: 100_000, cancelable: true });
+    expect(zoom()).toBeCloseTo(1.318);
+    for (let i = 0; i < 10; i++) fireEvent.wheel(svg, { deltaY: 1000, cancelable: true });
+    expect(zoom()).toBeCloseTo(0.6);
+    for (let i = 0; i < 10; i++) fireEvent.wheel(svg, { deltaY: -1000, cancelable: true });
+    expect(zoom()).toBeCloseTo(3);
+    fireEvent.click(screen.getByRole("button", { name: "Fit track (reset zoom and rotation)" }));
+    expect(zoom()).toBeCloseTo(1.15);
+    expect(fireEvent.wheel(svg, { deltaY: 0, cancelable: true })).toBe(true);
+    unmount();
+    window.localStorage.removeItem(key);
+  });
+
+  it("installs wheel zoom after the track outline finishes loading", () => {
+    const key = "f1-replay:track-zoom:v2:988:none";
+    window.localStorage.removeItem(key);
+    vi.mocked(useTrackOutline).mockReturnValue({
+      ...mockTrackOutlineQueryResult(undefined),
+      data: undefined,
+      isPending: true,
+    } as ReturnType<typeof useTrackOutline>);
+    const props = { sessionKey: 988, drivers: [mockDriver], locationData: mockLocationData, sessionStartMs: 0 };
+    const { container, rerender, unmount } = render(<TrackMap {...props} />);
+    expect(container.querySelector("svg")).toBeNull();
+    vi.mocked(useTrackOutline).mockReturnValue(mockTrackOutlineQueryResult(mockOutline));
+    rerender(<TrackMap {...props} />);
+    fireEvent.wheel(container.querySelector("svg")!, { deltaY: -100, cancelable: true });
+    expect(Number(window.localStorage.getItem(key))).toBeCloseTo(1.35);
+    unmount();
+    window.localStorage.removeItem(key);
   });
 
   it("shows a thin solid pit lane when baked circuit geometry is available", () => {

@@ -66,6 +66,10 @@ export const TRACK_SVG_PAD = 24;
 export const TRACK_BACKGROUND_GRID_SIZE = 40;
 export const TRACK_BACKGROUND_GLOW_OPACITY = 0.07;
 export const TRACK_BACKGROUND_LINE_OPACITY = 0.07;
+/** Mouse-wheel zoom sensitivity and normalization for the 2D track map. */
+export const TRACK_WHEEL_ZOOM_PER_PIXEL = 0.002;
+export const TRACK_WHEEL_LINE_PIXELS = 16;
+export const TRACK_WHEEL_MAX_DELTA = 200;
 /** Scale of racing-driver map and ring dots and their numbers in the pits. */
 export const TRACK_PIT_CAR_SCALE = 0.7;
 export const SESSION_SIMULATION_CARS = 12;

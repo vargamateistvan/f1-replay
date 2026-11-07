@@ -208,7 +208,7 @@ dimension** instead of relying on the built-in App version report:
   - Trigger: click driver dot
 - `trackmap_zoom_changed`
   - Params: `zoom`
-  - Trigger: zoom in/out buttons
+  - Trigger: zoom in/out buttons or mouse-wheel zoom on the 2D map
 - `trackmap_zoom_reset`
   - Params: none
   - Trigger: reset zoom button

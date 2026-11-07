@@ -122,6 +122,10 @@ const SECTIONS: Section[] = [
         text: "Visual track map with turn names, DRS zones, and sector divisions",
       },
       {
+        term: "Map Zoom",
+        text: "Scroll over the 2D track map to zoom, or use the zoom and fit buttons in the map controls",
+      },
+      {
         term: "Sector Performance",
         text: "Real-time sector times and speed trap data for comparison",
       },
