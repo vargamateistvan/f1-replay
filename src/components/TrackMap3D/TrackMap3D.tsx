@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import mapboxgl from "mapbox-gl";
+import type { ExpressionSpecification } from "mapbox-gl";
 import "mapbox-gl/dist/mapbox-gl.css";
 import {
   Camera,
@@ -1138,7 +1139,7 @@ export function TrackMap3D({
         ...(pitExitAccess && pitExitAccess !== "unknown" ? ["exit"] : []),
       ];
       const filter = ["in", ["get", "part"], ["literal", parts]];
-      const signalColor = [
+      const signalColor: ExpressionSpecification = [
         "match", ["get", "part"],
         "entry", pitEntryAccess === "open" ? TOKEN_HEX.green : TOKEN_HEX.red,
         "exit", pitExitAccess === "open" ? TOKEN_HEX.green : TOKEN_HEX.red,
