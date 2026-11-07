@@ -29,7 +29,7 @@ function panelClass(raining: boolean): string {
   const tint = raining
     ? "border-l-blue"
     : "border-l-line";
-  return `hidden md:block w-56 overflow-hidden rounded-sm border border-panel border-l-2 bg-surface/80 text-fg shadow-sm backdrop-blur-sm ${tint}`;
+  return `hidden md:block w-56 overflow-hidden rounded-sm border border-panel border-l-2 bg-surface/70 text-fg shadow-sm backdrop-blur-sm ${tint}`;
 }
 
 const HEADER_CLASS = "flex items-center gap-1.5 border-b border-panel px-2 py-1 text-caption font-black uppercase tracking-caps text-fg/80";

@@ -25,7 +25,7 @@ describe("map information cards", () => {
     expect(screen.getByText("Track").parentElement).toHaveTextContent("14:30:08");
     expect(screen.getByText("Local").parentElement).toHaveTextContent(formatTrackClock(nowMs, "local", zone));
     expect(screen.getByTitle(`Local timezone: ${zone}`)).toHaveTextContent(zone);
-    expect(screen.getByLabelText("Track time")).toHaveClass("w-56", "rounded-sm", "md:block", "bg-surface/80");
+    expect(screen.getByLabelText("Track time")).toHaveClass("w-56", "rounded-sm", "md:block", "bg-surface/70");
     expect(screen.getByText("Track Time")).toHaveClass("text-caption", "text-fg/80");
     expect(screen.getByText("Track")).toHaveClass("text-tiny");
   });
@@ -38,7 +38,7 @@ describe("map information cards", () => {
     expect(screen.getByText("40%")).toBeInTheDocument();
     expect(screen.getByText("784 hPa")).toBeInTheDocument();
     expect(screen.getByText("m/s").parentElement).toHaveTextContent("2.8 m/s WNW");
-    expect(screen.getByLabelText("Track weather")).toHaveClass("w-56", "rounded-sm", "bg-surface/80");
+    expect(screen.getByLabelText("Track weather")).toHaveClass("w-56", "rounded-sm", "bg-surface/70");
     expect(screen.getByText("Track Weather")).toHaveClass("text-caption", "text-fg/80");
     expect(screen.getByText("40%")).toHaveClass("text-caption");
   });

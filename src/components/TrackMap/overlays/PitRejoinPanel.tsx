@@ -68,7 +68,7 @@ export function PitRejoinPanel({
   const losses = parsePitLoss(pitLoss);
   return (
     <div
-      className="pointer-events-none hidden md:block w-32 overflow-hidden rounded-sm border border-panel border-l-2 bg-surface/80 text-fg shadow-sm backdrop-blur-sm"
+      className="pointer-events-none hidden md:block w-32 overflow-hidden rounded-sm border border-panel border-l-2 bg-surface/70 text-fg shadow-sm backdrop-blur-sm"
       style={{ borderLeftColor: color }}
       data-testid="pit-rejoin-panel"
     >

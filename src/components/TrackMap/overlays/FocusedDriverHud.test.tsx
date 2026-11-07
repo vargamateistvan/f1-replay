@@ -35,7 +35,7 @@ const sample: CarData = {
 describe("map overlay cards", () => {
   it("labels the driver, speed units, gear and pedal values", () => {
     const { container } = render(<FocusedDriverHud sample={sample} driver={driver} metricSystem="metric" />);
-    expect(container.firstElementChild).toHaveClass("w-32", "bg-surface/80");
+    expect(container.firstElementChild).toHaveClass("w-32", "bg-surface/70");
     expect(screen.getByText("SAI")).toBeInTheDocument();
     expect(screen.getByText("Telemetry")).toHaveClass("text-tiny");
     expect(screen.getByText("89")).toBeInTheDocument();
@@ -93,7 +93,7 @@ describe("map overlay cards", () => {
     if (condition !== "vsc") {
       expect(screen.getByText("VSC").parentElement).toHaveClass("border-transparent");
     }
-    expect(screen.getByTestId("pit-rejoin-panel")).toHaveClass("hidden", "md:block", "w-32", "bg-surface/80");
+    expect(screen.getByTestId("pit-rejoin-panel")).toHaveClass("hidden", "md:block", "w-32", "bg-surface/70");
     expect(screen.getByText(label)).toHaveClass("text-tiny");
     expect(screen.getByText("22.8s")).toHaveClass("text-caption");
     for (const [key, value] of [["normal", "22.8s"], ["sc", "12.5s"], ["vsc", "15.4s"]] as const) {
