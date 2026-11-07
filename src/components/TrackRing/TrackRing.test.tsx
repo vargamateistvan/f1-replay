@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { cloneElement } from "react";
 import { fireEvent, render, screen } from "@testing-library/react";
-import type { Driver, Location, Weather } from "@/api/types";
+import type { Driver, Lap, Location, Stint, Weather } from "@/api/types";
 import { RING_RADIUS, RING_SVG_H, RING_SVG_W, TRACK_PIT_CAR_SCALE } from "@/constants";
 import { useCircuitGeometry } from "@/hooks/useCircuitGeometry";
 import { TrackRing } from "./TrackRing";
@@ -81,6 +81,40 @@ function loc(driver_number: number, x: number, y: number, ms: number): Location 
     meeting_key: 1,
     session_key: 1,
   } as Location;
+}
+
+function lap(driver_number: number, lap_number: number, lap_duration: number): Lap {
+  return {
+    date_start: new Date(START + (lap_number - 1) * LAP_MS).toISOString(),
+    driver_number,
+    duration_sector_1: null,
+    duration_sector_2: null,
+    duration_sector_3: null,
+    i1_speed: null,
+    i2_speed: null,
+    is_pit_out_lap: false,
+    lap_duration,
+    lap_number,
+    meeting_key: 1,
+    segments_sector_1: null,
+    segments_sector_2: null,
+    segments_sector_3: null,
+    session_key: 1,
+    st_speed: null,
+  };
+}
+
+function stint(driver_number: number, compound: Stint["compound"]): Stint {
+  return {
+    compound,
+    driver_number,
+    lap_end: 4,
+    lap_start: 2,
+    meeting_key: 1,
+    session_key: 1,
+    stint_number: 1,
+    tyre_age_at_start: 0,
+  };
 }
 
 const drivers = [
@@ -304,6 +338,11 @@ describe("TrackRing", () => {
       wind_speed: 3.7,
     } satisfies Weather;
     const { rerender } = renderRing({ weatherOverlay: weather, lapLabel: "21/52" });
+    const tyreGuidance = screen.getByTestId("ring-center-tyre-guidance");
+    expect(tyreGuidance).toHaveTextContent("SUGGESTED");
+    expect(tyreGuidance).toHaveTextContent("FASTEST");
+    expect(screen.getByLabelText("Suggested tyre: SOFT")).toBeInTheDocument();
+    expect(screen.getByLabelText("Fastest clean-lap tyre unavailable")).toBeInTheDocument();
     const centerWeather = screen.getByTestId("ring-center-weather");
     const centerGroup = centerWeather.parentElement;
     const lapLabel = centerGroup?.querySelector('text');
@@ -316,6 +355,13 @@ describe("TrackRing", () => {
     expect(centerWeather).toHaveTextContent("AIR24°C");
     expect(centerWeather).toHaveTextContent("48%");
     expect(centerWeather).toHaveTextContent("4 m/s W");
+    const bottomRow = screen.getByTestId("ring-weather-bottom-row");
+    expect(bottomRow).toHaveAttribute(
+      "transform",
+      `translate(${RING_SVG_W / 2} ${RING_SVG_H / 2 + 76})`,
+    );
+    expect(screen.getByText("DRY").parentElement).toBe(bottomRow);
+    expect(centerWeather.querySelector("line")).toHaveAttribute("y1", String(RING_SVG_H / 2 + 69));
     expect(centerWeather.querySelector(".lucide-thermometer")).not.toBeNull();
     expect(centerWeather.querySelector(".lucide-droplets")).not.toBeNull();
     expect(centerWeather.querySelector(".lucide-wind")).not.toBeNull();
@@ -339,6 +385,7 @@ describe("TrackRing", () => {
       />,
     );
     expect(screen.queryByTestId("ring-center-weather")).not.toBeInTheDocument();
+    expect(screen.getByTestId("ring-center-tyre-guidance")).toBeInTheDocument();
     const driverInfo = screen.getByTestId("ring-focused-driver-info");
     const focusedLap = driverInfo.parentElement?.querySelector('text');
     expect(focusedLap).toHaveAttribute("y", lapLabel?.getAttribute("y"));
@@ -347,6 +394,39 @@ describe("TrackRing", () => {
       (text) => text.textContent === "Green",
     );
     expect(focusedStatus).toHaveAttribute("y", statusLabel?.getAttribute("y"));
+  });
+
+  it("suggests intermediate tyres in rain and identifies the fastest clean lap compound", () => {
+    clock.t = 500_000;
+    renderRing({
+      weatherOverlay: {
+        air_temperature: 24,
+        date: new Date(START).toISOString(),
+        humidity: 70,
+        meeting_key: 1,
+        pressure: 1012,
+        rainfall: 1,
+        session_key: 1,
+        track_temperature: 30,
+        wind_direction: 270,
+        wind_speed: 3,
+      },
+      laps: [
+        lap(1, 2, 90),
+        lap(1, 3, 89),
+        lap(1, 4, 91),
+        lap(16, 2, 92),
+        lap(16, 3, 91),
+        lap(16, 4, 93),
+      ],
+      stints: [stint(1, "SOFT"), stint(16, "MEDIUM")],
+    });
+
+    const guidance = screen.getByTestId("ring-center-tyre-guidance");
+    expect(guidance).toHaveTextContent("SUGGESTED");
+    expect(guidance).toHaveTextContent("FASTEST");
+    expect(screen.getByLabelText("Suggested tyre: INTERMEDIATE")).toBeInTheDocument();
+    expect(screen.getByLabelText("Fastest clean-lap tyre: SOFT")).toBeInTheDocument();
   });
 
   it("shows the compact legend on demand", () => {

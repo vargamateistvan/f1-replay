@@ -2387,6 +2387,10 @@ export default function RaceWeekend() {
       year={session?.year ?? null}
       activeCompounds={mapShowCompoundBadges ? activeCompounds : undefined}
       focusCompound={focusDriver === null ? null : (activeCompounds.get(focusDriver) ?? null)}
+      laps={laps.data ?? []}
+      stints={stints.data ?? []}
+      pits={pits.data ?? []}
+      neutralised={raceNeutralised}
       positionByDriver={ringPositions}
       battlingDrivers={mapShowBattleRings ? battlingDrivers : undefined}
       showFocusedHud={mapShowDriverHud && !isCompactViewport}

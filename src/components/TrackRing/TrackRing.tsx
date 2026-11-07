@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { ArrowLeftRight, CircleHelp, FlipHorizontal2, Timer } from "lucide-react";
-import type { Driver, Interval, Location, Stint, Weather } from "@/api/types";
+import type { Driver, Interval, Lap, Location, Pit, Stint, Weather } from "@/api/types";
 import { teamColor } from "@/utils/color";
+import { cleanRaceLaps, type NeutralisedWindow, type PaceLap } from "@/utils/racePace";
 import {
   speedUnitLabel,
   temperatureUnitLabel,
@@ -101,6 +102,10 @@ interface Props {
   readonly year?: number | null;
   readonly activeCompounds?: ReadonlyMap<number, { compound: Stint["compound"]; age: number }>;
   readonly focusCompound?: { compound: Stint["compound"]; age: number } | null;
+  readonly laps?: readonly Lap[];
+  readonly stints?: readonly Stint[];
+  readonly pits?: readonly Pit[];
+  readonly neutralised?: readonly NeutralisedWindow[];
   readonly positionByDriver?: ReadonlyMap<number, number> | null;
   readonly battlingDrivers?: ReadonlySet<number>;
   readonly retiredDrivers?: ReadonlySet<number>;
@@ -156,6 +161,10 @@ export function TrackRing({
   year = null,
   activeCompounds,
   focusCompound,
+  laps = [],
+  stints = [],
+  pits = [],
+  neutralised = [],
   positionByDriver = null,
   battlingDrivers,
   retiredDrivers,
@@ -182,6 +191,27 @@ export function TrackRing({
 }: Props) {
   const timelineT = useCoarseTime(100);
   const t = previewTimeMs ?? timelineT;
+  const tyreGuidance = useMemo(() => {
+    if (!weatherOverlay) return null;
+
+    const fastestLap = cleanRaceLaps({
+      laps,
+      stints,
+      pits,
+      neutralised,
+      sessionStartMs,
+      cutoffMs: t,
+    }).reduce<PaceLap | null>((fastest, lap) => {
+      if (lap.compound === "UNKNOWN") return fastest;
+      if (!fastest || lap.lapS < fastest.lapS) return lap;
+      return fastest;
+    }, null);
+
+    return {
+      suggested: weatherOverlay.rainfall > 0 ? "INTERMEDIATE" : "SOFT",
+      fastest: fastestLap?.compound ?? null,
+    } as const;
+  }, [weatherOverlay, laps, stints, pits, neutralised, sessionStartMs, t]);
   const lightMode = useSettings((s) => s.lightMode);
   const metricSystem = useSettings((s) => s.metricSystem);
   const showAcronym = useSettings((s) => s.mapShowDriverAcronym);
@@ -650,6 +680,7 @@ export function TrackRing({
           reference={reference}
           focusInfo={focusInfo}
           weather={centerWeather}
+          tyreGuidance={tyreGuidance}
           lightMode={lightMode}
         />
         <RingPitLane

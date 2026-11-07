@@ -3,6 +3,8 @@ import { CloudRain, CloudSun, Droplets, Thermometer, Wind } from "lucide-react";
 import type { Driver, Stint } from "@/api/types";
 import {
   COMPOUND_COLORS,
+  COMPOUND_HARD_LIGHT_COLOR,
+  COMPOUND_LETTERS,
   FLAG_COLORS,
   PIT_MARKER_COLOR,
   PIT_WINDOW_COLOR,
@@ -58,6 +60,12 @@ function labelTextColor(hex: string): string {
   const n = parseInt(m[1]!, 16);
   const lum = (0.299 * ((n >> 16) & 255) + 0.587 * ((n >> 8) & 255) + 0.114 * (n & 255)) / 255;
   return lum > 0.62 ? "#111318" : "#ffffff";
+}
+
+function compoundBadgeColor(compound: Stint["compound"], lightMode: boolean): string {
+  return lightMode && compound === "HARD"
+    ? COMPOUND_HARD_LIGHT_COLOR
+    : COMPOUND_COLORS[compound];
 }
 
 /** The ring, sector flag tints, sector bars + labels, corner ticks and the finish line. */
@@ -295,6 +303,7 @@ export function RingCenter({
   reference,
   focusInfo = null,
   weather = null,
+  tyreGuidance = null,
   lightMode,
 }: {
   cx: number;
@@ -319,6 +328,10 @@ export function RingCenter({
     humidity: string;
     wind: string;
     raining: boolean;
+  } | null;
+  tyreGuidance?: {
+    suggested: Stint["compound"];
+    fastest: Stint["compound"] | null;
   } | null;
   lightMode: boolean;
 }) {
@@ -351,6 +364,52 @@ export function RingCenter({
       <text x={cx} y={cy + 20} fontSize={8} fill={fg} opacity={0.85} dominantBaseline="middle">
         {reference.title}
       </text>
+      {tyreGuidance && (
+        <g
+          data-testid="ring-center-tyre-guidance"
+          aria-label="Tyre recommendation and fastest clean lap compound"
+        >
+          <text x={cx - 15} y={cy + 31} textAnchor="end" fontSize={4.5} fill={muted} dominantBaseline="middle">
+            SUGGESTED
+          </text>
+          <g
+            role="img"
+            aria-label={`Suggested tyre: ${tyreGuidance.suggested}`}
+            transform={`translate(${cx - 8} ${cy + 31})`}
+          >
+            <circle r={5} fill="none" stroke={compoundBadgeColor(tyreGuidance.suggested, lightMode)} strokeWidth={1.8} />
+            <text y={0.3} fontSize={4.5} fill={fg} fontWeight="900" dominantBaseline="middle">
+              {COMPOUND_LETTERS[tyreGuidance.suggested]}
+            </text>
+          </g>
+          <text x={cx + 4} y={cy + 31} textAnchor="start" fontSize={4.5} fill={muted} dominantBaseline="middle">
+            FASTEST
+          </text>
+          {tyreGuidance.fastest ? (
+            <g
+              role="img"
+              aria-label={`Fastest clean-lap tyre: ${tyreGuidance.fastest}`}
+              transform={`translate(${cx + 38} ${cy + 31})`}
+            >
+              <circle r={5} fill="none" stroke={compoundBadgeColor(tyreGuidance.fastest, lightMode)} strokeWidth={1.8} />
+              <text y={0.3} fontSize={4.5} fill={fg} fontWeight="900" dominantBaseline="middle">
+                {COMPOUND_LETTERS[tyreGuidance.fastest]}
+              </text>
+            </g>
+          ) : (
+            <text
+              x={cx + 38}
+              y={cy + 31}
+              fontSize={5}
+              fill={muted}
+              dominantBaseline="middle"
+              aria-label="Fastest clean-lap tyre unavailable"
+            >
+              —
+            </text>
+          )}
+        </g>
+      )}
       {focusInfo ? (
         <g data-testid="ring-focused-driver-info" aria-label={`Focused driver ${focusInfo.acronym}`}>
           <text x={cx} y={cy + 42} fontSize={6.5} fill={fg} dominantBaseline="middle">
@@ -386,67 +445,76 @@ export function RingCenter({
         <g data-testid="ring-center-weather" aria-label="Track weather">
           <g fill={muted} fontSize={4.5} dominantBaseline="middle">
             <g textAnchor="middle">
-              <Thermometer x={cx - 44} y={cy + 37} size={7} strokeWidth={1.8} aria-hidden="true" />
-              <text x={cx - 34} y={cy + 41} textAnchor="start">TRACK</text>
-              <text x={cx - 36} y={cy + 51} fill={fg} fontSize={6.5} fontWeight="700">
+              <Thermometer x={cx - 44} y={cy + 49} size={7} strokeWidth={1.8} aria-hidden="true" />
+              <text x={cx - 34} y={cy + 53} textAnchor="start">TRACK</text>
+              <text x={cx - 36} y={cy + 63} fill={fg} fontSize={6.5} fontWeight="700">
                 {weather.track}
               </text>
             </g>
             <g textAnchor="middle">
-              <Thermometer x={cx - 4} y={cy + 37} size={7} strokeWidth={1.8} aria-hidden="true" />
-              <text x={cx + 6} y={cy + 41} textAnchor="start">AIR</text>
-              <text x={cx + 4} y={cy + 51} fill={fg} fontSize={6.5} fontWeight="700">
+              <Thermometer x={cx - 4} y={cy + 49} size={7} strokeWidth={1.8} aria-hidden="true" />
+              <text x={cx + 6} y={cy + 53} textAnchor="start">AIR</text>
+              <text x={cx + 4} y={cy + 63} fill={fg} fontSize={6.5} fontWeight="700">
                 {weather.air}
               </text>
             </g>
             <g textAnchor="middle">
-              <Droplets x={cx + 35} y={cy + 37} size={7} strokeWidth={1.8} aria-hidden="true" />
-              <text x={cx + 45} y={cy + 41} textAnchor="start">HUM</text>
-              <text x={cx + 39} y={cy + 51} fill={fg} fontSize={6.5} fontWeight="700">
+              <Droplets x={cx + 35} y={cy + 49} size={7} strokeWidth={1.8} aria-hidden="true" />
+              <text x={cx + 45} y={cy + 53} textAnchor="start">HUM</text>
+              <text x={cx + 39} y={cy + 63} fill={fg} fontSize={6.5} fontWeight="700">
                 {weather.humidity}
               </text>
             </g>
             <line
               x1={cx - 52}
-              y1={cy + 58}
+              y1={cy + 69}
               x2={cx + 52}
-              y2={cy + 58}
+              y2={cy + 69}
               stroke={muted}
               strokeOpacity={0.35}
               strokeWidth={0.5}
             />
-            <Wind x={cx - 37} y={cy + 62} size={7} strokeWidth={1.8} aria-hidden="true" />
-            <text x={cx - 27} y={cy + 66} fill={fg} textAnchor="start" fontSize={5.5}>
-              {weather.wind}
-            </text>
-            {weather.raining ? (
-              <CloudRain
-                x={cx + 14}
-                y={cy + 62}
-                size={7}
-                strokeWidth={1.8}
-                color="#38bdf8"
-                role="img"
-                aria-label="Rain"
-              />
-            ) : (
-              <CloudSun
-                x={cx + 14}
-                y={cy + 62}
-                size={7}
-                strokeWidth={1.8}
-                aria-hidden="true"
-              />
-            )}
-            <text
-              x={cx + 24}
-              y={cy + 66}
-              fill={weather.raining ? "#38bdf8" : muted}
-              textAnchor="start"
+            <g
+              data-testid="ring-weather-bottom-row"
+              transform={`translate(${cx} ${cy + 76})`}
               fontSize={5.5}
+              dominantBaseline="middle"
             >
-              {weather.raining ? "RAIN" : "DRY"}
-            </text>
+              <Wind x={-32} y={-3} size={7} strokeWidth={1.8} aria-hidden="true" />
+              <text x={-22} y={0} fill={fg} textAnchor="start">
+                {weather.wind}
+              </text>
+              {weather.raining ? (
+                <CloudRain
+                  x={13}
+                  y={-3}
+                  size={7}
+                  strokeWidth={1.8}
+                  color="#38bdf8"
+                  role="img"
+                  aria-label="Rain"
+                />
+              ) : (
+                <CloudSun
+                  x={13}
+                  y={-3}
+                  size={7}
+                  strokeWidth={1.8}
+                  aria-hidden="true"
+                />
+              )}
+              <text
+                x={22}
+                y={0}
+                fill={weather.raining ? "#38bdf8" : muted}
+                textAnchor="start"
+                fontSize={5}
+                fontWeight="800"
+                letterSpacing="0.04em"
+              >
+                {weather.raining ? "RAIN" : "DRY"}
+              </text>
+            </g>
           </g>
         </g>
       ) : null}
