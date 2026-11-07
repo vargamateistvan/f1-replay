@@ -72,6 +72,7 @@ export const TRACK_WHEEL_LINE_PIXELS = 16;
 export const TRACK_WHEEL_MAX_DELTA = 200;
 /** Scale of racing-driver map and ring dots and their numbers in the pits. */
 export const TRACK_PIT_CAR_SCALE = 0.7;
+export const TRACK_PIT_ACCESS_MARKER_RADIUS = 3.5;
 export const SESSION_SIMULATION_CARS = 12;
 export const SESSION_SIMULATION_LAP_SECONDS = 32;
 export const SESSION_SIMULATION_LAP_STEP_SECONDS = 1.2;

@@ -209,6 +209,9 @@ function TrackMapPreview({
             : undefined,
         leaderNumber: data.previewFocusDriver?.driver_number ?? null,
         battleGaps: data.battleGaps,
+        pitLaneStatus: settings.mapShowPitLaneStatus
+          ? { lane: "unknown", entry: "unknown", exit: "closed" } as const
+          : null,
         weatherOverlay: settings.mapShowWeather ? data.weather : null,
         showTrackControls: settings.mapShowTrackControls,
         showFocusedHud: settings.mapShowDriverHud,
@@ -278,6 +281,7 @@ function TrackMapPreview({
           </div>
           <div className="mt-0.5 truncate font-mono text-tiny uppercase tracking-caps text-muted">
             {data.meeting ? `${data.meeting.meeting_name} track map` : "Loading latest race weekend"}
+            {settings.mapShowPitLaneStatus ? " · example pit exit closed" : ""}
             {view === "3d" && session && !supports3d ? " · no 3D for this circuit, showing 2D" : ""}
           </div>
         </div>
@@ -451,6 +455,11 @@ export function TrackMapSettings({
           )}
 
         <SectionHeader>Track Detail</SectionHeader>
+        {row(
+          "mapShowPitLaneStatus",
+          "Pit lane status",
+          "Show the last reported pit lane, entry and exit status on the map; missing updates can make it outdated",
+        )}
         {!isRing &&
           row(
             "mapShowEnhancedVisuals",

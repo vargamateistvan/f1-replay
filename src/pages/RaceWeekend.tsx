@@ -90,6 +90,7 @@ import {
   buildIncidentWindows,
   clusterRaceControlMarkers,
   deriveTrackFlagState,
+  derivePitLaneStatus,
   normalizeRaceControl,
   summarizeMarkers,
   type TrackFlagState,
@@ -1396,6 +1397,7 @@ export default function RaceWeekend() {
     mapShowBattleRings,
     mapShowDriverHud,
     mapShowPitRejoin,
+    mapShowPitLaneStatus,
     mapShowSectorFlags,
     mapShowRaceLeader,
     mapShowSectorBox,
@@ -1453,6 +1455,13 @@ export default function RaceWeekend() {
     openHelp,
     setSetting,
   } = useSettings();
+
+  const pitLaneStatus = useMemo(
+    () => mapShowPitLaneStatus && isMapVisible && sessionStartMs
+      ? derivePitLaneStatus(raceControl.data ?? [], sessionStartMs + tSlow)
+      : null,
+    [mapShowPitLaneStatus, raceControl.data, sessionStartMs, tSlow, isMapVisible],
+  );
 
   const ringPositions = useMemo(() => {
     if (!isMapVisible || mapViewMode !== "ring" || !directorBase || !sessionStartMs) return null;
@@ -2384,6 +2393,7 @@ export default function RaceWeekend() {
       sharedAllDriverWindow={telemetryEnabled}
       telemetryEnabled={secondaryEnabled}
       trackFlagState={mapShowSectorFlags ? trackFlagState : null}
+      pitLaneStatus={pitLaneStatus}
       showSectorBox={mapShowSectorBox}
       showTrackScreenshot={trackScreenshotPngEnabled}
       weatherOverlay={mapShowWeather ? weatherAtT : null}
@@ -2422,6 +2432,7 @@ export default function RaceWeekend() {
       sharedAllDriverWindow={telemetryEnabled}
       telemetryEnabled={secondaryEnabled}
       trackFlagState={mapShowSectorFlags ? trackFlagState : null}
+      pitLaneStatus={pitLaneStatus}
       showTrackControls={mapShowTrackControls}
       showEnhancedVisuals={mapShowEnhancedVisuals}
       focusDriverLap={focusDriverLap}
@@ -2465,6 +2476,7 @@ export default function RaceWeekend() {
       sharedAllDriverWindow={telemetryEnabled}
       telemetryEnabled={secondaryEnabled}
       trackFlagState={mapShowSectorFlags ? trackFlagState : null}
+      pitLaneStatus={pitLaneStatus}
       showSectorBox={mapShowSectorBox}
       showTrackControls={mapShowTrackControls}
       showCompass={mapShowCompass}

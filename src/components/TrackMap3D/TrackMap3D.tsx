@@ -59,6 +59,8 @@ import {
   MAP3D_TRAIL_MS,
   MAP3D_TRAIL_SPEED_MAX_GAP_MS,
   MAP3D_TRAIL_STEP_MS,
+  MAP3D_EDGE_LINE_COLOR,
+  TRACK_PIT_ACCESS_MARKER_RADIUS,
 } from "@/constants";
 import { getCircuitGeoref } from "@/data/circuitGeoref";
 import { getRunoffStyle } from "@/data/circuitRunoff";
@@ -74,6 +76,8 @@ import { computeTrackBounds, isOffTrackPlaceholder } from "@/hooks/useTrackMap";
 import { trackEvent } from "@/lib/analytics";
 import { useSettings } from "@/stores/settings";
 import { useTimeline } from "@/timeline/clock";
+import { TOKEN_HEX } from "@/designTokens";
+import type { PitLaneStatus } from "@/timeline/raceControl";
 import {
   INITIAL_DIRECTOR_STATE,
   battlePairs,
@@ -297,6 +301,7 @@ interface Props {
   /** Weather at the playhead for map effects (rain), independent of the panel. */
   readonly weather?: Weather | null;
   readonly trackFlagState?: TrackFlagState | null;
+  readonly pitLaneStatus?: PitLaneStatus | null;
   readonly activeTrackVehicles?: ActiveTrackVehicles | null;
   readonly showTrackControls?: boolean;
   readonly showEnhancedVisuals?: boolean;
@@ -351,6 +356,7 @@ export function TrackMap3D({
   weatherOverlay = null,
   weather = null,
   trackFlagState = null,
+  pitLaneStatus = null,
   activeTrackVehicles = null,
   showTrackControls = true,
   showTrackScreenshot = true,
@@ -909,10 +915,38 @@ export function TrackMap3D({
       });
       const pitLane = getPitLane(circuitKey);
       if (pitLane) {
+        const pitLine = buildPitLaneLine(pitLane, geo);
         map.addSource(SRC_PIT_LANE, {
           type: "geojson",
-          data: buildPitLaneLine(pitLane, geo),
+          data: pitLine,
         });
+        const coordinates = pitLine.geometry.coordinates;
+        if (coordinates.length >= 2) {
+          map.addSource("map3d-pit-access", {
+            type: "geojson",
+            data: {
+              type: "FeatureCollection",
+              features: (["entry", "exit"] as const).map((part, index) => ({
+                type: "Feature",
+                properties: { part },
+                geometry: { type: "Point", coordinates: coordinates[index === 0 ? 0 : coordinates.length - 1]! },
+              })),
+            },
+          });
+          map.addLayer({
+            id: "map3d-pit-access",
+            type: "circle",
+            source: "map3d-pit-access",
+            slot: "middle",
+            filter: ["in", ["get", "part"], ["literal", []]],
+            paint: {
+              "circle-radius": TRACK_PIT_ACCESS_MARKER_RADIUS,
+              "circle-color": TOKEN_HEX.red,
+              "circle-stroke-width": 1,
+              "circle-stroke-color": TOKEN_HEX.fg,
+            },
+          });
+        }
         map.addLayer({
           id: "map3d-pit-lane",
           type: "line",
@@ -1065,6 +1099,35 @@ export function TrackMap3D({
       }
     }
   }, [trackFlagState, flagColorsEnabled, styleReady, circuitGeom]);
+
+  const pitLaneAccess = pitLaneStatus?.lane;
+  const pitEntryAccess = pitLaneStatus?.entry;
+  const pitExitAccess = pitLaneStatus?.exit;
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || !styleReady || !map.getLayer("map3d-pit-lane")) return;
+    const color = pitLaneAccess === "closed"
+      ? TOKEN_HEX.red
+      : pitLaneAccess === "open" ? TOKEN_HEX.green : "#e9ecf3";
+    map.setPaintProperty("map3d-pit-lane", "line-color", color);
+    if (map.getLayer("map3d-surface-pit-lane-lines")) {
+      map.setPaintProperty("map3d-surface-pit-lane-lines", "fill-color",
+        !pitLaneAccess || pitLaneAccess === "unknown" ? MAP3D_EDGE_LINE_COLOR : color);
+    }
+    if (map.getLayer("map3d-pit-access")) {
+      const parts = [
+        ...(pitEntryAccess && pitEntryAccess !== "unknown" ? ["entry"] : []),
+        ...(pitExitAccess && pitExitAccess !== "unknown" ? ["exit"] : []),
+      ];
+      map.setFilter("map3d-pit-access", ["in", ["get", "part"], ["literal", parts]]);
+      map.setPaintProperty("map3d-pit-access", "circle-color", [
+        "match", ["get", "part"],
+        "entry", pitEntryAccess === "open" ? TOKEN_HEX.green : TOKEN_HEX.red,
+        "exit", pitExitAccess === "open" ? TOKEN_HEX.green : TOKEN_HEX.red,
+        TOKEN_HEX.red,
+      ]);
+    }
+  }, [pitLaneAccess, pitEntryAccess, pitExitAccess, styleReady, circuitGeom, lightPreset, wetTrack]);
 
   // ── Overlay data + visibility ─────────────────────────────────────────────
   useEffect(() => {

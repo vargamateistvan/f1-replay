@@ -9,6 +9,7 @@ import {
   clusterRaceControlMarkers,
   computeWhatChanged,
   deriveTrackFlagState,
+  derivePitLaneStatus,
   groupEventsByPhase,
   hasAnyMarshalYellow,
   isActiveTrackFlag,
@@ -38,6 +39,24 @@ function rc(partial: Partial<RaceControl>): RaceControl {
     ...partial,
   };
 }
+
+describe("derivePitLaneStatus", () => {
+  it("tracks only explicit lane, entry and exit updates through the playhead", () => {
+    const entries = [
+      rc({ date: iso(30), message: "PIT LANE OPEN" }),
+      rc({ date: iso(10), message: "GREEN LIGHT - PIT EXIT OPEN" }),
+      rc({ date: iso(20), message: "PIT EXIT CLOSED" }),
+      rc({ date: iso(25), message: "INCIDENT INVOLVING CAR 10 - LEAVING PIT EXIT ON RED LIGHT" }),
+      rc({ date: iso(40), message: "PIT ENTRY CLOSED" }),
+      rc({ date: "invalid", message: "PIT LANE CLOSED" }),
+    ];
+    expect(derivePitLaneStatus(entries, START + 5_000)).toEqual({ lane: "unknown", entry: "unknown", exit: "unknown" });
+    expect(derivePitLaneStatus(entries, START + 15_000)).toEqual({ lane: "unknown", entry: "unknown", exit: "open" });
+    expect(derivePitLaneStatus(entries, START + 25_000)).toEqual({ lane: "unknown", entry: "unknown", exit: "closed" });
+    expect(derivePitLaneStatus(entries, START + 40_000)).toEqual({ lane: "open", entry: "closed", exit: "closed" });
+    expect(derivePitLaneStatus(entries, START + 15_000).exit).toBe("open");
+  });
+});
 
 describe("computeWhatChanged retirements", () => {
   it("includes drivers newly retired during the incident window", () => {

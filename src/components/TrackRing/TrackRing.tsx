@@ -43,6 +43,7 @@ import {
   isActiveTrackFlag,
   projectToTimingSectors,
   type TrackFlagState,
+  type PitLaneStatus,
 } from "@/timeline/raceControl";
 import { startLightsState } from "@/timeline/startLights";
 import { exportTrackSnapshot } from "../TrackMap/exportSnapshot";
@@ -105,6 +106,7 @@ interface Props {
   readonly retiredDrivers?: ReadonlySet<number>;
   readonly weatherOverlay?: Weather | null;
   readonly trackFlagState?: TrackFlagState | null;
+  readonly pitLaneStatus?: PitLaneStatus | null;
   readonly activeTrackVehicles?: ActiveTrackVehicles | null;
   readonly safetyCarSirenOn?: boolean;
   readonly showSectorBox?: boolean;
@@ -159,6 +161,7 @@ export function TrackRing({
   retiredDrivers,
   weatherOverlay = null,
   trackFlagState = null,
+  pitLaneStatus = null,
   activeTrackVehicles = null,
   safetyCarSirenOn = false,
   showSectorBox = true,
@@ -657,6 +660,7 @@ export function TrackRing({
           model={model}
           scale={scale}
           lightMode={lightMode}
+          pitLaneStatus={pitLaneStatus}
         />
         <RingTrack
           cx={CX}

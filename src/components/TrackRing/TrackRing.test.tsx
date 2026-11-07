@@ -5,8 +5,10 @@ import type { Driver, Location, Weather } from "@/api/types";
 import { RING_RADIUS, RING_SVG_H, RING_SVG_W, TRACK_PIT_CAR_SCALE } from "@/constants";
 import { useCircuitGeometry } from "@/hooks/useCircuitGeometry";
 import { TrackRing } from "./TrackRing";
-import { RingCars } from "./RingLayers";
-import type { RingCarLayout } from "./ringModel";
+import { RingCars, RingPitLane } from "./RingLayers";
+import { buildRingModel, type RingCarLayout } from "./ringModel";
+import { buildTrackGeometry } from "../TrackMap/trackGeometry";
+import { TOKEN_HEX } from "@/designTokens";
 
 const clock = vi.hoisted(() => ({ t: 500 }));
 const ring = vi.hoisted(() => ({
@@ -143,6 +145,27 @@ describe("RingCars", () => {
   });
 });
 
+describe("RingPitLane", () => {
+  it("colours a closed lane and marks the separately reported exit", () => {
+    const geom = buildTrackGeometry(squareOutline());
+    const model = buildRingModel({
+      geom, circuitGeom: null, pitLane: { x: [10, 30, 60], y: [0, -30, 0] },
+      totalMarshalPosts: 0, toScale: true,
+    });
+    const { container, rerender } = render(
+      <svg><RingPitLane cx={230} cy={200} r={92} ringR={128} model={model}
+        scale={{ profile: null, reverse: false }} lightMode={false}
+        pitLaneStatus={{ lane: "closed", entry: "unknown", exit: "open" }} /></svg>,
+    );
+    expect(container.querySelector("path")).toHaveAttribute("stroke", TOKEN_HEX.red);
+    expect(screen.getByTestId("pit-exit-status")).toHaveAttribute("fill", TOKEN_HEX.green);
+    rerender(<svg><RingPitLane cx={230} cy={200} r={92} ringR={128} model={model}
+      scale={{ profile: null, reverse: false }} lightMode={false} /></svg>);
+    expect(container.querySelector("path")).not.toHaveAttribute("stroke", TOKEN_HEX.red);
+    expect(screen.queryByTestId("pit-exit-status")).toBeNull();
+  });
+});
+
 // VER laps the 800-unit square in 60 s; the first half of the distance takes
 // 70 % of the time. LEC is parked a quarter of the way round (35 % in time).
 function timedLocations(): Location[] {
@@ -168,6 +191,11 @@ function carAt(container: HTMLElement, fraction: number) {
 }
 
 describe("TrackRing", () => {
+  it("does not display a pit status notification when the baked pit path is unavailable", () => {
+    renderRing({ pitLaneStatus: { lane: "unknown", entry: "unknown", exit: "closed" } });
+    expect(screen.queryByText(/pit exit closed · last reported/i)).not.toBeInTheDocument();
+  });
+
   it("renders the concentric background behind the ring", () => {
     renderRing();
     expect(screen.getByTestId("map-background").querySelectorAll("circle")).toHaveLength(2);

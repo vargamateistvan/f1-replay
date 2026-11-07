@@ -30,6 +30,7 @@ const { FakeMap } = vi.hoisted(() => {
     setConfigProperty = vi.fn();
     setLayoutProperty = vi.fn();
     setPaintProperty = vi.fn();
+    setFilter = vi.fn();
     setRain = vi.fn();
     addModel = vi.fn();
     resize = vi.fn();
@@ -290,6 +291,21 @@ describe("TrackMap3D", () => {
     const [, options] = map!.fitBounds.mock.calls[0]!;
     expect(options.bearing).toBeCloseTo(316.3, 0);
     expect(map!.setLayoutProperty).toHaveBeenCalledWith("map3d-corners", "visibility", "visible");
+  });
+
+  it("reports a closed exit separately from lane closure and updates its marker", () => {
+    const { map, rerender } = renderMap({ pitLaneStatus: { lane: "unknown", entry: "unknown", exit: "closed" } });
+    act(() => map!.emit("style.load"));
+    expect(screen.queryByText(/pit exit closed · last reported/i)).not.toBeInTheDocument();
+    expect(map!.setFilter).toHaveBeenLastCalledWith("map3d-pit-access", ["in", ["get", "part"], ["literal", ["exit"]]]);
+    rerender(<TrackMap3D sessionKey={1} drivers={[lec]} locationData={locations} sessionStartMs={0}
+      circuitKey={22} year={2025} onExit3d={vi.fn()} pitLaneStatus={{ lane: "closed", entry: "unknown", exit: "open" }} />);
+    expect(map!.setPaintProperty).toHaveBeenCalledWith("map3d-pit-lane", "line-color", "#ff5252");
+    expect(map!.setPaintProperty).toHaveBeenCalledWith("map3d-surface-pit-lane-lines", "fill-color", "#ff5252");
+    rerender(<TrackMap3D sessionKey={1} drivers={[lec]} locationData={locations} sessionStartMs={0}
+      circuitKey={22} year={2025} onExit3d={vi.fn()} />);
+    expect(map!.setPaintProperty).toHaveBeenCalledWith("map3d-pit-lane", "line-color", "#e9ecf3");
+    expect(map!.setFilter).toHaveBeenLastCalledWith("map3d-pit-access", ["in", ["get", "part"], ["literal", []]]);
   });
 
   it("paints flagged marshal posts through feature state", () => {

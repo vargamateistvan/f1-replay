@@ -16,6 +16,7 @@ import {
   isActiveTrackFlag,
   projectToTimingSectors,
   type TrackFlagState,
+  type PitLaneStatus,
 } from "@/timeline/raceControl";
 import { startLightsState } from "@/timeline/startLights";
 import { useSettings } from "@/stores/settings";
@@ -32,6 +33,7 @@ import {
   TRACK_WHEEL_ZOOM_PER_PIXEL,
   TRACK_WHEEL_LINE_PIXELS,
   TRACK_WHEEL_MAX_DELTA,
+  TRACK_PIT_ACCESS_MARKER_RADIUS,
 } from "@/constants";
 import { getCircuitLayout } from "@/data/circuits";
 import { getPitLane } from "@/data/pitLanes";
@@ -137,6 +139,7 @@ interface Props {
   readonly leaderNumber?: number | null;
   readonly weatherOverlay?: Weather | null;
   readonly trackFlagState?: TrackFlagState | null;
+  readonly pitLaneStatus?: PitLaneStatus | null;
   readonly activeTrackVehicles?: ActiveTrackVehicles | null;
   readonly safetyCarSirenOn?: boolean;
   readonly showSectorBox?: boolean;
@@ -189,6 +192,7 @@ export function TrackMap({
   leaderNumber = null,
   weatherOverlay = null,
   trackFlagState = null,
+  pitLaneStatus = null,
   activeTrackVehicles = null,
   safetyCarSirenOn = false,
   showSectorBox = true,
@@ -372,6 +376,15 @@ export function TrackMap({
     () => circuitGeom ? buildPitLanePath(trackGeometry, getPitLane(circuitKey)) : null,
     [circuitGeom, circuitKey, trackGeometry],
   );
+  const pitAccessPoints = useMemo(() => {
+    const lane = getPitLane(circuitKey);
+    if (!pitLanePath || !trackGeometry || !lane) return null;
+    const end = lane.x.length - 1;
+    return {
+      entry: projectToSvg(trackGeometry, lane.x[0]!, lane.y[0]!),
+      exit: projectToSvg(trackGeometry, lane.x[end]!, lane.y[end]!),
+    };
+  }, [pitLanePath, trackGeometry, circuitKey]);
   const pitPlacementModel = useMemo(() => {
     if (!trackGeometry || !outline || outline.source === "layout") return null;
     const pitLane = getPitLane(circuitKey);
@@ -821,14 +834,31 @@ export function TrackMap({
               data-testid="pit-lane"
               d={pitLanePath}
               fill="none"
-              stroke={lightMode ? TOKEN_HEX_LIGHT.fg : TOKEN_HEX.fg}
-              strokeWidth={1.5}
-              strokeOpacity={0.6}
+              stroke={pitLaneStatus?.lane === "closed" ? TOKEN_HEX.red : pitLaneStatus?.lane === "open" ? TOKEN_HEX.green : lightMode ? TOKEN_HEX_LIGHT.fg : TOKEN_HEX.fg}
+              strokeWidth={pitLaneStatus?.lane === "closed" ? 2.5 : 1.5}
+              strokeOpacity={pitLaneStatus?.lane === "unknown" || !pitLaneStatus ? 0.6 : 1}
               strokeLinecap="round"
               strokeLinejoin="round"
               aria-hidden="true"
             />
           )}
+          {pitAccessPoints && (["entry", "exit"] as const).map((part) => {
+            const state = pitLaneStatus?.[part];
+            if (!state || state === "unknown") return null;
+            const point = pitAccessPoints[part];
+            return (
+              <circle
+                key={part}
+                data-testid={`pit-${part}-status`}
+                cx={point.sx}
+                cy={point.sy}
+                r={TRACK_PIT_ACCESS_MARKER_RADIUS}
+                fill={state === "closed" ? TOKEN_HEX.red : TOKEN_HEX.green}
+                stroke={lightMode ? TOKEN_HEX_LIGHT.fg : TOKEN_HEX.fg}
+                strokeWidth={0.8}
+              />
+            );
+          })}
           {trackFlagState && (
             <TrackFlagColors
               pathData={pathData}

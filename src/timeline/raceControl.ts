@@ -94,6 +94,36 @@ export interface TrackFlagState {
   updatedAtMs: number;
 }
 
+export type PitAccess = "open" | "closed" | "unknown";
+export interface PitLaneStatus {
+  lane: PitAccess;
+  entry: PitAccess;
+  exit: PitAccess;
+}
+
+/** Last explicitly reported pit access states at the playhead, not inferred from flags. */
+export function derivePitLaneStatus(
+  entries: readonly RaceControl[],
+  cutoffMs: number,
+): PitLaneStatus {
+  const result: PitLaneStatus = { lane: "unknown", entry: "unknown", exit: "unknown" };
+  const latest = { lane: -Infinity, entry: -Infinity, exit: -Infinity };
+  for (const entry of entries) {
+    const time = Date.parse(entry.date);
+    if (!Number.isFinite(time) || time > cutoffMs) continue;
+    const match = /^(?:(?:GREEN|RED) LIGHT\s*-\s*)?PIT\s+(LANE|ENTRY|EXIT)\s+(OPEN|CLOSED)\s*[.!]?$/.exec(
+      entry.message.trim().toUpperCase(),
+    );
+    if (!match) continue;
+    const part = match[1]!.toLowerCase();
+    if (part !== "lane" && part !== "entry" && part !== "exit") continue;
+    if (time < latest[part]) continue;
+    latest[part] = time;
+    result[part] = match[2] === "OPEN" ? "open" : "closed";
+  }
+  return result;
+}
+
 /** Flags for timing sectors 1/2/3, projected from marshal posts. */
 export type TimingSectorFlags = Record<1 | 2 | 3, string | null>;
 

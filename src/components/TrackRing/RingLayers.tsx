@@ -8,8 +8,10 @@ import {
   PIT_WINDOW_COLOR,
   SAFETY_CAR_NUMBERS,
   TRACK_PIT_CAR_SCALE,
+  TRACK_PIT_ACCESS_MARKER_RADIUS,
 } from "@/constants";
-import type { TimingSectorFlags } from "@/timeline/raceControl";
+import type { PitLaneStatus, TimingSectorFlags } from "@/timeline/raceControl";
+import { TOKEN_HEX } from "@/designTokens";
 import { trackEvent } from "@/lib/analytics";
 import { teamColor } from "@/utils/color";
 import { forwardSpan, ringPoint, wrapFraction } from "@/utils/lapProgress";
@@ -192,8 +194,9 @@ export const RingPitLane = memo(function RingPitLane({
   model,
   scale,
   lightMode,
-}: RingFrame & { ringR: number; model: RingModel; scale: RingScale; lightMode: boolean }) {
-  const color = lightMode ? "#b7c2d8" : "#2c3444";
+  pitLaneStatus,
+}: RingFrame & { ringR: number; model: RingModel; scale: RingScale; lightMode: boolean; pitLaneStatus?: PitLaneStatus | null }) {
+  const color = pitLaneStatus?.lane === "closed" ? TOKEN_HEX.red : pitLaneStatus?.lane === "open" ? TOKEN_HEX.green : lightMode ? "#b7c2d8" : "#2c3444";
   const labelColor = lightMode ? "#4b5468" : "#8d97ad";
   if (!model.pit) {
     // No baked pit lane: cars in the pits still drop to the inner circle.
@@ -221,6 +224,15 @@ export const RingPitLane = memo(function RingPitLane({
         strokeWidth={PIT_WIDTH}
         strokeLinecap="round"
       />
+      {(["entry", "exit"] as const).map((part) => {
+        const state = pitLaneStatus?.[part];
+        if (!state || state === "unknown") return null;
+        const point = ringPoint(cx, cy, r, toDisplay(scale, part === "entry" ? entry : exit));
+        return (
+          <circle key={part} data-testid={`pit-${part}-status`} cx={point.x} cy={point.y}
+            r={TRACK_PIT_ACCESS_MARKER_RADIUS} fill={state === "closed" ? TOKEN_HEX.red : TOKEN_HEX.green} />
+        );
+      })}
       <text
         x={label.x}
         y={label.y}

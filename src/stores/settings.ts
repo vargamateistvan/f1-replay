@@ -38,6 +38,8 @@ export interface AppSettings {
   mapShowCornerNumbers: boolean;
   mapShowElevation: boolean;
   mapShowPitRejoin: boolean;
+  /** Show the last reported pit-lane and entry/exit status on map geometry. */
+  mapShowPitLaneStatus: boolean;
   /** 2D / 3D map: the camera follows the focused car (toggled from the map toolbar). */
   mapFollowFocusedCar: boolean;
   /** 2D / 3D map: colour the track with the focused driver's lap (speed, delta, braking, legend). */
@@ -213,6 +215,7 @@ export const SETTINGS_DEFAULTS: AppSettings = {
   mapShowCornerNumbers: false,
   mapShowElevation: false,
   mapShowPitRejoin: true,
+  mapShowPitLaneStatus: false,
   mapFollowFocusedCar: false,
   mapShowDriverHeatmap: false,
   mapViewMode: "2d",

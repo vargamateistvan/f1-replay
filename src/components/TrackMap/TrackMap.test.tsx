@@ -15,6 +15,7 @@ import {
 } from "@/constants";
 import { getCircuitGeometry } from "@/data/circuitGeometry";
 import { getPitLane } from "@/data/pitLanes";
+import { TOKEN_HEX } from "@/designTokens";
 
 let timelineT = 0;
 const follow = vi.hoisted(() => ({ on: false, heatmap: true, numbers: false, setSetting: vi.fn() }));
@@ -259,6 +260,27 @@ describe("TrackMap sector flag state rendering", () => {
         sessionStartMs={0} circuitKey={999} year={2025} />,
     );
     expect(screen.queryByTestId("pit-lane")).toBeNull();
+  });
+
+  it("distinguishes a closed exit from a closed lane, and updates the markers", () => {
+    vi.mocked(useTrackOutline).mockReturnValue(mockTrackOutlineQueryResult(mockOutline));
+    vi.mocked(getCircuitGeometry).mockReturnValue({
+      circuitKey: 22, circuitName: "Monaco", year: 2025, rotation: 0,
+      x: [], y: [], corners: [], marshalSectors: [], marshalLights: [],
+    });
+    vi.mocked(getPitLane).mockReturnValue({ x: [25, 50], y: [25, 60] });
+    const props = { sessionKey: 1, drivers: [mockDriver], locationData: mockLocationData, sessionStartMs: 0, circuitKey: 22, year: 2025 };
+    const { rerender } = render(<TrackMap {...props} pitLaneStatus={{ lane: "unknown", entry: "unknown", exit: "closed" }} />);
+    expect(screen.queryByText(/pit exit closed · last reported/i)).not.toBeInTheDocument();
+    expect(screen.getByTestId("pit-exit-status")).toHaveAttribute("fill", TOKEN_HEX.red);
+    expect(screen.getByTestId("pit-lane")).toHaveAttribute("stroke", TOKEN_HEX.fg);
+    rerender(<TrackMap {...props} pitLaneStatus={{ lane: "closed", entry: "open", exit: "unknown" }} />);
+    expect(screen.getByTestId("pit-lane")).toHaveAttribute("stroke", TOKEN_HEX.red);
+    expect(screen.getByTestId("pit-entry-status")).toHaveAttribute("fill", TOKEN_HEX.green);
+    expect(screen.queryByTestId("pit-exit-status")).not.toBeInTheDocument();
+    rerender(<TrackMap {...props} />);
+    expect(screen.getByTestId("pit-lane")).toHaveAttribute("stroke", TOKEN_HEX.fg);
+    expect(screen.queryByTestId("pit-entry-status")).not.toBeInTheDocument();
   });
 
   it("shrinks only pit-lane cars and restores their size after rejoining", () => {
