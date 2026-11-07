@@ -123,6 +123,14 @@ export const RING_SVG_H = 400;
 /** Radius of the track ring (SVG units). */
 export const RING_RADIUS = 128;
 export const RING_BACKGROUND_OFFSETS = [20, 40] as const;
+export const RING_BACKGROUND_TICK_COUNT = 48;
+export const RING_BACKGROUND_MAJOR_TICK_EVERY = 6;
+export const RING_BACKGROUND_TICK_INSET = 5;
+export const RING_BACKGROUND_TICK_LENGTH = 4;
+export const RING_BACKGROUND_MAJOR_TICK_LENGTH = 8;
+export const RING_BACKGROUND_TICK_OPACITY = 0.18;
+export const RING_BACKGROUND_MAJOR_TICK_OPACITY = 0.32;
+export const RING_BACKGROUND_START_TICK_OPACITY = 0.72;
 /** Radius of the inner pit-lane arc. */
 export const RING_PIT_RADIUS = 92;
 /** Radius at which driver labels sit, outside the ring. */

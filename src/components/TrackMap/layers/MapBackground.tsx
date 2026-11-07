@@ -1,6 +1,14 @@
 import { useId } from "react";
 import {
+  RING_BACKGROUND_MAJOR_TICK_EVERY,
+  RING_BACKGROUND_MAJOR_TICK_LENGTH,
+  RING_BACKGROUND_MAJOR_TICK_OPACITY,
   RING_BACKGROUND_OFFSETS,
+  RING_BACKGROUND_START_TICK_OPACITY,
+  RING_BACKGROUND_TICK_COUNT,
+  RING_BACKGROUND_TICK_INSET,
+  RING_BACKGROUND_TICK_LENGTH,
+  RING_BACKGROUND_TICK_OPACITY,
   TRACK_BACKGROUND_GLOW_OPACITY,
   TRACK_BACKGROUND_GRID_SIZE,
   TRACK_BACKGROUND_LINE_OPACITY,
@@ -18,6 +26,7 @@ export function MapBackground({ view, lightMode, ring }: Props) {
   const glowId = `map-glow-${id}`;
   const gridId = `map-grid-${id}`;
   const ink = lightMode ? TOKEN_HEX_LIGHT.fg : TOKEN_HEX.fg;
+  const outerRingRadius = ring ? ring.radius + Math.max(...RING_BACKGROUND_OFFSETS) : 0;
 
   return (
     <g aria-hidden="true" pointerEvents="none" data-testid="map-background">
@@ -40,18 +49,51 @@ export function MapBackground({ view, lightMode, ring }: Props) {
       </defs>
       <rect x={view.x} y={view.y} width={view.w} height={view.h} fill={`url(#${glowId})`} />
       {ring ? (
-        RING_BACKGROUND_OFFSETS.map((offset) => (
-          <circle
-            key={offset}
-            cx={ring.cx}
-            cy={ring.cy}
-            r={ring.radius + offset}
-            fill="none"
-            stroke={ink}
-            strokeOpacity={TRACK_BACKGROUND_LINE_OPACITY}
-            strokeWidth="0.5"
-          />
-        ))
+        <>
+          {RING_BACKGROUND_OFFSETS.map((offset) => (
+            <circle
+              key={offset}
+              cx={ring.cx}
+              cy={ring.cy}
+              r={ring.radius + offset}
+              fill="none"
+              stroke={ink}
+              strokeOpacity={TRACK_BACKGROUND_LINE_OPACITY}
+              strokeWidth="0.5"
+            />
+          ))}
+          <g data-layer="ring-background-ticks">
+            {Array.from({ length: RING_BACKGROUND_TICK_COUNT }, (_, index) => {
+              const isMajor = index % RING_BACKGROUND_MAJOR_TICK_EVERY === 0;
+              const length = isMajor ? RING_BACKGROUND_MAJOR_TICK_LENGTH : RING_BACKGROUND_TICK_LENGTH;
+              const angle = (index / RING_BACKGROUND_TICK_COUNT) * Math.PI * 2 - Math.PI / 2;
+              const startRadius = outerRingRadius + RING_BACKGROUND_TICK_INSET;
+              const endRadius = startRadius + length;
+              const x1 = ring.cx + Math.cos(angle) * startRadius;
+              const y1 = ring.cy + Math.sin(angle) * startRadius;
+              const x2 = ring.cx + Math.cos(angle) * endRadius;
+              const y2 = ring.cy + Math.sin(angle) * endRadius;
+              const isStart = index === 0;
+
+              return (
+                <path
+                  key={index}
+                  d={`M ${x1.toFixed(2)} ${y1.toFixed(2)} L ${x2.toFixed(2)} ${y2.toFixed(2)}`}
+                  fill="none"
+                  stroke={isStart ? TOKEN_HEX.f1red : ink}
+                  strokeOpacity={
+                    isStart
+                      ? RING_BACKGROUND_START_TICK_OPACITY
+                      : isMajor
+                        ? RING_BACKGROUND_MAJOR_TICK_OPACITY
+                        : RING_BACKGROUND_TICK_OPACITY
+                  }
+                  strokeWidth={isMajor ? "1" : "0.75"}
+                />
+              );
+            })}
+          </g>
+        </>
       ) : (
         <rect x={view.x} y={view.y} width={view.w} height={view.h} fill={`url(#${gridId})`} />
       )}

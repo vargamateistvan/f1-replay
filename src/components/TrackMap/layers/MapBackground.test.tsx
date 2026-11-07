@@ -1,6 +1,10 @@
 import { render } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
-import { TRACK_BACKGROUND_GRID_SIZE, RING_BACKGROUND_OFFSETS } from "@/constants";
+import {
+  RING_BACKGROUND_OFFSETS,
+  RING_BACKGROUND_TICK_COUNT,
+  TRACK_BACKGROUND_GRID_SIZE,
+} from "@/constants";
 import { TOKEN_HEX, TOKEN_HEX_LIGHT } from "@/designTokens";
 import { MapBackground } from "./MapBackground";
 
@@ -12,11 +16,11 @@ describe("MapBackground", () => {
     const background = container.querySelector('[data-testid="map-background"]')!;
     expect(background).toHaveAttribute("pointer-events", "none");
     expect(background.querySelector("pattern")).toHaveAttribute("width", String(TRACK_BACKGROUND_GRID_SIZE));
-    expect(background.querySelector("path")).toHaveAttribute("stroke", TOKEN_HEX.fg);
+    expect(background.querySelector("pattern path")).toHaveAttribute("stroke", TOKEN_HEX.fg);
     expect(background.querySelector("rect")).toHaveAttribute("x", "-30");
     expect(background.querySelector("rect")).toHaveAttribute("width", "600");
     rerender(<svg><MapBackground view={view} lightMode /></svg>);
-    expect(background.querySelector("path")).toHaveAttribute("stroke", TOKEN_HEX_LIGHT.fg);
+    expect(background.querySelector("pattern path")).toHaveAttribute("stroke", TOKEN_HEX_LIGHT.fg);
   });
 
   it("uses concentric rings rather than a grid and gives each instance unique gradients", () => {
@@ -31,6 +35,10 @@ describe("MapBackground", () => {
     expect(backgrounds[0]!.querySelector("pattern")).toBeNull();
     expect([...backgrounds[0]!.querySelectorAll("circle")].map((c) => Number(c.getAttribute("r"))))
       .toEqual(RING_BACKGROUND_OFFSETS.map((offset) => ring.radius + offset));
+    expect(backgrounds[0]!.querySelector('[data-layer="ring-background-ticks"]')?.children)
+      .toHaveLength(RING_BACKGROUND_TICK_COUNT);
+    expect(backgrounds[0]!.querySelector('[data-layer="ring-background-ticks"] path'))
+      .toHaveAttribute("stroke", TOKEN_HEX.f1red);
     const firstId = backgrounds[0]!.querySelector("radialGradient")!.id;
     const secondId = backgrounds[1]!.querySelector("radialGradient")!.id;
     expect(firstId).not.toBe(secondId);
