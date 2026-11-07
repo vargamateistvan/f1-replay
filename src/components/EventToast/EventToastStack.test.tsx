@@ -14,6 +14,30 @@ const drivers: Driver[] = [
 ] as unknown as Driver[];
 
 describe("EventToastStack", () => {
+  it.each([
+    ["radio", { driverNumber: 1, recordingUrl: "", lapNumber: null }, "bg-surface/70"],
+    ["flag", { flag: "YELLOW", message: "Yellow flag", lapNumber: 2 }, "bg-surface/70"],
+    ["investigation", { flag: "", message: "Investigation", lapNumber: 2 }, "bg-surface/70"],
+    ["penalty", { flag: "", message: "Penalty", lapNumber: 2 }, "bg-surface/70"],
+    ["overtake", { overtaking: 1, overtaken: 2, position: 1 }, "bg-surface/70"],
+    ["pit", { driverNumber: 1, lapNumber: 2, pitDuration: 20 }, "bg-surface/70"],
+    ["undercut", { kind: "undercut", attacker: 1, defender: 2, firstStopLap: 2, attackerAheadAfter: true, attackerGainS: 1, neutralised: false }, "bg-surface/70"],
+    ["fastest_lap", { driverNumber: 1, lapNumber: 2, lapTime: 90 }, "bg-purple-tint/70"],
+  ] as const)("uses a translucent background for %s notifications", (kind, payload, background) => {
+    const { container } = render(
+      <EventToastStack
+        toasts={[{
+          addedAt: Date.now(),
+          event: { id: kind, ms: 1000, kind, priority: "high", payload },
+        } as ActiveToast]}
+        drivers={drivers}
+        onDismiss={vi.fn()}
+      />,
+    );
+    const card = container.querySelector(`.${background.replace("/", "\\/")}`);
+    expect(card).toHaveClass(background, "backdrop-blur-sm");
+  });
+
   it("returns null with no toasts", () => {
     const { container } = render(
       <EventToastStack toasts={[]} drivers={drivers} onDismiss={vi.fn()} />,

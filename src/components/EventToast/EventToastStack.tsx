@@ -32,6 +32,8 @@ interface Props {
   onPlayingIdsChange?: (playingIds: Set<string>) => void;
 }
 
+const TOAST_SURFACE = "bg-surface/70 backdrop-blur-sm";
+
 function playToastCue(kind: ActiveToast["event"]["kind"]) {
   const ctx = getAudioContext();
   if (!ctx) return;
@@ -363,7 +365,7 @@ function RadioToast({
   }, [playing, hasAudio, at.event.id, onPlayingChange]);
 
   return (
-    <div className="relative pointer-events-auto rounded-sm bg-surface border border-panel shadow-xl flex overflow-hidden w-full">
+    <div className={`relative pointer-events-auto rounded-sm ${TOAST_SURFACE} border border-panel shadow-xl flex overflow-hidden w-full`}>
       <span className="w-[3px] shrink-0" style={{ background: color }} />
       <div className="flex-1 min-w-0 px-2.5 py-1.5 pr-8 md:px-3 md:py-2 md:pr-8">
         <div className="text-tiny text-muted uppercase tracking-widest mb-0.5">
@@ -443,7 +445,7 @@ function FlagToast({
         : (FLAG_HEADERS[p.flag] ?? { className: "bg-panel text-fg", label: p.flag });
 
   return (
-    <div className="pointer-events-auto rounded-sm bg-surface border border-panel shadow-xl overflow-hidden w-full">
+    <div className={`pointer-events-auto rounded-sm ${TOAST_SURFACE} border border-panel shadow-xl overflow-hidden w-full`}>
       <div
         className={`flex items-center gap-2 px-2.5 py-1 md:px-3 md:py-1 ${header.className}`}
       >
@@ -490,7 +492,7 @@ function OvertakeToast({
   const color = teamColor(overtaking?.team_colour);
 
   return (
-    <div className="relative pointer-events-auto rounded-sm bg-surface border border-panel shadow-xl flex items-center overflow-hidden w-full">
+    <div className={`relative pointer-events-auto rounded-sm ${TOAST_SURFACE} border border-panel shadow-xl flex items-center overflow-hidden w-full`}>
       <span
         className="w-[3px] self-stretch shrink-0"
         style={{ background: color }}
@@ -536,7 +538,7 @@ function UndercutToast({
   const color = teamColor(attacker?.team_colour);
 
   return (
-    <div className="relative pointer-events-auto rounded-sm bg-surface border border-panel shadow-xl flex items-center overflow-hidden w-full">
+    <div className={`relative pointer-events-auto rounded-sm ${TOAST_SURFACE} border border-panel shadow-xl flex items-center overflow-hidden w-full`}>
       <span className="w-[3px] self-stretch shrink-0 bg-teal" />
       <div className="flex-1 min-w-0 px-2.5 py-1.5 pr-8 md:px-3 md:py-2 md:pr-8">
         <div className="text-tiny text-muted uppercase tracking-widest mb-0.5">
@@ -577,7 +579,7 @@ function PitToast({
   const color = teamColor(driver?.team_colour);
 
   return (
-    <div className="relative pointer-events-auto rounded-sm bg-surface border border-panel shadow-xl flex items-center overflow-hidden w-full">
+    <div className={`relative pointer-events-auto rounded-sm ${TOAST_SURFACE} border border-panel shadow-xl flex items-center overflow-hidden w-full`}>
       <span
         className="w-[3px] self-stretch shrink-0"
         style={{ background: color }}
@@ -629,7 +631,7 @@ function FastestLapToast({
   const driver = driverMap.get(p.driverNumber);
 
   return (
-    <div className="pointer-events-auto rounded-sm shadow-xl overflow-hidden w-full border border-purple bg-purple-tint">
+    <div className="pointer-events-auto rounded-sm shadow-xl overflow-hidden w-full border border-purple bg-purple-tint/70 backdrop-blur-sm">
       <div className="flex items-center gap-2 bg-purple px-2.5 py-1 md:px-3 md:py-1">
         <span className="text-caption font-black uppercase tracking-widest text-white">
           Fastest Lap
