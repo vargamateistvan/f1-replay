@@ -61,6 +61,7 @@ import {
   MAP3D_TRAIL_STEP_MS,
   MAP3D_EDGE_LINE_COLOR,
   TRACK_PIT_ACCESS_MARKER_RADIUS,
+  TRACK_PIT_ACCESS_GLOW_SCALE,
 } from "@/constants";
 import { getCircuitGeoref } from "@/data/circuitGeoref";
 import { getRunoffStyle } from "@/data/circuitRunoff";
@@ -933,19 +934,6 @@ export function TrackMap3D({
               })),
             },
           });
-          map.addLayer({
-            id: "map3d-pit-access",
-            type: "circle",
-            source: "map3d-pit-access",
-            slot: "middle",
-            filter: ["in", ["get", "part"], ["literal", []]],
-            paint: {
-              "circle-radius": TRACK_PIT_ACCESS_MARKER_RADIUS,
-              "circle-color": TOKEN_HEX.red,
-              "circle-stroke-width": 1,
-              "circle-stroke-color": TOKEN_HEX.fg,
-            },
-          });
         }
         map.addLayer({
           id: "map3d-pit-lane",
@@ -961,6 +949,36 @@ export function TrackMap3D({
             "line-dasharray": [3, 2],
           },
         });
+        if (coordinates.length >= 2) {
+          map.addLayer({
+            id: "map3d-pit-access-glow",
+            type: "circle",
+            source: "map3d-pit-access",
+            slot: "middle",
+            filter: ["in", ["get", "part"], ["literal", []]],
+            paint: {
+              "circle-radius": TRACK_PIT_ACCESS_MARKER_RADIUS * TRACK_PIT_ACCESS_GLOW_SCALE,
+              "circle-color": TOKEN_HEX.red,
+              "circle-opacity": 0.6,
+              "circle-blur": 1,
+              "circle-emissive-strength": 1,
+            },
+          });
+          map.addLayer({
+            id: "map3d-pit-access",
+            type: "circle",
+            source: "map3d-pit-access",
+            slot: "middle",
+            filter: ["in", ["get", "part"], ["literal", []]],
+            paint: {
+              "circle-radius": TRACK_PIT_ACCESS_MARKER_RADIUS,
+              "circle-color": TOKEN_HEX.red,
+              "circle-stroke-width": 1,
+              "circle-stroke-color": TOKEN_HEX.track,
+              "circle-emissive-strength": 1,
+            },
+          });
+        }
       }
 
       // Real-width asphalt, verge, pit lane, kerbs and start grid, under the
@@ -1119,13 +1137,17 @@ export function TrackMap3D({
         ...(pitEntryAccess && pitEntryAccess !== "unknown" ? ["entry"] : []),
         ...(pitExitAccess && pitExitAccess !== "unknown" ? ["exit"] : []),
       ];
-      map.setFilter("map3d-pit-access", ["in", ["get", "part"], ["literal", parts]]);
-      map.setPaintProperty("map3d-pit-access", "circle-color", [
+      const filter = ["in", ["get", "part"], ["literal", parts]];
+      const signalColor = [
         "match", ["get", "part"],
         "entry", pitEntryAccess === "open" ? TOKEN_HEX.green : TOKEN_HEX.red,
         "exit", pitExitAccess === "open" ? TOKEN_HEX.green : TOKEN_HEX.red,
         TOKEN_HEX.red,
-      ]);
+      ];
+      map.setFilter("map3d-pit-access-glow", filter);
+      map.setFilter("map3d-pit-access", filter);
+      map.setPaintProperty("map3d-pit-access-glow", "circle-color", signalColor);
+      map.setPaintProperty("map3d-pit-access", "circle-color", signalColor);
     }
   }, [pitLaneAccess, pitEntryAccess, pitExitAccess, styleReady, circuitGeom, lightPreset, wetTrack]);
 

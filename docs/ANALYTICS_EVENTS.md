@@ -214,7 +214,7 @@ dimension** instead of relying on the built-in App version report:
   - Trigger: reset zoom button
 - `trackmap_rotation_changed`
   - Params: `direction`
-  - Trigger: rotate buttons
+  - Trigger: rotate buttons or a completed horizontal right-drag on the 2D map (one event per gesture)
 - `trackmap_rotation_reset`
   - Params: `rotation`
   - Trigger: reset rotation button

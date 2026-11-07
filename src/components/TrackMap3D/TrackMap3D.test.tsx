@@ -297,14 +297,23 @@ describe("TrackMap3D", () => {
     const { map, rerender } = renderMap({ pitLaneStatus: { lane: "unknown", entry: "unknown", exit: "closed" } });
     act(() => map!.emit("style.load"));
     expect(screen.queryByText(/pit exit closed · last reported/i)).not.toBeInTheDocument();
+    expect(map!.getLayer("map3d-pit-access-glow")).toMatchObject({
+      paint: { "circle-blur": 1, "circle-emissive-strength": 1 },
+    });
+    expect(map!.setFilter).toHaveBeenCalledWith("map3d-pit-access-glow", ["in", ["get", "part"], ["literal", ["exit"]]]);
     expect(map!.setFilter).toHaveBeenLastCalledWith("map3d-pit-access", ["in", ["get", "part"], ["literal", ["exit"]]]);
     rerender(<TrackMap3D sessionKey={1} drivers={[lec]} locationData={locations} sessionStartMs={0}
       circuitKey={22} year={2025} onExit3d={vi.fn()} pitLaneStatus={{ lane: "closed", entry: "unknown", exit: "open" }} />);
     expect(map!.setPaintProperty).toHaveBeenCalledWith("map3d-pit-lane", "line-color", "#ff5252");
     expect(map!.setPaintProperty).toHaveBeenCalledWith("map3d-surface-pit-lane-lines", "fill-color", "#ff5252");
+    expect(map!.setPaintProperty).toHaveBeenLastCalledWith("map3d-pit-access", "circle-color",
+      ["match", ["get", "part"], "entry", "#ff5252", "exit", "#39b54a", "#ff5252"]);
+    expect(map!.setPaintProperty).toHaveBeenCalledWith("map3d-pit-access-glow", "circle-color",
+      ["match", ["get", "part"], "entry", "#ff5252", "exit", "#39b54a", "#ff5252"]);
     rerender(<TrackMap3D sessionKey={1} drivers={[lec]} locationData={locations} sessionStartMs={0}
       circuitKey={22} year={2025} onExit3d={vi.fn()} />);
     expect(map!.setPaintProperty).toHaveBeenCalledWith("map3d-pit-lane", "line-color", "#e9ecf3");
+    expect(map!.setFilter).toHaveBeenCalledWith("map3d-pit-access-glow", ["in", ["get", "part"], ["literal", []]]);
     expect(map!.setFilter).toHaveBeenLastCalledWith("map3d-pit-access", ["in", ["get", "part"], ["literal", []]]);
   });
 

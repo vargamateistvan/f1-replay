@@ -33,7 +33,7 @@ import {
   TRACK_WHEEL_ZOOM_PER_PIXEL,
   TRACK_WHEEL_LINE_PIXELS,
   TRACK_WHEEL_MAX_DELTA,
-  TRACK_PIT_ACCESS_MARKER_RADIUS,
+  TRACK_DRAG_ROTATION_DEG_PER_PIXEL,
 } from "@/constants";
 import { getCircuitLayout } from "@/data/circuits";
 import { getPitLane } from "@/data/pitLanes";
@@ -93,6 +93,7 @@ import { MapBackground } from "./layers/MapBackground";
 import { SPECIAL_TRACK_VEHICLES } from "./layers/specialVehicles";
 import { buildRingModel, placeCar } from "../TrackRing/ringModel";
 import { PitRejoinGhost } from "./layers/PitRejoinGhost";
+import { PitAccessLight } from "./layers/PitAccessLight";
 import { PitWindowBands, PitWindowMarkers } from "./layers/PitWindowLayer";
 import { usePitWindow } from "./usePitWindow";
 import { StatusBadges } from "./overlays/StatusBadges";
@@ -498,6 +499,56 @@ export function TrackMap({
     svg.addEventListener("wheel", onWheel, { passive: false });
     return () => svg.removeEventListener("wheel", onWheel);
   }, [zoomBy, sessionKey, outline, trackGeometry, isPending]);
+  useEffect(() => {
+    const svg = svgRef.current;
+    if (!svg) return;
+    let lastX = 0;
+    let totalDelta = 0;
+    let dragging = false;
+    const stopDrag = () => {
+      if (!dragging) return;
+      dragging = false;
+      window.removeEventListener("mousemove", onMove);
+      window.removeEventListener("mouseup", onUp);
+      window.removeEventListener("blur", stopDrag);
+      if (totalDelta !== 0) {
+        trackEvent("trackmap_rotation_changed", { direction: totalDelta < 0 ? "left" : "right" });
+      }
+    };
+    const onMove = (event: MouseEvent) => {
+      if ((event.buttons & 2) === 0) {
+        stopDrag();
+        return;
+      }
+      const delta = event.clientX - lastX;
+      lastX = event.clientX;
+      totalDelta += delta;
+      if (delta !== 0) {
+        setRotationDeg((current) => normalizeDeg(current + delta * TRACK_DRAG_ROTATION_DEG_PER_PIXEL));
+      }
+    };
+    const onUp = (event: MouseEvent) => {
+      if (event.button === 2) stopDrag();
+    };
+    const onDown = (event: MouseEvent) => {
+      if (event.button !== 2 || dragging) return;
+      event.preventDefault();
+      dragging = true;
+      lastX = event.clientX;
+      totalDelta = 0;
+      window.addEventListener("mousemove", onMove);
+      window.addEventListener("mouseup", onUp);
+      window.addEventListener("blur", stopDrag);
+    };
+    const onContextMenu = (event: MouseEvent) => event.preventDefault();
+    svg.addEventListener("mousedown", onDown);
+    svg.addEventListener("contextmenu", onContextMenu);
+    return () => {
+      stopDrag();
+      svg.removeEventListener("mousedown", onDown);
+      svg.removeEventListener("contextmenu", onContextMenu);
+    };
+  }, [sessionKey, outline, trackGeometry, isPending]);
   const zoomOut = useCallback(() => zoomBy(-ZOOM_STEP), [zoomBy]);
   const zoomIn = useCallback(() => zoomBy(ZOOM_STEP), [zoomBy]);
   const zoomReset = useCallback(() => {
@@ -847,15 +898,12 @@ export function TrackMap({
             if (!state || state === "unknown") return null;
             const point = pitAccessPoints[part];
             return (
-              <circle
+              <PitAccessLight
                 key={part}
-                data-testid={`pit-${part}-status`}
-                cx={point.sx}
-                cy={point.sy}
-                r={TRACK_PIT_ACCESS_MARKER_RADIUS}
-                fill={state === "closed" ? TOKEN_HEX.red : TOKEN_HEX.green}
-                stroke={lightMode ? TOKEN_HEX_LIGHT.fg : TOKEN_HEX.fg}
-                strokeWidth={0.8}
+                part={part}
+                state={state}
+                x={point.sx}
+                y={point.sy}
               />
             );
           })}

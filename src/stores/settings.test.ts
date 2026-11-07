@@ -7,6 +7,26 @@ describe("ring settings", () => {
   });
 });
 
+describe("pit lane status setting", () => {
+  it("defaults to off and stays off when older settings are restored", async () => {
+    expect(SETTINGS_DEFAULTS.mapShowPitLaneStatus).toBe(false);
+    useSettings.setState({ mapShowPitLaneStatus: false });
+    localStorage.setItem("f1-replay-settings", JSON.stringify({ state: { lightMode: true }, version: 1 }));
+    await useSettings.persist.rehydrate();
+    expect(useSettings.getState().mapShowPitLaneStatus).toBe(false);
+    expect(useSettings.getState().lightMode).toBe(true);
+    useSettings.getState().reset();
+  });
+
+  it("persists an explicit opt-in and resets it to off", async () => {
+    useSettings.getState().setSetting("mapShowPitLaneStatus", true);
+    expect(JSON.parse(localStorage.getItem("f1-replay-settings")!).state.mapShowPitLaneStatus).toBe(true);
+    await useSettings.persist.rehydrate();
+    expect(useSettings.getState().mapShowPitLaneStatus).toBe(true);
+    useSettings.getState().reset();
+    expect(useSettings.getState().mapShowPitLaneStatus).toBe(false);
+  });
+});
 describe("reset", () => {
   it("restores defaults but keeps onboarding as seen", () => {
     useSettings.setState({

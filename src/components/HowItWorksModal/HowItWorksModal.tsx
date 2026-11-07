@@ -126,6 +126,10 @@ const SECTIONS: Section[] = [
         text: "Scroll over the 2D track map to zoom, or use the zoom and fit buttons in the map controls",
       },
       {
+        term: "Map Rotation",
+        text: "Right-click and drag horizontally over the 2D track map to rotate it, or use the rotate and fit buttons",
+      },
+      {
         term: "Sector Performance",
         text: "Real-time sector times and speed trap data for comparison",
       },

@@ -267,11 +267,11 @@ Racing-driver dots and in-dot numbers use `TRACK_PIT_CAR_SCALE` in the pit lane 
 
 The 2D and ring views share the theme-aware SVG `MapBackground` layer: a subtle glow with a grid in 2D or concentric guides in the ring, behind the data and included in snapshots.
 
-The 2D map supports mouse-wheel zoom over the SVG, sharing the toolbar zoom limits, persistence and analytics; normal page scrolling remains available outside the map.
+The 2D map supports mouse-wheel zoom and horizontal right-drag rotation over the SVG; zoom shares the toolbar limits, persistence and analytics, and rotation uses the same fit/reset behaviour as the toolbar. Normal page scrolling remains available outside the map.
 
 Track-map settings show their live preview only when expanded; it scrolls with the settings and fetches preview data only while open.
 
-`derivePitLaneStatus` in `timeline/raceControl.ts` tracks last explicitly reported lane, entry and exit states at the playhead. The `mapShowPitLaneStatus` setting (off by default) colours only the affected geometry in all map views without a status notification. Unknown states stay neutral; reports may be stale when later updates are missing. The settings preview uses a labelled example.
+`derivePitLaneStatus` in `timeline/raceControl.ts` tracks last explicitly reported lane, entry and exit states at the playhead. The `mapShowPitLaneStatus` setting (off by default) colours only the affected geometry in all map views without a status notification; known entry/exit states have a steady traffic-light glow. Unknown states stay neutral; reports may be stale when later updates are missing. The settings preview uses a labelled example.
 
 | Component (folder, then export if different)      | Purpose                                                                                  |
 | ------------------------------------------------- | ---------------------------------------------------------------------------------------- |

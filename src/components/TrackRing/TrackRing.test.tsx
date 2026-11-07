@@ -159,10 +159,13 @@ describe("RingPitLane", () => {
     );
     expect(container.querySelector("path")).toHaveAttribute("stroke", TOKEN_HEX.red);
     expect(screen.getByTestId("pit-exit-status")).toHaveAttribute("fill", TOKEN_HEX.green);
+    expect(screen.getByTestId("pit-exit-glow")).toBeInTheDocument();
+    expect(screen.getByRole("img", { name: "Pit exit open, last reported" })).toBeInTheDocument();
     rerender(<svg><RingPitLane cx={230} cy={200} r={92} ringR={128} model={model}
       scale={{ profile: null, reverse: false }} lightMode={false} /></svg>);
     expect(container.querySelector("path")).not.toHaveAttribute("stroke", TOKEN_HEX.red);
     expect(screen.queryByTestId("pit-exit-status")).toBeNull();
+    expect(screen.queryByTestId("pit-exit-glow")).toBeNull();
   });
 });
 

@@ -16,7 +16,9 @@ import * as media from "@/hooks/useMediaQuery";
 import RaceWeekend from "./RaceWeekend";
 
 vi.mock("@/components/TrackMap/TrackMap", () => ({
-  TrackMap: () => <div>Track preview</div>,
+  TrackMap: ({ pitLaneStatus }: { pitLaneStatus?: { exit: string } | null }) => (
+    <div data-pit-status={pitLaneStatus?.exit ?? "none"}>Track preview</div>
+  ),
 }));
 vi.mock("@/components/LiveTiming/LiveTiming", () => ({
   default: () => <div>Timing panel</div>,
@@ -55,6 +57,7 @@ describe("progressive replay startup", () => {
       replayWelcomeSeen: false,
       isHelpOpen: false, mapViewMode: "2d", trackerTimingTelemetry: false,
       trackerTimingMobileCarData: false, leaderboardTelemetry: false,
+      mapShowPitLaneStatus: false,
     });
     vi.spyOn(motion, "motionEnabled").mockReturnValue(false);
     vi.spyOn(api, "sessions").mockResolvedValue([session]);
@@ -123,6 +126,22 @@ describe("progressive replay startup", () => {
     client.setQueryData(["location-chunk", 123, 0], [gps]);
     vi.mocked(api.locationWindow).mockResolvedValue([gps]);
   }
+
+  it("only sends pit status to the map while the setting is enabled", async () => {
+    useSettings.setState({ replayWelcomeSeen: true });
+    client.setQueryData(["raceControl", 123], [{
+      category: "Other", date: session.date_start, driver_number: null, flag: null,
+      lap_number: null, meeting_key: 456, message: "PIT EXIT CLOSED",
+      qualifying_phase: null, scope: "Track", sector: null, session_key: 123,
+    }]);
+    renderReplay("/?year=2024&meeting=456&session=123&view=tracker");
+    const maps = await screen.findAllByText("Track preview");
+    expect(maps[0]).toHaveAttribute("data-pit-status", "none");
+    act(() => useSettings.getState().setSetting("mapShowPitLaneStatus", true));
+    await waitFor(() => expect(maps[0]).toHaveAttribute("data-pit-status", "closed"));
+    act(() => useSettings.getState().setSetting("mapShowPitLaneStatus", false));
+    expect(maps[0]).toHaveAttribute("data-pit-status", "none");
+  });
 
   it("offers a race-start action instead of opening the tour, and waits for destination GPS", async () => {
     readyForWelcome();

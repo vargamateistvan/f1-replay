@@ -16,6 +16,7 @@ import {
 import { getCircuitGeometry } from "@/data/circuitGeometry";
 import { getPitLane } from "@/data/pitLanes";
 import { TOKEN_HEX } from "@/designTokens";
+import * as analytics from "@/lib/analytics";
 
 let timelineT = 0;
 const follow = vi.hoisted(() => ({ on: false, heatmap: true, numbers: false, setSetting: vi.fn() }));
@@ -229,6 +230,46 @@ describe("TrackMap sector flag state rendering", () => {
     window.localStorage.removeItem(key);
   });
 
+  it("rotates by right-dragging, stops outside the map, and resets with fit", () => {
+    vi.mocked(useTrackOutline).mockReturnValue(mockTrackOutlineQueryResult(mockOutline));
+    const trackEvent = vi.spyOn(analytics, "trackEvent");
+    const { container, unmount } = render(
+      <TrackMap sessionKey={1} drivers={[mockDriver]} locationData={mockLocationData}
+        sessionStartMs={0} showTrackControls />,
+    );
+    const svg = container.querySelector("svg")!;
+    const hasRotation = (degrees: string) =>
+      container.querySelector(`g[transform*="rotate(${degrees} 300.0 200.0)"]`);
+    fireEvent.mouseDown(svg, { button: 0, clientX: 100 });
+    fireEvent.mouseMove(window, { buttons: 1, clientX: 200 });
+    expect(hasRotation("0.0")).toBeInTheDocument();
+
+    expect(fireEvent.contextMenu(svg, { button: 2, cancelable: true })).toBe(false);
+    fireEvent.mouseDown(svg, { button: 2, buttons: 2, clientX: 100 });
+    act(() => {
+      fireEvent.mouseMove(window, { buttons: 2, clientX: 120 });
+      fireEvent.mouseMove(window, { buttons: 2, clientX: 140 });
+    });
+    expect(hasRotation("20.0")).toBeInTheDocument();
+    expect(trackEvent).not.toHaveBeenCalledWith("trackmap_rotation_changed", expect.anything());
+    fireEvent.mouseUp(window, { button: 2, clientX: 140 });
+    expect(trackEvent).toHaveBeenCalledWith("trackmap_rotation_changed", { direction: "right" });
+    fireEvent.mouseMove(window, { buttons: 2, clientX: 200 });
+    expect(hasRotation("20.0")).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Fit track (reset zoom and rotation)" }));
+    expect(hasRotation("0.0")).toBeInTheDocument();
+
+    fireEvent.mouseDown(svg, { button: 2, buttons: 2, clientX: 100 });
+    fireEvent.mouseMove(window, { buttons: 2, clientX: 80 });
+    fireEvent.blur(window);
+    expect(hasRotation("-10.0")).toBeInTheDocument();
+    fireEvent.mouseMove(window, { buttons: 2, clientX: 60 });
+    expect(hasRotation("-10.0")).toBeInTheDocument();
+    expect(trackEvent).toHaveBeenCalledWith("trackmap_rotation_changed", { direction: "left" });
+    unmount();
+    trackEvent.mockRestore();
+  });
+
   it("shows a thin solid pit lane when baked circuit geometry is available", () => {
     vi.mocked(useTrackOutline).mockReturnValue(mockTrackOutlineQueryResult(mockOutline));
     vi.mocked(getCircuitGeometry).mockReturnValue({
@@ -273,6 +314,8 @@ describe("TrackMap sector flag state rendering", () => {
     const { rerender } = render(<TrackMap {...props} pitLaneStatus={{ lane: "unknown", entry: "unknown", exit: "closed" }} />);
     expect(screen.queryByText(/pit exit closed · last reported/i)).not.toBeInTheDocument();
     expect(screen.getByTestId("pit-exit-status")).toHaveAttribute("fill", TOKEN_HEX.red);
+    expect(screen.getByTestId("pit-exit-glow")).toBeInTheDocument();
+    expect(screen.getByRole("img", { name: "Pit exit closed, last reported" })).toBeInTheDocument();
     expect(screen.getByTestId("pit-lane")).toHaveAttribute("stroke", TOKEN_HEX.fg);
     rerender(<TrackMap {...props} pitLaneStatus={{ lane: "closed", entry: "open", exit: "unknown" }} />);
     expect(screen.getByTestId("pit-lane")).toHaveAttribute("stroke", TOKEN_HEX.red);
@@ -281,6 +324,7 @@ describe("TrackMap sector flag state rendering", () => {
     rerender(<TrackMap {...props} />);
     expect(screen.getByTestId("pit-lane")).toHaveAttribute("stroke", TOKEN_HEX.fg);
     expect(screen.queryByTestId("pit-entry-status")).not.toBeInTheDocument();
+    expect(screen.queryByTestId("pit-entry-glow")).not.toBeInTheDocument();
   });
 
   it("shrinks only pit-lane cars and restores their size after rejoining", () => {

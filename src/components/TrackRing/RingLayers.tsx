@@ -8,7 +8,6 @@ import {
   PIT_WINDOW_COLOR,
   SAFETY_CAR_NUMBERS,
   TRACK_PIT_CAR_SCALE,
-  TRACK_PIT_ACCESS_MARKER_RADIUS,
 } from "@/constants";
 import type { PitLaneStatus, TimingSectorFlags } from "@/timeline/raceControl";
 import { TOKEN_HEX } from "@/designTokens";
@@ -17,6 +16,7 @@ import { teamColor } from "@/utils/color";
 import { forwardSpan, ringPoint, wrapFraction } from "@/utils/lapProgress";
 import { PIT_CONDITION_LABEL, type PitLossCondition } from "@/utils/pitRejoin";
 import { SPECIAL_TRACK_VEHICLES } from "../TrackMap/layers/specialVehicles";
+import { PitAccessLight } from "../TrackMap/layers/PitAccessLight";
 import { mapBackgroundColor } from "../TrackMap/trackMapFormat";
 import {
   displayArc,
@@ -229,8 +229,7 @@ export const RingPitLane = memo(function RingPitLane({
         if (!state || state === "unknown") return null;
         const point = ringPoint(cx, cy, r, toDisplay(scale, part === "entry" ? entry : exit));
         return (
-          <circle key={part} data-testid={`pit-${part}-status`} cx={point.x} cy={point.y}
-            r={TRACK_PIT_ACCESS_MARKER_RADIUS} fill={state === "closed" ? TOKEN_HEX.red : TOKEN_HEX.green} />
+          <PitAccessLight key={part} part={part} state={state} x={point.x} y={point.y} />
         );
       })}
       <text

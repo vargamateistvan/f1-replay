@@ -8,6 +8,7 @@ const state = vi.hoisted(() => ({
   mapViewMode: "2d" as "2d" | "3d" | "ring",
   available3d: true,
   showPitRejoin: true,
+  showPitLaneStatus: false,
   showRingPitOutcomes: true,
   previewRequests: vi.fn(),
 }));
@@ -85,6 +86,7 @@ vi.mock("@/stores/settings", () => ({
     mapShowBattleRings: true,
     mapShowDriverHud: true,
     mapShowPitRejoin: state.showPitRejoin,
+    mapShowPitLaneStatus: state.showPitLaneStatus,
     mapShowSectorFlags: true,
     mapShowSectorBox: true,
     mapShowTrackControls: true,
@@ -177,6 +179,7 @@ vi.mock("@/components/TrackMap3D/TrackMap3D", () => ({
     focusDriverLap,
     pitRejoinGaps,
     battleGaps,
+    pitLaneStatus,
   }: {
     circuitKey: number;
     previewTimeMs?: number;
@@ -184,6 +187,7 @@ vi.mock("@/components/TrackMap3D/TrackMap3D", () => ({
     focusDriverLap: number | null;
     pitRejoinGaps?: Map<number, number>;
     battleGaps: { chaser: number; ahead: number; gap: number }[];
+    pitLaneStatus?: { exit: string } | null;
   }) => (
     <div
       role="img"
@@ -193,6 +197,7 @@ vi.mock("@/components/TrackMap3D/TrackMap3D", () => ({
       data-lap={focusDriverLap ?? "none"}
       data-pit-gaps={pitRejoinGaps?.size ?? 0}
       data-battle-gaps={battleGaps.length}
+      data-pit-status={pitLaneStatus?.exit ?? "none"}
     />
   ),
 }));
@@ -203,11 +208,13 @@ vi.mock("@/components/TrackRing/TrackRing", () => ({
     previewTimeMs,
     focusDriver,
     pitRejoinGaps,
+    pitLaneStatus,
   }: {
     circuitKey: number;
     previewTimeMs?: number;
     focusDriver: number | null;
     pitRejoinGaps?: Map<number, number>;
+    pitLaneStatus?: { exit: string } | null;
   }) => (
     <div
       role="img"
@@ -215,6 +222,7 @@ vi.mock("@/components/TrackRing/TrackRing", () => ({
       data-preview-time={previewTimeMs ?? "timeline"}
       data-focus={focusDriver ?? "none"}
       data-pit-gaps={pitRejoinGaps?.size ?? 0}
+      data-pit-status={pitLaneStatus?.exit ?? "none"}
     />
   ),
 }));
@@ -232,6 +240,7 @@ vi.mock("@/components/TrackMap/TrackMap", () => ({
     battleGaps,
     showStartReplayHint,
     previewTimeMs,
+    pitLaneStatus,
   }: {
     circuitShortName: string;
     trackFlagState: { marshalFlags: Record<number, string> } | null;
@@ -244,6 +253,7 @@ vi.mock("@/components/TrackMap/TrackMap", () => ({
     battleGaps: { chaser: number; ahead: number; gap: number }[];
     showStartReplayHint?: boolean;
     previewTimeMs?: number;
+    pitLaneStatus?: { exit: string } | null;
   }) => (
     <div
       role="img"
@@ -258,6 +268,7 @@ vi.mock("@/components/TrackMap/TrackMap", () => ({
       data-pit-gaps={pitRejoinGaps?.size ?? 0}
       data-battle-gaps={battleGaps.length}
       data-start-replay-hint={showStartReplayHint === false ? "hidden" : "visible"}
+      data-pit-status={pitLaneStatus?.exit ?? "none"}
     />
   ),
 }));
@@ -269,6 +280,7 @@ describe("SettingsControls", () => {
     state.mapViewMode = "2d";
     state.available3d = true;
     state.showPitRejoin = true;
+    state.showPitLaneStatus = false;
     state.showRingPitOutcomes = true;
     state.previewRequests.mockClear();
   });
@@ -420,6 +432,26 @@ describe("SettingsControls", () => {
     fireEvent.click(hide);
     expect(screen.queryByRole("img", { name: "Monza production track map" })).not.toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Live preview Show" })).toHaveAttribute("aria-expanded", "false");
+  });
+
+  it.each([
+    ["2d", "Monza production track map"],
+    ["3d", "circuit 1 3D track map"],
+    ["ring", "circuit 1 ring view"],
+  ] as const)("toggles pit status in %s and shows a labelled example in preview", async (view, label) => {
+    state.mapViewMode = view;
+    const { rerender } = render(<SettingsBody initialTab="track" />);
+    const row = screen.getByText("Pit lane status").parentElement!.parentElement!;
+    fireEvent.click(within(row).getByRole("switch"));
+    expect(state.setSetting).toHaveBeenCalledWith("mapShowPitLaneStatus", true);
+    fireEvent.click(screen.getByRole("button", { name: "Live preview Show" }));
+    expect(await screen.findByRole("img", { name: label })).toHaveAttribute("data-pit-status", "none");
+    state.showPitLaneStatus = true;
+    rerender(<SettingsBody initialTab="track" />);
+    expect(await screen.findByRole("img", { name: label })).toHaveAttribute("data-pit-status", "closed");
+    expect(screen.getByText(/example pit exit closed/i)).toBeInTheDocument();
+    fireEvent.click(within(row).getByRole("switch"));
+    expect(state.setSetting).toHaveBeenCalledWith("mapShowPitLaneStatus", false);
   });
 
   it("mirrors the sector status box and PNG snapshot settings in the preview", () => {
