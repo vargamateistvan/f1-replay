@@ -9,6 +9,7 @@ const state = vi.hoisted(() => ({
   available3d: true,
   showPitRejoin: true,
   showRingPitOutcomes: true,
+  previewRequests: vi.fn(),
 }));
 
 vi.mock("@/stores/settings", () => ({
@@ -112,15 +113,18 @@ vi.mock("@/hooks/useMediaQuery", () => ({
 }));
 
 vi.mock("@/hooks/useSession", () => ({
-  useLatestMeeting: () => ({
-    data: {
-      circuit_key: 1,
-      meeting_name: "Italian Grand Prix",
-      year: 2026,
-    },
-    isError: false,
-    isPending: false,
-  }),
+  useLatestMeeting: () => {
+    state.previewRequests();
+    return {
+      data: {
+        circuit_key: 1,
+        meeting_name: "Italian Grand Prix",
+        year: 2026,
+      },
+      isError: false,
+      isPending: false,
+    };
+  },
   useSessions: () => ({
     data: [
       {
@@ -266,6 +270,7 @@ describe("SettingsControls", () => {
     state.available3d = true;
     state.showPitRejoin = true;
     state.showRingPitOutcomes = true;
+    state.previewRequests.mockClear();
   });
 
   it("updates key settings and supports reset", () => {
@@ -383,6 +388,7 @@ describe("SettingsControls", () => {
   it("shows the latest race weekend track in the track map preview", () => {
     render(<SettingsBody />);
     fireEvent.click(screen.getByRole("tab", { name: "Track map" }));
+    fireEvent.click(screen.getByRole("button", { name: "Live preview Show" }));
 
     expect(screen.getByText("Italian Grand Prix track map")).toBeInTheDocument();
     expect(
@@ -398,9 +404,28 @@ describe("SettingsControls", () => {
     expect(map).toHaveAttribute("data-preview-time", "30000");
   });
 
+  it("starts with settings visible and loads the live preview only when expanded", () => {
+    render(<SettingsBody initialTab="track" />);
+    const show = screen.getByRole("button", { name: "Live preview Show" });
+    expect(show).toHaveAttribute("aria-expanded", "false");
+    expect(screen.getByText("Driver acronym labels")).toBeInTheDocument();
+    expect(state.previewRequests).not.toHaveBeenCalled();
+    expect(screen.queryByRole("img", { name: "Monza production track map" })).not.toBeInTheDocument();
+
+    fireEvent.click(show);
+    const hide = screen.getByRole("button", { name: "Live preview Hide" });
+    expect(hide).toHaveAttribute("aria-expanded", "true");
+    expect(state.previewRequests).toHaveBeenCalled();
+    expect(screen.getByRole("img", { name: "Monza production track map" })).toBeInTheDocument();
+    fireEvent.click(hide);
+    expect(screen.queryByRole("img", { name: "Monza production track map" })).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Live preview Show" })).toHaveAttribute("aria-expanded", "false");
+  });
+
   it("mirrors the sector status box and PNG snapshot settings in the preview", () => {
     render(<SettingsBody />);
     fireEvent.click(screen.getByRole("tab", { name: "Track map" }));
+    fireEvent.click(screen.getByRole("button", { name: "Live preview Show" }));
 
     const map = screen.getByRole("img", { name: "Monza production track map" });
     expect(map).toHaveAttribute("data-sector-box", "visible");
@@ -410,6 +435,7 @@ describe("SettingsControls", () => {
   it("only stages pit projections when the active map view has them enabled", async () => {
     state.showPitRejoin = false;
     const mapView = render(<SettingsBody initialTab="track" />);
+    fireEvent.click(screen.getByRole("button", { name: "Live preview Show" }));
     expect(screen.getByRole("img", { name: "Monza production track map" })).toHaveAttribute(
       "data-pit-gaps",
       "0",
@@ -419,6 +445,7 @@ describe("SettingsControls", () => {
     state.mapViewMode = "ring";
     state.showRingPitOutcomes = false;
     render(<SettingsBody initialTab="track" />);
+    fireEvent.click(screen.getByRole("button", { name: "Live preview Show" }));
     expect(await screen.findByRole("img", { name: "circuit 1 ring view" })).toHaveAttribute(
       "data-pit-gaps",
       "0",
@@ -460,6 +487,7 @@ describe("SettingsControls", () => {
   it("previews the 3D map and lists its settings in the 3D view", async () => {
     state.mapViewMode = "3d";
     render(<SettingsBody initialTab="track" />);
+    fireEvent.click(screen.getByRole("button", { name: "Live preview Show" }));
     expect(screen.getByRole("radio", { name: "3D map" })).toHaveAttribute("aria-checked", "true");
     expect(await screen.findByRole("img", { name: "circuit 1 3D track map" })).toBeInTheDocument();
     expect(screen.getByText("Live preview · 3D")).toBeInTheDocument();
@@ -488,6 +516,7 @@ describe("SettingsControls", () => {
   it("previews the ring view and hides settings it doesn't use", async () => {
     state.mapViewMode = "ring";
     render(<SettingsBody initialTab="track" />);
+    fireEvent.click(screen.getByRole("button", { name: "Live preview Show" }));
     expect(screen.getByRole("radio", { name: "Ring" })).toHaveAttribute("aria-checked", "true");
     const map = await screen.findByRole("img", { name: "circuit 1 ring view" });
     expect(map).toBeInTheDocument();

@@ -1,4 +1,5 @@
-import { lazy, Suspense, useMemo, type ReactNode } from "react";
+import { lazy, Suspense, useId, useMemo, useState, type ReactNode } from "react";
+import { ChevronDown, ChevronUp } from "lucide-react";
 import type { Stint, Weather } from "@/api/types";
 import { TrackMap } from "@/components/TrackMap/TrackMap";
 import { isMap3dAvailable } from "@/components/TrackMap3D/availability";
@@ -269,7 +270,7 @@ function TrackMapPreview({
   }
 
   return (
-    <div className="mt-3 overflow-hidden border border-panel bg-track">
+    <div className="overflow-hidden border-t border-panel bg-track">
       <div className="flex items-center justify-between gap-3 border-b border-panel px-3 py-2">
         <div className="min-w-0">
           <div className="text-caption font-black uppercase tracking-eyebrow text-fg">
@@ -286,9 +287,7 @@ function TrackMapPreview({
           </span>
         )}
       </div>
-      {/* Fixed height, full width: an aspect ratio plus max-height would also
-          cap the width, leaving the 3D canvas narrower than the panel. */}
-      <div className="relative h-[38dvh] min-h-40 max-h-[30rem] w-full">{body}</div>
+      <div className="relative h-[28dvh] min-h-40 max-h-64 w-full">{body}</div>
     </div>
   );
 }
@@ -307,6 +306,8 @@ export function TrackMapSettings({
   setViewMode: (mode: MapViewMode) => void;
 }) {
   const available3d = isMap3dAvailable();
+  const [previewOpen, setPreviewOpen] = useState(false);
+  const previewId = useId();
   const view: MapView =
     settings.mapViewMode === "3d" && !available3d ? "2d" : settings.mapViewMode;
   const is3d = view === "3d";
@@ -336,7 +337,7 @@ export function TrackMapSettings({
   return (
     <>
       <div className="shrink-0">
-        <div className="flex items-end justify-between gap-3">
+        <div className="flex flex-wrap items-end justify-between gap-3">
           <SectionHeader>Track Map</SectionHeader>
           <ViewSwitch view={view} available3d={available3d} onChange={setView} />
         </div>
@@ -345,9 +346,27 @@ export function TrackMapSettings({
             3D map isn't available here: it needs a Mapbox token and a browser with WebGL2.
           </div>
         )}
-        <TrackMapPreview view={view} settings={settings} onExit3d={() => setView("2d")} />
       </div>
       <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain pr-1">
+        <div className="mt-3 border border-panel">
+          <button
+            type="button"
+            className="flex w-full items-center justify-between gap-3 px-3 py-2 text-left text-caption font-black uppercase tracking-eyebrow text-fg hover:bg-panel focus:outline-none focus-visible:ring-1 focus-visible:ring-inset focus-visible:ring-f1red"
+            aria-label={previewOpen ? "Live preview Hide" : "Live preview Show"}
+            aria-expanded={previewOpen}
+            aria-controls={previewId}
+            onClick={() => setPreviewOpen((open) => !open)}
+          >
+            <span>Live preview</span>
+            <span className="flex items-center gap-1 text-muted">
+              {previewOpen ? "Hide" : "Show"}
+              {previewOpen ? <ChevronUp size={14} aria-hidden="true" /> : <ChevronDown size={14} aria-hidden="true" />}
+            </span>
+          </button>
+          <div id={previewId} hidden={!previewOpen}>
+            {previewOpen && <TrackMapPreview view={view} settings={settings} onExit3d={() => setView("2d")} />}
+          </div>
+        </div>
         {isRing && (
           <>
             <SectionHeader>Ring</SectionHeader>
