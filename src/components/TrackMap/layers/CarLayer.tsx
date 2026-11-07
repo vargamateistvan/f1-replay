@@ -1,5 +1,10 @@
 import type { Driver, Stint } from "@/api/types";
-import { COMPOUND_COLORS, PIT_WINDOW_COLOR, SAFETY_CAR_NUMBERS } from "@/constants";
+import {
+  COMPOUND_COLORS,
+  PIT_WINDOW_COLOR,
+  SAFETY_CAR_NUMBERS,
+  TRACK_PIT_CAR_SCALE,
+} from "@/constants";
 import { SPECIAL_TRACK_VEHICLES } from "./specialVehicles";
 import { trackEvent } from "@/lib/analytics";
 import { teamColor } from "@/utils/color";
@@ -12,6 +17,7 @@ export interface CarPosition {
   /** OpenF1 coordinates (not yet projected to SVG). */
   x: number;
   y: number;
+  inPit?: boolean;
 }
 
 interface CarLayerProps {
@@ -67,7 +73,7 @@ export function CarLayer({
 
 function CarMarker({
   geom,
-  pos: { num, x, y },
+  pos: { num, x, y, inPit },
   driverByNumber,
   focusDriver,
   pulsing,
@@ -98,13 +104,14 @@ function CarMarker({
   const showLabel = (focusDriver === null || focused) && showAcronym;
   const isBattling = battlingDrivers?.has(num) ?? false;
   const compoundInfo = activeCompounds?.get(num);
-  const dotRadius = showNumberInside
+  const markerScale = inPit && !specialVehicle ? TRACK_PIT_CAR_SCALE : 1;
+  const dotRadius = markerScale * (showNumberInside
     ? focused
       ? 8
       : 6.6
     : focused
       ? 6.5
-      : 4.5;
+      : 4.5);
   const serviceRadius = focused ? dotRadius + 0.7 : dotRadius + 0.4;
   const markerStroke = specialVehicle ? specialVehicle.stroke : "#ffffff";
   const markerTextColor = specialVehicle
@@ -234,7 +241,7 @@ function CarMarker({
           transform={`rotate(${-rotationDeg.toFixed(1)} 0 0)`}
           textAnchor="middle"
           dominantBaseline="middle"
-          fontSize={
+          fontSize={markerScale * (
             specialVehicle
               ? focused
                 ? 4.1
@@ -244,7 +251,7 @@ function CarMarker({
                   ? 5.2
                   : 5.8
                 : 4.4
-          }
+          )}
           fill={markerTextColor}
           stroke="rgba(0,0,0,0.58)"
           strokeWidth={0.6}

@@ -10,13 +10,14 @@ import type { TrackFlagState } from "@/timeline/raceControl";
 import {
   START_LIGHT_INTERVAL_MS,
   START_LIGHTS_SEQUENCE_MS,
+  TRACK_PIT_CAR_SCALE,
   TRACK_SVG_PAD,
 } from "@/constants";
 import { getCircuitGeometry } from "@/data/circuitGeometry";
 import { getPitLane } from "@/data/pitLanes";
 
 let timelineT = 0;
-const follow = vi.hoisted(() => ({ on: false, heatmap: true, setSetting: vi.fn() }));
+const follow = vi.hoisted(() => ({ on: false, heatmap: true, numbers: false, setSetting: vi.fn() }));
 
 vi.mock("@/timeline/clock", () => ({
   useTimeline: vi.fn(
@@ -87,7 +88,7 @@ vi.mock("@/stores/settings", () => ({
       lightMode: false,
       metricSystem: "metric",
       mapShowDriverAcronym: true,
-      mapShowDriverNumberInside: false,
+      mapShowDriverNumberInside: follow.numbers,
       mapShowRaceLeader: true,
       mapShowMarshalHeatmap: false,
       mapShowCornerNumbers: false,
@@ -161,6 +162,7 @@ describe("TrackMap sector flag state rendering", () => {
     timelineT = 0;
     follow.on = false;
     follow.heatmap = true;
+    follow.numbers = false;
     follow.setSetting.mockReset();
     vi.mocked(useTrackOutline).mockReturnValue(
       mockTrackOutlineQueryResult(null),
@@ -200,6 +202,85 @@ describe("TrackMap sector flag state rendering", () => {
         sessionStartMs={0} circuitKey={999} year={2025} />,
     );
     expect(screen.queryByTestId("pit-lane")).toBeNull();
+  });
+
+  it("shrinks only pit-lane cars and restores their size after rejoining", () => {
+    const outline = {
+      points: [
+        { x: 0, y: 0 },
+        { x: 0, y: 10000 },
+        { x: 10000, y: 10000 },
+        { x: 10000, y: 0 },
+      ],
+      bounds: { minX: 0, minY: 0, maxX: 10000, maxY: 10000, width: 10000, height: 10000 },
+      source: "baked" as const,
+    };
+    vi.mocked(useTrackOutline).mockReturnValue(mockTrackOutlineQueryResult(outline));
+    vi.mocked(getCircuitGeometry).mockReturnValue({
+      circuitKey: 22,
+      circuitName: "Test",
+      year: 2025,
+      rotation: 0,
+      x: [],
+      y: [],
+      corners: [],
+      marshalSectors: [],
+      marshalLights: [],
+    });
+    vi.mocked(getPitLane).mockReturnValue({
+      x: [-50, -300, -300, -300, -50],
+      y: [1000, 1500, 2500, 3500, 4000],
+    });
+    const positions: Location[] = [1, 2].flatMap((num) =>
+      [10, 11].map((second) => ({
+        date: `2024-01-01T00:00:${second}.000Z`,
+        driver_number: num,
+        meeting_key: 1,
+        session_key: 1,
+        x: num === 1 && second === 10 ? -300 : 0,
+        y: 2500,
+        z: 0,
+      })),
+    );
+    const drivers = [mockDriver, { ...mockDriver, driver_number: 2, name_acronym: "TWO" }];
+    const props = {
+      sessionKey: 1,
+      drivers,
+      locationData: positions,
+      sessionStartMs: Date.parse("2024-01-01T00:00:00.000Z"),
+      circuitKey: 22,
+      year: 2025,
+    };
+    const dot = (label: string) => screen.getByText(label).closest("g")!.querySelector('circle[fill="#000000"]')!;
+    timelineT = 10_000;
+    const { rerender } = render(<TrackMap {...props} />);
+    expect(dot("TST")).toHaveAttribute("r", String(4.5 * TRACK_PIT_CAR_SCALE));
+    expect(dot("TWO")).toHaveAttribute("r", "4.5");
+
+    follow.numbers = true;
+    rerender(<TrackMap {...props} focusDriver={1} previewTimeMs={10_000} />);
+    expect(dot("TST")).toHaveAttribute("r", String(8 * TRACK_PIT_CAR_SCALE));
+    expect(screen.getByText("1")).toHaveAttribute("font-size", String(5.8 * TRACK_PIT_CAR_SCALE));
+
+    timelineT = 11_000;
+    rerender(<TrackMap {...props} focusDriver={1} previewTimeMs={11_000} />);
+    expect(dot("TST")).toHaveAttribute("r", "8");
+    expect(screen.getByText("1")).toHaveAttribute("font-size", "5.8");
+
+    timelineT = 10_000;
+    vi.mocked(getPitLane).mockReturnValue(null);
+    rerender(<TrackMap {...props} circuitKey={999} previewTimeMs={10_000} />);
+    expect(dot("TST")).toHaveAttribute("r", "6.6");
+
+    vi.mocked(getPitLane).mockReturnValue({
+      x: [-50, -300, -300, -300, -50],
+      y: [1000, 1500, 2500, 3500, 4000],
+    });
+    vi.mocked(useTrackOutline).mockReturnValue(
+      mockTrackOutlineQueryResult({ ...outline, source: "layout" }),
+    );
+    rerender(<TrackMap {...props} previewTimeMs={10_000} />);
+    expect(dot("TST")).toHaveAttribute("r", "6.6");
   });
 
   it("only follows the focused car once following is switched on", () => {

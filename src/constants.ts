@@ -63,6 +63,8 @@ export const LIVE_MQTT_MAX_ROWS = 4_000;
 export const TRACK_SVG_W = 600;
 export const TRACK_SVG_H = 400;
 export const TRACK_SVG_PAD = 24;
+/** Scale of a racing driver's 2D car dot and its number while in the pits. */
+export const TRACK_PIT_CAR_SCALE = 0.7;
 export const SESSION_SIMULATION_CARS = 12;
 export const SESSION_SIMULATION_LAP_SECONDS = 32;
 export const SESSION_SIMULATION_LAP_STEP_SECONDS = 1.2;

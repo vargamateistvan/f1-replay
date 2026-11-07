@@ -84,6 +84,8 @@ import {
   MarshalSectorDots,
 } from "./layers/CircuitLayers";
 import { CarLayer, type CarPosition } from "./layers/CarLayer";
+import { SPECIAL_TRACK_VEHICLES } from "./layers/specialVehicles";
+import { buildRingModel, placeCar } from "../TrackRing/ringModel";
 import { PitRejoinGhost } from "./layers/PitRejoinGhost";
 import { PitWindowBands, PitWindowMarkers } from "./layers/PitWindowLayer";
 import { usePitWindow } from "./usePitWindow";
@@ -364,6 +366,22 @@ export function TrackMap({
     () => circuitGeom ? buildPitLanePath(trackGeometry, getPitLane(circuitKey)) : null,
     [circuitGeom, circuitKey, trackGeometry],
   );
+  const pitPlacementModel = useMemo(() => {
+    if (!trackGeometry || !outline || outline.source === "layout") return null;
+    const pitLane = getPitLane(circuitKey);
+    if (!pitLane) return null;
+    return buildRingModel({
+      geom: trackGeometry,
+      circuitGeom: null,
+      pitLane,
+      totalMarshalPosts: 0,
+      toScale: true,
+    });
+  }, [trackGeometry, outline, circuitKey]);
+  const pitPlacementHints = useRef(new Map<number, number>());
+  useEffect(() => {
+    pitPlacementHints.current.clear();
+  }, [pitPlacementModel, sessionKey]);
 
   const defaultRotationDeg = useMemo(
     () =>
@@ -619,7 +637,16 @@ export function TrackMap({
     // car sitting in the garage. Drawing those puts a stack of markers on the
     // circuit's coordinate origin.
     if (isOffTrackPlaceholder(pos)) continue;
-    carPositions.push({ num, ...pos });
+    let inPit = false;
+    if (pitPlacementModel?.pit && !SPECIAL_TRACK_VEHICLES[num]) {
+      const { sx, sy } = projectToSvg(trackGeometry, pos.x, pos.y);
+      const placement = placeCar(pitPlacementModel, sx, sy, pitPlacementHints.current.get(num) ?? -1);
+      if (placement) {
+        pitPlacementHints.current.set(num, placement.segment);
+        inPit = placement.inPit;
+      }
+    }
+    carPositions.push({ num, ...pos, inPit });
   }
 
   // Follow-cam (opt-in from the toolbar): smoothly zooms/pans towards the
