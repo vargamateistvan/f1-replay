@@ -171,6 +171,12 @@ describe("TrackMap sector flag state rendering", () => {
     vi.mocked(getPitLane).mockReturnValue(null);
   });
 
+  it("renders the grid background behind the track", () => {
+    vi.mocked(useTrackOutline).mockReturnValue(mockTrackOutlineQueryResult(mockOutline));
+    render(<TrackMap sessionKey={1} drivers={[mockDriver]} locationData={mockLocationData} sessionStartMs={0} />);
+    expect(screen.getByTestId("map-background").querySelector("pattern")).not.toBeNull();
+  });
+
   it("shows a thin solid pit lane when baked circuit geometry is available", () => {
     vi.mocked(useTrackOutline).mockReturnValue(mockTrackOutlineQueryResult(mockOutline));
     vi.mocked(getCircuitGeometry).mockReturnValue({

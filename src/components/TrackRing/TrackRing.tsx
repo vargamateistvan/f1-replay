@@ -46,6 +46,7 @@ import {
 } from "@/timeline/raceControl";
 import { startLightsState } from "@/timeline/startLights";
 import { exportTrackSnapshot } from "../TrackMap/exportSnapshot";
+import { MapBackground } from "../TrackMap/layers/MapBackground";
 import { FocusedDriverHud } from "../TrackMap/overlays/FocusedDriverHud";
 import { TrackClockPanel } from "../TrackMap/overlays/InfoPanels";
 import { SectorChips } from "../TrackMap/overlays/MapCornerWidgets";
@@ -633,6 +634,11 @@ export function TrackRing({
             <rect x="1.5" y="1.5" width="1.5" height="1.5" fill="#111111" />
           </pattern>
         </defs>
+        <MapBackground
+          view={{ x: 0, y: 0, w: RING_SVG_W, h: RING_SVG_H }}
+          lightMode={lightMode}
+          ring={{ cx: CX, cy: CY, radius: RING_RADIUS }}
+        />
         <RingCenter
           cx={CX}
           cy={CY}

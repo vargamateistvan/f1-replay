@@ -63,6 +63,9 @@ export const LIVE_MQTT_MAX_ROWS = 4_000;
 export const TRACK_SVG_W = 600;
 export const TRACK_SVG_H = 400;
 export const TRACK_SVG_PAD = 24;
+export const TRACK_BACKGROUND_GRID_SIZE = 40;
+export const TRACK_BACKGROUND_GLOW_OPACITY = 0.07;
+export const TRACK_BACKGROUND_LINE_OPACITY = 0.07;
 /** Scale of racing-driver map and ring dots and their numbers in the pits. */
 export const TRACK_PIT_CAR_SCALE = 0.7;
 export const SESSION_SIMULATION_CARS = 12;
@@ -106,6 +109,7 @@ export const RING_SVG_W = 460;
 export const RING_SVG_H = 400;
 /** Radius of the track ring (SVG units). */
 export const RING_RADIUS = 128;
+export const RING_BACKGROUND_OFFSETS = [20, 40] as const;
 /** Radius of the inner pit-lane arc. */
 export const RING_PIT_RADIUS = 92;
 /** Radius at which driver labels sit, outside the ring. */

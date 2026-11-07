@@ -84,6 +84,7 @@ import {
   MarshalSectorDots,
 } from "./layers/CircuitLayers";
 import { CarLayer, type CarPosition } from "./layers/CarLayer";
+import { MapBackground } from "./layers/MapBackground";
 import { SPECIAL_TRACK_VEHICLES } from "./layers/specialVehicles";
 import { buildRingModel, placeCar } from "../TrackRing/ringModel";
 import { PitRejoinGhost } from "./layers/PitRejoinGhost";
@@ -763,6 +764,7 @@ export function TrackMap({
           </pattern>
           <SectorClipPaths geom={trackGeometry} circuitLayout={circuitLayout} />
         </defs>
+        <MapBackground view={smoothedView} lightMode={lightMode} />
         {/* Paint order matters: ribbon → surface → flags → telemetry →
             circuit markup → markers → cars. */}
         <g transform={trackTransform}>

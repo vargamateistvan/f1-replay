@@ -168,6 +168,11 @@ function carAt(container: HTMLElement, fraction: number) {
 }
 
 describe("TrackRing", () => {
+  it("renders the concentric background behind the ring", () => {
+    renderRing();
+    expect(screen.getByTestId("map-background").querySelectorAll("circle")).toHaveLength(2);
+  });
+
   it("places each car at its lap fraction round the ring", () => {
     const { container } = renderRing();
     const cx = RING_SVG_W / 2;
