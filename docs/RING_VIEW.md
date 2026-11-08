@@ -5,6 +5,7 @@
 Inspired by MultiViewer's "Circle of Doom": a dial spaced by **time**, so the angle between two cars is their gap and a pit stop is a fixed slice of the circle.
 
 - The backdrop uses a subtle theme-aware glow and two concentric guide rings (`MapBackground`), behind the data and included in SVG snapshots.
+- N/E/S/W labels sit just outside the dial using the selected circuit geometry's `rotation` (the same broadcast orientation as the 2D map); reversing lap direction does not rotate them.
 - Mouse-wheel scrolling zooms the ring around its centre, using the same wheel sensitivity and zoom limits as the 2D map; the wheel is prevented from scrolling the page while over the ring.
 - Startup: `RaceWeekend` gates the focused-car telemetry window with the optional `telemetryEnabled` prop (default true), so HUD speed/gear requests cannot compete with essential replay data and the visible GPS window.
 - Each car's interpolated position is projected onto the nearest outline *segment* (not vertex) of the 2D map's outline → lap (distance) fraction 0–1. The last matched segment per car is the next search hint (±`RING_SEARCH_WINDOW` segments), which also keeps cars on their own stretch where a track crosses itself; a match further than `RING_OFF_TRACK_M` falls back to a full scan.

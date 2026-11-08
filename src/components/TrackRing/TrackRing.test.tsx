@@ -2,7 +2,13 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { cloneElement } from "react";
 import { fireEvent, render, screen } from "@testing-library/react";
 import type { Driver, Lap, Location, Stint, Weather } from "@/api/types";
-import { RING_RADIUS, RING_SVG_H, RING_SVG_W, TRACK_PIT_CAR_SCALE } from "@/constants";
+import {
+  RING_CARDINAL_LABEL_RADIUS,
+  RING_RADIUS,
+  RING_SVG_H,
+  RING_SVG_W,
+  TRACK_PIT_CAR_SCALE,
+} from "@/constants";
 import { useCircuitGeometry } from "@/hooks/useCircuitGeometry";
 import { TrackRing } from "./TrackRing";
 import { RingCars, RingPitLane } from "./RingLayers";
@@ -236,6 +242,50 @@ describe("TrackRing", () => {
   it("renders the concentric background behind the ring", () => {
     renderRing();
     expect(screen.getByTestId("map-background").querySelectorAll("circle")).toHaveLength(2);
+  });
+
+  it("shows cardinal directions around the ring in map orientation", () => {
+    renderRing();
+    const directions = screen.getByTestId("ring-cardinal-directions");
+    const centerX = RING_SVG_W / 2;
+    const centerY = RING_SVG_H / 2;
+    const expected: [string, number, number][] = [
+      ["N", centerX, centerY - RING_CARDINAL_LABEL_RADIUS],
+      ["E", centerX + RING_CARDINAL_LABEL_RADIUS, centerY],
+      ["S", centerX, centerY + RING_CARDINAL_LABEL_RADIUS],
+      ["W", centerX - RING_CARDINAL_LABEL_RADIUS, centerY],
+    ];
+
+    for (const [direction, x, y] of expected) {
+      const label = directions.querySelector(`[data-direction="${direction}"]`);
+      expect(label).toHaveTextContent(direction);
+      expect(Number(label?.getAttribute("x"))).toBeCloseTo(x);
+      expect(Number(label?.getAttribute("y"))).toBeCloseTo(y);
+    }
+    expect(screen.queryByTitle("Compass")).not.toBeInTheDocument();
+  });
+
+  it("uses the circuit geometry rotation for the cardinal positions", () => {
+    vi.mocked(useCircuitGeometry).mockReturnValue({
+      data: { rotation: 90 },
+      isPending: false,
+    } as never);
+    renderRing({ circuitKey: 2, year: 2026 });
+    const directions = screen.getByTestId("ring-cardinal-directions");
+    const centerX = RING_SVG_W / 2;
+    const centerY = RING_SVG_H / 2;
+    const expected = [
+      ["N", centerX + RING_CARDINAL_LABEL_RADIUS, centerY],
+      ["E", centerX, centerY + RING_CARDINAL_LABEL_RADIUS],
+      ["S", centerX - RING_CARDINAL_LABEL_RADIUS, centerY],
+      ["W", centerX, centerY - RING_CARDINAL_LABEL_RADIUS],
+    ] as const;
+
+    for (const [direction, x, y] of expected) {
+      const label = directions.querySelector(`[data-direction="${direction}"]`);
+      expect(Number(label?.getAttribute("x"))).toBeCloseTo(x);
+      expect(Number(label?.getAttribute("y"))).toBeCloseTo(y);
+    }
   });
 
   it("zooms the ring with the mouse wheel and clamps the zoom range", () => {

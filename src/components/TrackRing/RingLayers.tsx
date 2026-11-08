@@ -8,6 +8,7 @@ import {
   FLAG_COLORS,
   PIT_MARKER_COLOR,
   PIT_WINDOW_COLOR,
+  RING_CARDINAL_LABEL_RADIUS,
   SAFETY_CAR_NUMBERS,
   TRACK_PIT_CAR_SCALE,
 } from "@/constants";
@@ -67,6 +68,51 @@ function compoundBadgeColor(compound: Stint["compound"], lightMode: boolean): st
     ? COMPOUND_HARD_LIGHT_COLOR
     : COMPOUND_COLORS[compound];
 }
+
+/** Cardinal labels around the dial, in the same fixed orientation as a map. */
+export const RingCardinalDirections = memo(function RingCardinalDirections({
+  cx,
+  cy,
+  rotationDeg,
+  lightMode,
+}: Pick<RingFrame, "cx" | "cy"> & { rotationDeg: number; lightMode: boolean }) {
+  const color = lightMode ? "#2a3246" : "#d4dbee";
+  const labels = [
+    { direction: "N", fraction: 0 },
+    { direction: "E", fraction: 0.25 },
+    { direction: "S", fraction: 0.5 },
+    { direction: "W", fraction: 0.75 },
+  ] as const;
+  return (
+    <g role="group" aria-label="Cardinal directions" data-testid="ring-cardinal-directions">
+      {labels.map(({ direction, fraction }) => {
+        const point = ringPoint(
+          cx,
+          cy,
+          RING_CARDINAL_LABEL_RADIUS,
+          fraction + rotationDeg / 360,
+        );
+        return (
+          <text
+            key={direction}
+            data-direction={direction}
+            x={point.x}
+            y={point.y}
+            textAnchor="middle"
+            dominantBaseline="central"
+            fontSize={8}
+            fill={color}
+            fontFamily={FONT}
+            fontWeight="900"
+            letterSpacing="0.08em"
+          >
+            {direction}
+          </text>
+        );
+      })}
+    </g>
+  );
+});
 
 /** The ring, sector flag tints, sector bars + labels, corner ticks and the finish line. */
 export const RingTrack = memo(function RingTrack({

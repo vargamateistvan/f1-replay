@@ -84,6 +84,7 @@ import {
 import { cachedPitEntry, cleanRejoinGaps, createPitEntryCache, inPitRejoin } from "./pitWindow";
 import {
   RingCars,
+  RingCardinalDirections,
   RingCenter,
   RingGapMeasure,
   RingLegend,
@@ -763,6 +764,12 @@ export function TrackRing({
             onSelectDriver={onSelectDriver}
             onHoverDriver={setHoverDriver}
           />
+          <RingCardinalDirections
+            cx={CX}
+            cy={CY}
+            rotationDeg={circuitGeom?.rotation ?? 0}
+            lightMode={lightMode}
+          />
         </g>
       </svg>
 
@@ -856,10 +863,13 @@ export function TrackRing({
           </div>
       )}
 
-      {hasCars && showSectorBox && hasTrackConditionDisplay && (
-        <div className="absolute bottom-2 right-2 z-20">
-          <SectorChips timingSectorFlags={timingSectorFlags} overlayBackground={overlayBackground} />
-        </div>
+      {hasCars && (
+        showSectorBox &&
+        hasTrackConditionDisplay && (
+          <div className="absolute bottom-2 right-2 z-20">
+            <SectorChips timingSectorFlags={timingSectorFlags} overlayBackground={overlayBackground} />
+          </div>
+        )
       )}
     </div>
   );
