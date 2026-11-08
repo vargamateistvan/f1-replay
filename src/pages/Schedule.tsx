@@ -4,6 +4,7 @@ import {
   ArrowDown,
   Clapperboard,
   Earth,
+  Info,
   LayoutGrid,
   ListOrdered,
   Play,
@@ -20,6 +21,7 @@ import { CircuitSummary } from "@/components/CircuitSummary";
 import { ErrorMessage } from "@/components/ErrorMessage";
 import { FinalClassificationDialog } from "@/components/FinalClassification";
 import { HighlightsDialog } from "@/components/HighlightsDialog";
+import { RaceWeekendDialog } from "@/components/RaceWeekendDialog";
 import { buttonClass } from "@/components/Button/buttonClass";
 import { parseGmtOffsetToMinutes } from "@/components/TrackMap/trackMapFormat";
 import { PICKER_BAR } from "@/components/Nav/pickerStyles";
@@ -307,6 +309,7 @@ function RoundCard({
   now,
   onShowResult,
   onShowHighlights,
+  onShowWeekendInfo,
 }: {
   round: ScheduleRound;
   year: number;
@@ -316,6 +319,7 @@ function RoundCard({
   now: number;
   onShowResult: (session: Session) => void;
   onShowHighlights: (session: Session) => void;
+  onShowWeekendInfo: (round: ScheduleRound) => void;
 }) {
   const { meeting, status } = round;
   const flagUrl = toSafeExternalUrl(meeting.country_flag);
@@ -410,7 +414,20 @@ function RoundCard({
       </header>
       {/* Grows to fill the stretched card, so the sessions line up at the
           bottom across a row even when facts are missing. */}
-      <CircuitSummary meeting={meeting} year={year} className="flex-1" />
+      <div className="flex items-stretch border-b border-panel">
+        <CircuitSummary meeting={meeting} year={year} className="min-w-0 flex-1 border-b-0" />
+        {!round.isTesting && !meeting.is_cancelled && (
+          <button
+            type="button"
+            onClick={() => onShowWeekendInfo(round)}
+            aria-label={`Tyre usage for ${meeting.meeting_name}`}
+            className={buttonClass("quiet", "sm", "mx-3 my-auto whitespace-nowrap")}
+          >
+            <Info aria-hidden="true" className="h-3 w-3" />
+            Tyre usage
+          </button>
+        )}
+      </div>
       {round.sessions.length > 0 ? (
         <div className="divide-y divide-panel/60">
           {round.sessions.map((item) => (
@@ -609,6 +626,7 @@ export default function Schedule() {
   const listRef = useRef<HTMLDivElement>(null);
   const [resultSession, setResultSession] = useState<Session | null>(null);
   const [highlightsSession, setHighlightsSession] = useState<Session | null>(null);
+  const [weekendRound, setWeekendRound] = useState<ScheduleRound | null>(null);
   const highlight = getSessionHighlight(highlightsSession?.session_key);
   const showHighlights = useCallback((session: Session) => {
     trackEvent("schedule_highlights_opened", {
@@ -694,6 +712,7 @@ export default function Schedule() {
       now={now}
       onShowResult={setResultSession}
       onShowHighlights={showHighlights}
+      onShowWeekendInfo={setWeekendRound}
     />
   );
   const isError = meetingsQ.isError;
@@ -812,6 +831,7 @@ export default function Schedule() {
                   now={now}
                   onShowResult={setResultSession}
                   onShowHighlights={showHighlights}
+                  onShowWeekendInfo={setWeekendRound}
                 />
               ))}
             </div>
@@ -840,6 +860,12 @@ export default function Schedule() {
               ?.meeting_name
           }
           onClose={closeHighlights}
+        />
+      )}
+      {weekendRound && (
+        <RaceWeekendDialog
+          round={weekendRound}
+          onClose={() => setWeekendRound(null)}
         />
       )}
     </div>

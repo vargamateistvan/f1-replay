@@ -1,4 +1,4 @@
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQueries, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useCallback, useSyncExternalStore } from "react";
 import { api, type QueryFilters } from "@/api/endpoints";
 import { isAuthError } from "@/api/client";
@@ -8,6 +8,7 @@ import {
   CURRENT_SEASON_STALE_MS,
   LIVE_POLL_FAST_MS,
   LIVE_POLL_SLOW_MS,
+  isSessionLive,
 } from "@/utils/live";
 import { lapsQueryKey } from "./queryKeys";
 
@@ -222,13 +223,38 @@ export function useStints(
   options?: { enabled?: boolean },
 ) {
   return useQuery({
-    queryKey: ["stints", sessionKey],
-    queryFn: () => api.stints(sessionKey!),
-    enabled: sessionKey !== null && (options?.enabled ?? true),
-    staleTime: isLive ? 0 : Infinity,
-    refetchInterval: (query) =>
-      isLive && !isAuthError(query.state.error) ? LIVE_POLL_SLOW_MS : false,
+    ...stintsQueryOptions(sessionKey, isLive, options?.enabled ?? true),
   });
+}
+
+function stintsQueryOptions(
+  sessionKey: number | null,
+  isLive: boolean,
+  enabled = true,
+) {
+  return {
+    queryKey: ["stints", sessionKey] as const,
+    queryFn: () => api.stints(sessionKey!),
+    enabled: sessionKey !== null && enabled,
+    staleTime: isLive ? 0 : Infinity,
+    refetchInterval: (query: { state: { error: unknown } }) =>
+      isLive && !isAuthError(query.state.error) ? LIVE_POLL_SLOW_MS : false,
+  };
+}
+
+/** Loads tyre stints for the sessions supplied by a weekend-details view. */
+export function useWeekendStints(sessions: Session[]) {
+  const queries = useQueries({
+    queries: sessions.map((session) =>
+      stintsQueryOptions(session.session_key, isSessionLive(session)),
+    ),
+  });
+
+  return {
+    data: queries.flatMap((query) => query.data ?? []),
+    isPending: queries.some((query) => query.isPending),
+    isError: queries.some((query) => query.isError),
+  };
 }
 
 export function useStartingGrid(

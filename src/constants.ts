@@ -539,6 +539,15 @@ export const COMPOUND_LETTERS = {
   UNKNOWN: "?",
 } as const;
 
+// Standard Grand Prix weekend allocation; actual allocations can vary.
+export const STANDARD_WEEKEND_TYRE_ALLOCATION = {
+  HARD: 2,
+  MEDIUM: 3,
+  SOFT: 8,
+  INTERMEDIATE: 5,
+  WET: 2,
+} as const;
+
 // ── Tracker lap / gap charts ────────────────────────────────────────────────--
 // Chart margins (px); the right margin is the gutter for the driver end labels.
 export const RACE_CHART_MARGIN = { top: 10, right: 44, bottom: 4, left: 0 } as const;

@@ -8,11 +8,13 @@ const mockUseMeetings = vi.fn();
 const mockUseSeasonSessions = vi.fn();
 const mockUseSessionResult = vi.fn();
 const mockUseDrivers = vi.fn();
+const mockUseWeekendStints = vi.fn();
 vi.mock("@/hooks/useSession", () => ({
   useMeetings: (...args: unknown[]) => mockUseMeetings(...args),
   useSeasonSessions: (...args: unknown[]) => mockUseSeasonSessions(...args),
   useSessionResult: (...args: unknown[]) => mockUseSessionResult(...args),
   useDrivers: (...args: unknown[]) => mockUseDrivers(...args),
+  useWeekendStints: (...args: unknown[]) => mockUseWeekendStints(...args),
 }));
 
 const mockTrackEvent = vi.fn();
@@ -68,6 +70,11 @@ const session = (key: number, meetingKey: number, name: string, startMs: number)
   }) as Session;
 
 function setup() {
+  mockUseWeekendStints.mockReturnValue({
+    data: [],
+    isPending: false,
+    isError: false,
+  });
   mockUseMeetings.mockReturnValue({
     data: [
       meeting(2, "Japanese Grand Prix", NOW + 5 * DAY),
@@ -248,6 +255,20 @@ describe("Schedule page", () => {
     ).toHaveAttribute("href", "https://www.youtube.com/watch?v=abc123");
 
     fireEvent.keyDown(window, { key: "Escape" });
+    expect(screen.queryByRole("dialog")).toBeNull();
+  });
+
+  it("opens weekend details from a schedule card", () => {
+    mockUseDrivers.mockReturnValue({ data: [] });
+    setup();
+
+    fireEvent.click(screen.getByRole("button", { name: "Tyre usage for Bahrain Grand Prix" }));
+
+    expect(screen.getByRole("dialog", { name: "Bahrain Grand Prix" })).toHaveTextContent(
+      "Tyre sets remaining by session",
+    );
+    expect(mockUseWeekendStints).toHaveBeenCalledWith([]);
+    fireEvent.click(screen.getByRole("button", { name: "Close race weekend details" }));
     expect(screen.queryByRole("dialog")).toBeNull();
   });
 
