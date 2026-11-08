@@ -3,6 +3,7 @@ import { act, render, screen } from "@testing-library/react";
 import type { Weather } from "@/api/types";
 import { RainLayer } from "./RainLayer";
 import { weatherAtSessionTime } from "@/utils/weather";
+import { MAP_RAIN_LAYERS } from "@/constants";
 
 const state = vi.hoisted(() => ({ playing: true, reducedMotion: false }));
 vi.mock("@/timeline/clock", () => ({
@@ -54,6 +55,22 @@ beforeEach(() => {
 afterEach(() => vi.unstubAllGlobals());
 
 describe("RainLayer", () => {
+  it("adds distinct depth layers with tapered streaks and static haze", () => {
+    const { container } = render(<svg><RainLayer enabled weather={weather} view={view} /></svg>);
+    expect(screen.getByTestId("map-rain-haze")).toBeInTheDocument();
+    const layers = container.querySelectorAll("[data-rain-depth]");
+    expect(layers).toHaveLength(MAP_RAIN_LAYERS.length);
+    MAP_RAIN_LAYERS.forEach((layer, index) => {
+      expect(layers[index]).toHaveAttribute("data-rain-depth", layer.name);
+      expect(layers[index]).toHaveStyle({
+        animation: `track-rain-fall ${layer.cycleMs}ms linear infinite`,
+        animationPlayState: "running",
+      });
+      expect(layers[index].querySelector("rect")).toHaveAttribute("height", String(view.h + layer.height));
+    });
+    expect(container.querySelector("linearGradient stop")).toHaveAttribute("stop-opacity", "0");
+  });
+
   it("fills horizontal and vertical letterboxing after resize and camera changes", () => {
     const { container, rerender, unmount } = render(
       <svg><RainLayer enabled weather={weather} view={view} /></svg>,
@@ -119,6 +136,9 @@ describe("RainLayer", () => {
     state.playing = false;
     const { rerender } = render(<svg><RainLayer enabled weather={weather} view={view} /></svg>);
     expect(screen.getByTestId("map-rain-streaks")).toHaveStyle({ animationPlayState: "paused" });
+    screen.getByTestId("map-rain-streaks").querySelectorAll("[data-rain-depth]").forEach((layer) => {
+      expect(layer).toHaveStyle({ animationPlayState: "paused" });
+    });
     state.playing = true;
     rerender(<svg><RainLayer enabled weather={weather} view={view} preview /></svg>);
     expect(screen.getByTestId("map-rain-streaks")).toHaveStyle({ animationPlayState: "paused" });

@@ -2,12 +2,9 @@ import { memo, useEffect, useId, useRef, useState } from "react";
 import type { CSSProperties } from "react";
 import type { Weather } from "@/api/types";
 import {
-  MAP_RAIN_CYCLE_MS,
-  MAP_RAIN_STREAK_OPACITY,
-  MAP_RAIN_STREAKS,
-  MAP_RAIN_STROKE_W,
-  MAP_RAIN_TILE_H,
-  MAP_RAIN_TILE_W,
+  MAP_RAIN_HAZE_CENTER_OPACITY,
+  MAP_RAIN_HAZE_OPACITY,
+  MAP_RAIN_LAYERS,
   MAP_RAIN_TINT_OPACITY,
 } from "@/constants";
 import { useMediaQuery } from "@/hooks/useMediaQuery";
@@ -47,9 +44,7 @@ function ActiveRain({ view: cameraView, preview }: Pick<Props, "view" | "preview
   };
   const playing = useTimeline((state) => state.playing);
   const reducedMotion = useMediaQuery("(prefers-reduced-motion: reduce)");
-  const style: CSSProperties & { "--track-rain-step": string } = {
-    "--track-rain-step": `${-MAP_RAIN_TILE_H}px`,
-    animation: `track-rain-fall ${MAP_RAIN_CYCLE_MS}ms linear infinite`,
+  const style: CSSProperties = {
     animationPlayState: playing && !preview ? "running" : "paused",
   };
   return (
@@ -64,25 +59,37 @@ function ActiveRain({ view: cameraView, preview }: Pick<Props, "view" | "preview
         <clipPath id={`${id}-clip`}>
           <rect x={view.x} y={view.y} width={view.w} height={view.h} />
         </clipPath>
-        <pattern
-          id={`${id}-streaks`}
-          width={MAP_RAIN_TILE_W}
-          height={MAP_RAIN_TILE_H}
-          patternUnits="userSpaceOnUse"
-        >
-          {MAP_RAIN_STREAKS.map(([x1, y1, x2, y2]) => (
-            <line
-              key={x1}
-              x1={x1}
-              y1={y1}
-              x2={x2}
-              y2={y2}
-              stroke="currentColor"
-              strokeWidth={MAP_RAIN_STROKE_W}
-              strokeLinecap="round"
-            />
-          ))}
-        </pattern>
+        <linearGradient id={`${id}-drop`} x1="100%" y1="0%" x2="0%" y2="100%">
+          <stop offset="0%" stopColor="currentColor" stopOpacity="0" />
+          <stop offset="65%" stopColor="currentColor" stopOpacity="0.7" />
+          <stop offset="100%" stopColor="currentColor" />
+        </linearGradient>
+        <radialGradient id={`${id}-haze`}>
+          <stop offset="0%" stopColor="currentColor" stopOpacity={MAP_RAIN_HAZE_CENTER_OPACITY} />
+          <stop offset="100%" stopColor="currentColor" />
+        </radialGradient>
+        {MAP_RAIN_LAYERS.map((layer) => (
+          <pattern
+            key={layer.name}
+            id={`${id}-${layer.name}`}
+            width={layer.width}
+            height={layer.height}
+            patternUnits="userSpaceOnUse"
+          >
+            {layer.streaks.map(([x1, y1, x2, y2]) => (
+              <line
+                key={x1}
+                x1={x1}
+                y1={y1}
+                x2={x2}
+                y2={y2}
+                stroke={`url(#${id}-drop)`}
+                strokeWidth={layer.strokeWidth}
+                strokeLinecap="round"
+              />
+            ))}
+          </pattern>
+        ))}
       </defs>
       <g clipPath={`url(#${id}-clip)`}>
         <rect
@@ -93,15 +100,35 @@ function ActiveRain({ view: cameraView, preview }: Pick<Props, "view" | "preview
           fill="currentColor"
           opacity={MAP_RAIN_TINT_OPACITY}
         />
+        <rect
+          data-testid="map-rain-haze"
+          x={view.x}
+          y={view.y}
+          width={view.w}
+          height={view.h}
+          fill={`url(#${id}-haze)`}
+          opacity={MAP_RAIN_HAZE_OPACITY}
+        />
         {!reducedMotion && (
-          <g data-testid="map-rain-streaks" style={style} opacity={MAP_RAIN_STREAK_OPACITY}>
-            <rect
-              x={view.x}
-              y={view.y}
-              width={view.w}
-              height={view.h + MAP_RAIN_TILE_H}
-              fill={`url(#${id}-streaks)`}
-            />
+          <g data-testid="map-rain-streaks" style={style}>
+            {MAP_RAIN_LAYERS.map((layer) => {
+              const layerStyle: CSSProperties & { "--track-rain-step": string } = {
+                "--track-rain-step": `${-layer.height}px`,
+                animation: `track-rain-fall ${layer.cycleMs}ms linear infinite`,
+                animationPlayState: style.animationPlayState,
+              };
+              return (
+                <g key={layer.name} data-rain-depth={layer.name} style={layerStyle} opacity={layer.opacity}>
+                  <rect
+                    x={view.x}
+                    y={view.y}
+                    width={view.w}
+                    height={view.h + layer.height}
+                    fill={`url(#${id}-${layer.name})`}
+                  />
+                </g>
+              );
+            })}
           </g>
         )}
       </g>

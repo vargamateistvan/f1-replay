@@ -70,16 +70,22 @@ export const TRACK_BACKGROUND_LINE_OPACITY = 0.07;
 export const TRACK_BACKGROUND_LINE_OPACITY_LIGHT = 0.14;
 
 /** Decorative 2D/ring rain; OpenF1 rainfall reports presence, not intensity. */
-export const MAP_RAIN_TILE_W = 120;
-export const MAP_RAIN_TILE_H = 100;
-export const MAP_RAIN_CYCLE_MS = 900;
-export const MAP_RAIN_STREAK_OPACITY = 0.24;
-export const MAP_RAIN_TINT_OPACITY = 0.055;
-export const MAP_RAIN_STROKE_W = 1;
-export const MAP_RAIN_STREAKS = [
-  [12, 8, 8, 24],
-  [64, 39, 60, 55],
-  [102, 73, 98, 89],
+export const MAP_RAIN_TINT_OPACITY = 0.035;
+export const MAP_RAIN_HAZE_OPACITY = 0.09;
+export const MAP_RAIN_HAZE_CENTER_OPACITY = 0.15;
+export const MAP_RAIN_LAYERS = [
+  {
+    name: "distant", width: 173, height: 137, cycleMs: 1400, opacity: 0.13, strokeWidth: 0.7,
+    streaks: [[18, 14, 15, 25], [79, 52, 76, 64], [140, 104, 137, 114], [44, 118, 41, 130]],
+  },
+  {
+    name: "middle", width: 211, height: 163, cycleMs: 850, opacity: 0.24, strokeWidth: 1,
+    streaks: [[31, 18, 26, 39], [123, 65, 117, 90], [182, 128, 177, 148], [65, 110, 60, 131]],
+  },
+  {
+    name: "near", width: 293, height: 227, cycleMs: 600, opacity: 0.3, strokeWidth: 1.4,
+    streaks: [[52, 31, 44, 64], [217, 117, 208, 154], [122, 184, 114, 216]],
+  },
 ] as const;
 /** Mouse-wheel zoom sensitivity and normalization for the 2D track map. */
 export const TRACK_WHEEL_ZOOM_PER_PIXEL = 0.002;
