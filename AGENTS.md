@@ -48,6 +48,8 @@
 
 Tests sit next to the module (`foo.ts` → `foo.test.ts`); broad smoke/coverage tests are in `components/__tests__/`.
 
+Qualifying playback markers prefer phase-tagged `SESSION STARTED` messages; pre-session race-control rows must not become negative phase starts. Tagged flags and text announcements remain fallbacks only when an actual phase start is unavailable.
+
 ---
 
 ## 1. Project Overview

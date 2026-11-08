@@ -4,7 +4,7 @@ import { MemoryRouter } from "react-router-dom";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { api } from "@/api/endpoints";
 import { OpenF1Error } from "@/api/client";
-import type { Driver, Lap, Location, Session } from "@/api/types";
+import type { Driver, Lap, Location, RaceControl, Session } from "@/api/types";
 import { TOUR_VERSION } from "@/constants";
 import * as motion from "@/lib/motion";
 import { useSettings } from "@/stores/settings";
@@ -96,6 +96,35 @@ describe("progressive replay startup", () => {
   }
 
   const firstLapStartMs = 300_000;
+  it("uses actual qualifying starts instead of pre-session phase-tagged flags or announcements", async () => {
+    client.setQueryData(["sessions", 456], [{ ...session, session_name: "Qualifying", session_type: "Qualifying" }]);
+    const row = (ms: number, phase: RaceControl["qualifying_phase"], message: string): RaceControl => ({
+      date: new Date(Date.parse(session.date_start) + ms).toISOString(),
+      session_key: 123, meeting_key: 456, category: "Other", flag: null,
+      scope: null, sector: null, driver_number: null, lap_number: null,
+      qualifying_phase: phase, message,
+    });
+    const rows = [
+      row(-737_000, 1, "YELLOW IN TRACK SECTOR 1"),
+      row(145, 1, "SESSION STARTED"),
+      row(600_000, 1, "SESSION ABORTED"),
+      row(900_000, 1, "SESSION STARTED"),
+      row(1_100_000, null, "Q2 WILL START AT 16:49"),
+      row(1_200_136, 2, "SESSION STARTED"),
+      row(2_000_000, null, "START OF Q3 WILL BE DELAYED"),
+      row(2_100_131, 3, "SESSION STARTED"),
+    ];
+    client.setQueryData(["raceControl", 123], rows);
+    vi.mocked(api.raceControl).mockResolvedValue(rows);
+    renderReplay();
+    const q1 = await screen.findByRole("button", { name: "Jump to Q1 start at 00:00" });
+    expect(q1).toHaveTextContent("Q1");
+    expect(screen.getByRole("button", { name: "Jump to Q2 start at 20:00" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Jump to Q3 start at 35:00" })).toBeInTheDocument();
+    fireEvent.click(q1);
+    expect(useTimeline.getState().t).toBe(145);
+  });
+
   const gps: Location = {
     date: session.date_start, session_key: 123, meeting_key: 456,
     driver_number: 44, x: 100, y: 200, z: 0,

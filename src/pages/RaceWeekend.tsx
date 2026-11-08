@@ -1871,14 +1871,21 @@ export default function RaceWeekend() {
       };
     }
 
-    let q1StartMs: number | null = null;
-    let q2StartMs: number | null = null;
-    let q3StartMs: number | null = null;
+    const actualStart = (phase: number) =>
+      timedRaceControl.find(({ row, relMs }) =>
+        relMs >= 0 &&
+        row.qualifying_phase === phase &&
+        /^SESSION STARTED\b/i.test(row.message ?? ""),
+      )?.relMs ?? null;
+    let q1StartMs: number | null = actualStart(1);
+    let q2StartMs: number | null = actualStart(2);
+    let q3StartMs: number | null = actualStart(3);
     let q1EndMs: number | null = null;
     let q2EndMs: number | null = null;
     let q3EndMs: number | null = null;
     let firstSessionStartMs: number | null = null;
     for (const { row: entry, relMs } of timedRaceControl) {
+      if (relMs < 0) continue;
       const msg = (entry.message ?? "").toUpperCase();
 
       // Prefer explicit phase markers from the API when present.
