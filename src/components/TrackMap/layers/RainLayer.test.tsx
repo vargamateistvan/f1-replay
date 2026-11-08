@@ -64,11 +64,37 @@ describe("RainLayer", () => {
       expect(layers[index]).toHaveAttribute("data-rain-depth", layer.name);
       expect(layers[index]).toHaveStyle({
         animation: `track-rain-fall ${layer.cycleMs}ms linear infinite`,
+        animationDelay: `${-layer.cycleMs * layer.drift}s`,
         animationPlayState: "running",
+      });
+      expect(layers[index]).toHaveStyle({
+        "--track-rain-drift": "0px",
       });
       expect(layers[index].querySelector("rect")).toHaveAttribute("height", String(view.h + layer.height));
     });
+    expect(container.querySelectorAll("pattern line")).toHaveLength(
+      MAP_RAIN_LAYERS.reduce((count, layer) => count + layer.streaks.length, 0),
+    );
     expect(container.querySelector("linearGradient stop")).toHaveAttribute("stop-opacity", "0");
+  });
+
+  it("stagger-runs the layers and leans the rain with reported wind", () => {
+    const { container } = render(
+      <svg>
+        <RainLayer
+          enabled
+          weather={{ ...weather, wind_direction: 90, wind_speed: 8 }}
+          view={view}
+        />
+      </svg>,
+    );
+    const layers = container.querySelectorAll("[data-rain-depth]");
+    MAP_RAIN_LAYERS.forEach((layer, index) => {
+      expect(layers[index]).toHaveStyle({
+        "--track-rain-drift": `${12 * layer.drift}px`,
+        animationDelay: `${-layer.cycleMs * layer.drift}s`,
+      });
+    });
   });
 
   it("fills horizontal and vertical letterboxing after resize and camera changes", () => {

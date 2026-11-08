@@ -3,8 +3,8 @@
 @tailwind utilities;
 
 @keyframes track-rain-fall {
-  from { transform: translateY(var(--track-rain-step)); }
-  to { transform: translateY(0); }
+  from { transform: translate(var(--track-rain-drift), var(--track-rain-step)); }
+  to { transform: translate(0, 0); }
 }
 
 :root {

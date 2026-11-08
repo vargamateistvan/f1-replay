@@ -18,7 +18,11 @@ interface Props {
   preview?: boolean;
 }
 
-function ActiveRain({ view: cameraView, preview }: Pick<Props, "view" | "preview">) {
+function ActiveRain({
+  view: cameraView,
+  preview,
+  weather,
+}: Pick<Props, "view" | "preview" | "weather">) {
   const id = useId().replaceAll(":", "");
   const layerRef = useRef<SVGGElement>(null);
   const [aspect, setAspect] = useState<number | null>(null);
@@ -44,6 +48,10 @@ function ActiveRain({ view: cameraView, preview }: Pick<Props, "view" | "preview
   };
   const playing = useTimeline((state) => state.playing);
   const reducedMotion = useMediaQuery("(prefers-reduced-motion: reduce)");
+  const windAngle = ((weather?.wind_direction ?? 0) * Math.PI) / 180;
+  const rawWindDrift =
+    -Math.min(24, Math.max(0, weather?.wind_speed ?? 0) * 1.5) * Math.sin(windAngle);
+  const windDrift = Math.abs(rawWindDrift) < 0.001 ? 0 : rawWindDrift;
   const style: CSSProperties = {
     animationPlayState: playing && !preview ? "running" : "paused",
   };
@@ -112,9 +120,14 @@ function ActiveRain({ view: cameraView, preview }: Pick<Props, "view" | "preview
         {!reducedMotion && (
           <g data-testid="map-rain-streaks" style={style}>
             {MAP_RAIN_LAYERS.map((layer) => {
-              const layerStyle: CSSProperties & { "--track-rain-step": string } = {
+              const layerStyle: CSSProperties & {
+                "--track-rain-step": string;
+                "--track-rain-drift": string;
+              } = {
                 "--track-rain-step": `${-layer.height}px`,
+                "--track-rain-drift": `${-windDrift * layer.drift}px`,
                 animation: `track-rain-fall ${layer.cycleMs}ms linear infinite`,
+                animationDelay: `${-layer.cycleMs * layer.drift}s`,
                 animationPlayState: style.animationPlayState,
               };
               return (
@@ -138,5 +151,5 @@ function ActiveRain({ view: cameraView, preview }: Pick<Props, "view" | "preview
 
 export const RainLayer = memo(function RainLayer({ enabled, weather, view, preview }: Props) {
   if (!enabled || !weather || !(weather.rainfall > 0)) return null;
-  return <ActiveRain view={view} preview={preview} />;
+  return <ActiveRain view={view} preview={preview} weather={weather} />;
 });

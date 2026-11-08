@@ -75,16 +75,16 @@ export const MAP_RAIN_HAZE_OPACITY = 0.09;
 export const MAP_RAIN_HAZE_CENTER_OPACITY = 0.15;
 export const MAP_RAIN_LAYERS = [
   {
-    name: "distant", width: 173, height: 137, cycleMs: 1400, opacity: 0.13, strokeWidth: 0.7,
-    streaks: [[18, 14, 15, 25], [79, 52, 76, 64], [140, 104, 137, 114], [44, 118, 41, 130]],
+    name: "distant", width: 173, height: 137, cycleMs: 1500, opacity: 0.16, strokeWidth: 0.7, drift: 0.4,
+    streaks: [[18, 14, 15, 25], [79, 52, 76, 64], [140, 104, 137, 114], [44, 118, 41, 130], [116, 19, 114, 28], [7, 83, 4, 95]],
   },
   {
-    name: "middle", width: 211, height: 163, cycleMs: 850, opacity: 0.24, strokeWidth: 1,
-    streaks: [[31, 18, 26, 39], [123, 65, 117, 90], [182, 128, 177, 148], [65, 110, 60, 131]],
+    name: "middle", width: 211, height: 163, cycleMs: 900, opacity: 0.24, strokeWidth: 1, drift: 0.7,
+    streaks: [[31, 18, 26, 39], [123, 65, 117, 90], [182, 128, 177, 148], [65, 110, 60, 131], [12, 57, 8, 74], [156, 28, 152, 47]],
   },
   {
-    name: "near", width: 293, height: 227, cycleMs: 600, opacity: 0.3, strokeWidth: 1.4,
-    streaks: [[52, 31, 44, 64], [217, 117, 208, 154], [122, 184, 114, 216]],
+    name: "near", width: 293, height: 227, cycleMs: 650, opacity: 0.32, strokeWidth: 1.4, drift: 1,
+    streaks: [[52, 31, 44, 64], [217, 117, 208, 154], [122, 184, 114, 216], [274, 24, 266, 54], [21, 148, 14, 178], [170, 61, 162, 93]],
   },
 ] as const;
 export const MAP_QUICK_SETTINGS_INSET = 8;
