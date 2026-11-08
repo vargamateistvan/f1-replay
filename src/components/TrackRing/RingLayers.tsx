@@ -386,15 +386,6 @@ export function RingCenter({
   const chipW = status ? Math.max(34, status.label.length * 5.4 + 12) : 0;
   return (
     <g fontFamily={FONT} pointerEvents="none" data-testid="ring-center-dashboard">
-      <rect
-        data-testid="ring-center-panel"
-        x={cx - 88}
-        y={cy - 78}
-        width={176}
-        height={156}
-        rx={8}
-        fill="rgb(var(--color-surface))"
-      />
       <text
         x={cx}
         y={cy - 62}

@@ -464,6 +464,9 @@ describe("TrackRing", () => {
       wind_speed: 3.7,
     } satisfies Weather;
     const { rerender } = renderRing({ weatherOverlay: weather, lapLabel: "21/52" });
+    expect(
+      screen.getByTestId("ring-center-dashboard").querySelector('rect[width="176"][height="156"]'),
+    ).not.toBeInTheDocument();
     const tyreGuidance = screen.getByTestId("ring-center-tyre-guidance");
     expect(tyreGuidance).toHaveTextContent("SUGGESTED");
     expect(tyreGuidance).toHaveTextContent("FASTEST");
