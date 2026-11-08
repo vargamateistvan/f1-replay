@@ -423,9 +423,10 @@ describe("TrackRing", () => {
     expect(driverInfo).toHaveTextContent("P2");
     expect(driverInfo).toHaveTextContent("LEC");
     expect(driverInfo).toHaveTextContent("#16");
-    expect(driverInfo).toHaveTextContent("AHEAD +1.2s · BEHIND +0.8s");
+    expect(driverInfo).toHaveTextContent("AHEAD+1.2s");
+    expect(driverInfo).toHaveTextContent("BEHIND+0.8s");
     expect(driverInfo).toHaveTextContent("MEDIUM · 12L");
-    expect(driverInfo.querySelector("rect")).toBeNull();
+    expect(driverInfo.querySelectorAll("rect")).toHaveLength(2);
   });
 
   it("shows compact weather details in the centre only when no driver is focused", () => {
@@ -448,13 +449,13 @@ describe("TrackRing", () => {
     expect(screen.getByLabelText("Suggested tyre: SOFT")).toBeInTheDocument();
     expect(screen.getByLabelText("Fastest clean-lap tyre unavailable")).toBeInTheDocument();
     const centerWeather = screen.getByTestId("ring-center-weather");
-    const centerGroup = centerWeather.parentElement;
-    const lapLabel = centerGroup?.querySelector('text');
-    expect(lapLabel).toHaveAttribute("y", String(RING_SVG_H / 2 - 24));
-    const statusLabel = Array.from(centerGroup?.querySelectorAll("text") ?? []).find(
+    const centerDashboard = screen.getByTestId("ring-center-dashboard");
+    const lapLabel = screen.getByTestId("ring-lap-label");
+    expect(lapLabel).toHaveAttribute("y", String(RING_SVG_H / 2 - 44));
+    const statusLabel = Array.from(centerDashboard.querySelectorAll("text")).find(
       (text) => text.textContent === "Green",
     );
-    expect(statusLabel).toHaveAttribute("y", String(RING_SVG_H / 2 + 0.5));
+    expect(statusLabel).toHaveAttribute("y", String(RING_SVG_H / 2 - 22));
     expect(centerWeather).toHaveTextContent("TRACK39°C");
     expect(centerWeather).toHaveTextContent("AIR24°C");
     expect(centerWeather).toHaveTextContent("48%");
@@ -462,12 +463,10 @@ describe("TrackRing", () => {
     const bottomRow = screen.getByTestId("ring-weather-bottom-row");
     expect(bottomRow).toHaveAttribute(
       "transform",
-      `translate(${RING_SVG_W / 2} ${RING_SVG_H / 2 + 76})`,
+      `translate(${RING_SVG_W / 2} ${RING_SVG_H / 2 + 46})`,
     );
     expect(screen.getByText("DRY").parentElement).toBe(bottomRow);
-    expect(centerWeather.querySelector("line")).toHaveAttribute("y1", String(RING_SVG_H / 2 + 69));
-    expect(centerWeather.querySelector(".lucide-thermometer")).not.toBeNull();
-    expect(centerWeather.querySelector(".lucide-droplets")).not.toBeNull();
+    expect(centerWeather.querySelectorAll("rect")).toHaveLength(3);
     expect(centerWeather.querySelector(".lucide-wind")).not.toBeNull();
     expect(centerWeather.querySelector(".lucide-cloud-sun")).not.toBeNull();
     expect(screen.queryByText("Track Weather")).not.toBeInTheDocument();
@@ -491,10 +490,10 @@ describe("TrackRing", () => {
     expect(screen.queryByTestId("ring-center-weather")).not.toBeInTheDocument();
     expect(screen.getByTestId("ring-center-tyre-guidance")).toBeInTheDocument();
     const driverInfo = screen.getByTestId("ring-focused-driver-info");
-    const focusedLap = driverInfo.parentElement?.querySelector('text');
-    expect(focusedLap).toHaveAttribute("y", lapLabel?.getAttribute("y"));
+    const focusedLap = screen.getByTestId("ring-lap-label");
+    expect(focusedLap).toHaveAttribute("y", lapLabel.getAttribute("y"));
     expect(driverInfo).toHaveTextContent("P—");
-    const focusedStatus = Array.from(driverInfo.parentElement?.querySelectorAll("text") ?? []).find(
+    const focusedStatus = Array.from(screen.getByTestId("ring-center-dashboard").querySelectorAll("text")).find(
       (text) => text.textContent === "Green",
     );
     expect(focusedStatus).toHaveAttribute("y", statusLabel?.getAttribute("y"));

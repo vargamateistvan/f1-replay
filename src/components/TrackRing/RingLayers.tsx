@@ -1,5 +1,5 @@
 import { memo } from "react";
-import { CloudRain, CloudSun, Droplets, Thermometer, Wind } from "lucide-react";
+import { CloudRain, CloudSun, Wind } from "lucide-react";
 import type { Driver, Stint } from "@/api/types";
 import {
   COMPOUND_COLORS,
@@ -340,7 +340,7 @@ export function RingLegend() {
   );
 }
 
-/** Centre of the dial: lap, track status, reference lap and what the gaps mean. */
+/** Centre dashboard for lap context, focused-driver data, weather and tyre guidance. */
 export function RingCenter({
   cx,
   cy,
@@ -381,23 +381,54 @@ export function RingCenter({
   } | null;
   lightMode: boolean;
 }) {
-  const fg = lightMode ? "#111318" : "#ffffff";
-  const muted = lightMode ? "#5b6478" : "#8d97ad";
+  const fg = "rgb(var(--color-fg))";
+  const muted = "rgb(var(--color-muted))";
   const chipW = status ? Math.max(34, status.label.length * 5.4 + 12) : 0;
   return (
-    <g fontFamily={FONT} textAnchor="middle" pointerEvents="none">
+    <g fontFamily={FONT} pointerEvents="none" data-testid="ring-center-dashboard">
+      <rect
+        data-testid="ring-center-panel"
+        x={cx - 88}
+        y={cy - 78}
+        width={176}
+        height={156}
+        rx={8}
+        fill="rgb(var(--color-surface))"
+      />
+      <text
+        x={cx}
+        y={cy - 62}
+        textAnchor="middle"
+        fontSize={4.5}
+        fontWeight="800"
+        fill={muted}
+        letterSpacing="0.16em"
+        dominantBaseline="middle"
+      >
+        LAP
+      </text>
       {lapLabel && (
-        <text x={cx} y={cy - 24} fontSize={28} fontWeight="900" fill={fg} dominantBaseline="middle">
+        <text
+          data-testid="ring-lap-label"
+          x={cx}
+          y={cy - 44}
+          textAnchor="middle"
+          fontSize={20}
+          fontWeight="900"
+          fill={fg}
+          dominantBaseline="middle"
+        >
           {lapLabel}
         </text>
       )}
       {status && (
         <g>
-          <rect x={cx - chipW / 2} y={cy - 6} width={chipW} height={13} rx={2} fill={status.color} />
+          <rect x={cx - chipW / 2} y={cy - 28} width={chipW} height={12} rx={3} fill={status.color} />
           <text
             x={cx}
-            y={cy + 0.5}
-            fontSize={7.5}
+            y={cy - 22}
+            textAnchor="middle"
+            fontSize={6}
             fontWeight="900"
             fill={labelTextColor(status.color)}
             dominantBaseline="middle"
@@ -407,45 +438,168 @@ export function RingCenter({
           </text>
         </g>
       )}
-      <text x={cx} y={cy + 20} fontSize={8} fill={fg} opacity={0.85} dominantBaseline="middle">
+      <text
+        x={cx}
+        y={cy - 11}
+        textAnchor="middle"
+        fontSize={5.5}
+        fill={muted}
+        dominantBaseline="middle"
+      >
         {reference.title}
       </text>
+      <line
+        x1={cx - 72}
+        y1={cy - 4}
+        x2={cx + 72}
+        y2={cy - 4}
+        stroke="rgb(var(--color-surface))"
+        strokeWidth={0.6}
+      />
+      {focusInfo ? (
+        <g data-testid="ring-focused-driver-info" aria-label={`Focused driver ${focusInfo.acronym}`}>
+          <text x={cx - 67} y={cy + 8} textAnchor="start" fontSize={9} dominantBaseline="middle">
+            <tspan fill={focusInfo.color} fontWeight="900">
+              {focusInfo.position == null ? "P—" : `P${focusInfo.position}`}
+            </tspan>
+          </text>
+          <text x={cx - 31} y={cy + 8} textAnchor="start" fontSize={8} fill={fg} fontWeight="800" dominantBaseline="middle">
+            {focusInfo.acronym}
+          </text>
+          <text x={cx + 67} y={cy + 8} textAnchor="end" fontSize={5.5} fill={muted} dominantBaseline="middle">
+            #{focusInfo.number}
+          </text>
+          <g aria-label="Focused driver gaps">
+            <rect x={cx - 72} y={cy + 17} width={69} height={28} rx={3} fill="rgb(var(--color-panel))" />
+            <rect x={cx + 3} y={cy + 17} width={69} height={28} rx={3} fill="rgb(var(--color-panel))" />
+            <text x={cx - 64} y={cy + 25} textAnchor="start" fontSize={4.5} fill={muted} letterSpacing="0.1em" dominantBaseline="middle">
+              AHEAD
+            </text>
+            <text x={cx - 64} y={cy + 38} textAnchor="start" fontSize={7} fill={fg} fontWeight="800" dominantBaseline="middle">
+              {formatCenterGap(focusInfo.gapAhead)}
+            </text>
+            <text x={cx + 11} y={cy + 25} textAnchor="start" fontSize={4.5} fill={muted} letterSpacing="0.1em" dominantBaseline="middle">
+              BEHIND
+            </text>
+            <text x={cx + 11} y={cy + 38} textAnchor="start" fontSize={7} fill={fg} fontWeight="800" dominantBaseline="middle">
+              {formatCenterGap(focusInfo.gapBehind)}
+            </text>
+          </g>
+          <text x={cx} y={cy + 54} textAnchor="middle" fontSize={5.5} dominantBaseline="middle">
+            <tspan fill={focusInfo.compound ? COMPOUND_COLORS[focusInfo.compound] : muted} fontWeight="800">
+              {focusInfo.compound
+                ? `${focusInfo.compound} · ${focusInfo.tyreAge == null ? "—" : `${focusInfo.tyreAge}L`}`
+                : "TYRE DATA UNAVAILABLE"}
+            </tspan>
+            {focusInfo.speed && <tspan fill={fg}> · {focusInfo.speed}</tspan>}
+          </text>
+        </g>
+      ) : weather ? (
+        <g data-testid="ring-center-weather" aria-label="Track weather">
+          {[
+            { label: "TRACK", value: weather.track, x: cx - 72 },
+            { label: "AIR", value: weather.air, x: cx - 23 },
+            { label: "HUMIDITY", value: weather.humidity, x: cx + 26 },
+          ].map(({ label, value, x }) => (
+            <g key={label}>
+              <rect x={x} y={cy + 2} width={46} height={29} rx={3} fill="rgb(var(--color-panel))" />
+              <text x={x + 23} y={cy + 12} textAnchor="middle" fontSize={4.2} fill={muted} letterSpacing="0.08em" dominantBaseline="middle">
+                {label}
+              </text>
+              <text x={x + 23} y={cy + 25} textAnchor="middle" fontSize={7} fill={fg} fontWeight="800" dominantBaseline="middle">
+                {value}
+              </text>
+            </g>
+          ))}
+          <g
+            data-testid="ring-weather-bottom-row"
+            transform={`translate(${cx} ${cy + 46})`}
+            fontSize={5.5}
+            dominantBaseline="middle"
+          >
+            <Wind x={-48} y={-3} size={7} strokeWidth={1.8} color={muted} aria-hidden="true" />
+            <text x={-37} y={0} fill={fg} textAnchor="start">
+              {weather.wind}
+            </text>
+            {weather.raining ? (
+              <CloudRain
+                x={17}
+                y={-3}
+                size={7}
+                strokeWidth={1.8}
+                color={TOKEN_HEX.blue}
+                role="img"
+                aria-label="Rain"
+              />
+            ) : (
+              <CloudSun
+                x={17}
+                y={-3}
+                size={7}
+                strokeWidth={1.8}
+                color={muted}
+                aria-hidden="true"
+              />
+            )}
+            <text
+              x={27}
+              y={0}
+              fill={weather.raining ? TOKEN_HEX.blue : muted}
+              textAnchor="start"
+              fontSize={5}
+              fontWeight="800"
+              letterSpacing="0.04em"
+            >
+              {weather.raining ? "RAIN" : "DRY"}
+            </text>
+          </g>
+        </g>
+      ) : null}
       {tyreGuidance && (
         <g
           data-testid="ring-center-tyre-guidance"
           aria-label="Tyre recommendation and fastest clean lap compound"
         >
-          <text x={cx - 15} y={cy + 31} textAnchor="end" fontSize={4.5} fill={muted} dominantBaseline="middle">
+          <line
+            x1={cx - 72}
+            y1={cy + 62}
+            x2={cx + 72}
+            y2={cy + 62}
+            stroke="rgb(var(--color-surface))"
+            strokeWidth={0.5}
+          />
+          <text x={cx - 68} y={cy + 70} textAnchor="start" fontSize={4.2} fill={muted} letterSpacing="0.08em" dominantBaseline="middle">
             SUGGESTED
           </text>
           <g
             role="img"
             aria-label={`Suggested tyre: ${tyreGuidance.suggested}`}
-            transform={`translate(${cx - 8} ${cy + 31})`}
+            transform={`translate(${cx - 20} ${cy + 70})`}
           >
-            <circle r={5} fill="none" stroke={compoundBadgeColor(tyreGuidance.suggested, lightMode)} strokeWidth={1.8} />
-            <text y={0.3} fontSize={4.5} fill={fg} fontWeight="900" dominantBaseline="middle">
+            <circle r={4.5} fill="none" stroke={compoundBadgeColor(tyreGuidance.suggested, lightMode)} strokeWidth={1.5} />
+            <text y={0.3} textAnchor="middle" fontSize={4.2} fill={fg} fontWeight="900" dominantBaseline="middle">
               {COMPOUND_LETTERS[tyreGuidance.suggested]}
             </text>
           </g>
-          <text x={cx + 4} y={cy + 31} textAnchor="start" fontSize={4.5} fill={muted} dominantBaseline="middle">
+          <text x={cx + 5} y={cy + 70} textAnchor="start" fontSize={4.2} fill={muted} letterSpacing="0.08em" dominantBaseline="middle">
             FASTEST
           </text>
           {tyreGuidance.fastest ? (
             <g
               role="img"
               aria-label={`Fastest clean-lap tyre: ${tyreGuidance.fastest}`}
-              transform={`translate(${cx + 38} ${cy + 31})`}
+              transform={`translate(${cx + 53} ${cy + 70})`}
             >
-              <circle r={5} fill="none" stroke={compoundBadgeColor(tyreGuidance.fastest, lightMode)} strokeWidth={1.8} />
-              <text y={0.3} fontSize={4.5} fill={fg} fontWeight="900" dominantBaseline="middle">
+              <circle r={4.5} fill="none" stroke={compoundBadgeColor(tyreGuidance.fastest, lightMode)} strokeWidth={1.5} />
+              <text y={0.3} textAnchor="middle" fontSize={4.2} fill={fg} fontWeight="900" dominantBaseline="middle">
                 {COMPOUND_LETTERS[tyreGuidance.fastest]}
               </text>
             </g>
           ) : (
             <text
-              x={cx + 38}
-              y={cy + 31}
+              x={cx + 53}
+              y={cy + 70}
+              textAnchor="middle"
               fontSize={5}
               fill={muted}
               dominantBaseline="middle"
@@ -456,114 +610,6 @@ export function RingCenter({
           )}
         </g>
       )}
-      {focusInfo ? (
-        <g data-testid="ring-focused-driver-info" aria-label={`Focused driver ${focusInfo.acronym}`}>
-          <text x={cx} y={cy + 42} fontSize={6.5} fill={fg} dominantBaseline="middle">
-            <tspan fill={focusInfo.color} fontWeight="800">
-              {focusInfo.position == null ? "P—" : `P${focusInfo.position}`}
-            </tspan>
-            <tspan fill={muted}> · </tspan>
-            <tspan fontWeight="700">{focusInfo.acronym}</tspan>
-            <tspan fill={muted}> #{focusInfo.number}</tspan>
-          </text>
-          <text
-            x={cx}
-            y={cy + 52}
-            fontSize={5.8}
-            fill={fg}
-            dominantBaseline="middle"
-          >
-            <tspan fill={muted}>AHEAD </tspan>
-            {formatCenterGap(focusInfo.gapAhead)}
-            <tspan fill={muted}> · BEHIND </tspan>
-            {formatCenterGap(focusInfo.gapBehind)}
-          </text>
-          <text x={cx} y={cy + 62} fontSize={5.5} fill={muted} dominantBaseline="middle">
-            <tspan fill={focusInfo.compound ? COMPOUND_COLORS[focusInfo.compound] : muted}>
-              {focusInfo.compound
-                ? `${focusInfo.compound} · ${focusInfo.tyreAge == null ? "—" : `${focusInfo.tyreAge}L`}`
-                : "TYRE DATA UNAVAILABLE"}
-            </tspan>
-            {focusInfo.speed ? ` · ${focusInfo.speed}` : ""}
-          </text>
-        </g>
-      ) : weather ? (
-        <g data-testid="ring-center-weather" aria-label="Track weather">
-          <g fill={muted} fontSize={4.5} dominantBaseline="middle">
-            <g textAnchor="middle">
-              <Thermometer x={cx - 44} y={cy + 49} size={7} strokeWidth={1.8} aria-hidden="true" />
-              <text x={cx - 34} y={cy + 53} textAnchor="start">TRACK</text>
-              <text x={cx - 36} y={cy + 63} fill={fg} fontSize={6.5} fontWeight="700">
-                {weather.track}
-              </text>
-            </g>
-            <g textAnchor="middle">
-              <Thermometer x={cx - 4} y={cy + 49} size={7} strokeWidth={1.8} aria-hidden="true" />
-              <text x={cx + 6} y={cy + 53} textAnchor="start">AIR</text>
-              <text x={cx + 4} y={cy + 63} fill={fg} fontSize={6.5} fontWeight="700">
-                {weather.air}
-              </text>
-            </g>
-            <g textAnchor="middle">
-              <Droplets x={cx + 35} y={cy + 49} size={7} strokeWidth={1.8} aria-hidden="true" />
-              <text x={cx + 45} y={cy + 53} textAnchor="start">HUM</text>
-              <text x={cx + 39} y={cy + 63} fill={fg} fontSize={6.5} fontWeight="700">
-                {weather.humidity}
-              </text>
-            </g>
-            <line
-              x1={cx - 52}
-              y1={cy + 69}
-              x2={cx + 52}
-              y2={cy + 69}
-              stroke={muted}
-              strokeOpacity={0.35}
-              strokeWidth={0.5}
-            />
-            <g
-              data-testid="ring-weather-bottom-row"
-              transform={`translate(${cx} ${cy + 76})`}
-              fontSize={5.5}
-              dominantBaseline="middle"
-            >
-              <Wind x={-32} y={-3} size={7} strokeWidth={1.8} aria-hidden="true" />
-              <text x={-22} y={0} fill={fg} textAnchor="start">
-                {weather.wind}
-              </text>
-              {weather.raining ? (
-                <CloudRain
-                  x={13}
-                  y={-3}
-                  size={7}
-                  strokeWidth={1.8}
-                  color="#38bdf8"
-                  role="img"
-                  aria-label="Rain"
-                />
-              ) : (
-                <CloudSun
-                  x={13}
-                  y={-3}
-                  size={7}
-                  strokeWidth={1.8}
-                  aria-hidden="true"
-                />
-              )}
-              <text
-                x={22}
-                y={0}
-                fill={weather.raining ? "#38bdf8" : muted}
-                textAnchor="start"
-                fontSize={5}
-                fontWeight="800"
-                letterSpacing="0.04em"
-              >
-                {weather.raining ? "RAIN" : "DRY"}
-              </text>
-            </g>
-          </g>
-        </g>
-      ) : null}
     </g>
   );
 }
