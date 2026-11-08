@@ -1,5 +1,50 @@
 import { describe, expect, it } from "vitest";
-import { migrateSettings, SETTINGS_DEFAULTS, useSettings } from "./settings";
+import { exportSettings, parseSettingsImport, migrateSettings, SETTINGS_DEFAULTS, useSettings } from "./settings";
+
+describe("settings transfer", () => {
+  const file = (settings: Record<string, unknown>) => JSON.stringify({ format: "f1-replay-settings", version: 1, settings });
+
+  it("round-trips all preferences but excludes onboarding, UI state and actions", () => {
+    const text = exportSettings(useSettings.getState());
+    const restored = parseSettingsImport(text);
+    expect(restored.mapViewMode).toBe(useSettings.getState().mapViewMode);
+    expect(restored.defaultSpeed).toBe(useSettings.getState().defaultSpeed);
+    expect(restored.catchupSummaryDefaultFilters).toEqual(useSettings.getState().catchupSummaryDefaultFilters);
+    expect(restored).not.toHaveProperty("tourSeenVersion");
+    expect(restored).not.toHaveProperty("replayWelcomeSeen");
+    expect(restored).not.toHaveProperty("isOpen");
+    expect(restored).not.toHaveProperty("setSetting");
+    expect(Object.keys(restored)).toHaveLength(Object.keys(SETTINGS_DEFAULTS).length - 2);
+  });
+
+  it("accepts partial exports without resetting absent preferences", () => {
+    const patch = parseSettingsImport(file({ lightMode: true }));
+    expect(patch).toEqual({ lightMode: true });
+  });
+
+  it.each([
+    { mapShowWeather: "true" },
+    { defaultSpeed: 3 },
+    { notificationMaxVisible: 99 },
+    { metricSystem: "other" },
+    { mapViewMode: "4d" },
+    { mapRingGapMode: "other" },
+    { catchupSummaryDefaultFilters: [] },
+    { catchupSummaryDefaultFilters: ["unknown"] },
+    { catchupSummaryDefaultFilters: [2] },
+    { isOpen: true },
+    { tourSeenVersion: 3 },
+    { replayWelcomeSeen: true },
+    { unknown: false },
+  ])("rejects invalid preferences %j", (settings) => {
+    expect(() => parseSettingsImport(file(settings))).toThrow();
+  });
+
+  it.each(["invalid", "null", "[]", "{}", '{"format":"f1-replay-settings","version":2,"settings":{"lightMode":true}}'])(
+    "rejects malformed or unsupported exports %s",
+    (text) => expect(() => parseSettingsImport(text)).toThrow(),
+  );
+});
 
 describe("ring settings", () => {
   it("keeps pit window outcomes hidden by default", () => {

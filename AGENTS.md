@@ -14,6 +14,7 @@
 | Colour, font size, letter-spacing, z-index        | `src/designTokens.ts` (Tailwind tokens + light/dark values; Section 8 Styling)               |
 | A button                                          | `components/Button` (`buttonClass()` for links, `<Button>`, `FOCUS_RING`)                    |
 | Add a user setting                                | `stores/settings.ts` (`AppSettings`, defaults, `migrateSettings`) + `components/SettingsModal` |
+| Settings import / export                         | `stores/settings.ts` (`exportSettings`, `parseSettingsImport`), `components/SettingsModal/SettingsTransfer.tsx`: validated versioned JSON, preference-only atomic merge; excludes onboarding and modal state |
 | Main replay page layout / wiring                  | `pages/RaceWeekend.tsx` (very large — grep, don't read whole)                                 |
 | Playback, seek, speed                             | `timeline/clock.ts` (`useTimeline`), `components/PlaybackBar`                                |
 | Car positions on the map                          | `hooks/useLocationChunks.ts` → `timeline/interpolate.ts` → `components/TrackMap`             |

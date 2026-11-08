@@ -8,6 +8,7 @@ import {
   SettingRow,
 } from "./SettingsPrimitives";
 import { TrackMapSettings } from "./TrackMapSettings";
+import { SettingsTransfer } from "./SettingsTransfer";
 import {
   useSettings,
   type AppSettings,
@@ -753,6 +754,7 @@ export function SettingsBody({
         </div>
       </div>
 
+      <SettingsTransfer />
       <div className="flex shrink-0 items-center justify-between gap-3 border-t border-panel pt-3">
         <span className="font-mono text-tiny uppercase tracking-caps text-muted">
           Changes apply instantly

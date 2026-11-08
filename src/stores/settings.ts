@@ -1,6 +1,7 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import type { CornerSpeedClass } from "@/utils/corners";
+import { SPEEDS } from "@/constants";
 
 export type MapViewMode = "2d" | "3d" | "ring";
 
@@ -311,6 +312,56 @@ export function migrateSettings(persisted: unknown, version: number): AppSetting
     delete state.mapView3d;
   }
   return state as unknown as AppSettings;
+}
+
+const SETTINGS_FILE_FORMAT = "f1-replay-settings";
+const SETTINGS_FILE_VERSION = 1;
+const LOCAL_ONLY_SETTINGS = new Set(["tourSeenVersion", "replayWelcomeSeen"]);
+const SETTING_CHOICES: Record<string, readonly unknown[]> = {
+  mapViewMode: ["2d", "3d", "ring"],
+  mapRingGapMode: ["interval", "leader", "focus"],
+  metricSystem: ["metric", "imperial"],
+  defaultSpeed: SPEEDS,
+  notificationMaxVisible: [2, 4, 6, 8],
+};
+const CATCHUP_FILTERS = ["pit", "flag", "penalty", "overtake", "fastest_lap", "undercut", "investigation", "radio"];
+
+export function exportSettings(settings: AppSettings): string {
+  const preferences = Object.fromEntries(
+    Object.keys(SETTINGS_DEFAULTS)
+      .filter((key) => !LOCAL_ONLY_SETTINGS.has(key))
+      .map((key) => [key, settings[key as keyof AppSettings]]),
+  );
+  return JSON.stringify({ format: SETTINGS_FILE_FORMAT, version: SETTINGS_FILE_VERSION, settings: preferences }, null, 2);
+}
+
+/** Validates the entire file before returning a preference-only patch. */
+export function parseSettingsImport(text: string): Partial<AppSettings> {
+  const file: unknown = JSON.parse(text);
+  if (!file || typeof file !== "object" || Array.isArray(file)) throw new Error("Choose an F1 Replay settings export.");
+  const envelope = file as Record<string, unknown>;
+  if (envelope.format !== SETTINGS_FILE_FORMAT || envelope.version !== SETTINGS_FILE_VERSION) {
+    throw new Error("This file is not a supported F1 Replay settings export.");
+  }
+  const data = envelope.settings;
+  if (!data || typeof data !== "object" || Array.isArray(data)) throw new Error("The file has no settings object.");
+  const entries = Object.entries(data);
+  if (entries.length === 0) throw new Error("The file contains no preferences.");
+  for (const [key, value] of entries) {
+    if (!Object.hasOwn(SETTINGS_DEFAULTS, key) || LOCAL_ONLY_SETTINGS.has(key)) {
+      throw new Error(`Unsupported setting: ${key}.`);
+    }
+    const fallback = SETTINGS_DEFAULTS[key as keyof AppSettings];
+    const choices = SETTING_CHOICES[key];
+    const valid = choices
+      ? choices.includes(value)
+      : Array.isArray(fallback)
+        ? Array.isArray(value) && value.length > 0 && value.every((item) => typeof item === "string" && CATCHUP_FILTERS.includes(item))
+        : typeof value === typeof fallback;
+    if (!valid) throw new Error(`Invalid value for ${key}.`);
+  }
+  // All keys and values above have been validated against the AppSettings schema.
+  return Object.fromEntries(entries) as Partial<AppSettings>;
 }
 
 export const useSettings = create<SettingsStore>()(

@@ -88,6 +88,7 @@ export const MAP_RAIN_LAYERS = [
   },
 ] as const;
 export const MAP_QUICK_SETTINGS_INSET = 8;
+export const SETTINGS_IMPORT_MAX_BYTES = 100_000;
 /** Mouse-wheel zoom sensitivity and normalization for the 2D track map. */
 export const TRACK_WHEEL_ZOOM_PER_PIXEL = 0.002;
 export const TRACK_WHEEL_LINE_PIXELS = 16;

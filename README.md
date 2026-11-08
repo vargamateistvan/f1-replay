@@ -274,6 +274,7 @@ session clock.
 7. Settings-driven UI behavior
 
 - User preferences are stored in Zustand (`src/stores/settings.ts`).
+- Settings includes **Export settings** and **Import settings** for transferring preferences as JSON. Imports validate every supplied preference before applying changes, preserve preferences absent from the file, and leave onboarding history and open dialogs unchanged. Unsupported versions, keys or values are rejected without changing settings.
 - Visibility and density features (toasts, overlays, controls, chips, etc.) are toggled live without reloading data.
 
 ## Project Structure
