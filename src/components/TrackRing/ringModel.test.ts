@@ -9,6 +9,7 @@ import {
   formatLapTime,
   formatRingGap,
   gapAtTimeFraction,
+  layoutRingCars,
   placeCar,
   nearbyRingDrivers,
   signedTimeDelta,
@@ -97,6 +98,47 @@ describe("placeCar", () => {
     const p = place(withPit, -20, 2500)!;
     expect(p.inPit).toBe(false);
     expect(p.fraction).toBeCloseTo(0.0625, 3);
+  });
+
+  describe("layoutRingCars", () => {
+    it("keeps pit-car labels connected while placing them closer to the pit arc", () => {
+      const [trackCar, pitCar] = layoutRingCars(
+        [
+          { num: 1, fraction: 0.25, inPit: true },
+          { num: 16, fraction: 0.25, inPit: false },
+        ],
+        { cx: 0, cy: 0, ringR: 128, pitR: 92, labelR: 168, minGap: 0.036 },
+      );
+
+      expect(pitCar).toBeDefined();
+      expect(trackCar).toBeDefined();
+      expect(Math.hypot(pitCar!.labelX, pitCar!.labelY)).toBeCloseTo(80);
+      expect(Math.hypot(trackCar!.labelX, trackCar!.labelY)).toBeCloseTo(168);
+      const pitLeaderLength = Math.hypot(
+        pitCar!.leader.x2 - pitCar!.leader.x1,
+        pitCar!.leader.y2 - pitCar!.leader.y1,
+      );
+      const trackLeaderLength = Math.hypot(
+        trackCar!.leader.x2 - trackCar!.leader.x1,
+        trackCar!.leader.y2 - trackCar!.leader.y1,
+      );
+      expect(pitLeaderLength).toBeLessThan(trackLeaderLength);
+      expect(
+        Math.hypot(pitCar!.labelX - pitCar!.leader.x2, pitCar!.labelY - pitCar!.leader.y2),
+      ).toBeCloseTo(7);
+    });
+
+    it("keeps a group of compact pit tags close to their dots", () => {
+      const cars = layoutRingCars(
+        [1, 16, 44, 81].map((num) => ({ num, fraction: 0.25, inPit: true })),
+        { cx: 0, cy: 0, ringR: 128, pitR: 92, labelR: 168, minGap: 0.036 },
+      );
+      for (const car of cars) {
+        expect(Math.hypot(car.labelX - car.x, car.labelY - car.y)).toBeLessThan(45);
+        expect(Math.hypot(car.labelX - car.leader.x2, car.labelY - car.leader.y2))
+          .toBeCloseTo(7);
+      }
+    });
   });
 
   it("moves a car in the pit lane onto the pit arc, along the lane", () => {

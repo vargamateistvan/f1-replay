@@ -853,44 +853,53 @@ function RingCarMarker({
       {showAcronym && (
         <>
           <line {...car.leader} stroke={color} strokeWidth={focused ? 1.2 : 0.8} strokeOpacity={0.55} />
-          <rect
-            x={boxX}
-            y={boxY}
-            width={boxW}
-            height={boxH}
-            rx={2}
-            fill={color}
-            stroke={focused ? (lightMode ? "#111318" : "#ffffff") : mapBackgroundColor(lightMode)}
-            strokeWidth={focused ? 1.4 : 0.6}
-          />
-          <text
-            x={car.labelX}
-            y={boxY + 7}
-            textAnchor="middle"
-            dominantBaseline="central"
-            fontSize={8.5}
-            fill={textColor}
-            fontFamily={FONT}
-            fontWeight="900"
-            letterSpacing="0.03em"
+          <g
+            data-pit-scaled={car.inPit && !special ? "true" : undefined}
+            transform={
+              car.inPit && !special
+                ? `translate(${car.labelX} ${car.labelY}) scale(${TRACK_PIT_CAR_SCALE}) translate(${-car.labelX} ${-car.labelY})`
+                : undefined
+            }
           >
-            {label}
-          </text>
-          {gap && (
+            <rect
+              x={boxX}
+              y={boxY}
+              width={boxW}
+              height={boxH}
+              rx={2}
+              fill={color}
+              stroke={focused ? (lightMode ? "#111318" : "#ffffff") : mapBackgroundColor(lightMode)}
+              strokeWidth={focused ? 1.4 : 0.6}
+            />
             <text
               x={car.labelX}
-              y={boxY + 15.5}
+              y={boxY + 7}
               textAnchor="middle"
               dominantBaseline="central"
-              fontSize={6}
+              fontSize={8.5}
               fill={textColor}
-              opacity={0.85}
               fontFamily={FONT}
-              fontWeight="700"
+              fontWeight="900"
+              letterSpacing="0.03em"
             >
-              {gap}
+              {label}
             </text>
-          )}
+            {gap && (
+              <text
+                x={car.labelX}
+                y={boxY + 15.5}
+                textAnchor="middle"
+                dominantBaseline="central"
+                fontSize={6}
+                fill={textColor}
+                opacity={0.85}
+                fontFamily={FONT}
+                fontWeight="700"
+              >
+                {gap}
+              </text>
+            )}
+          </g>
         </>
       )}
       <g transform={`translate(${car.x.toFixed(1)},${car.y.toFixed(1)})`}>

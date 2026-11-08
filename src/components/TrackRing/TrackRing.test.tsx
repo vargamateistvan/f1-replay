@@ -184,6 +184,38 @@ beforeEach(() => {
 const LAP_MS = 60_000;
 
 describe("RingCars", () => {
+  it("scales pit-driver name tags without shrinking on-track or special-vehicle tags", () => {
+    const car = (num: number, inPit: boolean, x: number): RingCarLayout => ({
+      num, inPit, x, y: 10, fraction: 0, labelX: x, labelY: 20, anchor: "middle",
+      leader: { x1: x, y1: 10, x2: x, y2: 20 },
+    });
+    const { container } = render(
+      <svg>
+        <RingCars
+          cars={[car(1, true, 10), car(16, false, 20), car(241, true, 30)]}
+          driverByNumber={new Map(drivers.map((d) => [d.driver_number, d]))}
+          focusDriver={null}
+          safetyCarSirenOn={false}
+          lightMode={false}
+          showAcronym
+          showNumberInside={false}
+        />
+      </svg>,
+    );
+    const labels = container.querySelectorAll("[data-pit-scaled]");
+    expect(labels).toHaveLength(1);
+    expect(labels[0]).toHaveAttribute(
+      "transform",
+      `translate(10 20) scale(${TRACK_PIT_CAR_SCALE}) translate(-10 -20)`,
+    );
+    expect(container.querySelectorAll("rect")).toHaveLength(3);
+    expect(container.querySelectorAll("[data-pit-scaled='true'] text")).toHaveLength(1);
+    const [pitLeader, trackLeader, specialLeader] = container.querySelectorAll("line");
+    expect(pitLeader).toHaveAttribute("y2", "20");
+    expect(trackLeader).toHaveAttribute("y2", "20");
+    expect(specialLeader).toHaveAttribute("y2", "20");
+  });
+
   it("scales pit dots and numbers, restores them on rejoin, and leaves special vehicles unchanged", () => {
     const car = (num: number, inPit: boolean, x: number): RingCarLayout => ({
       num, inPit, x, y: 10, fraction: 0, labelX: x, labelY: 20, anchor: "middle",

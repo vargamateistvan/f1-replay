@@ -169,6 +169,8 @@ export const RING_BACKGROUND_MAJOR_TICK_OPACITY_LIGHT = 0.44;
 export const RING_BACKGROUND_START_TICK_OPACITY = 0.72;
 /** Radius of the inner pit-lane arc. */
 export const RING_PIT_RADIUS = 92;
+/** Inward offset of the compact pit-driver name tags from their dots. */
+export const RING_PIT_LABEL_INSET = 12;
 /** Radius at which driver labels sit, outside the ring. */
 export const RING_LABEL_RADIUS = 168;
 /** Minimum spacing between ring labels, as a fraction of the lap. */

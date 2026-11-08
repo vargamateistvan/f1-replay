@@ -4,6 +4,7 @@ import { timingSectorForMarshalPost } from "@/timeline/raceControl";
 import {
   RING_OFF_TRACK_M,
   RING_NEARBY_CARS_PER_SIDE,
+  RING_PIT_LABEL_INSET,
   RING_REF_LAP_MAX_MS,
   RING_REF_LAP_MIN_MS,
   RING_REF_PACE_HOLD_MS,
@@ -11,6 +12,7 @@ import {
   RING_REF_POOL_MAX_LAPS,
   RING_REF_TRACE_WINDOW_MS,
   RING_SEARCH_WINDOW,
+  TRACK_PIT_CAR_SCALE,
 } from "@/constants";
 import type { LocationIndex } from "@/timeline/interpolate";
 import { parseIntervalSeconds } from "@/utils/intervals";
@@ -203,10 +205,10 @@ export function layoutRingCars(
   );
   // Pit labels sit just inside the pit arc, clear of the dial's centre text.
   // The inner circle is shorter: same spacing in SVG units needs a wider gap.
-  const pitLabelR = pitR - 22;
+  const pitLabelR = pitR - RING_PIT_LABEL_INSET;
   const labelsIn = layoutRingLabels(
     inPit.map((c) => ({ id: c.num, fraction: c.fraction })),
-    (minGap * labelR) / Math.max(1, pitLabelR),
+    (minGap * labelR * TRACK_PIT_CAR_SCALE) / Math.max(1, pitLabelR),
   );
 
   const build = (car: RingCar, r: number, lr: number, labelFraction: number): RingCarLayout => {
