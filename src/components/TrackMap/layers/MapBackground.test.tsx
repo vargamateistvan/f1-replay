@@ -1,11 +1,16 @@
 import { render } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 import {
+  RING_BACKGROUND_CARDINAL_TICK_EVERY,
+  RING_BACKGROUND_CARDINAL_TICK_LENGTH,
+  RING_BACKGROUND_CARDINAL_TICK_WIDTH,
   RING_BACKGROUND_MAJOR_TICK_EVERY,
+  RING_BACKGROUND_MAJOR_TICK_LENGTH,
   RING_BACKGROUND_OFFSETS,
   RING_BACKGROUND_MAJOR_TICK_OPACITY_LIGHT,
   RING_BACKGROUND_TICK_COUNT,
   RING_BACKGROUND_TICK_OPACITY_LIGHT,
+  RING_BACKGROUND_TICK_LENGTH,
   TRACK_BACKGROUND_GRID_SIZE,
   TRACK_BACKGROUND_LINE_OPACITY_LIGHT,
 } from "@/constants";
@@ -45,6 +50,23 @@ describe("MapBackground", () => {
       .toHaveLength(RING_BACKGROUND_TICK_COUNT);
     expect(backgrounds[0]!.querySelector('[data-layer="ring-background-ticks"] path'))
       .toHaveAttribute("stroke", TOKEN_HEX.f1red);
+    const ticks = backgrounds[0]!.querySelectorAll('[data-layer="ring-background-ticks"] path');
+    expect(ticks[0]).toHaveAttribute("stroke-width", String(RING_BACKGROUND_CARDINAL_TICK_WIDTH));
+    const tickLength = (index: number) => {
+      const coordinates = ticks[index]!.getAttribute("d")!.match(/M ([\d.-]+) ([\d.-]+) L ([\d.-]+) ([\d.-]+)/);
+      expect(coordinates).not.toBeNull();
+      return Math.hypot(
+        Number(coordinates![3]) - Number(coordinates![1]),
+        Number(coordinates![4]) - Number(coordinates![2]),
+      );
+    };
+    expect(tickLength(0)).toBeCloseTo(RING_BACKGROUND_CARDINAL_TICK_LENGTH);
+    expect(ticks[RING_BACKGROUND_CARDINAL_TICK_EVERY]).toHaveAttribute(
+      "stroke-width",
+      String(RING_BACKGROUND_CARDINAL_TICK_WIDTH),
+    );
+    expect(tickLength(RING_BACKGROUND_MAJOR_TICK_EVERY)).toBeCloseTo(RING_BACKGROUND_MAJOR_TICK_LENGTH);
+    expect(tickLength(1)).toBeCloseTo(RING_BACKGROUND_TICK_LENGTH);
     const lightTicks = backgrounds[1]!.querySelectorAll('[data-layer="ring-background-ticks"] path');
     expect(lightTicks[RING_BACKGROUND_MAJOR_TICK_EVERY]).toHaveAttribute("stroke-opacity", String(RING_BACKGROUND_MAJOR_TICK_OPACITY_LIGHT));
     expect(lightTicks[1]).toHaveAttribute("stroke-opacity", String(RING_BACKGROUND_TICK_OPACITY_LIGHT));

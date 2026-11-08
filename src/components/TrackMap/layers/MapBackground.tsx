@@ -1,8 +1,13 @@
 import { useId } from "react";
 import {
+  RING_BACKGROUND_CARDINAL_TICK_EVERY,
+  RING_BACKGROUND_CARDINAL_TICK_LENGTH,
+  RING_BACKGROUND_CARDINAL_TICK_OPACITY,
+  RING_BACKGROUND_CARDINAL_TICK_WIDTH,
   RING_BACKGROUND_MAJOR_TICK_EVERY,
   RING_BACKGROUND_MAJOR_TICK_LENGTH,
   RING_BACKGROUND_MAJOR_TICK_OPACITY,
+  RING_BACKGROUND_MAJOR_TICK_WIDTH,
   RING_BACKGROUND_OFFSETS,
   RING_BACKGROUND_START_TICK_OPACITY,
   RING_BACKGROUND_TICK_COUNT,
@@ -10,6 +15,7 @@ import {
   RING_BACKGROUND_TICK_LENGTH,
   RING_BACKGROUND_TICK_OPACITY,
   RING_BACKGROUND_TICK_OPACITY_LIGHT,
+  RING_BACKGROUND_TICK_WIDTH,
   RING_BACKGROUND_MAJOR_TICK_OPACITY_LIGHT,
   TRACK_BACKGROUND_GLOW_OPACITY,
   TRACK_BACKGROUND_GLOW_OPACITY_LIGHT,
@@ -73,8 +79,13 @@ export function MapBackground({ view, lightMode, ring }: Props) {
             transform={`rotate(${ring.rotationDeg ?? 0} ${ring.cx} ${ring.cy})`}
           >
             {Array.from({ length: RING_BACKGROUND_TICK_COUNT }, (_, index) => {
+              const isCardinal = index % RING_BACKGROUND_CARDINAL_TICK_EVERY === 0;
               const isMajor = index % RING_BACKGROUND_MAJOR_TICK_EVERY === 0;
-              const length = isMajor ? RING_BACKGROUND_MAJOR_TICK_LENGTH : RING_BACKGROUND_TICK_LENGTH;
+              const length = isCardinal
+                ? RING_BACKGROUND_CARDINAL_TICK_LENGTH
+                : isMajor
+                  ? RING_BACKGROUND_MAJOR_TICK_LENGTH
+                  : RING_BACKGROUND_TICK_LENGTH;
               const angle = (index / RING_BACKGROUND_TICK_COUNT) * Math.PI * 2 - Math.PI / 2;
               const startRadius = outerRingRadius + RING_BACKGROUND_TICK_INSET;
               const endRadius = startRadius + length;
@@ -82,18 +93,20 @@ export function MapBackground({ view, lightMode, ring }: Props) {
               const y1 = ring.cy + Math.sin(angle) * startRadius;
               const x2 = ring.cx + Math.cos(angle) * endRadius;
               const y2 = ring.cy + Math.sin(angle) * endRadius;
-              const isStart = index === 0;
+              const isNorth = index === 0;
 
               return (
                 <path
                   key={index}
                   d={`M ${x1.toFixed(2)} ${y1.toFixed(2)} L ${x2.toFixed(2)} ${y2.toFixed(2)}`}
                   fill="none"
-                  stroke={isStart ? TOKEN_HEX.f1red : ink}
+                  stroke={isNorth ? TOKEN_HEX.f1red : ink}
                   strokeOpacity={
-                    isStart
+                    isNorth
                       ? RING_BACKGROUND_START_TICK_OPACITY
-                      : isMajor
+                      : isCardinal
+                        ? RING_BACKGROUND_CARDINAL_TICK_OPACITY
+                        : isMajor
                         ? lightMode
                           ? RING_BACKGROUND_MAJOR_TICK_OPACITY_LIGHT
                           : RING_BACKGROUND_MAJOR_TICK_OPACITY
@@ -101,7 +114,13 @@ export function MapBackground({ view, lightMode, ring }: Props) {
                           ? RING_BACKGROUND_TICK_OPACITY_LIGHT
                           : RING_BACKGROUND_TICK_OPACITY
                   }
-                  strokeWidth={isMajor ? "1" : "0.75"}
+                  strokeWidth={
+                    isCardinal
+                      ? RING_BACKGROUND_CARDINAL_TICK_WIDTH
+                      : isMajor
+                        ? RING_BACKGROUND_MAJOR_TICK_WIDTH
+                        : RING_BACKGROUND_TICK_WIDTH
+                  }
                 />
               );
             })}
