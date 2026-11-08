@@ -10,7 +10,8 @@ import {
 } from "react";
 import { createPortal } from "react-dom";
 import { useQueryClient } from "@tanstack/react-query";
-import { Coffee, Play, Settings as SettingsIcon } from "lucide-react";
+import { Coffee, Play } from "lucide-react";
+import { QuickTrackSettings } from "@/components/TrackMap/overlays/QuickTrackSettings";
 import { DialogHeader } from "@/components/DialogHeader";
 import { PlaybackBar } from "@/components/PlaybackBar";
 import { TOUR_TARGET } from "@/components/AppTour/targets";
@@ -2520,21 +2521,15 @@ export default function RaceWeekend() {
   );
 
   const trackerSettingsButton = (
-    <button
-      type="button"
-      onClick={() =>
+    <QuickTrackSettings
+      key={activeTrackerTab === "map" ? mapViewMode : "timing"}
+      view={activeTrackerTab === "map" ? (map3dAvailable ? mapViewMode : mapViewMode === "3d" ? "2d" : mapViewMode) : "timing"}
+      mobileTiming={isCompactViewport}
+      onOpenSettings={() =>
         openSettingsTab(activeTrackerTab === "map" ? "track" : "timing")
       }
-      className="shrink-0 w-8 flex items-center justify-center text-muted hover:text-fg transition-colors"
-      aria-label={
-        activeTrackerTab === "map" ? "Track map settings" : "Timing settings"
-      }
-      title={
-        activeTrackerTab === "map" ? "Track map settings" : "Timing settings"
-      }
-    >
-      <SettingsIcon width={14} height={14} aria-hidden="true" />
-    </button>
+      buttonClass="h-8 shrink-0 w-8 flex items-center justify-center text-muted hover:text-fg transition-colors"
+    />
   );
 
   const eventToastStack = (

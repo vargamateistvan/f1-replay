@@ -15,6 +15,31 @@ function open(view: "2d" | "ring" | "3d" = "2d", onOpenSettings?: () => void) {
 }
 
 describe("QuickTrackSettings", () => {
+  it("uses the same popover for desktop timing columns", () => {
+    render(<QuickTrackSettings view="timing" buttonClass="test-button" />);
+    fireEvent.click(screen.getByRole("button", { name: "Quick timing settings" }));
+    expect(screen.getByRole("dialog", { name: "Quick timing settings" })).toBeInTheDocument();
+    const before = useSettings.getState().trackerTimingShowGap;
+    fireEvent.click(screen.getByRole("switch", { name: "Gap" }));
+    expect(useSettings.getState().trackerTimingShowGap).toBe(!before);
+    expect(screen.getByRole("switch", { name: "Speed" })).toBeInTheDocument();
+    expect(screen.queryByRole("switch", { name: "Weather effects" })).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "All timing settings" }));
+    expect(useSettings.getState().modalTab).toBe("timing");
+  });
+
+  it("changes mobile timing columns independently of desktop columns", () => {
+    render(<QuickTrackSettings view="timing" buttonClass="test-button" mobileTiming />);
+    fireEvent.click(screen.getByRole("button", { name: "Quick timing settings" }));
+    const before = useSettings.getState().timingMobileShowGap;
+    const desktop = useSettings.getState().trackerTimingShowGap;
+    fireEvent.click(screen.getByRole("switch", { name: "Gap" }));
+    expect(useSettings.getState().timingMobileShowGap).toBe(!before);
+    expect(useSettings.getState().trackerTimingShowGap).toBe(desktop);
+    expect(screen.getByRole("switch", { name: "Mobile telemetry" })).toBeInTheDocument();
+    expect(screen.queryByRole("switch", { name: "Speed" })).not.toBeInTheDocument();
+  });
+
   it("opens an accessible popover and focuses its close button", () => {
     open();
     expect(screen.getByRole("dialog", { name: "Quick track settings" })).toBeInTheDocument();

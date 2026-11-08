@@ -46,16 +46,64 @@ const VIEW_OPTIONS: Record<MapViewMode, readonly Option[]> = {
   ],
 };
 
+const TIMING_DESKTOP: readonly Option[] = [
+  ["trackerTimingTelemetry", "Telemetry columns"],
+  ["trackerTimingCompactColumn", "Compact telemetry column"],
+  ["timingShowMinisectors", "Mini-sectors"],
+  ["trackerTimingShowPosition", "Position"],
+  ["trackerTimingShowDriver", "Driver"],
+  ["trackerTimingShowAlerts", "Alerts"],
+  ["trackerTimingShowBestLap", "Best lap"],
+  ["trackerTimingShowLastLap", "Last lap"],
+  ["trackerTimingShowGap", "Gap"],
+  ["trackerTimingShowInterval", "Interval"],
+  ["trackerTimingShowS1", "Sector 1"],
+  ["trackerTimingShowS2", "Sector 2"],
+  ["trackerTimingShowS3", "Sector 3"],
+  ["trackerTimingShowPosDelta", "Position change"],
+  ["trackerTimingShowTyre", "Tyre"],
+  ["trackerTimingShowPit", "Pit stops"],
+  ["trackerTimingShowLap", "Lap"],
+  ["trackerTimingShowSpeed", "Speed"],
+  ["trackerTimingShowGear", "Gear"],
+  ["trackerTimingShowRpm", "RPM"],
+  ["trackerTimingShowThrBrk", "Throttle / brake"],
+  ["trackerTimingShowDrs", "DRS"],
+];
+const TIMING_MOBILE: readonly Option[] = [
+  ["trackerTimingMobileCarData", "Mobile telemetry"],
+  ["timingShowMinisectors", "Mini-sectors"],
+  ["timingMobileShowPosition", "Position"],
+  ["timingMobileShowDriver", "Driver"],
+  ["timingMobileShowAlerts", "Alerts"],
+  ["timingMobileShowBestLap", "Best lap"],
+  ["timingMobileShowLastLap", "Last lap"],
+  ["timingMobileShowGap", "Gap"],
+  ["timingMobileShowInterval", "Interval"],
+  ["timingMobileShowS1", "Sector 1"],
+  ["timingMobileShowS2", "Sector 2"],
+  ["timingMobileShowS3", "Sector 3"],
+  ["timingMobileShowPosDelta", "Position change"],
+  ["timingMobileShowTyre", "Tyre"],
+  ["timingMobileShowPitCount", "Pit stops"],
+  ["timingMobileShowLap", "Lap"],
+];
+
 export function QuickTrackSettings({
   view,
   buttonClass,
   onOpenSettings,
+  mobileTiming = false,
 }: {
-  view: MapViewMode;
+  view: MapViewMode | "timing";
   buttonClass: string;
   onOpenSettings?: () => void;
+  mobileTiming?: boolean;
 }) {
   const settings = useSettings((state) => state);
+  const timing = view === "timing";
+  const label = timing ? "Quick timing settings" : "Quick track settings";
+  const groups = timing ? [mobileTiming ? TIMING_MOBILE : TIMING_DESKTOP] : [VIEW_OPTIONS[view], COMMON];
   const [open, setOpen] = useState(false);
   const id = useId();
   const rootRef = useRef<HTMLDivElement>(null);
@@ -124,8 +172,8 @@ export function QuickTrackSettings({
       <button
         ref={triggerRef}
         type="button"
-        title="Quick track settings"
-        aria-label="Quick track settings"
+        title={label}
+        aria-label={label}
         aria-haspopup="dialog"
         aria-expanded={open}
         aria-controls={open ? id : undefined}
@@ -139,17 +187,17 @@ export function QuickTrackSettings({
           ref={panelRef}
           id={id}
           role="dialog"
-          aria-label="Quick track settings"
+          aria-label={label}
           style={position}
           className="fixed z-popover flex max-h-[calc(100dvh-1rem)] w-64 max-w-[calc(100vw-2rem)] flex-col rounded-sm border border-line bg-surface text-fg shadow-xl"
         >
           <div className="flex shrink-0 items-center justify-between border-b border-panel px-3 py-2">
             <span className="text-caption font-black uppercase tracking-caps">
-              {view === "ring" ? "Ring" : view.toUpperCase()} quick settings
+              {timing ? (mobileTiming ? "Mobile timing" : "Timing") : view === "ring" ? "Ring" : view.toUpperCase()} quick settings
             </span>
             <button
               type="button"
-              aria-label="Close quick track settings"
+              aria-label={`Close ${label.toLowerCase()}`}
               className="p-1 text-muted hover:text-fg"
               onClick={() => {
                 setOpen(false);
@@ -160,7 +208,7 @@ export function QuickTrackSettings({
             </button>
           </div>
           <div className="min-h-0 max-h-80 overflow-y-auto overscroll-contain px-3">
-            {[VIEW_OPTIONS[view], COMMON].map((group, index) => (
+            {groups.map((group, index) => (
               <div key={index} className={index ? "border-t border-line" : undefined}>
                 {group.map(([key, label]) => (
                   <button
@@ -168,13 +216,14 @@ export function QuickTrackSettings({
                     type="button"
                     role="switch"
                     aria-checked={Boolean(settings[key])}
+                    disabled={key === "trackerTimingCompactColumn" && !settings.trackerTimingTelemetry}
                     onClick={() => {
                       const enabled = !settings[key];
                       if (key === "mapFollowFocusedCar") trackEvent("trackmap_follow_toggled", { following: enabled, view });
                       if (key === "mapShowDriverHeatmap") trackEvent("trackmap_heatmap_toggled", { shown: enabled, view });
                       settings.setSetting(key, enabled);
                     }}
-                    className="flex w-full items-center justify-between gap-3 border-b border-panel py-2 text-left text-compact last:border-0 hover:text-f1red-fg"
+                    className="flex w-full items-center justify-between gap-3 border-b border-panel py-2 text-left text-compact last:border-0 hover:text-f1red-fg disabled:cursor-not-allowed disabled:opacity-40"
                   >
                     <span>{label}</span>
                     <span
@@ -195,10 +244,10 @@ export function QuickTrackSettings({
               className="w-full"
               onClick={() => {
                 setOpen(false);
-                (onOpenSettings ?? (() => settings.openModal("track")))();
+                (onOpenSettings ?? (() => settings.openModal(timing ? "timing" : "track")))();
               }}
             >
-              All track settings
+              {timing ? "All timing settings" : "All track settings"}
             </Button>
           </div>
         </div>,
