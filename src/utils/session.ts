@@ -1,4 +1,4 @@
-import type { RaceControl } from "@/api/types";
+import type { Lap, RaceControl, SessionResult } from "@/api/types";
 import {
   QUALI_PHASE_DURATIONS_MS,
   QUALI_Q3_13_MIN_FROM_YEAR,
@@ -7,6 +7,17 @@ import {
 } from "@/constants";
 
 export type QualiPhase = "Q1" | "Q2" | "Q3";
+
+export function raceLapCount(
+  laps: readonly Pick<Lap, "lap_number">[],
+  results: readonly Pick<SessionResult, "number_of_laps">[],
+): number | null {
+  const classified = Math.max(0, ...results.map((result) => result.number_of_laps ?? 0));
+  if (classified > 0) return classified;
+
+  const observed = Math.max(0, ...laps.map((lap) => lap.lap_number));
+  return observed > 0 ? observed : null;
+}
 
 export function isPracticeSession(name: string): boolean {
   return /practice/i.test(name);

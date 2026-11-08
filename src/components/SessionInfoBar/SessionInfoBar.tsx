@@ -179,7 +179,7 @@ export function SessionInfoBar({
       ? Math.max(...Array.from(lapStartsByNumber.keys()))
       : 1;
     if (totalLapCount !== null && totalLapCount > 0) {
-      return Math.max(totalLapCount, observedMax);
+      return totalLapCount;
     }
     return observedMax;
   }, [lapStartsByNumber, totalLapCount]);
@@ -193,17 +193,17 @@ export function SessionInfoBar({
   if (isFormationLap) {
     lapDisplay = "F";
   } else if (currentLap !== null && totalLapCount !== null) {
-    lapDisplay = `${currentLap}/${totalLapCount}`;
+    lapDisplay = `${Math.min(currentLap, totalLapCount)}/${totalLapCount}`;
   } else if (currentLap !== null) {
     lapDisplay = currentLap;
   }
 
   useEffect(() => {
     if (!isLapDialogOpen) return;
-    const defaultLap = currentLap ?? 1;
+    const defaultLap = Math.min(currentLap ?? 1, selectableLapMax);
     setLapInput(String(defaultLap));
     setLapError(null);
-  }, [isLapDialogOpen, currentLap]);
+  }, [isLapDialogOpen, currentLap, selectableLapMax]);
 
   useEffect(() => {
     if (!isLapDialogOpen) return;

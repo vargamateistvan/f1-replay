@@ -149,7 +149,7 @@ src/
     pitRejoin.ts        — Pit-loss parsing, gap-to-leader snapshot, pit rejoin position projection (`rankAtGap` for a car already in the pits), pit window rivals (`pitWindowRivals`)
     raceControlFlags.ts — Flag severity, safety-car phase classification
     retirement.ts       — Retirement detection from race control
-    session.ts          — Session utility helpers
+    session.ts          — Session utility helpers; raceLapCount() prefers the classified race distance over observed post-finish laps
     circuitInfo.ts      — circuitStats() (centerline length, distinct turns, direction from shoelace sign; F1 frame is decimetres, Y-up), circuitThumbnail() (outline path oriented like the 2D map, start tick, direction arrow)
     worldMap.ts         — Schedule world map maths: equirectangular projectLngLat() (x = lng + 180, y = 90 − lat), camera fit/clamp/zoom/lerp, screen ↔ map, clusterMarkers(), haversine travelDistanceKm(), legArcPath()
     schedule.ts         — buildSeasonSchedule(): meetings + sessions → numbered rounds (testing/cancelled unnumbered), per-session status, next round; scheduleFocusRound() (live weekend → latest finished → first upcoming; the page opens scrolled to it); formatCountdown()

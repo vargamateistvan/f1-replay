@@ -3,6 +3,19 @@ import type { Lap } from "@/api/types";
 import { buildLapLookup, lapNumberAtMs } from "@/utils/lapLookup";
 
 describe("lapLookup", () => {
+  it("uses the source lap number when earlier lap boundaries are missing", () => {
+    const sessionStartMs = Date.parse("2024-01-01T00:00:00.000Z");
+    const laps = [
+      {
+        date_start: "2024-01-01T00:00:00.000Z",
+        lap_number: 4,
+      },
+    ] as unknown as Lap[];
+    const lookup = buildLapLookup(laps, sessionStartMs);
+
+    expect(lapNumberAtMs(lookup, 0)).toBe(4);
+  });
+
   it("builds earliest lap starts and resolves lap numbers by event time", () => {
     const sessionStartMs = Date.parse("2024-01-01T00:00:00.000Z");
     const laps = [

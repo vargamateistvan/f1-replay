@@ -99,6 +99,31 @@ describe("SessionInfoBar", () => {
     });
   });
 
+  it("keeps the counter and jump dialog within the classified race distance", () => {
+    const sessionStartMs = Date.parse("2024-01-01T00:00:00Z");
+    render(
+      <SessionInfoBar
+        laps={[
+          { lap_number: 71, date_start: "2024-01-01T00:01:00Z" },
+          { lap_number: 72, date_start: "2024-01-01T00:02:00Z" },
+        ] as Lap[]}
+        raceControl={[]}
+        sessionTimeMs={120_000}
+        sessionStartMs={sessionStartMs}
+        isRaceSession
+        totalLapCount={71}
+        onJumpToSessionTime={vi.fn()}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "71/71" }));
+    const input = screen.getByRole("spinbutton");
+    expect(input).toHaveValue(71);
+    fireEvent.change(input, { target: { value: "72" } });
+    fireEvent.click(screen.getByRole("button", { name: "Jump" }));
+    expect(screen.getByText("Enter a lap between 1 and 71.")).toBeInTheDocument();
+  });
+
   it("renders qualifying elimination tile in the left slot", () => {
     const onShowEliminations = vi.fn();
     const sessionStartMs = Date.parse("2024-01-01T00:00:00.000Z");

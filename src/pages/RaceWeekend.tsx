@@ -76,6 +76,7 @@ import { useReplayWelcome } from "@/hooks/useReplayWelcome";
 import { useStandingRestarts } from "@/hooks/useStandingRestarts";
 import { useReplayStartup } from "@/hooks/useReplayStartup";
 import { replaceHistorySearchParams } from "@/utils/url";
+import { buildLapLookup, lapNumberAtMs } from "@/utils/lapLookup";
 import {
   lapStartTimes,
   pitTimes,
@@ -130,6 +131,7 @@ import {
   isQualiSession,
   detectQualiPhase,
   qualiClockRemainingMs,
+  raceLapCount,
 } from "@/utils/session";
 import {
   lastAtOrBefore,
@@ -843,18 +845,18 @@ export default function RaceWeekend() {
   const shouldBuildCommentaryMoments = currentView === "commentary";
   const shouldBuildToastEvents =
     shouldTrackToasts || shouldBuildCommentaryMoments;
+  const lapLookup = useMemo(
+    () => buildLapLookup(laps.data, sessionStartMs),
+    [laps.data, sessionStartMs],
+  );
   const lapMarks = useMemo(
     () => lapStartTimes(laps.data ?? [], sessionStartMs),
     [laps.data, sessionStartMs],
   );
 
   const currentLap = useMemo(() => {
-    let lap = 0;
-    for (let i = 0; i < lapMarks.length; i++) {
-      if (lapMarks[i]! <= t) lap = i + 1;
-    }
-    return lap;
-  }, [lapMarks, t]);
+    return lapNumberAtMs(lapLookup, t) ?? 0;
+  }, [lapLookup, t]);
 
   const isRaceSession = useMemo(() => {
     const type = session?.session_type ?? "";
@@ -1763,24 +1765,13 @@ export default function RaceWeekend() {
     t >= playbackDurationMs && (sessionResult.data?.length ?? 0) > 0;
   const totalLapCount = useMemo(() => {
     if (!isRaceSession) return null;
-
-    const observedLapCount = Math.max(
-      0,
-      ...(laps.data ?? []).map((lap) => lap.lap_number),
-    );
-    const classifiedLapCount = Math.max(
-      0,
-      ...(sessionResult.data ?? []).map((result) => result.number_of_laps ?? 0),
-    );
-    const total = Math.max(observedLapCount, classifiedLapCount);
-
-    return total > 0 ? total : null;
+    return raceLapCount(laps.data ?? [], sessionResult.data ?? []);
   }, [isRaceSession, laps.data, sessionResult.data]);
 
   const commentaryLapLabel = useMemo(() => {
     if (currentLap <= 0) return "—";
     if (totalLapCount === null) return String(currentLap);
-    return `${currentLap}/${totalLapCount}`;
+    return `${Math.min(currentLap, totalLapCount)}/${totalLapCount}`;
   }, [currentLap, totalLapCount]);
   const isPracticeCommentarySession = useMemo(
     () => isPracticeSession(session?.session_name ?? ""),

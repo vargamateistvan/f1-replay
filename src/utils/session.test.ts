@@ -3,8 +3,23 @@ import type { RaceControl } from "@/api/types";
 import {
   detectQualiPhase,
   qualiClockRemainingMs,
+  raceLapCount,
   sessionStartLabel,
 } from "@/utils/session";
+
+describe("raceLapCount", () => {
+  it("uses the classified distance instead of a post-finish lap", () => {
+    expect(raceLapCount(
+      [{ lap_number: 71 }, { lap_number: 72 }],
+      [{ number_of_laps: 71 }, { number_of_laps: 70 }],
+    )).toBe(71);
+  });
+
+  it("falls back to observed laps when classification is unavailable", () => {
+    expect(raceLapCount([{ lap_number: 12 }], [{ number_of_laps: null }])).toBe(12);
+    expect(raceLapCount([], [])).toBeNull();
+  });
+});
 
 function rc(
   date: string,

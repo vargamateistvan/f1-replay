@@ -20,6 +20,11 @@ vi.mock("@/components/TrackMap/TrackMap", () => ({
     <div data-pit-status={pitLaneStatus?.exit ?? "none"}>Track preview</div>
   ),
 }));
+vi.mock("@/components/TrackRing/TrackRing", () => ({
+  TrackRing: ({ lapLabel }: { lapLabel?: string | null }) => (
+    <div data-testid="ring-lap-counter">{lapLabel}</div>
+  ),
+}));
 vi.mock("@/components/LiveTiming/LiveTiming", () => ({
   default: () => <div>Timing panel</div>,
 }));
@@ -96,6 +101,28 @@ describe("progressive replay startup", () => {
   }
 
   const firstLapStartMs = 300_000;
+  it("uses the classified race distance for the ring counter throughout the replay", async () => {
+    useSettings.setState({ replayWelcomeSeen: true, mapViewMode: "ring" });
+    const start = Date.parse(session.date_start);
+    const laps = [
+      { lap_number: 1, date_start: new Date(start).toISOString(), driver_number: 1 },
+      { lap_number: 10, date_start: new Date(start + 500_000).toISOString(), driver_number: 1 },
+      { lap_number: 71, date_start: new Date(start + 6_000_000).toISOString(), driver_number: 1 },
+      { lap_number: 72, date_start: new Date(start + 6_100_000).toISOString(), driver_number: 1 },
+    ] as Lap[];
+    client.setQueryData(lapsQueryKey(123), laps);
+    client.setQueryData(["sessionResult", 123], [{ number_of_laps: 71 }]);
+    renderReplay("/?year=2024&meeting=456&session=123&view=tracker&t=577");
+
+    await waitFor(() => {
+      expect(screen.getAllByTestId("ring-lap-counter")[0]).toHaveTextContent("10/71");
+    });
+    act(() => useTimeline.getState().setT(6_100_000));
+    await waitFor(() => {
+      expect(screen.getAllByTestId("ring-lap-counter")[0]).toHaveTextContent("71/71");
+    });
+  });
+
   it("uses actual qualifying starts instead of pre-session phase-tagged flags or announcements", async () => {
     client.setQueryData(["sessions", 456], [{ ...session, session_name: "Qualifying", session_type: "Qualifying" }]);
     const row = (ms: number, phase: RaceControl["qualifying_phase"], message: string): RaceControl => ({

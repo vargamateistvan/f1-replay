@@ -2575,7 +2575,7 @@ export function LiveTiming({
                       className={`${mobileCurrentLapColumnClass} ${rowCellPad} align-middle px-2 text-center font-mono ${dense ? "text-caption" : "text-small"} tabular-nums text-muted`}
                     >
                       {currentLap !== null && totalLapCount !== null
-                        ? `${currentLap}/${totalLapCount}`
+                        ? `${Math.min(currentLap, totalLapCount)}/${totalLapCount}`
                         : (currentLap ?? "—")}
                     </td>
                   )}

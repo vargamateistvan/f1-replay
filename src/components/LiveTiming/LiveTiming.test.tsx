@@ -71,6 +71,31 @@ describe("LiveTiming", () => {
     expect(screen.getAllByText("LEC").length).toBeGreaterThan(0);
   });
 
+  it("does not display a post-finish lap beyond the race total", () => {
+    const sessionStartMs = Date.parse("2024-01-01T00:00:00Z");
+    render(
+      <LiveTiming
+        drivers={drivers.slice(0, 1)}
+        positions={[]}
+        intervals={[]}
+        pits={[]}
+        laps={[{
+          driver_number: 1,
+          lap_number: 72,
+          date_start: "2024-01-01T00:02:00Z",
+          lap_duration: null,
+        }] as Lap[]}
+        sessionTimeMs={120_000}
+        sessionStartMs={sessionStartMs}
+        sessionName="Race"
+        totalLapCount={71}
+        columnVisibility={{ currentLap: true }}
+      />,
+    );
+
+    expect(screen.getByText("71/71")).toBeInTheDocument();
+  });
+
   it("covers no-sector-reference and dense hint paths", () => {
     const sessionStartMs = Date.parse("2024-01-01T00:00:00.000Z");
     const positions = [
