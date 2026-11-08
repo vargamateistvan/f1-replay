@@ -7,6 +7,29 @@ describe("ring settings", () => {
   });
 });
 
+describe("shared 2D and ring weather effects", () => {
+  it("defaults older settings to off", async () => {
+    expect(SETTINGS_DEFAULTS.mapWeatherEffectsEnabled).toBe(false);
+    useSettings.getState().reset();
+    localStorage.setItem("f1-replay-settings", JSON.stringify({ state: { mapViewMode: "ring" }, version: 1 }));
+    await useSettings.persist.rehydrate();
+    expect(useSettings.getState().mapWeatherEffectsEnabled).toBe(false);
+    useSettings.getState().reset();
+  });
+
+  it("persists across view changes and resets without altering the 3D default", async () => {
+    useSettings.getState().setSetting("mapWeatherEffectsEnabled", true);
+    useSettings.getState().setSetting("mapViewMode", "ring");
+    await useSettings.persist.rehydrate();
+    expect(useSettings.getState().mapWeatherEffectsEnabled).toBe(true);
+    useSettings.getState().setSetting("mapViewMode", "2d");
+    expect(useSettings.getState().mapWeatherEffectsEnabled).toBe(true);
+    useSettings.getState().reset();
+    expect(useSettings.getState().mapWeatherEffectsEnabled).toBe(false);
+    expect(useSettings.getState().mapView3dWeatherEffects).toBe(true);
+  });
+});
+
 describe("pit lane status setting", () => {
   it("defaults to off and stays off when older settings are restored", async () => {
     expect(SETTINGS_DEFAULTS.mapShowPitLaneStatus).toBe(false);

@@ -1,6 +1,6 @@
 # F1 Replay — Agent Documentation
 
-> Last updated: 2026-11-07
+> Last updated: 2026-11-08
 > The single source of truth for agents. Provides concise, agent-readable architecture notes, conventions, and guardrails. `docs/` holds mostly historical plans — see Section 12 before trusting one.
 
 ---
@@ -20,6 +20,7 @@
 | Track outline / circuit geometry                  | `data/circuitGeometry.ts` (+ `circuit-geometry/<circuitKey>-<year>.json`), `hooks/useCircuitGeometry.ts`, `hooks/useTrackMap.ts` |
 | 3D map                                            | `components/TrackMap3D/`, `utils/georef.ts`, `docs/TRACK_MAP_3D.md`                          |
 | Ring view                                         | `components/TrackRing/`, `utils/lapProgress.ts`, `docs/RING_VIEW.md`                         |
+| 2D / ring weather effects                        | `components/TrackMap/layers/RainLayer.tsx`, `mapWeatherEffectsEnabled` in `stores/settings.ts`; toggle beside the map view changer and in Track Map settings |
 | Pit rejoin / pit window (all map views)           | `utils/pitRejoin.ts`, `components/TrackRing/pitWindow.ts`, `components/TrackMap/usePitWindow.ts` (2D + 3D), colours `PIT_WINDOW_COLOR` / `PIT_MARKER_COLOR` |
 | Toasts / catch-up                                 | `timeline/events.ts`, `hooks/useEventToasts.ts`, `hooks/useCatchupSummary.ts`                |
 | Race control / flags                              | `timeline/raceControl.ts`, `utils/raceControlFlags.ts`                                       |

@@ -68,6 +68,19 @@ export const TRACK_BACKGROUND_GLOW_OPACITY = 0.07;
 export const TRACK_BACKGROUND_GLOW_OPACITY_LIGHT = 0.1;
 export const TRACK_BACKGROUND_LINE_OPACITY = 0.07;
 export const TRACK_BACKGROUND_LINE_OPACITY_LIGHT = 0.14;
+
+/** Decorative 2D/ring rain; OpenF1 rainfall reports presence, not intensity. */
+export const MAP_RAIN_TILE_W = 120;
+export const MAP_RAIN_TILE_H = 100;
+export const MAP_RAIN_CYCLE_MS = 900;
+export const MAP_RAIN_STREAK_OPACITY = 0.24;
+export const MAP_RAIN_TINT_OPACITY = 0.055;
+export const MAP_RAIN_STROKE_W = 1;
+export const MAP_RAIN_STREAKS = [
+  [12, 8, 8, 24],
+  [64, 39, 60, 55],
+  [102, 73, 98, 89],
+] as const;
 /** Mouse-wheel zoom sensitivity and normalization for the 2D track map. */
 export const TRACK_WHEEL_ZOOM_PER_PIXEL = 0.002;
 export const TRACK_WHEEL_LINE_PIXELS = 16;

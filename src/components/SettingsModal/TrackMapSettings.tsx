@@ -213,6 +213,7 @@ function TrackMapPreview({
           ? { lane: "unknown", entry: "unknown", exit: "closed" } as const
           : null,
         weatherOverlay: settings.mapShowWeather ? data.weather : null,
+        weather: data.weather,
         showTrackControls: settings.mapShowTrackControls,
         showFocusedHud: settings.mapShowDriverHud,
         showTrackScreenshot: settings.trackScreenshotPngEnabled,
@@ -257,7 +258,7 @@ function TrackMapPreview({
           </div>
         }
       >
-        <TrackMap3D {...common} trackFlagState={flagState} weather={data.weather} onExit3d={onExit3d} />
+        <TrackMap3D {...common} trackFlagState={flagState} onExit3d={onExit3d} />
       </Suspense>
     );
   } else {
@@ -498,6 +499,16 @@ export function TrackMapSettings({
           </>
         )}
 
+        {!is3d && (
+          <>
+            <SectionHeader>Weather</SectionHeader>
+            {row(
+              "mapWeatherEffectsEnabled",
+              "Weather effects",
+              "Subtle rain and atmosphere in 2D and ring when rain is reported at the playhead. Also beside the map view changer; independent of the weather panel",
+            )}
+          </>
+        )}
         <SectionHeader>Overlays & Controls</SectionHeader>
         {row("mapShowWeather", "Track weather", "Weather panel on the map")}
         {row("mapShowClock", "Track time clock", "The circuit's local time and yours")}

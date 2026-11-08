@@ -19,7 +19,7 @@ import { TOKEN_HEX } from "@/designTokens";
 import * as analytics from "@/lib/analytics";
 
 let timelineT = 0;
-const follow = vi.hoisted(() => ({ on: false, heatmap: true, numbers: false, setSetting: vi.fn() }));
+const follow = vi.hoisted(() => ({ on: false, heatmap: true, numbers: false, weatherEffects: false, setSetting: vi.fn() }));
 
 vi.mock("@/timeline/clock", () => ({
   useTimeline: vi.fn(
@@ -98,6 +98,7 @@ vi.mock("@/stores/settings", () => ({
       mapShowClock: false,
       mapFollowFocusedCar: follow.on,
       mapShowDriverHeatmap: follow.heatmap,
+      mapWeatherEffectsEnabled: follow.weatherEffects,
       setSetting: follow.setSetting,
     }),
   ),
@@ -165,6 +166,7 @@ describe("TrackMap sector flag state rendering", () => {
     follow.on = false;
     follow.heatmap = true;
     follow.numbers = false;
+    follow.weatherEffects = false;
     follow.setSetting.mockReset();
     vi.mocked(useTrackOutline).mockReturnValue(
       mockTrackOutlineQueryResult(null),
@@ -177,6 +179,30 @@ describe("TrackMap sector flag state rendering", () => {
     vi.mocked(useTrackOutline).mockReturnValue(mockTrackOutlineQueryResult(mockOutline));
     render(<TrackMap sessionKey={1} drivers={[mockDriver]} locationData={mockLocationData} sessionStartMs={0} />);
     expect(screen.getByTestId("map-background").querySelector("pattern")).not.toBeNull();
+  });
+
+  it("shows rain with weather readings hidden and exposes the shared quick toggle", () => {
+    follow.weatherEffects = true;
+    vi.mocked(useTrackOutline).mockReturnValue(mockTrackOutlineQueryResult(mockOutline));
+    render(
+      <TrackMap
+        sessionKey={1}
+        drivers={[mockDriver]}
+        locationData={mockLocationData}
+        sessionStartMs={0}
+        weather={{
+          date: "2024-01-01T00:00:00Z", rainfall: 1, humidity: 80,
+          air_temperature: 20, track_temperature: 22, pressure: 1000,
+          wind_direction: 0, wind_speed: 0, session_key: 1, meeting_key: 1,
+        }}
+        weatherOverlay={null}
+        showTrackControls={false}
+      />,
+    );
+    expect(screen.getByTestId("map-rain-effects")).toBeInTheDocument();
+    expect(screen.queryByLabelText("Track weather")).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Weather effects" }));
+    expect(follow.setSetting).toHaveBeenCalledWith("mapWeatherEffectsEnabled", false);
   });
 
   it("zooms with the wheel, persists rapid input, respects limits and resets", () => {

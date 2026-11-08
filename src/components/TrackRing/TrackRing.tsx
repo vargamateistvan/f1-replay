@@ -12,6 +12,7 @@ import {
   windSpeedUnitLabel,
 } from "@/utils/units";
 import { ErrorMessage } from "@/components/ErrorMessage";
+import { RainLayer } from "@/components/TrackMap/layers/RainLayer";
 import {
   RING_LABEL_MIN_GAP,
   RING_LABEL_RADIUS,
@@ -116,6 +117,7 @@ interface Props {
   readonly battlingDrivers?: ReadonlySet<number>;
   readonly retiredDrivers?: ReadonlySet<number>;
   readonly weatherOverlay?: Weather | null;
+  readonly weather?: Weather | null;
   readonly trackFlagState?: TrackFlagState | null;
   readonly pitLaneStatus?: PitLaneStatus | null;
   readonly activeTrackVehicles?: ActiveTrackVehicles | null;
@@ -175,6 +177,7 @@ export function TrackRing({
   battlingDrivers,
   retiredDrivers,
   weatherOverlay = null,
+  weather = null,
   trackFlagState = null,
   pitLaneStatus = null,
   activeTrackVehicles = null,
@@ -197,6 +200,7 @@ export function TrackRing({
 }: Props) {
   const timelineT = useCoarseTime(100);
   const t = previewTimeMs ?? timelineT;
+  const weatherEffects = useSettings((s) => s.mapWeatherEffectsEnabled);
   const tyreGuidance = useMemo(() => {
     if (!weatherOverlay) return null;
 
@@ -703,6 +707,12 @@ export function TrackRing({
             <rect x="1.5" y="1.5" width="1.5" height="1.5" fill="#111111" />
           </pattern>
         </defs>
+        <RainLayer
+          enabled={weatherEffects}
+          weather={weather}
+          view={{ x: 0, y: 0, w: RING_SVG_W, h: RING_SVG_H }}
+          preview={previewTimeMs !== undefined}
+        />
         <g
           data-testid="ring-zoom-layer"
           transform={`translate(${CX} ${CY}) scale(${zoomLevel}) translate(${-CX} ${-CY})`}
@@ -793,6 +803,8 @@ export function TrackRing({
         onEnter2d={onEnter2d}
         onEnter3d={onEnter3d}
         extraButtons={extraButtons}
+        onToggleWeather={() => setSetting("mapWeatherEffectsEnabled", !weatherEffects)}
+        weatherEffectsOn={weatherEffects}
       />
 
       {showPitWindowOutcomes && pitWindow && pitWindowRivalsResult && (

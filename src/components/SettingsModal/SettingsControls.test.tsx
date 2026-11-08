@@ -92,6 +92,7 @@ vi.mock("@/stores/settings", () => ({
     mapShowTrackControls: true,
     mapShowCompass: true,
     mapShowWeather: true,
+    mapWeatherEffectsEnabled: false,
     mapShowClock: true,
     mapShowDriverAcronym: true,
     mapShowDriverNumberInside: false,
@@ -506,6 +507,9 @@ describe("SettingsControls", () => {
     expect(screen.getByText("Marshal sector heatmap")).toBeInTheDocument();
     expect(screen.queryByText("Terrain")).not.toBeInTheDocument();
     expect(screen.queryByText("Light & Weather")).not.toBeInTheDocument();
+    const weatherRow = screen.getByText("Weather effects").parentElement!.parentElement!;
+    fireEvent.click(within(weatherRow).getByRole("switch"));
+    expect(state.setSetting).toHaveBeenCalledWith("mapWeatherEffectsEnabled", true);
   });
 
   it("switches the map view from the settings", () => {

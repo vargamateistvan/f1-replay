@@ -1,5 +1,6 @@
 import { useMemo, useState, useEffect, useRef, useCallback } from "react";
 import { ErrorMessage } from "@/components/ErrorMessage";
+import { RainLayer } from "./layers/RainLayer";
 import { useCarDataForLap } from "@/hooks/useCarDataForLap";
 import { useCarDataWindow } from "@/hooks/useCarDataWindow";
 import { chunkIndexFor } from "@/hooks/useLocationChunks";
@@ -139,6 +140,7 @@ interface Props {
   /** Current race leader; stale 0 s gaps on other cars are ignored. */
   readonly leaderNumber?: number | null;
   readonly weatherOverlay?: Weather | null;
+  readonly weather?: Weather | null;
   readonly trackFlagState?: TrackFlagState | null;
   readonly pitLaneStatus?: PitLaneStatus | null;
   readonly activeTrackVehicles?: ActiveTrackVehicles | null;
@@ -192,6 +194,7 @@ export function TrackMap({
   pitRejoinGaps = null,
   leaderNumber = null,
   weatherOverlay = null,
+  weather = null,
   trackFlagState = null,
   pitLaneStatus = null,
   activeTrackVehicles = null,
@@ -228,6 +231,7 @@ export function TrackMap({
   const mapShowClock = useSettings((s) => s.mapShowClock);
   const followFocused = useSettings((s) => s.mapFollowFocusedCar);
   const showHeatmap = useSettings((s) => s.mapShowDriverHeatmap);
+  const weatherEffects = useSettings((s) => s.mapWeatherEffectsEnabled);
   const setSetting = useSettings((s) => s.setSetting);
   const isCompactViewport = useMediaQuery("(max-width: 767px)");
   const [zoomLevel, setZoomLevel] = useState(TRACK_FIT_ZOOM);
@@ -856,6 +860,12 @@ export function TrackMap({
           <SectorClipPaths geom={trackGeometry} circuitLayout={circuitLayout} />
         </defs>
         <MapBackground view={smoothedView} lightMode={lightMode} />
+        <RainLayer
+          enabled={weatherEffects}
+          weather={weather}
+          view={smoothedView}
+          preview={previewTimeMs !== undefined}
+        />
         {/* Paint order matters: ribbon → surface → flags → telemetry →
             circuit markup → markers → cars. */}
         <g transform={trackTransform}>
@@ -1050,6 +1060,8 @@ export function TrackMap({
         following={followFocused}
         onToggleHeatmap={focusDriver !== null ? toggleHeatmap : undefined}
         heatmapOn={showHeatmap}
+        onToggleWeather={() => setSetting("mapWeatherEffectsEnabled", !weatherEffects)}
+        weatherEffectsOn={weatherEffects}
       />
 
       {focusDriver !== null && heatSegments.length > 0 && heatData.data && (

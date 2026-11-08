@@ -2,6 +2,7 @@ import { Fragment, memo } from "react";
 import type { MouseEvent, ReactNode } from "react";
 import {
   Camera,
+  CloudRain,
   CircleDot,
   Crosshair,
   Flame,
@@ -86,6 +87,8 @@ export const TrackControls = memo(function TrackControls({
   following = false,
   onToggleHeatmap,
   heatmapOn = false,
+  onToggleWeather,
+  weatherEffectsOn = false,
   extraButtons,
 }: {
   showTrackControls: boolean;
@@ -114,6 +117,8 @@ export const TrackControls = memo(function TrackControls({
   /** When set (a driver is focused), shows the driver heatmap toggle. */
   onToggleHeatmap?: () => void;
   heatmapOn?: boolean;
+  onToggleWeather?: () => void;
+  weatherEffectsOn?: boolean;
   /** View-specific toggles, shown after the view switch. */
   extraButtons?: readonly TrackControlButton[];
 }) {
@@ -146,6 +151,18 @@ export const TrackControls = memo(function TrackControls({
       <span key="views" data-tour={TOUR_TARGET.mapViews} className="flex items-center gap-1">
         {views}
       </span>,
+    );
+  }
+  if (onToggleWeather) {
+    top.push(
+      <ControlButton
+        key="weather"
+        title="Weather effects"
+        onPress={onToggleWeather}
+        active={weatherEffectsOn}
+      >
+        <CloudRain {...icon} />
+      </ControlButton>,
     );
   }
   if (onToggleFollow) {

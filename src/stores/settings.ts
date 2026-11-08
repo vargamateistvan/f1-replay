@@ -28,6 +28,8 @@ export interface AppSettings {
   mapShowTrackControls: boolean;
   mapShowCompass: boolean;
   mapShowWeather: boolean;
+  /** 2D and ring: decorative rain at the playhead, independent of weather readings. */
+  mapWeatherEffectsEnabled: boolean;
   mapShowClock: boolean;
   mapShowDriverAcronym: boolean;
   mapShowDriverNumberInside: boolean;
@@ -205,6 +207,7 @@ export const SETTINGS_DEFAULTS: AppSettings = {
   mapShowTrackControls: true,
   mapShowCompass: true,
   mapShowWeather: true,
+  mapWeatherEffectsEnabled: false,
   mapShowClock: false,
   mapShowDriverAcronym: true,
   mapShowDriverNumberInside: false,

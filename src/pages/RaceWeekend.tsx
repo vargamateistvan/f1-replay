@@ -2401,6 +2401,7 @@ export default function RaceWeekend() {
       showSectorBox={mapShowSectorBox}
       showTrackScreenshot={trackScreenshotPngEnabled}
       weatherOverlay={mapShowWeather ? weatherAtT : null}
+      weather={weatherAtT}
       activeTrackVehicles={activeTrackVehicles}
       safetyCarSirenOn={safetyCarSirenOn}
       retiredDrivers={retiredDrivers}
@@ -2487,6 +2488,7 @@ export default function RaceWeekend() {
       showTrackScreenshot={trackScreenshotPngEnabled}
       showEnhancedVisuals={mapShowEnhancedVisuals}
       weatherOverlay={mapShowWeather ? weatherAtT : null}
+      weather={weatherAtT}
       activeTrackVehicles={activeTrackVehicles}
       safetyCarSirenOn={safetyCarSirenOn}
       retiredDrivers={retiredDrivers}

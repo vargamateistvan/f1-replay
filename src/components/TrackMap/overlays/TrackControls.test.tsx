@@ -17,6 +17,19 @@ const handlers = () => ({
 });
 
 describe("TrackControls", () => {
+  it("keeps the accessible weather toggle beside the view switch with controls hidden", () => {
+    const onToggleWeather = vi.fn();
+    const { rerender } = render(
+      <TrackControls showTrackControls={false} {...handlers()} onToggleWeather={onToggleWeather} weatherEffectsOn />,
+    );
+    const button = screen.getByRole("button", { name: "Weather effects" });
+    expect(button).toHaveAttribute("aria-pressed", "true");
+    fireEvent.click(button);
+    expect(onToggleWeather).toHaveBeenCalledOnce();
+    rerender(<TrackControls showTrackControls={false} {...handlers()} onToggleWeather={onToggleWeather} />);
+    expect(screen.getByRole("button", { name: "Weather effects" })).toHaveAttribute("aria-pressed", "false");
+  });
+
   it("shows one toolbar with view switch, rotate, zoom/fit, snapshot and settings", () => {
     const h = handlers();
     render(<TrackControls showTrackControls {...h} />);

@@ -22,6 +22,7 @@ const ring = vi.hoisted(() => ({
   gapMode: "interval" as "interval" | "leader" | "focus",
   reverse: false,
   showPitWindowOutcomes: false,
+  weatherEffects: false,
   setSetting: vi.fn(),
 }));
 
@@ -70,6 +71,7 @@ vi.mock("@/stores/settings", () => ({
       mapRingGapMode: ring.gapMode,
       mapRingReverse: ring.reverse,
       mapRingShowPitWindowOutcomes: ring.showPitWindowOutcomes,
+      mapWeatherEffectsEnabled: ring.weatherEffects,
       setSetting: ring.setSetting,
     }),
   ),
@@ -146,12 +148,31 @@ function renderRing(props: Partial<Parameters<typeof TrackRing>[0]> = {}) {
   );
 }
 
+describe("ring rain effects", () => {
+  it("uses real weather with readings hidden and shares the quick setting", () => {
+    ring.weatherEffects = true;
+    renderRing({
+      weather: {
+        date: new Date(START).toISOString(), rainfall: 1, humidity: 80,
+        air_temperature: 20, track_temperature: 22, pressure: 1000,
+        wind_direction: 0, wind_speed: 0, session_key: 1, meeting_key: 1,
+      },
+      weatherOverlay: null,
+    });
+    expect(screen.getByTestId("map-rain-effects")).toBeInTheDocument();
+    expect(screen.queryByTestId("ring-center-weather")).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Weather effects" }));
+    expect(ring.setSetting).toHaveBeenCalledWith("mapWeatherEffectsEnabled", false);
+  });
+});
+
 beforeEach(() => {
   clock.t = 500;
   ring.timeScale = false;
   ring.gapMode = "interval";
   ring.reverse = false;
   ring.showPitWindowOutcomes = false;
+  ring.weatherEffects = false;
   ring.setSetting.mockReset();
   vi.mocked(useCircuitGeometry).mockReturnValue({ data: null, isPending: false } as never);
 });
