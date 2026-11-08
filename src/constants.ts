@@ -122,14 +122,14 @@ export const TRACK_FIT_ZOOM = 1.15;
 /** Ring view SVG viewport; the ring is centred in it. */
 export const RING_SVG_W = 460;
 export const RING_SVG_H = 400;
+export const RING_BACKGROUND_OFFSETS = [20, 40] as const;
 /** Radius of the track ring (SVG units). */
 export const RING_RADIUS = 128;
-/** Radius of the ring's cardinal labels, just outside the track. */
-export const RING_CARDINAL_LABEL_RADIUS = 146;
+/** Place cardinal labels on the outer guide ring. */
+export const RING_CARDINAL_LABEL_RADIUS = RING_RADIUS + Math.max(...RING_BACKGROUND_OFFSETS);
 /** Mouse-wheel zoom limits for the ring view, matching the 2D map. */
 export const RING_ZOOM_MIN = 0.6;
 export const RING_ZOOM_MAX = 3;
-export const RING_BACKGROUND_OFFSETS = [20, 40] as const;
 export const RING_BACKGROUND_TICK_COUNT = 48;
 export const RING_BACKGROUND_MAJOR_TICK_EVERY = 6;
 export const RING_BACKGROUND_TICK_INSET = 5;

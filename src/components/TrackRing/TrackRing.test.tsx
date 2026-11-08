@@ -262,6 +262,7 @@ describe("TrackRing", () => {
       expect(Number(label?.getAttribute("x"))).toBeCloseTo(x);
       expect(Number(label?.getAttribute("y"))).toBeCloseTo(y);
     }
+    expect(directions.querySelector('[data-direction="N"]')).toHaveAttribute("fill", TOKEN_HEX.f1red);
     expect(screen.queryByTitle("Compass")).not.toBeInTheDocument();
   });
 
@@ -272,6 +273,8 @@ describe("TrackRing", () => {
     } as never);
     renderRing({ circuitKey: 2, year: 2026 });
     const directions = screen.getByTestId("ring-cardinal-directions");
+    expect(screen.getByTestId("map-background").querySelector('[data-layer="ring-background-ticks"]'))
+      .toHaveAttribute("transform", `rotate(90 ${RING_SVG_W / 2} ${RING_SVG_H / 2})`);
     const centerX = RING_SVG_W / 2;
     const centerY = RING_SVG_H / 2;
     const expected = [

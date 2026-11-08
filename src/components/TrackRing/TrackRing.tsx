@@ -710,7 +710,12 @@ export function TrackRing({
           <MapBackground
             view={{ x: 0, y: 0, w: RING_SVG_W, h: RING_SVG_H }}
             lightMode={lightMode}
-            ring={{ cx: CX, cy: CY, radius: RING_RADIUS }}
+            ring={{
+              cx: CX,
+              cy: CY,
+              radius: RING_RADIUS,
+              rotationDeg: circuitGeom?.rotation ?? 0,
+            }}
           />
           <RingCenter
             cx={CX}

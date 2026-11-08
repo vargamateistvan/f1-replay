@@ -101,7 +101,7 @@ export const RingCardinalDirections = memo(function RingCardinalDirections({
             textAnchor="middle"
             dominantBaseline="central"
             fontSize={8}
-            fill={color}
+            fill={direction === "N" ? TOKEN_HEX.f1red : color}
             fontFamily={FONT}
             fontWeight="900"
             letterSpacing="0.08em"

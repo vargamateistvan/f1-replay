@@ -22,7 +22,7 @@ import { TOKEN_HEX, TOKEN_HEX_LIGHT } from "@/designTokens";
 interface Props {
   view: { x: number; y: number; w: number; h: number };
   lightMode: boolean;
-  ring?: { cx: number; cy: number; radius: number };
+  ring?: { cx: number; cy: number; radius: number; rotationDeg?: number };
 }
 
 export function MapBackground({ view, lightMode, ring }: Props) {
@@ -68,7 +68,10 @@ export function MapBackground({ view, lightMode, ring }: Props) {
               strokeWidth={lightMode ? "0.65" : "0.5"}
             />
           ))}
-          <g data-layer="ring-background-ticks">
+          <g
+            data-layer="ring-background-ticks"
+            transform={`rotate(${ring.rotationDeg ?? 0} ${ring.cx} ${ring.cy})`}
+          >
             {Array.from({ length: RING_BACKGROUND_TICK_COUNT }, (_, index) => {
               const isMajor = index % RING_BACKGROUND_MAJOR_TICK_EVERY === 0;
               const length = isMajor ? RING_BACKGROUND_MAJOR_TICK_LENGTH : RING_BACKGROUND_TICK_LENGTH;

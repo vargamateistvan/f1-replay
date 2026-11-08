@@ -53,4 +53,13 @@ describe("MapBackground", () => {
     expect(firstId).not.toBe(secondId);
     expect(backgrounds[0]!.querySelector("rect")).toHaveAttribute("fill", `url(#${firstId})`);
   });
+
+  it("rotates the ring ticks around its center when a rotation is provided", () => {
+    const ring = { cx: 230, cy: 200, radius: 128, rotationDeg: 92 };
+    const { container } = render(
+    <svg><MapBackground view={view} lightMode={false} ring={ring} /></svg>,
+    );
+    expect(container.querySelector('[data-layer="ring-background-ticks"]'))
+    .toHaveAttribute("transform", "rotate(92 230 200)");
+  });
 });
