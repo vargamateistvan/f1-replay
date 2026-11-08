@@ -15,6 +15,8 @@ import {
 } from "lucide-react";
 import { animateMotion, pressMotion } from "@/lib/motion";
 import { TOUR_TARGET } from "@/components/AppTour/targets";
+import type { MapViewMode } from "@/stores/settings";
+import { QuickTrackSettings } from "./QuickTrackSettings";
 
 /** Same button as the 3D map's toolbar, so both maps share one control bar look. */
 const BUTTON_CLASS =
@@ -90,6 +92,7 @@ export const TrackControls = memo(function TrackControls({
   onToggleWeather,
   weatherEffectsOn = false,
   extraButtons,
+  quickSettingsView,
 }: {
   showTrackControls: boolean;
   onRotateLeft: () => void;
@@ -121,6 +124,7 @@ export const TrackControls = memo(function TrackControls({
   weatherEffectsOn?: boolean;
   /** View-specific toggles, shown after the view switch. */
   extraButtons?: readonly TrackControlButton[];
+  quickSettingsView?: MapViewMode;
 }) {
   // Row 1: always-on buttons (view switch · snapshot + settings).
   const top: ReactNode[] = [];
@@ -200,7 +204,7 @@ export const TrackControls = memo(function TrackControls({
       </Fragment>,
     );
   }
-  if (onSnapshot || onOpenSettings) {
+  if (onSnapshot || onOpenSettings || quickSettingsView) {
     top.push(
       <Fragment key="tools">
         {onSnapshot && (
@@ -211,6 +215,9 @@ export const TrackControls = memo(function TrackControls({
           >
             <Camera {...icon} />
           </ControlButton>
+        )}
+        {quickSettingsView && (
+          <QuickTrackSettings view={quickSettingsView} buttonClass={BUTTON_CLASS} onOpenSettings={onOpenSettings} />
         )}
         {onOpenSettings && (
           <ControlButton title="Track map settings" onPress={onOpenSettings}>

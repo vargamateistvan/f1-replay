@@ -80,6 +80,7 @@ import { useStartLightsSound } from "@/hooks/useStartLightsSound";
 import { computeTrackBounds, isOffTrackPlaceholder } from "@/hooks/useTrackMap";
 import { trackEvent } from "@/lib/analytics";
 import { useSettings } from "@/stores/settings";
+import { QuickTrackSettings } from "@/components/TrackMap/overlays/QuickTrackSettings";
 import { useTimeline } from "@/timeline/clock";
 import { TOKEN_HEX } from "@/designTokens";
 import type { PitLaneStatus } from "@/timeline/raceControl";
@@ -1780,6 +1781,7 @@ export function TrackMap3D({
         aria-label="Track map controls"
       >
         {exitButton}
+        <QuickTrackSettings view="3d" buttonClass={buttonClass} onOpenSettings={onOpenSettings} />
         {settingsButton}
       </div>
     </div>
@@ -1894,6 +1896,7 @@ export function TrackMap3D({
             <Camera size={14} strokeWidth={2.2} aria-hidden="true" />
           </button>
         )}
+        <QuickTrackSettings view="3d" buttonClass={buttonClass} onOpenSettings={onOpenSettings} />
         {settingsButton}
       </div>
 

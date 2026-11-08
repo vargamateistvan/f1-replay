@@ -791,6 +791,7 @@ export function TrackRing({
       {!hasCars && <StartReplayHint />}
 
       <TrackControls
+        quickSettingsView="ring"
         showTrackControls={false}
         onRotateLeft={noop}
         onRotateRight={noop}

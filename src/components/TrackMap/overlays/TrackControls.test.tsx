@@ -17,6 +17,14 @@ const handlers = () => ({
 });
 
 describe("TrackControls", () => {
+  it("adds quick settings without replacing the gear, even with controls hidden", () => {
+    const h = handlers();
+    render(<TrackControls showTrackControls={false} {...h} quickSettingsView="2d" />);
+    expect(screen.getByRole("button", { name: "Quick track settings" })).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Track map settings" }));
+    expect(h.onOpenSettings).toHaveBeenCalledOnce();
+  });
+
   it("keeps the accessible weather toggle beside the view switch with controls hidden", () => {
     const onToggleWeather = vi.fn();
     const { rerender } = render(

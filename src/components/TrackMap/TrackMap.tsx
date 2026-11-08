@@ -1044,6 +1044,7 @@ export function TrackMap({
       {showStartReplayHint && locationIndexes.size === 0 && <StartReplayHint />}
 
       <TrackControls
+        quickSettingsView="2d"
         showTrackControls={showTrackControls}
         onRotateLeft={rotateLeft}
         onRotateRight={rotateRight}
