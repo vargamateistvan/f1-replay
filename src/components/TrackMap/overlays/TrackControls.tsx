@@ -6,7 +6,6 @@ import {
   Maximize,
   RotateCcw,
   RotateCw,
-  Settings as SettingsIcon,
   ZoomIn,
   ZoomOut,
 } from "lucide-react";
@@ -150,7 +149,7 @@ export const TrackControls = memo(function TrackControls({
       </Fragment>,
     );
   }
-  if (onSnapshot || onOpenSettings || quickSettingsView) {
+  if (onSnapshot || quickSettingsView) {
     top.push(
       <Fragment key="tools">
         {onSnapshot && (
@@ -164,11 +163,6 @@ export const TrackControls = memo(function TrackControls({
         )}
         {quickSettingsView && (
           <QuickTrackSettings view={quickSettingsView} buttonClass={BUTTON_CLASS} onOpenSettings={onOpenSettings} />
-        )}
-        {onOpenSettings && (
-          <ControlButton title="Track map settings" onPress={onOpenSettings}>
-            <SettingsIcon {...icon} />
-          </ControlButton>
         )}
       </Fragment>,
     );

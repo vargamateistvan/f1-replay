@@ -1,6 +1,6 @@
 import { useEffect, useId, useLayoutEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { SlidersHorizontal, X } from "lucide-react";
+import { Settings, X } from "lucide-react";
 import { Button } from "@/components/Button/Button";
 import { useSettings, type AppSettings, type MapViewMode } from "@/stores/settings";
 import { MAP_QUICK_SETTINGS_INSET } from "@/constants";
@@ -132,7 +132,7 @@ export function QuickTrackSettings({
         className={`${buttonClass} ${open ? "!border-f1red" : ""}`}
         onClick={() => setOpen((value) => !value)}
       >
-        <SlidersHorizontal size={14} strokeWidth={2.2} aria-hidden="true" />
+        <Settings size={14} strokeWidth={2.2} aria-hidden="true" />
       </button>
       {open && createPortal(
         <div

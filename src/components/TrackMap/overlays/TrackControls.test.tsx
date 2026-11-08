@@ -17,11 +17,13 @@ const handlers = () => ({
 });
 
 describe("TrackControls", () => {
-  it("adds quick settings without replacing the gear, even with controls hidden", () => {
+  it("uses one quick-settings gear, even with controls hidden", () => {
     const h = handlers();
     render(<TrackControls showTrackControls={false} {...h} quickSettingsView="2d" />);
     expect(screen.getByRole("button", { name: "Quick track settings" })).toBeInTheDocument();
-    fireEvent.click(screen.getByRole("button", { name: "Track map settings" }));
+    expect(screen.queryByRole("button", { name: "Track map settings" })).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Quick track settings" }));
+    fireEvent.click(screen.getByRole("button", { name: "All track settings" }));
     expect(h.onOpenSettings).toHaveBeenCalledOnce();
   });
 
@@ -47,7 +49,6 @@ describe("TrackControls", () => {
       ["Fit track", h.onResetView],
       ["Zoom in", h.onZoomIn],
       ["Download map snapshot as PNG", h.onSnapshot],
-      ["Track map settings", h.onOpenSettings],
     ] as const) {
       fireEvent.click(screen.getByRole("button", { name: label }));
       expect(fn).toHaveBeenCalledTimes(1);
@@ -61,7 +62,7 @@ describe("TrackControls", () => {
       screen.getByRole("button", { name: "Switch to ring view (lap progress)" }),
     ).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Download map snapshot as PNG" })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Track map settings" })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Track map settings" })).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Zoom in" })).not.toBeInTheDocument();
   });
 

@@ -10,7 +10,6 @@ import {
   Maximize,
   Navigation,
   Orbit,
-  Settings as SettingsIcon,
   Tv,
   Video,
 } from "lucide-react";
@@ -1711,17 +1710,6 @@ export function TrackMap3D({
   const buttonClass =
     "h-7 min-w-7 px-1.5 flex items-center justify-center border border-panel text-fg/85 hover:text-fg hover:border-fg/50 transition-colors text-caption font-black tracking-widest";
 
-  const settingsButton = onOpenSettings && (
-    <button
-      type="button"
-      className={buttonClass}
-      title="Track map settings"
-      aria-label="Track map settings"
-      onClick={onOpenSettings}
-    >
-      <SettingsIcon size={14} strokeWidth={2.2} aria-hidden="true" />
-    </button>
-  );
   const exitButton = (
     <span data-tour={TOUR_TARGET.mapViews} className="flex items-center gap-1">
       <button type="button" className={buttonClass} title="Switch to 2D map" onClick={onExit3d}>
@@ -1755,7 +1743,6 @@ export function TrackMap3D({
       >
         {exitButton}
         <QuickTrackSettings view="3d" buttonClass={buttonClass} onOpenSettings={onOpenSettings} />
-        {settingsButton}
       </div>
     </div>
   );
@@ -1853,7 +1840,6 @@ export function TrackMap3D({
           </button>
         )}
         <QuickTrackSettings view="3d" buttonClass={buttonClass} onOpenSettings={onOpenSettings} />
-        {settingsButton}
       </div>
 
       {followSuspended && (focusDriver != null || cameraMode === "tv") && (

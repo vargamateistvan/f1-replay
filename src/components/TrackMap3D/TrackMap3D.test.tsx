@@ -256,7 +256,8 @@ describe("TrackMap3D", () => {
     expect(screen.getByRole("toolbar", { name: "Track map controls" })).toHaveClass(
       "bg-surface/70", "backdrop-blur-sm",
     );
-    fireEvent.click(screen.getByLabelText("Track map settings"));
+    fireEvent.click(screen.getByLabelText("Quick track settings"));
+    fireEvent.click(screen.getByRole("button", { name: "All track settings" }));
     expect(onOpenSettings).toHaveBeenCalled();
     fireEvent.click(screen.getByTitle("Switch to 2D map"));
     expect(onExit3d).toHaveBeenCalled();
@@ -268,7 +269,8 @@ describe("TrackMap3D", () => {
     expect(toolbar).toHaveClass("bg-surface/70", "backdrop-blur-sm");
     expect(toolbar).toContainElement(screen.getByTitle("Switch to 2D map"));
     expect(toolbar).toContainElement(screen.getByLabelText("Switch to ring view (lap progress)"));
-    expect(toolbar).toContainElement(screen.getByLabelText("Track map settings"));
+    expect(toolbar).toContainElement(screen.getByLabelText("Quick track settings"));
+    expect(screen.queryByLabelText("Track map settings")).not.toBeInTheDocument();
   });
 
   it("offers the ring view only when it's wired up", () => {

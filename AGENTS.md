@@ -21,7 +21,7 @@
 | 3D map                                            | `components/TrackMap3D/`, `utils/georef.ts`, `docs/TRACK_MAP_3D.md`                          |
 | Ring view                                         | `components/TrackRing/`, `utils/lapProgress.ts`, `docs/RING_VIEW.md`                         |
 | 2D / ring weather effects                        | `components/TrackMap/layers/RainLayer.tsx`, `mapWeatherEffectsEnabled` in `stores/settings.ts`; toggle in map quick settings and Track Map settings |
-| Map quick settings                               | `components/TrackMap/overlays/QuickTrackSettings.tsx`: separate sliders button in all map toolbars, common and view-specific persisted toggles; gear still opens the full dialog |
+| Map quick settings                               | `components/TrackMap/overlays/QuickTrackSettings.tsx`: single gear button in all map toolbars opens common and view-specific persisted toggles; All track settings opens the full dialog |
 | Pit rejoin / pit window (all map views)           | `utils/pitRejoin.ts`, `components/TrackRing/pitWindow.ts`, `components/TrackMap/usePitWindow.ts` (2D + 3D), colours `PIT_WINDOW_COLOR` / `PIT_MARKER_COLOR` |
 | Toasts / catch-up                                 | `timeline/events.ts`, `hooks/useEventToasts.ts`, `hooks/useCatchupSummary.ts`                |
 | Race control / flags                              | `timeline/raceControl.ts`, `utils/raceControlFlags.ts`                                       |

@@ -1007,7 +1007,7 @@ describe("TrackMap sector flag state rendering", () => {
     expect(img.getAttribute("src")).toBe("https://example.com/ver.jpg");
   });
 
-  it("shows a settings shortcut only when onOpenSettings is provided", () => {
+  it("opens full settings through the quick-settings gear", () => {
     vi.mocked(useTrackOutline).mockReturnValue(
       mockTrackOutlineQueryResult(mockOutline),
     );
@@ -1021,6 +1021,7 @@ describe("TrackMap sector flag state rendering", () => {
       />,
     );
     expect(screen.queryByLabelText("Track map settings")).toBeNull();
+    expect(screen.getByLabelText("Quick track settings")).toBeInTheDocument();
 
     rerender(
       <TrackMap
@@ -1032,7 +1033,8 @@ describe("TrackMap sector flag state rendering", () => {
         onOpenSettings={onOpenSettings}
       />,
     );
-    fireEvent.click(screen.getByLabelText("Track map settings"));
+    fireEvent.click(screen.getByLabelText("Quick track settings"));
+    fireEvent.click(screen.getByRole("button", { name: "All track settings" }));
     expect(onOpenSettings).toHaveBeenCalledOnce();
   });
 });
