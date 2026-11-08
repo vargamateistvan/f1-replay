@@ -171,6 +171,7 @@ describe("ring rain effects", () => {
 
 beforeEach(() => {
   clock.t = 500;
+  window.localStorage.removeItem("f1-replay:ring-zoom:v1:1:none");
   ring.timeScale = false;
   ring.gapMode = "interval";
   ring.reverse = false;
@@ -340,6 +341,26 @@ describe("TrackRing", () => {
     for (let i = 0; i < 10; i++) fireEvent.wheel(svg, { deltaY: 1000, cancelable: true });
     expect(zoomLayer.getAttribute("transform")).toContain("scale(0.6)");
     expect(fireEvent.wheel(svg, { deltaY: 0, cancelable: true })).toBe(true);
+  });
+
+  it("saves and restores the zoom for the same session and circuit", () => {
+    const firstRender = renderRing();
+    const svg = firstRender.container.querySelector("svg")!;
+    fireEvent.wheel(svg, { deltaY: -100, cancelable: true });
+
+    const savedZoom = window.localStorage.getItem("f1-replay:ring-zoom:v1:1:none");
+    expect(Number(savedZoom)).toBeCloseTo(1.2);
+    firstRender.unmount();
+
+    const secondRender = renderRing();
+    expect(screen.getByTestId("ring-zoom-layer").getAttribute("transform")).toContain(
+      `scale(${savedZoom})`,
+    );
+    secondRender.unmount();
+
+    const differentSession = renderRing({ sessionKey: 2 });
+    expect(screen.getByTestId("ring-zoom-layer").getAttribute("transform")).toContain("scale(1)");
+    differentSession.unmount();
   });
 
   it("places each car at its lap fraction round the ring", () => {

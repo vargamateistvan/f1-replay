@@ -34,6 +34,7 @@ import { useCarDataWindow } from "@/hooks/useCarDataWindow";
 import { useCircuitGeometry } from "@/hooks/useCircuitGeometry";
 import { useCoarseTime } from "@/hooks/useCoarseTime";
 import { chunkIndexFor } from "@/hooks/useLocationChunks";
+import { useMediaQuery } from "@/hooks/useMediaQuery";
 import { useStartLightsSound } from "@/hooks/useStartLightsSound";
 import { isOffTrackPlaceholder, useTrackOutline } from "@/hooks/useTrackMap";
 import { trackEvent } from "@/lib/analytics";
@@ -237,9 +238,27 @@ export function TrackRing({
   const setSetting = useSettings((s) => s.setSetting);
   const svgRef = useRef<SVGSVGElement>(null);
   const [zoomLevel, setZoomLevel] = useState(1);
+  const zoomLevelRef = useRef(zoomLevel);
+  zoomLevelRef.current = zoomLevel;
+  const isCompactViewport = useMediaQuery("(max-width: 767px)");
   const [hoverDriver, setHoverDriver] = useState<number | null>(null);
   const [legendOpen, setLegendOpen] = useState(false);
   const patternId = `ring-finish-checker-${sessionKey ?? "na"}`;
+  const zoomStorageKey = useMemo(
+    () => `f1-replay:ring-zoom:v1:${sessionKey ?? "none"}:${circuitKey ?? "none"}`,
+    [sessionKey, circuitKey],
+  );
+  const persistZoomLevel = useCallback(
+    (next: number) => {
+      if (typeof window === "undefined") return;
+      try {
+        window.localStorage.setItem(zoomStorageKey, String(next));
+      } catch {
+        // Ignore storage errors (private mode / quota).
+      }
+    },
+    [zoomStorageKey],
+  );
 
   const { data: circuitGeom, isPending: bakedPending } = useCircuitGeometry(circuitKey, year);
   const hasBaked = circuitGeom != null;
@@ -282,6 +301,38 @@ export function TrackRing({
   );
 
   useEffect(() => {
+    let next = 1;
+    if (!isCompactViewport && typeof window !== "undefined") {
+      try {
+        const savedZoom = window.localStorage.getItem(zoomStorageKey);
+        const parsedZoom = savedZoom === null ? Number.NaN : Number(savedZoom);
+        if (Number.isFinite(parsedZoom)) {
+          next = Math.min(RING_ZOOM_MAX, Math.max(RING_ZOOM_MIN, parsedZoom));
+        }
+      } catch {
+        next = 1;
+      }
+    }
+    zoomLevelRef.current = next;
+    setZoomLevel(next);
+  }, [isCompactViewport, zoomStorageKey]);
+
+  const zoomBy = useCallback(
+    (delta: number) => {
+      const next = Math.min(
+        RING_ZOOM_MAX,
+        Math.max(RING_ZOOM_MIN, zoomLevelRef.current + delta),
+      );
+      if (next === zoomLevelRef.current) return;
+      zoomLevelRef.current = next;
+      setZoomLevel(next);
+      persistZoomLevel(next);
+      trackEvent("trackmap_zoom_changed", { zoom: next, view: "ring" });
+    },
+    [persistZoomLevel],
+  );
+
+  useEffect(() => {
     const svg = svgRef.current;
     if (!svg || !model) return;
 
@@ -296,19 +347,12 @@ export function TrackRing({
             ? svg.clientHeight
             : 1);
       const delta = Math.max(-TRACK_WHEEL_MAX_DELTA, Math.min(TRACK_WHEEL_MAX_DELTA, pixels));
-      setZoomLevel((current) => {
-        const next = Math.min(
-          RING_ZOOM_MAX,
-          Math.max(RING_ZOOM_MIN, current - delta * TRACK_WHEEL_ZOOM_PER_PIXEL),
-        );
-        if (next !== current) trackEvent("trackmap_zoom_changed", { zoom: next, view: "ring" });
-        return next;
-      });
+      zoomBy(-delta * TRACK_WHEEL_ZOOM_PER_PIXEL);
     };
 
     svg.addEventListener("wheel", onWheel, { passive: false });
     return () => svg.removeEventListener("wheel", onWheel);
-  }, [model]);
+  }, [model, zoomBy]);
 
   const driverByNumber = useMemo(() => new Map(drivers.map((d) => [d.driver_number, d])), [drivers]);
   const locationIndexes = useMemo(
