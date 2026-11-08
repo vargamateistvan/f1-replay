@@ -287,6 +287,8 @@ describe("TrackRing", () => {
       expect(Number(label?.getAttribute("y"))).toBeCloseTo(y);
     }
     expect(directions.querySelector('[data-direction="N"]')).toHaveAttribute("fill", TOKEN_HEX.f1red);
+    const name = screen.getByText("VER");
+    expect(directions.compareDocumentPosition(name) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
     expect(screen.queryByTitle("Compass")).not.toBeInTheDocument();
   });
 

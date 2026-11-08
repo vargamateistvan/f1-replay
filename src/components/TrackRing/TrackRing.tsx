@@ -749,6 +749,12 @@ export function TrackRing({
           {measure && (
             <RingGapMeasure cx={CX} cy={CY} r={RING_RADIUS} scale={scale} lightMode={lightMode} {...measure} />
           )}
+          <RingCardinalDirections
+            cx={CX}
+            cy={CY}
+            rotationDeg={circuitGeom?.rotation ?? 0}
+            lightMode={lightMode}
+          />
           <RingCars
             cars={carLayout}
             gapText={gapText}
@@ -764,12 +770,6 @@ export function TrackRing({
             showNumberInside={showNumberInside}
             onSelectDriver={onSelectDriver}
             onHoverDriver={setHoverDriver}
-          />
-          <RingCardinalDirections
-            cx={CX}
-            cy={CY}
-            rotationDeg={circuitGeom?.rotation ?? 0}
-            lightMode={lightMode}
           />
         </g>
       </svg>
