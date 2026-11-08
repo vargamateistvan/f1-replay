@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { ArrowLeftRight, CircleHelp, FlipHorizontal2, Timer } from "lucide-react";
+import { ArrowLeftRight, CircleHelp } from "lucide-react";
 import type { Driver, Interval, Lap, Location, Pit, Stint, Weather } from "@/api/types";
 import { teamColor } from "@/utils/color";
 import { cleanRaceLaps, type NeutralisedWindow, type PaceLap } from "@/utils/racePace";
@@ -639,20 +639,6 @@ export function TrackRing({
       active: legendOpen,
       onPress: () => setLegendOpen((open) => !open),
     },
-    {
-      key: "time",
-      title: timeScale ? "Space by distance" : "Space by lap time",
-      icon: <Timer size={14} strokeWidth={2.2} aria-hidden />,
-      active: timeScale,
-      onPress: () => setSetting("mapRingTimeScale", !timeScale),
-    },
-    {
-      key: "flip",
-      title: "Flip the direction of travel",
-      icon: <FlipHorizontal2 size={14} strokeWidth={2.2} aria-hidden />,
-      active: reverse,
-      onPress: () => setSetting("mapRingReverse", !reverse),
-    },
   ];
   if (gapText) {
     // Cycle: car ahead → leader → focused car (when there is one) → car ahead.
@@ -804,8 +790,6 @@ export function TrackRing({
         onEnter2d={onEnter2d}
         onEnter3d={onEnter3d}
         extraButtons={extraButtons}
-        onToggleWeather={() => setSetting("mapWeatherEffectsEnabled", !weatherEffects)}
-        weatherEffectsOn={weatherEffects}
       />
 
       {showPitWindowOutcomes && pitWindow && pitWindowRivalsResult && (

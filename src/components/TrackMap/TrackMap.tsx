@@ -232,7 +232,6 @@ export function TrackMap({
   const followFocused = useSettings((s) => s.mapFollowFocusedCar);
   const showHeatmap = useSettings((s) => s.mapShowDriverHeatmap);
   const weatherEffects = useSettings((s) => s.mapWeatherEffectsEnabled);
-  const setSetting = useSettings((s) => s.setSetting);
   const isCompactViewport = useMediaQuery("(max-width: 767px)");
   const [zoomLevel, setZoomLevel] = useState(TRACK_FIT_ZOOM);
   const zoomLevelRef = useRef(zoomLevel);
@@ -579,14 +578,6 @@ export function TrackMap({
     trackEvent("trackmap_snapshot_export", { format: "png" });
     exportTrackSnapshot(svgRef.current);
   }, []);
-  const toggleFollow = useCallback(() => {
-    trackEvent("trackmap_follow_toggled", { following: !followFocused, view: "2d" });
-    setSetting("mapFollowFocusedCar", !followFocused);
-  }, [followFocused, setSetting]);
-  const toggleHeatmap = useCallback(() => {
-    trackEvent("trackmap_heatmap_toggled", { shown: !showHeatmap, view: "2d" });
-    setSetting("mapShowDriverHeatmap", !showHeatmap);
-  }, [showHeatmap, setSetting]);
 
   // Fetch telemetry for the focused driver's last completed lap (driver
   // heatmap). Only fires when a driver is focused, the heatmap is on and a lap
@@ -1057,12 +1048,6 @@ export function TrackMap({
         onOpenSettings={onOpenSettings}
         onEnter3d={onEnter3d}
         onEnterRing={onEnterRing}
-        onToggleFollow={focusDriver !== null ? toggleFollow : undefined}
-        following={followFocused}
-        onToggleHeatmap={focusDriver !== null ? toggleHeatmap : undefined}
-        heatmapOn={showHeatmap}
-        onToggleWeather={() => setSetting("mapWeatherEffectsEnabled", !weatherEffects)}
-        weatherEffectsOn={weatherEffects}
       />
 
       {focusDriver !== null && heatSegments.length > 0 && heatData.data && (

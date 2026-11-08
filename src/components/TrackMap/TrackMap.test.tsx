@@ -201,7 +201,8 @@ describe("TrackMap sector flag state rendering", () => {
     );
     expect(screen.getByTestId("map-rain-effects")).toBeInTheDocument();
     expect(screen.queryByLabelText("Track weather")).not.toBeInTheDocument();
-    fireEvent.click(screen.getByRole("button", { name: "Weather effects" }));
+    fireEvent.click(screen.getByRole("button", { name: "Quick track settings" }));
+    fireEvent.click(screen.getByRole("switch", { name: "Weather effects" }));
     expect(follow.setSetting).toHaveBeenCalledWith("mapWeatherEffectsEnabled", false);
   });
 
@@ -452,8 +453,9 @@ describe("TrackMap sector flag state rendering", () => {
 
     const first = render(<TrackMap {...props} />);
     expect(viewW(first.container)).toBe(600);
-    const button = screen.getByRole("button", { name: "Follow the focused car" });
-    expect(button).toHaveAttribute("aria-pressed", "false");
+    fireEvent.click(screen.getByRole("button", { name: "Quick track settings" }));
+    const button = screen.getByRole("switch", { name: "Follow focused car" });
+    expect(button).toHaveAttribute("aria-checked", "false");
     fireEvent.click(button);
     expect(follow.setSetting).toHaveBeenCalledWith("mapFollowFocusedCar", true);
     first.unmount();
@@ -461,9 +463,8 @@ describe("TrackMap sector flag state rendering", () => {
     follow.on = true;
     const second = render(<TrackMap {...props} />);
     expect(viewW(second.container)).toBeLessThan(600);
-    expect(
-      screen.getByRole("button", { name: "Stop following the focused car" }),
-    ).toHaveAttribute("aria-pressed", "true");
+    fireEvent.click(screen.getByRole("button", { name: "Quick track settings" }));
+    expect(screen.getByRole("switch", { name: "Follow focused car" })).toHaveAttribute("aria-checked", "true");
     second.unmount();
 
     // No focused car: no follow toggle.
@@ -486,7 +487,8 @@ describe("TrackMap sector flag state rendering", () => {
     vi.mocked(useCarDataForLap).mockClear();
     const on = render(<TrackMap {...props} />);
     expect(vi.mocked(useCarDataForLap)).toHaveBeenCalledWith(1, 1, 5, expect.anything());
-    fireEvent.click(screen.getByRole("button", { name: "Hide the driver heatmap" }));
+    fireEvent.click(screen.getByRole("button", { name: "Quick track settings" }));
+    fireEvent.click(screen.getByRole("switch", { name: "Driver heatmap" }));
     expect(follow.setSetting).toHaveBeenCalledWith("mapShowDriverHeatmap", false);
     on.unmount();
 
@@ -495,9 +497,8 @@ describe("TrackMap sector flag state rendering", () => {
     render(<TrackMap {...props} />);
     expect(vi.mocked(useCarDataForLap)).not.toHaveBeenCalledWith(1, 1, 5, expect.anything());
     expect(vi.mocked(useCarDataForLap)).toHaveBeenCalledWith(1, null, 5, expect.anything());
-    expect(
-      screen.getByRole("button", { name: "Show the driver heatmap" }),
-    ).toHaveAttribute("aria-pressed", "false");
+    fireEvent.click(screen.getByRole("button", { name: "Quick track settings" }));
+    expect(screen.getByRole("switch", { name: "Driver heatmap" })).toHaveAttribute("aria-checked", "false");
   });
 
   it("keeps follow-camera viewport stable when focused sample is temporarily missing", () => {

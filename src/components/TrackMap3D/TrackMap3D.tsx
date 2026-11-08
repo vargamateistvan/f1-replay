@@ -6,7 +6,6 @@ import {
   Camera,
   CircleDot,
   Crosshair,
-  Flame,
   Gauge,
   Maximize,
   Navigation,
@@ -433,7 +432,6 @@ export function TrackMap3D({
   const battleGapsEnabled = useSettings((s) => s.mapView3dBattleGaps);
   const followFocused = useSettings((s) => s.mapFollowFocusedCar);
   const showHeatmap = useSettings((s) => s.mapShowDriverHeatmap);
-  const setSetting = useSettings((s) => s.setSetting);
   const mapShowDriverNumberInside = useSettings(
     (s) => s.mapShowDriverNumberInside,
   );
@@ -1512,31 +1510,6 @@ export function TrackMap3D({
     if (!followingRef.current()) fitOverview(800);
   }, [fitOverview]);
 
-  // Follow camera with a focused car: off → follow, following but dragged
-  // away → resume, following → stop (back to the overview).
-  const toggleFollow = useCallback(() => {
-    if (followFocused && followSuspended) {
-      recenter();
-      return;
-    }
-    trackEvent("trackmap_follow_toggled", { following: !followFocused, view: "3d" });
-    setSetting("mapFollowFocusedCar", !followFocused);
-  }, [followFocused, followSuspended, recenter, setSetting]);
-  const toggleHeatmap = useCallback(() => {
-    trackEvent("trackmap_heatmap_toggled", { shown: !showHeatmap, view: "3d" });
-    setSetting("mapShowDriverHeatmap", !showHeatmap);
-  }, [showHeatmap, setSetting]);
-  const heatmapTitle = showHeatmap ? "Hide the driver heatmap" : "Show the driver heatmap";
-  const followToggle = focusDriver != null && cameraMode === "follow";
-  const followTitle = !followToggle
-    ? focusDriver != null
-      ? "Recentre on the focused car"
-      : "Fit track"
-    : !followFocused
-      ? "Follow the focused car"
-      : followSuspended
-        ? "Resume following the focused car"
-        : "Stop following the focused car";
 
   const applyCameraMode = useCallback(
     (next: CameraMode) => {
@@ -1837,33 +1810,16 @@ export function TrackMap3D({
         {showTrackControls && (
           <button
             type="button"
-            className={
-              followToggle && followFocused && !followSuspended
-                ? `${buttonClass} !border-f1red text-fg`
-                : buttonClass
-            }
-            title={followTitle}
-            aria-label={followTitle}
-            aria-pressed={followToggle ? followFocused && !followSuspended : undefined}
-            onClick={followToggle ? toggleFollow : recenter}
+            className={buttonClass}
+            title={focusDriver != null ? "Recentre on the focused car" : "Fit track"}
+            aria-label={focusDriver != null ? "Recentre on the focused car" : "Fit track"}
+            onClick={recenter}
           >
             {focusDriver != null ? (
               <Crosshair size={14} strokeWidth={2.2} aria-hidden="true" />
             ) : (
               <Maximize size={14} strokeWidth={2.2} aria-hidden="true" />
             )}
-          </button>
-        )}
-        {focusDriver != null && (
-          <button
-            type="button"
-            className={showHeatmap ? `${buttonClass} !border-f1red text-fg` : buttonClass}
-            title={heatmapTitle}
-            aria-label={heatmapTitle}
-            aria-pressed={showHeatmap}
-            onClick={toggleHeatmap}
-          >
-            <Flame size={14} strokeWidth={2.2} aria-hidden="true" />
           </button>
         )}
         {showTrackControls && (

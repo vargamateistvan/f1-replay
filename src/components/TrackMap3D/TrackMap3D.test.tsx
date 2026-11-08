@@ -207,23 +207,27 @@ describe("TrackMap3D", () => {
   });
   afterEach(() => vi.restoreAllMocks());
 
-  it("follows the focused car only after opting in with the toolbar toggle", () => {
+  it("keeps follow and heatmap in quick settings while retaining recenter navigation", () => {
     const off = renderMap({ focusDriver: 16 });
-    const follow = screen.getByRole("button", { name: "Follow the focused car" });
-    expect(follow).toHaveAttribute("aria-pressed", "false");
+    fireEvent.click(screen.getByRole("button", { name: "Quick track settings" }));
+    const follow = screen.getByRole("switch", { name: "Follow focused car" });
+    expect(follow).toHaveAttribute("aria-checked", "false");
     fireEvent.click(follow);
     expect(settings.setSetting).toHaveBeenCalledWith("mapFollowFocusedCar", true);
     off.unmount();
 
     settings.mapFollowFocusedCar = true;
     const on = renderMap({ focusDriver: 16 });
-    fireEvent.click(screen.getByRole("button", { name: "Stop following the focused car" }));
+    fireEvent.click(screen.getByRole("button", { name: "Quick track settings" }));
+    fireEvent.click(screen.getByRole("switch", { name: "Follow focused car" }));
     expect(settings.setSetting).toHaveBeenCalledWith("mapFollowFocusedCar", false);
     on.unmount();
 
-    renderMap({ focusDriver: 16 });
-    fireEvent.click(screen.getAllByRole("button", { name: "Hide the driver heatmap" })[0]!);
+    const heat = renderMap({ focusDriver: 16 });
+    fireEvent.click(screen.getByRole("button", { name: "Quick track settings" }));
+    fireEvent.click(screen.getByRole("switch", { name: "Driver heatmap" }));
     expect(settings.setSetting).toHaveBeenCalledWith("mapShowDriverHeatmap", false);
+    heat.unmount();
 
     // Chase is an explicit camera: the button just recentres.
     renderMap({ focusDriver: 16, initialCameraMode: "chase" });

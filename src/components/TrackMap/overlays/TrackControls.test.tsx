@@ -25,17 +25,11 @@ describe("TrackControls", () => {
     expect(h.onOpenSettings).toHaveBeenCalledOnce();
   });
 
-  it("keeps the accessible weather toggle beside the view switch with controls hidden", () => {
-    const onToggleWeather = vi.fn();
-    const { rerender } = render(
-      <TrackControls showTrackControls={false} {...handlers()} onToggleWeather={onToggleWeather} weatherEffectsOn />,
-    );
-    const button = screen.getByRole("button", { name: "Weather effects" });
-    expect(button).toHaveAttribute("aria-pressed", "true");
-    fireEvent.click(button);
-    expect(onToggleWeather).toHaveBeenCalledOnce();
-    rerender(<TrackControls showTrackControls={false} {...handlers()} onToggleWeather={onToggleWeather} />);
-    expect(screen.getByRole("button", { name: "Weather effects" })).toHaveAttribute("aria-pressed", "false");
+  it("does not duplicate settings as standalone toolbar buttons", () => {
+    render(<TrackControls showTrackControls={false} {...handlers()} quickSettingsView="2d" />);
+    expect(screen.queryByRole("button", { name: "Weather effects" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Follow the focused car" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Show the driver heatmap" })).not.toBeInTheDocument();
   });
 
   it("shows one toolbar with view switch, rotate, zoom/fit, snapshot and settings", () => {

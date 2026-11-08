@@ -161,7 +161,10 @@ describe("ring rain effects", () => {
     });
     expect(screen.getByTestId("map-rain-effects")).toBeInTheDocument();
     expect(screen.queryByTestId("ring-center-weather")).not.toBeInTheDocument();
-    fireEvent.click(screen.getByRole("button", { name: "Weather effects" }));
+    expect(screen.queryByRole("button", { name: "Weather effects" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Flip the direction of travel" })).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Quick track settings" }));
+    fireEvent.click(screen.getByRole("switch", { name: "Weather effects" }));
     expect(ring.setSetting).toHaveBeenCalledWith("mapWeatherEffectsEnabled", false);
   });
 });

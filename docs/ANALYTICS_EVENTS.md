@@ -223,10 +223,10 @@ dimension** instead of relying on the built-in App version report:
   - Trigger: PNG export click
 - `trackmap_heatmap_toggled`
   - Params: `shown` (new state), `view` (`2d` | `3d`)
-  - Trigger: driver heatmap toggle (flame) on the map toolbar, with a focused car
+  - Trigger: Driver heatmap switch in the map quick settings
 - `trackmap_follow_toggled`
   - Params: `following` (new state), `view` (`2d` | `3d`)
-  - Trigger: follow toggle (crosshair) with a focused car; on the 3D map only in the "follow" camera mode
+  - Trigger: Follow focused car switch in the map quick settings
 - `trackmap_view_mode_changed`
   - Params: `mode` (`2d` | `3d`)
   - Trigger: 3D button on the 2D map / 2D button on the 3D map

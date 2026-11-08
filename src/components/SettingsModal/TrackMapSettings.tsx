@@ -420,7 +420,7 @@ export function TrackMapSettings({
           row(
             "mapShowDriverHeatmap",
             "Driver heatmap",
-            "Colour the track with the focused driver's last lap: speed, time gained or lost against their previous lap, and braking points. Also on the map toolbar",
+            "Colour the track with the focused driver's last lap: speed, time gained or lost against their previous lap, and braking points. Also in map quick settings",
           )}
         {!isRing &&
           row(
@@ -505,7 +505,7 @@ export function TrackMapSettings({
             {row(
               "mapWeatherEffectsEnabled",
               "Weather effects",
-              "Subtle rain and atmosphere in 2D and ring when rain is reported at the playhead. Also beside the map view changer; independent of the weather panel",
+              "Subtle rain and atmosphere in 2D and ring when rain is reported at the playhead. Also in map quick settings; independent of the weather panel",
             )}
           </>
         )}

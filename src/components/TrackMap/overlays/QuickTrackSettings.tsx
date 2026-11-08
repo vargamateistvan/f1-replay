@@ -4,6 +4,7 @@ import { SlidersHorizontal, X } from "lucide-react";
 import { Button } from "@/components/Button/Button";
 import { useSettings, type AppSettings, type MapViewMode } from "@/stores/settings";
 import { MAP_QUICK_SETTINGS_INSET } from "@/constants";
+import { trackEvent } from "@/lib/analytics";
 
 type BooleanSetting = {
   [Key in keyof AppSettings]: AppSettings[Key] extends boolean ? Key : never;
@@ -167,7 +168,12 @@ export function QuickTrackSettings({
                     type="button"
                     role="switch"
                     aria-checked={Boolean(settings[key])}
-                    onClick={() => settings.setSetting(key, !settings[key])}
+                    onClick={() => {
+                      const enabled = !settings[key];
+                      if (key === "mapFollowFocusedCar") trackEvent("trackmap_follow_toggled", { following: enabled, view });
+                      if (key === "mapShowDriverHeatmap") trackEvent("trackmap_heatmap_toggled", { shown: enabled, view });
+                      settings.setSetting(key, enabled);
+                    }}
                     className="flex w-full items-center justify-between gap-3 border-b border-panel py-2 text-left text-compact last:border-0 hover:text-f1red-fg"
                   >
                     <span>{label}</span>
