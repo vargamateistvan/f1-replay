@@ -146,6 +146,10 @@ export const RING_SVG_H = 400;
 export const RING_BACKGROUND_OFFSETS = [20, 40] as const;
 /** Radius of the track ring (SVG units). */
 export const RING_RADIUS = 128;
+/** Ring center-map fit and frame. */
+export const RING_CENTER_MAP_MAX_SCALE = 0.38;
+export const RING_CENTER_MAP_FIT_INSET = 12;
+export const RING_CENTER_MAP_RADIUS = RING_RADIUS - 12;
 /** Place cardinal labels on the outer guide ring. */
 export const RING_CARDINAL_LABEL_RADIUS = RING_RADIUS + Math.max(...RING_BACKGROUND_OFFSETS);
 /** Mouse-wheel zoom limits for the ring view, matching the 2D map. */

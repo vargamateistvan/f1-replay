@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { ArrowLeftRight, CircleHelp } from "lucide-react";
+import { ArrowLeftRight, CircleHelp, Map as MapIcon } from "lucide-react";
 import type { Driver, Interval, Lap, Location, Pit, Stint, Weather } from "@/api/types";
 import { teamColor } from "@/utils/color";
 import { cleanRaceLaps, type NeutralisedWindow, type PaceLap } from "@/utils/racePace";
@@ -36,7 +36,11 @@ import { useCoarseTime } from "@/hooks/useCoarseTime";
 import { chunkIndexFor } from "@/hooks/useLocationChunks";
 import { useMediaQuery } from "@/hooks/useMediaQuery";
 import { useStartLightsSound } from "@/hooks/useStartLightsSound";
-import { isOffTrackPlaceholder, useTrackOutline } from "@/hooks/useTrackMap";
+import {
+  computeTrackAutoRotationDeg,
+  isOffTrackPlaceholder,
+  useTrackOutline,
+} from "@/hooks/useTrackMap";
 import { trackEvent } from "@/lib/analytics";
 import { useSettings } from "@/stores/settings";
 import { buildDriverIndexes, interpolateXY } from "@/timeline/interpolate";
@@ -65,7 +69,13 @@ import { StatusBadges } from "../TrackMap/overlays/StatusBadges";
 import { TrackControls, type TrackControlButton } from "../TrackMap/overlays/TrackControls";
 import { buildStatusBadges, type ActiveTrackVehicles } from "../TrackMap/statusBadges";
 import { buildTrackGeometry, carDataAt, projectToSvg } from "../TrackMap/trackGeometry";
-import { mapBackgroundColor, overlayBackgroundColor, windDir } from "../TrackMap/trackMapFormat";
+import {
+  mapBackgroundColor,
+  normalizeDeg,
+  overlayBackgroundColor,
+  windDir,
+} from "../TrackMap/trackMapFormat";
+import type { CarPosition } from "../TrackMap/layers/CarLayer";
 import {
   buildRingModel,
   createRingReferenceState,
@@ -88,6 +98,7 @@ import {
   RingCars,
   RingCardinalDirections,
   RingCenter,
+  RingCenterMap,
   RingGapMeasure,
   RingLegend,
   RingPitLane,
@@ -232,6 +243,7 @@ export function TrackRing({
   const mapStartLightsSound = useSettings((s) => s.mapStartLightsSound);
   const mapShowClock = useSettings((s) => s.mapShowClock);
   const timeScale = useSettings((s) => s.mapRingTimeScale);
+  const ringPreset = useSettings((s) => s.mapRingPreset);
   const gapMode = useSettings((s) => s.mapRingGapMode);
   const reverse = useSettings((s) => s.mapRingReverse);
   const showPitWindowOutcomes = useSettings((s) => s.mapRingShowPitWindowOutcomes);
@@ -244,6 +256,8 @@ export function TrackRing({
   const [hoverDriver, setHoverDriver] = useState<number | null>(null);
   const [legendOpen, setLegendOpen] = useState(false);
   const patternId = `ring-finish-checker-${sessionKey ?? "na"}`;
+  const centerMapClipId = `ring-center-map-${sessionKey ?? "na"}`;
+  const centerMapSurfaceGradientId = `ring-center-map-surface-${sessionKey ?? "na"}`;
   const zoomStorageKey = useMemo(
     () => `f1-replay:ring-zoom:v1:${sessionKey ?? "none"}:${circuitKey ?? "none"}`,
     [sessionKey, circuitKey],
@@ -275,6 +289,13 @@ export function TrackRing({
     year,
   );
   const trackGeometry = useMemo(() => (outline ? buildTrackGeometry(outline) : null), [outline]);
+  const centerMapRotation = useMemo(
+    () =>
+      circuitGeom && Number.isFinite(circuitGeom.rotation)
+        ? normalizeDeg(-circuitGeom.rotation)
+        : computeTrackAutoRotationDeg(outline?.points ?? [], true),
+    [circuitGeom, outline],
+  );
 
   const totalMarshalPosts = Math.max(
     circuitGeom?.marshalSectors?.length ?? 0,
@@ -459,6 +480,7 @@ export function TrackRing({
 
   // Per tick: interpolate each car, then place it on the lap.
   const ringCars: RingCar[] = [];
+  const centerMapCars: CarPosition[] = [];
   // Lap time fraction (before the flip) of every car on track.
   const timeFractions = new Map<number, number>();
   const hints = hintsRef.current;
@@ -471,6 +493,7 @@ export function TrackRing({
     const placed = placeCar(model, sx, sy, hints.get(num) ?? -1);
     if (!placed) continue;
     hints.set(num, placed.segment);
+    if (ringPreset === "map") centerMapCars.push({ num, x: pos.x, y: pos.y, inPit: placed.inPit });
     ringCars.push({ num, fraction: toDisplay(scale, placed.fraction), inPit: placed.inPit });
     if (!placed.inPit) timeFractions.set(num, lapTimeFraction(scale, placed.fraction));
     else if (num === focusDriver) focusInPit = true;
@@ -677,6 +700,13 @@ export function TrackRing({
       : null;
   const extraButtons: TrackControlButton[] = [
     {
+      key: "preset",
+      title: ringPreset === "map" ? "Show ring dashboard" : "Show 2D map inside ring",
+      icon: <MapIcon size={14} strokeWidth={2.2} aria-hidden />,
+      active: ringPreset === "map",
+      onPress: () => setSetting("mapRingPreset", ringPreset === "map" ? "dashboard" : "map"),
+    },
+    {
       key: "legend",
       title: legendOpen ? "Hide ring legend" : "Show ring legend",
       icon: <CircleHelp size={14} strokeWidth={2.2} aria-hidden />,
@@ -757,27 +787,54 @@ export function TrackRing({
               rotationDeg: circuitGeom?.rotation ?? 0,
             }}
           />
-          <RingCenter
-            cx={CX}
-            cy={CY}
-            lapLabel={lapLabel && lapLabel !== "—" ? lapLabel : null}
-            status={status}
-            reference={reference}
-            focusInfo={focusInfo}
-            weather={centerWeather}
-            tyreGuidance={tyreGuidance}
-            lightMode={lightMode}
-          />
-          <RingPitLane
-            cx={CX}
-            cy={CY}
-            r={RING_PIT_RADIUS}
-            ringR={RING_RADIUS}
-            model={model}
-            scale={scale}
-            lightMode={lightMode}
-            pitLaneStatus={pitLaneStatus}
-          />
+          {ringPreset === "map" ? (
+            <RingCenterMap
+              cx={CX}
+              cy={CY}
+              geom={trackGeometry}
+              carPositions={centerMapCars}
+              driverByNumber={driverByNumber}
+              focusDriverNumber={focusDriver}
+              activeCompounds={activeCompounds}
+              battlingDrivers={battlingDrivers}
+              pitWindowDrivers={highlightDrivers}
+              pulseDrivers={pulseDrivers}
+              safetyCarSirenOn={safetyCarSirenOn}
+              clipId={centerMapClipId}
+              finishPatternId={patternId}
+              gradientId={centerMapSurfaceGradientId}
+              rotationDeg={centerMapRotation}
+              lightMode={lightMode}
+              showNumberInside={showNumberInside}
+              onSelectDriver={onSelectDriver}
+            />
+          ) : (
+            <RingCenter
+              cx={CX}
+              cy={CY}
+              lapLabel={lapLabel && lapLabel !== "—" ? lapLabel : null}
+              status={status}
+              reference={reference}
+              focusInfo={focusInfo}
+              weather={centerWeather}
+              tyreGuidance={tyreGuidance}
+              lightMode={lightMode}
+            />
+          )}
+          {ringPreset !== "map" && (
+            <g data-testid="ring-pit-lane-layer">
+              <RingPitLane
+                cx={CX}
+                cy={CY}
+                r={RING_PIT_RADIUS}
+                ringR={RING_RADIUS}
+                model={model}
+                scale={scale}
+                lightMode={lightMode}
+                pitLaneStatus={pitLaneStatus}
+              />
+            </g>
+          )}
           <RingTrack
             cx={CX}
             cy={CY}

@@ -2,6 +2,11 @@ import { memo } from "react";
 import { CloudRain, CloudSun, Wind } from "lucide-react";
 import type { Driver, Stint } from "@/api/types";
 import {
+  RING_CENTER_MAP_MAX_SCALE,
+  RING_CENTER_MAP_FIT_INSET,
+  RING_CENTER_MAP_RADIUS,
+  TRACK_SVG_H,
+  TRACK_SVG_W,
   COMPOUND_COLORS,
   COMPOUND_HARD_LIGHT_COLOR,
   COMPOUND_LETTERS,
@@ -18,9 +23,18 @@ import { trackEvent } from "@/lib/analytics";
 import { teamColor } from "@/utils/color";
 import { forwardSpan, ringPoint, wrapFraction } from "@/utils/lapProgress";
 import { PIT_CONDITION_LABEL, type PitLossCondition } from "@/utils/pitRejoin";
-import { SPECIAL_TRACK_VEHICLES } from "../TrackMap/layers/specialVehicles";
+import {
+  DirectionArrows,
+  SectorBoundaryMarkers,
+  StartFinishLine,
+  TrackSurface,
+} from "../TrackMap/layers/TrackSurfaceLayers";
+import { CarLayer, type CarPosition } from "../TrackMap/layers/CarLayer";
+import { MapBackground } from "../TrackMap/layers/MapBackground";
 import { PitAccessLight } from "../TrackMap/layers/PitAccessLight";
+import { SPECIAL_TRACK_VEHICLES } from "../TrackMap/layers/specialVehicles";
 import { mapBackgroundColor } from "../TrackMap/trackMapFormat";
+import type { TrackGeometry } from "../TrackMap/trackGeometry";
 import {
   displayArc,
   fromTimeFraction,
@@ -113,6 +127,115 @@ export const RingCardinalDirections = memo(function RingCardinalDirections({
     </g>
   );
 });
+
+/** Live 2D circuit and car positions scaled into the ring's center. */
+export function RingCenterMap({
+  cx,
+  cy,
+  geom,
+  carPositions,
+  driverByNumber,
+  focusDriverNumber,
+  activeCompounds,
+  battlingDrivers,
+  pitWindowDrivers,
+  pulseDrivers,
+  safetyCarSirenOn,
+  clipId,
+  finishPatternId,
+  gradientId,
+  rotationDeg,
+  lightMode,
+  showNumberInside,
+  onSelectDriver,
+}: Pick<RingFrame, "cx" | "cy"> & {
+  geom: TrackGeometry;
+  carPositions: readonly CarPosition[];
+  driverByNumber: ReadonlyMap<number, Driver>;
+  focusDriverNumber: number | null;
+  activeCompounds?: ReadonlyMap<number, { compound: Stint["compound"]; age: number }>;
+  battlingDrivers?: ReadonlySet<number>;
+  pitWindowDrivers?: ReadonlySet<number>;
+  pulseDrivers?: readonly number[];
+  safetyCarSirenOn: boolean;
+  clipId: string;
+  finishPatternId: string;
+  gradientId: string;
+  rotationDeg: number;
+  lightMode: boolean;
+  showNumberInside: boolean;
+  onSelectDriver?: (driverNumber: number) => void;
+}) {
+  const background = mapBackgroundColor(lightMode);
+  const maxDistance = geom.svgPts.reduce(
+    (max, point) => Math.max(max, Math.hypot(point.sx - TRACK_SVG_W / 2, point.sy - TRACK_SVG_H / 2)),
+    0,
+  );
+  const scale = maxDistance > 0
+    ? Math.min(RING_CENTER_MAP_MAX_SCALE, (RING_CENTER_MAP_RADIUS - RING_CENTER_MAP_FIT_INSET) / maxDistance)
+    : RING_CENTER_MAP_MAX_SCALE;
+  return (
+    <g
+      data-testid="ring-center-map"
+      role="img"
+      aria-label="2D circuit map inside ring"
+      pointerEvents={onSelectDriver ? "auto" : "none"}
+    >
+      <defs>
+        <clipPath id={clipId}>
+          <circle cx={cx} cy={cy} r={RING_CENTER_MAP_RADIUS} />
+        </clipPath>
+        <linearGradient id={gradientId} x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stopColor={lightMode ? "#eaf1ff" : "#303949"} />
+          <stop offset="52%" stopColor={lightMode ? "#cdd8ed" : "#202835"} />
+          <stop offset="100%" stopColor={lightMode ? "#aebad0" : "#141922"} />
+        </linearGradient>
+      </defs>
+      <circle
+        cx={cx}
+        cy={cy}
+        r={RING_CENTER_MAP_RADIUS}
+        fill={background}
+        stroke="rgb(var(--color-line))"
+        strokeWidth={1}
+      />
+      <g
+        clipPath={`url(#${clipId})`}
+        transform={`translate(${cx} ${cy}) rotate(${rotationDeg}) scale(${scale}) translate(${-TRACK_SVG_W / 2} ${-TRACK_SVG_H / 2})`}
+      >
+        <MapBackground view={{ x: 0, y: 0, w: TRACK_SVG_W, h: TRACK_SVG_H }} lightMode={lightMode} />
+        <g data-testid="ring-center-map-track-surface">
+          <TrackSurface pathData={geom.pathData} gradientId={gradientId} lightMode={lightMode} />
+        </g>
+        <g data-testid="ring-center-map-start-finish">
+          <StartFinishLine geom={geom} patternId={finishPatternId} lightMode={lightMode} />
+        </g>
+        <DirectionArrows geom={geom} lightMode={lightMode} />
+        <SectorBoundaryMarkers geom={geom} rotationDeg={rotationDeg} lightMode={lightMode} />
+        {carPositions.map((position) => (
+          <g key={position.num} data-testid={`ring-center-map-car-${position.num}`}>
+            <CarLayer
+              geom={geom}
+              carPositions={[position]}
+              driverByNumber={driverByNumber}
+              focusDriver={focusDriverNumber}
+              activeCompounds={activeCompounds}
+              battlingDrivers={battlingDrivers}
+              pitWindowDrivers={pitWindowDrivers}
+              pulseDrivers={pulseDrivers}
+              safetyCarSirenOn={safetyCarSirenOn}
+              rotationDeg={rotationDeg}
+              lightMode={lightMode}
+              showAcronym={focusDriverNumber !== null}
+              showNumberInside={showNumberInside}
+              onSelectDriver={onSelectDriver}
+            />
+          </g>
+        ))}
+      </g>
+    </g>
+  );
+}
 
 /** The ring, sector flag tints, sector bars + labels, corner ticks and the finish line. */
 export const RingTrack = memo(function RingTrack({

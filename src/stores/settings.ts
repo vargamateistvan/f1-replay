@@ -51,6 +51,8 @@ export interface AppSettings {
   mapViewMode: MapViewMode;
   /** Ring view: space the circle by lap time (reference lap) instead of distance. */
   mapRingTimeScale: boolean;
+  /** Ring view center: dashboard (current) or live 2D track map. */
+  mapRingPreset: "dashboard" | "map";
   /** Ring view: label gaps to the car ahead, the leader, or the focused car ("focus"; falls back to "interval" without one). */
   mapRingGapMode: "interval" | "leader" | "focus";
   /** Ring view: run the lap anticlockwise. */
@@ -224,6 +226,7 @@ export const SETTINGS_DEFAULTS: AppSettings = {
   mapShowDriverHeatmap: false,
   mapViewMode: "2d",
   mapRingTimeScale: true,
+  mapRingPreset: "dashboard",
   mapRingGapMode: "interval",
   mapRingReverse: false,
   mapRingShowPitWindowOutcomes: false,
@@ -319,6 +322,7 @@ const SETTINGS_FILE_VERSION = 1;
 const LOCAL_ONLY_SETTINGS = new Set(["tourSeenVersion", "replayWelcomeSeen"]);
 const SETTING_CHOICES: Record<string, readonly unknown[]> = {
   mapViewMode: ["2d", "3d", "ring"],
+  mapRingPreset: ["dashboard", "map"],
   mapRingGapMode: ["interval", "leader", "focus"],
   metricSystem: ["metric", "imperial"],
   defaultSpeed: SPEEDS,

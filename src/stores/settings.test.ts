@@ -8,6 +8,7 @@ describe("settings transfer", () => {
     const text = exportSettings(useSettings.getState());
     const restored = parseSettingsImport(text);
     expect(restored.mapViewMode).toBe(useSettings.getState().mapViewMode);
+    expect(restored.mapRingPreset).toBe(useSettings.getState().mapRingPreset);
     expect(restored.defaultSpeed).toBe(useSettings.getState().defaultSpeed);
     expect(restored.catchupSummaryDefaultFilters).toEqual(useSettings.getState().catchupSummaryDefaultFilters);
     expect(restored).not.toHaveProperty("tourSeenVersion");
@@ -29,6 +30,7 @@ describe("settings transfer", () => {
     { metricSystem: "other" },
     { mapViewMode: "4d" },
     { mapRingGapMode: "other" },
+    { mapRingPreset: "other" },
     { catchupSummaryDefaultFilters: [] },
     { catchupSummaryDefaultFilters: ["unknown"] },
     { catchupSummaryDefaultFilters: [2] },
@@ -49,6 +51,26 @@ describe("settings transfer", () => {
 describe("ring settings", () => {
   it("keeps pit window outcomes hidden by default", () => {
     expect(SETTINGS_DEFAULTS.mapRingShowPitWindowOutcomes).toBe(false);
+    expect(SETTINGS_DEFAULTS.mapRingPreset).toBe("dashboard");
+  });
+
+  it("round-trips the selected ring preset", () => {
+    const patch = parseSettingsImport(
+      JSON.stringify({
+        format: "f1-replay-settings",
+        version: 1,
+        settings: { mapRingPreset: "map" },
+      }),
+    );
+    expect(patch.mapRingPreset).toBe("map");
+  });
+
+  it("persists the selected center preset", async () => {
+    useSettings.getState().setSetting("mapRingPreset", "map");
+    expect(JSON.parse(localStorage.getItem("f1-replay-settings")!).state.mapRingPreset).toBe("map");
+    await useSettings.persist.rehydrate();
+    expect(useSettings.getState().mapRingPreset).toBe("map");
+    useSettings.getState().reset();
   });
 });
 

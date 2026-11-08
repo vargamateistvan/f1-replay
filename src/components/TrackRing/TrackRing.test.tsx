@@ -19,6 +19,7 @@ import { TOKEN_HEX } from "@/designTokens";
 const clock = vi.hoisted(() => ({ t: 500 }));
 const ring = vi.hoisted(() => ({
   timeScale: false,
+  preset: "dashboard" as "dashboard" | "map",
   gapMode: "interval" as "interval" | "leader" | "focus",
   reverse: false,
   showPitWindowOutcomes: false,
@@ -51,6 +52,7 @@ function squareOutline() {
 }
 
 vi.mock("@/hooks/useTrackMap", () => ({
+  computeTrackAutoRotationDeg: vi.fn(() => 0),
   useTrackOutline: vi.fn(() => ({ data: squareOutline(), isPending: false })),
   locationToSvg: vi.fn((x: number, y: number) => ({ sx: x, sy: y })),
   isOffTrackPlaceholder: (pos: { x: number; y: number }) => pos.x === 0 && pos.y === 0,
@@ -68,6 +70,7 @@ vi.mock("@/stores/settings", () => ({
       mapStartLightsSound: false,
       mapShowClock: false,
       mapRingTimeScale: ring.timeScale,
+      mapRingPreset: ring.preset,
       mapRingGapMode: ring.gapMode,
       mapRingReverse: ring.reverse,
       mapRingShowPitWindowOutcomes: ring.showPitWindowOutcomes,
@@ -173,6 +176,7 @@ beforeEach(() => {
   clock.t = 500;
   window.localStorage.removeItem("f1-replay:ring-zoom:v1:1:none");
   ring.timeScale = false;
+  ring.preset = "dashboard";
   ring.gapMode = "interval";
   ring.reverse = false;
   ring.showPitWindowOutcomes = false;
@@ -429,6 +433,38 @@ describe("TrackRing", () => {
     expect(onEnter2d).toHaveBeenCalled();
     expect(onEnter3d).toHaveBeenCalled();
     expect(screen.queryByRole("button", { name: /ring view/i })).not.toBeInTheDocument();
+  });
+
+  it("switches between the current dashboard and a live 2D map in the ring", () => {
+    const view = renderRing();
+    expect(screen.getByTestId("ring-center-dashboard")).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "Show 2D map inside ring" }));
+    expect(ring.setSetting).toHaveBeenCalledWith("mapRingPreset", "map");
+
+    ring.preset = "map";
+    view.rerender(
+      <TrackRing
+        sessionKey={1}
+        drivers={drivers}
+        locationData={[
+          loc(1, 100, 0, 0),
+          loc(1, 100, 0, 1000),
+          loc(16, 200, 200, 0),
+          loc(16, 200, 200, 1000),
+        ]}
+        sessionStartMs={START}
+      />,
+    );
+    expect(screen.getByRole("img", { name: "2D circuit map inside ring" })).toBeInTheDocument();
+    expect(screen.getByTestId("ring-center-map-track-surface").querySelectorAll("path")).toHaveLength(6);
+    expect(screen.getByTestId("ring-center-map-start-finish")).toBeInTheDocument();
+    expect(screen.getByTestId("ring-center-map-car-1")).toBeInTheDocument();
+    expect(screen.getByTestId("ring-center-map-car-16")).toBeInTheDocument();
+    expect(screen.queryByTestId("ring-pit-lane-layer")).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Show ring dashboard" })).toHaveAttribute("aria-pressed", "true");
+    fireEvent.click(screen.getByRole("button", { name: "Show ring dashboard" }));
+    expect(ring.setSetting).toHaveBeenLastCalledWith("mapRingPreset", "dashboard");
   });
 
   it("tints a flagged sector on the ring", () => {
