@@ -124,6 +124,9 @@ export const RING_SVG_W = 460;
 export const RING_SVG_H = 400;
 /** Radius of the track ring (SVG units). */
 export const RING_RADIUS = 128;
+/** Mouse-wheel zoom limits for the ring view, matching the 2D map. */
+export const RING_ZOOM_MIN = 0.6;
+export const RING_ZOOM_MAX = 3;
 export const RING_BACKGROUND_OFFSETS = [20, 40] as const;
 export const RING_BACKGROUND_TICK_COUNT = 48;
 export const RING_BACKGROUND_MAJOR_TICK_EVERY = 6;

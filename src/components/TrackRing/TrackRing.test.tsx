@@ -238,6 +238,31 @@ describe("TrackRing", () => {
     expect(screen.getByTestId("map-background").querySelectorAll("circle")).toHaveLength(2);
   });
 
+  it("zooms the ring with the mouse wheel and clamps the zoom range", () => {
+    const { container } = renderRing();
+    const svg = container.querySelector("svg")!;
+    const zoomLayer = screen.getByTestId("ring-zoom-layer");
+
+    expect(zoomLayer).toHaveAttribute(
+      "transform",
+      `translate(${RING_SVG_W / 2} ${RING_SVG_H / 2}) scale(1) translate(${-RING_SVG_W / 2} ${-RING_SVG_H / 2})`,
+    );
+    expect(fireEvent.wheel(svg, { deltaY: -100, cancelable: true })).toBe(false);
+    expect(zoomLayer).toHaveAttribute(
+      "transform",
+      `translate(${RING_SVG_W / 2} ${RING_SVG_H / 2}) scale(1.2) translate(${-RING_SVG_W / 2} ${-RING_SVG_H / 2})`,
+    );
+
+    fireEvent.wheel(svg, { deltaY: 1, deltaMode: 1, cancelable: true });
+    expect(zoomLayer.getAttribute("transform")).toContain("scale(1.168)");
+
+    for (let i = 0; i < 10; i++) fireEvent.wheel(svg, { deltaY: -1000, cancelable: true });
+    expect(zoomLayer.getAttribute("transform")).toContain("scale(3)");
+    for (let i = 0; i < 10; i++) fireEvent.wheel(svg, { deltaY: 1000, cancelable: true });
+    expect(zoomLayer.getAttribute("transform")).toContain("scale(0.6)");
+    expect(fireEvent.wheel(svg, { deltaY: 0, cancelable: true })).toBe(true);
+  });
+
   it("places each car at its lap fraction round the ring", () => {
     const { container } = renderRing();
     const cx = RING_SVG_W / 2;

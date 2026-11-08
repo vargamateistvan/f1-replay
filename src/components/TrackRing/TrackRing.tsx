@@ -20,8 +20,13 @@ import {
   RING_PIT_RADIUS,
   RING_RADIUS,
   RING_REF_REFRESH_MS,
+  RING_ZOOM_MAX,
+  RING_ZOOM_MIN,
   RING_SVG_H,
   RING_SVG_W,
+  TRACK_WHEEL_LINE_PIXELS,
+  TRACK_WHEEL_MAX_DELTA,
+  TRACK_WHEEL_ZOOM_PER_PIXEL,
 } from "@/constants";
 import { getPitLane } from "@/data/pitLanes";
 import { useCarDataWindow } from "@/hooks/useCarDataWindow";
@@ -226,6 +231,7 @@ export function TrackRing({
   const showPitWindowOutcomes = useSettings((s) => s.mapRingShowPitWindowOutcomes);
   const setSetting = useSettings((s) => s.setSetting);
   const svgRef = useRef<SVGSVGElement>(null);
+  const [zoomLevel, setZoomLevel] = useState(1);
   const [hoverDriver, setHoverDriver] = useState<number | null>(null);
   const [legendOpen, setLegendOpen] = useState(false);
   const patternId = `ring-finish-checker-${sessionKey ?? "na"}`;
@@ -269,6 +275,35 @@ export function TrackRing({
         : null,
     [trackGeometry, outline, circuitGeom, circuitKey],
   );
+
+  useEffect(() => {
+    const svg = svgRef.current;
+    if (!svg || !model) return;
+
+    const onWheel = (event: WheelEvent) => {
+      if (event.deltaY === 0 || !Number.isFinite(event.deltaY)) return;
+      event.preventDefault();
+      const pixels =
+        event.deltaY *
+        (event.deltaMode === WheelEvent.DOM_DELTA_LINE
+          ? TRACK_WHEEL_LINE_PIXELS
+          : event.deltaMode === WheelEvent.DOM_DELTA_PAGE
+            ? svg.clientHeight
+            : 1);
+      const delta = Math.max(-TRACK_WHEEL_MAX_DELTA, Math.min(TRACK_WHEEL_MAX_DELTA, pixels));
+      setZoomLevel((current) => {
+        const next = Math.min(
+          RING_ZOOM_MAX,
+          Math.max(RING_ZOOM_MIN, current - delta * TRACK_WHEEL_ZOOM_PER_PIXEL),
+        );
+        if (next !== current) trackEvent("trackmap_zoom_changed", { zoom: next, view: "ring" });
+        return next;
+      });
+    };
+
+    svg.addEventListener("wheel", onWheel, { passive: false });
+    return () => svg.removeEventListener("wheel", onWheel);
+  }, [model]);
 
   const driverByNumber = useMemo(() => new Map(drivers.map((d) => [d.driver_number, d])), [drivers]);
   const locationIndexes = useMemo(
@@ -667,63 +702,68 @@ export function TrackRing({
             <rect x="1.5" y="1.5" width="1.5" height="1.5" fill="#111111" />
           </pattern>
         </defs>
-        <MapBackground
-          view={{ x: 0, y: 0, w: RING_SVG_W, h: RING_SVG_H }}
-          lightMode={lightMode}
-          ring={{ cx: CX, cy: CY, radius: RING_RADIUS }}
-        />
-        <RingCenter
-          cx={CX}
-          cy={CY}
-          lapLabel={lapLabel && lapLabel !== "—" ? lapLabel : null}
-          status={status}
-          reference={reference}
-          focusInfo={focusInfo}
-          weather={centerWeather}
-          tyreGuidance={tyreGuidance}
-          lightMode={lightMode}
-        />
-        <RingPitLane
-          cx={CX}
-          cy={CY}
-          r={RING_PIT_RADIUS}
-          ringR={RING_RADIUS}
-          model={model}
-          scale={scale}
-          lightMode={lightMode}
-          pitLaneStatus={pitLaneStatus}
-        />
-        <RingTrack
-          cx={CX}
-          cy={CY}
-          r={RING_RADIUS}
-          model={model}
-          scale={scale}
-          timingSectorFlags={trackFlagState ? timingSectorFlags : null}
-          showCornerNumbers={showCornerNumbers}
-          patternId={patternId}
-          lightMode={lightMode}
-        />
-        {pitWindow && <RingPitWindow cx={CX} cy={CY} r={RING_RADIUS} scale={scale} {...pitWindow} />}
-        {measure && (
-          <RingGapMeasure cx={CX} cy={CY} r={RING_RADIUS} scale={scale} lightMode={lightMode} {...measure} />
-        )}
-        <RingCars
-          cars={carLayout}
-          gapText={gapText}
-          driverByNumber={driverByNumber}
-          focusDriver={focusDriver}
-          highlightDrivers={highlightDrivers}
-          pulseDrivers={pulseDrivers}
-          battlingDrivers={battlingDrivers}
-          activeCompounds={activeCompounds}
-          safetyCarSirenOn={safetyCarSirenOn}
-          lightMode={lightMode}
-          showAcronym={showAcronym}
-          showNumberInside={showNumberInside}
-          onSelectDriver={onSelectDriver}
-          onHoverDriver={setHoverDriver}
-        />
+        <g
+          data-testid="ring-zoom-layer"
+          transform={`translate(${CX} ${CY}) scale(${zoomLevel}) translate(${-CX} ${-CY})`}
+        >
+          <MapBackground
+            view={{ x: 0, y: 0, w: RING_SVG_W, h: RING_SVG_H }}
+            lightMode={lightMode}
+            ring={{ cx: CX, cy: CY, radius: RING_RADIUS }}
+          />
+          <RingCenter
+            cx={CX}
+            cy={CY}
+            lapLabel={lapLabel && lapLabel !== "—" ? lapLabel : null}
+            status={status}
+            reference={reference}
+            focusInfo={focusInfo}
+            weather={centerWeather}
+            tyreGuidance={tyreGuidance}
+            lightMode={lightMode}
+          />
+          <RingPitLane
+            cx={CX}
+            cy={CY}
+            r={RING_PIT_RADIUS}
+            ringR={RING_RADIUS}
+            model={model}
+            scale={scale}
+            lightMode={lightMode}
+            pitLaneStatus={pitLaneStatus}
+          />
+          <RingTrack
+            cx={CX}
+            cy={CY}
+            r={RING_RADIUS}
+            model={model}
+            scale={scale}
+            timingSectorFlags={trackFlagState ? timingSectorFlags : null}
+            showCornerNumbers={showCornerNumbers}
+            patternId={patternId}
+            lightMode={lightMode}
+          />
+          {pitWindow && <RingPitWindow cx={CX} cy={CY} r={RING_RADIUS} scale={scale} {...pitWindow} />}
+          {measure && (
+            <RingGapMeasure cx={CX} cy={CY} r={RING_RADIUS} scale={scale} lightMode={lightMode} {...measure} />
+          )}
+          <RingCars
+            cars={carLayout}
+            gapText={gapText}
+            driverByNumber={driverByNumber}
+            focusDriver={focusDriver}
+            highlightDrivers={highlightDrivers}
+            pulseDrivers={pulseDrivers}
+            battlingDrivers={battlingDrivers}
+            activeCompounds={activeCompounds}
+            safetyCarSirenOn={safetyCarSirenOn}
+            lightMode={lightMode}
+            showAcronym={showAcronym}
+            showNumberInside={showNumberInside}
+            onSelectDriver={onSelectDriver}
+            onHoverDriver={setHoverDriver}
+          />
+        </g>
       </svg>
 
       {!hasCars && <StartReplayHint />}
