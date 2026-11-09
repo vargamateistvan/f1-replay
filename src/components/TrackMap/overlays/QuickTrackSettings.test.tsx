@@ -15,6 +15,29 @@ function open(view: "2d" | "ring" | "3d" = "2d", onOpenSettings?: () => void) {
 }
 
 describe("QuickTrackSettings", () => {
+  it.each([false, true])("toggles all sectors together (mobile: %s)", (mobileTiming) => {
+    const keys = mobileTiming
+      ? ["timingMobileShowS1", "timingMobileShowS2", "timingMobileShowS3"] as const
+      : ["trackerTimingShowS1", "trackerTimingShowS2", "trackerTimingShowS3"] as const;
+    const otherKeys = mobileTiming
+      ? ["trackerTimingShowS1", "trackerTimingShowS2", "trackerTimingShowS3"] as const
+      : ["timingMobileShowS1", "timingMobileShowS2", "timingMobileShowS3"] as const;
+    useSettings.setState({ [keys[0]]: true, [keys[1]]: false, [keys[2]]: true });
+    const otherValues = otherKeys.map((key) => useSettings.getState()[key]);
+    render(<QuickTrackSettings view="timing" buttonClass="test-button" mobileTiming={mobileTiming} />);
+    fireEvent.click(screen.getByRole("button", { name: "Quick timing settings" }));
+
+    const sectors = screen.getByRole("switch", { name: "Sectors" });
+    expect(sectors).toHaveAttribute("aria-checked", "false");
+    expect(screen.queryByRole("switch", { name: /Sector [123]/ })).not.toBeInTheDocument();
+    fireEvent.click(sectors);
+    expect(keys.map((key) => useSettings.getState()[key])).toEqual([true, true, true]);
+    expect(sectors).toHaveAttribute("aria-checked", "true");
+    fireEvent.click(sectors);
+    expect(keys.map((key) => useSettings.getState()[key])).toEqual([false, false, false]);
+    expect(otherKeys.map((key) => useSettings.getState()[key])).toEqual(otherValues);
+  });
+
   it("uses the same popover for desktop timing columns", () => {
     render(<QuickTrackSettings view="timing" buttonClass="test-button" />);
     fireEvent.click(screen.getByRole("button", { name: "Quick timing settings" }));

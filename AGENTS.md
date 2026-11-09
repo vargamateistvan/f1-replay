@@ -23,7 +23,7 @@
 | Ring view                                         | `components/TrackRing/`, `utils/lapProgress.ts`, `docs/RING_VIEW.md`                         |
 | 2D / ring weather effects                        | `components/TrackMap/layers/RainLayer.tsx`, `mapWeatherEffectsEnabled` in `stores/settings.ts`; toggle in map quick settings and Track Map settings |
 | Map quick settings                               | `components/TrackMap/overlays/QuickTrackSettings.tsx`: single gear button in all map toolbars opens common and view-specific persisted toggles; All track settings opens the full dialog |
-| Tracker tab quick settings                       | On phones, `QuickTrackSettings` sits beside the race-control ticker inside the Timing tab and controls timing columns for the current viewport; map quick settings stay in the map toolbar. All timing settings opens the full dialog |
+| Tracker tab quick settings                       | On phones, `QuickTrackSettings` sits beside the race-control ticker inside the Timing tab and controls timing columns for the current viewport; one Sectors switch toggles S1/S2/S3 together, matching full settings. Map quick settings stay in the map toolbar. All timing settings opens the full dialog |
 | Pit rejoin / pit window (all map views)           | `utils/pitRejoin.ts`, `components/TrackRing/pitWindow.ts`, `components/TrackMap/usePitWindow.ts` (2D + 3D), colours `PIT_WINDOW_COLOR` / `PIT_MARKER_COLOR` |
 | Toasts / catch-up                                 | `timeline/events.ts`, `hooks/useEventToasts.ts`, `hooks/useCatchupSummary.ts`                |
 | Race control / flags                              | `timeline/raceControl.ts`, `utils/raceControlFlags.ts`                                       |

@@ -9,7 +9,7 @@ import { trackEvent } from "@/lib/analytics";
 type BooleanSetting = {
   [Key in keyof AppSettings]: AppSettings[Key] extends boolean ? Key : never;
 }[keyof AppSettings];
-type Option = readonly [BooleanSetting, string];
+type Option = readonly [BooleanSetting | readonly BooleanSetting[], string];
 
 const COMMON: readonly Option[] = [
   ["mapShowWeather", "Weather readings"],
@@ -57,9 +57,7 @@ const TIMING_DESKTOP: readonly Option[] = [
   ["trackerTimingShowLastLap", "Last lap"],
   ["trackerTimingShowGap", "Gap"],
   ["trackerTimingShowInterval", "Interval"],
-  ["trackerTimingShowS1", "Sector 1"],
-  ["trackerTimingShowS2", "Sector 2"],
-  ["trackerTimingShowS3", "Sector 3"],
+  [["trackerTimingShowS1", "trackerTimingShowS2", "trackerTimingShowS3"], "Sectors"],
   ["trackerTimingShowPosDelta", "Position change"],
   ["trackerTimingShowTyre", "Tyre"],
   ["trackerTimingShowPit", "Pit stops"],
@@ -80,9 +78,7 @@ const TIMING_MOBILE: readonly Option[] = [
   ["timingMobileShowLastLap", "Last lap"],
   ["timingMobileShowGap", "Gap"],
   ["timingMobileShowInterval", "Interval"],
-  ["timingMobileShowS1", "Sector 1"],
-  ["timingMobileShowS2", "Sector 2"],
-  ["timingMobileShowS3", "Sector 3"],
+  [["timingMobileShowS1", "timingMobileShowS2", "timingMobileShowS3"], "Sectors"],
   ["timingMobileShowPosDelta", "Position change"],
   ["timingMobileShowTyre", "Tyre"],
   ["timingMobileShowPitCount", "Pit stops"],
@@ -210,30 +206,34 @@ export function QuickTrackSettings({
           <div className="min-h-0 max-h-80 overflow-y-auto overscroll-contain px-3">
             {groups.map((group, index) => (
               <div key={index} className={index ? "border-t border-line" : undefined}>
-                {group.map(([key, label]) => (
+                {group.map(([key, label]) => {
+                  const keys = typeof key === "string" ? [key] : key;
+                  const checked = keys.every((setting) => settings[setting]);
+                  return (
                   <button
-                    key={key}
+                    key={keys.join(",")}
                     type="button"
                     role="switch"
-                    aria-checked={Boolean(settings[key])}
+                    aria-checked={checked}
                     disabled={key === "trackerTimingCompactColumn" && !settings.trackerTimingTelemetry}
                     onClick={() => {
-                      const enabled = !settings[key];
+                      const enabled = !checked;
                       if (key === "mapFollowFocusedCar") trackEvent("trackmap_follow_toggled", { following: enabled, view });
                       if (key === "mapShowDriverHeatmap") trackEvent("trackmap_heatmap_toggled", { shown: enabled, view });
-                      settings.setSetting(key, enabled);
+                      keys.forEach((setting) => settings.setSetting(setting, enabled));
                     }}
                     className="flex w-full items-center justify-between gap-3 border-b border-panel py-2 text-left text-compact last:border-0 hover:text-f1red-fg disabled:cursor-not-allowed disabled:opacity-40"
                   >
                     <span>{label}</span>
                     <span
                       aria-hidden="true"
-                      className={`relative h-4 w-7 shrink-0 border ${settings[key] ? "border-f1red bg-f1red" : "border-line bg-track"}`}
+                      className={`relative h-4 w-7 shrink-0 border ${checked ? "border-f1red bg-f1red" : "border-line bg-track"}`}
                     >
-                      <span className={`absolute top-0.5 h-2.5 w-2.5 ${settings[key] ? "right-0.5 bg-white" : "left-0.5 bg-muted"}`} />
+                      <span className={`absolute top-0.5 h-2.5 w-2.5 ${checked ? "right-0.5 bg-white" : "left-0.5 bg-muted"}`} />
                     </span>
                   </button>
-                ))}
+                  );
+                })}
               </div>
             ))}
           </div>
