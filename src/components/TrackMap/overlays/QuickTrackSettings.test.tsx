@@ -80,6 +80,21 @@ describe("QuickTrackSettings", () => {
     expect(screen.getByRole("dialog")).toBeInTheDocument();
   });
 
+  it("shows and toggles 2D kerbs, but hides that option for other views", () => {
+    expect(useSettings.getState().mapShowKerbs).toBe(false);
+    const mapSettings = open("2d");
+    fireEvent.click(screen.getByRole("switch", { name: "Track kerbs" }));
+    expect(useSettings.getState().mapShowKerbs).toBe(true);
+    mapSettings.unmount();
+
+    for (const view of ["ring", "3d"] as const) {
+      const { unmount } = render(<QuickTrackSettings view={view} buttonClass="test-button" />);
+      fireEvent.click(screen.getByRole("button", { name: "Quick track settings" }));
+      expect(screen.queryByRole("switch", { name: "Track kerbs" })).not.toBeInTheDocument();
+      unmount();
+    }
+  });
+
   it("shows ring options without 2D or 3D-only controls", () => {
     open("ring");
     expect(screen.getByRole("switch", { name: "Space by lap time" })).toBeInTheDocument();

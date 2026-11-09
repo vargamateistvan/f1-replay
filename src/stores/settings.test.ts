@@ -53,6 +53,18 @@ describe("ring settings", () => {
   });
 });
 
+describe("track kerb setting", () => {
+  it("defaults to off, persists explicit opt-in, and resets to off", async () => {
+    expect(SETTINGS_DEFAULTS.mapShowKerbs).toBe(false);
+    useSettings.getState().setSetting("mapShowKerbs", true);
+    expect(JSON.parse(localStorage.getItem("f1-replay-settings")!).state.mapShowKerbs).toBe(true);
+    await useSettings.persist.rehydrate();
+    expect(useSettings.getState().mapShowKerbs).toBe(true);
+    useSettings.getState().reset();
+    expect(useSettings.getState().mapShowKerbs).toBe(false);
+  });
+});
+
 describe("shared 2D and ring weather effects", () => {
   it("defaults older settings to off", async () => {
     expect(SETTINGS_DEFAULTS.mapWeatherEffectsEnabled).toBe(false);

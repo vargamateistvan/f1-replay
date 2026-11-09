@@ -88,14 +88,16 @@ export const TrackSurface = memo(function TrackSurface({
   geom,
   gradientId,
   lightMode,
+  showKerbs,
 }: {
   geom: TrackGeometry;
   gradientId: string;
   lightMode: boolean;
+  showKerbs: boolean;
 }) {
   const { pathData, svgPts } = geom;
   const kerbDash = `${TRACK_SURFACE_KERB_DASH_LENGTH} ${TRACK_SURFACE_KERB_DASH_LENGTH}`;
-  const kerbPatches = cornerKerbPaths(svgPts);
+  const kerbPatches = showKerbs ? cornerKerbPaths(svgPts) : [];
   return (
     <>
       {kerbPatches.map(({ pathData: kerbPath, position, side }, index) => (

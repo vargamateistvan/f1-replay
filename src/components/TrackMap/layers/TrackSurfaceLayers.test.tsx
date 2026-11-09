@@ -34,7 +34,7 @@ describe("TrackSurface", () => {
     });
     const { container } = render(
       <svg>
-        <TrackSurface geom={geom} gradientId="asphalt" lightMode={false} />
+        <TrackSurface geom={geom} gradientId="asphalt" lightMode={false} showKerbs />
       </svg>,
     );
     const layers = Array.from(container.querySelectorAll("[data-track-layer]"));
@@ -75,6 +75,13 @@ describe("TrackSurface", () => {
     );
     expect(TRACK_SURFACE_CORNER_ANGLE_DEG).toBeGreaterThan(0);
     expect(TRACK_SURFACE_CORNER_WINDOW_PX).toBeGreaterThan(0);
+
+    const disabled = render(
+      <svg>
+        <TrackSurface geom={geom} gradientId="asphalt" lightMode={false} showKerbs={false} />
+      </svg>,
+    );
+    expect(disabled.container.querySelector("[data-track-layer='kerbs-red']")).toBeNull();
   });
 
   it("only draws sector ribbons for active flags", () => {

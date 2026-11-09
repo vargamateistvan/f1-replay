@@ -9,6 +9,7 @@ const state = vi.hoisted(() => ({
   available3d: true,
   showPitRejoin: true,
   showPitLaneStatus: false,
+  showKerbs: false,
   showRingPitOutcomes: true,
   previewRequests: vi.fn(),
 }));
@@ -87,6 +88,7 @@ vi.mock("@/stores/settings", () => ({
     mapShowDriverHud: true,
     mapShowPitRejoin: state.showPitRejoin,
     mapShowPitLaneStatus: state.showPitLaneStatus,
+    mapShowKerbs: state.showKerbs,
     mapShowSectorFlags: true,
     mapShowSectorBox: true,
     mapShowTrackControls: true,
@@ -510,6 +512,9 @@ describe("SettingsControls", () => {
     const weatherRow = screen.getByText("Weather effects").parentElement!.parentElement!;
     fireEvent.click(within(weatherRow).getByRole("switch"));
     expect(state.setSetting).toHaveBeenCalledWith("mapWeatherEffectsEnabled", true);
+    const kerbsRow = screen.getByText("Track kerbs").parentElement!.parentElement!;
+    fireEvent.click(within(kerbsRow).getByRole("switch"));
+    expect(state.setSetting).toHaveBeenCalledWith("mapShowKerbs", true);
   });
 
   it("switches the map view from the settings", () => {

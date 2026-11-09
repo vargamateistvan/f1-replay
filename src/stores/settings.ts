@@ -38,6 +38,7 @@ export interface AppSettings {
   mapStartLightsSound: boolean;
   mapShowMarshalHeatmap: boolean;
   mapShowCornerNumbers: boolean;
+  mapShowKerbs: boolean;
   mapShowElevation: boolean;
   mapShowPitRejoin: boolean;
   /** Show the last reported pit-lane and entry/exit status on map geometry. */
@@ -215,6 +216,7 @@ export const SETTINGS_DEFAULTS: AppSettings = {
   mapStartLightsSound: true,
   mapShowMarshalHeatmap: false,
   mapShowCornerNumbers: false,
+  mapShowKerbs: false,
   mapShowElevation: false,
   mapShowPitRejoin: true,
   mapShowPitLaneStatus: false,

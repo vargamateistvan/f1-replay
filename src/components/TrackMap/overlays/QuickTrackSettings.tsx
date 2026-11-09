@@ -27,6 +27,7 @@ const VIEW_OPTIONS: Record<MapViewMode, readonly Option[]> = {
     ["mapFollowFocusedCar", "Follow focused car"],
     ["mapShowDriverHeatmap", "Driver heatmap"],
     ["mapShowPitRejoin", "Pit rejoin projection"],
+    ["mapShowKerbs", "Track kerbs"],
     ["mapShowCompass", "Compass"],
   ],
   ring: [

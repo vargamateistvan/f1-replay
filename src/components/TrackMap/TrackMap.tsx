@@ -223,6 +223,7 @@ export function TrackMap({
   );
   const mapShowMarshalHeatmap = useSettings((s) => s.mapShowMarshalHeatmap);
   const mapShowCornerNumbers = useSettings((s) => s.mapShowCornerNumbers);
+  const mapShowKerbs = useSettings((s) => s.mapShowKerbs);
   const mapShowElevation = useSettings((s) => s.mapShowElevation);
   const mapShowRaceLeader = useSettings((s) => s.mapShowRaceLeader);
   const mapStartLightsSound = useSettings((s) => s.mapStartLightsSound);
@@ -865,6 +866,7 @@ export function TrackMap({
             geom={trackGeometry}
             gradientId={trackSurfaceGradientId}
             lightMode={lightMode}
+            showKerbs={mapShowKerbs}
           />
           {pitLanePath && (
             <path

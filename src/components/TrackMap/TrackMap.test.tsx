@@ -19,7 +19,7 @@ import { TOKEN_HEX } from "@/designTokens";
 import * as analytics from "@/lib/analytics";
 
 let timelineT = 0;
-const follow = vi.hoisted(() => ({ on: false, heatmap: true, numbers: false, weatherEffects: false, setSetting: vi.fn() }));
+const follow = vi.hoisted(() => ({ on: false, heatmap: true, numbers: false, weatherEffects: false, kerbs: false, setSetting: vi.fn() }));
 
 vi.mock("@/timeline/clock", () => ({
   useTimeline: vi.fn(
@@ -94,6 +94,7 @@ vi.mock("@/stores/settings", () => ({
       mapShowRaceLeader: true,
       mapShowMarshalHeatmap: false,
       mapShowCornerNumbers: false,
+      mapShowKerbs: follow.kerbs,
       mapShowElevation: false,
       mapShowClock: false,
       mapFollowFocusedCar: follow.on,
@@ -167,6 +168,7 @@ describe("TrackMap sector flag state rendering", () => {
     follow.heatmap = true;
     follow.numbers = false;
     follow.weatherEffects = false;
+    follow.kerbs = false;
     follow.setSetting.mockReset();
     vi.mocked(useTrackOutline).mockReturnValue(
       mockTrackOutlineQueryResult(null),
@@ -210,6 +212,32 @@ describe("TrackMap sector flag state rendering", () => {
     );
     expect(labels).toContain("S1");
     expect(labels).toContain("S2");
+  });
+
+  it("shows corner kerbs only when enabled in map settings", () => {
+    vi.mocked(useTrackOutline).mockReturnValue(
+      mockTrackOutlineQueryResult({
+        ...mockOutline,
+        points: [
+          { x: 0, y: 0 },
+          { x: 50, y: 0 },
+          { x: 100, y: 0 },
+          { x: 100, y: 100 },
+          { x: 50, y: 100 },
+          { x: 0, y: 100 },
+        ],
+      }),
+    );
+    const { container, rerender } = render(
+      <TrackMap sessionKey={1} drivers={[mockDriver]} locationData={mockLocationData} sessionStartMs={0} />,
+    );
+    expect(container.querySelector("[data-track-layer='kerbs-red']")).toBeNull();
+
+    follow.kerbs = true;
+    rerender(
+      <TrackMap sessionKey={1} drivers={[mockDriver]} locationData={mockLocationData} sessionStartMs={0} />,
+    );
+    expect(container.querySelector("[data-track-layer='kerbs-red']")).not.toBeNull();
   });
 
   it("shows rain with weather readings hidden and exposes the shared quick toggle", () => {

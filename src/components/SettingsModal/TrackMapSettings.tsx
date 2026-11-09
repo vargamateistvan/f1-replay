@@ -465,6 +465,7 @@ export function TrackMapSettings({
           "Corner numbers",
           isRing ? "Corner numbers inside the ring (ticks are always shown)" : "Corner numbers next to the track",
         )}
+        {is2d && row("mapShowKerbs", "Track kerbs", "Show red-and-white kerb markings at corner entry, apex, and exit")}
         {!isRing && row("mapShowElevation", "Elevation heatmap", "Colour the track by altitude (blue = low, yellow = high)")}
         {is3d && row("mapView3dBuildings", "3D buildings and trees", "Buildings, trees and landmarks around the circuit")}
         {is3d &&
