@@ -533,20 +533,30 @@ export default function RaceWeekend() {
   const intervals = useIntervals(sessionKey, live);
   const laps = useLaps(sessionKey, undefined, live);
   const raceControl = useRaceControl(sessionKey, live);
-  const coreQueries = [sessions, drivers, positions, intervals, laps, raceControl];
+  const coreQueries = [
+    sessions,
+    drivers,
+    positions,
+    intervals,
+    laps,
+    raceControl,
+  ];
   const coreSettled = coreQueries.every((query) => !query.isPending);
   const accessDenied =
     (!session && isAuthError(sessions.error)) ||
-    [drivers, positions, intervals, laps, raceControl].some(
-      (query) => isAuthError(query.error),
+    [drivers, positions, intervals, laps, raceControl].some((query) =>
+      isAuthError(query.error),
     );
-  const replayUnavailable = accessDenied &&
-    (!(drivers.data?.length) || !(positions.data?.length));
+  const replayUnavailable =
+    accessDenied && (!drivers.data?.length || !positions.data?.length);
   const timingReady =
     Boolean(session) &&
-    drivers.isSuccess && drivers.data.length > 0 &&
-    positions.isSuccess && positions.data.length > 0 &&
-    laps.isSuccess && raceControl.isSuccess;
+    drivers.isSuccess &&
+    drivers.data.length > 0 &&
+    positions.isSuccess &&
+    positions.data.length > 0 &&
+    laps.isSuccess &&
+    raceControl.isSuccess;
   const secondaryEnabled = useReplayStartup({
     sessionKey,
     sessionReady: Boolean(session),
@@ -569,7 +579,13 @@ export default function RaceWeekend() {
   const weather = useWeather(sessionKey, live, secondaryOptions);
   const failedQueries = [
     ...coreQueries,
-    stints, pits, grid, sessionResult, overtakes, teamRadio, weather,
+    stints,
+    pits,
+    grid,
+    sessionResult,
+    overtakes,
+    teamRadio,
+    weather,
     ...(isMapVisible ? [location] : []),
   ].filter((query) => query.isError && !isAuthError(query.error));
 
@@ -835,10 +851,11 @@ export default function RaceWeekend() {
     };
   }, [currentView, activeTrackerTab, activeCommentaryTab, sessionKey]);
 
-  const isLoadingSessionData =
-    sessionKey !== null && !coreSettled;
+  const isLoadingSessionData = sessionKey !== null && !coreSettled;
   const isLoadingEventSession =
-    !accessDenied && meetingKey !== null && (sessions.isPending || isLoadingSessionData);
+    !accessDenied &&
+    meetingKey !== null &&
+    (sessions.isPending || isLoadingSessionData);
   const queryClient = useQueryClient();
 
   const shouldTrackToasts = currentView === "tracker";
@@ -877,7 +894,10 @@ export default function RaceWeekend() {
     sessionKey,
     raceControl.data,
     positions.data,
-    { enabled: isRaceSession && secondaryEnabled && !accessDenied, isLive: live },
+    {
+      enabled: isRaceSession && secondaryEnabled && !accessDenied,
+      isLive: live,
+    },
   );
   // Session-relative lights out of standing restarts after a red flag.
   const restartLightsOutMs = useMemo(
@@ -975,7 +995,14 @@ export default function RaceWeekend() {
             cutoffMs,
           })
         : [],
-    [isRaceSession, sessionStartMs, pits.data, laps.data, intervalIndex, raceNeutralised],
+    [
+      isRaceSession,
+      sessionStartMs,
+      pits.data,
+      laps.data,
+      intervalIndex,
+      raceNeutralised,
+    ],
   );
   const sessionPitBattles = useMemo(
     () => pitBattlesFor(Number.POSITIVE_INFINITY),
@@ -1154,12 +1181,14 @@ export default function RaceWeekend() {
   // Each car's latest interval to the car ahead (s), parsed once for the
   // battle rings and the 3D gap ribbons.
   const intervalSeconds = useMemo(() => {
-    if (!isMapVisible || !intervals.data?.length || !sessionStartMs) return null;
+    if (!isMapVisible || !intervals.data?.length || !sessionStartMs)
+      return null;
     return latestIntervalSeconds(intervals.data, sessionStartMs + tSlow);
   }, [intervals.data, sessionStartMs, tSlow, isMapVisible]);
   // Cars within 1.0 s of the car ahead → highlight DRS battle on the map.
   const battlingDrivers = useMemo(
-    () => (intervalSeconds ? battlingFrom(intervalSeconds, 1.0) : new Set<number>()),
+    () =>
+      intervalSeconds ? battlingFrom(intervalSeconds, 1.0) : new Set<number>(),
     [intervalSeconds],
   );
 
@@ -1167,10 +1196,20 @@ export default function RaceWeekend() {
   const directorBase = useMemo(() => {
     if (!isRaceSession || !sessionStartMs) return null;
     return {
-      cues: buildDirectorCues(overtakes.data ?? [], pits.data ?? [], sessionStartMs),
+      cues: buildDirectorCues(
+        overtakes.data ?? [],
+        pits.data ?? [],
+        sessionStartMs,
+      ),
       positions: buildPositionIndex(positions.data ?? []),
     };
-  }, [isRaceSession, sessionStartMs, overtakes.data, pits.data, positions.data]);
+  }, [
+    isRaceSession,
+    sessionStartMs,
+    overtakes.data,
+    pits.data,
+    positions.data,
+  ]);
   const director = useMemo(
     (): DirectorData | null =>
       directorBase && directorBase.positions.size > 0
@@ -1230,7 +1269,14 @@ export default function RaceWeekend() {
       retiredDrivers,
     );
     return labelBattleGaps(pairs, intervalSeconds);
-  }, [director, intervalSeconds, battlingDrivers, retiredDrivers, sessionStartMs, tSlow]);
+  }, [
+    director,
+    intervalSeconds,
+    battlingDrivers,
+    retiredDrivers,
+    sessionStartMs,
+    tSlow,
+  ]);
 
   // Track all race leader (P1) transition events.
   const raceLeaderEvents = useMemo(() => {
@@ -1460,14 +1506,27 @@ export default function RaceWeekend() {
   } = useSettings();
 
   const pitLaneStatus = useMemo(
-    () => mapShowPitLaneStatus && isMapVisible && sessionStartMs
-      ? derivePitLaneStatus(raceControl.data ?? [], sessionStartMs + tSlow)
-      : null,
-    [mapShowPitLaneStatus, raceControl.data, sessionStartMs, tSlow, isMapVisible],
+    () =>
+      mapShowPitLaneStatus && isMapVisible && sessionStartMs
+        ? derivePitLaneStatus(raceControl.data ?? [], sessionStartMs + tSlow)
+        : null,
+    [
+      mapShowPitLaneStatus,
+      raceControl.data,
+      sessionStartMs,
+      tSlow,
+      isMapVisible,
+    ],
   );
 
   const ringPositions = useMemo(() => {
-    if (!isMapVisible || mapViewMode !== "ring" || !directorBase || !sessionStartMs) return null;
+    if (
+      !isMapVisible ||
+      mapViewMode !== "ring" ||
+      !directorBase ||
+      !sessionStartMs
+    )
+      return null;
     return positionsAt(directorBase.positions, sessionStartMs + tSlow);
   }, [isMapVisible, mapViewMode, directorBase, sessionStartMs, tSlow]);
 
@@ -1476,7 +1535,14 @@ export default function RaceWeekend() {
     if (!isMapVisible || mapViewMode !== "ring" || !isRaceSession) return null;
     if (!intervals.data?.length || !sessionStartMs) return null;
     return latestIntervalRows(intervals.data, sessionStartMs + tSlow);
-  }, [isMapVisible, mapViewMode, isRaceSession, intervals.data, sessionStartMs, tSlow]);
+  }, [
+    isMapVisible,
+    mapViewMode,
+    isRaceSession,
+    intervals.data,
+    sessionStartMs,
+    tSlow,
+  ]);
   // Gap-to-leader snapshot for the focused driver's pit rejoin projection.
   const pitRejoinGaps = useMemo(() => {
     if (!isMapVisible || !mapShowPitRejoin || !isRaceSession) return null;
@@ -1545,13 +1611,7 @@ export default function RaceWeekend() {
         );
       }
     },
-    [
-      isMapVisible,
-      queryClient,
-      sessionKey,
-      sessionStartMs,
-      telemetryEnabled,
-    ],
+    [isMapVisible, queryClient, sessionKey, sessionStartMs, telemetryEnabled],
   );
 
   // Group samples per driver, sorted by session-relative ms. Rebuilds only when
@@ -1665,8 +1725,7 @@ export default function RaceWeekend() {
     summary: catchupSummary,
     dismiss: dismissCatchup,
     skipNextSeek: skipWelcomeCatchup,
-  } =
-    useCatchupSummary(filteredToastEvents, t);
+  } = useCatchupSummary(filteredToastEvents, t);
 
   const effectiveDuration = durationMs || DEFAULT_SESSION_MS;
 
@@ -1863,10 +1922,11 @@ export default function RaceWeekend() {
     }
 
     const actualStart = (phase: number) =>
-      timedRaceControl.find(({ row, relMs }) =>
-        relMs >= 0 &&
-        row.qualifying_phase === phase &&
-        /^SESSION STARTED\b/i.test(row.message ?? ""),
+      timedRaceControl.find(
+        ({ row, relMs }) =>
+          relMs >= 0 &&
+          row.qualifying_phase === phase &&
+          /^SESSION STARTED\b/i.test(row.message ?? ""),
       )?.relMs ?? null;
     let q1StartMs: number | null = actualStart(1);
     let q2StartMs: number | null = actualStart(2);
@@ -2039,16 +2099,22 @@ export default function RaceWeekend() {
     (!isMapVisible || (location.isSuccess && location.data.length > 0));
   const welcome = useReplayWelcome(isTourReady, live, timelinePlaying);
   const [startingWelcomeReplay, setStartingWelcomeReplay] = useState(false);
-  const [welcomeReplayError, setWelcomeReplayError] = useState<string | null>(null);
+  const [welcomeReplayError, setWelcomeReplayError] = useState<string | null>(
+    null,
+  );
   const welcomeRequest = useRef({ id: 0 });
   useEffect(() => {
     const request = welcomeRequest.current;
     setStartingWelcomeReplay(false);
     setWelcomeReplayError(null);
-    return () => { request.id++; };
+    return () => {
+      request.id++;
+    };
   }, [sessionKey, live, timelinePlaying]);
   const welcomeRaceStart =
-    isRaceSession && lightsOutMs !== null && lightsOutMs >= 0 &&
+    isRaceSession &&
+    lightsOutMs !== null &&
+    lightsOutMs >= 0 &&
     lightsOutMs <= playbackDurationMs;
 
   function closeWelcome(tour: boolean) {
@@ -2079,9 +2145,10 @@ export default function RaceWeekend() {
   async function startWelcomeReplay() {
     if (startingWelcomeReplay || sessionKey === null || !sessionStartMs) return;
     const request = ++welcomeRequest.current.id;
-    const targetMs = welcomeRaceStart && lightsOutMs !== null
-      ? Math.max(0, startLightsWindow(lightsOutMs).startMs)
-      : 0;
+    const targetMs =
+      welcomeRaceStart && lightsOutMs !== null
+        ? Math.max(0, startLightsWindow(lightsOutMs).startMs)
+        : 0;
     setStartingWelcomeReplay(true);
     setWelcomeReplayError(null);
     trackEvent("replay_welcome_play_requested", {
@@ -2091,13 +2158,17 @@ export default function RaceWeekend() {
     try {
       const rows = await queryClient.fetchQuery({
         ...locationChunkQueryOptions(
-          sessionKey, sessionStartMs, locationChunkIndexFor(targetMs),
+          sessionKey,
+          sessionStartMs,
+          locationChunkIndexFor(targetMs),
         ),
         staleTime: welcomeReplayError ? 0 : Infinity,
       });
       if (request !== welcomeRequest.current.id) return;
       if (rows.length === 0) {
-        setWelcomeReplayError("Track data is unavailable for this moment. Try again or explore the session.");
+        setWelcomeReplayError(
+          "Track data is unavailable for this moment. Try again or explore the session.",
+        );
         trackEvent("replay_welcome_play_failed", { reason: "empty_location" });
         return;
       }
@@ -2105,16 +2176,19 @@ export default function RaceWeekend() {
       setTimelineT(targetMs);
       useTimeline.getState().setSpeed(1);
       // Commit the view and playhead together after the clock's URL subscription.
-      setSearchParams((prev) => {
-        const next = new URLSearchParams(prev);
-        next.set("view", "tracker");
-        if (isCompactViewport) next.set("ttab", "map");
-        if (targetMs > 0) next.set("t", String(Math.round(targetMs / 1000)));
-        else next.delete("t");
-        next.delete("speed");
-        replaceHistorySearchParams(next);
-        return next;
-      }, { replace: true });
+      setSearchParams(
+        (prev) => {
+          const next = new URLSearchParams(prev);
+          next.set("view", "tracker");
+          if (isCompactViewport) next.set("ttab", "map");
+          if (targetMs > 0) next.set("t", String(Math.round(targetMs / 1000)));
+          else next.delete("t");
+          next.delete("speed");
+          replaceHistorySearchParams(next);
+          return next;
+        },
+        { replace: true },
+      );
       setTimelinePlaying(true);
       welcome.dismiss("play");
       trackEvent("replay_welcome_play_started", {
@@ -2123,12 +2197,15 @@ export default function RaceWeekend() {
       });
     } catch (error) {
       if (request !== welcomeRequest.current.id) return;
-      setWelcomeReplayError("Could not load the replay. Try again or explore the session.");
+      setWelcomeReplayError(
+        "Could not load the replay. Try again or explore the session.",
+      );
       trackEvent("replay_welcome_play_failed", {
         reason: error instanceof Error ? error.name : "unknown",
       });
     } finally {
-      if (request === welcomeRequest.current.id) setStartingWelcomeReplay(false);
+      if (request === welcomeRequest.current.id)
+        setStartingWelcomeReplay(false);
     }
   }
   // Every step points at the Driver Tracker layout.
@@ -2334,7 +2411,8 @@ export default function RaceWeekend() {
   const circuitKeyForMap = session?.circuit_key ?? null;
   const map3dAvailable =
     isMap3dAvailable() &&
-    (circuitKeyForMap === null || hasCircuitGeometry(circuitKeyForMap, session?.year));
+    (circuitKeyForMap === null ||
+      hasCircuitGeometry(circuitKeyForMap, session?.year));
   const setMapViewMode = useCallback(
     (mode: MapViewMode) => {
       trackEvent("trackmap_view_mode_changed", { mode });
@@ -2353,8 +2431,7 @@ export default function RaceWeekend() {
           <FocusedTelemetry
             sessionKey={sessionKey}
             driver={
-              drivers.data?.find((d) => d.driver_number === focusDriver) ??
-              null
+              drivers.data?.find((d) => d.driver_number === focusDriver) ?? null
             }
             compareDriver={
               drivers.data?.find((d) => d.driver_number === compareDriver) ??
@@ -2372,135 +2449,146 @@ export default function RaceWeekend() {
       </div>
     );
 
-  const trackMap = mapViewMode === "ring" ? (
-    <TrackRing
-      sessionKey={sessionKey}
-      drivers={drivers.data ?? []}
-      locationData={location.data}
-      sessionStartMs={sessionStartMs}
-      sessionGmtOffset={session?.gmt_offset ?? "+00:00"}
-      focusDriver={focusDriver}
-      pulseDrivers={pulseDrivers}
-      circuitShortName={session?.circuit_short_name}
-      circuitKey={session?.circuit_key ?? null}
-      year={session?.year ?? null}
-      activeCompounds={mapShowCompoundBadges ? activeCompounds : undefined}
-      focusCompound={focusDriver === null ? null : (activeCompounds.get(focusDriver) ?? null)}
-      laps={laps.data ?? []}
-      stints={stints.data ?? []}
-      pits={pits.data ?? []}
-      neutralised={raceNeutralised}
-      positionByDriver={ringPositions}
-      battlingDrivers={mapShowBattleRings ? battlingDrivers : undefined}
-      showFocusedHud={mapShowDriverHud && !isCompactViewport}
-      sharedAllDriverWindow={telemetryEnabled}
-      telemetryEnabled={secondaryEnabled}
-      trackFlagState={mapShowSectorFlags ? trackFlagState : null}
-      pitLaneStatus={pitLaneStatus}
-      showSectorBox={mapShowSectorBox}
-      showTrackScreenshot={trackScreenshotPngEnabled}
-      weatherOverlay={mapShowWeather ? weatherAtT : null}
-      weather={weatherAtT}
-      activeTrackVehicles={activeTrackVehicles}
-      safetyCarSirenOn={safetyCarSirenOn}
-      retiredDrivers={retiredDrivers}
-      raceLeader={isRaceSession && mapShowRaceLeader ? raceLeaderDriver : null}
-      lightsOutMs={activeStartLightsOutMs}
-      onSelectDriver={toggleFocus}
-      onOpenSettings={
-        isCompactViewport ? undefined : () => openSettingsTab("track")
-      }
-      lapLabel={isRaceSession ? commentaryLapLabel : null}
-      intervalRows={ringIntervalRows}
-      leaderNumber={isRaceSession ? currentLeaderNumber : null}
-      pitRejoinGaps={pitRejoinGaps}
-      onEnter2d={enter2d}
-      onEnter3d={map3dAvailable ? enter3d : undefined}
-    />
-  ) : map3dAvailable && mapViewMode === "3d" ? (
-    <TrackMap3D
-      sessionKey={sessionKey}
-      drivers={drivers.data ?? []}
-      locationData={location.data}
-      sessionStartMs={sessionStartMs}
-      sessionGmtOffset={session?.gmt_offset ?? "+00:00"}
-      focusDriver={focusDriver}
-      circuitKey={session?.circuit_key ?? null}
-      year={session?.year ?? null}
-      battlingDrivers={mapShowBattleRings ? battlingDrivers : undefined}
-      retiredDrivers={retiredDrivers}
-      pulseDrivers={pulseDrivers}
-      activeCompounds={mapShowCompoundBadges ? activeCompounds : undefined}
-      safetyCarSirenOn={safetyCarSirenOn}
-      showFocusedHud={mapShowDriverHud && !isCompactViewport}
-      sharedAllDriverWindow={telemetryEnabled}
-      telemetryEnabled={secondaryEnabled}
-      trackFlagState={mapShowSectorFlags ? trackFlagState : null}
-      pitLaneStatus={pitLaneStatus}
-      showTrackControls={mapShowTrackControls}
-      showEnhancedVisuals={mapShowEnhancedVisuals}
-      focusDriverLap={focusDriverLap}
-      pitRejoinGaps={pitRejoinGaps}
-      leaderNumber={isRaceSession ? currentLeaderNumber : null}
-      showTrackScreenshot={trackScreenshotPngEnabled}
-      weatherOverlay={mapShowWeather ? weatherAtT : null}
-      weather={weatherAtT}
-      activeTrackVehicles={activeTrackVehicles}
-      raceLeader={isRaceSession && mapShowRaceLeader ? raceLeaderDriver : null}
-      lightsOutMs={activeStartLightsOutMs}
-      director={director}
-      battleGaps={battleGaps}
-      initialCameraMode={parseCameraMode(camParam)}
-      onCameraModeChange={setCamParam}
-      onSelectDriver={toggleFocus}
-      onOpenSettings={
-        isCompactViewport ? undefined : () => openSettingsTab("track")
-      }
-      onExit3d={enter2d}
-      onEnterRing={enterRing}
-    />
-  ) : (
-    <TrackMap
-      sessionKey={sessionKey}
-      drivers={drivers.data ?? []}
-      locationData={location.data}
-      sessionStartMs={sessionStartMs}
-      sessionGmtOffset={session?.gmt_offset ?? "+00:00"}
-      focusDriver={focusDriver}
-      pulseDrivers={pulseDrivers}
-      circuitShortName={session?.circuit_short_name}
-      circuitKey={session?.circuit_key ?? null}
-      year={session?.year ?? null}
-      activeCompounds={mapShowCompoundBadges ? activeCompounds : undefined}
-      battlingDrivers={mapShowBattleRings ? battlingDrivers : undefined}
-      focusDriverLap={focusDriverLap}
-      showFocusedHud={mapShowDriverHud && !isCompactViewport}
-      pitRejoinGaps={pitRejoinGaps}
-      leaderNumber={isRaceSession ? currentLeaderNumber : null}
-      sharedAllDriverWindow={telemetryEnabled}
-      telemetryEnabled={secondaryEnabled}
-      trackFlagState={mapShowSectorFlags ? trackFlagState : null}
-      pitLaneStatus={pitLaneStatus}
-      showSectorBox={mapShowSectorBox}
-      showTrackControls={mapShowTrackControls}
-      showCompass={mapShowCompass}
-      showTrackScreenshot={trackScreenshotPngEnabled}
-      showEnhancedVisuals={mapShowEnhancedVisuals}
-      weatherOverlay={mapShowWeather ? weatherAtT : null}
-      weather={weatherAtT}
-      activeTrackVehicles={activeTrackVehicles}
-      safetyCarSirenOn={safetyCarSirenOn}
-      retiredDrivers={retiredDrivers}
-      raceLeader={isRaceSession && mapShowRaceLeader ? raceLeaderDriver : null}
-      lightsOutMs={activeStartLightsOutMs}
-      onSelectDriver={toggleFocus}
-      onOpenSettings={
-        isCompactViewport ? undefined : () => openSettingsTab("track")
-      }
-      onEnter3d={map3dAvailable ? enter3d : undefined}
-      onEnterRing={enterRing}
-    />
-  );
+  const trackMap =
+    mapViewMode === "ring" ? (
+      <TrackRing
+        sessionKey={sessionKey}
+        drivers={drivers.data ?? []}
+        locationData={location.data}
+        sessionStartMs={sessionStartMs}
+        sessionGmtOffset={session?.gmt_offset ?? "+00:00"}
+        focusDriver={focusDriver}
+        pulseDrivers={pulseDrivers}
+        circuitShortName={session?.circuit_short_name}
+        circuitKey={session?.circuit_key ?? null}
+        year={session?.year ?? null}
+        activeCompounds={mapShowCompoundBadges ? activeCompounds : undefined}
+        focusCompound={
+          focusDriver === null
+            ? null
+            : (activeCompounds.get(focusDriver) ?? null)
+        }
+        laps={laps.data ?? []}
+        stints={stints.data ?? []}
+        pits={pits.data ?? []}
+        neutralised={raceNeutralised}
+        positionByDriver={ringPositions}
+        battlingDrivers={mapShowBattleRings ? battlingDrivers : undefined}
+        showFocusedHud={mapShowDriverHud && !isCompactViewport}
+        sharedAllDriverWindow={telemetryEnabled}
+        telemetryEnabled={secondaryEnabled}
+        trackFlagState={mapShowSectorFlags ? trackFlagState : null}
+        pitLaneStatus={pitLaneStatus}
+        showSectorBox={mapShowSectorBox}
+        showTrackScreenshot={trackScreenshotPngEnabled}
+        weatherOverlay={mapShowWeather ? weatherAtT : null}
+        weather={weatherAtT}
+        activeTrackVehicles={activeTrackVehicles}
+        safetyCarSirenOn={safetyCarSirenOn}
+        retiredDrivers={retiredDrivers}
+        raceLeader={
+          isRaceSession && mapShowRaceLeader ? raceLeaderDriver : null
+        }
+        lightsOutMs={activeStartLightsOutMs}
+        onSelectDriver={toggleFocus}
+        onOpenSettings={
+          isCompactViewport ? undefined : () => openSettingsTab("track")
+        }
+        lapLabel={isRaceSession ? commentaryLapLabel : null}
+        intervalRows={ringIntervalRows}
+        leaderNumber={isRaceSession ? currentLeaderNumber : null}
+        pitRejoinGaps={pitRejoinGaps}
+        onEnter2d={enter2d}
+        onEnter3d={map3dAvailable ? enter3d : undefined}
+      />
+    ) : map3dAvailable && mapViewMode === "3d" ? (
+      <TrackMap3D
+        sessionKey={sessionKey}
+        drivers={drivers.data ?? []}
+        locationData={location.data}
+        sessionStartMs={sessionStartMs}
+        sessionGmtOffset={session?.gmt_offset ?? "+00:00"}
+        focusDriver={focusDriver}
+        circuitKey={session?.circuit_key ?? null}
+        year={session?.year ?? null}
+        battlingDrivers={mapShowBattleRings ? battlingDrivers : undefined}
+        retiredDrivers={retiredDrivers}
+        pulseDrivers={pulseDrivers}
+        activeCompounds={mapShowCompoundBadges ? activeCompounds : undefined}
+        safetyCarSirenOn={safetyCarSirenOn}
+        showFocusedHud={mapShowDriverHud && !isCompactViewport}
+        sharedAllDriverWindow={telemetryEnabled}
+        telemetryEnabled={secondaryEnabled}
+        trackFlagState={mapShowSectorFlags ? trackFlagState : null}
+        pitLaneStatus={pitLaneStatus}
+        showTrackControls={mapShowTrackControls}
+        showEnhancedVisuals={mapShowEnhancedVisuals}
+        focusDriverLap={focusDriverLap}
+        pitRejoinGaps={pitRejoinGaps}
+        leaderNumber={isRaceSession ? currentLeaderNumber : null}
+        showTrackScreenshot={trackScreenshotPngEnabled}
+        weatherOverlay={mapShowWeather ? weatherAtT : null}
+        weather={weatherAtT}
+        activeTrackVehicles={activeTrackVehicles}
+        raceLeader={
+          isRaceSession && mapShowRaceLeader ? raceLeaderDriver : null
+        }
+        lightsOutMs={activeStartLightsOutMs}
+        director={director}
+        battleGaps={battleGaps}
+        initialCameraMode={parseCameraMode(camParam)}
+        onCameraModeChange={setCamParam}
+        onSelectDriver={toggleFocus}
+        onOpenSettings={
+          isCompactViewport ? undefined : () => openSettingsTab("track")
+        }
+        onExit3d={enter2d}
+        onEnterRing={enterRing}
+      />
+    ) : (
+      <TrackMap
+        sessionKey={sessionKey}
+        drivers={drivers.data ?? []}
+        locationData={location.data}
+        sessionStartMs={sessionStartMs}
+        sessionGmtOffset={session?.gmt_offset ?? "+00:00"}
+        focusDriver={focusDriver}
+        pulseDrivers={pulseDrivers}
+        circuitShortName={session?.circuit_short_name}
+        circuitKey={session?.circuit_key ?? null}
+        year={session?.year ?? null}
+        activeCompounds={mapShowCompoundBadges ? activeCompounds : undefined}
+        battlingDrivers={mapShowBattleRings ? battlingDrivers : undefined}
+        focusDriverLap={focusDriverLap}
+        showFocusedHud={mapShowDriverHud && !isCompactViewport}
+        pitRejoinGaps={pitRejoinGaps}
+        leaderNumber={isRaceSession ? currentLeaderNumber : null}
+        sharedAllDriverWindow={telemetryEnabled}
+        telemetryEnabled={secondaryEnabled}
+        trackFlagState={mapShowSectorFlags ? trackFlagState : null}
+        pitLaneStatus={pitLaneStatus}
+        showSectorBox={mapShowSectorBox}
+        showTrackControls={mapShowTrackControls}
+        showCompass={mapShowCompass}
+        showTrackScreenshot={trackScreenshotPngEnabled}
+        showEnhancedVisuals={mapShowEnhancedVisuals}
+        weatherOverlay={mapShowWeather ? weatherAtT : null}
+        weather={weatherAtT}
+        activeTrackVehicles={activeTrackVehicles}
+        safetyCarSirenOn={safetyCarSirenOn}
+        retiredDrivers={retiredDrivers}
+        raceLeader={
+          isRaceSession && mapShowRaceLeader ? raceLeaderDriver : null
+        }
+        lightsOutMs={activeStartLightsOutMs}
+        onSelectDriver={toggleFocus}
+        onOpenSettings={
+          isCompactViewport ? undefined : () => openSettingsTab("track")
+        }
+        onEnter3d={map3dAvailable ? enter3d : undefined}
+        onEnterRing={enterRing}
+      />
+    );
 
   // Shared by the mobile and desktop tracker layouts. Coarse time: the fits only
   // change when a lap finishes.
@@ -2521,7 +2609,15 @@ export default function RaceWeekend() {
   const trackerSettingsButton = (
     <QuickTrackSettings
       key={activeTrackerTab === "map" ? mapViewMode : "timing"}
-      view={activeTrackerTab === "map" ? (map3dAvailable ? mapViewMode : mapViewMode === "3d" ? "2d" : mapViewMode) : "timing"}
+      view={
+        activeTrackerTab === "map"
+          ? map3dAvailable
+            ? mapViewMode
+            : mapViewMode === "3d"
+              ? "2d"
+              : mapViewMode
+          : "timing"
+      }
       mobileTiming={isCompactViewport}
       onOpenSettings={() =>
         openSettingsTab(activeTrackerTab === "map" ? "track" : "timing")
@@ -2542,7 +2638,8 @@ export default function RaceWeekend() {
       mapControls={
         isCompactViewport
           ? undefined
-          : mapShowTrackControls && mapViewMode !== "ring" &&
+          : mapShowTrackControls &&
+              mapViewMode !== "ring" &&
               !(map3dAvailable && mapViewMode === "3d")
             ? "expanded"
             : "single-row"
@@ -2593,7 +2690,8 @@ export default function RaceWeekend() {
             </p>
             <p className="mt-2 text-body text-fg">
               Enjoy F1 Replay? Buy me a coffee to help keep the project running
-              and bring live data to the app. Every contribution makes a difference.
+              and bring live data to the app. Every contribution makes a
+              difference.
             </p>
             <a
               href="https://buymeacoffee.com/matt_varga"
@@ -2612,84 +2710,116 @@ export default function RaceWeekend() {
 
   return (
     <div className="relative flex flex-col overflow-x-clip pb-[calc(10.75rem+env(safe-area-inset-bottom))] sm:pb-[calc(8.5rem+env(safe-area-inset-bottom))] md:h-full md:min-h-0 md:flex-1 md:overflow-hidden md:pb-0">
-      <h1 className="sr-only">F1 Replay: Formula 1 race replay with live timing, track map and telemetry</h1>
-      {welcome.visible && createPortal(
-        <div
-          className="fixed inset-0 z-modal flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm"
-          onClick={(event) => {
-            if (event.target === event.currentTarget) closeWelcome(false);
-          }}
-        >
+      <h1 className="sr-only">
+        F1 Replay: Formula 1 race replay with live timing, track map and
+        telemetry
+      </h1>
+      {welcome.visible &&
+        createPortal(
           <div
-            ref={welcomeDialogRef}
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby={welcomeTitleId}
-            aria-describedby={welcomeDescriptionId}
-            tabIndex={-1}
-            className="max-h-[90dvh] w-full max-w-md overflow-y-auto border border-panel bg-surface shadow-2xl focus:outline-none"
-            onKeyDown={(event) => {
-              if (event.key === "Escape") {
-                event.preventDefault();
-                event.stopPropagation();
-                closeWelcome(false);
-              }
-              if (event.key !== "Tab") return;
-              const buttons = Array.from(
-                event.currentTarget.querySelectorAll<HTMLButtonElement>("button:not(:disabled)"),
-              );
-              const first = buttons[0];
-              const last = buttons[buttons.length - 1];
-              if (event.shiftKey && (document.activeElement === first ||
-                document.activeElement === event.currentTarget)) {
-                event.preventDefault();
-                last?.focus();
-              } else if (!event.shiftKey && (document.activeElement === last ||
-                document.activeElement === event.currentTarget)) {
-                event.preventDefault();
-                first?.focus();
-              }
+            className="fixed inset-0 z-modal flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm"
+            onClick={(event) => {
+              if (event.target === event.currentTarget) closeWelcome(false);
             }}
           >
-          <DialogHeader
-            eyebrow="Try F1 Replay"
-            title={welcomeRaceStart ? "Go straight to lights out" : "See the replay in action"}
-            titleId={welcomeTitleId}
-            closeLabel="Dismiss replay introduction"
-            onClose={() => closeWelcome(false)}
-          />
-          <div className="px-4 py-5 sm:px-5">
-          <p id={welcomeDescriptionId} className="text-sm text-muted">
-            Follow every car on the track map. Pause, scrub or pick a driver as you watch.
-          </p>
-          <div className="mt-3 flex flex-wrap items-center gap-3">
-            <button
-              type="button"
-              disabled={startingWelcomeReplay}
-              onClick={() => { void startWelcomeReplay(); }}
-              className={buttonClass("primary", "md", "gap-2 disabled:opacity-60")}
+            <div
+              ref={welcomeDialogRef}
+              role="dialog"
+              aria-modal="true"
+              aria-labelledby={welcomeTitleId}
+              aria-describedby={welcomeDescriptionId}
+              tabIndex={-1}
+              className="max-h-[90dvh] w-full max-w-md overflow-y-auto border border-panel bg-surface shadow-2xl focus:outline-none"
+              onKeyDown={(event) => {
+                if (event.key === "Escape") {
+                  event.preventDefault();
+                  event.stopPropagation();
+                  closeWelcome(false);
+                }
+                if (event.key !== "Tab") return;
+                const buttons = Array.from(
+                  event.currentTarget.querySelectorAll<HTMLButtonElement>(
+                    "button:not(:disabled)",
+                  ),
+                );
+                const first = buttons[0];
+                const last = buttons[buttons.length - 1];
+                if (
+                  event.shiftKey &&
+                  (document.activeElement === first ||
+                    document.activeElement === event.currentTarget)
+                ) {
+                  event.preventDefault();
+                  last?.focus();
+                } else if (
+                  !event.shiftKey &&
+                  (document.activeElement === last ||
+                    document.activeElement === event.currentTarget)
+                ) {
+                  event.preventDefault();
+                  first?.focus();
+                }
+              }}
             >
-              <Play aria-hidden="true" className="h-4 w-4" />
-              {startingWelcomeReplay
-                ? "Preparing replay..."
-                : welcomeRaceStart ? "Watch the race start" : "Play replay"}
-            </button>
-            <button
-              type="button"
-              onClick={() => closeWelcome(true)}
-              className="text-xs font-bold text-muted underline underline-offset-4 hover:text-fg"
-            >
-              Take a tour
-            </button>
-          </div>
-          {welcomeReplayError && <p role="alert" className="mt-2 text-xs text-f1red">{welcomeReplayError}</p>}
-          </div>
-          </div>
-        </div>,
-        document.body,
-      )}
+              <DialogHeader
+                eyebrow="Try F1 Replay"
+                title={
+                  welcomeRaceStart
+                    ? "Go straight to lights out"
+                    : "See the replay in action"
+                }
+                titleId={welcomeTitleId}
+                closeLabel="Dismiss replay introduction"
+                onClose={() => closeWelcome(false)}
+              />
+              <div className="px-4 py-5 sm:px-5">
+                <p id={welcomeDescriptionId} className="text-sm text-muted">
+                  Follow every car on the track map. Pause, scrub or pick a
+                  driver as you watch.
+                </p>
+                <div className="mt-3 flex flex-wrap items-center gap-3">
+                  <button
+                    type="button"
+                    disabled={startingWelcomeReplay}
+                    onClick={() => {
+                      void startWelcomeReplay();
+                    }}
+                    className={buttonClass(
+                      "primary",
+                      "md",
+                      "gap-2 disabled:opacity-60",
+                    )}
+                  >
+                    <Play aria-hidden="true" className="h-4 w-4" />
+                    {startingWelcomeReplay
+                      ? "Preparing replay..."
+                      : welcomeRaceStart
+                        ? "Watch the race start"
+                        : "Play replay"}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => closeWelcome(true)}
+                    className="text-xs font-bold text-muted underline underline-offset-4 hover:text-fg"
+                  >
+                    Take a tour
+                  </button>
+                </div>
+                {welcomeReplayError && (
+                  <p role="alert" className="mt-2 text-xs text-f1red">
+                    {welcomeReplayError}
+                  </p>
+                )}
+              </div>
+            </div>
+          </div>,
+          document.body,
+        )}
       {isLoadingEventSession && (
-        <div role="status" className="shrink-0 border-b border-panel bg-surface px-4 py-2">
+        <div
+          role="status"
+          className="shrink-0 border-b border-panel bg-surface px-4 py-2"
+        >
           <div className="text-f1red text-caption font-black uppercase tracking-caps">
             {session ? "Loading replay" : "Finding your session"}
           </div>
@@ -2699,12 +2829,22 @@ export default function RaceWeekend() {
         </div>
       )}
       {failedQueries.length > 0 && (
-        <div role="alert" className="flex shrink-0 items-center justify-between gap-3 border-b border-f1red bg-surface px-4 py-2 text-xs">
-          <span>Some session data could not be loaded. Available panels remain usable.</span>
+        <div
+          role="alert"
+          className="flex shrink-0 items-center justify-between gap-3 border-b border-f1red bg-surface px-4 py-2 text-xs"
+        >
+          <span>
+            Some session data could not be loaded. Available panels remain
+            usable.
+          </span>
           <button
             type="button"
             className="shrink-0 border border-panel px-3 py-1 font-bold hover:border-f1red"
-            onClick={() => failedQueries.forEach((query) => { void query.refetch(); })}
+            onClick={() =>
+              failedQueries.forEach((query) => {
+                void query.refetch();
+              })
+            }
           >
             Retry failed requests
           </button>
@@ -2829,10 +2969,10 @@ export default function RaceWeekend() {
                         setTrackerTab(tab);
                       }}
                       aria-pressed={activeTrackerTab === tab}
-                      className={`min-h-10 min-w-0 w-full border-x border-t px-0.5 text-caption font-bold uppercase tracking-wider transition-colors ${
+                      className={`min-h-12 min-w-0 w-full border-b-2 px-0.5 text-tiny font-bold uppercase leading-tight tracking-wider transition-colors ${
                         activeTrackerTab === tab
-                          ? "-mb-px border-f1red border-b-track bg-f1red text-white"
-                          : "border-transparent bg-track text-muted hover:bg-surface/60 hover:text-fg"
+                          ? "border-f1red text-fg"
+                          : "border-transparent text-muted hover:text-fg"
                       }`}
                     >
                       {label}
@@ -2840,13 +2980,12 @@ export default function RaceWeekend() {
                   ))}
                 </div>
                 {(activeTrackerTab === "timing" ||
-                  activeTrackerTab === "map") &&
-                  (
-                    <div className="flex min-h-8 shrink-0 items-center border-b border-panel bg-track px-2">
-                      {mobileRaceControlTicker}
-                      {activeTrackerTab === "timing" && trackerSettingsButton}
-                    </div>
-                  )}
+                  activeTrackerTab === "map") && (
+                  <div className="flex min-h-8 shrink-0 items-center border-b border-panel bg-track px-2">
+                    {mobileRaceControlTicker}
+                    {activeTrackerTab === "timing" && trackerSettingsButton}
+                  </div>
+                )}
               </div>
 
               {/* Tab content */}
@@ -2943,9 +3082,7 @@ export default function RaceWeekend() {
                     data-motion-card
                     className={`${PANEL} flex h-[60vh] min-h-[340px] flex-col overflow-hidden border-0`}
                   >
-                    <div className={`${PANEL_TITLE} shrink-0`}>
-                      Lap Chart
-                    </div>
+                    <div className={`${PANEL_TITLE} shrink-0`}>Lap Chart</div>
                     <Suspense fallback={<PanelFallback />}>
                       <LapChart
                         drivers={drivers.data ?? []}
@@ -3088,9 +3225,7 @@ export default function RaceWeekend() {
                     <div
                       className={`${PANEL} flex-1 flex flex-col overflow-hidden border-0`}
                     >
-                      <div className={`${PANEL_TITLE} shrink-0`}>
-                        Lap Chart
-                      </div>
+                      <div className={`${PANEL_TITLE} shrink-0`}>Lap Chart</div>
                       <div className="min-h-0 flex-1 flex flex-col">
                         <Suspense fallback={<PanelFallback />}>
                           <LapChart
