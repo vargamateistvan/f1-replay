@@ -1,6 +1,6 @@
 /**
  * Track markup and telemetry overlays for the 3D map, mirroring the 2D map's
- * enhanced visuals (start/finish line, S1/S2 ticks, direction chevrons, speed
+ * standard track detail (start/finish line, S1/S2 ticks, direction chevrons, speed
  * heat, lap delta, elevation, braking hotspots, pit rejoin ghost).
  *
  * Per-segment telemetry reuses the 2D builders in `trackGeometry.ts`: they

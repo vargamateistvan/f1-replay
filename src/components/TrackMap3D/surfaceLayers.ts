@@ -175,7 +175,7 @@ const stateColor: ExpressionSpecification = [
 
 /**
  * The 2D map's sector flag colours, per timing sector:
- * - condition ribbon (enhanced visuals): a band under the asphalt, green when
+ * - condition ribbon: a band under the asphalt, green when
  *   clear and the flag colour when flagged (2D opacity 0.24 / 0.5);
  * - sector paint: a wash over the asphalt of a flagged sector;
  * - zoomed out, both as wide lines along the centerline.
@@ -285,7 +285,7 @@ export function applySectorFlags(map: MapboxMap, flags: TimingSectorFlags): void
   }
 }
 
-/** The always-on ribbon follows "enhanced track visuals", as in 2D. */
+/** The always-on ribbon follows the standard track detail, as in 2D. */
 export function setSectorRibbonVisibility(map: MapboxMap, visible: boolean): void {
   for (const id of SECTOR_RIBBON_LAYERS) {
     if (map.getLayer(id)) map.setLayoutProperty(id, "visibility", visible ? "visible" : "none");

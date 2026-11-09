@@ -158,7 +158,6 @@ interface Props {
   /** Session-relative ms of race start; drives the start-lights badge. */
   readonly lightsOutMs?: number | null;
   readonly showTrackScreenshot?: boolean;
-  readonly showEnhancedVisuals?: boolean;
   readonly showStartReplayHint?: boolean;
   readonly onSelectDriver?: (driverNumber: number) => void;
   /** When set, shows a shortcut to the track map settings. */
@@ -208,7 +207,6 @@ export function TrackMap({
   sharedAllDriverWindow = false,
   telemetryEnabled = true,
   showTrackScreenshot = true,
-  showEnhancedVisuals = true,
   showStartReplayHint = true,
   onSelectDriver,
   onOpenSettings,
@@ -598,7 +596,7 @@ export function TrackMap({
   );
 
   // Derived overlay data — computed only when its layer is visible.
-  const showElevation = showEnhancedVisuals && mapShowElevation && hasBaked;
+  const showElevation = mapShowElevation && hasBaked;
   const heatSegments = useMemo(
     () => buildHeatSegments(trackGeometry, heatData.data),
     [trackGeometry, heatData.data],
@@ -623,22 +621,12 @@ export function TrackMap({
     ],
   );
   const deltaSegments = useMemo(
-    () =>
-      showEnhancedVisuals
-        ? buildDeltaSegments(
-            trackGeometry,
-            heatData.data,
-            referenceHeatData.data,
-          )
-        : [],
-    [showEnhancedVisuals, trackGeometry, heatData.data, referenceHeatData.data],
+    () => buildDeltaSegments(trackGeometry, heatData.data, referenceHeatData.data),
+    [trackGeometry, heatData.data, referenceHeatData.data],
   );
   const brakingHotspots = useMemo(
-    () =>
-      showEnhancedVisuals
-        ? buildBrakingHotspots(trackGeometry, heatData.data)
-        : [],
-    [showEnhancedVisuals, trackGeometry, heatData.data],
+    () => buildBrakingHotspots(trackGeometry, heatData.data),
+    [trackGeometry, heatData.data],
   );
   // Shared by the optional marshal heatmap and the per-post flag segments.
   const marshalHeatmapSegments = useMemo(
@@ -860,14 +848,11 @@ export function TrackMap({
         {/* Paint order matters: ribbon → surface → flags → telemetry →
             circuit markup → markers → cars. */}
         <g transform={trackTransform}>
-          {showEnhancedVisuals && (
-            <TrackConditionRibbon
-              pathData={pathData}
-              timingSectorFlags={timingSectorFlags}
-              circuitLayout={circuitLayout}
-              lightMode={lightMode}
-            />
-          )}
+          <TrackConditionRibbon
+            pathData={pathData}
+            timingSectorFlags={timingSectorFlags}
+            circuitLayout={circuitLayout}
+          />
           {showElevation && (
             <TintedSegmentLayer
               segments={elevationSegments}
@@ -921,13 +906,11 @@ export function TrackMap({
             <PitWindowBands geom={trackGeometry} window={pitWindow} />
           )}
           <SpeedHeatLayer segments={heatSegments} />
-          {showEnhancedVisuals && (
-            <TintedSegmentLayer
-              segments={deltaSegments}
-              keyPrefix="delta"
-              strokeWidth={7.5}
-            />
-          )}
+          <TintedSegmentLayer
+            segments={deltaSegments}
+            keyPrefix="delta"
+            strokeWidth={7.5}
+          />
           {showElevation && (
             <TintedSegmentLayer
               segments={elevationSegments}
@@ -974,24 +957,18 @@ export function TrackMap({
               lightMode={lightMode}
             />
           )}
-          {showEnhancedVisuals && (
-            <BrakingHotspots hotspots={brakingHotspots} />
-          )}
+          <BrakingHotspots hotspots={brakingHotspots} />
           <StartFinishLine
             geom={trackGeometry}
             patternId={finishPatternId}
             lightMode={lightMode}
           />
-          {showEnhancedVisuals && (
-            <>
-              <SectorBoundaryMarkers
-                geom={trackGeometry}
-                rotationDeg={rotationDeg}
-                lightMode={lightMode}
-              />
-              <DirectionArrows geom={trackGeometry} lightMode={lightMode} />
-            </>
-          )}
+          <SectorBoundaryMarkers
+            geom={trackGeometry}
+            rotationDeg={rotationDeg}
+            lightMode={lightMode}
+          />
+          <DirectionArrows geom={trackGeometry} lightMode={lightMode} />
 
           {pitWindow && focusedPos && (
             <PitWindowMarkers

@@ -55,15 +55,6 @@ const TRANSPARENT_GRADIENT: ExpressionSpecification = [
   "rgba(0,0,0,0)",
 ];
 
-/** Layers shown only with "enhanced track visuals", as on the 2D map. */
-const ENHANCED_LAYERS = [
-  "map3d-sector-ticks",
-  "map3d-sector-labels",
-  "map3d-arrows",
-  "map3d-hotspots",
-  "map3d-hotspots-core",
-];
-
 const empty = <F>(): FeatureCollection<F> => ({ type: "FeatureCollection", features: [] });
 
 /** Add a canvas-drawn image (square, `side` CSS px) at device resolution. */
@@ -351,16 +342,9 @@ export function ensureGhostIcon(map: MapboxMap, color: string, scale: number): v
   addCanvasImage(map, id, 20 * scale, (c, unit) => drawPitGhost(c, unit, color), scale);
 }
 
-/** Toggle the enhanced-visuals markup layers. */
-export function setOverlayVisibility(map: MapboxMap, { enhanced }: { enhanced: boolean }): void {
-  for (const id of ENHANCED_LAYERS) {
-    if (map.getLayer(id)) map.setLayoutProperty(id, "visibility", enhanced ? "visible" : "none");
-  }
-}
-
 /**
  * Colour the telemetry overlays; a null gradient hides that overlay. The
- * caller decides what's enabled (enhanced visuals, elevation setting).
+ * caller decides what's enabled (elevation setting).
  */
 export function setOverlayGradients(
   map: MapboxMap,

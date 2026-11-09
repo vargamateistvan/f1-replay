@@ -97,7 +97,6 @@ vi.mock("@/stores/settings", () => ({
     mapShowDriverAcronym: true,
     mapShowDriverNumberInside: false,
     mapShowRaceLeader: true,
-    mapShowEnhancedVisuals: true,
     mapShowDriverHeatmap: true,
     mapRingShowPitWindowOutcomes: state.showRingPitOutcomes,
     mapView3dBattleGaps: true,
@@ -505,6 +504,7 @@ describe("SettingsControls", () => {
     expect(screen.getByRole("radio", { name: "2D map" })).toHaveAttribute("aria-checked", "true");
     expect(screen.getByText("Compass overlay")).toBeInTheDocument();
     expect(screen.getByText("Marshal sector heatmap")).toBeInTheDocument();
+    expect(screen.queryByText("Enhanced track visuals")).not.toBeInTheDocument();
     expect(screen.queryByText("Terrain")).not.toBeInTheDocument();
     expect(screen.queryByText("Light & Weather")).not.toBeInTheDocument();
     const weatherRow = screen.getByText("Weather effects").parentElement!.parentElement!;
@@ -562,7 +562,7 @@ describe("SettingsControls", () => {
     expect(screen.getByText("Live preview · Ring")).toBeInTheDocument();
     expect(screen.getByText("Corner numbers")).toBeInTheDocument();
     expect(screen.getByText("Sector status box")).toBeInTheDocument();
-    for (const label of ["Compass overlay", "Enhanced track visuals", "Elevation heatmap", "Track controls", "Terrain"]) {
+    for (const label of ["Compass overlay", "Elevation heatmap", "Track controls", "Terrain"]) {
       expect(screen.queryByText(label)).not.toBeInTheDocument();
     }
   });

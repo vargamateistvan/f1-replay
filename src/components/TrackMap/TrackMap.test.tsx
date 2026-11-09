@@ -181,6 +181,37 @@ describe("TrackMap sector flag state rendering", () => {
     expect(screen.getByTestId("map-background").querySelector("pattern")).not.toBeNull();
   });
 
+  it("shows start/finish and sector markers by default", () => {
+    vi.mocked(useTrackOutline).mockReturnValue(
+      mockTrackOutlineQueryResult({
+        ...mockOutline,
+        points: [
+          { x: 0, y: 0 },
+          { x: 50, y: 0 },
+          { x: 100, y: 0 },
+          { x: 100, y: 100 },
+          { x: 50, y: 100 },
+          { x: 0, y: 100 },
+        ],
+      }),
+    );
+    const { container } = render(
+      <TrackMap
+        sessionKey={1}
+        drivers={[mockDriver]}
+        locationData={mockLocationData}
+        sessionStartMs={0}
+      />,
+    );
+
+    expect(container.querySelector('line[stroke="url(#finish-checker-1)"]')).not.toBeNull();
+    const labels = Array.from(container.querySelectorAll("text")).map(
+      (label) => label.textContent,
+    );
+    expect(labels).toContain("S1");
+    expect(labels).toContain("S2");
+  });
+
   it("shows rain with weather readings hidden and exposes the shared quick toggle", () => {
     follow.weatherEffects = true;
     vi.mocked(useTrackOutline).mockReturnValue(mockTrackOutlineQueryResult(mockOutline));

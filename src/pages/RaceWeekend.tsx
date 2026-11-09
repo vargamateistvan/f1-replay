@@ -1454,7 +1454,6 @@ export default function RaceWeekend() {
     mapShowTrackControls,
     mapShowCompass,
     mapShowWeather,
-    mapShowEnhancedVisuals,
     mapViewMode,
     leaderboardTelemetry,
     timingShowMinisectors,
@@ -2527,7 +2526,6 @@ export default function RaceWeekend() {
         trackFlagState={mapShowSectorFlags ? trackFlagState : null}
         pitLaneStatus={pitLaneStatus}
         showTrackControls={mapShowTrackControls}
-        showEnhancedVisuals={mapShowEnhancedVisuals}
         focusDriverLap={focusDriverLap}
         pitRejoinGaps={pitRejoinGaps}
         leaderNumber={isRaceSession ? currentLeaderNumber : null}
@@ -2576,7 +2574,6 @@ export default function RaceWeekend() {
         showTrackControls={mapShowTrackControls}
         showCompass={mapShowCompass}
         showTrackScreenshot={trackScreenshotPngEnabled}
-        showEnhancedVisuals={mapShowEnhancedVisuals}
         weatherOverlay={mapShowWeather ? weatherAtT : null}
         weather={weatherAtT}
         activeTrackVehicles={activeTrackVehicles}

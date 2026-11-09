@@ -217,7 +217,6 @@ function TrackMapPreview({
         showTrackControls: settings.mapShowTrackControls,
         showFocusedHud: settings.mapShowDriverHud,
         showTrackScreenshot: settings.trackScreenshotPngEnabled,
-        showEnhancedVisuals: settings.mapShowEnhancedVisuals,
         showStartReplayHint: false,
         raceLeader: settings.mapShowRaceLeader ? (data.previewDrivers[0] ?? null) : null,
       }
@@ -461,12 +460,6 @@ export function TrackMapSettings({
           "Pit lane status",
           "Show the last reported pit lane, entry and exit status on the map; missing updates can make it outdated",
         )}
-        {!isRing &&
-          row(
-            "mapShowEnhancedVisuals",
-            "Enhanced track visuals",
-            "Start/finish line, sector markers, direction arrows, lap delta and braking hotspots",
-          )}
         {row(
           "mapShowCornerNumbers",
           "Corner numbers",

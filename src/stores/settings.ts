@@ -36,7 +36,6 @@ export interface AppSettings {
   mapShowDriverNumberInside: boolean;
   mapShowRaceLeader: boolean;
   mapStartLightsSound: boolean;
-  mapShowEnhancedVisuals: boolean;
   mapShowMarshalHeatmap: boolean;
   mapShowCornerNumbers: boolean;
   mapShowElevation: boolean;
@@ -214,7 +213,6 @@ export const SETTINGS_DEFAULTS: AppSettings = {
   mapShowDriverNumberInside: false,
   mapShowRaceLeader: true,
   mapStartLightsSound: true,
-  mapShowEnhancedVisuals: true,
   mapShowMarshalHeatmap: false,
   mapShowCornerNumbers: false,
   mapShowElevation: false,
@@ -301,7 +299,8 @@ export const SETTINGS_DEFAULTS: AppSettings = {
 
 /**
  * v0 → v1: the `mapView3d` boolean became `mapViewMode` (adds the ring view).
- * Unknown fields are kept; missing ones are filled from the defaults on merge.
+ * v1 → v2: remove Enhanced track visuals; track details are always visible.
+ * Other unknown fields are kept; missing ones are filled from the defaults.
  */
 export function migrateSettings(persisted: unknown, version: number): AppSettings {
   const state = { ...(persisted as Record<string, unknown> | null) };
@@ -311,6 +310,7 @@ export function migrateSettings(persisted: unknown, version: number): AppSetting
     }
     delete state.mapView3d;
   }
+  if (version < 2) delete state.mapShowEnhancedVisuals;
   return state as unknown as AppSettings;
 }
 
@@ -390,7 +390,7 @@ export const useSettings = create<SettingsStore>()(
     }),
     {
       name: "f1-replay-settings",
-      version: 1,
+      version: 2,
       migrate: migrateSettings,
       // Only persist the AppSettings fields, not the modal state or actions.
       partialize: (state) => {

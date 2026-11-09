@@ -108,7 +108,6 @@ import {
   addOverlayLayers,
   ensureGhostIcon,
   setOverlayGradients,
-  setOverlayVisibility,
   SRC_GHOST,
   SRC_HOTSPOTS,
   SRC_GAP_LABELS,
@@ -335,7 +334,6 @@ interface Props {
   readonly pitLaneStatus?: PitLaneStatus | null;
   readonly activeTrackVehicles?: ActiveTrackVehicles | null;
   readonly showTrackControls?: boolean;
-  readonly showEnhancedVisuals?: boolean;
   readonly showTrackScreenshot?: boolean;
   /** Focused driver's current lap; drives speed heat / delta / braking overlays. */
   readonly focusDriverLap?: number | null;
@@ -391,7 +389,6 @@ export function TrackMap3D({
   activeTrackVehicles = null,
   showTrackControls = true,
   showTrackScreenshot = true,
-  showEnhancedVisuals = true,
   focusDriverLap = null,
   pitRejoinGaps = null,
   leaderNumber = null,
@@ -528,17 +525,15 @@ export function TrackMap3D({
     focusDriverLap != null && focusDriverLap > 1 ? focusDriverLap - 1 : null,
     { enabled: telemetryEnabled },
   );
-  const showElevation = showEnhancedVisuals && mapShowElevation;
+  const showElevation = mapShowElevation;
   const overlayGradients = useMemo(() => {
     if (!arc) return { heat: null, delta: null, elevation: null };
     return {
       heat: gradientFromSegments(arc, heatColors(buildHeatSegments(arc, heatData.data))),
-      delta: showEnhancedVisuals
-        ? gradientFromSegments(
-            arc,
-            buildDeltaSegments(arc, heatData.data, referenceHeatData.data),
-          )
-        : null,
+      delta: gradientFromSegments(
+        arc,
+        buildDeltaSegments(arc, heatData.data, referenceHeatData.data),
+      ),
       elevation: showElevation
         ? gradientFromSegments(
             arc,
@@ -555,7 +550,6 @@ export function TrackMap3D({
     arc,
     heatData.data,
     referenceHeatData.data,
-    showEnhancedVisuals,
     showElevation,
     locationData,
     focusDriver,
@@ -564,10 +558,8 @@ export function TrackMap3D({
   ]);
   const hotspots = useMemo(
     () =>
-      buildHotspotPoints(
-        showEnhancedVisuals ? buildBrakingHotspots(arc, heatData.data) : [],
-      ),
-    [arc, heatData.data, showEnhancedVisuals],
+      buildHotspotPoints(buildBrakingHotspots(arc, heatData.data)),
+    [arc, heatData.data],
   );
 
   const trackLine = useMemo(
@@ -1208,9 +1200,8 @@ export function TrackMap3D({
   useEffect(() => {
     const map = mapRef.current;
     if (!map || !styleReady) return;
-    setOverlayVisibility(map, { enhanced: showEnhancedVisuals });
     setSectorRibbonVisibility(map, sectorRibbonEnabled);
-  }, [showEnhancedVisuals, sectorRibbonEnabled, styleReady, arc]);
+  }, [sectorRibbonEnabled, styleReady, arc]);
 
   // ── Camera: overview when nothing is focused ──────────────────────────────
   const fitOverview = useCallback(

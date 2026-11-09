@@ -12,6 +12,7 @@ describe("settings transfer", () => {
     expect(restored.catchupSummaryDefaultFilters).toEqual(useSettings.getState().catchupSummaryDefaultFilters);
     expect(restored).not.toHaveProperty("tourSeenVersion");
     expect(restored).not.toHaveProperty("replayWelcomeSeen");
+    expect(restored).not.toHaveProperty("mapShowEnhancedVisuals");
     expect(restored).not.toHaveProperty("isOpen");
     expect(restored).not.toHaveProperty("setSetting");
     expect(Object.keys(restored)).toHaveLength(Object.keys(SETTINGS_DEFAULTS).length - 2);
@@ -122,5 +123,13 @@ describe("migrateSettings", () => {
 
   it("leaves current settings alone", () => {
     expect(migrateSettings({ mapViewMode: "ring" }, 1).mapViewMode).toBe("ring");
+  });
+
+  it("removes the retired enhanced-track setting from saved preferences", () => {
+    const out = migrateSettings(
+      { mapViewMode: "2d", mapShowEnhancedVisuals: false },
+      1,
+    ) as unknown as Record<string, unknown>;
+    expect(out).not.toHaveProperty("mapShowEnhancedVisuals");
   });
 });

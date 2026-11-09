@@ -41,36 +41,27 @@ export const SectorClipPaths = memo(function SectorClipPaths({
   );
 });
 
-/** Wide under-ribbon tinted per timing sector by its current flag. */
+/** Paint active flag colours beneath the asphalt without a green clear-state band. */
 export const TrackConditionRibbon = memo(function TrackConditionRibbon({
   pathData,
   timingSectorFlags,
   circuitLayout,
-  lightMode,
 }: {
   pathData: string;
   timingSectorFlags: TimingSectorFlags;
   circuitLayout: CircuitLayout | null;
-  lightMode: boolean;
 }) {
   return (
     <>
-      <path
-        d={pathData}
-        fill="none"
-        stroke={lightMode ? "#c9d1e3" : "#293043"}
-        strokeWidth={20}
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        opacity={lightMode ? 0.35 : 0.45}
-      />
       {([1, 2, 3] as const).map((sectorNum) => {
         const flag = timingSectorFlags[sectorNum] ?? "CLEAR";
         const color = FLAG_COLORS[flag] ?? FLAG_COLORS.CLEAR;
         const active = flag !== "CLEAR" && flag !== "GREEN";
+        if (!active) return null;
         return (
           <path
             key={`ribbon-sector-${sectorNum}`}
+            data-track-layer={`flag-ribbon-${sectorNum}`}
             d={pathData}
             fill="none"
             stroke={color}
@@ -78,7 +69,7 @@ export const TrackConditionRibbon = memo(function TrackConditionRibbon({
             strokeLinecap="round"
             strokeLinejoin="round"
             {...sectorStrokeProps(sectorNum, circuitLayout)}
-            opacity={active ? 0.5 : 0.24}
+            opacity={0.5}
           />
         );
       })}
@@ -87,7 +78,7 @@ export const TrackConditionRibbon = memo(function TrackConditionRibbon({
 });
 
 /**
- * Track surface: asphalt bordered by alternating kerbs and a subtle grass verge.
+ * Track surface: asphalt bordered by a visible red-and-white kerb strip.
  */
 export const TrackSurface = memo(function TrackSurface({
   pathData,
@@ -107,7 +98,7 @@ export const TrackSurface = memo(function TrackSurface({
         strokeWidth={TRACK_SURFACE_KERB_WIDTH}
         fill="none"
         stroke={TOKEN_HEX.red}
-        strokeLinecap="round"
+        strokeLinecap="butt"
         strokeLinejoin="round"
         strokeDasharray={kerbDash}
         opacity={TRACK_SURFACE_KERB_OPACITY}
@@ -118,7 +109,7 @@ export const TrackSurface = memo(function TrackSurface({
         strokeWidth={TRACK_SURFACE_KERB_WIDTH}
         fill="none"
         stroke={TOKEN_HEX.white}
-        strokeLinecap="round"
+        strokeLinecap="butt"
         strokeLinejoin="round"
         strokeDasharray={kerbDash}
         strokeDashoffset={TRACK_SURFACE_KERB_DASH_LENGTH}
