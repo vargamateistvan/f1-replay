@@ -8,6 +8,9 @@ const mockTrackEvent = vi.fn();
 vi.mock("@/lib/analytics", () => ({
   trackEvent: (...args: unknown[]) => mockTrackEvent(...args),
 }));
+vi.mock("@/hooks/useReleaseDate", () => ({
+  useReleaseDate: () => "2026-09-20T10:00:00Z",
+}));
 
 function LocationProbe() {
   const location = useLocation();
@@ -78,6 +81,28 @@ describe("Home page", () => {
     );
     fireEvent.click(coffee);
     expect(mockTrackEvent).toHaveBeenCalledWith("home_support_clicked", { target: "coffee" });
+  });
+
+  it("includes the About information on the Home page", () => {
+    setup();
+
+    expect(
+      screen.getByRole("heading", { name: "About F1 Replay" }),
+    ).toBeInTheDocument();
+    expect(screen.getByText("dev")).toBeInTheDocument();
+    expect(screen.getByText(/2026/)).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "OpenF1 API" })).toHaveAttribute(
+      "href",
+      "https://openf1.org/",
+    );
+    expect(screen.getByRole("link", { name: "Release notes" })).toHaveAttribute(
+      "href",
+      "https://github.com/vargamateistvan/f1-replay/releases",
+    );
+    expect(screen.getByRole("link", { name: "Security" })).toHaveAttribute(
+      "href",
+      "/.well-known/security.txt",
+    );
   });
 
   it("starts the tour on the replay page", () => {

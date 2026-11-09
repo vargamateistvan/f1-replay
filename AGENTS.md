@@ -38,7 +38,7 @@
 | Session highlight videos                          | `scripts/fetch-highlights.mjs` → `data/session-highlights.json` (`utils/highlights.ts` title matching), `data/sessionHighlights.ts`, `components/HighlightsDialog` (opened from `pages/Schedule.tsx` session rows), `lib/youtubePlayer.ts`, `.github/workflows/update-highlights.yml`. FOM blocks most embeds, so the dialog's thumbnail + YouTube link fallback is the common path |
 | Standings / profiles                              | `hooks/useStandings.ts`, `utils/standings.ts`, `utils/championship.ts`, `pages/Standings.tsx` (top three in `components/StandingsPodium`, title banner in `components/TitleOutlook`) |
 | Telemetry comparison                              | `pages/Telemetry.tsx`, `components/TelemetryChart`, `components/CornerAnalysis`, `utils/telemetry.ts` |
-| Landing page (logo click)                         | `pages/Home.tsx` (`/home` = `HOME_PATH` in `utils/url.ts`): feature cards for every page, support links; `Nav` logo + `MobileNav` "Home" open it. `/` stays the replay (Driver Tracker) |
+| Landing page (logo click)                         | `pages/Home.tsx` (`/home` = `HOME_PATH` in `utils/url.ts`): feature cards for every page, About/version/release details, support links; `Nav` logo + `MobileNav` "Home & About" open it. `/` stays the replay (Driver Tracker) |
 | SEO / new route                                   | `routes.tsx`, `seo-routes.json`, `components/Seo/seo.ts` (Pitfall 10)                        |
 | Analytics event                                   | `lib/analytics.ts` (`trackEvent` → GA4 + Amplitude) + document it in `docs/ANALYTICS_EVENTS.md` |
 | Errors / Sentry                                   | `lib/sentry.ts` (lazy facade), `utils/ignorableErrors.ts`, `components/ErrorBoundary`, `lib/staleChunkReload.ts` (post-deploy chunk 404s) |
@@ -137,7 +137,7 @@ src/
     useCircuitGeometry.ts — Lazy-loads baked circuit geometry JSON (static asset, bypasses the query cache)
     useOpenF1LiveMqtt.ts — Live sessions: OpenF1 MQTT topics → `setQueryData` into the polling queries' cache
     useAudioProgress.ts — 0–1 progress of an <audio> element (radio clips)
-    useReleaseDate.ts   — Shared GitHub latest-release date (footer, About dialog)
+    useReleaseDate.ts   — Shared GitHub latest-release date (footer and Home About section)
     usePageSeo.ts       — Overrides route SEO defaults once a data-driven page (driver/team profile) has loaded
     queryKeys.ts        — Shared query-key builders (`lapsQueryKey`)
 
@@ -205,7 +205,7 @@ src/
     DriverProfile.tsx   — /standings/driver/:driverNumber — one driver's season (keeps ?year/&session)
     ConstructorProfile.tsx — /standings/team/:teamName (canonical name, `constructorPath()`) — one team's season
     Settings.tsx        — Redirect to settings modal
-    Home.tsx            — /home landing page (nav logo): hero + "Open Driver Tracker", feature cards linking every page (keeps the current query string, sets `view` for replay tabs), extras, Help/Settings, support section (Buy Me a Coffee, GitHub star, issues). Nav skips the Latest auto-select here
+    Home.tsx            — /home landing page (nav logo): hero + "Open Driver Tracker", feature cards linking every page (keeps the current query string, sets `view` for replay tabs), extras, Help/Settings, support section (Buy Me a Coffee, GitHub star, issues), About/version/release details. Nav skips the Latest auto-select here
     Privacy.tsx, Terms.tsx — Static legal pages
     NotFound.tsx, AppCrash.tsx
 
@@ -332,7 +332,6 @@ Track-map settings show their live preview only when expanded; it scrolls with t
 | `Pits` (`PitFeed`)                                | Pit stop feed (commentary "pits" tab); the first stopper's row shows its undercut/overcut battle (`pitBattles` prop from `RaceWeekend`) |
 | `TyreChange`                                      | Old compound + laps → new compound + age; `compact` variant for inline text              |
 | `LiveDataNotice`                                  | Legacy banner components, no longer mounted: OpenF1 paid-access information and the project support link appear in `RaceWeekend`'s access-required panel instead. `SessionSimulation.tsx` decorates that panel with synthetic cars on the selected session's baked circuit. `useCachedSimulationDrivers` in `hooks/useSession.ts` supplies team colours from the selected session or nearest cached session in the same year; neutral cars if unavailable (no API calls, explicitly labelled, static with reduced motion) |
-| `AboutDialog`                                     | Mobile About dialog: version, release date, Privacy/Terms links                          |
 | `DialogHeader`                                    | Shared modal header (Settings, How it works, About, catch-up) in the legal-page style: red eyebrow strip + mono meta, black uppercase title, square close button |
 | `TooltipCard`                                     | Shared tooltip card styling                                                              |
 | `Button`                                          | `buttonClass(variant, size)` (`primary` red fill / `secondary` bordered, red hover / `quiet` muted; `md` / `sm` / `block`) for buttons and `<Link>`s, `<Button>`, `FOCUS_RING` for custom controls |

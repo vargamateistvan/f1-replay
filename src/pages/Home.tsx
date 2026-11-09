@@ -29,6 +29,12 @@ import type { MainView } from "@/components/Nav";
 import { OPENF1_SITE_URL } from "@/constants";
 import { trackEvent } from "@/lib/analytics";
 import { useSettings } from "@/stores/settings";
+import { useReleaseDate } from "@/hooks/useReleaseDate";
+import {
+  appVersionLabel,
+  formatReleaseDate,
+  RELEASES_PAGE_URL,
+} from "@/lib/appVersion";
 
 const SUPPORT_URL = "https://buymeacoffee.com/matt_varga";
 const REPO_URL = "https://github.com/vargamateistvan/f1-replay";
@@ -129,6 +135,7 @@ export default function Home() {
   const openTour = useSettings((s) => s.openTour);
   const openHelp = useSettings((s) => s.openHelp);
   const openModal = useSettings((s) => s.openModal);
+  const releaseDate = formatReleaseDate(useReleaseDate());
 
   // Keep the selected season/session when moving on, like the nav does.
   const href = (path: string, view?: MainView) => {
@@ -332,26 +339,82 @@ export default function Home() {
           </div>
         </section>
 
-        <footer className="border-t border-panel pt-4 text-small leading-5 text-muted">
-          Data from the public{" "}
-          <a
-            href={OPENF1_SITE_URL}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-f1red/85 transition-colors hover:text-f1red"
-          >
-            OpenF1 API
-          </a>
-          . F1 Replay is an independent, unofficial app and is not affiliated with Formula
-          One. See the{" "}
-          <Link to="/terms" className="text-f1red/85 transition-colors hover:text-f1red">
-            Terms
-          </Link>{" "}
-          and{" "}
-          <Link to="/privacy" className="text-f1red/85 transition-colors hover:text-f1red">
-            Privacy Policy
-          </Link>
-          .
+        <footer
+          aria-labelledby="home-about"
+          className="border-t border-panel pt-4"
+        >
+          <div className="flex flex-wrap items-start justify-between gap-3">
+            <div>
+              <h2
+                id="home-about"
+                className="text-caption font-black uppercase tracking-eyebrow text-f1red-fg"
+              >
+                About F1 Replay
+              </h2>
+              <p className="mt-1 text-small leading-5 text-muted">
+                Independent, unofficial and not affiliated with Formula One.
+              </p>
+            </div>
+            <a
+              href={RELEASES_PAGE_URL}
+              target="_blank"
+              rel="noopener noreferrer"
+              className={buttonClass("secondary", "sm")}
+            >
+              Release notes
+            </a>
+          </div>
+
+          <dl className="mt-3 grid gap-x-6 gap-y-2 border-y border-panel py-3 text-small sm:grid-cols-3">
+            <div>
+              <dt className="text-tiny font-bold uppercase tracking-widest text-muted">
+                Version
+              </dt>
+              <dd className="mt-0.5 font-mono text-fg">{appVersionLabel}</dd>
+            </div>
+            <div>
+              <dt className="text-tiny font-bold uppercase tracking-widest text-muted">
+                Released
+              </dt>
+              <dd className="mt-0.5 font-mono text-fg">{releaseDate ?? "—"}</dd>
+            </div>
+            <div>
+              <dt className="text-tiny font-bold uppercase tracking-widest text-muted">
+                Data
+              </dt>
+              <dd className="mt-0.5">
+                <a
+                  href={OPENF1_SITE_URL}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-f1red/85 transition-colors hover:text-f1red"
+                >
+                  OpenF1 API
+                </a>
+              </dd>
+            </div>
+          </dl>
+
+          <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1 text-small">
+            <a
+              href="/.well-known/security.txt"
+              className="text-f1red/85 transition-colors hover:text-f1red"
+            >
+              Security
+            </a>
+            <Link
+              to="/terms"
+              className="text-f1red/85 transition-colors hover:text-f1red"
+            >
+              Terms
+            </Link>
+            <Link
+              to="/privacy"
+              className="text-f1red/85 transition-colors hover:text-f1red"
+            >
+              Privacy Policy
+            </Link>
+          </div>
         </footer>
       </div>
     </section>

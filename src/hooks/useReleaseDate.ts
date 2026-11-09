@@ -3,7 +3,7 @@ import { LATEST_RELEASE_API_URL } from "@/lib/appVersion";
 
 type ReleaseResponse = { published_at?: string; created_at?: string };
 
-// Shared across every consumer so the footer and mobile About dialog issue a
+// Shared across every consumer so the footer and Home About section issue a
 // single GitHub request per page load.
 let publishedAtPromise: Promise<string | null> | null = null;
 
