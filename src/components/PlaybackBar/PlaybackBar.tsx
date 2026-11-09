@@ -82,14 +82,14 @@ const NO_TRACK_STATUS: readonly TrackStatusSegment[] = [];
 
 const TRACK_STATUS_STYLE: Record<
   PlaybackTrackStatus,
-  { label: string; short: string; className: string }
+  { label: string; className: string }
 > = {
-  GREEN: { label: "Green flag", short: "", className: "bg-green/70" },
-  YELLOW: { label: "Yellow flag", short: "", className: "bg-yellow" },
-  DOUBLE_YELLOW: { label: "Double yellow flag", short: "YY", className: "bg-yellow" },
-  RED: { label: "Red flag", short: "RED", className: "bg-f1red" },
-  SAFETY_CAR: { label: "Safety car", short: "SC", className: "bg-orange" },
-  VIRTUAL_SC: { label: "Virtual safety car", short: "VSC", className: "bg-yellow/70" },
+  GREEN: { label: "Green flag", className: "bg-green/70" },
+  YELLOW: { label: "Yellow flag", className: "bg-yellow" },
+  DOUBLE_YELLOW: { label: "Double yellow flag", className: "bg-yellow" },
+  RED: { label: "Red flag", className: "bg-f1red" },
+  SAFETY_CAR: { label: "Safety car", className: "bg-orange" },
+  VIRTUAL_SC: { label: "Virtual safety car", className: "bg-yellow/70" },
 };
 
 function fmtTime(ms: number) {
@@ -615,22 +615,6 @@ export function PlaybackBar({
                   );
                 })}
               </div>
-              {trackStatusSegments.map((segment) => {
-                const { short } = TRACK_STATUS_STYLE[segment.status];
-                if (!short) return null;
-                return (
-                  <span
-                    key={segment.startMs}
-                    className="absolute top-0 truncate pr-0.5 font-mono text-micro font-bold leading-3 text-fg"
-                    style={{
-                      left: `${(segment.startMs / durationMs) * 100}%`,
-                      maxWidth: `${((Math.min(segment.endMs, durationMs) - segment.startMs) / durationMs) * 100}%`,
-                    }}
-                  >
-                    {short}
-                  </span>
-                );
-              })}
               <span
                 className="absolute inset-y-0 w-0.5 -translate-x-1/2 bg-f1red"
                 style={{ left: `${(playheadMs / durationMs) * 100}%` }}

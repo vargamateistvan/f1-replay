@@ -77,7 +77,7 @@ describe("PlaybackBar marker interactions", () => {
     expect(segments[1]).toHaveClass("bg-orange");
     expect(segments[2]).toHaveStyle({ left: "40%", width: "40%" });
     expect(segments[3]).toHaveStyle({ left: "80%", width: "20%" });
-    expect(screen.getByText("SC")).toBeInTheDocument();
+    expect(screen.queryByText("SC")).not.toBeInTheDocument();
     const slider = screen.getByRole("slider", { name: "Seek" });
     expect(slider).toHaveAttribute("aria-valuetext", "01:15 — Red flag");
     fireEvent.click(screen.getByRole("button", { name: "Hide timeline markers" }));
@@ -92,7 +92,7 @@ describe("PlaybackBar marker interactions", () => {
     expect(screen.getByRole("slider", { name: "Seek" })).not.toHaveClass("playback-status-range");
   });
 
-  it("shows future status colours and labels even at session start", () => {
+  it("shows future status colours without inline labels and retains hover details", () => {
     render(
       <PlaybackBar
         durationMs={100_000}
@@ -108,7 +108,7 @@ describe("PlaybackBar marker interactions", () => {
       x: 0, y: 0, toJSON: () => ({}),
     });
     expect(screen.getAllByTestId("track-status-segment")).toHaveLength(2);
-    expect(screen.getByText("VSC")).toBeInTheDocument();
+    expect(screen.queryByText("VSC")).not.toBeInTheDocument();
     fireEvent.mouseMove(scrubber, { clientX: 608 });
     const tooltip = screen.getByRole("tooltip", { name: "Time at pointer" });
     expect(tooltip).toHaveTextContent("01:15");
