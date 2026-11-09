@@ -413,10 +413,10 @@ export function PlaybackBar({
   const playbackBar = (
     <div
       data-tour={TOUR_TARGET.playback}
-      className={`flex flex-col gap-1.5 py-2 bg-track border-t border-panel sm:gap-2 sm:py-2.5 ${
+      className={`flex flex-col gap-1.5 py-2 sm:gap-2 sm:py-2.5 ${
         mobileInline
-          ? ""
-          : "fixed inset-x-0 z-20 md:static md:inset-auto md:z-auto"
+          ? "border-t border-panel bg-track"
+          : "fixed inset-x-2 z-20 rounded-sm border border-panel bg-surface/95 shadow-2xl backdrop-blur-xl md:static md:inset-auto md:z-auto md:rounded-none md:border-x-0 md:border-b-0 md:border-t md:bg-track md:shadow-none md:backdrop-blur-none"
       }`}
       style={
         mobileInline
@@ -427,7 +427,7 @@ export function PlaybackBar({
           : {
               paddingLeft: "max(0.75rem, env(safe-area-inset-left))",
               paddingRight: "max(0.75rem, env(safe-area-inset-right))",
-              bottom: "calc(48px + env(safe-area-inset-bottom))",
+              bottom: "calc(56px + env(safe-area-inset-bottom))",
             }
       }
     >

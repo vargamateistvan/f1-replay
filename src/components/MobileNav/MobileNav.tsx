@@ -1,6 +1,13 @@
 import { useCallback, useEffect, useState } from "react";
 import { useSearchParams, useLocation, useNavigate } from "react-router-dom";
-import { Info } from "lucide-react";
+import {
+  CalendarDays,
+  Ellipsis,
+  Flag,
+  Info,
+  Radio,
+  Trophy,
+} from "lucide-react";
 import { useStringParam } from "@/hooks/useSearchParamState";
 import { useReleaseDate } from "@/hooks/useReleaseDate";
 import { useSettings } from "@/stores/settings";
@@ -47,10 +54,34 @@ export function MobileNav() {
     return `/?${params}`;
   }
 
-  const btn = (active: boolean) =>
-    `flex-1 min-w-0 flex flex-col items-center justify-center gap-0.5 px-1 text-tiny font-bold uppercase tracking-widest border-t-2 transition-colors ${
-      active ? "text-fg border-f1red" : "text-fg/50 border-transparent"
+  function hrefWithSearch(path: string) {
+    const query = searchParams.toString();
+    return query ? `${path}?${query}` : path;
+  }
+
+  const navButton = (active: boolean) =>
+    `group flex min-w-0 flex-col items-center justify-center gap-1 px-0.5 py-1 text-tiny font-bold uppercase tracking-wider transition-colors ${
+      active ? "text-f1red-fg" : "text-muted hover:text-fg"
     }`;
+
+  const navIcon = (active: boolean) =>
+    `flex h-7 w-10 items-center justify-center rounded-sm transition-colors ${
+      active
+        ? "bg-f1red/10 text-f1red-fg"
+        : "text-muted group-hover:bg-panel group-hover:text-fg"
+    }`;
+
+  const isReplayActive = isMain && currentView === "tracker";
+  const isFeedsActive = isMain && currentView === "commentary";
+  const isStandingsActive = location.pathname.startsWith("/standings");
+  const isScheduleActive = location.pathname === "/schedule";
+  const isMoreActive =
+    showMore ||
+    location.pathname === HOME_PATH ||
+    location.pathname === "/telemetry" ||
+    location.pathname === "/settings" ||
+    location.pathname === "/privacy" ||
+    location.pathname === "/terms";
 
   function goTo(url: string) {
     setShowMore(false);
@@ -60,38 +91,26 @@ export function MobileNav() {
 
   return (
     <nav
-      className="md:hidden fixed inset-x-0 bottom-0 z-30 flex flex-col bg-track border-t border-panel"
+      className="md:hidden fixed inset-x-0 bottom-0 z-30 flex flex-col border-t border-panel bg-track/95 shadow-2xl backdrop-blur-xl"
       style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
     >
       {showMore && (
-        <div className="grid grid-cols-3 gap-px border-b border-panel bg-track px-2 py-2">
+        <div className="grid grid-cols-3 gap-2 border-b border-panel bg-surface px-3 py-3">
           <button
-            onClick={() => goTo(`${HOME_PATH}?${searchParams}`)}
-            className="h-10 rounded-sm bg-panel px-2 text-caption font-black uppercase tracking-caps text-fg"
+            onClick={() => goTo(hrefWithSearch(HOME_PATH))}
+            className="min-h-11 rounded-sm border border-panel bg-panel px-2 text-caption font-black uppercase tracking-caps text-fg transition-colors hover:border-f1red"
           >
             Home
           </button>
           <button
-            onClick={() => goTo(`/telemetry?${searchParams}`)}
-            className="h-10 rounded-sm bg-panel px-2 text-caption font-black uppercase tracking-caps text-fg"
+            onClick={() => goTo(hrefWithSearch("/telemetry"))}
+            className="min-h-11 rounded-sm border border-panel bg-panel px-2 text-caption font-black uppercase tracking-caps text-fg transition-colors hover:border-f1red"
           >
             Telemetry
           </button>
           <button
-            onClick={() => goTo(`/schedule?${searchParams}`)}
-            className="h-10 rounded-sm bg-panel px-2 text-caption font-black uppercase tracking-caps text-fg"
-          >
-            Schedule
-          </button>
-          <button
-            onClick={() => goTo(`/standings?${searchParams}`)}
-            className="h-10 rounded-sm bg-panel px-2 text-caption font-black uppercase tracking-caps text-fg"
-          >
-            Standings
-          </button>
-          <button
             onClick={() => goTo("/settings")}
-            className="h-10 rounded-sm bg-panel px-2 text-caption font-black uppercase tracking-caps text-fg"
+            className="min-h-11 rounded-sm border border-panel bg-panel px-2 text-caption font-black uppercase tracking-caps text-fg transition-colors hover:border-f1red"
           >
             Settings
           </button>
@@ -101,19 +120,19 @@ export function MobileNav() {
               trackEvent("nav_help_opened", { source: "mobile_menu" });
               openHelp();
             }}
-            className="h-10 rounded-sm bg-panel px-2 text-caption font-black uppercase tracking-caps text-fg"
+            className="min-h-11 rounded-sm border border-panel bg-panel px-2 text-caption font-black uppercase tracking-caps text-fg transition-colors hover:border-f1red"
           >
             Help
           </button>
           <button
             onClick={() => goTo("/privacy")}
-            className="h-10 rounded-sm bg-panel px-2 text-caption font-black uppercase tracking-caps text-fg"
+            className="min-h-11 rounded-sm border border-panel bg-panel px-2 text-caption font-black uppercase tracking-caps text-fg transition-colors hover:border-f1red"
           >
             Privacy
           </button>
           <button
             onClick={() => goTo("/terms")}
-            className="h-10 rounded-sm bg-panel px-2 text-caption font-black uppercase tracking-caps text-fg"
+            className="min-h-11 rounded-sm border border-panel bg-panel px-2 text-caption font-black uppercase tracking-caps text-fg transition-colors hover:border-f1red"
           >
             Terms
           </button>
@@ -128,7 +147,7 @@ export function MobileNav() {
             setShowAbout(true);
             trackEvent("mobile_nav_about_opened");
           }}
-          className="flex h-8 items-center justify-between gap-2 border-b border-panel bg-track px-3 text-left"
+          className="flex h-10 items-center justify-between gap-2 border-b border-panel bg-surface px-3 text-left"
         >
           <span className="flex min-w-0 items-center gap-1.5 font-mono text-caption uppercase tracking-caps text-muted">
             <Info size={11} aria-hidden="true" className="shrink-0" />
@@ -143,7 +162,10 @@ export function MobileNav() {
         </button>
       )}
 
-      <div data-tour={TOUR_TARGET.mobileNav} className="flex h-12">
+      <div
+        data-tour={TOUR_TARGET.mobileNav}
+        className="grid h-14 grid-cols-5"
+      >
         <button
           onClick={() => {
             trackEvent("nav_view_changed", {
@@ -152,10 +174,13 @@ export function MobileNav() {
             });
             goTo(viewHref("tracker"));
           }}
-          className={btn(isMain && currentView === "tracker")}
+          className={navButton(isReplayActive)}
+          aria-current={isReplayActive ? "page" : undefined}
         >
-          <span className="text-base leading-none">◉</span>
-          <span>Tracker</span>
+          <span className={navIcon(isReplayActive)}>
+            <Flag size={18} strokeWidth={2.2} aria-hidden="true" />
+          </span>
+          <span>Replay</span>
         </button>
         <button
           onClick={() => {
@@ -165,10 +190,33 @@ export function MobileNav() {
             });
             goTo(viewHref("commentary"));
           }}
-          className={btn(isMain && currentView === "commentary")}
+          className={navButton(isFeedsActive)}
+          aria-current={isFeedsActive ? "page" : undefined}
         >
-          <span className="text-base leading-none">≋</span>
+          <span className={navIcon(isFeedsActive)}>
+            <Radio size={18} strokeWidth={2.2} aria-hidden="true" />
+          </span>
           <span>Feeds</span>
+        </button>
+        <button
+          onClick={() => goTo(hrefWithSearch("/standings"))}
+          className={navButton(isStandingsActive)}
+          aria-current={isStandingsActive ? "page" : undefined}
+        >
+          <span className={navIcon(isStandingsActive)}>
+            <Trophy size={18} strokeWidth={2.2} aria-hidden="true" />
+          </span>
+          <span>Standings</span>
+        </button>
+        <button
+          onClick={() => goTo(hrefWithSearch("/schedule"))}
+          className={navButton(isScheduleActive)}
+          aria-current={isScheduleActive ? "page" : undefined}
+        >
+          <span className={navIcon(isScheduleActive)}>
+            <CalendarDays size={18} strokeWidth={2.2} aria-hidden="true" />
+          </span>
+          <span>Schedule</span>
         </button>
         <button
           onClick={() => {
@@ -178,18 +226,13 @@ export function MobileNav() {
               return nextValue;
             });
           }}
-          className={btn(
-            showMore ||
-              location.pathname === HOME_PATH ||
-              location.pathname === "/telemetry" ||
-              location.pathname === "/schedule" ||
-              location.pathname.startsWith("/standings") ||
-              location.pathname === "/settings",
-          )}
+          className={navButton(isMoreActive)}
           aria-expanded={showMore}
           data-tour={TOUR_TARGET.mobileMore}
         >
-          <span className="text-base leading-none">⋯</span>
+          <span className={navIcon(isMoreActive)}>
+            <Ellipsis size={20} strokeWidth={2.2} aria-hidden="true" />
+          </span>
           <span>More</span>
         </button>
       </div>

@@ -2202,7 +2202,7 @@ export default function RaceWeekend() {
   // Phone tracker tabs: the race control ticker moves out of the info bar
   // into the Timing / Track tabs.
   const mobileRaceControlTicker = (
-    <div className="flex shrink-0 border-b border-panel bg-track text-caption font-bold uppercase tracking-widest">
+    <div className="flex min-w-0 flex-1 text-caption font-bold uppercase tracking-widest">
       <LatestRaceControlTicker
         raceControl={raceControl.data ?? []}
         drivers={drivers.data ?? []}
@@ -2611,7 +2611,7 @@ export default function RaceWeekend() {
   }
 
   return (
-    <div className="relative flex flex-col overflow-x-clip pb-[calc(9.25rem+env(safe-area-inset-bottom))] sm:pb-[calc(7.5rem+env(safe-area-inset-bottom))] md:h-full md:min-h-0 md:flex-1 md:overflow-hidden md:pb-0">
+    <div className="relative flex flex-col overflow-x-clip pb-[calc(10.75rem+env(safe-area-inset-bottom))] sm:pb-[calc(8.5rem+env(safe-area-inset-bottom))] md:h-full md:min-h-0 md:flex-1 md:overflow-hidden md:pb-0">
       <h1 className="sr-only">F1 Replay: Formula 1 race replay with live timing, track map and telemetry</h1>
       {welcome.visible && createPortal(
         <div
@@ -2806,43 +2806,47 @@ export default function RaceWeekend() {
                 <div
                   data-motion-tab-strip
                   data-tour={TOUR_TARGET.mobileTrackerTabs}
-                  className="flex w-full border-b border-panel shrink-0"
+                  className="grid w-full shrink-0 grid-cols-6 border-b border-panel bg-track/90 px-2 pt-1.5"
                 >
-                  <div className="grid grid-cols-6 flex-1 min-w-0">
-                    {(
-                      [
-                        ["timing", "Timing"],
-                        ["map", "Track"],
-                        ["strategy", "Tyre Strategy"],
-                        ["deg", "Deg"],
-                        ["chart", "Chart"],
-                        ["gap", "Gap"],
-                      ] as [TrackerTab, string][]
-                    ).map(([tab, label]) => (
-                      <button
-                        key={tab}
-                        onClick={() => {
-                          trackEvent("raceweekend_tracker_tab_changed", {
-                            tab,
-                            source: "mobile",
-                          });
-                          setTrackerTab(tab);
-                        }}
-                        className={`w-full px-1.5 py-2 text-caption font-bold uppercase tracking-wider border-b-2 -mb-px transition-colors ${
-                          activeTrackerTab === tab
-                            ? "text-fg border-f1red bg-surface"
-                            : "text-muted border-transparent hover:text-fg"
-                        }`}
-                      >
-                        {label}
-                      </button>
-                    ))}
-                  </div>
-                  {trackerSettingsButton}
+                  {(
+                    [
+                      ["timing", "Timing"],
+                      ["map", "Track"],
+                      ["strategy", "Tyres"],
+                      ["deg", "Deg"],
+                      ["chart", "Chart"],
+                      ["gap", "Gap"],
+                    ] as [TrackerTab, string][]
+                  ).map(([tab, label]) => (
+                    <button
+                      key={tab}
+                      type="button"
+                      onClick={() => {
+                        trackEvent("raceweekend_tracker_tab_changed", {
+                          tab,
+                          source: "mobile",
+                        });
+                        setTrackerTab(tab);
+                      }}
+                      aria-pressed={activeTrackerTab === tab}
+                      className={`min-h-10 min-w-0 w-full border-x border-t px-0.5 text-caption font-bold uppercase tracking-wider transition-colors ${
+                        activeTrackerTab === tab
+                          ? "-mb-px border-f1red border-b-track bg-f1red text-white"
+                          : "border-transparent bg-track text-muted hover:bg-surface/60 hover:text-fg"
+                      }`}
+                    >
+                      {label}
+                    </button>
+                  ))}
                 </div>
                 {(activeTrackerTab === "timing" ||
                   activeTrackerTab === "map") &&
-                  mobileRaceControlTicker}
+                  (
+                    <div className="flex min-h-8 shrink-0 items-center border-b border-panel bg-track px-2">
+                      {mobileRaceControlTicker}
+                      {activeTrackerTab === "timing" && trackerSettingsButton}
+                    </div>
+                  )}
               </div>
 
               {/* Tab content */}

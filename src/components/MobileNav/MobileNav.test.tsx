@@ -45,10 +45,10 @@ describe("MobileNav", () => {
     vi.stubGlobal("matchMedia", vi.fn().mockReturnValue({ matches: true }));
   });
 
-  it("navigates to view links and keeps existing query params", () => {
+  it("navigates to replay views and keeps existing query params", () => {
     render(<MobileNav />);
 
-    fireEvent.click(screen.getByRole("button", { name: /Tracker/ }));
+    fireEvent.click(screen.getByRole("button", { name: /Replay/ }));
     expect(mobileNavState.navigate).toHaveBeenCalledWith(
       "/?year=2025&meeting=22&view=tracker",
     );
@@ -56,6 +56,31 @@ describe("MobileNav", () => {
     fireEvent.click(screen.getByRole("button", { name: /Feeds/ }));
     expect(mobileNavState.navigate).toHaveBeenCalledWith(
       "/?year=2025&meeting=22&view=commentary",
+    );
+  });
+
+  it("navigates to standings and schedule while keeping existing query params", () => {
+    render(<MobileNav />);
+
+    fireEvent.click(screen.getByRole("button", { name: /Standings/ }));
+    expect(mobileNavState.navigate).toHaveBeenCalledWith(
+      "/standings?year=2025&meeting=22",
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: /Schedule/ }));
+    expect(mobileNavState.navigate).toHaveBeenCalledWith(
+      "/schedule?year=2025&meeting=22",
+    );
+  });
+
+  it("keeps telemetry accessible from More", () => {
+    render(<MobileNav />);
+
+    fireEvent.click(screen.getByRole("button", { name: /More/ }));
+    fireEvent.click(screen.getByRole("button", { name: "Telemetry" }));
+
+    expect(mobileNavState.navigate).toHaveBeenCalledWith(
+      "/telemetry?year=2025&meeting=22",
     );
   });
 

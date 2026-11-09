@@ -24,24 +24,24 @@ The existing `md:` rules in RaceWeekend stay untouched.
 
 The two-bar chrome is too tall on a 667px screen. On phones:
 
-- **Red top bar** shrinks to `h-9` (from `h-10`).
+- **Red top bar** stays on phones and desktop.
+- The bar stays `h-9` on phones (desktop remains `h-10`).
 - Session header label (`BAHRAIN · RACE`) is hidden (already has `hidden sm:block`).
-- The three view tab buttons (Leaderboard / Driver Tracker / Commentary) **move to the bottom nav bar** — see §2.2.
-- Telemetry / Standings links collapse into a `⋯` icon button that opens a small drawer.
+- The session's main views remain one tap away from the bottom dock — see §2.2.
 
 ### 2.2 Bottom navigation bar (phone only, `md:hidden`)
 
-A fixed bottom bar replaces the top view tabs:
+A fixed bottom dock gives the most-used destinations direct access:
 
 ```
-┌──────────┬──────────────┬──────────────┐
-│  ≡ TOWER │  ◉ TRACKER   │  📡 COMMENTARY│
-└──────────┴──────────────┴──────────────┘
-  44px tall, bg-track, border-t border-panel
-  Active tab: text-white + top border in f1red
+┌──────────┬────────┬────────────┬──────────┬────────┐
+│ ⚑ REPLAY │ ◉ FEEDS│ 🏆 STANDINGS│ ▦ SCHEDULE│ ⋯ MORE │
+└──────────┴────────┴────────────┴──────────┴────────┘
+  56px tall + safe-area inset, blurred track surface
+  Active destination: red icon tile and label
 ```
 
-Implementation: a new `MobileNav` component rendered from `routes.tsx` only when `md:hidden`.
+Implementation: `MobileNav` is rendered from `routes.tsx`; "More" opens Home, Telemetry, Settings, Help and legal links.
 
 ### 2.3 Session picker sub-bar (phone)
 
@@ -85,7 +85,7 @@ The `w-72` fixed left panel + full-width map doesn't fit on phone.
 
 ```
 ┌──────────────────────────────┐
-│  [Timing] [Map] [Chart]      │  ← horizontal scrollable chip bar
+│ [Timing] [Track] [Tyres] ... │  ← six equal-width tabs, all visible
 ├──────────────────────────────┤
 │                              │
 │  Active panel fills height   │
@@ -114,7 +114,7 @@ Already mostly vertical — minimal changes:
 
 ## 6. Playback bar
 
-The current bar has many elements that crowd at 360px. Phone-specific adjustments:
+The current bar has many elements that crowd at 360px. On phones, the playback controls sit in a raised, inset card above the bottom dock.
 
 ### 6.1 Two-row layout
 

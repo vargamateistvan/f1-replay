@@ -729,7 +729,7 @@ export function Nav() {
     >
       {/* ── Red top bar ──────────────────────────────────────────── */}
       <div
-        className="flex items-center h-9 px-3 sm:h-10 sm:px-4 bg-f1red"
+        className="flex items-center h-9 bg-f1red px-3 sm:h-10 sm:px-4"
         style={{
           paddingLeft: "max(0.75rem, env(safe-area-inset-left))",
           paddingRight: "max(0.75rem, env(safe-area-inset-right))",
