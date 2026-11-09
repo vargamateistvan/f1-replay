@@ -2,7 +2,11 @@ import { memo } from "react";
 import type { CircuitLayout } from "@/data/circuits";
 import {
   FLAG_COLORS,
+  TRACK_SURFACE_CORNER_ANGLE_DEG,
+  TRACK_SURFACE_CORNER_WINDOW_PX,
   TRACK_SURFACE_ASPHALT_WIDTH,
+  TRACK_SURFACE_KERB_EDGE_OFFSET,
+  TRACK_SURFACE_KERB_PATCH_LENGTH,
   TRACK_SURFACE_HIGHLIGHT_OPACITY,
   TRACK_SURFACE_KERB_DASH_LENGTH,
   TRACK_SURFACE_KERB_OPACITY,
@@ -81,40 +85,50 @@ export const TrackConditionRibbon = memo(function TrackConditionRibbon({
  * Track surface: asphalt bordered by a visible red-and-white kerb strip.
  */
 export const TrackSurface = memo(function TrackSurface({
-  pathData,
+  geom,
   gradientId,
   lightMode,
 }: {
-  pathData: string;
+  geom: TrackGeometry;
   gradientId: string;
   lightMode: boolean;
 }) {
+  const { pathData, svgPts } = geom;
   const kerbDash = `${TRACK_SURFACE_KERB_DASH_LENGTH} ${TRACK_SURFACE_KERB_DASH_LENGTH}`;
+  const kerbPatches = cornerKerbPaths(svgPts);
   return (
     <>
-      <path
-        d={pathData}
-        data-track-layer="kerbs-red"
-        strokeWidth={TRACK_SURFACE_KERB_WIDTH}
-        fill="none"
-        stroke={TOKEN_HEX.red}
-        strokeLinecap="butt"
-        strokeLinejoin="round"
-        strokeDasharray={kerbDash}
-        opacity={TRACK_SURFACE_KERB_OPACITY}
-      />
-      <path
-        d={pathData}
-        data-track-layer="kerbs-white"
-        strokeWidth={TRACK_SURFACE_KERB_WIDTH}
-        fill="none"
-        stroke={TOKEN_HEX.white}
-        strokeLinecap="butt"
-        strokeLinejoin="round"
-        strokeDasharray={kerbDash}
-        strokeDashoffset={TRACK_SURFACE_KERB_DASH_LENGTH}
-        opacity={TRACK_SURFACE_KERB_OPACITY}
-      />
+      {kerbPatches.map(({ pathData: kerbPath, position, side }, index) => (
+        <g key={`corner-kerb-${index}`}>
+          <path
+            d={kerbPath}
+            data-track-layer="kerbs-red"
+            data-track-kerb-position={position}
+            data-track-kerb-side={side}
+            strokeWidth={TRACK_SURFACE_KERB_WIDTH}
+            fill="none"
+            stroke={TOKEN_HEX.red}
+            strokeLinecap="butt"
+            strokeLinejoin="round"
+            strokeDasharray={kerbDash}
+            opacity={TRACK_SURFACE_KERB_OPACITY}
+          />
+          <path
+            d={kerbPath}
+            data-track-layer="kerbs-white"
+            data-track-kerb-position={position}
+            data-track-kerb-side={side}
+            strokeWidth={TRACK_SURFACE_KERB_WIDTH}
+            fill="none"
+            stroke={TOKEN_HEX.white}
+            strokeLinecap="butt"
+            strokeLinejoin="round"
+            strokeDasharray={kerbDash}
+            strokeDashoffset={TRACK_SURFACE_KERB_DASH_LENGTH}
+            opacity={TRACK_SURFACE_KERB_OPACITY}
+          />
+        </g>
+      ))}
       <path
         d={pathData}
         data-track-layer="asphalt"
@@ -138,6 +152,160 @@ export const TrackSurface = memo(function TrackSurface({
     </>
   );
 });
+
+interface KerbPatch {
+  pathData: string;
+  position: "entry" | "apex" | "exit";
+  side: "inside" | "outside";
+}
+
+function cornerKerbPaths(
+  points: readonly { sx: number; sy: number }[],
+): KerbPatch[] {
+  const count = points.length;
+  if (count < 6) return [];
+
+  const get = (index: number) => points[(index + count) % count]!;
+  const pointAtDistance = (index: number, direction: -1 | 1) => {
+    let remaining = TRACK_SURFACE_CORNER_WINDOW_PX;
+    let current = get(index);
+    for (let step = 0; step < count; step++) {
+      const next = get(index + direction * (step + 1));
+      const dx = next.sx - current.sx;
+      const dy = next.sy - current.sy;
+      const length = Math.hypot(dx, dy);
+      if (length >= remaining) {
+        const ratio = remaining / length;
+        return {
+          sx: current.sx + dx * ratio,
+          sy: current.sy + dy * ratio,
+        };
+      }
+      remaining -= length;
+      current = next;
+    }
+    return current;
+  };
+
+  const turnAngles = points.map((vertex, index) => {
+    const before = pointAtDistance(index, -1);
+    const after = pointAtDistance(index, 1);
+    const inX = vertex.sx - before.sx;
+    const inY = vertex.sy - before.sy;
+    const outX = after.sx - vertex.sx;
+    const outY = after.sy - vertex.sy;
+    return Math.atan2(inX * outY - inY * outX, inX * outX + inY * outY);
+  });
+  const minimumAngle = (TRACK_SURFACE_CORNER_ANGLE_DEG * Math.PI) / 180;
+  const peakRadius = TRACK_SURFACE_CORNER_WINDOW_PX * 2;
+  const corners: { index: number; direction: -1 | 1 }[] = [];
+
+  for (let index = 0; index < count; index++) {
+    const angle = turnAngles[index]!;
+    if (Math.abs(angle) < minimumAngle) continue;
+    const direction = Math.sign(angle) as -1 | 1;
+    let isPeak = true;
+
+    for (const walk of [-1, 1] as const) {
+      let cursor = index;
+      let distance = 0;
+      for (let step = 0; step < count && distance < peakRadius; step++) {
+        const nextIndex = (cursor + walk + count) % count;
+        const current = get(cursor);
+        const next = get(nextIndex);
+        distance += Math.hypot(next.sx - current.sx, next.sy - current.sy);
+        cursor = nextIndex;
+        const nearbyAngle = turnAngles[cursor]!;
+        if (
+          Math.sign(nearbyAngle) === direction &&
+          (Math.abs(nearbyAngle) > Math.abs(angle) ||
+            (Math.abs(nearbyAngle) === Math.abs(angle) && cursor < index))
+        ) {
+          isPeak = false;
+          break;
+        }
+      }
+      if (!isPeak) break;
+    }
+
+    if (isPeak) {
+      corners.push({ index, direction });
+    }
+  }
+  if (!corners.length) return [];
+
+  const patchHalfLength = TRACK_SURFACE_KERB_PATCH_LENGTH / 2;
+  const patchCenters = [
+    { position: "entry" as const, distance: -TRACK_SURFACE_CORNER_WINDOW_PX * 0.65 },
+    { position: "apex" as const, distance: 0 },
+    { position: "exit" as const, distance: TRACK_SURFACE_CORNER_WINDOW_PX * 0.65 },
+  ];
+
+  return corners.flatMap(({ index, direction }) =>
+    patchCenters.map(({ position, distance }) => {
+      const side: -1 | 1 =
+        position === "apex" ? direction : direction === 1 ? -1 : 1;
+      const sideName = side === direction ? "inside" : "outside";
+      const pathData = offsetKerbPatch(
+        points,
+        index,
+        distance - patchHalfLength,
+        distance + patchHalfLength,
+        side,
+      );
+      return { pathData, position, side: sideName };
+    }),
+  );
+}
+
+function offsetKerbPatch(
+  points: readonly { sx: number; sy: number }[],
+  centerIndex: number,
+  startDistance: number,
+  endDistance: number,
+  side: -1 | 1,
+): string {
+  const count = points.length;
+  const sampleCount = 5;
+  const pathPoints = Array.from({ length: sampleCount }, (_, sampleIndex) => {
+    const distance =
+      startDistance + ((endDistance - startDistance) * sampleIndex) / (sampleCount - 1);
+    let remaining = Math.abs(distance);
+    const walk = distance < 0 ? -1 : 1;
+    let cursor = centerIndex;
+    let current = points[cursor]!;
+    let tangentX = 0;
+    let tangentY = 0;
+
+    for (let step = 0; step < count; step++) {
+      const next = points[(cursor + walk + count) % count]!;
+      const dx = next.sx - current.sx;
+      const dy = next.sy - current.sy;
+      const length = Math.hypot(dx, dy);
+      if (length >= remaining) {
+        const ratio = length === 0 ? 0 : remaining / length;
+        const x = current.sx + dx * ratio;
+        const y = current.sy + dy * ratio;
+        tangentX = (dx * walk) / (length || 1);
+        tangentY = (dy * walk) / (length || 1);
+        const normalX = -tangentY * side;
+        const normalY = tangentX * side;
+        return {
+          sx: x + normalX * TRACK_SURFACE_KERB_EDGE_OFFSET,
+          sy: y + normalY * TRACK_SURFACE_KERB_EDGE_OFFSET,
+        };
+      }
+      remaining -= length;
+      current = next;
+      cursor = (cursor + walk + count) % count;
+    }
+    return current;
+  });
+
+  return pathPoints
+    .map(({ sx, sy }, index) => `${index === 0 ? "M" : "L"}${sx.toFixed(1)},${sy.toFixed(1)}`)
+    .join(" ");
+}
 
 /** Start/finish marker anchored to the first outline segment. */
 export const StartFinishLine = memo(function StartFinishLine({

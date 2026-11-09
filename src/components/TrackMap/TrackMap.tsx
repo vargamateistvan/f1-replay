@@ -862,7 +862,7 @@ export function TrackMap({
             />
           )}
           <TrackSurface
-            pathData={pathData}
+            geom={trackGeometry}
             gradientId={trackSurfaceGradientId}
             lightMode={lightMode}
           />

@@ -63,10 +63,14 @@ export const LIVE_MQTT_MAX_ROWS = 4_000;
 export const TRACK_SVG_W = 600;
 export const TRACK_SVG_H = 400;
 export const TRACK_SVG_PAD = 24;
-export const TRACK_SURFACE_KERB_WIDTH = 18;
+export const TRACK_SURFACE_KERB_WIDTH = 2;
+export const TRACK_SURFACE_KERB_EDGE_OFFSET = 9;
+export const TRACK_SURFACE_KERB_PATCH_LENGTH = 10;
 export const TRACK_SURFACE_ASPHALT_WIDTH = 16;
-export const TRACK_SURFACE_KERB_DASH_LENGTH = 10;
-export const TRACK_SURFACE_KERB_OPACITY = 0.52;
+export const TRACK_SURFACE_KERB_DASH_LENGTH = 3;
+export const TRACK_SURFACE_KERB_OPACITY = 0.42;
+export const TRACK_SURFACE_CORNER_ANGLE_DEG = 14;
+export const TRACK_SURFACE_CORNER_WINDOW_PX = 12;
 export const TRACK_SURFACE_HIGHLIGHT_OPACITY = 0.08;
 export const TRACK_BACKGROUND_GRID_SIZE = 40;
 export const TRACK_BACKGROUND_GLOW_OPACITY = 0.07;
@@ -80,16 +84,55 @@ export const MAP_RAIN_HAZE_OPACITY = 0.09;
 export const MAP_RAIN_HAZE_CENTER_OPACITY = 0.15;
 export const MAP_RAIN_LAYERS = [
   {
-    name: "distant", width: 173, height: 137, cycleMs: 1500, opacity: 0.16, strokeWidth: 0.7, drift: 0.4,
-    streaks: [[18, 14, 15, 25], [79, 52, 76, 64], [140, 104, 137, 114], [44, 118, 41, 130], [116, 19, 114, 28], [7, 83, 4, 95]],
+    name: "distant",
+    width: 173,
+    height: 137,
+    cycleMs: 1500,
+    opacity: 0.16,
+    strokeWidth: 0.7,
+    drift: 0.4,
+    streaks: [
+      [18, 14, 15, 25],
+      [79, 52, 76, 64],
+      [140, 104, 137, 114],
+      [44, 118, 41, 130],
+      [116, 19, 114, 28],
+      [7, 83, 4, 95],
+    ],
   },
   {
-    name: "middle", width: 211, height: 163, cycleMs: 900, opacity: 0.24, strokeWidth: 1, drift: 0.7,
-    streaks: [[31, 18, 26, 39], [123, 65, 117, 90], [182, 128, 177, 148], [65, 110, 60, 131], [12, 57, 8, 74], [156, 28, 152, 47]],
+    name: "middle",
+    width: 211,
+    height: 163,
+    cycleMs: 900,
+    opacity: 0.24,
+    strokeWidth: 1,
+    drift: 0.7,
+    streaks: [
+      [31, 18, 26, 39],
+      [123, 65, 117, 90],
+      [182, 128, 177, 148],
+      [65, 110, 60, 131],
+      [12, 57, 8, 74],
+      [156, 28, 152, 47],
+    ],
   },
   {
-    name: "near", width: 293, height: 227, cycleMs: 650, opacity: 0.32, strokeWidth: 1.4, drift: 1,
-    streaks: [[52, 31, 44, 64], [217, 117, 208, 154], [122, 184, 114, 216], [274, 24, 266, 54], [21, 148, 14, 178], [170, 61, 162, 93]],
+    name: "near",
+    width: 293,
+    height: 227,
+    cycleMs: 650,
+    opacity: 0.32,
+    strokeWidth: 1.4,
+    drift: 1,
+    streaks: [
+      [52, 31, 44, 64],
+      [217, 117, 208, 154],
+      [122, 184, 114, 216],
+      [274, 24, 266, 54],
+      [21, 148, 14, 178],
+      [170, 61, 162, 93],
+    ],
   },
 ] as const;
 export const MAP_QUICK_SETTINGS_INSET = 8;
@@ -152,13 +195,15 @@ export const RING_BACKGROUND_OFFSETS = [20, 40] as const;
 /** Radius of the track ring (SVG units). */
 export const RING_RADIUS = 128;
 /** Place cardinal labels on the outer guide ring. */
-export const RING_CARDINAL_LABEL_RADIUS = RING_RADIUS + Math.max(...RING_BACKGROUND_OFFSETS);
+export const RING_CARDINAL_LABEL_RADIUS =
+  RING_RADIUS + Math.max(...RING_BACKGROUND_OFFSETS);
 /** Mouse-wheel zoom limits for the ring view, matching the 2D map. */
 export const RING_ZOOM_MIN = 0.6;
 export const RING_ZOOM_MAX = 3;
 export const RING_BACKGROUND_TICK_COUNT = 48;
 export const RING_BACKGROUND_MAJOR_TICK_EVERY = 6;
-export const RING_BACKGROUND_CARDINAL_TICK_EVERY = RING_BACKGROUND_TICK_COUNT / 4;
+export const RING_BACKGROUND_CARDINAL_TICK_EVERY =
+  RING_BACKGROUND_TICK_COUNT / 4;
 export const RING_BACKGROUND_TICK_INSET = 5;
 export const RING_BACKGROUND_TICK_LENGTH = 4;
 export const RING_BACKGROUND_MAJOR_TICK_LENGTH = 8;
@@ -546,7 +591,12 @@ export const COMPOUND_LETTERS = {
 
 // ── Tracker lap / gap charts ────────────────────────────────────────────────--
 // Chart margins (px); the right margin is the gutter for the driver end labels.
-export const RACE_CHART_MARGIN = { top: 10, right: 44, bottom: 4, left: 0 } as const;
+export const RACE_CHART_MARGIN = {
+  top: 10,
+  right: 44,
+  bottom: 4,
+  left: 0,
+} as const;
 export const RACE_CHART_X_AXIS_HEIGHT = 20;
 // Closest two driver end labels may sit (px) before they are spread apart.
 export const CHART_END_LABEL_GAP_PX = 11;
