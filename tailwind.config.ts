@@ -2,6 +2,7 @@ import type { Config } from "tailwindcss";
 import plugin from "tailwindcss/plugin";
 import {
   BRAND_COLORS,
+  FONT_FAMILIES,
   FONT_SIZES,
   LETTER_SPACING,
   NEUTRAL_COLORS,
@@ -74,10 +75,7 @@ export default {
         "rc-ticker-in": "rc-ticker-in 320ms cubic-bezier(0.2, 0.8, 0.2, 1) both",
         "rc-ticker-flash": "rc-ticker-flash 1.6s ease-out both",
       },
-      fontFamily: {
-        sans: ["Inter", "system-ui", "sans-serif"],
-        mono: ["JetBrains Mono", "Fira Mono", "monospace"],
-      },
+      fontFamily: FONT_FAMILIES,
     },
   },
   plugins: [

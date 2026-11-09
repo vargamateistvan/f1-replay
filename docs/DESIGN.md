@@ -18,7 +18,7 @@ prominent use of the F1 red, and tight information density with clear visual hie
 | Background | Deep navy (`#1a1a2e` / `#16213e`) | Near-black (`#15151e`) |
 | Accent | F1 red `#E8002D` | F1 red `#E8002D` (same, used more boldly) |
 | Secondary surfaces | Blue-tinted panels (`#0f3460`) | Dark charcoal (`#1f1f27`) with subtle borders |
-| Font | JetBrains Mono only | Formula1 / Inter sans-serif for UI, mono only for data readouts |
+| Font | Bricolage Grotesque headings, Inter UI, JetBrains Mono data | Expressive display headings, readable UI, mono data readouts |
 | Nav | Pill-shaped active state | Left red bar indicator + uppercase label |
 | Borders | Blue-tinted (`panel`) | Thin mid-grey (`#38383f`) |
 | Buttons | Rounded pill | Sharp rectangle, uppercase label |
@@ -69,27 +69,22 @@ Canvas, chart and Mapbox colours use `TOKEN_HEX` or the maps in `constants.ts` (
 
 ### Font stack
 
-The official F1 site uses a proprietary typeface ("Formula1") and falls back to `Inter`.
-We cannot bundle the licensed font, so we use Inter (free, closest match) + keep JetBrains Mono for
-data readouts.
+The Out Lap's Bricolage Grotesque headlines inspired a more editorial display role. F1 Replay
+bundles the open-source variable font locally through Fontsource for page-level headings; Inter
+remains the UI font and JetBrains Mono stays reserved for timing and telemetry readouts. This keeps
+the app's existing F1 palette and dense-data hierarchy while giving major headings more character.
+
+Font stacks are defined in `src/designTokens.ts` as `FONT_FAMILIES` and exposed as Tailwind's
+`font-display`, `font-sans`, and `font-mono` utilities. Font files are loaded from `src/main.tsx`;
+`index.html` uses the same display-first fallback stack for its initial loading title.
 
 ```css
-/* index.css — replace current Google Fonts import */
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;600;700&display=swap');
-```
-
-```ts
-// tailwind.config.ts
-fontFamily: {
-  sans: ['Inter', 'system-ui', 'sans-serif'],  // add as default
-  mono: ['JetBrains Mono', 'Fira Mono', 'monospace'],
-},
-```
-
-```css
-/* index.css */
 body {
   @apply bg-track text-fg font-sans antialiased;
+}
+
+h1 {
+  @apply font-display;
 }
 ```
 

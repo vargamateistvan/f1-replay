@@ -23,6 +23,10 @@ html.light {
 /* App-like cursor: arrow over static text, I-beam only where you can type.
    Buttons/links keep their pointer from preflight / the UA stylesheet. */
 @layer base {
+  h1 {
+    @apply font-display;
+  }
+
   body {
     cursor: default;
   }

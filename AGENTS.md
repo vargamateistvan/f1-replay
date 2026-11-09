@@ -1,6 +1,6 @@
 # F1 Replay — Agent Documentation
 
-> Last updated: 2026-11-08
+> Last updated: 2026-11-09
 > The single source of truth for agents. Provides concise, agent-readable architecture notes, conventions, and guardrails. `docs/` holds mostly historical plans — see Section 12 before trusting one.
 
 ---
@@ -11,7 +11,7 @@
 | ------------------------------------------------- | -------------------------------------------------------------------------------------------- |
 | Add/modify an OpenF1 call                         | `api/types.ts` → `api/endpoints.ts` → a hook in `hooks/useSession.ts` (never call `api.*` from a component) |
 | Tune a number (speed, poll rate, size, timeout)   | `src/constants.ts` (grep the name; every magic number lives here)                            |
-| Colour, font size, letter-spacing, z-index        | `src/designTokens.ts` (Tailwind tokens + light/dark values; Section 8 Styling)               |
+| Colour, fonts, font size, letter-spacing, z-index | `src/designTokens.ts` (Tailwind tokens + light/dark values; Section 8 Styling)               |
 | A button                                          | `components/Button` (`buttonClass()` for links, `<Button>`, `FOCUS_RING`)                    |
 | Add a user setting                                | `stores/settings.ts` (`AppSettings`, defaults, `migrateSettings`) + `components/SettingsModal` |
 | Settings import / export                         | `stores/settings.ts` (`exportSettings`, `parseSettingsImport`), `components/SettingsModal/SettingsTransfer.tsx`: validated versioned JSON, preference-only atomic merge; excludes onboarding and modal state |
@@ -78,7 +78,7 @@ Qualifying playback markers prefer phase-tagged `SESSION STARTED` messages; pre-
 | Guided tour       | react-joyride v3                                             |
 | Live push         | `mqtt` over WSS (OpenF1 MQTT, optional credentials)          |
 | Monitoring        | Sentry (`@sentry/react`, lazy-loaded), GA4 + Amplitude (`lib/analytics.ts`, `@amplitude/analytics-browser` lazy-loaded) |
-| Fonts             | Fontsource Inter + JetBrains Mono                            |
+| Fonts             | Fontsource Bricolage Grotesque (headings), Inter (UI) + JetBrains Mono (data) |
 | API proxy         | Cloudflare Worker + KV (`proxy/`, deployed with wrangler)    |
 | Build             | Vite 6                                                       |
 | Testing           | Vitest + Testing Library + jsdom                             |
@@ -94,7 +94,7 @@ src/
   App.tsx               — QueryClient setup, global gates (light mode, coffee widget)
   routes.tsx            — BrowserRouter + top-level route tree
   constants.ts          — ALL tunable magic numbers (speeds, chunk sizes, poll rates…); COMPOUND_COLORS / COMPOUND_LETTERS, FLAG_COLORS
-  designTokens.ts       — Design tokens: themed colours (dark + light R G B → CSS vars via tailwind.config.ts), type scale, letter-spacing, z layers, TOKEN_HEX for canvas/SVG
+  designTokens.ts       — Design tokens: themed colours (dark + light R G B → CSS vars via tailwind.config.ts), font families, type scale, letter-spacing, z layers, TOKEN_HEX for canvas/SVG
   main.tsx              — ReactDOM.createRoot entry point
 
   api/
@@ -482,6 +482,7 @@ Track-map settings show their live preview only when expanded; it scrolls with t
   - Canvas, chart series, Mapbox paint and SVG attributes can't read CSS variables: use `TOKEN_HEX` (dark values) or a `constants.ts` colour map, never a new hex literal.
 - Dark mode is the default; `light` class on `<html>` activates light mode (toggled by `LightModeGate` in `App.tsx`). Tokens handle it — don't branch on `lightMode` for class names. The `light:` variant exists for the rare light-only tweak (e.g. a softer shadow).
 - Type scale (font-size only, set leading separately): `text-micro` 8px, `text-tiny` 9px, `text-caption` 10px, `text-small` 11px, `text-compact` 12px, `text-body` 13px, `text-stat` 22px; Tailwind `text-sm` and up above that. Uppercase letter-spacing: `tracking-wider` / `widest`, `tracking-caps` (0.12em, titles/buttons), `tracking-eyebrow` (0.16em), `tracking-spaced` (0.2em).
+- Typography roles are defined in `FONT_FAMILIES` (`designTokens.ts`) and loaded locally in `main.tsx`: `font-display` for page-level `h1` headings, `font-sans` for interface text, and `font-mono` for data readouts.
 - Corners: `rounded-sm` (2px) for panels, buttons, chips and dialogs; `rounded-full` only for dots, avatars and pills. Layers: `z-10` / `z-20` inside panels, then `z-overlay` < `z-modal` < `z-tour` < `z-popover` < `z-tooltip`.
 - Buttons come from `components/Button`; keyboard focus is a global brand-red `:focus-visible` outline (`index.css`), or `FOCUS_RING` on controls that draw their own.
 

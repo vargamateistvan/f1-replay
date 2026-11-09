@@ -12,6 +12,13 @@ export interface ThemeColor {
   light: string;
 }
 
+/** Font roles: expressive page headings, readable interface text, and precise data. */
+export const FONT_FAMILIES = {
+  display: ["Bricolage Grotesque Variable", "Inter", "system-ui", "sans-serif"],
+  sans: ["Inter", "system-ui", "sans-serif"],
+  mono: ["JetBrains Mono", "Fira Mono", "monospace"],
+};
+
 /** Neutral surfaces and text, darkest surface first. */
 export const NEUTRAL_COLORS = {
   /** Default text and icon colour (white in dark mode). */
