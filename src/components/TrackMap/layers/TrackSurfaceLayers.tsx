@@ -1,6 +1,14 @@
 import { memo } from "react";
 import type { CircuitLayout } from "@/data/circuits";
-import { FLAG_COLORS } from "@/constants";
+import {
+  FLAG_COLORS,
+  TRACK_SURFACE_ASPHALT_WIDTH,
+  TRACK_SURFACE_HIGHLIGHT_OPACITY,
+  TRACK_SURFACE_KERB_DASH_LENGTH,
+  TRACK_SURFACE_KERB_OPACITY,
+  TRACK_SURFACE_KERB_WIDTH,
+} from "@/constants";
+import { TOKEN_HEX, TOKEN_HEX_LIGHT } from "@/designTokens";
 import type { TimingSectorFlags } from "@/timeline/raceControl";
 import { mapBackgroundColor } from "../trackMapFormat";
 import { projectBoundsToSvgRect, type TrackGeometry } from "../trackGeometry";
@@ -79,8 +87,7 @@ export const TrackConditionRibbon = memo(function TrackConditionRibbon({
 });
 
 /**
- * Track surface: layered asphalt body with highlighted edges to read clearly
- * at a glance while staying subtle enough not to overpower the cars.
+ * Track surface: asphalt bordered by alternating kerbs and a subtle grass verge.
  */
 export const TrackSurface = memo(function TrackSurface({
   pathData,
@@ -91,19 +98,36 @@ export const TrackSurface = memo(function TrackSurface({
   gradientId: string;
   lightMode: boolean;
 }) {
+  const kerbDash = `${TRACK_SURFACE_KERB_DASH_LENGTH} ${TRACK_SURFACE_KERB_DASH_LENGTH}`;
   return (
     <>
       <path
         d={pathData}
-        strokeWidth={20}
+        data-track-layer="kerbs-red"
+        strokeWidth={TRACK_SURFACE_KERB_WIDTH}
         fill="none"
-        stroke={lightMode ? "rgba(89,101,126,0.22)" : "rgba(0,0,0,0.38)"}
+        stroke={TOKEN_HEX.red}
         strokeLinecap="round"
         strokeLinejoin="round"
+        strokeDasharray={kerbDash}
+        opacity={TRACK_SURFACE_KERB_OPACITY}
       />
       <path
         d={pathData}
-        strokeWidth={16}
+        data-track-layer="kerbs-white"
+        strokeWidth={TRACK_SURFACE_KERB_WIDTH}
+        fill="none"
+        stroke={TOKEN_HEX.white}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeDasharray={kerbDash}
+        strokeDashoffset={TRACK_SURFACE_KERB_DASH_LENGTH}
+        opacity={TRACK_SURFACE_KERB_OPACITY}
+      />
+      <path
+        d={pathData}
+        data-track-layer="asphalt"
+        strokeWidth={TRACK_SURFACE_ASPHALT_WIDTH}
         fill="none"
         stroke={`url(#${gradientId})`}
         strokeLinecap="round"
@@ -112,39 +136,13 @@ export const TrackSurface = memo(function TrackSurface({
       />
       <path
         d={pathData}
-        strokeWidth={11}
+        data-track-layer="asphalt-highlight"
         fill="none"
-        stroke={lightMode ? "#bec9dc" : "#313947"}
+        stroke={lightMode ? TOKEN_HEX_LIGHT.fg : TOKEN_HEX.fg}
+        strokeWidth={TRACK_SURFACE_ASPHALT_WIDTH / 2}
         strokeLinecap="round"
         strokeLinejoin="round"
-        opacity={lightMode ? 0.88 : 0.9}
-      />
-      <path
-        d={pathData}
-        fill="none"
-        stroke={lightMode ? "#93a2bd" : "#5b6475"}
-        strokeWidth={0.9}
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        opacity={0.8}
-      />
-      <path
-        d={pathData}
-        fill="none"
-        stroke={lightMode ? "rgba(255,255,255,0.8)" : "rgba(255,255,255,0.18)"}
-        strokeWidth={1.5}
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-      <path
-        d={pathData}
-        fill="none"
-        stroke={lightMode ? "rgba(255,255,255,0.7)" : "rgba(214,219,232,0.4)"}
-        strokeWidth={0.8}
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        strokeDasharray="1.6 7.5"
-        opacity={0.7}
+        opacity={TRACK_SURFACE_HIGHLIGHT_OPACITY}
       />
     </>
   );

@@ -175,6 +175,7 @@ const toHex = (channels: string): string =>
 export const TOKEN_HEX = {
   fg: toHex(NEUTRAL_COLORS.fg.dark),
   track: toHex(NEUTRAL_COLORS.track.dark),
+  white: toHex("255 255 255"),
   purple: toHex(TONE_COLORS.purple.DEFAULT.dark),
   green: toHex(TONE_COLORS.green.DEFAULT.dark),
   greenFg: toHex(TONE_COLORS.green.fg.dark),
