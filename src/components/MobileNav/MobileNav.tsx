@@ -54,7 +54,7 @@ export function MobileNav() {
   const navIcon = (active: boolean) =>
     `flex h-7 w-10 items-center justify-center rounded-sm transition-colors ${
       active
-        ? "bg-f1red/10 text-f1red-fg"
+        ? "text-f1red-fg"
         : "text-muted group-hover:bg-panel group-hover:text-fg"
     }`;
 
