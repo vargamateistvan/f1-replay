@@ -65,6 +65,32 @@ describe("track kerb setting", () => {
   });
 });
 
+describe("3D track surface settings", () => {
+  it("fills absent preferences from defaults for existing users", async () => {
+    useSettings.getState().reset();
+    localStorage.setItem("f1-replay-settings", JSON.stringify({ state: { mapViewMode: "3d" }, version: 2 }));
+    await useSettings.persist.rehydrate();
+    expect(useSettings.getState().mapView3dKerbs).toBe(true);
+    expect(useSettings.getState().mapView3dRunoff).toBe(false);
+    useSettings.getState().reset();
+  });
+
+  it("persists, transfers and resets both preferences", async () => {
+    useSettings.getState().setSetting("mapView3dKerbs", false);
+    useSettings.getState().setSetting("mapView3dRunoff", true);
+    expect(JSON.parse(localStorage.getItem("f1-replay-settings")!).state).toMatchObject({
+      mapView3dKerbs: false, mapView3dRunoff: true,
+    });
+    await useSettings.persist.rehydrate();
+    expect(parseSettingsImport(exportSettings(useSettings.getState()))).toMatchObject({
+      mapView3dKerbs: false, mapView3dRunoff: true,
+    });
+    useSettings.getState().reset();
+    expect(useSettings.getState().mapView3dKerbs).toBe(true);
+    expect(useSettings.getState().mapView3dRunoff).toBe(false);
+  });
+});
+
 describe("shared 2D and ring weather effects", () => {
   it("defaults older settings to off", async () => {
     expect(SETTINGS_DEFAULTS.mapWeatherEffectsEnabled).toBe(false);

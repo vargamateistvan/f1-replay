@@ -1,11 +1,14 @@
 /**
- * Ground-truth track surface for the 3D map: real-width asphalt, verge and
+ * Procedural track surface for the 3D map: real-width asphalt, verge and
  * pit-lane polygons, white edge and pit-lane lines, striped kerbs, mown grass,
  * gravel run-off at the corners, grid slots and a chequered start line, all
  * built by offsetting the baked centerline in local metres.
  */
 import type { CircuitGeometry } from "@/data/circuitGeometryTypes";
 import {
+  MAP3D_CORNER_WINDOW_M,
+  MAP3D_CORNER_SMOOTH_M,
+  MAP3D_CORNER_MIN_TURN_DEG,
   MAP3D_EDGE_LINE_M,
   MAP3D_GRASS_M,
   MAP3D_GRASS_STRIPE_M,
@@ -17,9 +20,17 @@ import {
   MAP3D_GRID_SLOT_WIDTH_M,
   MAP3D_GRID_SLOTS,
   MAP3D_KERB_BLOCK_M,
+  MAP3D_KERB_ENTRY_M,
+  MAP3D_KERB_EXIT_M,
+  MAP3D_KERB_TRANSITION_SHARE,
   MAP3D_KERB_WIDTH_M,
   MAP3D_PIT_LANE_HALF_WIDTH_M,
   MAP3D_RUNOFF_EXTEND_M,
+  MAP3D_RUNOFF_EXIT_M,
+  MAP3D_RUNOFF_APPROACH_M,
+  MAP3D_RUNOFF_BRAKING_EXTRA_M,
+  MAP3D_RUNOFF_FAST_EXTRA_M,
+  MAP3D_RUNOFF_FAST_RADIUS_M,
   MAP3D_RUNOFF_M,
   MAP3D_SECTOR_RIBBON_M,
   MAP3D_START_GRID_COLUMNS,
@@ -308,7 +319,11 @@ export function stripPolygons(
 export function kerbRuns(
   pts: readonly P[],
   stepM: number,
-  { windowM = 40, smoothM = 30, thresholdDeg = 14 } = {},
+  {
+    windowM = MAP3D_CORNER_WINDOW_M,
+    smoothM = MAP3D_CORNER_SMOOTH_M,
+    thresholdDeg = MAP3D_CORNER_MIN_TURN_DEG,
+  } = {},
 ): Array<{ from: number; to: number; side: 1 | -1 }> {
   const n = pts.length;
   if (n < 8) return [];
@@ -338,7 +353,10 @@ export function kerbRuns(
   // Start scanning at a boundary so a run never straddles the loop seam.
   let first = 0;
   while (first < n && sideAt(first) === sideAt(first - 1)) first++;
-  if (first === n) return [];
+  if (first === n) {
+    const side = sideAt(0);
+    return side === 0 ? [] : [{ from: 0, to: n - 1, side }];
+  }
   const runs: Array<{ from: number; to: number; side: 1 | -1 }> = [];
   let i = first;
   while (i < first + n) {
@@ -353,24 +371,22 @@ export function kerbRuns(
 
 export type SideRun = { from: number; to: number; side: 1 | -1 };
 
-/**
- * Sample ranges for the gravel outside each corner: the opposite side of every
- * kerb run, widened by `extend` samples each way, with ranges on the same side
- * merged so a band never overlaps itself between close corners. Indices are
- * on a closed loop of `n` samples and may run past `n` (wrapping).
- */
-export function runoffRuns(kerbs: readonly SideRun[], n: number, extend: number): SideRun[] {
+/** Merge same-side ranges on a closed loop without duplicating their polygons. */
+function mergeSideRuns(runs: readonly SideRun[], n: number): SideRun[] {
+  if (n === 0) return [];
   const out: SideRun[] = [];
   for (const side of [1, -1] as const) {
     const covered = new Uint8Array(n);
-    for (const k of kerbs) {
-      if (k.side !== -side) continue;
-      for (let i = k.from - extend; i <= k.to + extend; i++) covered[((i % n) + n) % n] = 1;
+    for (const run of runs) {
+      if (run.side !== side) continue;
+      for (let i = run.from; i <= Math.min(run.to, run.from + n - 1); i++) {
+        covered[((i % n) + n) % n] = 1;
+      }
     }
     // Start at an uncovered sample so a range never straddles the loop seam.
     const first = covered.indexOf(0);
     if (first < 0) {
-      if (kerbs.length) out.push({ from: 0, to: n - 1, side });
+      out.push({ from: 0, to: n, side });
       continue;
     }
     let i = first;
@@ -386,6 +402,103 @@ export function runoffRuns(kerbs: readonly SideRun[], n: number, extend: number)
     }
   }
   return out;
+}
+
+/**
+ * Inside apex kerbs and outside turn-in / exit kerbs, clipped to neighbouring
+ * corners so a chicane's exit kerb cannot continue through the next apex.
+ * Input corners and output ranges use the 1 m sampled centerline.
+ */
+export function racingKerbRuns(corners: readonly SideRun[], n: number): SideRun[] {
+  if (n === 0 || corners.length === 0) return [];
+  const ordered = corners.map((run) => {
+    const from = ((run.from % n) + n) % n;
+    return { ...run, from, to: from + run.to - run.from };
+  }).sort((a, b) => a.from - b.from);
+  const runs: SideRun[] = [...ordered];
+  ordered.forEach((corner, k) => {
+    if (corner.to - corner.from >= n - 1) return;
+    const previous = ordered[(k - 1 + ordered.length) % ordered.length]!;
+    const next = ordered[(k + 1) % ordered.length]!;
+    const previousEnd = previous.to - (k === 0 ? n : 0);
+    const nextStart = next.from + (k === ordered.length - 1 ? n : 0);
+    const transition = Math.round((corner.to - corner.from) * MAP3D_KERB_TRANSITION_SHARE);
+    const side = -corner.side as 1 | -1;
+    runs.push({
+      from: Math.max(corner.from - MAP3D_KERB_ENTRY_M, previousEnd + 1),
+      to: corner.from + transition,
+      side,
+    }, {
+      from: corner.to - transition,
+      to: Math.min(corner.to + MAP3D_KERB_EXIT_M, nextStart - 1),
+      side,
+    });
+  });
+  return mergeSideRuns(runs.filter((run) => run.to > run.from), n);
+}
+
+/**
+ * Procedural safety aprons: deeper after a long approach into a sharp turn,
+ * or outside a broad fast bend, tapering into the entry and out of the exit.
+ * Both the surface and barriers consume this same profile. This estimates
+ * placement from geometry; it is not a survey of a circuit's escape roads.
+ */
+export function cornerRunoff(
+  center: readonly P[],
+  corners: readonly SideRun[],
+): { runs: SideRun[]; widths: Record<1 | -1, number[]> } {
+  const n = center.length;
+  const widths: Record<1 | -1, number[]> = { 1: Array(n).fill(0), [-1]: Array(n).fill(0) };
+  if (n === 0 || corners.length === 0) return { runs: [], widths };
+  const wrap = (i: number) => ((i % n) + n) % n;
+  const nrm = normals(center, true, Math.round(NORMAL_SPAN_M / STEP_M));
+  const inside = new Int8Array(n);
+  for (const corner of corners) {
+    for (let i = corner.from; i <= corner.to; i++) inside[wrap(i)] = corner.side;
+  }
+  const candidates: SideRun[] = [];
+  for (const corner of corners) {
+    let turn = 0;
+    for (let i = corner.from; i < corner.to; i++) {
+      const a = nrm[wrap(i)]!;
+      const b = nrm[wrap(i + 1)]!;
+      turn += Math.atan2(a.x * b.y - a.y * b.x, a.x * b.x + a.y * b.y);
+    }
+    turn = Math.abs(turn);
+    if (turn === 0) continue;
+    let approach = 0;
+    while (approach < MAP3D_RUNOFF_APPROACH_M && !inside[wrap(corner.from - approach - 1)]) {
+      approach++;
+    }
+    const radius = (corner.to - corner.from) / turn;
+    const braking = MAP3D_RUNOFF_BRAKING_EXTRA_M *
+      Math.min(1, approach / MAP3D_RUNOFF_APPROACH_M) * Math.min(1, turn / (Math.PI / 2));
+    const fast = MAP3D_RUNOFF_FAST_EXTRA_M * Math.min(1, radius / MAP3D_RUNOFF_FAST_RADIUS_M);
+    const depth = MAP3D_RUNOFF_M + Math.max(braking, fast);
+    const side = -corner.side as 1 | -1;
+    const from = corner.from - MAP3D_RUNOFF_EXTEND_M;
+    const to = corner.to + MAP3D_RUNOFF_EXIT_M;
+    let start: number | null = null;
+    for (let i = from; i <= to; i++) {
+      const j = wrap(i);
+      // The outside of one half of an S must not become run-off at the
+      // inside apex of the other half.
+      if (inside[j] !== side) {
+        const ramp = Math.max(0, Math.min(
+          1,
+          (i - from) / MAP3D_RUNOFF_EXTEND_M,
+          (to - i) / MAP3D_RUNOFF_EXIT_M,
+        ));
+        widths[side][j] = Math.max(widths[side][j]!, depth * ramp);
+        start ??= i;
+      }
+      if (start !== null && (inside[j] === side || i === to)) {
+        candidates.push({ from: start, to: inside[j] === side ? i - 1 : i, side });
+        start = null;
+      }
+    }
+  }
+  return { runs: mergeSideRuns(candidates, n), widths };
 }
 
 /**
@@ -618,9 +731,11 @@ const KERB_SAMPLE_M = 5;
 export function cornerRuns(center: readonly P[]): SideRun[] {
   const every = Math.round(KERB_SAMPLE_M / STEP_M);
   const coarse = center.filter((_, i) => i % every === 0);
+  const sampleIndex = (i: number) =>
+    Math.floor(i / coarse.length) * center.length + (i % coarse.length) * every;
   return kerbRuns(coarse, KERB_SAMPLE_M).map((run) => ({
-    from: run.from * every,
-    to: run.to * every + every,
+    from: sampleIndex(run.from),
+    to: sampleIndex(run.to + 1),
     side: run.side,
   }));
 }
@@ -747,8 +862,7 @@ export function buildTrackSurface(
     ]);
   }
 
-  // Kerbs on the inside of every stretch that turns, as a base strip plus
-  // every other 2 m block for the stripes.
+  // Apex, entry and exit kerbs share a base strip and alternating blocks.
   const n = center.length;
   const kerbBase: LngLat[][][] = [];
   const kerbStripes: LngLat[][][] = [];
@@ -769,26 +883,34 @@ export function buildTrackSurface(
       );
     }
   };
-  const kerbs = cornerRuns(center);
-  for (const run of kerbs) addKerb(run.from, run.to, run.side);
+  const corners = cornerRuns(center);
+  for (const run of racingKerbRuns(corners, n)) addKerb(run.from, run.to, run.side);
 
-  // Run-off beyond the verge on the outside of each corner, in strip-sized
+  // Run-off beyond the kerbs/verge on the outside of each corner, in strip-sized
   // pieces like the asphalt; street circuits have walls instead. Painted
   // tarmac adds its colour bands parallel to the track, from the verge out.
   const runoff: LngLat[][][] = [];
   const runoffBands: PolygonFeature[] = [];
   if (!street) {
-    const inner = half + MAP3D_VERGE_M;
-    const outer = inner + MAP3D_RUNOFF_M;
+    const inner = half + Math.max(MAP3D_VERGE_M, MAP3D_KERB_WIDTH_M);
     const bands = runoffStyle.bands ?? [];
-    for (const run of runoffRuns(kerbs, n, Math.round(MAP3D_RUNOFF_EXTEND_M / STEP_M))) {
+    const profile = cornerRunoff(center, corners);
+    for (const run of profile.runs) {
       for (let s = run.from; s < run.to; s += chunk) {
-        const { pts, nr } = along(s, Math.min(s + chunk, run.to));
-        runoff.push(...stripPolygons(pts, nr, run.side * inner, run.side * outer, toLL));
-        let from = inner;
+        const end = Math.min(s + chunk, run.to);
+        const { pts, nr } = along(s, end);
+        const outer = pts.map((_, j) =>
+          inner + profile.widths[run.side][((s + j) % n + n) % n]!,
+        );
+        const signedOuter = outer.map((d) => run.side * d);
+        runoff.push(...stripPolygons(pts, nr, run.side * inner, signedOuter, toLL));
+        let from = outer.map(() => inner);
         for (const { color, widthM } of bands) {
-          const to = Math.min(outer, from + widthM);
-          for (const coordinates of stripPolygons(pts, nr, run.side * from, run.side * to, toLL)) {
+          const to = from.map((d, j) => Math.min(outer[j]!, d + widthM));
+          if (to.every((d, j) => d === from[j])) continue;
+          for (const coordinates of stripPolygons(
+            pts, nr, from.map((d) => run.side * d), to.map((d) => run.side * d), toLL,
+          )) {
             runoffBands.push({ type: "Feature", properties: { color }, geometry: { type: "Polygon", coordinates } });
           }
           from = to;
@@ -828,7 +950,7 @@ export function buildTrackSurface(
     pitLaneLines,
     kerbsBase: polygons(kerbBase),
     kerbsStripes: polygons(kerbStripes),
-    gridSlots: polygons(buildGridSlots(center, nrm, kerbs, toLL)),
+    gridSlots: polygons(buildGridSlots(center, nrm, corners, toLL)),
     startBase,
     startSquares: polygons(squares),
   };

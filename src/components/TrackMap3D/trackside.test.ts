@@ -3,7 +3,9 @@ import silverstoneJson from "@/data/circuit-geometry/2-2025.json";
 import monacoJson from "@/data/circuit-geometry/22-2025.json";
 import {
   MAP3D_BARRIER_HEIGHT_M,
+  MAP3D_BARRIER_RUNOFF_GAP_M,
   MAP3D_FENCE_HEIGHT_M,
+  MAP3D_KERB_WIDTH_M,
   MAP3D_TRACK_HALF_WIDTH_M,
   MAP3D_TRACKSIDE_COLORS,
   MAP3D_VERGE_M,
@@ -14,6 +16,7 @@ import { getCircuitGeoref } from "@/data/circuitGeoref";
 import { getPitLane } from "@/data/pitLanes";
 import { f1ToEnu, lngLatToEnu } from "@/utils/georef";
 import { buildTrackside, clearRuns, pointIndex, smoothLoop, type ExtrusionProps } from "./trackside";
+import { cornerRunoff, cornerRuns, sampledCenterline } from "./trackSurface";
 
 const silverstone = silverstoneJson as CircuitGeometry;
 const monaco = monacoJson as CircuitGeometry;
@@ -120,6 +123,45 @@ describe("buildTrackside (Silverstone)", () => {
     const beam = gantry.find((f) => (f.properties as ExtrusionProps).base > 0)!;
     expect((beam.properties as ExtrusionProps).base).toBeGreaterThan(4);
   });
+});
+
+it("keeps the barrier beyond the variable run-off profile, including its tapers", () => {
+  const points = Array.from({ length: 720 }, (_, i) => {
+    const angle = i * Math.PI / 360;
+    return { x: 400 * Math.cos(angle), y: 100 * Math.sin(angle) };
+  });
+  const geom: CircuitGeometry = {
+    ...silverstone,
+    x: points.map((p) => p.x),
+    y: points.map((p) => p.y),
+    corners: [],
+    marshalSectors: [],
+    marshalLights: [],
+  };
+  const geo = { ...ssGeo, scale: 1, rotation: 0, flipY: false, tx: 0, ty: 0 };
+  const { center, nrm } = sampledCenterline(geom, geo);
+  const { widths } = cornerRunoff(center, cornerRuns(center));
+  const index = pointIndex(center);
+  const side = buildTrackside(geom, geo);
+  const barriers = MAP3D_TRACKSIDE_COLORS.tyres.flatMap((c) => ofColor(side.solid.features, c));
+  let checked = 0;
+  for (const f of barriers) {
+    for (const [lng, lat] of f.geometry.coordinates[0]!) {
+      const p = lngLatToEnu(geo.originLng, geo.originLat, lng!, lat!);
+      const { i, d } = index.nearest(p, 150);
+      expect(i).toBeGreaterThanOrEqual(0);
+      const nr = nrm[i]!;
+      const offset = (p.x - center[i]!.x) * nr.x + (p.y - center[i]!.y) * nr.y;
+      const width = widths[offset > 0 ? 1 : -1][i]!;
+      if (width === 0) continue;
+      const min = MAP3D_TRACK_HALF_WIDTH_M + Math.max(MAP3D_VERGE_M, MAP3D_KERB_WIDTH_M) +
+        width + MAP3D_BARRIER_RUNOFF_GAP_M;
+      // Nearest-sample projection can shift along a taper by a fraction of a metre.
+      expect(d).toBeGreaterThan(min - 1);
+      checked++;
+    }
+  }
+  expect(checked).toBeGreaterThan(100);
 });
 
 describe("buildTrackside (Monaco)", () => {

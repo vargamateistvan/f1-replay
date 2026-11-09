@@ -147,6 +147,7 @@ import {
   applyTrackPalette,
   fadeOut,
   setSectorRibbonVisibility,
+  setTrackSurfaceVisibility,
 } from "./surfaceLayers";
 import {
   buildFlagZones,
@@ -423,6 +424,8 @@ export function TrackMap3D({
   const weatherEffectsEnabled = useSettings((s) => s.mapView3dWeatherEffects);
   const buildingsEnabled = useSettings((s) => s.mapView3dBuildings);
   const tracksideEnabled = useSettings((s) => s.mapView3dTrackside);
+  const kerbsEnabled = useSettings((s) => s.mapView3dKerbs);
+  const runoffEnabled = useSettings((s) => s.mapView3dRunoff);
   const carModelsEnabled = useSettings((s) => s.mapView3dCarModels);
   const speedTrailEnabled = useSettings((s) => s.mapView3dSpeedTrail);
   const battleGapsEnabled = useSettings((s) => s.mapView3dBattleGaps);
@@ -811,6 +814,15 @@ export function TrackMap3D({
   useEffect(() => {
     const map = mapRef.current;
     if (!map || !styleReady) return;
+    setTrackSurfaceVisibility(map, {
+      mapView3dKerbs: kerbsEnabled,
+      mapView3dRunoff: runoffEnabled,
+    });
+  }, [kerbsEnabled, runoffEnabled, styleReady, circuitGeom]);
+
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || !styleReady) return;
     // Compound badge outlines and safety car text follow the theme.
     clearCarIcons(map, carIconsRef.current);
     liveRef.current.dirty = true;
@@ -1028,6 +1040,7 @@ export function TrackMap3D({
         "map3d-flags",
         runoffSurface,
       );
+      setTrackSurfaceVisibility(map, useSettings.getState());
       if (wetTrackRef.current) applyTrackPalette(map, lightPresetRef.current, true, runoffSurface);
       // Barriers, fences, pit wall and start gantry.
       addTracksideLayers(

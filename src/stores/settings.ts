@@ -71,6 +71,10 @@ export interface AppSettings {
   mapView3dBuildings: boolean;
   /** 3D map: barriers, catch fences, pit wall and start gantry beside the track. */
   mapView3dTrackside: boolean;
+  /** 3D map: striped entry, apex and exit kerbs. */
+  mapView3dKerbs: boolean;
+  /** 3D map: corner run-off surfaces and painted bands. */
+  mapView3dRunoff: boolean;
   /** 3D map: 3D car models when zoomed in (off = 2D-style markers at every zoom). */
   mapView3dCarModels: boolean;
   /** 3D map: colour the focused car's trail by speed (else its team colour). */
@@ -234,6 +238,8 @@ export const SETTINGS_DEFAULTS: AppSettings = {
   mapView3dWeatherEffects: true,
   mapView3dBuildings: true,
   mapView3dTrackside: true,
+  mapView3dKerbs: true,
+  mapView3dRunoff: false,
   mapView3dCarModels: true,
   mapView3dSpeedTrail: true,
   mapView3dBattleGaps: false,

@@ -80,19 +80,16 @@ describe("QuickTrackSettings", () => {
     expect(screen.getByRole("dialog")).toBeInTheDocument();
   });
 
-  it("shows and toggles 2D kerbs, but hides that option for other views", () => {
+  it("shows and toggles 2D kerbs, but hides that option for ring view", () => {
     expect(useSettings.getState().mapShowKerbs).toBe(false);
     const mapSettings = open("2d");
     fireEvent.click(screen.getByRole("switch", { name: "Track kerbs" }));
     expect(useSettings.getState().mapShowKerbs).toBe(true);
     mapSettings.unmount();
 
-    for (const view of ["ring", "3d"] as const) {
-      const { unmount } = render(<QuickTrackSettings view={view} buttonClass="test-button" />);
-      fireEvent.click(screen.getByRole("button", { name: "Quick track settings" }));
-      expect(screen.queryByRole("switch", { name: "Track kerbs" })).not.toBeInTheDocument();
-      unmount();
-    }
+    open("ring");
+    expect(screen.queryByRole("switch", { name: "Track kerbs" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("switch", { name: "Run-off areas" })).not.toBeInTheDocument();
   });
 
   it("shows ring options without 2D or 3D-only controls", () => {
@@ -102,6 +99,19 @@ describe("QuickTrackSettings", () => {
     expect(useSettings.getState().mapRingReverse).toBe(true);
     expect(screen.queryByRole("switch", { name: "Terrain" })).not.toBeInTheDocument();
     expect(screen.queryByRole("switch", { name: "Driver heatmap" })).not.toBeInTheDocument();
+  });
+
+  it("toggles 3D kerbs and run-off independently of 2D kerbs", () => {
+    open("3d");
+    const kerbs = screen.getByRole("switch", { name: "Track kerbs" });
+    const runoff = screen.getByRole("switch", { name: "Run-off areas" });
+    expect(kerbs).toHaveAttribute("aria-checked", "true");
+    expect(runoff).toHaveAttribute("aria-checked", "false");
+    fireEvent.click(kerbs);
+    fireEvent.click(runoff);
+    expect(useSettings.getState().mapView3dKerbs).toBe(false);
+    expect(useSettings.getState().mapView3dRunoff).toBe(true);
+    expect(useSettings.getState().mapShowKerbs).toBe(false);
   });
 
   it("keeps 3D weather independent and provides 3D-only options", () => {

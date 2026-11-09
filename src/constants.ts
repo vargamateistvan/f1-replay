@@ -314,17 +314,31 @@ export const MAP3D_SECTOR_RIBBON_M = 4;
 export const MAP3D_PIT_LANE_HALF_WIDTH_M = 3;
 export const MAP3D_KERB_WIDTH_M = 2.5;
 export const MAP3D_KERB_BLOCK_M = 2;
+export const MAP3D_KERB_ENTRY_M = 30;
+export const MAP3D_KERB_EXIT_M = 55;
+/** Share of the detected corner covered by outside entry / exit kerbs. */
+export const MAP3D_KERB_TRANSITION_SHARE = 0.2;
+/** Geometry-only corner detection, including broad high-speed bends. */
+export const MAP3D_CORNER_WINDOW_M = 40;
+export const MAP3D_CORNER_SMOOTH_M = 20;
+export const MAP3D_CORNER_MIN_TURN_DEG = 8;
 /** Kerb base + stripe colours (red/white). */
 export const MAP3D_KERB_COLORS: readonly [string, string] = [
   "#f2f2f2",
   "#e2231a",
 ];
 /**
- * Run-off on the outside of each corner: band width beyond the verge, and how
- * far it reaches before and after the corner.
+ * Baseline run-off depth, entry/exit taper lengths, and additional depth for
+ * long-straight braking zones and broad, fast corners.
  */
 export const MAP3D_RUNOFF_M = 18;
 export const MAP3D_RUNOFF_EXTEND_M = 30;
+export const MAP3D_RUNOFF_EXIT_M = 65;
+export const MAP3D_RUNOFF_BRAKING_EXTRA_M = 30;
+export const MAP3D_RUNOFF_FAST_EXTRA_M = 18;
+/** Approach length / corner radius at which the additional run-off reaches full depth. */
+export const MAP3D_RUNOFF_APPROACH_M = 250;
+export const MAP3D_RUNOFF_FAST_RADIUS_M = 200;
 export type RunoffSurface = "gravel" | "sand" | "tarmac";
 /**
  * Run-off colours per surface and Standard light preset, dry and wet. Each

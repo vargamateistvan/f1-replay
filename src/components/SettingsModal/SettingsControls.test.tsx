@@ -102,6 +102,8 @@ vi.mock("@/stores/settings", () => ({
     mapShowDriverHeatmap: true,
     mapRingShowPitWindowOutcomes: state.showRingPitOutcomes,
     mapView3dBattleGaps: true,
+    mapView3dKerbs: true,
+    mapView3dRunoff: false,
     trackScreenshotPngEnabled: true,
     mapViewMode: state.mapViewMode,
     mapView3dTerrain: false,
@@ -543,6 +545,8 @@ describe("SettingsControls", () => {
       "Flag colours on track",
       "Sector condition ribbon",
       "3D buildings and trees",
+      "Track kerbs",
+      "Run-off areas",
       "Terrain",
       "Session time-of-day lighting",
       "Weather effects",
@@ -552,6 +556,14 @@ describe("SettingsControls", () => {
     // 2D-only controls are hidden.
     expect(screen.queryByText("Compass overlay")).not.toBeInTheDocument();
     expect(screen.queryByText("Sector status box")).not.toBeInTheDocument();
+    const kerbs = within(screen.getByText("Track kerbs").parentElement!.parentElement!).getByRole("switch");
+    const runoff = within(screen.getByText("Run-off areas").parentElement!.parentElement!).getByRole("switch");
+    expect(kerbs).toHaveAttribute("aria-checked", "true");
+    expect(runoff).toHaveAttribute("aria-checked", "false");
+    fireEvent.click(kerbs);
+    fireEvent.click(runoff);
+    expect(state.setSetting).toHaveBeenCalledWith("mapView3dKerbs", false);
+    expect(state.setSetting).toHaveBeenCalledWith("mapView3dRunoff", true);
   });
 
   it("previews the ring view and hides settings it doesn't use", async () => {

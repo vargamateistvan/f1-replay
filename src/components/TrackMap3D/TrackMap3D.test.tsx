@@ -146,6 +146,8 @@ const { settings, DEFAULT_SETTINGS } = vi.hoisted(() => {
     mapView3dBuildings: true,
     mapView3dCarModels: true,
     mapView3dTrackside: true,
+    mapView3dKerbs: true,
+    mapView3dRunoff: false,
     mapFollowFocusedCar: false,
     mapShowDriverHeatmap: true,
     setSetting: vi.fn(),
@@ -303,6 +305,48 @@ describe("TrackMap3D", () => {
     const [, options] = map!.fitBounds.mock.calls[0]!;
     expect(options.bearing).toBeCloseTo(316.3, 0);
     expect(map!.setLayoutProperty).toHaveBeenCalledWith("map3d-corners", "visibility", "visible");
+  });
+
+  it("applies surface visibility on load and live changes without recreating the map", () => {
+    const { map, rerender } = renderMap();
+    act(() => map!.emit("style.load"));
+    for (const id of ["map3d-surface-kerbs-base", "map3d-surface-kerbs-stripes"]) {
+      expect(map!.setLayoutProperty).toHaveBeenCalledWith(id, "visibility", "visible");
+    }
+    for (const id of ["map3d-surface-runoff", "map3d-surface-runoff-bands"]) {
+      expect(map!.setLayoutProperty).toHaveBeenCalledWith(id, "visibility", "none");
+    }
+    map!.setLayoutProperty.mockClear();
+    settings.mapView3dKerbs = false;
+    settings.mapView3dRunoff = true;
+    rerender(<TrackMap3D sessionKey={1} drivers={[lec]} locationData={locations} sessionStartMs={0}
+      circuitKey={22} year={2025} onExit3d={vi.fn()} />);
+    for (const id of ["map3d-surface-kerbs-base", "map3d-surface-kerbs-stripes"]) {
+      expect(map!.setLayoutProperty).toHaveBeenCalledWith(id, "visibility", "none");
+    }
+    for (const id of ["map3d-surface-runoff", "map3d-surface-runoff-bands"]) {
+      expect(map!.setLayoutProperty).toHaveBeenCalledWith(id, "visibility", "visible");
+    }
+    expect(FakeMap.instances).toHaveLength(1);
+    expect(map!.remove).not.toHaveBeenCalled();
+  });
+
+  it("uses saved surface visibility when style loads and preserves it when lighting changes", () => {
+    settings.mapView3dKerbs = false;
+    settings.mapView3dRunoff = true;
+    const { map, rerender } = renderMap();
+    act(() => map!.emit("style.load"));
+    expect(map!.setLayoutProperty).toHaveBeenCalledWith("map3d-surface-kerbs-base", "visibility", "none");
+    expect(map!.setLayoutProperty).toHaveBeenCalledWith("map3d-surface-runoff", "visibility", "visible");
+    map!.setLayoutProperty.mockClear();
+    map!.setPaintProperty.mockClear();
+    settings.lightMode = true;
+    rerender(<TrackMap3D sessionKey={1} drivers={[lec]} locationData={locations} sessionStartMs={0}
+      circuitKey={22} year={2025} onExit3d={vi.fn()} />);
+    expect(map!.setPaintProperty).toHaveBeenCalledWith("map3d-surface-track", "fill-color", expect.anything());
+    expect(map!.setLayoutProperty).not.toHaveBeenCalledWith("map3d-surface-kerbs-base", "visibility", "visible");
+    expect(map!.setLayoutProperty).not.toHaveBeenCalledWith("map3d-surface-runoff", "visibility", "none");
+    expect(FakeMap.instances).toHaveLength(1);
   });
 
   it("reports a closed exit separately from lane closure and updates its marker", () => {

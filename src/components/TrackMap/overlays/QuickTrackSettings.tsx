@@ -43,6 +43,8 @@ const VIEW_OPTIONS: Record<MapViewMode, readonly Option[]> = {
     ["mapShowPitRejoin", "Pit rejoin projection"],
     ["mapView3dSessionLighting", "Session lighting"],
     ["mapView3dCarModels", "3D car models"],
+    ["mapView3dKerbs", "Track kerbs"],
+    ["mapView3dRunoff", "Run-off areas"],
     ["mapView3dTerrain", "Terrain"],
   ],
 };

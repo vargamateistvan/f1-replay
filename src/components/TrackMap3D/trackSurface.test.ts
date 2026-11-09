@@ -5,6 +5,9 @@ import {
   MAP3D_EDGE_LINE_M,
   MAP3D_GRID_FIRST_SLOT_M,
   MAP3D_GRID_SLOTS,
+  MAP3D_KERB_ENTRY_M,
+  MAP3D_KERB_EXIT_M,
+  MAP3D_RUNOFF_M,
   MAP3D_TRACK_HALF_WIDTH_M,
 } from "@/constants";
 import type { CircuitGeometry } from "@/data/circuitGeometryTypes";
@@ -18,12 +21,14 @@ import {
   buildGridSlots,
   buildSectorZones,
   buildTrackSurface,
+  cornerRuns,
+  cornerRunoff,
   kerbRuns,
   normals,
   offsetLine,
   removeLoops,
   resample,
-  runoffRuns,
+  racingKerbRuns,
   trimLoopOverlap,
 } from "./trackSurface";
 
@@ -243,9 +248,8 @@ describe("buildTrackSurface (Monaco)", () => {
   });
 
   it("adds kerbs where the track turns and a pit lane", () => {
-    // Monaco has 19 numbered corners; some merge into one long kerb.
+    // Inside apex kerbs plus outside entry/exit kerbs.
     expect(surface.kerbsBase.features.length).toBeGreaterThan(10);
-    expect(surface.kerbsBase.features.length).toBeLessThan(30);
     expect(surface.kerbsStripes.features.length).toBeGreaterThan(surface.kerbsBase.features.length * 3);
     expect(surface.pitLane.features).toHaveLength(1);
   });
@@ -264,45 +268,130 @@ describe("buildTrackSurface (Monaco)", () => {
   });
 });
 
-describe("runoffRuns", () => {
-  it("puts gravel on the outside of each kerb, widened both ways", () => {
-    expect(runoffRuns([{ from: 100, to: 120, side: 1 }], 1000, 30)).toEqual([
-      { from: 70, to: 150, side: -1 },
-    ]);
+const covers = (runs: readonly { from: number; to: number; side: number }[], i: number, side: number, n: number) =>
+  runs.some((run) => run.side === side &&
+    ((i - run.from) % n + n) % n <= run.to - run.from);
+
+describe("racingKerbRuns", () => {
+  it.each([1, -1] as const)("puts apex kerbs inside and entry / exit kerbs outside (side %i)", (side) => {
+    const runs = racingKerbRuns([{ from: 100, to: 200, side }], 1000);
+    expect(covers(runs, 150, side, 1000)).toBe(true);
+    expect(covers(runs, 150, -side, 1000)).toBe(false);
+    expect(covers(runs, 100 - MAP3D_KERB_ENTRY_M, -side, 1000)).toBe(true);
+    expect(covers(runs, 200 + MAP3D_KERB_EXIT_M, -side, 1000)).toBe(true);
+    expect(covers(runs, 500, side, 1000)).toBe(false);
+    expect(covers(runs, 500, -side, 1000)).toBe(false);
   });
 
-  it("merges close corners on the same side so the band never overlaps itself", () => {
-    const runs = runoffRuns(
-      [
-        { from: 100, to: 120, side: -1 },
-        { from: 160, to: 180, side: -1 },
-        { from: 500, to: 520, side: -1 },
-      ],
-      1000,
-      30,
-    );
-    expect(runs).toEqual([
-      { from: 70, to: 210, side: 1 },
-      { from: 470, to: 550, side: 1 },
-    ]);
+  it("clips entry and exit kerbs at the next chicane apex", () => {
+    const runs = racingKerbRuns([
+      { from: 100, to: 200, side: 1 },
+      { from: 210, to: 310, side: -1 },
+    ], 1000);
+    expect(covers(runs, 150, -1, 1000)).toBe(false);
+    expect(covers(runs, 260, 1, 1000)).toBe(false);
+    expect(covers(runs, 150, 1, 1000)).toBe(true);
+    expect(covers(runs, 260, -1, 1000)).toBe(true);
   });
 
-  it("keeps a corner across the loop seam in one piece", () => {
-    const runs = runoffRuns([{ from: 990, to: 1005, side: 1 }], 1000, 10);
+  it("wraps entry and exit kerbs across the start line", () => {
+    const runs = racingKerbRuns([{ from: 980, to: 1020, side: 1 }], 1000);
+    expect(covers(runs, 0, 1, 1000)).toBe(true);
+    expect(covers(runs, 950, -1, 1000)).toBe(true);
+    expect(covers(runs, 75, -1, 1000)).toBe(true);
+    expect(racingKerbRuns([], 0)).toEqual([]);
+  });
+});
+
+describe("cornerRunoff", () => {
+  const square = resample([
+    { x: 0, y: 0 }, { x: 400, y: 0 }, { x: 400, y: 400 }, { x: 0, y: 400 },
+  ], 1, true);
+
+  it.each([false, true])("puts deep escape space ahead of a long straight, not inside the corner (reversed %s)", (reverse) => {
+    const center = reverse ? [...square].reverse() : square;
+    const corners = cornerRuns(center);
+    const { widths } = cornerRunoff(center, corners);
+    const side = reverse ? 1 : -1;
+    expect(Math.max(...widths[side])).toBeGreaterThan(MAP3D_RUNOFF_M * 2);
+    expect(Math.max(...widths[-side as 1 | -1])).toBe(0);
+    // No blanket apron along the middle of the straight.
+    expect(widths[side][200]).toBe(0);
+    // The failed-braking trajectory extends east beyond the end of the eastbound straight.
+    const at = center.findIndex((p) => p.x === 400 && p.y === 20);
+    expect(widths[side][at]).toBeGreaterThan(30);
+  });
+
+  it("renders run-off on the straight-ahead escape trajectory, not on the inside or mid-straight", () => {
+    const geom: CircuitGeometry = {
+      ...silverstoneJson,
+      x: square.map((p) => p.x),
+      y: square.map((p) => p.y),
+      corners: [],
+      marshalSectors: [],
+      marshalLights: [],
+    };
+    const geo = { ...getCircuitGeoref(2, 2025)!, scale: 1, rotation: 0, flipY: false, tx: 0, ty: 0 };
+    const surface = buildTrackSurface(geom, geo);
+    const contains = (x: number, y: number) => surface.runoff.features.some((f) => {
+      const ring = f.geometry.coordinates[0]!.map(([lng, lat]) =>
+        lngLatToEnu(geo.originLng, geo.originLat, lng!, lat!),
+      );
+      let inside = false;
+      for (let i = 0, j = ring.length - 1; i < ring.length; j = i++) {
+        const a = ring[i]!;
+        const b = ring[j]!;
+        if ((a.y > y) !== (b.y > y) && x < (b.x - a.x) * (y - a.y) / (b.y - a.y) + a.x) {
+          inside = !inside;
+        }
+      }
+      return inside;
+    });
+    expect(contains(440, 0)).toBe(true);
+    expect(contains(380, 20)).toBe(false);
+    expect(contains(200, -30)).toBe(false);
+  });
+
+  it("tapers into entry and extends farther after the corner", () => {
+    const corners = [{ from: 350, to: 450, side: 1 as const }];
+    const { runs, widths } = cornerRunoff(square, corners);
     expect(runs).toHaveLength(1);
-    expect(runs[0]!.to - runs[0]!.from).toBe(35);
+    expect(runs[0]).toMatchObject({ side: -1 });
+    expect(widths[-1][320]).toBe(0);
+    expect(widths[-1][330]).toBeGreaterThan(0);
+    expect(widths[-1][330]).toBeLessThan(widths[-1][400]!);
+    expect(widths[-1][500]).toBeGreaterThan(0);
+    expect(widths[-1][515]).toBe(0);
   });
 
-  it("gives chicanes gravel on both sides", () => {
-    const sides = runoffRuns(
-      [
-        { from: 100, to: 120, side: 1 },
-        { from: 125, to: 145, side: -1 },
-      ],
-      1000,
-      30,
-    ).map((r) => r.side);
-    expect(sides.sort()).toEqual([-1, 1]);
+  it("keeps chicane run-off outside each turn, never at the next inside apex", () => {
+    const center = resample([
+      { x: 0, y: 0 }, { x: 300, y: 0 }, { x: 350, y: 60 },
+      { x: 400, y: 0 }, { x: 700, y: 0 }, { x: 700, y: -600 }, { x: 0, y: -600 },
+    ], 1, true);
+    const corners = cornerRuns(center);
+    expect(new Set(corners.map((c) => c.side)).size).toBe(2);
+    const { widths } = cornerRunoff(center, corners);
+    for (const corner of corners) {
+      for (let i = corner.from; i <= corner.to; i++) {
+        expect(widths[corner.side][i % center.length]).toBe(0);
+      }
+    }
+  });
+
+  it.each([60, 250])("detects continuous bends of radius %i m, including broad high-speed corners", (radius) => {
+    const circle = Array.from({ length: 720 }, (_, i) => ({
+      x: radius * Math.cos(i * Math.PI / 360), y: radius * Math.sin(i * Math.PI / 360),
+    }));
+    const center = resample(circle, 1, true);
+    const corners = cornerRuns(center);
+    expect(corners).toHaveLength(1);
+    expect(Math.max(...cornerRunoff(center, corners).widths[-1])).toBeGreaterThan(MAP3D_RUNOFF_M);
+    expect(racingKerbRuns(corners, center.length).every((run) => run.side === 1)).toBe(true);
+  });
+
+  it("handles empty geometry", () => {
+    expect(cornerRunoff([], [])).toEqual({ runs: [], widths: { 1: [], [-1]: [] } });
   });
 });
 
@@ -335,19 +424,21 @@ describe("buildTrackSurface run-off and markings", () => {
     const cota = (await loadCircuitGeometry(9, 2025))!;
     const painted = buildTrackSurface(cota, cotaGeo, getPitLane(9));
     const bands = style.bands!;
-    // Every run-off piece gets each band, in order.
-    expect(painted.runoffBands.features.length).toBeGreaterThanOrEqual(
-      painted.runoff.features.length * bands.length,
-    );
+    expect(painted.runoffBands.features.length).toBeGreaterThan(0);
     const colors = new Set(painted.runoffBands.features.map((f) => f.properties.color));
     expect(colors).toEqual(new Set(bands.map((b) => b.color)));
-    // The first band spans its width across the track direction, not along it.
-    const first = painted.runoffBands.features.find((f) => f.properties.color === bands[0]!.color)!;
-    const [ring] = first.geometry.coordinates;
+    // Bands retain their cross-track width in the apron, tapering at its ends.
     const enu = ([lng, lat]: number[]) => lngLatToEnu(cotaGeo.originLng, cotaGeo.originLat, lng!, lat!);
-    const a = enu(ring![0]!);
-    const b = enu(ring![ring!.length - 2]!);
-    expect(Math.hypot(a.x - b.x, a.y - b.y)).toBeCloseTo(bands[0]!.widthM, 0);
+    const widths = painted.runoffBands.features
+      .filter((f) => f.properties.color === bands[0]!.color)
+      .map((f) => {
+        const [ring] = f.geometry.coordinates;
+        const a = enu(ring![0]!);
+        const b = enu(ring![ring!.length - 2]!);
+        return Math.hypot(a.x - b.x, a.y - b.y);
+      });
+    expect(Math.max(...widths)).toBeCloseTo(bands[0]!.widthM, 0);
+    expect(Math.min(...widths)).toBeCloseTo(0, 0);
   });
 
   it("mows grass on both sides of a permanent circuit, in stripes", () => {

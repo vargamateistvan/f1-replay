@@ -18,8 +18,7 @@ import {
   MAP3D_GANTRY_CLEARANCE_M,
   MAP3D_PIT_LANE_HALF_WIDTH_M,
   MAP3D_PIT_WALL_MAX_GAP_M,
-  MAP3D_RUNOFF_EXTEND_M,
-  MAP3D_RUNOFF_M,
+  MAP3D_KERB_WIDTH_M,
   MAP3D_TRACK_HALF_WIDTH_M,
   MAP3D_TRACKSIDE_COLORS,
   MAP3D_TYRE_WALL_BLOCK_M,
@@ -33,10 +32,10 @@ import type { LngLat } from "./mapFeatures";
 import {
   cappedOffset,
   cornerRuns,
+  cornerRunoff,
   frameQuad,
   type PolygonCollection,
   type PolygonFeature,
-  runoffRuns,
   sampledCenterline,
   sampledPitLane,
   STRIP_CHUNK_M,
@@ -168,25 +167,28 @@ export function buildTrackside(
   const at = (p: P, nr: P, d: number): P => ({ x: p.x + nr.x * d, y: p.y + nr.y * d });
 
   // ── Barriers along both sides of the lap ──
-  const kerbs = cornerRuns(center);
+  const corners = cornerRuns(center);
+  const runoff = cornerRunoff(center, street ? [] : corners);
   const gravel = { 1: new Uint8Array(n), [-1]: new Uint8Array(n) } as Record<1 | -1, Uint8Array>;
   if (!street) {
-    for (const run of runoffRuns(kerbs, n, Math.round(MAP3D_RUNOFF_EXTEND_M))) {
+    for (const run of runoff.runs) {
       for (let i = run.from; i <= run.to; i++) gravel[run.side][((i % n) + n) % n] = 1;
     }
   }
   const barrierHeight = street ? MAP3D_WALL_HEIGHT_M : MAP3D_BARRIER_HEIGHT_M;
   const fenceTop = barrierHeight + MAP3D_FENCE_HEIGHT_M;
   for (const side of [1, -1] as const) {
-    const raw = Array.from(gravel[side], (g) =>
+    const raw = Array.from(gravel[side], (g, i) =>
       street
         ? edge + MAP3D_WALL_GAP_M
         : g
-          ? edge + MAP3D_RUNOFF_M + MAP3D_BARRIER_RUNOFF_GAP_M
+          ? half + Math.max(MAP3D_VERGE_M, MAP3D_KERB_WIDTH_M) +
+            runoff.widths[side][i]! + MAP3D_BARRIER_RUNOFF_GAP_M
           : edge + MAP3D_BARRIER_GAP_M,
     );
     // Sweep out behind the gravel and back, rather than stepping.
-    const dist = smoothLoop(raw, Math.round(MAP3D_BARRIER_RAMP_M / 2));
+    const dist = smoothLoop(raw, Math.round(MAP3D_BARRIER_RAMP_M / 2))
+      .map((d, i) => Math.max(d, raw[i]!));
     const inner = dist.map((d) => side * d);
     const outer = dist.map((d) => side * (d + thick));
     const fenceIn = dist.map((d) => side * (d + thick * 0.4));

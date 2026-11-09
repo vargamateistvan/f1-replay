@@ -15,6 +15,7 @@ import {
   MAP3D_TRACK_WET_PALETTE,
 } from "@/constants";
 import type { RunoffStyle } from "@/data/circuitRunoff";
+import type { AppSettings } from "@/stores/settings";
 import { isActiveTrackFlag, type TimingSectorFlags } from "@/timeline/raceControl";
 import type { LightPreset } from "./atmosphere";
 import { groundWidthExpression } from "./mapFeatures";
@@ -36,6 +37,21 @@ const LAYERS = {
   startBase: "map3d-surface-start-base",
   startSquares: "map3d-surface-start-squares",
 } as const;
+
+/** Layout visibility stays independent of lighting and wet-track paint updates. */
+export function setTrackSurfaceVisibility(
+  map: MapboxMap,
+  settings: Pick<AppSettings, "mapView3dKerbs" | "mapView3dRunoff">,
+): void {
+  for (const [ids, enabled] of [
+    [[LAYERS.kerbsBase, LAYERS.kerbsStripes], settings.mapView3dKerbs],
+    [[LAYERS.runoff, LAYERS.runoffBands], settings.mapView3dRunoff],
+  ] as const) {
+    for (const id of ids) {
+      if (map.getLayer(id)) map.setLayoutProperty(id, "visibility", enabled ? "visible" : "none");
+    }
+  }
+}
 
 /** Surface fades in over half a zoom level as the line-drawn track fades out. */
 export function fadeIn(opacity: number): ExpressionSpecification {
