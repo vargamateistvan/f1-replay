@@ -25,7 +25,12 @@ import { TOUR_TARGET } from "@/components/AppTour/targets";
 import { SCRUBBER_THUMB_PX, SPEEDS } from "@/constants";
 import { nextAfter, prevBefore } from "@/timeline/events";
 import { startLightsWindow } from "@/timeline/startLights";
-import type { RaceControlMarker, MarkerSummary } from "@/timeline/raceControl";
+import type {
+  RaceControlMarker,
+  MarkerSummary,
+  PlaybackTrackStatus,
+  TrackStatusSegment,
+} from "@/timeline/raceControl";
 import { flagAccentStyleFor } from "@/components/RaceControl/flagConfig";
 import { trackEvent } from "@/lib/analytics";
 import {
@@ -44,6 +49,7 @@ interface Props {
   overtakeTimes?: number[];
   radioTimes?: number[];
   raceControlMarkers?: RaceControlMarker[];
+  trackStatusSegments?: readonly TrackStatusSegment[];
   markerSummary?: MarkerSummary | null;
   canReplayCurrentIncident?: boolean;
   onReplayCurrentIncident?: () => void;
@@ -72,6 +78,19 @@ interface Props {
 }
 
 const NO_RESTARTS: readonly number[] = [];
+const NO_TRACK_STATUS: readonly TrackStatusSegment[] = [];
+
+const TRACK_STATUS_STYLE: Record<
+  PlaybackTrackStatus,
+  { label: string; short: string; className: string }
+> = {
+  GREEN: { label: "Green flag", short: "", className: "bg-green/70" },
+  YELLOW: { label: "Yellow flag", short: "", className: "bg-yellow" },
+  DOUBLE_YELLOW: { label: "Double yellow flag", short: "YY", className: "bg-yellow" },
+  RED: { label: "Red flag", short: "RED", className: "bg-f1red" },
+  SAFETY_CAR: { label: "Safety car", short: "SC", className: "bg-orange" },
+  VIRTUAL_SC: { label: "Virtual safety car", short: "VSC", className: "bg-yellow/70" },
+};
 
 function fmtTime(ms: number) {
   if (ms < 0) ms = 0;
@@ -189,6 +208,7 @@ export function PlaybackBar({
   overtakeTimes = [],
   radioTimes = [],
   raceControlMarkers = [],
+  trackStatusSegments = NO_TRACK_STATUS,
   markerSummary = null,
   canReplayCurrentIncident = false,
   onReplayCurrentIncident,
@@ -228,6 +248,13 @@ export function PlaybackBar({
   // Fraction along the scrubber under the mouse, for the hover time readout.
   const [hoverPct, setHoverPct] = useState<number | null>(null);
   const prevPlayingRef = useRef(playing);
+  const playheadMs = Math.max(0, Math.min(t, durationMs));
+  const hasTrackStatus = durationMs > 0 && trackStatusSegments.length > 0;
+  const statusAt = (ms: number) =>
+    trackStatusSegments.find((segment) => ms >= segment.startMs && ms < segment.endMs)?.status ??
+    (ms === durationMs ? trackStatusSegments.at(-1)?.status : undefined);
+  const currentStatus = statusAt(playheadMs);
+  const hoverStatus = hoverPct === null ? undefined : statusAt(hoverPct * durationMs);
 
   useEffect(() => {
     if (!isEditingTime) {
@@ -549,7 +576,7 @@ export function PlaybackBar({
 
         {/* Scrubber */}
         <div
-          className="relative order-first w-full h-4 flex items-center sm:order-none sm:w-auto sm:flex-1"
+          className={`relative order-first w-full flex items-center sm:order-none sm:w-auto sm:flex-1 ${hasTrackStatus ? "h-8" : "h-4"}`}
           onMouseMove={onScrubberHover}
           onMouseLeave={() => setHoverPct(null)}
         >
@@ -557,16 +584,65 @@ export function PlaybackBar({
             type="range"
             min={0}
             max={durationMs}
-            value={Math.max(0, Math.min(t, durationMs))}
+            value={playheadMs}
             onChange={(e) => jump(Number(e.target.value))}
-            className="w-full h-1 cursor-pointer"
+            className={hasTrackStatus ? "playback-status-range relative z-10 h-8 w-full cursor-pointer" : "w-full h-1 cursor-pointer"}
             style={{ touchAction: "none" }}
             aria-label="Seek"
+            aria-valuetext={currentStatus ? `${fmtTime(playheadMs)} — ${TRACK_STATUS_STYLE[currentStatus].label}` : undefined}
           />
+          {hasTrackStatus && (
+            <div
+              aria-hidden="true"
+              className="pointer-events-none absolute inset-y-0"
+              style={{ left: SCRUBBER_THUMB_PX / 2, right: SCRUBBER_THUMB_PX / 2 }}
+            >
+              <div className="absolute inset-x-0 top-3 h-3 overflow-hidden rounded-sm bg-panel">
+                {trackStatusSegments.map((segment) => {
+                  const endMs = Math.min(segment.endMs, durationMs);
+                  if (endMs <= segment.startMs) return null;
+                  return (
+                    <span
+                      key={segment.startMs}
+                      data-testid="track-status-segment"
+                      data-status={segment.status}
+                      className={`absolute inset-y-0 border-r border-track ${TRACK_STATUS_STYLE[segment.status].className}`}
+                      style={{
+                        left: `${(segment.startMs / durationMs) * 100}%`,
+                        width: `${((endMs - segment.startMs) / durationMs) * 100}%`,
+                      }}
+                    />
+                  );
+                })}
+              </div>
+              {trackStatusSegments.map((segment) => {
+                const { short } = TRACK_STATUS_STYLE[segment.status];
+                if (!short) return null;
+                return (
+                  <span
+                    key={segment.startMs}
+                    className="absolute top-0 truncate pr-0.5 font-mono text-micro font-bold leading-3 text-fg"
+                    style={{
+                      left: `${(segment.startMs / durationMs) * 100}%`,
+                      maxWidth: `${((Math.min(segment.endMs, durationMs) - segment.startMs) / durationMs) * 100}%`,
+                    }}
+                  >
+                    {short}
+                  </span>
+                );
+              })}
+              <span
+                className="absolute inset-y-0 w-0.5 -translate-x-1/2 bg-f1red"
+                style={{ left: `${(playheadMs / durationMs) * 100}%` }}
+              >
+                <span className="absolute left-1/2 top-0 h-2 w-3 -translate-x-1/2 bg-f1red [clip-path:polygon(0_0,100%_0,50%_100%)]" />
+              </span>
+            </div>
+          )}
           {/* The thumb's centre stops half a thumb inside each end of the
               track, so markers and the hover time share that inset span. */}
           <div
-            className="absolute inset-y-0 pointer-events-none"
+            className="absolute inset-y-0 z-10 pointer-events-none"
             style={{
               left: SCRUBBER_THUMB_PX / 2,
               right: SCRUBBER_THUMB_PX / 2,
@@ -662,6 +738,9 @@ export function PlaybackBar({
                 style={{ left: `${hoverPct * 100}%` }}
               >
                 {fmtTime(hoverPct * durationMs)}
+                {hoverStatus && (
+                  <span className="block text-muted">{TRACK_STATUS_STYLE[hoverStatus].label}</span>
+                )}
               </span>
             )}
           </div>

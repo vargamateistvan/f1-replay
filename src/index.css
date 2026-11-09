@@ -121,6 +121,34 @@ input[type='range']::-moz-range-thumb {
   border-radius: 50%;
 }
 
+input[type='range'].playback-status-range {
+  appearance: none;
+  background: transparent;
+}
+
+.playback-status-range::-webkit-slider-runnable-track {
+  height: 100%;
+  background: transparent;
+}
+
+input[type='range'].playback-status-range::-webkit-slider-thumb {
+  appearance: none;
+  height: 100%;
+  background: transparent;
+  border: 0;
+}
+
+.playback-status-range::-moz-range-track {
+  height: 100%;
+  background: transparent;
+}
+
+input[type='range'].playback-status-range::-moz-range-thumb {
+  height: 100%;
+  background: transparent;
+  border: 0;
+}
+
 /* Select and option styling for all browsers */
 select option {
   background-color: rgb(var(--color-panel));

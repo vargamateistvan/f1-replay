@@ -317,6 +317,114 @@ function resolveFlagKeyFromRaceControlEntry(entry: RaceControl): string | null {
   return null;
 }
 
+function applyTrackFlagEntry(state: TrackFlagState, entry: RaceControl): void {
+  const scope = flagScopeOf(entry);
+  if (scope === "driver") return;
+
+  if (isFlagStateClear(entry)) {
+    state.updatedAtMs = Date.parse(entry.date);
+    if (scope === "sector") {
+      if (entry.sector !== null && entry.sector !== undefined) {
+        delete state.marshalFlags[entry.sector];
+      }
+    } else {
+      state.globalFlag = null;
+      state.marshalFlags = {};
+    }
+    return;
+  }
+
+  const flagKey = stateFlagKeyFor(entry);
+  if (!flagKey || flagKey === "GREEN" || flagKey === "CLEAR") return;
+
+  state.updatedAtMs = Date.parse(entry.date);
+  if (scope === "sector") {
+    if (entry.sector !== null && entry.sector !== undefined) {
+      state.marshalFlags[entry.sector] = flagKey;
+    }
+  } else {
+    if (shouldPreserveRedFlag(state.globalFlag, flagKey)) return;
+    state.globalFlag = flagKey;
+  }
+}
+
+export type PlaybackTrackStatus =
+  | "GREEN"
+  | "YELLOW"
+  | "DOUBLE_YELLOW"
+  | "RED"
+  | "SAFETY_CAR"
+  | "VIRTUAL_SC";
+
+export interface TrackStatusSegment {
+  startMs: number;
+  endMs: number;
+  status: PlaybackTrackStatus;
+}
+
+function playbackTrackStatus(state: TrackFlagState): PlaybackTrackStatus {
+  const flags = [state.globalFlag, ...Object.values(state.marshalFlags)];
+  let status: PlaybackTrackStatus = "GREEN";
+  for (const flag of flags) {
+    const candidate = flag === "VIRTUAL_SAFETY_CAR" ? "VIRTUAL_SC" : flag;
+    if (
+      (candidate === "RED" ||
+        candidate === "SAFETY_CAR" ||
+        candidate === "VIRTUAL_SC" ||
+        candidate === "DOUBLE_YELLOW" ||
+        candidate === "YELLOW") &&
+      flagSeverity(candidate) > flagSeverity(status)
+    ) {
+      status = candidate;
+    }
+  }
+  return status;
+}
+
+/** Session-relative spans using the same flag transitions as the track map. */
+export function buildTrackStatusSegments(
+  entries: readonly RaceControl[],
+  sessionStartMs: number,
+  durationMs: number,
+): TrackStatusSegment[] {
+  if (
+    !Number.isFinite(sessionStartMs) ||
+    !sessionStartMs ||
+    !Number.isFinite(durationMs) ||
+    durationMs <= 0 ||
+    entries.length === 0
+  ) return [];
+
+  const sorted = entries
+    .map((entry) => ({ entry, ms: Date.parse(entry.date) - sessionStartMs }))
+    .filter(({ ms }) => Number.isFinite(ms) && ms <= durationMs)
+    .sort((a, b) => a.ms - b.ms);
+  if (sorted.length === 0) return [];
+
+  const state: TrackFlagState = {
+    globalFlag: null,
+    marshalFlags: {},
+    maxMarshalSector: 0,
+    updatedAtMs: 0,
+  };
+  const segments: TrackStatusSegment[] = [];
+  let startMs = 0;
+  const append = (endMs: number) => {
+    if (endMs <= startMs) return;
+    const status = playbackTrackStatus(state);
+    const previous = segments.at(-1);
+    if (previous?.status === status) previous.endMs = endMs;
+    else segments.push({ startMs, endMs, status });
+    startMs = endMs;
+  };
+  for (const { entry, ms } of sorted) {
+    append(Math.max(0, ms));
+    applyTrackFlagEntry(state, entry);
+  }
+  append(durationMs);
+  return segments;
+}
+
 /**
  * Derive the global + per-marshal-post flag state up to a playhead time.
  *
@@ -354,39 +462,7 @@ export function deriveTrackFlagState(
     const eventMs = new Date(entry.date).getTime();
     if (eventMs > cutoffMs) break;
 
-    const scope = flagScopeOf(entry);
-    // Addressed to a single car; never track state.
-    if (scope === "driver") continue;
-
-    if (isFlagStateClear(entry)) {
-      state.updatedAtMs = eventMs;
-      if (scope === "sector") {
-        if (entry.sector !== null && entry.sector !== undefined) {
-          delete state.marshalFlags[entry.sector];
-        }
-      } else {
-        state.globalFlag = null;
-        state.marshalFlags = {};
-      }
-      continue;
-    }
-
-    const flagKey = stateFlagKeyFor(entry);
-    if (!flagKey) continue;
-    // GREEN and CLEAR only ever act as clears, handled above. Reaching here
-    // means the row did not qualify as one ("GREEN LIGHT - PIT EXIT OPEN"), so
-    // it is a no-op rather than a flag to store.
-    if (flagKey === "GREEN" || flagKey === "CLEAR") continue;
-
-    state.updatedAtMs = eventMs;
-    if (scope === "sector") {
-      if (entry.sector !== null && entry.sector !== undefined) {
-        state.marshalFlags[entry.sector] = flagKey;
-      }
-    } else {
-      if (shouldPreserveRedFlag(state.globalFlag, flagKey)) continue;
-      state.globalFlag = flagKey;
-    }
+    applyTrackFlagEntry(state, entry);
   }
 
   if (

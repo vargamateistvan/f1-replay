@@ -6,6 +6,7 @@ import {
   buildPhaseAtMsLookup,
   buildRaceChapters,
   buildRaceControlMarkers,
+  buildTrackStatusSegments,
   clusterRaceControlMarkers,
   computeWhatChanged,
   deriveTrackFlagState,
@@ -39,6 +40,66 @@ function rc(partial: Partial<RaceControl>): RaceControl {
     ...partial,
   };
 }
+
+describe("buildTrackStatusSegments", () => {
+  it("builds sorted, merged spans, with sector yellows and global neutralisations", () => {
+    const entries = [
+      rc({ date: iso(40), flag: "GREEN", message: "TRACK CLEAR" }),
+      rc({ date: iso(10), flag: "YELLOW", scope: "Sector", sector: 12 }),
+      rc({ date: iso(15), flag: "DOUBLE YELLOW", scope: "Sector", sector: 18 }),
+      rc({ date: iso(20), flag: "CLEAR", scope: "Sector", sector: 18 }),
+      rc({ date: iso(25), message: "SAFETY CAR DEPLOYED" }),
+      rc({ date: iso(30), message: "SAFETY CAR IN THIS LAP" }),
+      rc({ date: iso(50), message: "VIRTUAL SAFETY CAR DEPLOYED" }),
+      rc({ date: iso(55), message: "VSC ENDING" }),
+      rc({ date: iso(60), flag: "GREEN", message: "TRACK CLEAR" }),
+    ];
+    expect(buildTrackStatusSegments(entries, START, 70_000)).toEqual([
+      { startMs: 0, endMs: 10_000, status: "GREEN" },
+      { startMs: 10_000, endMs: 15_000, status: "YELLOW" },
+      { startMs: 15_000, endMs: 20_000, status: "DOUBLE_YELLOW" },
+      { startMs: 20_000, endMs: 25_000, status: "YELLOW" },
+      { startMs: 25_000, endMs: 40_000, status: "SAFETY_CAR" },
+      { startMs: 40_000, endMs: 50_000, status: "GREEN" },
+      { startMs: 50_000, endMs: 60_000, status: "VIRTUAL_SC" },
+      { startMs: 60_000, endMs: 70_000, status: "GREEN" },
+    ]);
+  });
+
+  it("carries pre-session red flags through pit-exit greens and ignores driver flags", () => {
+    expect(buildTrackStatusSegments([
+      rc({ date: iso(-10), flag: "RED" }),
+      rc({ date: iso(5), flag: "GREEN", message: "GREEN LIGHT - PIT EXIT OPEN" }),
+      rc({ date: iso(8), message: "SAFETY CAR DEPLOYED" }),
+      rc({ date: iso(10), flag: "GREEN", message: "TRACK CLEAR" }),
+      rc({ date: iso(12), flag: "RED", scope: "Driver", driver_number: 1 }),
+      rc({ date: iso(15), flag: "CHEQUERED", message: "CHEQUERED FLAG" }),
+      rc({ date: iso(25), flag: "RED" }),
+      rc({ date: "invalid", flag: "RED" }),
+    ], START, 20_000)).toEqual([
+      { startMs: 0, endMs: 10_000, status: "RED" },
+      { startMs: 10_000, endMs: 20_000, status: "GREEN" },
+    ]);
+  });
+
+  it("coalesces simultaneous changes without zero-length spans", () => {
+    expect(buildTrackStatusSegments([
+      rc({ date: iso(5), flag: "YELLOW", scope: "Sector", sector: 2 }),
+      rc({ date: iso(5), flag: "RED" }),
+      rc({ date: iso(10), flag: "GREEN" }),
+    ], START, 10_000)).toEqual([
+      { startMs: 0, endMs: 5_000, status: "GREEN" },
+      { startMs: 5_000, endMs: 10_000, status: "RED" },
+    ]);
+  });
+
+  it("leaves missing, invalid, and zero-duration sessions unpainted", () => {
+    expect(buildTrackStatusSegments([], START, 10_000)).toEqual([]);
+    expect(buildTrackStatusSegments([rc({ date: "invalid" })], START, 10_000)).toEqual([]);
+    expect(buildTrackStatusSegments([rc({})], 0, 10_000)).toEqual([]);
+    expect(buildTrackStatusSegments([rc({})], START, 0)).toEqual([]);
+  });
+});
 
 describe("derivePitLaneStatus", () => {
   it("tracks only explicit lane, entry and exit updates through the playhead", () => {

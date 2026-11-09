@@ -260,7 +260,12 @@ F1.com doesn't have a playback bar (live only), but we can style it with the sam
 
 - Background: `bg-track` (same as base — recessed into page, not elevated)
 - Top border: `border-t border-panel`
-- Scrubber: `accent-f1red` (keep), but also style the range track via custom CSS
+- Scrubber: full-timeline track-status spans (green, yellow/double yellow, orange SC, muted yellow VSC,
+  red), including periods ahead of the playhead, and a red line/triangle playhead. Short SC/VSC/RED/YY labels supplement
+  colour; hovering shows the time and status. Status spans remain when event markers are hidden.
+  `buildTrackStatusSegments()` in `timeline/raceControl.ts` shares the track map's flag transitions,
+  including sector clears and actual SC/VSC restarts. The native range input retains keyboard/touch
+  seeking and announces the current status; absent race-control data keeps the original scrubber.
 - Speed buttons: sharp chips, `bg-panel` inactive / `bg-f1red` active
 - Time readout: `font-mono text-sm tabular-nums`
 

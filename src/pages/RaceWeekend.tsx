@@ -89,6 +89,7 @@ import {
 import {
   buildChequeredFlagTimeline,
   buildRaceControlMarkers,
+  buildTrackStatusSegments,
   buildIncidentWindows,
   clusterRaceControlMarkers,
   deriveTrackFlagState,
@@ -1807,6 +1808,10 @@ export default function RaceWeekend() {
         : !isRaceSession && latestDataMs !== null
           ? Math.max(latestDataMs, effectiveDuration)
           : effectiveDuration;
+  const trackStatusSegments = useMemo(
+    () => buildTrackStatusSegments(raceControl.data ?? [], sessionStartMs, playbackDurationMs),
+    [raceControl.data, sessionStartMs, playbackDurationMs],
+  );
   // The "show results" button becomes available as soon as the chequered
   // flag falls (races) — no need to wait for post-race outlaps/radio. Non-race
   // sessions have no chequered flag, so they use the same "all data played
@@ -3525,6 +3530,7 @@ export default function RaceWeekend() {
 
       <PlaybackBar
         durationMs={playbackDurationMs}
+        trackStatusSegments={trackStatusSegments}
         lapStarts={lapMarks}
         pitTimes={pitMarks}
         flagTimes={flagMarks}

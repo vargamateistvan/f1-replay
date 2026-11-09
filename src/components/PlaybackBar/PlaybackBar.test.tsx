@@ -57,6 +57,64 @@ describe("PlaybackBar marker interactions", () => {
     timelineState.setT.mockClear();
   });
 
+  it("paints the full timeline and keeps status visible when markers are hidden", () => {
+    timelineState.t = 75_000;
+    render(
+      <PlaybackBar
+        durationMs={100_000}
+        trackStatusSegments={[
+          { startMs: 0, endMs: 20_000, status: "GREEN" },
+          { startMs: 20_000, endMs: 40_000, status: "SAFETY_CAR" },
+          { startMs: 40_000, endMs: 80_000, status: "RED" },
+          { startMs: 80_000, endMs: 100_000, status: "GREEN" },
+        ]}
+        raceStartMs={0}
+      />,
+    );
+    const segments = screen.getAllByTestId("track-status-segment");
+    expect(segments).toHaveLength(4);
+    expect(segments[0]).toHaveClass("bg-green/70");
+    expect(segments[1]).toHaveClass("bg-orange");
+    expect(segments[2]).toHaveStyle({ left: "40%", width: "40%" });
+    expect(segments[3]).toHaveStyle({ left: "80%", width: "20%" });
+    expect(screen.getByText("SC")).toBeInTheDocument();
+    const slider = screen.getByRole("slider", { name: "Seek" });
+    expect(slider).toHaveAttribute("aria-valuetext", "01:15 — Red flag");
+    fireEvent.click(screen.getByRole("button", { name: "Hide timeline markers" }));
+    expect(screen.getAllByTestId("track-status-segment")).toHaveLength(4);
+    fireEvent.change(slider, { target: { value: "30" } });
+    expect(timelineState.setT).toHaveBeenCalledWith(30);
+  });
+
+  it("keeps the normal scrubber when track status is unavailable", () => {
+    render(<PlaybackBar durationMs={100_000} />);
+    expect(screen.queryByTestId("track-status-segment")).not.toBeInTheDocument();
+    expect(screen.getByRole("slider", { name: "Seek" })).not.toHaveClass("playback-status-range");
+  });
+
+  it("shows future status colours and labels even at session start", () => {
+    render(
+      <PlaybackBar
+        durationMs={100_000}
+        trackStatusSegments={[
+          { startMs: 0, endMs: 50_000, status: "GREEN" },
+          { startMs: 50_000, endMs: 100_000, status: "VIRTUAL_SC" },
+        ]}
+      />,
+    );
+    const scrubber = screen.getByRole("slider", { name: "Seek" }).parentElement!;
+    vi.spyOn(scrubber, "getBoundingClientRect").mockReturnValue({
+      left: 0, width: 816, top: 0, right: 816, bottom: 32, height: 32,
+      x: 0, y: 0, toJSON: () => ({}),
+    });
+    expect(screen.getAllByTestId("track-status-segment")).toHaveLength(2);
+    expect(screen.getByText("VSC")).toBeInTheDocument();
+    fireEvent.mouseMove(scrubber, { clientX: 608 });
+    const tooltip = screen.getByRole("tooltip", { name: "Time at pointer" });
+    expect(tooltip).toHaveTextContent("01:15");
+    expect(tooltip).toHaveTextContent("Virtual safety car");
+  });
+
   it("renders incident marker with accessible hover text and jumps on click", () => {
     render(
       <PlaybackBar
