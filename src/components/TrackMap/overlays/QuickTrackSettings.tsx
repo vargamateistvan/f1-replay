@@ -109,8 +109,6 @@ export function QuickTrackSettings({
   const triggerRef = useRef<HTMLButtonElement>(null);
   const panelRef = useRef<HTMLDivElement>(null);
   const [position, setPosition] = useState({ top: 0, right: 0 });
-  const contains = (target: EventTarget | null) =>
-    target instanceof Node && (rootRef.current?.contains(target) || panelRef.current?.contains(target));
 
   useLayoutEffect(() => {
     if (!open) return;
@@ -141,7 +139,7 @@ export function QuickTrackSettings({
   useEffect(() => {
     if (!open) return;
     panelRef.current?.querySelector<HTMLButtonElement>("button")?.focus();
-    const outside = (event: PointerEvent) => {
+    const outside = (event: PointerEvent | FocusEvent) => {
       if (!(event.target instanceof Node)) return;
       if (!rootRef.current?.contains(event.target) && !panelRef.current?.contains(event.target)) setOpen(false);
     };
@@ -153,21 +151,17 @@ export function QuickTrackSettings({
       triggerRef.current?.focus();
     };
     document.addEventListener("pointerdown", outside);
+    document.addEventListener("focusin", outside);
     document.addEventListener("keydown", escape);
     return () => {
       document.removeEventListener("pointerdown", outside);
+      document.removeEventListener("focusin", outside);
       document.removeEventListener("keydown", escape);
     };
   }, [open]);
 
   return (
-    <div
-      ref={rootRef}
-      className="relative"
-      onBlur={(event) => {
-        if (!contains(event.relatedTarget)) setOpen(false);
-      }}
-    >
+    <div ref={rootRef} className="relative">
       <button
         ref={triggerRef}
         type="button"

@@ -1,6 +1,6 @@
 # F1 Replay — Agent Documentation
 
-> Last updated: 2026-11-09
+> Last updated: 2026-11-10
 > The single source of truth for agents. Provides concise, agent-readable architecture notes, conventions, and guardrails. `docs/` holds mostly historical plans — see Section 12 before trusting one.
 
 ---
@@ -47,6 +47,8 @@
 | Circuit data refresh                              | `scripts/*.mjs`, `.github/workflows/update-circuits.yml` (Pitfall 13)                        |
 
 Tests sit next to the module (`foo.ts` → `foo.test.ts`); broad smoke/coverage tests are in `components/__tests__/`.
+
+Quick-settings dismissal uses outside pointer presses and focus entering an outside control, not blur alone: iOS can clear focus without a new focus target before delivering a button tap.
 
 Qualifying playback markers prefer phase-tagged `SESSION STARTED` messages; pre-session race-control rows must not become negative phase starts. Tagged flags and text announcements remain fallbacks only when an actual phase start is unavailable.
 

@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { fireEvent, render, screen } from "@testing-library/react";
+import { act, fireEvent, render, screen } from "@testing-library/react";
 import { useSettings } from "@/stores/settings";
 import { QuickTrackSettings } from "./QuickTrackSettings";
 
@@ -15,6 +15,23 @@ function open(view: "2d" | "ring" | "3d" = "2d", onOpenSettings?: () => void) {
 }
 
 describe("QuickTrackSettings", () => {
+  it.each(["2d", "ring", "3d", "timing"] as const)("allows an iOS tap to toggle a %s switch after focus clears", (view) => {
+    const timing = view === "timing";
+    const label = timing ? "Quick timing settings" : "Quick track settings";
+    const key = timing ? "timingMobileShowGap" : view === "3d" ? "mapView3dWeatherEffects" : "mapWeatherEffectsEnabled";
+    const before = useSettings.getState()[key];
+    render(<QuickTrackSettings view={view} buttonClass="test-button" mobileTiming={timing} />);
+    fireEvent.click(screen.getByRole("button", { name: label }));
+    const option = screen.getByRole("switch", { name: timing ? "Gap" : "Weather effects" });
+    fireEvent.pointerDown(option, { pointerType: "touch" });
+    fireEvent.blur(screen.getByRole("button", { name: `Close ${label.toLowerCase()}` }), { relatedTarget: null });
+    fireEvent.pointerUp(option, { pointerType: "touch" });
+    fireEvent.click(option);
+    expect(useSettings.getState()[key]).toBe(!before);
+    expect(screen.getByRole("dialog")).toBeInTheDocument();
+    expect(option).toHaveAttribute("aria-checked", String(!before));
+  });
+
   it.each([false, true])("toggles all sectors together (mobile: %s)", (mobileTiming) => {
     const keys = mobileTiming
       ? ["timingMobileShowS1", "timingMobileShowS2", "timingMobileShowS3"] as const
@@ -134,8 +151,30 @@ describe("QuickTrackSettings", () => {
   });
 
   it("closes when keyboard focus leaves the popover", () => {
+    render(<button type="button">Outside control</button>);
     open();
-    fireEvent.blur(screen.getByRole("button", { name: "Close quick track settings" }), { relatedTarget: document.body });
+    act(() => screen.getByRole("button", { name: "Outside control" }).focus());
+    expect(screen.getByRole("button", { name: "Outside control" })).toHaveFocus();
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+  });
+
+  it("keeps the popover open when keyboard focus moves to a switch", () => {
+    open();
+    const option = screen.getByRole("switch", { name: "Driver labels" });
+    act(() => option.focus());
+    expect(option).toHaveFocus();
+    expect(screen.getByRole("dialog")).toBeInTheDocument();
+  });
+
+  it("opens all settings after an iOS tap clears focus", () => {
+    open();
+    const button = screen.getByRole("button", { name: "All track settings" });
+    fireEvent.pointerDown(button, { pointerType: "touch" });
+    fireEvent.blur(screen.getByRole("button", { name: "Close quick track settings" }), { relatedTarget: null });
+    fireEvent.pointerUp(button, { pointerType: "touch" });
+    fireEvent.click(button);
+    expect(useSettings.getState().isOpen).toBe(true);
+    expect(useSettings.getState().modalTab).toBe("track");
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
   });
 
