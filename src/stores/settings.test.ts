@@ -53,6 +53,24 @@ describe("ring settings", () => {
   });
 });
 
+describe("sector marker setting", () => {
+  it("defaults existing users to on, persists and transfers opt-out, and resets to on", async () => {
+    useSettings.getState().reset();
+    expect(SETTINGS_DEFAULTS.mapShowSectorMarkers).toBe(true);
+    localStorage.setItem("f1-replay-settings", JSON.stringify({ state: { mapViewMode: "2d" }, version: 2 }));
+    await useSettings.persist.rehydrate();
+    expect(useSettings.getState().mapShowSectorMarkers).toBe(true);
+
+    useSettings.getState().setSetting("mapShowSectorMarkers", false);
+    expect(JSON.parse(localStorage.getItem("f1-replay-settings")!).state.mapShowSectorMarkers).toBe(false);
+    await useSettings.persist.rehydrate();
+    expect(useSettings.getState().mapShowSectorMarkers).toBe(false);
+    expect(parseSettingsImport(exportSettings(useSettings.getState())).mapShowSectorMarkers).toBe(false);
+    useSettings.getState().reset();
+    expect(useSettings.getState().mapShowSectorMarkers).toBe(true);
+  });
+});
+
 describe("track kerb setting", () => {
   it("defaults to off, persists explicit opt-in, and resets to off", async () => {
     expect(SETTINGS_DEFAULTS.mapShowKerbs).toBe(false);

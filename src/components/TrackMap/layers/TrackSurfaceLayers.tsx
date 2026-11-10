@@ -11,6 +11,14 @@ import {
   TRACK_SURFACE_KERB_DASH_LENGTH,
   TRACK_SURFACE_KERB_OPACITY,
   TRACK_SURFACE_KERB_WIDTH,
+  TRACK_SECTOR_MARKER_BADGE_HEIGHT,
+  TRACK_SECTOR_MARKER_BADGE_OFFSET,
+  TRACK_SECTOR_MARKER_BADGE_WIDTH,
+  TRACK_SECTOR_MARKER_ACCENT_WIDTH,
+  TRACK_SECTOR_MARKER_CONNECTOR_START,
+  TRACK_SECTOR_MARKER_TICK_OUTLINE_WIDTH,
+  TRACK_SECTOR_MARKER_TICK_HALF,
+  TRACK_SECTOR_MARKER_TICK_WIDTH,
 } from "@/constants";
 import { TOKEN_HEX, TOKEN_HEX_LIGHT } from "@/designTokens";
 import type { TimingSectorFlags } from "@/timeline/raceControl";
@@ -358,7 +366,7 @@ export const StartFinishLine = memo(function StartFinishLine({
   );
 });
 
-/** S1 / S2 boundary ticks at one-third and two-thirds of the lap. */
+/** S1 / S2 timing gates at one-third and two-thirds of the lap. */
 export const SectorBoundaryMarkers = memo(function SectorBoundaryMarkers({
   geom,
   rotationDeg,
@@ -383,45 +391,86 @@ export const SectorBoundaryMarkers = memo(function SectorBoundaryMarkers({
     const len = Math.hypot(dx, dy) || 1;
     const nx = -dy / len;
     const ny = dx / len;
-    const half = 6.5;
-    const lx = point.sx + nx * 9.8;
-    const ly = point.sy + ny * 9.8;
+    const badgeX = point.sx + nx * TRACK_SECTOR_MARKER_BADGE_OFFSET;
+    const badgeY = point.sy + ny * TRACK_SECTOR_MARKER_BADGE_OFFSET;
+    const badgeLeft = badgeX - TRACK_SECTOR_MARKER_BADGE_WIDTH / 2;
+    const badgeTop = badgeY - TRACK_SECTOR_MARKER_BADGE_HEIGHT / 2;
+    const half = TRACK_SECTOR_MARKER_TICK_HALF;
+    const connectorEnd =
+      TRACK_SECTOR_MARKER_BADGE_OFFSET - TRACK_SECTOR_MARKER_BADGE_HEIGHT / 2;
+    const edgeX = point.sx + nx * connectorEnd;
+    const edgeY = point.sy + ny * connectorEnd;
 
     return (
-      <g key={`sector-boundary-${label}`}>
+      <g
+        key={`sector-boundary-${label}`}
+        data-sector-marker={label}
+        pointerEvents="none"
+      >
         <line
           x1={point.sx + nx * half}
           y1={point.sy + ny * half}
           x2={point.sx - nx * half}
           y2={point.sy - ny * half}
-          stroke="#9aa4be"
-          strokeWidth={3}
+          stroke={mapBackgroundColor(lightMode)}
+          strokeWidth={TRACK_SECTOR_MARKER_TICK_OUTLINE_WIDTH}
           strokeLinecap="round"
-          opacity={0.82}
         />
-        <circle
-          cx={point.sx}
-          cy={point.sy}
-          r={3.1}
-          fill={mapBackgroundColor(lightMode)}
-          stroke="#aeb8cf"
-          strokeWidth={0.8}
-          opacity={0.95}
+        <line
+          x1={point.sx + nx * half}
+          y1={point.sy + ny * half}
+          x2={point.sx - nx * half}
+          y2={point.sy - ny * half}
+          stroke={TOKEN_HEX.f1red}
+          strokeWidth={TRACK_SECTOR_MARKER_TICK_WIDTH}
+          strokeLinecap="round"
+          opacity={0.72}
         />
-        <text
-          x={lx}
-          y={ly}
-          transform={`rotate(${-rotationDeg.toFixed(1)} ${lx.toFixed(1)} ${ly.toFixed(1)})`}
-          textAnchor="middle"
-          dominantBaseline="middle"
-          fontSize={4.8}
-          fill={lightMode ? "#2a3246" : "#d4dbee"}
-          fontFamily="Inter, sans-serif"
-          fontWeight="900"
-          letterSpacing="0.04em"
+        <line
+          x1={point.sx + nx * TRACK_SECTOR_MARKER_CONNECTOR_START}
+          y1={point.sy + ny * TRACK_SECTOR_MARKER_CONNECTOR_START}
+          x2={edgeX}
+          y2={edgeY}
+          stroke={lightMode ? TOKEN_HEX_LIGHT.fg : TOKEN_HEX.fg}
+          strokeWidth={0.7}
+          opacity={0.45}
+        />
+        <g
+          transform={`rotate(${-rotationDeg.toFixed(1)} ${badgeX.toFixed(1)} ${badgeY.toFixed(1)})`}
         >
-          {label}
-        </text>
+          <rect
+            x={badgeLeft}
+            y={badgeTop}
+            width={TRACK_SECTOR_MARKER_BADGE_WIDTH}
+            height={TRACK_SECTOR_MARKER_BADGE_HEIGHT}
+            fill={mapBackgroundColor(lightMode)}
+            fillOpacity={0.65}
+            stroke={lightMode ? TOKEN_HEX_LIGHT.fg : TOKEN_HEX.fg}
+            strokeOpacity={0.32}
+            strokeWidth={0.6}
+          />
+          <rect
+            x={badgeLeft}
+            y={badgeTop}
+            width={TRACK_SECTOR_MARKER_ACCENT_WIDTH}
+            height={TRACK_SECTOR_MARKER_BADGE_HEIGHT}
+            fill={TOKEN_HEX.f1red}
+            opacity={0.72}
+          />
+          <text
+            x={badgeX + 0.8}
+            y={badgeY}
+            textAnchor="middle"
+            dominantBaseline="middle"
+            fontSize={4.7}
+            fill={lightMode ? TOKEN_HEX_LIGHT.fg : TOKEN_HEX.fg}
+            fontFamily="Inter, sans-serif"
+            fontWeight="800"
+            letterSpacing="0.02em"
+          >
+            {label}
+          </text>
+        </g>
       </g>
     );
   };

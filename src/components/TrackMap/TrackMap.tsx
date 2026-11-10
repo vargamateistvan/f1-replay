@@ -224,6 +224,7 @@ export function TrackMap({
   const mapShowMarshalHeatmap = useSettings((s) => s.mapShowMarshalHeatmap);
   const mapShowCornerNumbers = useSettings((s) => s.mapShowCornerNumbers);
   const mapShowKerbs = useSettings((s) => s.mapShowKerbs);
+  const mapShowSectorMarkers = useSettings((s) => s.mapShowSectorMarkers);
   const mapShowElevation = useSettings((s) => s.mapShowElevation);
   const mapShowRaceLeader = useSettings((s) => s.mapShowRaceLeader);
   const mapStartLightsSound = useSettings((s) => s.mapStartLightsSound);
@@ -965,11 +966,13 @@ export function TrackMap({
             patternId={finishPatternId}
             lightMode={lightMode}
           />
-          <SectorBoundaryMarkers
-            geom={trackGeometry}
-            rotationDeg={rotationDeg}
-            lightMode={lightMode}
-          />
+          {mapShowSectorMarkers && (
+            <SectorBoundaryMarkers
+              geom={trackGeometry}
+              rotationDeg={rotationDeg}
+              lightMode={lightMode}
+            />
+          )}
           <DirectionArrows geom={trackGeometry} lightMode={lightMode} />
 
           {pitWindow && focusedPos && (

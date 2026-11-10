@@ -146,6 +146,15 @@ export const TRACK_DRAG_ROTATION_DEG_PER_PIXEL = 0.5;
 /** Scale of racing-driver map and ring dots and their numbers in the pits. */
 export const TRACK_PIT_CAR_SCALE = 0.7;
 export const TRACK_PIT_ACCESS_MARKER_RADIUS = 3.5;
+/** 2D map sector-gate ticks and label plaques, in SVG units. */
+export const TRACK_SECTOR_MARKER_TICK_HALF = 7.5;
+export const TRACK_SECTOR_MARKER_BADGE_WIDTH = 13;
+export const TRACK_SECTOR_MARKER_BADGE_HEIGHT = 7;
+export const TRACK_SECTOR_MARKER_BADGE_OFFSET = 11;
+export const TRACK_SECTOR_MARKER_ACCENT_WIDTH = 0.8;
+export const TRACK_SECTOR_MARKER_TICK_OUTLINE_WIDTH = 3.8;
+export const TRACK_SECTOR_MARKER_TICK_WIDTH = 1.1;
+export const TRACK_SECTOR_MARKER_CONNECTOR_START = 5;
 /** Pit access signal halo radius, relative to the illuminated lamp. */
 export const TRACK_PIT_ACCESS_GLOW_SCALE = 2.7;
 /** Dimensions of the start-light-style pit-exit signal in SVG units / map pixels. */

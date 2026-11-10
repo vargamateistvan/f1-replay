@@ -26,6 +26,8 @@ export interface AppSettings {
   mapShowDriverHud: boolean;
   mapShowSectorFlags: boolean;
   mapShowSectorBox: boolean;
+  /** 2D map: show the S1 / S2 timing-gate markers. */
+  mapShowSectorMarkers: boolean;
   mapShowTrackControls: boolean;
   mapShowCompass: boolean;
   mapShowWeather: boolean;
@@ -209,6 +211,7 @@ export const SETTINGS_DEFAULTS: AppSettings = {
   mapShowDriverHud: false,
   mapShowSectorFlags: true,
   mapShowSectorBox: false,
+  mapShowSectorMarkers: true,
   mapShowTrackControls: true,
   mapShowCompass: true,
   mapShowWeather: true,

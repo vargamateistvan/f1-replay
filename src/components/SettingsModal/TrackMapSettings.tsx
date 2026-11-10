@@ -430,6 +430,7 @@ export function TrackMapSettings({
         {row("mapShowRaceLeader", "Race leader badge", "Show the P1 race leader badge with headshot")}
 
         <SectionHeader>Flags & Sectors</SectionHeader>
+        {is2d && row("mapShowSectorMarkers", "Sector markers", "Show the S1/S2 timing gates on the 2D track")}
         {row("mapShowSectorFlags", "Sector flag colouring", "Tint the track where yellow, red and safety car flags are out")}
         {is3d &&
           row(

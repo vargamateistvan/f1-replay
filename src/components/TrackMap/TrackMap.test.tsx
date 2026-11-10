@@ -19,7 +19,7 @@ import { TOKEN_HEX } from "@/designTokens";
 import * as analytics from "@/lib/analytics";
 
 let timelineT = 0;
-const follow = vi.hoisted(() => ({ on: false, heatmap: true, numbers: false, weatherEffects: false, kerbs: false, setSetting: vi.fn() }));
+const follow = vi.hoisted(() => ({ on: false, heatmap: true, numbers: false, weatherEffects: false, kerbs: false, sectorMarkers: true, setSetting: vi.fn() }));
 
 vi.mock("@/timeline/clock", () => ({
   useTimeline: vi.fn(
@@ -95,6 +95,7 @@ vi.mock("@/stores/settings", () => ({
       mapShowMarshalHeatmap: false,
       mapShowCornerNumbers: false,
       mapShowKerbs: follow.kerbs,
+      mapShowSectorMarkers: follow.sectorMarkers,
       mapShowElevation: false,
       mapShowClock: false,
       mapFollowFocusedCar: follow.on,
@@ -169,6 +170,7 @@ describe("TrackMap sector flag state rendering", () => {
     follow.numbers = false;
     follow.weatherEffects = false;
     follow.kerbs = false;
+    follow.sectorMarkers = true;
     follow.setSetting.mockReset();
     vi.mocked(useTrackOutline).mockReturnValue(
       mockTrackOutlineQueryResult(null),
@@ -197,7 +199,7 @@ describe("TrackMap sector flag state rendering", () => {
         ],
       }),
     );
-    const { container } = render(
+    const { container, rerender } = render(
       <TrackMap
         sessionKey={1}
         drivers={[mockDriver]}
@@ -212,6 +214,26 @@ describe("TrackMap sector flag state rendering", () => {
     );
     expect(labels).toContain("S1");
     expect(labels).toContain("S2");
+    const sectorMarkers = Array.from(
+      container.querySelectorAll("[data-sector-marker]"),
+    );
+    expect(sectorMarkers.map((marker) => marker.getAttribute("data-sector-marker"))).toEqual([
+      "S1",
+      "S2",
+    ]);
+    expect(sectorMarkers.every((marker) => marker.querySelector("rect"))).toBe(true);
+
+    follow.sectorMarkers = false;
+    rerender(
+      <TrackMap
+        sessionKey={1}
+        drivers={[mockDriver]}
+        locationData={mockLocationData}
+        sessionStartMs={0}
+      />,
+    );
+    expect(container.querySelector("[data-sector-marker]")).toBeNull();
+    expect(container.querySelector('line[stroke="url(#finish-checker-1)"]')).not.toBeNull();
   });
 
   it("shows corner kerbs only when enabled in map settings", () => {

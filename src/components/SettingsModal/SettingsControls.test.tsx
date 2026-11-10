@@ -91,6 +91,7 @@ vi.mock("@/stores/settings", () => ({
     mapShowKerbs: state.showKerbs,
     mapShowSectorFlags: true,
     mapShowSectorBox: true,
+    mapShowSectorMarkers: true,
     mapShowTrackControls: true,
     mapShowCompass: true,
     mapShowWeather: true,
@@ -517,6 +518,11 @@ describe("SettingsControls", () => {
     const kerbsRow = screen.getByText("Track kerbs").parentElement!.parentElement!;
     fireEvent.click(within(kerbsRow).getByRole("switch"));
     expect(state.setSetting).toHaveBeenCalledWith("mapShowKerbs", true);
+    const markersRow = screen.getByText("Sector markers").parentElement!.parentElement!;
+    const markers = within(markersRow).getByRole("switch");
+    expect(markers).toHaveAttribute("aria-checked", "true");
+    fireEvent.click(markers);
+    expect(state.setSetting).toHaveBeenCalledWith("mapShowSectorMarkers", false);
   });
 
   it("switches the map view from the settings", () => {
@@ -556,6 +562,7 @@ describe("SettingsControls", () => {
     // 2D-only controls are hidden.
     expect(screen.queryByText("Compass overlay")).not.toBeInTheDocument();
     expect(screen.queryByText("Sector status box")).not.toBeInTheDocument();
+    expect(screen.queryByText("Sector markers")).not.toBeInTheDocument();
     const kerbs = within(screen.getByText("Track kerbs").parentElement!.parentElement!).getByRole("switch");
     const runoff = within(screen.getByText("Run-off areas").parentElement!.parentElement!).getByRole("switch");
     expect(kerbs).toHaveAttribute("aria-checked", "true");
@@ -579,7 +586,7 @@ describe("SettingsControls", () => {
     expect(screen.getByText("Live preview · Ring")).toBeInTheDocument();
     expect(screen.getByText("Corner numbers")).toBeInTheDocument();
     expect(screen.getByText("Sector status box")).toBeInTheDocument();
-    for (const label of ["Compass overlay", "Elevation heatmap", "Track controls", "Terrain"]) {
+    for (const label of ["Compass overlay", "Elevation heatmap", "Track controls", "Terrain", "Sector markers"]) {
       expect(screen.queryByText(label)).not.toBeInTheDocument();
     }
   });

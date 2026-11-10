@@ -23,6 +23,7 @@ const COMMON: readonly Option[] = [
 ];
 const VIEW_OPTIONS: Record<MapViewMode, readonly Option[]> = {
   "2d": [
+    ["mapShowSectorMarkers", "Sector markers"],
     ["mapWeatherEffectsEnabled", "Weather effects"],
     ["mapFollowFocusedCar", "Follow focused car"],
     ["mapShowDriverHeatmap", "Driver heatmap"],

@@ -15,6 +15,22 @@ function open(view: "2d" | "ring" | "3d" = "2d", onOpenSettings?: () => void) {
 }
 
 describe("QuickTrackSettings", () => {
+  it("toggles sector markers on the 2D map only, enabled by default", () => {
+    const result = open("2d");
+    const markers = screen.getByRole("switch", { name: "Sector markers" });
+    expect(markers).toHaveAttribute("aria-checked", "true");
+    fireEvent.click(markers);
+    expect(useSettings.getState().mapShowSectorMarkers).toBe(false);
+    expect(markers).toHaveAttribute("aria-checked", "false");
+    result.unmount();
+
+    const ring = open("ring");
+    expect(screen.queryByRole("switch", { name: "Sector markers" })).not.toBeInTheDocument();
+    ring.unmount();
+    open("3d");
+    expect(screen.queryByRole("switch", { name: "Sector markers" })).not.toBeInTheDocument();
+  });
+
   it.each(["2d", "ring", "3d", "timing"] as const)("allows an iOS tap to toggle a %s switch after focus clears", (view) => {
     const timing = view === "timing";
     const label = timing ? "Quick timing settings" : "Quick track settings";
