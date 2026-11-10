@@ -123,6 +123,13 @@ tyre changes, commentary rows, chart tooltips and lap-range controls, standings
 podiums and weather panels. Sample identities, standings and session data are
 synthetic.
 
+Results and profile examples include final classifications (race, qualifying and
+practice), tyre strategy, lap-position and gap charts, championship progression,
+season results grids, teammate comparisons, title outlooks, driver/constructor
+stat tiles, finish distributions and driver lineups. These use local synthetic
+fixtures in `.storybook/resultsFixtures.ts`; chart end labels and strategy rows
+update the focused-driver control, and router links stay inside a memory router.
+
 It does not initialize the application, call OpenF1 or load the app's Sentry
 build plugin. Preview settings are reset and kept in memory, never written to
 saved application preferences. Add `*.stories.tsx` beside components anywhere

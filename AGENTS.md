@@ -15,11 +15,6 @@
 | A button                                          | `components/Button` (`buttonClass()` for links, `<Button>`, `FOCUS_RING`)                    |
 | Shared UI library / Storybook                     | `components/UI/index.ts`: reusable primitives; `UI/SettingsPrimitives.tsx` owns settings controls. `.storybook/` discovers co-located stories throughout `components/`, including racing displays, weather and podiums; preview settings stay in memory and follow theme/units toolbars. `.storybook/fixtures.ts` holds synthetic driver data. `yarn storybook` / `yarn build-storybook` |
 
-Storybook track examples use `.storybook/trackFixtures.ts` (synthetic GPS on baked
-Silverstone/Monaco geometry and loader) and `.storybook/TrackPreview.tsx` (isolated
-query client and viewport). The 2D/ring views disable telemetry and audio; 3D mounts
-the real lazy Mapbox component only after an explicit start, with a token/WebGL2
-gate to avoid automatic billed loads in docs. Public assets are served by Storybook.
 | Add a user setting                                | `stores/settings.ts` (`AppSettings`, defaults, `migrateSettings`) + `components/SettingsModal` |
 | Settings import / export                         | `stores/settings.ts` (`exportSettings`, `parseSettingsImport`), `components/SettingsModal/SettingsTransfer.tsx`: validated versioned JSON, preference-only atomic merge; excludes onboarding and modal state |
 | Main replay page layout / wiring                  | `pages/RaceWeekend.tsx` (very large — grep, don't read whole)                                 |
@@ -52,6 +47,15 @@ gate to avoid automatic billed loads in docs. Public assets are served by Storyb
 | App tour                                          | `components/AppTour/` (`steps.ts`, `targets.ts`), `TOUR_VERSION` (Pitfall 15)                |
 | Proxy cache behaviour                             | `proxy/src/index.ts`, `proxy/README.md` (TTL table)                                          |
 | Circuit data refresh                              | `scripts/*.mjs`, `.github/workflows/update-circuits.yml` (Pitfall 13)                        |
+
+Storybook track examples use `.storybook/trackFixtures.ts` (synthetic GPS on baked
+Silverstone/Monaco geometry and loader) and `.storybook/TrackPreview.tsx` (isolated
+query client and viewport). The 2D/ring views disable telemetry and audio; 3D mounts
+the real lazy Mapbox component only after an explicit start, with a token/WebGL2
+gate to avoid automatic billed loads in docs. Public assets are served by Storybook.
+`.storybook/resultsFixtures.ts` supplies synthetic race/season data for charts,
+strategy, classifications and profiles; `.storybook/RouterPreview.tsx` isolates
+profile links with a memory router. None of these stories fetch session data.
 
 Tests sit next to the module (`foo.ts` → `foo.test.ts`); broad smoke/coverage tests are in `components/__tests__/`.
 

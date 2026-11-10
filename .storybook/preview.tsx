@@ -72,7 +72,7 @@ const preview: Preview = {
   parameters: {
     layout: "padded",
     controls: { expanded: true },
-    options: { storySort: { order: ["UI", "Brand", "Feedback", "Racing", "Tracks", "Charts", "Standings"] } },
+    options: { storySort: { order: ["UI", "Brand", "Feedback", "Racing", "Tracks", "Charts", "Results", "Standings", "Profiles"] } },
   },
   decorators: [
     (Story, context) => (
