@@ -10,83 +10,132 @@ type BooleanSetting = {
   [Key in keyof AppSettings]: AppSettings[Key] extends boolean ? Key : never;
 }[keyof AppSettings];
 type Option = readonly [BooleanSetting | readonly BooleanSetting[], string];
+type OptionGroup = {
+  label: string;
+  options: readonly Option[];
+};
 
-const COMMON: readonly Option[] = [
-  ["mapShowWeather", "Weather readings"],
+const CAR_OPTIONS: readonly Option[] = [
   ["mapShowDriverAcronym", "Driver labels"],
   ["mapShowDriverNumberInside", "Driver numbers"],
   ["mapShowCompoundBadges", "Tyre badges"],
-  ["mapShowSectorFlags", "Sector flags"],
   ["mapShowDriverHud", "Focused driver HUD"],
-  ["mapShowCornerNumbers", "Corner numbers"],
-  ["mapShowClock", "Track clock"],
 ];
-const VIEW_OPTIONS: Record<MapViewMode, readonly Option[]> = {
+const VIEW_GROUPS: Record<MapViewMode, readonly OptionGroup[]> = {
   "2d": [
-    ["mapShowSectorMarkers", "Sector markers"],
-    ["mapWeatherEffectsEnabled", "Weather effects"],
-    ["mapFollowFocusedCar", "Follow focused car"],
-    ["mapShowDriverHeatmap", "Driver heatmap"],
-    ["mapShowPitRejoin", "Pit rejoin projection"],
-    ["mapShowKerbs", "Track kerbs"],
-    ["mapShowCompass", "Compass"],
+    { label: "Track", options: [
+      ["mapShowSectorMarkers", "Sector markers"],
+      ["mapShowSectorFlags", "Sector flags"],
+      ["mapShowCornerNumbers", "Corner numbers"],
+      ["mapShowKerbs", "Track kerbs"],
+    ] },
+    { label: "Cars", options: [
+      ...CAR_OPTIONS,
+      ["mapFollowFocusedCar", "Follow focused car"],
+      ["mapShowDriverHeatmap", "Driver heatmap"],
+      ["mapShowPitRejoin", "Pit rejoin projection"],
+    ] },
+    { label: "Weather", options: [
+      ["mapShowWeather", "Weather readings"],
+      ["mapWeatherEffectsEnabled", "Weather effects"],
+    ] },
+    { label: "Overlays", options: [
+      ["mapShowCompass", "Compass"],
+      ["mapShowClock", "Track clock"],
+    ] },
   ],
   ring: [
-    ["mapWeatherEffectsEnabled", "Weather effects"],
-    ["mapRingTimeScale", "Space by lap time"],
-    ["mapRingReverse", "Anticlockwise"],
-    ["mapRingShowPitWindowOutcomes", "Pit window outcomes"],
+    { label: "Track", options: [
+      ["mapRingTimeScale", "Space by lap time"],
+      ["mapRingReverse", "Anticlockwise"],
+      ["mapShowSectorFlags", "Sector flags"],
+      ["mapShowCornerNumbers", "Corner numbers"],
+    ] },
+    { label: "Cars", options: [
+      ...CAR_OPTIONS,
+      ["mapRingShowPitWindowOutcomes", "Pit window outcomes"],
+    ] },
+    { label: "Weather", options: [
+      ["mapShowWeather", "Weather readings"],
+      ["mapWeatherEffectsEnabled", "Weather effects"],
+    ] },
+    { label: "Overlays", options: [["mapShowClock", "Track clock"]] },
   ],
   "3d": [
-    ["mapView3dWeatherEffects", "Weather effects"],
-    ["mapFollowFocusedCar", "Follow focused car"],
-    ["mapShowDriverHeatmap", "Driver heatmap"],
-    ["mapShowPitRejoin", "Pit rejoin projection"],
-    ["mapView3dSessionLighting", "Session lighting"],
-    ["mapView3dCarModels", "3D car models"],
-    ["mapView3dKerbs", "Track kerbs"],
-    ["mapView3dRunoff", "Run-off areas"],
-    ["mapView3dTerrain", "Terrain"],
+    { label: "Track", options: [
+      ["mapShowSectorFlags", "Sector flags"],
+      ["mapShowCornerNumbers", "Corner numbers"],
+      ["mapView3dKerbs", "Track kerbs"],
+      ["mapView3dRunoff", "Run-off areas"],
+      ["mapView3dTerrain", "Terrain"],
+    ] },
+    { label: "Cars", options: [
+      ...CAR_OPTIONS,
+      ["mapView3dCarModels", "3D car models"],
+      ["mapFollowFocusedCar", "Follow focused car"],
+      ["mapShowDriverHeatmap", "Driver heatmap"],
+      ["mapShowPitRejoin", "Pit rejoin projection"],
+    ] },
+    { label: "Weather & lighting", options: [
+      ["mapShowWeather", "Weather readings"],
+      ["mapView3dWeatherEffects", "Weather effects"],
+      ["mapView3dSessionLighting", "Session lighting"],
+    ] },
+    { label: "Overlays", options: [["mapShowClock", "Track clock"]] },
   ],
 };
 
-const TIMING_DESKTOP: readonly Option[] = [
-  ["trackerTimingTelemetry", "Telemetry columns"],
-  ["trackerTimingCompactColumn", "Compact telemetry column"],
-  ["timingShowMinisectors", "Mini-sectors"],
-  ["trackerTimingShowPosition", "Position"],
-  ["trackerTimingShowDriver", "Driver"],
-  ["trackerTimingShowAlerts", "Alerts"],
-  ["trackerTimingShowBestLap", "Best lap"],
-  ["trackerTimingShowLastLap", "Last lap"],
-  ["trackerTimingShowGap", "Gap"],
-  ["trackerTimingShowInterval", "Interval"],
-  [["trackerTimingShowS1", "trackerTimingShowS2", "trackerTimingShowS3"], "Sectors"],
-  ["trackerTimingShowPosDelta", "Position change"],
-  ["trackerTimingShowTyre", "Tyre"],
-  ["trackerTimingShowPit", "Pit stops"],
-  ["trackerTimingShowLap", "Lap"],
-  ["trackerTimingShowSpeed", "Speed"],
-  ["trackerTimingShowGear", "Gear"],
-  ["trackerTimingShowRpm", "RPM"],
-  ["trackerTimingShowThrBrk", "Throttle / brake"],
-  ["trackerTimingShowDrs", "DRS"],
+const TIMING_DESKTOP: readonly OptionGroup[] = [
+  { label: "Drivers & positions", options: [
+    ["trackerTimingShowPosition", "Position"],
+    ["trackerTimingShowDriver", "Driver"],
+    ["trackerTimingShowAlerts", "Alerts"],
+    ["trackerTimingShowPosDelta", "Position change"],
+  ] },
+  { label: "Laps & gaps", options: [
+    ["trackerTimingShowBestLap", "Best lap"],
+    ["trackerTimingShowLastLap", "Last lap"],
+    ["trackerTimingShowGap", "Gap"],
+    ["trackerTimingShowInterval", "Interval"],
+    [["trackerTimingShowS1", "trackerTimingShowS2", "trackerTimingShowS3"], "Sectors"],
+    ["timingShowMinisectors", "Mini-sectors"],
+    ["trackerTimingShowLap", "Lap"],
+  ] },
+  { label: "Tyres & pits", options: [
+    ["trackerTimingShowTyre", "Tyre"],
+    ["trackerTimingShowPit", "Pit stops"],
+  ] },
+  { label: "Telemetry", options: [
+    ["trackerTimingTelemetry", "Telemetry columns"],
+    ["trackerTimingCompactColumn", "Compact telemetry column"],
+    ["trackerTimingShowSpeed", "Speed"],
+    ["trackerTimingShowGear", "Gear"],
+    ["trackerTimingShowRpm", "RPM"],
+    ["trackerTimingShowThrBrk", "Throttle / brake"],
+    ["trackerTimingShowDrs", "DRS"],
+  ] },
 ];
-const TIMING_MOBILE: readonly Option[] = [
-  ["trackerTimingMobileCarData", "Mobile telemetry"],
-  ["timingShowMinisectors", "Mini-sectors"],
-  ["timingMobileShowPosition", "Position"],
-  ["timingMobileShowDriver", "Driver"],
-  ["timingMobileShowAlerts", "Alerts"],
-  ["timingMobileShowBestLap", "Best lap"],
-  ["timingMobileShowLastLap", "Last lap"],
-  ["timingMobileShowGap", "Gap"],
-  ["timingMobileShowInterval", "Interval"],
-  [["timingMobileShowS1", "timingMobileShowS2", "timingMobileShowS3"], "Sectors"],
-  ["timingMobileShowPosDelta", "Position change"],
-  ["timingMobileShowTyre", "Tyre"],
-  ["timingMobileShowPitCount", "Pit stops"],
-  ["timingMobileShowLap", "Lap"],
+const TIMING_MOBILE: readonly OptionGroup[] = [
+  { label: "Drivers & positions", options: [
+    ["timingMobileShowPosition", "Position"],
+    ["timingMobileShowDriver", "Driver"],
+    ["timingMobileShowAlerts", "Alerts"],
+    ["timingMobileShowPosDelta", "Position change"],
+  ] },
+  { label: "Laps & gaps", options: [
+    ["timingMobileShowBestLap", "Best lap"],
+    ["timingMobileShowLastLap", "Last lap"],
+    ["timingMobileShowGap", "Gap"],
+    ["timingMobileShowInterval", "Interval"],
+    [["timingMobileShowS1", "timingMobileShowS2", "timingMobileShowS3"], "Sectors"],
+    ["timingShowMinisectors", "Mini-sectors"],
+    ["timingMobileShowLap", "Lap"],
+  ] },
+  { label: "Tyres & pits", options: [
+    ["timingMobileShowTyre", "Tyre"],
+    ["timingMobileShowPitCount", "Pit stops"],
+  ] },
+  { label: "Telemetry", options: [["trackerTimingMobileCarData", "Mobile telemetry"]] },
 ];
 
 export function QuickTrackSettings({
@@ -103,7 +152,7 @@ export function QuickTrackSettings({
   const settings = useSettings((state) => state);
   const timing = view === "timing";
   const label = timing ? "Quick timing settings" : "Quick track settings";
-  const groups = timing ? [mobileTiming ? TIMING_MOBILE : TIMING_DESKTOP] : [VIEW_OPTIONS[view], COMMON];
+  const groups = timing ? (mobileTiming ? TIMING_MOBILE : TIMING_DESKTOP) : VIEW_GROUPS[view];
   const [open, setOpen] = useState(false);
   const id = useId();
   const rootRef = useRef<HTMLDivElement>(null);
@@ -202,9 +251,12 @@ export function QuickTrackSettings({
             </button>
           </div>
           <div className="min-h-0 max-h-80 overflow-y-auto overscroll-contain px-3">
-            {groups.map((group, index) => (
-              <div key={index} className={index ? "border-t border-line" : undefined}>
-                {group.map(([key, label]) => {
+            {groups.map((group) => (
+              <section key={group.label} aria-label={group.label} className="border-b border-line pb-1 last:border-0">
+                <h3 className="pt-3 pb-1 text-tiny font-bold uppercase tracking-caps text-muted">
+                  {group.label}
+                </h3>
+                {group.options.map(([key, label]) => {
                   const keys = typeof key === "string" ? [key] : key;
                   const checked = keys.every((setting) => settings[setting]);
                   return (
@@ -232,7 +284,7 @@ export function QuickTrackSettings({
                   </button>
                   );
                 })}
-              </div>
+              </section>
             ))}
           </div>
           <div className="shrink-0 border-t border-panel p-2">

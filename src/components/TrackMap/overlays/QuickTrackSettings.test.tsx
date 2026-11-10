@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { act, fireEvent, render, screen } from "@testing-library/react";
+import { act, fireEvent, render, screen, within } from "@testing-library/react";
 import { useSettings } from "@/stores/settings";
 import { QuickTrackSettings } from "./QuickTrackSettings";
 
@@ -15,6 +15,42 @@ function open(view: "2d" | "ring" | "3d" = "2d", onOpenSettings?: () => void) {
 }
 
 describe("QuickTrackSettings", () => {
+  it.each([
+    ["2d", 15, "Weather"],
+    ["ring", 12, "Weather"],
+    ["3d", 17, "Weather & lighting"],
+  ] as const)("groups all %s controls by purpose", (view, count, weatherLabel) => {
+    open(view);
+    expect(screen.getAllByRole("switch")).toHaveLength(count);
+    const track = within(screen.getByRole("region", { name: "Track" }));
+    const cars = within(screen.getByRole("region", { name: "Cars" }));
+    const weather = within(screen.getByRole("region", { name: weatherLabel }));
+    const overlays = within(screen.getByRole("region", { name: "Overlays" }));
+
+    expect(track.getByRole("switch", { name: "Sector flags" })).toBeInTheDocument();
+    expect(track.getByRole("switch", { name: "Corner numbers" })).toBeInTheDocument();
+    expect(cars.getByRole("switch", { name: "Driver labels" })).toBeInTheDocument();
+    expect(cars.getByRole("switch", { name: "Focused driver HUD" })).toBeInTheDocument();
+    expect(weather.getByRole("switch", { name: "Weather effects" })).toBeInTheDocument();
+    expect(weather.getByRole("switch", { name: "Weather readings" })).toBeInTheDocument();
+    expect(overlays.getByRole("switch", { name: "Track clock" })).toBeInTheDocument();
+    expect(cars.queryByRole("switch", { name: "Sector flags" })).not.toBeInTheDocument();
+  });
+
+  it.each([false, true])("groups timing controls by purpose (mobile: %s)", (mobileTiming) => {
+    render(<QuickTrackSettings view="timing" buttonClass="test-button" mobileTiming={mobileTiming} />);
+    fireEvent.click(screen.getByRole("button", { name: "Quick timing settings" }));
+    expect(screen.getAllByRole("switch")).toHaveLength(mobileTiming ? 14 : 20);
+    expect(within(screen.getByRole("region", { name: "Drivers & positions" }))
+      .getByRole("switch", { name: "Position" })).toBeInTheDocument();
+    expect(within(screen.getByRole("region", { name: "Laps & gaps" }))
+      .getByRole("switch", { name: "Sectors" })).toBeInTheDocument();
+    expect(within(screen.getByRole("region", { name: "Tyres & pits" }))
+      .getByRole("switch", { name: "Pit stops" })).toBeInTheDocument();
+    expect(within(screen.getByRole("region", { name: "Telemetry" }))
+      .getByRole("switch", { name: mobileTiming ? "Mobile telemetry" : "Telemetry columns" })).toBeInTheDocument();
+  });
+
   it("toggles sector markers on the 2D map only, enabled by default", () => {
     const result = open("2d");
     const markers = screen.getByRole("switch", { name: "Sector markers" });
