@@ -10,7 +10,7 @@ import { trackEvent } from "@/lib/analytics";
 import type { AppSettings, MapViewMode } from "@/stores/settings";
 import type { BattleGap } from "@/timeline/director";
 import type { TrackFlagState } from "@/timeline/raceControl";
-import { SectionHeader, SettingRow } from "./SettingsPrimitives";
+import { SectionHeader, SettingRow } from "@/components/UI";
 
 // Only fetched when the 3D preview is shown.
 const TrackMap3D = lazy(() =>

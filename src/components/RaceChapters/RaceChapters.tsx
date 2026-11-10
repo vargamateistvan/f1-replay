@@ -17,7 +17,7 @@ import {
   commentaryGroupLabel,
 } from "@/components/CommentaryPanels/commentaryList";
 import { CommentaryRow } from "@/components/CommentaryPanels/CommentaryRow";
-import { Chip } from "@/components/SettingsModal/SettingsPrimitives";
+import { Chip } from "@/components/UI";
 import { TOKEN_HEX } from "@/designTokens";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────

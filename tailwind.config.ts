@@ -43,7 +43,7 @@ const colors = {
 };
 
 export default {
-  content: ["./index.html", "./src/**/*.{ts,tsx}"],
+  content: ["./index.html", "./src/**/*.{ts,tsx}", "./.storybook/**/*.{ts,tsx}"],
   theme: {
     // Only design tokens: Tailwind's default palette (red-500, slate-300…) is
     // intentionally unavailable.

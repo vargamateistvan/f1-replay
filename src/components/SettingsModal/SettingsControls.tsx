@@ -6,7 +6,7 @@ import {
   SectionHeader,
   Segmented,
   SettingRow,
-} from "./SettingsPrimitives";
+} from "@/components/UI";
 import { TrackMapSettings } from "./TrackMapSettings";
 import { SettingsTransfer } from "./SettingsTransfer";
 import {
@@ -38,7 +38,7 @@ function toAnalyticsValue(
   return value.join(",");
 }
 
-export { SectionHeader, SettingRow, Toggle } from "./SettingsPrimitives";
+export { SectionHeader, SettingRow, Toggle } from "@/components/UI";
 
 // ── Speed selector ────────────────────────────────────────────────────────────
 

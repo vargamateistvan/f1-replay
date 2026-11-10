@@ -30,7 +30,7 @@ const DESIGN_SYSTEM_RULES = [
 ];
 
 export default [
-  { ignores: ["dist", "coverage", "proxy/.wrangler", "proxy/node_modules"] },
+  { ignores: ["dist", "storybook-static", "coverage", "proxy/.wrangler", "proxy/node_modules"] },
 
   // ── Cloudflare Worker ──────────────────────────────────────────────────────
   // Separate block so we can supply CF runtime globals and skip React rules.
@@ -85,5 +85,9 @@ export default [
       ],
       "no-restricted-syntax": ["error", ...DESIGN_SYSTEM_RULES],
     },
+  },
+  {
+    files: [".storybook/preview.tsx"],
+    rules: { "react-refresh/only-export-components": "off" },
   },
 ];

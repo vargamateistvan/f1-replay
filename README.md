@@ -94,6 +94,53 @@ An opt-in alternative to the 2D map (the 3D button on the map, or **Settings →
 
 ## Getting Started
 
+### Component library and Storybook
+
+Reusable UI is available from `@/components/UI`:
+
+```tsx
+import { Button, SettingRow, Chip, DialogHeader } from "@/components/UI";
+```
+
+The internal library also exports `Toggle`, `Segmented`, `OptionRow`,
+`SectionHeader`, `ChipField`, `TooltipCard`, `buttonClass`, `FOCUS_RING`,
+`ButtonSize` and `ButtonVariant`. Existing component import paths still work.
+Settings-specific persistence and analytics remain in the settings feature,
+not in the reusable controls.
+
+With Node.js 20.19+ (or 22.12+) and dependencies installed:
+
+```bash
+yarn storybook        # Component explorer at http://localhost:6006
+yarn build-storybook  # Static catalog in storybook-static/
+```
+
+The catalog includes interactive controls, disabled states, composition examples,
+generated prop documentation and dark/light and metric/imperial toolbar switches
+using the app's fonts and design tokens. Beyond the UI primitives, it includes
+the app logo, error/empty states, driver headshot fallbacks, tyre compounds,
+tyre changes, commentary rows, chart tooltips and lap-range controls, standings
+podiums and weather panels. Sample identities, standings and session data are
+synthetic.
+
+It does not initialize the application, call OpenF1 or load the app's Sentry
+build plugin. Preview settings are reset and kept in memory, never written to
+saved application preferences. Add `*.stories.tsx` beside components anywhere
+in `src/components/`; domain components stay in their existing folders rather
+than being added to the primitive library.
+
+The **Tracks** section includes the real 2D and ring views with baked Silverstone
+and Monaco geometry, simulated car positions, focus controls, flags, rain and
+pit-window examples. Drag the `previewTimeMs` control to move the cars. Track
+stories provide an isolated query client and disable telemetry requests and
+start-light audio.
+
+The **3D** stories show the camera's offline minimap until you explicitly click
+**Start 3D preview**. The real 3D map requires `VITE_MAPBOX_TOKEN` in `.env.local`,
+a Storybook restart, WebGL2 and Mapbox network access. Each start may incur a
+billed Mapbox map load; navigating stories or docs alone does not start one.
+Its car model is served from the existing public assets.
+
 ### Prerequisites
 
 - **Node.js** 18+

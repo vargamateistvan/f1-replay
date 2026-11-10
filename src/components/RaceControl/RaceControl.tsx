@@ -28,7 +28,7 @@ import {
   CommentaryDriver,
   CommentaryRow,
 } from "@/components/CommentaryPanels/CommentaryRow";
-import { Chip } from "@/components/SettingsModal/SettingsPrimitives";
+import { Chip } from "@/components/UI";
 import { DEFAULT_FLAG_CONFIG, FLAG_CONFIG } from "./flagConfig";
 import { raceControlEventAccent, raceControlEventBadge } from "./eventStyle";
 import { TOKEN_HEX } from "@/designTokens";

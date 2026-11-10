@@ -13,6 +13,13 @@
 | Tune a number (speed, poll rate, size, timeout)   | `src/constants.ts` (grep the name; every magic number lives here)                            |
 | Colour, fonts, font size, letter-spacing, z-index | `src/designTokens.ts` (Tailwind tokens + light/dark values; Section 8 Styling)               |
 | A button                                          | `components/Button` (`buttonClass()` for links, `<Button>`, `FOCUS_RING`)                    |
+| Shared UI library / Storybook                     | `components/UI/index.ts`: reusable primitives; `UI/SettingsPrimitives.tsx` owns settings controls. `.storybook/` discovers co-located stories throughout `components/`, including racing displays, weather and podiums; preview settings stay in memory and follow theme/units toolbars. `.storybook/fixtures.ts` holds synthetic driver data. `yarn storybook` / `yarn build-storybook` |
+
+Storybook track examples use `.storybook/trackFixtures.ts` (synthetic GPS on baked
+Silverstone/Monaco geometry and loader) and `.storybook/TrackPreview.tsx` (isolated
+query client and viewport). The 2D/ring views disable telemetry and audio; 3D mounts
+the real lazy Mapbox component only after an explicit start, with a token/WebGL2
+gate to avoid automatic billed loads in docs. Public assets are served by Storybook.
 | Add a user setting                                | `stores/settings.ts` (`AppSettings`, defaults, `migrateSettings`) + `components/SettingsModal` |
 | Settings import / export                         | `stores/settings.ts` (`exportSettings`, `parseSettingsImport`), `components/SettingsModal/SettingsTransfer.tsx`: validated versioned JSON, preference-only atomic merge; excludes onboarding and modal state |
 | Main replay page layout / wiring                  | `pages/RaceWeekend.tsx` (very large — grep, don't read whole)                                 |
@@ -341,6 +348,7 @@ Quick settings group map controls into Track, Cars, Weather (Weather & lighting 
 | `DialogHeader`                                    | Shared modal header (Settings, How it works, About, catch-up) in the legal-page style: red eyebrow strip + mono meta, black uppercase title, square close button |
 | `TooltipCard`                                     | Shared tooltip card styling                                                              |
 | `Button`                                          | `buttonClass(variant, size)` (`primary` red fill / `secondary` bordered, red hover / `quiet` muted; `md` / `sm` / `block`) for buttons and `<Link>`s, `<Button>`, `FOCUS_RING` for custom controls |
+| `UI`                                              | Internal shared entry point for Button/styles, DialogHeader, TooltipCard and extracted Toggle, SettingRow, OptionRow, SectionHeader, Segmented, Chip and ChipField. Co-located Storybook stories use real components, local state and theme tokens, without API calls. The old SettingsModal/SettingsPrimitives path remains a compatibility re-export |
 
 ---
 

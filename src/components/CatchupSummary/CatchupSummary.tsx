@@ -20,7 +20,7 @@ import { useSettings } from "@/stores/settings";
 import { toSafeExternalUrl } from "@/utils/url";
 import { RadioAudio } from "@/components/RadioAudio";
 import { DialogHeader } from "@/components/DialogHeader";
-import { Chip } from "@/components/SettingsModal/SettingsPrimitives";
+import { Chip } from "@/components/UI";
 import { TyreChange } from "@/components/TyreChange/TyreChange";
 import {
   COMMENTARY_BUTTON_CLASS,

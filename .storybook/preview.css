@@ -1,0 +1,8 @@
+/* The app fixes the document to its shell; docs and multi-story pages must scroll. */
+html,
+body,
+#storybook-root {
+  height: auto;
+  min-height: 100%;
+  overflow: auto;
+}
