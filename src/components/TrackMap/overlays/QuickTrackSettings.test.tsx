@@ -16,9 +16,9 @@ function open(view: "2d" | "ring" | "3d" = "2d", onOpenSettings?: () => void) {
 
 describe("QuickTrackSettings", () => {
   it.each([
-    ["2d", 15, "Weather"],
-    ["ring", 12, "Weather"],
-    ["3d", 17, "Weather & lighting"],
+    ["2d", 16, "Weather"],
+    ["ring", 13, "Weather"],
+    ["3d", 18, "Weather & lighting"],
   ] as const)("groups all %s controls by purpose", (view, count, weatherLabel) => {
     open(view);
     expect(screen.getAllByRole("switch")).toHaveLength(count);
@@ -29,12 +29,26 @@ describe("QuickTrackSettings", () => {
 
     expect(track.getByRole("switch", { name: "Sector flags" })).toBeInTheDocument();
     expect(track.getByRole("switch", { name: "Corner numbers" })).toBeInTheDocument();
+    expect(track.getByRole("switch", { name: "Pit exit light" })).toBeInTheDocument();
     expect(cars.getByRole("switch", { name: "Driver labels" })).toBeInTheDocument();
     expect(cars.getByRole("switch", { name: "Focused driver HUD" })).toBeInTheDocument();
     expect(weather.getByRole("switch", { name: "Weather effects" })).toBeInTheDocument();
     expect(weather.getByRole("switch", { name: "Weather readings" })).toBeInTheDocument();
     expect(overlays.getByRole("switch", { name: "Track clock" })).toBeInTheDocument();
     expect(cars.queryByRole("switch", { name: "Sector flags" })).not.toBeInTheDocument();
+  });
+
+  it.each(["2d", "ring", "3d"] as const)("toggles the shared pit-lane status setting in %s", (view) => {
+    open(view);
+    const light = within(screen.getByRole("region", { name: "Track" }))
+      .getByRole("switch", { name: "Pit exit light" });
+    expect(light).toHaveAttribute("aria-checked", "false");
+    fireEvent.click(light);
+    expect(useSettings.getState().mapShowPitLaneStatus).toBe(true);
+    expect(light).toHaveAttribute("aria-checked", "true");
+    fireEvent.click(light);
+    expect(useSettings.getState().mapShowPitLaneStatus).toBe(false);
+    expect(light).toHaveAttribute("aria-checked", "false");
   });
 
   it.each([false, true])("groups timing controls by purpose (mobile: %s)", (mobileTiming) => {

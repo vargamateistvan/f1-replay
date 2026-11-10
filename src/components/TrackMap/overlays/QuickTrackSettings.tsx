@@ -28,6 +28,7 @@ const VIEW_GROUPS: Record<MapViewMode, readonly OptionGroup[]> = {
       ["mapShowSectorFlags", "Sector flags"],
       ["mapShowCornerNumbers", "Corner numbers"],
       ["mapShowKerbs", "Track kerbs"],
+      ["mapShowPitLaneStatus", "Pit exit light"],
     ] },
     { label: "Cars", options: [
       ...CAR_OPTIONS,
@@ -48,6 +49,7 @@ const VIEW_GROUPS: Record<MapViewMode, readonly OptionGroup[]> = {
     { label: "Track", options: [
       ["mapRingTimeScale", "Space by lap time"],
       ["mapRingReverse", "Anticlockwise"],
+      ["mapShowPitLaneStatus", "Pit exit light"],
       ["mapShowSectorFlags", "Sector flags"],
       ["mapShowCornerNumbers", "Corner numbers"],
     ] },
@@ -68,6 +70,7 @@ const VIEW_GROUPS: Record<MapViewMode, readonly OptionGroup[]> = {
       ["mapView3dKerbs", "Track kerbs"],
       ["mapView3dRunoff", "Run-off areas"],
       ["mapView3dTerrain", "Terrain"],
+      ["mapShowPitLaneStatus", "Pit exit light"],
     ] },
     { label: "Cars", options: [
       ...CAR_OPTIONS,
