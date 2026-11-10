@@ -79,6 +79,7 @@ interface KindStyle {
   color: string;
   /** Badge text colour on `color`. */
   text: string;
+  chipTone: "blue" | "orange" | "red" | "green" | "purple" | "teal" | "neutral";
   badge: string | null;
   mkChipLabel: (n: number) => string;
 }
@@ -91,48 +92,56 @@ const KIND_STYLES: Record<ToastKind, KindStyle> = {
   pit: {
     color: "#3d78ff",
     text: "#fff",
+    chipTone: "blue",
     badge: "PIT",
     mkChipLabel: (n) => plural(n, "pit stop"),
   },
   flag: {
     color: TOKEN_HEX.orange,
     text: "#000",
+    chipTone: "orange",
     badge: null, // per-flag colour + label
     mkChipLabel: (n) => plural(n, "flag"),
   },
   penalty: {
     color: TOKEN_HEX.f1red,
     text: "#fff",
+    chipTone: "red",
     badge: "PENALTY",
     mkChipLabel: (n) => plural(n, "penalty", "penalties"),
   },
   overtake: {
     color: "#22c55e",
     text: "#000",
+    chipTone: "green",
     badge: null,
     mkChipLabel: (n) => plural(n, "overtake"),
   },
   fastest_lap: {
     color: TOKEN_HEX.purple,
     text: "#fff",
+    chipTone: "purple",
     badge: "FASTEST",
     mkChipLabel: (n) => plural(n, "fastest lap"),
   },
   undercut: {
     color: TOKEN_HEX.teal,
     text: "#000",
+    chipTone: "teal",
     badge: null,
     mkChipLabel: (n) => plural(n, "undercut"),
   },
   investigation: {
     color: TOKEN_HEX.orange,
     text: "#000",
+    chipTone: "orange",
     badge: "INVESTIGATION",
     mkChipLabel: (n) => plural(n, "investigation"),
   },
   radio: {
     color: "#6b6b7a",
     text: "#fff",
+    chipTone: "neutral",
     badge: "RADIO",
     mkChipLabel: (n) => `${n} radio`,
   },
@@ -523,12 +532,12 @@ export function CatchupSummary({
           {presentKinds.length > 0 && (
             <div className="flex flex-wrap gap-1.5 border-b border-panel px-4 py-3 sm:px-5">
               {presentKinds.map((kind) => {
-                const { color, mkChipLabel } = KIND_STYLES[kind];
+                const { chipTone, mkChipLabel } = KIND_STYLES[kind];
                 return (
                   <Chip
                     key={kind}
                     label={mkChipLabel(counts[kind]!)}
-                    color={color}
+                    tone={chipTone}
                     active={activeKinds.has(kind)}
                     onToggle={() => toggleKind(kind)}
                   />

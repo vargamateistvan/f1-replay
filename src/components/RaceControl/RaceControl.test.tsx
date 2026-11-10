@@ -42,6 +42,36 @@ describe("RaceControl", () => {
     state.downloadCsv.mockReset();
   });
 
+  it("uses semantic tinted chips for the category filters", () => {
+    render(
+      <RaceControlFeed
+        entries={[]}
+        sessionTimeMs={0}
+        sessionStartMs={1}
+      />,
+    );
+
+    const expectedTones = [
+      ["Flags", "bg-yellow-tint", "text-yellow-fg"],
+      ["Incidents", "bg-red-tint", "text-red-fg"],
+      ["Session", "bg-green-tint", "text-green-fg"],
+      ["DRS", "bg-purple-tint", "text-purple-fg"],
+      ["Other", "bg-panel", "text-fg"],
+    ] as const;
+
+    for (const [label, background, foreground] of expectedTones) {
+      expect(
+        screen.getByRole("button", { name: label }),
+      ).toHaveClass(background, foreground);
+    }
+
+    const flagsChip = screen.getByRole("button", { name: "Flags" });
+    fireEvent.click(flagsChip);
+    expect(flagsChip).toHaveAttribute("aria-pressed", "false");
+    expect(flagsChip).toHaveClass("text-muted");
+    expect(flagsChip).not.toHaveClass("bg-yellow-tint");
+  });
+
   it("covers empty states, filters, tracker and csv export", () => {
     const onClearFocus = vi.fn();
 

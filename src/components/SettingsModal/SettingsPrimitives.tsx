@@ -148,11 +148,55 @@ export function Segmented<T extends string | number>({
 
 // ── Chip toggle (multi-select) ────────────────────────────────────────────────
 
+const CHIP_TONE_CLASSES = {
+  yellow: {
+    active: "border-yellow-line bg-yellow-tint text-yellow-fg",
+    swatchActive: "bg-yellow",
+    swatchInactive: "border-yellow-line",
+  },
+  red: {
+    active: "border-red-line bg-red-tint text-red-fg",
+    swatchActive: "bg-red",
+    swatchInactive: "border-red-line",
+  },
+  green: {
+    active: "border-green-line bg-green-tint text-green-fg",
+    swatchActive: "bg-green",
+    swatchInactive: "border-green-line",
+  },
+  orange: {
+    active: "border-orange-line bg-orange-tint text-orange-fg",
+    swatchActive: "bg-orange",
+    swatchInactive: "border-orange-line",
+  },
+  purple: {
+    active: "border-purple-line bg-purple-tint text-purple-fg",
+    swatchActive: "bg-purple",
+    swatchInactive: "border-purple-line",
+  },
+  blue: {
+    active: "border-blue-line bg-blue-tint text-blue-fg",
+    swatchActive: "bg-blue",
+    swatchInactive: "border-blue-line",
+  },
+  teal: {
+    active: "border-teal-line bg-teal-tint text-teal-fg",
+    swatchActive: "bg-teal",
+    swatchInactive: "border-teal-line",
+  },
+  neutral: {
+    active: "border-panel bg-panel text-fg",
+    swatchActive: "bg-muted",
+    swatchInactive: "border-line",
+  },
+} as const;
+
 export function Chip({
   label,
   active,
   onToggle,
   color,
+  tone,
   disabled = false,
 }: {
   label: string;
@@ -160,8 +204,12 @@ export function Chip({
   onToggle: () => void;
   /** Fill colour when active; defaults to F1 red. */
   color?: string;
+  /** Theme-aware semantic colour for the active chip and its swatch. */
+  tone?: keyof typeof CHIP_TONE_CLASSES;
   disabled?: boolean;
 }) {
+  const toneClasses = tone ? CHIP_TONE_CLASSES[tone] : null;
+
   return (
     <button
       type="button"
@@ -175,19 +223,32 @@ export function Chip({
         "flex items-center gap-1.5 border px-2 py-1 text-caption font-bold uppercase tracking-widest transition-colors",
         "focus:outline-none focus-visible:ring-1 focus-visible:ring-fg/40",
         active
-          ? color
-            ? "border-panel bg-track text-fg"
-            : "border-f1red bg-f1red text-white"
+          ? toneClasses
+            ? toneClasses.active
+            : color
+              ? "border-panel bg-track text-fg"
+              : "border-f1red bg-f1red text-white"
           : "border-panel bg-transparent text-muted hover:border-muted hover:text-fg",
         disabled ? "cursor-not-allowed opacity-50" : "",
       ].join(" ")}
-      style={active && color ? { borderColor: color } : undefined}
+      style={active && color && !toneClasses ? { borderColor: color } : undefined}
     >
-      {color && (
+      {(color || toneClasses) && (
         <span
           aria-hidden="true"
-          className="h-2 w-2 shrink-0"
-          style={{ backgroundColor: active ? color : "transparent", boxShadow: `inset 0 0 0 1px ${color}` }}
+          className={`h-2 w-2 shrink-0 ${toneClasses
+            ? active
+              ? toneClasses.swatchActive
+              : `border ${toneClasses.swatchInactive}`
+            : ""}`}
+          style={
+            !toneClasses && color
+              ? {
+                  backgroundColor: active ? color : "transparent",
+                  boxShadow: `inset 0 0 0 1px ${color}`,
+                }
+              : undefined
+          }
         />
       )}
       {label}

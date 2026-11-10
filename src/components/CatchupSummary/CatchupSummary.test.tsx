@@ -288,9 +288,14 @@ describe("CatchupSummary — rework", () => {
     fireEvent.click(screen.getByRole("button", { name: "2 pit stops" }));
     expect(screen.queryByText("PIT")).toBeNull();
     expect(screen.getByText("Yellow in sector 2")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "2 pit stops" })).toHaveClass(
+      "text-muted",
+    );
     const flagChip = screen.getByRole("button", { name: "1 flag" });
+    expect(flagChip).toHaveClass("bg-orange-tint", "text-orange-fg");
     fireEvent.click(flagChip);
     expect(flagChip).toHaveAttribute("aria-pressed", "true");
+    expect(flagChip).toHaveClass("bg-orange-tint", "text-orange-fg");
   });
 });
 

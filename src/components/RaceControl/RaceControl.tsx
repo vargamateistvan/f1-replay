@@ -42,8 +42,7 @@ const DEFAULT_CONFIG = DEFAULT_FLAG_CONFIG;
 type KindGroup = {
   key: string;
   label: string;
-  /** Chip swatch colour. */
-  color: string;
+  tone: "yellow" | "red" | "green" | "purple" | "neutral";
   kinds: RaceControlKind[];
 };
 
@@ -51,26 +50,26 @@ const KIND_GROUPS: KindGroup[] = [
   {
     key: "flags",
     label: "Flags",
-    color: TOKEN_HEX.yellow,
+    tone: "yellow",
     kinds: ["flag", "safety_car"],
   },
   {
     key: "incidents",
     label: "Incidents",
-    color: TOKEN_HEX.f1red,
+    tone: "red",
     kinds: ["penalty", "investigation"],
   },
   {
     key: "session",
     label: "Session",
-    color: TOKEN_HEX.green,
+    tone: "green",
     kinds: ["session_status"],
   },
-  { key: "drs", label: "DRS", color: TOKEN_HEX.purple, kinds: ["drs"] },
+  { key: "drs", label: "DRS", tone: "purple", kinds: ["drs"] },
   {
     key: "other",
     label: "Other",
-    color: "#8a8a99",
+    tone: "neutral",
     kinds: ["car_event", "other"],
   },
 ];
@@ -328,7 +327,7 @@ export function RaceControlFeed({
           <Chip
             key={g.key}
             label={g.label}
-            color={g.color}
+            tone={g.tone}
             active={activeGroups.has(g.key)}
             onToggle={() => toggleGroup(g.key)}
           />
