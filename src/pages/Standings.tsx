@@ -576,8 +576,6 @@ function ChartHeader({
 export default function Standings() {
   const [yearParam] = useNumberParam("year", DEFAULT_YEAR);
   const year = yearParam ?? DEFAULT_YEAR;
-  const [meetingKey] = useNumberParam("meeting", null);
-  const [sessionKey] = useNumberParam("session", null);
   const { search } = useLocation();
   const navigate = useNavigate();
   // Profile links keep the year/session/tab so "back" returns to this view.
@@ -614,6 +612,7 @@ export default function Standings() {
     teammates: null,
   });
 
+  // Replay event params should not turn season standings into an as-of view.
   const {
     driverStandings,
     constructorStandings,
@@ -628,7 +627,7 @@ export default function Standings() {
     isLoading,
     isFetching,
     isError,
-  } = useStandings(year, sessionKey, meetingKey, {
+  } = useStandings(year, null, null, {
     includeQualifying: tab === "teammates",
     includeResultMarkers: tab === "results",
   });

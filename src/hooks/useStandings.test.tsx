@@ -109,6 +109,11 @@ describe("useStandings", () => {
     expect(championshipKey()).toBe(9001);
   });
 
+  it("uses the preferred meeting when the session belongs to another event", () => {
+    renderHook(() => useStandings(2023, 9001, 1100));
+    expect(championshipKey()).toBe(9000);
+  });
+
   it("ignores a preferred meeting from another year", () => {
     renderHook(() => useStandings(2023, null, 4242));
     expect(championshipKey()).toBe(9001);

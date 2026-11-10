@@ -101,11 +101,16 @@ export function useStandings(
           .filter((session) => session.meeting_key === preferredMeetingKey)
           .at(-1)?.session_key ?? null
       : null;
-  // Only honour a preferred session if it belongs to the selected year —
-  // otherwise a stale ?session= from another season would override the year.
+  // Only honour a preferred session if it belongs to the selected year and
+  // meeting — otherwise a stale ?session= can override the selected event.
   const selectedSession =
     preferredSessionKey != null
-      ? (sessionsQ.data ?? []).find((s) => s.session_key === preferredSessionKey)
+      ? (sessionsQ.data ?? []).find(
+          (s) =>
+            s.session_key === preferredSessionKey &&
+            (preferredMeetingKey === null ||
+              s.meeting_key === preferredMeetingKey),
+        )
       : undefined;
   // Championship tables only exist for Races and Sprints, so a practice or
   // qualifying session shows the standings after the last one before it.
