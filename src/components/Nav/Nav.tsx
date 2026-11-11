@@ -741,7 +741,7 @@ export function Nav() {
             const search = searchParams.toString();
             navigate(search ? `${HOME_PATH}?${search}` : HOME_PATH);
           }}
-          className="flex items-center gap-1.5 mr-2 sm:mr-6 select-none shrink-0 hover:opacity-80 transition-opacity"
+          className="flex items-center gap-1.5 mr-2 sm:mr-6 select-none shrink-0 text-white hover:opacity-80 transition-opacity"
           aria-label="F1 Replay home"
         >
           <AppLogo size={22} />

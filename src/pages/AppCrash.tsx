@@ -25,7 +25,7 @@ export default function AppCrash({
         </div>
 
         <div className="flex flex-col items-center gap-5 px-6 py-8">
-          <div className="border border-panel bg-track p-3">
+          <div className="border border-panel bg-track p-3 text-fg">
             <AppLogo size={36} />
           </div>
 

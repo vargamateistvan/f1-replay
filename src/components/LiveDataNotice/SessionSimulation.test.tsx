@@ -61,6 +61,15 @@ describe("SessionSimulation", () => {
       .toBe(SESSION_SIMULATION_CARS);
   });
 
+  it("uses a stronger outline for the home preview without changing the background default", () => {
+    const { container, rerender } = render(<SessionSimulation session={session} />);
+    expect(container.querySelector("svg")).toHaveClass("opacity-40");
+    expect(container.querySelector("svg > path")).toHaveClass("stroke-panel");
+    rerender(<SessionSimulation session={session} variant="preview" />);
+    expect(container.querySelector("svg")).toHaveClass("opacity-100");
+    expect(container.querySelector("svg > path")).toHaveClass("stroke-line");
+  });
+
   it("mixes different speeds so a faster car catches the car ahead within one lap", () => {
     const { container } = render(<SessionSimulation session={session} />);
     const animations = [...container.querySelectorAll("animateMotion")];

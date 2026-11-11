@@ -109,7 +109,8 @@ export function useDrivers(sessionKey: number | null) {
 
 // Decoration must not enqueue requests when session access has been denied.
 export function useCachedSimulationDrivers(
-  session: Pick<Session, "session_key" | "year" | "date_start"> | undefined,
+  session: (Pick<Session, "year" | "date_start"> &
+    Partial<Pick<Session, "session_key">>) | undefined,
 ) {
   const client = useQueryClient();
   const subscribe = useCallback(
@@ -118,7 +119,9 @@ export function useCachedSimulationDrivers(
   );
   const getSnapshot = useCallback(() => {
     if (!session) return undefined;
-    const selected = client.getQueryData<Driver[]>(["drivers", session.session_key]);
+    const selected = session.session_key === undefined
+      ? undefined
+      : client.getQueryData<Driver[]>(["drivers", session.session_key]);
     if (selected?.some((driver) => driver.team_colour)) return selected;
 
     const candidates = [

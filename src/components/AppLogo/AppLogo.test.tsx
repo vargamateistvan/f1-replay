@@ -10,6 +10,8 @@ describe("AppLogo", () => {
     expect(svg).toHaveAttribute("width", "24");
     expect(svg).toHaveAttribute("height", "24");
     expect(svg).toHaveAttribute("aria-hidden", "true");
+    expect(container.querySelector("circle")).toHaveAttribute("stroke", "currentColor");
+    expect(container.querySelector("polygon")).toHaveAttribute("fill", "currentColor");
   });
 
   it("applies custom size and className", () => {

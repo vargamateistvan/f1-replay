@@ -70,7 +70,7 @@ function LazyModals() {
 function RouteFallback() {
   return (
     <div className="app-loading app-loading--route" role="status">
-      <div className="app-loading__mark"><AppLogo size={40} /></div>
+      <div className="app-loading__mark"><AppLogo size={40} className="text-white" /></div>
       <div className="app-loading__title">F1 Replay</div>
       <div className="app-loading__status">Loading view</div>
       <div className="app-loading__lights" aria-hidden="true">

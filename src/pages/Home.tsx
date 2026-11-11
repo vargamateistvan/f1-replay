@@ -24,12 +24,16 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import { AppLogo } from "@/components/AppLogo/AppLogo";
+import { SessionSimulation } from "@/components/LiveDataNotice/SessionSimulation";
 import { FOCUS_RING, buttonClass } from "@/components/Button/buttonClass";
 import type { MainView } from "@/components/Nav";
-import { OPENF1_SITE_URL } from "@/constants";
+import { DEFAULT_YEAR, OPENF1_SITE_URL } from "@/constants";
 import { trackEvent } from "@/lib/analytics";
 import { useSettings } from "@/stores/settings";
 import { useReleaseDate } from "@/hooks/useReleaseDate";
+import { useCircuitGeometry } from "@/hooks/useCircuitGeometry";
+import { useLatestMeeting, useMeetings } from "@/hooks/useSession";
+import { useNumberParam } from "@/hooks/useSearchParamState";
 import {
   appVersionLabel,
   formatReleaseDate,
@@ -136,6 +140,17 @@ export default function Home() {
   const openHelp = useSettings((s) => s.openHelp);
   const openModal = useSettings((s) => s.openModal);
   const releaseDate = formatReleaseDate(useReleaseDate());
+  const [year] = useNumberParam("year", DEFAULT_YEAR);
+  const [meetingKey] = useNumberParam("meeting", null);
+  const [sessionKey] = useNumberParam("session", null);
+  const meetings = useMeetings(year ?? DEFAULT_YEAR, { enabled: meetingKey !== null });
+  const latestMeeting = useLatestMeeting({ enabled: meetingKey === null });
+  const meetingQuery = meetingKey === null ? latestMeeting : meetings;
+  const meeting = meetingKey === null
+    ? latestMeeting.data
+    : meetings.data?.find((row) => row.meeting_key === meetingKey);
+  const { data: geometry, isPending: geometryPending } =
+    useCircuitGeometry(meeting?.circuit_key, meeting?.year);
 
   // Keep the selected season/session when moving on, like the nav does.
   const href = (path: string, view?: MainView) => {
@@ -168,15 +183,22 @@ export default function Home() {
               Free · Unofficial · Open data
             </span>
           </div>
-          <div className="flex flex-col gap-5 p-5 sm:flex-row sm:items-center sm:gap-8 sm:p-8">
-            <div className="flex h-20 w-20 shrink-0 items-center justify-center rounded-sm border border-panel bg-track text-fg sm:h-28 sm:w-28">
-              <AppLogo size={56} />
-            </div>
+          <div className="grid gap-6 p-5 sm:p-7 md:grid-cols-[minmax(0,1.15fr)_minmax(18rem,0.85fr)] md:items-center md:gap-8 md:p-8 lg:p-10">
             <div className="min-w-0">
-              <h1 className="text-3xl font-black uppercase leading-none tracking-wider text-fg sm:text-5xl">
-                F1<span className="mx-2 font-light text-f1red">|</span>Replay
+              <div className="flex items-center gap-2">
+                <span className="flex h-7 w-7 items-center justify-center bg-f1red text-white">
+                  <AppLogo size={19} />
+                </span>
+                <span className="text-caption font-bold uppercase tracking-eyebrow text-f1red-fg">
+                  Your race weekend, on demand
+                </span>
+              </div>
+              <h1 className="mt-5 text-4xl font-black uppercase leading-[0.95] tracking-wider text-fg sm:text-5xl lg:text-6xl">
+                The race,
+                <br />
+                <span className="text-f1red">replayed.</span>
               </h1>
-              <p className="mt-3 max-w-2xl text-sm leading-6 text-fg/85 sm:text-base sm:leading-7">
+              <p className="mt-4 max-w-xl text-sm leading-6 text-fg/85 sm:text-base sm:leading-7">
                 Scrub through any Formula 1 session like a replay video. The track map, live
                 timing, race control, team radio and telemetry all stay in sync, from the
                 first practice lap to the chequered flag.
@@ -204,6 +226,37 @@ export default function Home() {
                 </button>
               </div>
             </div>
+            <div className="relative flex min-h-64 items-center justify-center overflow-hidden border-t border-panel md:min-h-80 md:border-l md:border-t-0">
+              <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_rgb(var(--color-f1red)/0.12),_transparent_68%)]" />
+              {meeting && geometry ? (
+                <SessionSimulation
+                  variant="preview"
+                  session={{
+                    ...meeting,
+                    session_key: sessionKey ?? undefined,
+                  }}
+                />
+              ) : (
+                <div className="relative px-4 py-8 text-center text-body text-muted">
+                  {meetingQuery.isError ? (
+                    <>
+                      <p>Could not load the race weekend.</p>
+                      <button
+                        type="button"
+                        onClick={() => void meetingQuery.refetch()}
+                        className={buttonClass("secondary", "sm", "mt-3")}
+                      >
+                        Retry
+                      </button>
+                    </>
+                  ) : meetingQuery.isPending || geometryPending ? (
+                    <p role="status">Loading track outline…</p>
+                  ) : (
+                    <p>Track outline unavailable for this weekend.</p>
+                  )}
+                </div>
+              )}
+            </div>
           </div>
         </header>
 
@@ -217,10 +270,10 @@ export default function Home() {
                 <Link
                   to={href(path, view)}
                   onClick={trackLink(id)}
-                  className={`group flex w-full flex-col rounded-sm border border-panel bg-surface p-4 transition-colors hover:border-f1red ${FOCUS_RING}`}
+                  className={`group flex w-full flex-col rounded-sm border border-panel bg-surface p-4 transition-colors hover:border-f1red/70 ${FOCUS_RING}`}
                 >
                   <div className="flex items-center gap-3">
-                    <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-sm bg-f1red text-white">
+                    <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-sm border border-panel bg-track text-fg/80 transition-colors group-hover:border-f1red/30 group-hover:bg-f1red/10 group-hover:text-f1red-fg">
                       <FeatureIcon aria-hidden="true" className="h-4 w-4" />
                     </span>
                     <h3 className="text-sm font-black uppercase tracking-wider text-fg">

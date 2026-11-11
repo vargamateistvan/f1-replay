@@ -1,6 +1,6 @@
 # F1 Replay — Agent Documentation
 
-> Last updated: 2026-11-10
+> Last updated: 2026-11-11
 > The single source of truth for agents. Provides concise, agent-readable architecture notes, conventions, and guardrails. `docs/` holds mostly historical plans — see Section 12 before trusting one.
 
 ---
@@ -218,7 +218,7 @@ src/
     DriverProfile.tsx   — /standings/driver/:driverNumber — one driver's season (keeps ?year/&session)
     ConstructorProfile.tsx — /standings/team/:teamName (canonical name, `constructorPath()`) — one team's season
     Settings.tsx        — Redirect to settings modal
-    Home.tsx            — /home landing page (nav logo): hero + "Open Driver Tracker", feature cards linking every page (keeps the current query string, sets `view` for replay tabs), extras, Help/Settings, support section (Buy Me a Coffee, GitHub star, issues), About/version/release details. Nav skips the Latest auto-select here
+    Home.tsx            — /home landing page (nav logo): hero + "Open Driver Tracker", selected weekend's baked track with SessionSimulation (latest meeting if none selected; metadata only, no GPS/telemetry requests), feature cards linking every page (keeps the current query string, sets `view` for replay tabs), extras, Help/Settings, support section (Buy Me a Coffee, GitHub star, issues), About/version/release details. Nav skips the Latest auto-select here
     Privacy.tsx, Terms.tsx — Static legal pages
     NotFound.tsx, AppCrash.tsx
 
@@ -348,7 +348,7 @@ Quick settings group map controls into Track, Cars, Weather (Weather & lighting 
 | `CommentaryPanels`                                | Tabbed side panel (`CommentaryTab`: rc / radio / pits / passes / moments / chapters / weather); lazy-loads each feed. `keyMoments.ts` builds Key Moments, `CommentaryJumpButton` seeks to an item. Every feed renders items with `CommentaryRow` (time + type badge left, team-coloured driver code + title, mono meta line, actions; upcoming items dimmed in "All" mode) and styles from `commentaryList.ts`; qualifying feeds group only into Q1/Q2/Q3 (untagged messages take the phase in effect) |
 | `Pits` (`PitFeed`)                                | Pit stop feed (commentary "pits" tab); the first stopper's row shows its undercut/overcut battle (`pitBattles` prop from `RaceWeekend`) |
 | `TyreChange`                                      | Old compound + laps → new compound + age; `compact` variant for inline text              |
-| `LiveDataNotice`                                  | Legacy banner components, no longer mounted: OpenF1 paid-access information and the project support link appear in `RaceWeekend`'s access-required panel instead. `SessionSimulation.tsx` decorates that panel with synthetic cars on the selected session's baked circuit. `useCachedSimulationDrivers` in `hooks/useSession.ts` supplies team colours from the selected session or nearest cached session in the same year; neutral cars if unavailable (no API calls, explicitly labelled, static with reduced motion) |
+| `LiveDataNotice`                                  | Legacy banner components, no longer mounted: OpenF1 paid-access information and the project support link appear in `RaceWeekend`'s access-required panel instead. `SessionSimulation.tsx` decorates that panel and Home's hero with synthetic cars on the selected session or meeting's baked circuit. `useCachedSimulationDrivers` in `hooks/useSession.ts` supplies team colours from the selected session (optional for meeting-only previews) or nearest cached session in the same year; neutral cars if unavailable (no API calls, explicitly labelled, static with reduced motion) |
 | `DialogHeader`                                    | Shared modal header (Settings, How it works, About, catch-up) in the legal-page style: red eyebrow strip + mono meta, black uppercase title, square close button |
 | `TooltipCard`                                     | Shared tooltip card styling                                                              |
 | `Button`                                          | `buttonClass(variant, size)` (`primary` red fill / `secondary` bordered, red hover / `quiet` muted; `md` / `sm` / `block`) for buttons and `<Link>`s, `<Button>`, `FOCUS_RING` for custom controls |

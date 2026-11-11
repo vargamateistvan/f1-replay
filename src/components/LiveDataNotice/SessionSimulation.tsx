@@ -16,8 +16,11 @@ import {
 
 export function SessionSimulation({
   session,
+  variant = "background",
 }: {
-  session: Pick<Session, "session_key" | "date_start" | "circuit_key" | "year" | "circuit_short_name"> | undefined;
+  session: (Pick<Session, "date_start" | "circuit_key" | "year" | "circuit_short_name"> &
+    Partial<Pick<Session, "session_key">>) | undefined;
+  variant?: "background" | "preview";
 }) {
   const { data: geometry } = useCircuitGeometry(session?.circuit_key, session?.year);
   const drivers = useCachedSimulationDrivers(session);
@@ -44,10 +47,15 @@ export function SessionSimulation({
       </div>
       <svg
         viewBox={`0 0 ${TRACK_SVG_W} ${TRACK_SVG_H}`}
-        className="h-full w-full opacity-40"
+        className={`h-full w-full ${variant === "preview" ? "opacity-100" : "opacity-40"}`}
         aria-hidden="true"
       >
-        <path d={outline.path} fill="none" className="stroke-panel" strokeWidth={12} />
+        <path
+          d={outline.path}
+          fill="none"
+          className={variant === "preview" ? "stroke-line" : "stroke-panel"}
+          strokeWidth={12}
+        />
         <path d={outline.path} fill="none" className="stroke-line" strokeWidth={1} />
         <line {...outline.startLine} className="stroke-fg" strokeWidth={2} />
         {Array.from({ length: SESSION_SIMULATION_CARS }, (_, index) => {
