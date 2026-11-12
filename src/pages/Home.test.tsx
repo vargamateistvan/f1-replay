@@ -203,6 +203,15 @@ describe("Home page", () => {
     ]);
   });
 
+  it("explains how to add F1 Replay to an iPhone or iPad Home Screen", () => {
+    setup();
+    const install = screen.getByRole("region", { name: "Add to Home Screen" });
+    expect(within(install).getByText("Open F1 Replay in Safari")).toBeInTheDocument();
+    expect(within(install).getByText("Tap the Share button")).toBeInTheDocument();
+    expect(within(install).getByText("Choose “Add to Home Screen”")).toBeInTheDocument();
+    expect(within(install).getByText(/open it in Safari first/)).toBeInTheDocument();
+  });
+
   it("tracks feature clicks", () => {
     setup();
     fireEvent.click(screen.getByRole("link", { name: /Telemetry/ }));

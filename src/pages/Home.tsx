@@ -342,6 +342,55 @@ export default function Home() {
           </div>
         </section>
 
+        <section aria-labelledby="home-install">
+          <SectionTitle eyebrow="03">
+            <span id="home-install">Add to Home Screen</span>
+          </SectionTitle>
+          <div className="rounded-sm border border-panel bg-surface p-4 sm:p-5">
+            <p className="mb-4 max-w-2xl text-body leading-6 text-muted">
+              Save F1 Replay to your iPhone or iPad for quick access from your Home Screen.
+            </p>
+            <ol className="grid gap-3 md:grid-cols-3">
+              <li className="flex gap-3 rounded-sm border border-panel bg-track p-3">
+                <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-sm bg-f1red/10 font-mono text-small font-bold text-f1red-fg">
+                  01
+                </span>
+                <div>
+                  <h3 className="text-body font-bold text-fg">Open F1 Replay in Safari</h3>
+                  <p className="mt-1 text-small leading-5 text-muted">
+                    Visit f1replay.app using Safari on your iPhone or iPad.
+                  </p>
+                </div>
+              </li>
+              <li className="flex gap-3 rounded-sm border border-panel bg-track p-3">
+                <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-sm bg-f1red/10 font-mono text-small font-bold text-f1red-fg">
+                  02
+                </span>
+                <div>
+                  <h3 className="text-body font-bold text-fg">Tap the Share button</h3>
+                  <p className="mt-1 text-small leading-5 text-muted">
+                    It looks like a square with an arrow pointing up.
+                  </p>
+                </div>
+              </li>
+              <li className="flex gap-3 rounded-sm border border-panel bg-track p-3">
+                <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-sm bg-f1red/10 font-mono text-small font-bold text-f1red-fg">
+                  03
+                </span>
+                <div>
+                  <h3 className="text-body font-bold text-fg">Choose “Add to Home Screen”</h3>
+                  <p className="mt-1 text-small leading-5 text-muted">
+                    Scroll the Share menu if needed, then tap Add to finish.
+                  </p>
+                </div>
+              </li>
+            </ol>
+            <p className="mt-4 border-t border-panel pt-3 text-small leading-5 text-muted">
+              If this page opened inside another app, open it in Safari first.
+            </p>
+          </div>
+        </section>
+
         <section
           aria-labelledby="home-support"
           className="rounded-sm border border-f1red/40 border-l-4 border-l-f1red bg-f1red/10 p-5 sm:p-6"
