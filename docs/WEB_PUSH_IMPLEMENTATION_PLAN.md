@@ -1,6 +1,6 @@
 # Web Push notifications implementation plan
 
-Status: phase 1 implemented locally; provisioning and real-device validation pending  
+Status: test push deployed; automatic alerts incomplete
 Created: 2026-11-12
 
 ## Implementation progress
@@ -8,19 +8,21 @@ Created: 2026-11-12
 - Implemented manifest/icons, push-only service worker, Alerts settings controls,
   subscription ownership and D1 storage, rate-limited encrypted test sends,
   retryable device unsubscribe and retention cleanup.
-- Backend sending is disabled by default. See `proxy/README.md` for provisioning.
+- Test sending is provisioned; see `proxy/README.md` for configuration.
 - Phase 1 uses `proxy/src/notifications.ts` instead of a module directory. The
   device creates its own high-entropy management credential before registration;
   the backend stores only its hash. This permits ownership-safe registration retries.
-- Automated discovery, delivery queues and session deep links remain for later
-  phases. The UI explicitly states that only test delivery is available; no
-  future-alert preferences are advertised as active.
+- Automated discovery and delivery queues remain for later phases. The
+  Schedule page can open a result with `?year=<year>&result=<session_key>`;
+  replay links already identify sessions. No automatic notifications are sent.
 - Work in progress: `0002_push_preferences.sql`, device-owned preferences API,
-  and conservative event-detection functions have been added but are not wired
-  to the UI or a scheduler. `PUSH_PREFERENCES_ENABLED` is unset by default and
-  must not be enabled until migration, cleanup, scheduler, and rollout are ready.
-- No production resources have been provisioned and actual iOS delivery has not
-  yet been verified. This is not a production-complete notification feature.
+  conservative event-detection functions, and device-specific preference
+  controls have been added, but are not wired to a scheduler. The UI only
+  exposes the controls if the server advertises automatic alerts, which it
+  currently does not. `PUSH_PREFERENCES_ENABLED` is unset by default and must
+  not be enabled until migration, scheduler, and rollout are ready.
+- The test push provider accepted a request; display on an actual iOS device
+  has not been confirmed. This is not a production-complete notification feature.
 
 ## 1. Goal and scope
 

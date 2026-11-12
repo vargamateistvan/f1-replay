@@ -9,6 +9,7 @@ export type PushSupport = "supported" | "install-required" | "unsupported";
 export interface PushConfig {
   enabled: boolean;
   publicKey?: string;
+  automaticAlerts?: boolean;
 }
 
 export class PushApiError extends Error {
@@ -92,7 +93,7 @@ export async function loadPushConfig(): Promise<PushConfig> {
     throw new Error("Invalid notification server configuration.");
   }
   applicationServerKey(data.publicKey);
-  return { enabled: true, publicKey: data.publicKey };
+  return { enabled: true, publicKey: data.publicKey, automaticAlerts: data.automaticAlerts === true };
 }
 
 export async function registerPushWorker(): Promise<ServiceWorkerRegistration> {

@@ -1,16 +1,28 @@
 import { usePushNotifications } from "@/hooks/usePushNotifications";
-import { SectionHeader } from "@/components/UI";
+import { SectionHeader, SettingRow } from "@/components/UI";
 import { buttonClass } from "@/components/Button/buttonClass";
+import type { PushAlertType, PushSessionType } from "@/utils/pushPreferences";
+
+const ALERTS: { key: PushAlertType; label: string; description: string }[] = [
+  { key: "reminder", label: "Session reminders", description: "About 10 minutes before the scheduled start" },
+  { key: "started", label: "Session starts", description: "When a session start is confirmed" },
+  { key: "results", label: "Results available", description: "When a classification is published" },
+];
+const SESSIONS: { key: PushSessionType; label: string }[] = [
+  { key: "race", label: "Race" }, { key: "sprint", label: "Sprint" },
+  { key: "qualifying", label: "Qualifying" }, { key: "sprintQualifying", label: "Sprint qualifying" },
+  { key: "practice", label: "Practice" },
+];
 
 export function PushNotificationsSettings() {
   const push = usePushNotifications();
+  const preferences = push.preferences;
   return (
     <section aria-label="Device notifications">
       <SectionHeader>Device notifications</SectionHeader>
       <p className="mb-3 text-small leading-5 text-muted">
-        Receive a test notification even when the app is closed. Automatic session
-        reminders, start alerts and results alerts are not available yet.
-        These controls affect only this device, not replay toasts or settings exports.
+        Receive notifications even when the app is closed. These controls affect
+        only this device, not replay toasts or settings exports.
       </p>
       {push.support === "install-required" ? (
         <p className="text-body leading-6 text-fg">
@@ -32,6 +44,31 @@ export function PushNotificationsSettings() {
             </p>
           )}
           {push.enabled && <p className="mb-3 text-body text-green-fg">Enabled on this device.</p>}
+          {push.enabled && !push.config?.automaticAlerts && (
+            <p className="mb-3 text-small text-muted">Automatic session alerts are not available yet.</p>
+          )}
+          {push.enabled && push.config?.automaticAlerts && preferences && (
+            <>
+              <p className="mt-4 text-small text-muted">
+                Alerts are optional and may be delayed or unavailable when session data is unavailable.
+              </p>
+              {ALERTS.map(({ key, label, description }) => (
+                <SettingRow key={key} label={label} description={description}
+                  checked={preferences.alerts[key]} disabled={push.busy}
+                  onChange={(value) => push.updatePreferences({
+                    ...preferences, alerts: { ...preferences.alerts, [key]: value },
+                  })} />
+              ))}
+              <SectionHeader>Session types</SectionHeader>
+              {SESSIONS.map(({ key, label }) => (
+                <SettingRow key={key} label={label} checked={preferences.sessions[key]}
+                  disabled={push.busy}
+                  onChange={(value) => push.updatePreferences({
+                    ...preferences, sessions: { ...preferences.sessions, [key]: value },
+                  })} />
+              ))}
+            </>
+          )}
           <div className="flex flex-wrap gap-2">
             {!push.enabled && (
               <button type="button" className={buttonClass("primary", "sm")}

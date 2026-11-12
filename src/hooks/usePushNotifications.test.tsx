@@ -2,6 +2,7 @@ import { act, renderHook, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { usePushNotifications } from "./usePushNotifications";
 import { PUSH_CREDENTIAL_STORAGE_KEY } from "@/constants";
+import { DEFAULT_PUSH_PREFERENCES } from "@/utils/pushPreferences";
 
 const publicKey = btoa(String.fromCharCode(4, ...Array<number>(64).fill(1)))
   .replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
@@ -55,6 +56,50 @@ afterEach(() => {
 });
 
 describe("device notification lifecycle", () => {
+  it("loads and saves server-confirmed alert preferences only when available", async () => {
+    const defaultFetch = fetchMock.getMockImplementation()!;
+    let preferences = structuredClone(DEFAULT_PUSH_PREFERENCES);
+    fetchMock.mockImplementation(async (url: string, options: { method?: string; body?: string }) => {
+      if (url.endsWith("/config")) return Response.json({ enabled: true, publicKey, automaticAlerts: true });
+      if (url.endsWith("/preferences")) {
+        if (options.method === "PATCH") preferences = JSON.parse(options.body!);
+        return Response.json({ preferences });
+      }
+      return defaultFetch(url, options);
+    });
+    const { result } = renderHook(usePushNotifications);
+    await waitFor(() => expect(result.current.busy).toBe(false));
+    act(() => result.current.enable());
+    await waitFor(() => expect(result.current.preferences).toEqual(DEFAULT_PUSH_PREFERENCES));
+    act(() => result.current.updatePreferences({
+      ...preferences, alerts: { ...preferences.alerts, started: true },
+    }));
+    await waitFor(() => expect(result.current.preferences?.alerts.started).toBe(true));
+    expect(preferences.alerts.started).toBe(true);
+  });
+
+  it("keeps the previous preferences and reports a failed update", async () => {
+    const defaultFetch = fetchMock.getMockImplementation()!;
+    fetchMock.mockImplementation(async (url: string, options: { method?: string }) => {
+      if (url.endsWith("/config")) return Response.json({ enabled: true, publicKey, automaticAlerts: true });
+      if (url.endsWith("/preferences")) {
+        return options.method === "PATCH"
+          ? Response.json({ error: "Preferences could not be saved." }, { status: 503 })
+          : Response.json({ preferences: DEFAULT_PUSH_PREFERENCES });
+      }
+      return defaultFetch(url, options);
+    });
+    const { result } = renderHook(usePushNotifications);
+    await waitFor(() => expect(result.current.busy).toBe(false));
+    act(() => result.current.enable());
+    await waitFor(() => expect(result.current.preferences).toEqual(DEFAULT_PUSH_PREFERENCES));
+    act(() => result.current.updatePreferences({
+      ...DEFAULT_PUSH_PREFERENCES, alerts: { ...DEFAULT_PUSH_PREFERENCES.alerts, started: true },
+    }));
+    await waitFor(() => expect(result.current.error).toBe("Preferences could not be saved."));
+    expect(result.current.preferences).toEqual(DEFAULT_PUSH_PREFERENCES);
+  });
+
   it("never requests permission on mount and requests it directly from enable", async () => {
     const { result } = renderHook(usePushNotifications);
     await waitFor(() => expect(result.current.config?.enabled).toBe(true));

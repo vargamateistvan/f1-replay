@@ -605,6 +605,7 @@ export default function Schedule() {
   const [viewParam, setViewParam] = useStringParam<ViewMode>("layout", "cards");
   const view: ViewMode = viewParam === "map" ? "map" : "cards";
   const [meetingParam, setMeetingParam] = useNumberParam("round", null);
+  const [resultParam, setResultParam] = useNumberParam("result", null);
   const now = useNow(SCHEDULE_CLOCK_TICK_MS);
   const listRef = useRef<HTMLDivElement>(null);
   const [resultSession, setResultSession] = useState<Session | null>(null);
@@ -622,6 +623,17 @@ export default function Schedule() {
 
   const meetingsQ = useMeetings(year);
   const sessionsQ = useSeasonSessions(year);
+  const linkedResult = resultParam === null ? null :
+    sessionsQ.data?.find((session) => session.session_key === resultParam) ?? null;
+  const displayedResult = resultSession ?? linkedResult;
+  const showResult = useCallback((session: Session) => {
+    if (resultParam !== null) setResultParam(null);
+    setResultSession(session);
+  }, [resultParam, setResultParam]);
+  const closeResult = useCallback(() => {
+    setResultSession(null);
+    if (resultParam !== null) setResultParam(null);
+  }, [resultParam, setResultParam]);
 
   const schedule = useMemo(
     () => buildSeasonSchedule(meetingsQ.data ?? [], sessionsQ.data ?? [], now),
@@ -692,7 +704,7 @@ export default function Schedule() {
       timeFormats={timeFormats}
       nextSession={round.isNext ? nextSession : null}
       now={now}
-      onShowResult={setResultSession}
+      onShowResult={showResult}
       onShowHighlights={showHighlights}
     />
   );
@@ -810,7 +822,7 @@ export default function Schedule() {
                   timeFormats={timeFormats}
                   nextSession={round.isNext ? nextSession : null}
                   now={now}
-                  onShowResult={setResultSession}
+                  onShowResult={showResult}
                   onShowHighlights={showHighlights}
                 />
               ))}
@@ -819,13 +831,13 @@ export default function Schedule() {
         </>
       )}
 
-      {resultSession && (
+      {displayedResult && (
         <SessionResultDialog
-          session={resultSession}
+          session={displayedResult}
           meeting={meetingsQ.data?.find(
-            (m) => m.meeting_key === resultSession.meeting_key,
+            (m) => m.meeting_key === displayedResult.meeting_key,
           )}
-          onClose={() => setResultSession(null)}
+          onClose={closeResult}
         />
       )}
 

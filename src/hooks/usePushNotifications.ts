@@ -11,6 +11,7 @@ import {
   type PushConfig,
   type PushSupport,
 } from "@/lib/webPush";
+import { isPushPreferences, type PushPreferences } from "@/utils/pushPreferences";
 
 type Permission = typeof Notification.permission;
 
@@ -27,6 +28,7 @@ export function usePushNotifications() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
+  const [preferences, setPreferences] = useState<PushPreferences | null>(null);
   const registration = useRef<ServiceWorkerRegistration | null>(null);
   const running = useRef(false);
   const mounted = useRef(false);
@@ -69,8 +71,16 @@ export function usePushNotifications() {
     setHasCredential(Boolean(credential));
     const server = credential ? await pushRequest("subscription", "GET", credential) : null;
     if (!mounted.current) return;
-    setEnabled(Boolean(subscription && Notification.permission === "granted" &&
-      server?.enabled === true && server.endpoint === subscription.endpoint));
+    const active = Boolean(subscription && Notification.permission === "granted" &&
+      server?.enabled === true && server.endpoint === subscription.endpoint);
+    setEnabled(active);
+    if (active && nextConfig.automaticAlerts && credential) {
+      const response = await pushRequest("preferences", "GET", credential);
+      if (!isPushPreferences(response.preferences)) throw new Error("Invalid device alert preferences.");
+      if (mounted.current) setPreferences(response.preferences);
+    } else {
+      setPreferences(null);
+    }
   }), [run, support]);
 
   useEffect(() => {
@@ -111,6 +121,11 @@ export function usePushNotifications() {
       if (mounted.current) setHasSubscription(true);
       const saved = await pushRequest("subscriptions", "POST", credential, subscription.toJSON());
       if (saved.enabled !== true) throw new Error("Server did not confirm device registration. Please retry.");
+      if (config.automaticAlerts) {
+        const response = await pushRequest("preferences", "GET", credential);
+        if (!isPushPreferences(response.preferences)) throw new Error("Invalid device alert preferences.");
+        if (mounted.current) setPreferences(response.preferences);
+      }
       if (mounted.current) {
         setEnabled(true);
         setNotice("Enabled on this device. Send a test to check delivery.");
@@ -144,6 +159,7 @@ export function usePushNotifications() {
     removePushCredential();
     if (mounted.current) {
       setHasCredential(false);
+      setPreferences(null);
       setNotice("Notifications disabled on this device.");
     }
   });
@@ -156,8 +172,16 @@ export function usePushNotifications() {
     if (mounted.current) setNotice("Test accepted by the push service. Delivery may be delayed by device settings.");
   });
 
+  const updatePreferences = (next: PushPreferences) => void run(async () => {
+    const credential = readPushCredential();
+    if (!credential) throw new Error("Enable device notifications before changing alerts.");
+    const response = await pushRequest("preferences", "PATCH", credential, next);
+    if (!isPushPreferences(response.preferences)) throw new Error("Server did not confirm alert preferences.");
+    if (mounted.current) setPreferences(response.preferences);
+  });
+
   return {
-    support, permission, config, ready, enabled, hasSubscription, hasCredential, busy, error, notice,
-    enable, disable, sendTest, retry: reconcile,
+    support, permission, config, ready, enabled, hasSubscription, hasCredential, busy, error, notice, preferences,
+    enable, disable, sendTest, updatePreferences, retry: reconcile,
   };
 }

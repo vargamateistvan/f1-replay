@@ -2,6 +2,7 @@ import { fireEvent, render, screen } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { usePushNotifications } from "@/hooks/usePushNotifications";
 import { PushNotificationsSettings } from "./PushNotificationsSettings";
+import { DEFAULT_PUSH_PREFERENCES } from "@/utils/pushPreferences";
 
 vi.mock("@/hooks/usePushNotifications", () => ({ usePushNotifications: vi.fn() }));
 
@@ -10,7 +11,8 @@ beforeEach(() => {
   state = {
     support: "supported", permission: "default", config: { enabled: true, publicKey: "key" },
     ready: true, enabled: false, hasSubscription: false, hasCredential: false, busy: false,
-    error: null, notice: null, enable: vi.fn(), disable: vi.fn(), sendTest: vi.fn(),
+    error: null, notice: null, preferences: null, enable: vi.fn(), disable: vi.fn(), sendTest: vi.fn(),
+    updatePreferences: vi.fn(),
     retry: vi.fn().mockResolvedValue(undefined),
   };
   vi.mocked(usePushNotifications).mockImplementation(() => state);
@@ -60,6 +62,20 @@ describe("device notification settings", () => {
     expect(state.disable).toHaveBeenCalledOnce();
     expect(state.retry).toHaveBeenCalledOnce();
     expect(screen.getByRole("alert")).toHaveTextContent("Temporary failure");
-    expect(screen.getByText(/Automatic session reminders/)).toHaveTextContent("are not available yet");
+    expect(screen.getByText(/Automatic session alerts are not available yet/)).toBeInTheDocument();
+  });
+
+  it("shows opt-in alert controls only when the server supports them", () => {
+    state.enabled = true;
+    state.config = { enabled: true, publicKey: "key", automaticAlerts: true };
+    state.preferences = DEFAULT_PUSH_PREFERENCES;
+    render(<PushNotificationsSettings />);
+    const reminder = screen.getByRole("switch", { name: "Session reminders" });
+    expect(reminder).toHaveAttribute("aria-checked", "false");
+    fireEvent.click(reminder);
+    expect(state.updatePreferences).toHaveBeenCalledWith({
+      ...DEFAULT_PUSH_PREFERENCES,
+      alerts: { ...DEFAULT_PUSH_PREFERENCES.alerts, reminder: true },
+    });
   });
 });

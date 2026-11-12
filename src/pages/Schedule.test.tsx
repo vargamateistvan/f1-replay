@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { fireEvent, render, screen, within } from "@testing-library/react";
-import { MemoryRouter } from "react-router-dom";
+import { MemoryRouter, useLocation } from "react-router-dom";
 import Schedule from "./Schedule";
 import type { Meeting, Session } from "@/api/types";
 
@@ -67,7 +67,12 @@ const session = (key: number, meetingKey: number, name: string, startMs: number)
     year: 2026,
   }) as Session;
 
-function setup() {
+function LocationSearch() {
+  const { search } = useLocation();
+  return <output aria-label="Current search">{search}</output>;
+}
+
+function setup(path = "/schedule?year=2026") {
   mockUseMeetings.mockReturnValue({
     data: [
       meeting(2, "Japanese Grand Prix", NOW + 5 * DAY),
@@ -84,8 +89,9 @@ function setup() {
     isPending: false,
   });
   return render(
-    <MemoryRouter initialEntries={["/schedule?year=2026"]}>
+    <MemoryRouter initialEntries={[path]}>
       <Schedule />
+      <LocationSearch />
     </MemoryRouter>,
   );
 }
@@ -198,6 +204,7 @@ describe("Schedule page", () => {
       isPending: false,
       isError: false,
     });
+
     mockUseDrivers.mockReturnValue({
       data: [{ driver_number: 1, name_acronym: "VER", full_name: "Max Verstappen" }],
       isPending: false,
@@ -224,6 +231,17 @@ describe("Schedule page", () => {
 
     fireEvent.click(screen.getByRole("button", { name: "Close results dialog" }));
     expect(screen.queryByRole("dialog")).toBeNull();
+  });
+
+  it("opens a result link and removes only its result parameter on close", () => {
+    mockUseSessionResult.mockReturnValue({ data: [], isPending: false, isError: false });
+    mockUseDrivers.mockReturnValue({ data: [], isPending: false });
+    setup("/schedule?year=2026&result=10&layout=cards");
+    expect(screen.getByRole("dialog", { name: "Race" })).toBeInTheDocument();
+    expect(mockUseSessionResult).toHaveBeenCalledWith(10);
+    fireEvent.click(screen.getByRole("button", { name: "Close results dialog" }));
+    expect(screen.queryByRole("dialog")).toBeNull();
+    expect(screen.getByLabelText("Current search")).toHaveTextContent("?year=2026&layout=cards");
   });
 
   it("opens a completed session's YouTube highlights in a dialog", () => {
