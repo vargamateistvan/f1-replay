@@ -147,6 +147,36 @@ describe("notification routes", () => {
     expect((await handleNotifications(request("test", "POST"), env)).status).toBe(502);
   });
 
+  it("reports push preparation failures without logging secrets or subscription details", async () => {
+    await register();
+    const log = vi.spyOn(console, "error").mockImplementation(() => {});
+    const fetch = vi.fn();
+    vi.stubGlobal("fetch", fetch);
+    const invalid = { ...env, VAPID_PRIVATE_KEY: "not-a-valid-key" };
+    const response = await handleNotifications(request("test", "POST"), invalid);
+    expect(response.status).toBe(503);
+    expect(await response.json()).toMatchObject({ error: expect.stringContaining("Could not prepare") });
+    expect(fetch).not.toHaveBeenCalled();
+    expect(log).toHaveBeenCalledWith("Device notification request failed.", {
+      stage: "prepare_test", errorType: expect.any(String),
+    });
+    expect(JSON.stringify(log.mock.calls)).not.toContain(subscription.endpoint);
+    expect(JSON.stringify(log.mock.calls)).not.toContain(invalid.VAPID_PRIVATE_KEY);
+  });
+
+  it("reports provider connection failures separately without logging endpoint details", async () => {
+    await register();
+    const log = vi.spyOn(console, "error").mockImplementation(() => {});
+    vi.stubGlobal("fetch", vi.fn().mockRejectedValue(new TypeError(`Connection failed: ${subscription.endpoint}`)));
+    const response = await handleNotifications(request("test", "POST"), env);
+    expect(response.status).toBe(502);
+    expect(await response.json()).toMatchObject({ error: expect.stringContaining("Could not reach") });
+    expect(log).toHaveBeenCalledWith("Device notification request failed.", {
+      stage: "send_test", errorType: "TypeError",
+    });
+    expect(JSON.stringify(log.mock.calls)).not.toContain(subscription.endpoint);
+  });
+
   it("deletes old subscriptions and expired registration buckets", async () => {
     await register();
     await env.NOTIFICATIONS!.prepare("UPDATE push_subscriptions SET updated_at = ?")

@@ -36,6 +36,13 @@ class RequestError extends Error {
   }
 }
 
+function logPushFailure(stage: string, error: unknown): void {
+  const allowedNames = ["AbortError", "DataError", "InvalidAccessError", "NotSupportedError",
+    "OperationError", "TimeoutError", "TypeError"];
+  const name = error instanceof Error && allowedNames.includes(error.name) ? error.name : "Error";
+  console.error("Device notification request failed.", { stage, errorType: name });
+}
+
 function decodeKey(value: unknown, length: number): Uint8Array<ArrayBuffer> {
   if (typeof value !== "string" || !/^[A-Za-z0-9_-]+$/.test(value)) {
     throw new RequestError(400, "Invalid subscription key.");
@@ -233,18 +240,30 @@ export async function handleNotifications(request: Request, env: NotificationEnv
           ? "Wait a minute before sending another test."
           : "Subscription expired. Enable notifications again.");
       }
-      const payload = await buildPushPayload({
-        data: {
-          version: 1, title: "F1 Replay", body: "Device notifications are working. Automated session alerts are not available yet.",
-          tag: "f1-replay-test", url: "/home",
-        },
-        options: { ttl: TEST_TTL_SECONDS },
-      }, { endpoint: row.endpoint, expirationTime: null, keys: { p256dh: row.p256dh, auth: row.auth } }, {
-        subject: env.VAPID_SUBJECT!, publicKey: env.VAPID_PUBLIC_KEY!, privateKey: env.VAPID_PRIVATE_KEY!,
-      });
-      const result = await fetch(row.endpoint, {
-        ...payload, redirect: "error", signal: AbortSignal.timeout(PROVIDER_TIMEOUT_MS),
-      });
+      let payload: Awaited<ReturnType<typeof buildPushPayload>>;
+      try {
+        payload = await buildPushPayload({
+          data: {
+            version: 1, title: "F1 Replay", body: "Device notifications are working. Automated session alerts are not available yet.",
+            tag: "f1-replay-test", url: "/home",
+          },
+          options: { ttl: TEST_TTL_SECONDS },
+        }, { endpoint: row.endpoint, expirationTime: null, keys: { p256dh: row.p256dh, auth: row.auth } }, {
+          subject: env.VAPID_SUBJECT!, publicKey: env.VAPID_PUBLIC_KEY!, privateKey: env.VAPID_PRIVATE_KEY!,
+        });
+      } catch (error) {
+        logPushFailure("prepare_test", error);
+        throw new RequestError(503, "Could not prepare the test notification. Check the server's VAPID configuration and device subscription.");
+      }
+      let result: Response;
+      try {
+        result = await fetch(row.endpoint, {
+          ...payload, redirect: "error", signal: AbortSignal.timeout(PROVIDER_TIMEOUT_MS),
+        });
+      } catch (error) {
+        logPushFailure("send_test", error);
+        throw new RequestError(502, "Could not reach the device's push provider. Please retry later.");
+      }
       await result.body?.cancel();
       if (result.status === 404 || result.status === 410) {
         await db.prepare("DELETE FROM push_subscriptions WHERE credential_hash = ?").bind(credentialHash).run();
@@ -260,7 +279,7 @@ export async function handleNotifications(request: Request, env: NotificationEnv
   } catch (error) {
     if (error instanceof RequestError) return respond({ error: error.message }, error.status);
     // Never log provider URLs, subscription material or request bodies.
-    console.error("Device notification request failed.");
+    logPushFailure("notification_api", error);
     return respond({ error: "Device notification request failed. Please retry." }, 500);
   }
 }

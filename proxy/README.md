@@ -80,6 +80,11 @@ retry. Provider `404`/`410` removes the subscription; other provider/network
 failures surface explicitly. Outbound push destinations are restricted to
 supported Apple, Google, Mozilla and Microsoft HTTPS hosts, with redirects
 disabled. Provider response bodies, endpoint URLs and device keys are not logged.
+Test preparation and provider connection failures are reported separately.
+Worker logs include only a failure stage and a sanitized error type, never raw
+exception messages. For `prepare_test`, verify that the VAPID public and private
+keys are the same pair and that only the private value was stored in the secret.
+For `send_test`, check Worker outbound connectivity to the device's push provider.
 
 The maintained `@block65/webcrypto-web-push` v2 dependency uses `aes128gcm`
 encryption and RFC 8292 VAPID authorization required by Apple. Rotating VAPID
