@@ -23,6 +23,11 @@ Created: 2026-11-12
   not be enabled until migration, scheduler, and rollout are ready.
 - The test push provider accepted a request; display on an actual iOS device
   has not been confirmed. This is not a production-complete notification feature.
+- Event detectors now reject untagged qualifying starts, restarts preceded by
+  an interruption, and classifications that do not cover the reported driver
+  list. They have Singapore 2023 race-control timing tests using synthetic
+  classification rows, but still need broader fixtures, checks for incomplete
+  driver lists and integration with fresh OpenF1 discovery.
 
 ## 1. Goal and scope
 
