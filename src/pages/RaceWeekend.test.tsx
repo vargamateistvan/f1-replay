@@ -100,6 +100,37 @@ describe("progressive replay startup", () => {
     );
   }
 
+  it.each([
+    [true, "", "Track"],
+    [false, "", "Timing"],
+    [true, "&ttab=timing", "Timing"],
+    [true, "&ttab=chart", "Chart"],
+    [false, "&ttab=map", "Track"],
+  ])("selects the appropriate tracker tab for compact=%s and URL %s", async (compact, tab, selected) => {
+    vi.spyOn(media, "useMediaQuery").mockReturnValue(compact);
+    useSettings.setState({ replayWelcomeSeen: true });
+    const { unmount } = renderReplay(`/?year=2024&meeting=456&session=123${tab}`);
+    await waitFor(() => {
+      expect(screen.getAllByRole("button", { name: selected })
+        .some((button) => button.getAttribute("aria-pressed") === "true")).toBe(true);
+    });
+    unmount();
+  });
+
+  it("keeps a phone's explicit Timing choice in the URL", async () => {
+    vi.spyOn(media, "useMediaQuery").mockReturnValue(true);
+    useSettings.setState({ replayWelcomeSeen: true });
+    const { unmount } = renderReplay();
+    const timing = (await screen.findAllByRole("button", { name: "Timing" }))
+      .find((button) => button.hasAttribute("aria-pressed"));
+    expect(timing).toBeDefined();
+    if (!timing) throw new Error("Mobile Timing tab not found");
+    fireEvent.click(timing);
+    expect(timing).toHaveAttribute("aria-pressed", "true");
+    expect(new URLSearchParams(window.location.search).get("ttab")).toBe("timing");
+    unmount();
+  });
+
   const firstLapStartMs = 300_000;
   it("uses the classified race distance for the ring counter throughout the replay", async () => {
     useSettings.setState({ replayWelcomeSeen: true, mapViewMode: "ring" });

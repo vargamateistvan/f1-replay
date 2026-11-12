@@ -324,11 +324,9 @@ export default function RaceWeekend() {
     ? (view as MainView)
     : "tracker";
 
-  // Sub-tab state for tracker + commentary views
-  const [trackerTab, setTrackerTab] = useStringParam<TrackerTab>(
-    "ttab",
-    "timing",
-  );
+  const isCompactViewport = useMediaQuery("(max-width: 767px)");
+  // Keep explicit tab choices in the URL even when they match a viewport's default.
+  const [trackerTab, setTrackerTab] = useStringParam<string>("ttab", "");
   const [commentaryTab, setCommentaryTab] = useStringParam<CommentaryTab>(
     "ctab",
     "rc",
@@ -339,7 +337,7 @@ export default function RaceWeekend() {
     trackerTab as TrackerTab,
   )
     ? (trackerTab as TrackerTab)
-    : "timing";
+    : isCompactViewport ? "map" : "timing";
   const activeCommentaryTab: CommentaryTab = VALID_COMMENTARY_TABS.has(
     commentaryTab as CommentaryTab,
   )
@@ -352,7 +350,6 @@ export default function RaceWeekend() {
   const [compareDriver] = useNumberParam("compare", null);
   const [, setSearchParams] = useSearchParams();
 
-  const isCompactViewport = useMediaQuery("(max-width: 767px)");
   const navigate = useNavigate();
   const openSettingsModal = useSettings((s) => s.openModal);
   // Phones use the full-page settings route (like the bottom nav); desktop
