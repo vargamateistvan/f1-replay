@@ -187,6 +187,7 @@ src/
     lapLookup.ts        — buildLapLookup(): lap number at a given time
     ignorableErrors.ts  — Filters browser noise (opaque "Script error.", cross-origin frames) from logging
     intervals.ts        — parseIntervalSeconds() (OpenF1's mixed number / "+0.842" / "LAP" intervals), latestIntervalRows()
+    pushPreferences.ts  — Shared validation and opt-out defaults for device push alert and session-type preferences; distinct from portable replay settings
     battles.ts          — latestIntervalSeconds(), battlingFrom(), computeBattlingDrivers() (battle rings, 3D gap ribbons)
     finish.ts           — findLeaderFinishMs(), deriveFinishedDrivers(): who has taken the chequered flag (timed sessions: first crossing after the flag)
     lapDeletions.ts     — parseLapDeletions() / deletedLapKeys(): race-control lap-time deletions (track limits) and reinstatements, matched on driver + lap time (the message's LAP number is one ahead of OpenF1's)

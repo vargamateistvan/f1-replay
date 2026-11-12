@@ -7,6 +7,7 @@ import {
   SUBSCRIPTION_RETENTION_MS, type NotificationEnv,
 } from "../src/notifications";
 import worker from "../src/index";
+import { DEFAULT_PUSH_PREFERENCES } from "../../src/utils/pushPreferences";
 
 const origin = "https://f1replay.app";
 const credential = randomBytes(32).toString("base64url");
@@ -47,6 +48,7 @@ beforeAll(async () => {
   });
   const db = await mf.getD1Database("NOTIFICATIONS");
   await db.exec(readFileSync(new URL("../migrations/0001_push_subscriptions.sql", import.meta.url), "utf8").replace(/\n/g, " "));
+  await db.exec(readFileSync(new URL("../migrations/0002_push_preferences.sql", import.meta.url), "utf8").replace(/\n/g, " "));
   env = {
     NOTIFICATIONS: db, PUSH_ENABLED: "true",
     VAPID_PUBLIC_KEY: publicKey, VAPID_PRIVATE_KEY: jwk.d,
@@ -56,6 +58,7 @@ beforeAll(async () => {
 
 beforeEach(async () => {
   await env.NOTIFICATIONS!.batch([
+    env.NOTIFICATIONS!.prepare("DELETE FROM push_preferences"),
     env.NOTIFICATIONS!.prepare("DELETE FROM push_subscriptions"),
     env.NOTIFICATIONS!.prepare("DELETE FROM push_registration_limits"),
   ]);
@@ -112,6 +115,31 @@ describe("notification routes", () => {
     expect((await handleNotifications(request("subscription", "DELETE"), off)).status).toBe(200);
     expect((await handleNotifications(request("subscription", "DELETE"), off)).status).toBe(200);
     expect(await (await handleNotifications(request("subscription"), off)).json()).toMatchObject({ enabled: false });
+  });
+
+  it("keeps automatic alert preferences gated until explicitly enabled", async () => {
+    await register();
+    expect((await handleNotifications(request("preferences"), env)).status).toBe(503);
+  });
+
+  it("validates and stores device-owned preferences and deletes them on unsubscribe", async () => {
+    await register();
+    const prefsEnv = { ...env, PUSH_PREFERENCES_ENABLED: "true" };
+    expect(await (await handleNotifications(request("preferences"), prefsEnv)).json())
+      .toEqual({ preferences: DEFAULT_PUSH_PREFERENCES });
+    expect((await handleNotifications(request("preferences", "PATCH", { alerts: {} }), prefsEnv)).status).toBe(400);
+    const updated = {
+      ...DEFAULT_PUSH_PREFERENCES,
+      alerts: { ...DEFAULT_PUSH_PREFERENCES.alerts, reminder: true },
+    };
+    expect(await (await handleNotifications(request("preferences", "PATCH", updated), prefsEnv)).json())
+      .toEqual({ preferences: updated });
+    expect(await (await handleNotifications(request("preferences"), prefsEnv)).json())
+      .toEqual({ preferences: updated });
+    expect((await handleNotifications(request("preferences", "GET", undefined, otherCredential), prefsEnv)).status).toBe(404);
+    await handleNotifications(request("subscription", "DELETE"), prefsEnv);
+    expect(await env.NOTIFICATIONS!.prepare("SELECT count(*) AS count FROM push_preferences").first())
+      .toEqual({ count: 0 });
   });
 
   it("rate-limits registration and bounds request bodies", async () => {
@@ -191,11 +219,14 @@ describe("notification routes", () => {
 
   it("deletes old subscriptions and expired registration buckets", async () => {
     await register();
+    const prefsEnv = { ...env, PUSH_PREFERENCES_ENABLED: "true" };
+    await handleNotifications(request("preferences", "PATCH", DEFAULT_PUSH_PREFERENCES), prefsEnv);
     await env.NOTIFICATIONS!.prepare("UPDATE push_subscriptions SET updated_at = ?")
       .bind(Date.now() - SUBSCRIPTION_RETENTION_MS - 1).run();
     await env.NOTIFICATIONS!.prepare("UPDATE push_registration_limits SET expires_at = 0").run();
-    await cleanNotificationSubscriptions(env);
+    await cleanNotificationSubscriptions(prefsEnv);
     expect(await env.NOTIFICATIONS!.prepare("SELECT count(*) AS count FROM push_subscriptions").first()).toEqual({ count: 0 });
+    expect(await env.NOTIFICATIONS!.prepare("SELECT count(*) AS count FROM push_preferences").first()).toEqual({ count: 0 });
     expect(await env.NOTIFICATIONS!.prepare("SELECT count(*) AS count FROM push_registration_limits").first()).toEqual({ count: 0 });
   });
 });

@@ -9,6 +9,11 @@ Automatic reminders, session-start detection, results alerts and queues are not
 implemented yet. `PUSH_ENABLED` defaults to `"false"`; no D1 resources are needed
 to continue deploying the existing proxy with notifications disabled.
 
+Work in progress: the optional `0002_push_preferences.sql` migration and
+event-detection helpers do not send alerts. Leave `PUSH_PREFERENCES_ENABLED`
+unset until automatic-alert delivery and its rollout are complete. Existing test
+notifications do not require this migration.
+
 The frontend manifest allows Home Screen installation. The root service worker
 handles only push and notification clicks; it does not intercept requests,
 cache bundles, or force updates.

@@ -1,9 +1,13 @@
 import { buildPushPayload } from "@block65/webcrypto-web-push";
+import {
+  DEFAULT_PUSH_PREFERENCES, isPushPreferences,
+} from "../../src/utils/pushPreferences";
 
 export interface NotificationEnv {
   NOTIFICATIONS?: D1Database;
   PUSH_ENABLED?: string;
   PUSH_ORIGINS?: string;
+  PUSH_PREFERENCES_ENABLED?: string;
   VAPID_PUBLIC_KEY?: string;
   VAPID_PRIVATE_KEY?: string;
   VAPID_SUBJECT?: string;
@@ -16,7 +20,7 @@ const TEST_TTL_SECONDS = 60;
 const PROVIDER_TIMEOUT_MS = 10_000;
 export const SUBSCRIPTION_RETENTION_MS = 180 * 24 * 60 * 60 * 1000;
 const DEFAULT_ORIGIN = "https://f1replay.app";
-const METHODS = "GET, POST, DELETE, OPTIONS";
+const METHODS = "GET, POST, PATCH, DELETE, OPTIONS";
 
 interface Subscription {
   endpoint: string;
@@ -214,8 +218,40 @@ export async function handleNotifications(request: Request, env: NotificationEnv
     }
 
     if (path === "/notifications/subscription" && request.method === "DELETE") {
-      await db.prepare("DELETE FROM push_subscriptions WHERE credential_hash = ?").bind(credentialHash).run();
+      if (env.PUSH_PREFERENCES_ENABLED === "true") {
+        await db.batch([
+          db.prepare("DELETE FROM push_preferences WHERE credential_hash = ?").bind(credentialHash),
+          db.prepare("DELETE FROM push_subscriptions WHERE credential_hash = ?").bind(credentialHash),
+        ]);
+      } else {
+        await db.prepare("DELETE FROM push_subscriptions WHERE credential_hash = ?").bind(credentialHash).run();
+      }
       return respond({ enabled: false });
+    }
+    if (path === "/notifications/preferences" && (request.method === "GET" || request.method === "PATCH")) {
+      if (env.PUSH_PREFERENCES_ENABLED !== "true") {
+        throw new RequestError(503, "Automatic alert preferences are not available yet.");
+      }
+      const exists = await db.prepare("SELECT 1 FROM push_subscriptions WHERE credential_hash = ?")
+        .bind(credentialHash).first();
+      if (!exists) throw new RequestError(404, "Device subscription not found.");
+      if (request.method === "PATCH") {
+        const preferences = await body(request);
+        if (!isPushPreferences(preferences)) throw new RequestError(400, "Invalid alert preferences.");
+        const saved = await db.prepare(`
+          INSERT INTO push_preferences (credential_hash, preferences, updated_at)
+          SELECT credential_hash, ?, ? FROM push_subscriptions WHERE credential_hash = ?
+          ON CONFLICT(credential_hash) DO UPDATE SET preferences = excluded.preferences, updated_at = excluded.updated_at
+          RETURNING credential_hash
+        `).bind(JSON.stringify(preferences), now, credentialHash).first();
+        if (!saved) throw new RequestError(404, "Device subscription not found.");
+        return respond({ preferences });
+      }
+      const row = await db.prepare("SELECT preferences FROM push_preferences WHERE credential_hash = ?")
+        .bind(credentialHash).first<{ preferences: string }>();
+      const preferences: unknown = row ? JSON.parse(row.preferences) : DEFAULT_PUSH_PREFERENCES;
+      if (!isPushPreferences(preferences)) throw new Error("Stored push preferences are invalid.");
+      return respond({ preferences });
     }
     if (path === "/notifications/subscription" && request.method === "GET") {
       const row = await db.prepare(`
@@ -266,7 +302,14 @@ export async function handleNotifications(request: Request, env: NotificationEnv
       }
       await result.body?.cancel();
       if (result.status === 404 || result.status === 410) {
-        await db.prepare("DELETE FROM push_subscriptions WHERE credential_hash = ?").bind(credentialHash).run();
+        if (env.PUSH_PREFERENCES_ENABLED === "true") {
+          await db.batch([
+            db.prepare("DELETE FROM push_preferences WHERE credential_hash = ?").bind(credentialHash),
+            db.prepare("DELETE FROM push_subscriptions WHERE credential_hash = ?").bind(credentialHash),
+          ]);
+        } else {
+          await db.prepare("DELETE FROM push_subscriptions WHERE credential_hash = ?").bind(credentialHash).run();
+        }
         throw new RequestError(410, "Subscription expired. Disable notifications and enable them again.");
       }
       if (!result.ok) {
@@ -288,6 +331,12 @@ export async function cleanNotificationSubscriptions(env: NotificationEnv): Prom
   if (!env.NOTIFICATIONS) return;
   const now = Date.now();
   await env.NOTIFICATIONS.batch([
+    ...(env.PUSH_PREFERENCES_ENABLED === "true" ? [
+      env.NOTIFICATIONS.prepare(`
+        DELETE FROM push_preferences WHERE credential_hash NOT IN
+          (SELECT credential_hash FROM push_subscriptions WHERE updated_at >= ?)
+      `).bind(now - SUBSCRIPTION_RETENTION_MS),
+    ] : []),
     env.NOTIFICATIONS.prepare("DELETE FROM push_subscriptions WHERE updated_at < ?")
       .bind(now - SUBSCRIPTION_RETENTION_MS),
     env.NOTIFICATIONS.prepare("DELETE FROM push_registration_limits WHERE expires_at <= ?").bind(now),

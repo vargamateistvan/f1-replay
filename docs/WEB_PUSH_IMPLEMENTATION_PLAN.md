@@ -12,9 +12,13 @@ Created: 2026-11-12
 - Phase 1 uses `proxy/src/notifications.ts` instead of a module directory. The
   device creates its own high-entropy management credential before registration;
   the backend stores only its hash. This permits ownership-safe registration retries.
-- Preference PATCH, automated discovery, delivery queues and session deep links
-  remain for later phases. The UI explicitly states that only test delivery is
-  available; no future-alert preferences are advertised as active.
+- Automated discovery, delivery queues and session deep links remain for later
+  phases. The UI explicitly states that only test delivery is available; no
+  future-alert preferences are advertised as active.
+- Work in progress: `0002_push_preferences.sql`, device-owned preferences API,
+  and conservative event-detection functions have been added but are not wired
+  to the UI or a scheduler. `PUSH_PREFERENCES_ENABLED` is unset by default and
+  must not be enabled until migration, cleanup, scheduler, and rollout are ready.
 - No production resources have been provisioned and actual iOS delivery has not
   yet been verified. This is not a production-complete notification feature.
 
