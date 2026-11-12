@@ -78,8 +78,9 @@ minute per secret-salted network-address hash. Expired buckets are deleted by
 daily cleanup. Tests are atomically limited per device, with no automatic
 retry. Provider `404`/`410` removes the subscription; other provider/network
 failures surface explicitly. Outbound push destinations are restricted to
-supported Apple, Google, Mozilla and Microsoft HTTPS hosts, with redirects
-disabled. Provider response bodies, endpoint URLs and device keys are not logged.
+supported Apple, Google, Mozilla and Microsoft HTTPS hosts; redirects are
+handled manually and rejected without following them. Provider response bodies,
+endpoint URLs and device keys are not logged.
 Test preparation and provider connection failures are reported separately.
 Worker logs include only a failure stage and a sanitized error type, never raw
 exception messages. For `prepare_test`, verify that the VAPID public and private

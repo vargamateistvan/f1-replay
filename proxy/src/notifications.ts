@@ -258,7 +258,7 @@ export async function handleNotifications(request: Request, env: NotificationEnv
       let result: Response;
       try {
         result = await fetch(row.endpoint, {
-          ...payload, redirect: "error", signal: AbortSignal.timeout(PROVIDER_TIMEOUT_MS),
+          ...payload, redirect: "manual", signal: AbortSignal.timeout(PROVIDER_TIMEOUT_MS),
         });
       } catch (error) {
         logPushFailure("send_test", error);

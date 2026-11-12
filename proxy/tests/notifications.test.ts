@@ -128,7 +128,7 @@ describe("notification routes", () => {
     expect((await handleNotifications(request("test", "POST"), env)).status).toBe(200);
     const [endpoint, options] = provider.mock.calls[0];
     expect(endpoint).toBe(subscription.endpoint);
-    expect(options.redirect).toBe("error");
+    expect(options.redirect).toBe("manual");
     expect(new Headers(options.headers).get("Content-Encoding")).toBe("aes128gcm");
     expect(new Headers(options.headers).get("Authorization")).toMatch(/^vapid /);
     await register();
@@ -145,6 +145,18 @@ describe("notification routes", () => {
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response(null, { status: 503 })));
     vi.spyOn(console, "warn").mockImplementation(() => {});
     expect((await handleNotifications(request("test", "POST"), env)).status).toBe(502);
+  });
+
+  it("rejects provider redirects without following them", async () => {
+    await register();
+    const fetch = vi.fn().mockResolvedValue(new Response(null, {
+      status: 302, headers: { Location: "https://example.com/redirected" },
+    }));
+    vi.stubGlobal("fetch", fetch);
+    vi.spyOn(console, "warn").mockImplementation(() => {});
+    expect((await handleNotifications(request("test", "POST"), env)).status).toBe(502);
+    expect(fetch).toHaveBeenCalledOnce();
+    expect(fetch.mock.calls[0][1].redirect).toBe("manual");
   });
 
   it("reports push preparation failures without logging secrets or subscription details", async () => {
