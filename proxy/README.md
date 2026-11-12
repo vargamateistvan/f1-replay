@@ -56,11 +56,19 @@ push-triggered deployments. A migration failure stops deployment.
 2. From `proxy/`, run `yarn push:migrate` to apply **all** pending migrations,
    including `0002_push_preferences.sql` and `0003_push_outbox.sql`, before
    deploying the configuration with `PUSH_PREFERENCES_ENABLED = "true"`.
-3. Create queues with `yarn wrangler queues create f1-replay-push` and
-   `yarn wrangler queues create f1-replay-push-dead`. The producer and consumer
-   bindings are already configured in `wrangler.toml`. The second queue stores queue-message
-   failures after the configured retries; failed provider deliveries are stored
-   in D1 as `failed` until retention cleanup, not placed on the dead-letter queue.
+3. Create both queues with a 24-hour retention period:
+
+   ```bash
+   yarn wrangler queues create f1-replay-push --message-retention-period-secs 86400
+   yarn wrangler queues create f1-replay-push-dead --message-retention-period-secs 86400
+   ```
+
+   This works within the Workers Free plan's 24-hour retention limit; Wrangler 3
+   otherwise sends a four-day default, which may be rejected on that plan.
+   The producer and consumer bindings are already configured in `wrangler.toml`.
+   The second queue stores queue-message failures after the configured retries;
+   failed provider deliveries are stored in D1 as `failed` until retention
+   cleanup, not placed on the dead-letter queue.
 4. Configure server-side OpenF1 access if required:
    `yarn wrangler secret put OPENF1_API_KEY`. Live OpenF1 access may require a
    paid credential. Unauthorized or unavailable data is not treated as an
