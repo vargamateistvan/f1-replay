@@ -23,7 +23,6 @@ import {
   SPEEDS,
 } from "@/constants";
 import { animateMotion, pressMotion } from "@/lib/motion";
-import { TOKEN_HEX } from "@/designTokens";
 import { buttonClass } from "@/components/Button/buttonClass";
 
 function toAnalyticsValue(
@@ -44,26 +43,15 @@ export { SectionHeader, SettingRow, Toggle } from "@/components/UI";
 // ── Speed selector ────────────────────────────────────────────────────────────
 
 const NOTIFICATION_LIMIT_OPTIONS = [2, 4, 6, 8] as const;
-const CATCHUP_EVENT_TYPE_OPTIONS = [
-  { kind: "pit", label: "Pit stops", color: "#3d78ff" },
-  { kind: "flag", label: "Flags", color: TOKEN_HEX.orange },
-  { kind: "penalty", label: "Penalties", color: TOKEN_HEX.f1red },
-  { kind: "overtake", label: "Overtakes", color: "#22c55e" },
-  { kind: "fastest_lap", label: "Fastest laps", color: TOKEN_HEX.purple },
-  { kind: "undercut", label: "Undercuts", color: TOKEN_HEX.teal },
-  { kind: "investigation", label: "Investigations", color: TOKEN_HEX.orange },
-  { kind: "radio", label: "Radio", color: "#6b6b7a" },
-] as const;
-
-const NOTIFICATION_EVENT_TYPE_OPTIONS = [
-  { key: "toastPit", label: "Pit stops", color: "#3d78ff" },
-  { key: "toastFlag", label: "Flags", color: TOKEN_HEX.orange },
-  { key: "toastPenalty", label: "Penalties", color: TOKEN_HEX.f1red },
-  { key: "toastOvertake", label: "Overtakes", color: "#22c55e" },
-  { key: "toastFastestLap", label: "Fastest laps", color: TOKEN_HEX.purple },
-  { key: "toastUndercut", label: "Undercuts", color: TOKEN_HEX.teal },
-  { key: "toastInvestigation", label: "Investigations", color: TOKEN_HEX.orange },
-  { key: "toastRadio", label: "Radio", color: "#6b6b7a" },
+const EVENT_TYPE_OPTIONS = [
+  { kind: "pit", key: "toastPit", label: "Pit stops", tone: "blue" },
+  { kind: "flag", key: "toastFlag", label: "Flags", tone: "orange" },
+  { kind: "penalty", key: "toastPenalty", label: "Penalties", tone: "red" },
+  { kind: "overtake", key: "toastOvertake", label: "Overtakes", tone: "green" },
+  { kind: "fastest_lap", key: "toastFastestLap", label: "Fastest laps", tone: "purple" },
+  { kind: "undercut", key: "toastUndercut", label: "Undercuts", tone: "teal" },
+  { kind: "investigation", key: "toastInvestigation", label: "Investigations", tone: "orange" },
+  { kind: "radio", key: "toastRadio", label: "Radio", tone: "neutral" },
 ] as const;
 
 const SETTINGS_TABS = [
@@ -525,14 +513,14 @@ export function SettingsBody({
               />
               {settings.catchupSummaryEnabled && (
                 <ChipField label="Default visible event types" muted>
-                  {CATCHUP_EVENT_TYPE_OPTIONS.map(({ kind, label, color }) => {
+                  {EVENT_TYPE_OPTIONS.map(({ kind, label, tone }) => {
                     const active =
                       settings.catchupSummaryDefaultFilters.includes(kind);
                     return (
                       <Chip
                         key={kind}
                         label={label}
-                        color={color}
+                        tone={tone}
                         active={active}
                         onToggle={() => {
                           const current = settings.catchupSummaryDefaultFilters;
@@ -585,11 +573,11 @@ export function SettingsBody({
                 disabled={!settings.toastsEnabled}
               />
               <ChipField label="Default visible event types" muted>
-                {NOTIFICATION_EVENT_TYPE_OPTIONS.map(({ key, label, color }) => (
+                {EVENT_TYPE_OPTIONS.map(({ key, label, tone }) => (
                   <Chip
                     key={key}
                     label={label}
-                    color={color}
+                    tone={tone}
                     active={settings[key]}
                     disabled={!settings.toastsEnabled}
                     onToggle={() =>
@@ -647,6 +635,7 @@ export function SettingsBody({
                     <Chip
                       key={label}
                       label={label}
+                      tone="red"
                       active={active}
                       onToggle={onToggle}
                     />
@@ -669,6 +658,7 @@ export function SettingsBody({
                       <Chip
                         key={label}
                         label={label}
+                        tone="neutral"
                         active={active}
                         onToggle={onToggle}
                       />

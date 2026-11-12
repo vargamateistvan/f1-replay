@@ -11,6 +11,7 @@ const state = vi.hoisted(() => ({
   showPitLaneStatus: false,
   showKerbs: false,
   showRingPitOutcomes: true,
+  mobile: true,
   previewRequests: vi.fn(),
 }));
 
@@ -116,7 +117,7 @@ vi.mock("@/stores/settings", () => ({
 }));
 
 vi.mock("@/hooks/useMediaQuery", () => ({
-  useMediaQuery: () => true,
+  useMediaQuery: () => state.mobile,
 }));
 
 vi.mock("@/hooks/useSession", () => ({
@@ -287,6 +288,7 @@ describe("SettingsControls", () => {
     state.showPitRejoin = true;
     state.showPitLaneStatus = false;
     state.showRingPitOutcomes = true;
+    state.mobile = true;
     state.previewRequests.mockClear();
   });
 
@@ -320,6 +322,49 @@ describe("SettingsControls", () => {
     );
   });
 
+  it("uses the same semantic tones for catch-up and alert event chips", () => {
+    render(<SettingsBody />);
+    const tones = [
+      ["Pit stops", "blue"],
+      ["Flags", "orange"],
+      ["Penalties", "red"],
+      ["Overtakes", "green"],
+      ["Fastest laps", "purple"],
+      ["Investigations", "orange"],
+    ] as const;
+
+    fireEvent.click(screen.getByRole("tab", { name: "Playback" }));
+    for (const [label, tone] of tones) {
+      expect(screen.getByRole("button", { name: label })).toHaveClass(
+        `border-${tone}-line`,
+        `bg-${tone}-tint`,
+        `text-${tone}-fg`,
+      );
+    }
+    const radio = screen.getByRole("button", { name: "Radio" });
+    expect(radio).toHaveClass("bg-panel", "text-fg");
+    const undercuts = screen.getByRole("button", { name: "Undercuts" });
+    expect(undercuts).toHaveAttribute("aria-pressed", "false");
+    expect(undercuts).toHaveClass("text-muted");
+    fireEvent.click(undercuts);
+    expect(state.setSetting).toHaveBeenCalledWith(
+      "catchupSummaryDefaultFilters",
+      expect.arrayContaining(["undercut"]),
+    );
+
+    fireEvent.click(screen.getByRole("tab", { name: "Alerts" }));
+    for (const [label, tone] of tones) {
+      expect(screen.getByRole("button", { name: label })).toHaveClass(
+        `border-${tone}-line`,
+        `bg-${tone}-tint`,
+        `text-${tone}-fg`,
+      );
+    }
+    expect(screen.getByRole("button", { name: "Radio" })).toHaveClass("bg-panel");
+    fireEvent.click(screen.getByRole("button", { name: "Flags" }));
+    expect(state.setSetting).toHaveBeenCalledWith("toastFlag", false);
+  });
+
   it("updates mobile timing column visibility settings", () => {
     render(<SettingsBody />);
     fireEvent.click(screen.getByRole("tab", { name: "Timing" }));
@@ -334,6 +379,11 @@ describe("SettingsControls", () => {
     const mobileColumnsSection = screen.getByText(
       "Mobile timing columns",
     ).parentElement!;
+
+    expect(within(mobileColumnsSection).getByRole("button", { name: "Best lap" }))
+      .toHaveClass("bg-panel", "text-fg");
+    expect(within(mobileColumnsSection).getByRole("button", { name: "Interval" }))
+      .toHaveClass("text-muted");
 
     fireEvent.click(
       within(mobileColumnsSection).getByRole("button", {
@@ -380,6 +430,18 @@ describe("SettingsControls", () => {
       "timingMobileShowBestLap",
       false,
     );
+  });
+
+  it("uses red chips for selected desktop timing columns", () => {
+    state.mobile = false;
+    render(<SettingsBody initialTab="timing" />);
+    const section = screen.getByText("Driver tracker columns").parentElement!;
+    const bestLap = within(section).getByRole("button", { name: "Best lap" });
+    const lastLap = within(section).getByRole("button", { name: "Last lap" });
+    expect(bestLap).toHaveClass("border-red-line", "bg-red-tint", "text-red-fg");
+    expect(lastLap).toHaveClass("text-muted");
+    fireEvent.click(lastLap);
+    expect(state.setSetting).toHaveBeenCalledWith("trackerTimingShowLastLap", true);
   });
 
   it("shows one labelled settings category at a time", () => {
