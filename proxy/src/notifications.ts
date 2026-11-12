@@ -8,6 +8,8 @@ export interface NotificationEnv {
   PUSH_ENABLED?: string;
   PUSH_ORIGINS?: string;
   PUSH_PREFERENCES_ENABLED?: string;
+  PUSH_DISCOVERY_ENABLED?: string;
+  PUSH_DELIVERY_ENABLED?: string;
   VAPID_PUBLIC_KEY?: string;
   VAPID_PRIVATE_KEY?: string;
   VAPID_SUBJECT?: string;
@@ -173,7 +175,10 @@ export async function handleNotifications(request: Request, env: NotificationEnv
     if (path === "/notifications/config" && request.method === "GET") {
       if (env.PUSH_ENABLED !== "true") return respond({ enabled: false });
       if (!configured(env)) throw new RequestError(503, "Device notifications are not configured.");
-      return respond({ enabled: true, publicKey: env.VAPID_PUBLIC_KEY, automaticAlerts: false });
+      return respond({ enabled: true, publicKey: env.VAPID_PUBLIC_KEY,
+        automaticAlerts: env.PUSH_PREFERENCES_ENABLED === "true" &&
+          env.PUSH_DISCOVERY_ENABLED === "true" && env.PUSH_DELIVERY_ENABLED === "true" &&
+          "PUSH_QUEUE" in env && Boolean(env.PUSH_QUEUE) });
     }
     if (!env.NOTIFICATIONS) throw new RequestError(503, "Device notifications are unavailable.");
     const db = env.NOTIFICATIONS;
@@ -220,6 +225,7 @@ export async function handleNotifications(request: Request, env: NotificationEnv
     if (path === "/notifications/subscription" && request.method === "DELETE") {
       if (env.PUSH_PREFERENCES_ENABLED === "true") {
         await db.batch([
+          db.prepare("DELETE FROM push_alert_deliveries WHERE credential_hash = ?").bind(credentialHash),
           db.prepare("DELETE FROM push_preferences WHERE credential_hash = ?").bind(credentialHash),
           db.prepare("DELETE FROM push_subscriptions WHERE credential_hash = ?").bind(credentialHash),
         ]);
@@ -280,7 +286,7 @@ export async function handleNotifications(request: Request, env: NotificationEnv
       try {
         payload = await buildPushPayload({
           data: {
-            version: 1, title: "F1 Replay", body: "Device notifications are working. Automated session alerts are not available yet.",
+            version: 1, title: "F1 Replay", body: "Device notifications are working.",
             tag: "f1-replay-test", url: "/home",
           },
           options: { ttl: TEST_TTL_SECONDS },
@@ -304,6 +310,7 @@ export async function handleNotifications(request: Request, env: NotificationEnv
       if (result.status === 404 || result.status === 410) {
         if (env.PUSH_PREFERENCES_ENABLED === "true") {
           await db.batch([
+            db.prepare("DELETE FROM push_alert_deliveries WHERE credential_hash = ?").bind(credentialHash),
             db.prepare("DELETE FROM push_preferences WHERE credential_hash = ?").bind(credentialHash),
             db.prepare("DELETE FROM push_subscriptions WHERE credential_hash = ?").bind(credentialHash),
           ]);
@@ -332,6 +339,10 @@ export async function cleanNotificationSubscriptions(env: NotificationEnv): Prom
   const now = Date.now();
   await env.NOTIFICATIONS.batch([
     ...(env.PUSH_PREFERENCES_ENABLED === "true" ? [
+      env.NOTIFICATIONS.prepare(`
+        DELETE FROM push_alert_deliveries WHERE credential_hash NOT IN
+          (SELECT credential_hash FROM push_subscriptions WHERE updated_at >= ?)
+      `).bind(now - SUBSCRIPTION_RETENTION_MS),
       env.NOTIFICATIONS.prepare(`
         DELETE FROM push_preferences WHERE credential_hash NOT IN
           (SELECT credential_hash FROM push_subscriptions WHERE updated_at >= ?)

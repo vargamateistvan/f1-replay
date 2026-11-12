@@ -1,3 +1,4 @@
+/* global Queue, MessageBatch */
 /**
  * f1-replay OpenF1 proxy — Cloudflare Worker
  *
@@ -40,9 +41,12 @@
  */
 
 import { handleNotifications, cleanNotificationSubscriptions, type NotificationEnv } from "./notifications";
+import { discoverPushAlerts } from "./pushDiscovery";
+import { cleanPushAlerts, processPushAlerts } from "./pushDelivery";
 
 export interface Env extends NotificationEnv {
   CACHE: KVNamespace;
+  PUSH_QUEUE?: Queue<{ type: "drain" }>;
 
   /**
    * Optional OpenF1 bearer token.
@@ -306,8 +310,47 @@ async function fetchFromOpenF1(openf1Url: string, env: Env): Promise<Response> {
 // ── Worker ───────────────────────────────────────────────────────────────────
 
 export default {
-  async scheduled(_event: ScheduledController, env: Env): Promise<void> {
-    await cleanNotificationSubscriptions(env);
+  async scheduled(event: ScheduledController, env: Env): Promise<void> {
+    if (event.cron === "0 4 * * *") {
+      await cleanNotificationSubscriptions(env);
+      if (env.PUSH_PREFERENCES_ENABLED === "true" && env.NOTIFICATIONS) {
+        await cleanPushAlerts(env.NOTIFICATIONS);
+      }
+      return;
+    }
+    let discoveryFailure: unknown;
+    try {
+      await discoverPushAlerts(env);
+    } catch (error) {
+      discoveryFailure = error;
+    }
+    if (env.PUSH_DELIVERY_ENABLED === "true") {
+      if (!env.PUSH_QUEUE) throw new Error("Automatic push queue is not configured");
+      await env.PUSH_QUEUE.send({ type: "drain" });
+    }
+    if (discoveryFailure) throw discoveryFailure;
+  },
+
+  async queue(batch: MessageBatch<unknown>, env: Env): Promise<void> {
+    for (const message of batch.messages) {
+      if (!message.body || typeof message.body !== "object" ||
+          !("type" in message.body) || message.body.type !== "drain") {
+        console.error("Invalid automatic push queue message");
+        message.ack();
+        continue;
+      }
+      try {
+        const more = await processPushAlerts(env);
+        if (more) {
+          if (!env.PUSH_QUEUE) throw new Error("Automatic push queue is not configured");
+          await env.PUSH_QUEUE.send({ type: "drain" });
+        }
+        message.ack();
+      } catch {
+        console.error("Automatic push queue processing failed");
+        message.retry();
+      }
+    }
   },
 
   async fetch(request: Request, env: Env): Promise<Response> {

@@ -49,6 +49,7 @@ beforeAll(async () => {
   const db = await mf.getD1Database("NOTIFICATIONS");
   await db.exec(readFileSync(new URL("../migrations/0001_push_subscriptions.sql", import.meta.url), "utf8").replace(/\n/g, " "));
   await db.exec(readFileSync(new URL("../migrations/0002_push_preferences.sql", import.meta.url), "utf8").replace(/\n/g, " "));
+  await db.exec(readFileSync(new URL("../migrations/0003_push_outbox.sql", import.meta.url), "utf8").replace(/\n/g, " "));
   env = {
     NOTIFICATIONS: db, PUSH_ENABLED: "true",
     VAPID_PUBLIC_KEY: publicKey, VAPID_PRIVATE_KEY: jwk.d,
@@ -58,6 +59,7 @@ beforeAll(async () => {
 
 beforeEach(async () => {
   await env.NOTIFICATIONS!.batch([
+    env.NOTIFICATIONS!.prepare("DELETE FROM push_alert_deliveries"),
     env.NOTIFICATIONS!.prepare("DELETE FROM push_preferences"),
     env.NOTIFICATIONS!.prepare("DELETE FROM push_subscriptions"),
     env.NOTIFICATIONS!.prepare("DELETE FROM push_registration_limits"),
@@ -122,6 +124,20 @@ describe("notification routes", () => {
     expect((await handleNotifications(request("preferences"), env)).status).toBe(503);
   });
 
+  it("only advertises automatic alerts when both switches and the queue binding are present", async () => {
+    const enabled = {
+      ...env, PUSH_PREFERENCES_ENABLED: "true", PUSH_DISCOVERY_ENABLED: "true",
+      PUSH_DELIVERY_ENABLED: "true", PUSH_QUEUE: { send: vi.fn() },
+    };
+    expect(await (await handleNotifications(request("config"), enabled)).json())
+      .toMatchObject({ automaticAlerts: true });
+    expect(await (await handleNotifications(request("config"), { ...enabled, PUSH_DELIVERY_ENABLED: "false" })).json())
+      .toMatchObject({ automaticAlerts: false });
+    expect(await (await handleNotifications(request("config"), { ...env, PUSH_PREFERENCES_ENABLED: "true",
+      PUSH_DISCOVERY_ENABLED: "true", PUSH_DELIVERY_ENABLED: "true" })).json())
+      .toMatchObject({ automaticAlerts: false });
+  });
+
   it("validates and stores device-owned preferences and deletes them on unsubscribe", async () => {
     await register();
     const prefsEnv = { ...env, PUSH_PREFERENCES_ENABLED: "true" };
@@ -139,6 +155,19 @@ describe("notification routes", () => {
     expect((await handleNotifications(request("preferences", "GET", undefined, otherCredential), prefsEnv)).status).toBe(404);
     await handleNotifications(request("subscription", "DELETE"), prefsEnv);
     expect(await env.NOTIFICATIONS!.prepare("SELECT count(*) AS count FROM push_preferences").first())
+      .toEqual({ count: 0 });
+  });
+
+  it("deletes queued delivery state when a device unsubscribes", async () => {
+    await register();
+    const prefsEnv = { ...env, PUSH_PREFERENCES_ENABLED: "true" };
+    const subscriptionRow = await env.NOTIFICATIONS!.prepare("SELECT credential_hash FROM push_subscriptions")
+      .first<{ credential_hash: string }>();
+    await env.NOTIFICATIONS!.prepare(`
+      INSERT INTO push_alert_deliveries (event_key, credential_hash) VALUES ('event', ?)
+    `).bind(subscriptionRow!.credential_hash).run();
+    expect((await handleNotifications(request("subscription", "DELETE"), prefsEnv)).status).toBe(200);
+    expect(await env.NOTIFICATIONS!.prepare("SELECT count(*) AS count FROM push_alert_deliveries").first())
       .toEqual({ count: 0 });
   });
 

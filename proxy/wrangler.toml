@@ -20,6 +20,10 @@ preview_id = "e4b5f4d660ae47d0ba187ed5b2b25f74"
 
 [vars]
 PUSH_ENABLED = "true"
+# Enable only after applying all D1 migrations and provisioning the queue.
+PUSH_PREFERENCES_ENABLED = "false"
+PUSH_DISCOVERY_ENABLED = "false"
+PUSH_DELIVERY_ENABLED = "false"
 # Set OPENF1_API_KEY as a secret instead:
 #   wrangler secret put OPENF1_API_KEY
 # Leave this block here as documentation; secrets are not listed in wrangler.toml.
@@ -37,4 +41,15 @@ database_id = "15ce1018-320c-4f4a-ac19-e7e581c84285"
 migrations_dir = "migrations"
 
 [triggers]
-crons = ["0 4 * * *"] # Daily retention cleanup, not session discovery.
+crons = ["* * * * *", "0 4 * * *"] # Discovery/dispatch and daily retention cleanup.
+
+# After creating the queue and dead-letter queue, uncomment these bindings.
+# [[queues.producers]]
+# binding = "PUSH_QUEUE"
+# queue = "f1-replay-push"
+#
+# [[queues.consumers]]
+# queue = "f1-replay-push"
+# dead_letter_queue = "f1-replay-push-dead"
+# max_batch_size = 1
+# max_retries = 5

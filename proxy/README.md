@@ -2,17 +2,12 @@
 
 A Cloudflare Worker that proxies the [OpenF1 REST API](https://openf1.org/) and caches JSON responses in **Cloudflare KV**, eliminating browser-side rate-limit pressure (3 req/s, 30 req/min) and making historical sessions load instantly for every user.
 
-## Device notifications (phase 1)
+## Device notifications
 
-The Worker also supports opt-in encrypted Web Push **test notifications**.
-Automatic reminders, session-start detection, results alerts and queues are not
-implemented yet. `PUSH_ENABLED` defaults to `"false"`; no D1 resources are needed
-to continue deploying the existing proxy with notifications disabled.
-
-Work in progress: the optional `0002_push_preferences.sql` migration and
-event-detection helpers do not send alerts. Leave `PUSH_PREFERENCES_ENABLED`
-unset until automatic-alert delivery and its rollout are complete. Existing test
-notifications do not require this migration.
+The Worker supports encrypted test pushes and implements opt-in automatic
+reminders, confirmed starts and results. The three automatic-alert switches in
+`wrangler.toml` are **off** until the migrations, queue and live-data access are
+configured and tested. Existing subscriptions do not opt in automatically.
 
 The frontend manifest allows Home Screen installation. The root service worker
 handles only push and notification clicks; it does not intercept requests,
@@ -20,7 +15,10 @@ cache bundles, or force updates.
 
 ### Provisioning
 
-Run these commands only in the intended Cloudflare account:
+The checked-in configuration already binds the existing D1 database and test
+push keys. Do not recreate the database or rotate keys if test pushes work.
+For a new installation, provision D1 and a VAPID key pair in the intended
+Cloudflare account:
 
 ```bash
 cd proxy
@@ -29,8 +27,8 @@ yarn wrangler d1 create f1-replay-notifications
 yarn push:keys
 ```
 
-1. Uncomment the `NOTIFICATIONS` D1 binding in `wrangler.toml`, using the actual
-   database ID from the create command. Keep `PUSH_ENABLED = "false"`.
+1. Configure the `NOTIFICATIONS` D1 binding in `wrangler.toml`, using the actual
+   database ID. Keep `PUSH_ENABLED = "false"` until provisioning is complete.
 2. Set `VAPID_PUBLIC_KEY` and a valid `VAPID_SUBJECT` contact (`mailto:` or HTTPS)
    under `[vars]`. Store only the private key as a secret:
    `yarn wrangler secret put VAPID_PRIVATE_KEY`. Never commit generated private keys.
@@ -39,8 +37,8 @@ yarn push:keys
    its Vite origin, for example `http://localhost:5173`.
 4. Apply the schema: `yarn push:migrate` (remote), or
    `yarn wrangler d1 migrations apply NOTIFICATIONS --local` for local tests.
-5. Uncomment the daily cron trigger. This is required for 180-day inactive
-   subscription retention and registration-counter cleanup, not session alerts.
+5. Configure the daily cron for 180-day inactive subscription retention and
+   registration-counter cleanup.
 6. Deploy the backend before enabling frontend tests. Change
    `PUSH_ENABLED = "true"` only after the database, schema, keys, origins and
    cleanup trigger are configured, then redeploy.
@@ -49,6 +47,57 @@ The Deploy Proxy workflow type-checks and runs D1-backed integration tests befor
 deployment. Its manual `migrate_notifications` input applies migrations before
 deploying. Use that input (or apply migrations manually) for future schema changes;
 push-triggered deployments do not automatically migrate the database.
+
+### Enabling automatic alerts
+
+1. Check Cloudflare Queues availability and pricing for the intended account.
+   The one-minute cron adds roughly 43,200 scheduled invocations per 30 days;
+   Queue operations and D1 reads/writes scale with enabled devices. Review
+   current Cloudflare limits and charges before enabling.
+2. From `proxy/`, run `yarn push:migrate` to apply **all** pending migrations,
+   including `0002_push_preferences.sql` and `0003_push_outbox.sql`, before
+   setting `PUSH_PREFERENCES_ENABLED`. The existing test push continues to work
+   while automatic switches remain off.
+3. Create queues with `yarn wrangler queues create f1-replay-push` and
+   `yarn wrangler queues create f1-replay-push-dead`; uncomment the producer and
+   consumer bindings in `wrangler.toml`. The second queue stores queue-message
+   failures after the configured retries; failed provider deliveries are stored
+   in D1 as `failed` until retention cleanup, not placed on the dead-letter queue.
+4. Configure server-side OpenF1 access if required:
+   `yarn wrangler secret put OPENF1_API_KEY`. Live OpenF1 access may require a
+   paid credential. Unauthorized or unavailable data is not treated as an
+   event; alerts can be missed while data or the schedule is unavailable.
+5. Deploy with switches still false, then set `PUSH_PREFERENCES_ENABLED`,
+   `PUSH_DISCOVERY_ENABLED`, and `PUSH_DELIVERY_ENABLED` to `"true"` and
+   redeploy. The one-minute cron refreshes the schedule and wakes the queue.
+   Users must explicitly choose each alert type on each device.
+6. Observe Worker logs and the dead-letter queue; test on an installed iPhone
+   through a controlled session before wider rollout. Do not log endpoints,
+   keys, credentials, or provider response bodies.
+
+For an incident, set `PUSH_DISCOVERY_ENABLED = "false"` to stop creating new
+events, or `PUSH_DELIVERY_ENABLED = "false"` to stop sending. Keep
+`PUSH_PREFERENCES_ENABLED = "true"` after migrating so unsubscribe and cleanup
+continue to remove stored preferences and pending deliveries. Re-enable only
+after checking the cause; expired events are skipped, not replayed.
+
+Discovery fetches the current calendar directly, up to eight OpenF1 requests
+per locked cron run, and honors upstream `Retry-After`. This budget is separate
+from normal proxy traffic; monitor account-wide OpenF1 limits. Event fan-out
+uses D1 cursor checkpoints, and delivery uses D1 leases and unique event/device
+keys. Queue messages are wake-ups; the D1 outbox survives an enqueue failure.
+Providers can accept a push immediately before a crash, so retries are
+at-least-once, not exactly-once. A notification tag reduces visible duplicates.
+Fan-out processes 100 devices and each queue invocation sends at most eight;
+queue throughput, Workers limits and provider latency constrain capacity.
+
+Reminders expire two minutes after the ten-minute threshold. Starts expire
+after five minutes and require an explicit initial start message; qualifying
+requires a Q1 phase tag. Results require a chequered flag (Q3 for qualifying)
+and a classification covering the reported driver list; incomplete source
+data, early ends, missing phase tags or a stale calendar may suppress alerts.
+These checks do not prove the driver list itself is complete. Preferences
+updated after an event cause that event to be skipped for that device.
 
 The frontend defaults to `https://proxy.f1replay.app`. Set `VITE_PUSH_API_BASE`
 (a Worker origin without `/v1`) for local or alternative deployments. The Pages
@@ -60,11 +109,12 @@ For local development use `http://localhost:8787`; ensure Wrangler supplies
 
 | Route | Behavior |
 | --- | --- |
-| `GET /notifications/config` | Enabled state and public VAPID key; reports automatic alerts unavailable |
+| `GET /notifications/config` | Enabled state, public VAPID key and automatic alert availability |
 | `POST /notifications/subscriptions` | Register/refresh this device's browser subscription |
 | `GET /notifications/subscription` | Reconcile subscription state and refresh last-seen timestamp |
 | `DELETE /notifications/subscription` | Delete this device's subscription, including while sending is disabled |
 | `POST /notifications/test` | Send a test, at most once per minute per device |
+| `GET/PATCH /notifications/preferences` | Read or replace device-owned alert preferences when enabled |
 
 All routes require an allowed `Origin`; management routes also require a
 high-entropy device bearer credential. The browser generates and persists it

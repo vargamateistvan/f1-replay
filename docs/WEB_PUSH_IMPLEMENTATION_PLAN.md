@@ -1,6 +1,6 @@
 # Web Push notifications implementation plan
 
-Status: test push deployed; automatic alerts incomplete
+Status: automatic alert pipeline implemented behind disabled switches; production rollout and device validation pending
 Created: 2026-11-12
 
 ## Implementation progress
@@ -12,22 +12,20 @@ Created: 2026-11-12
 - Phase 1 uses `proxy/src/notifications.ts` instead of a module directory. The
   device creates its own high-entropy management credential before registration;
   the backend stores only its hash. This permits ownership-safe registration retries.
-- Automated discovery and delivery queues remain for later phases. The
-  Schedule page can open a result with `?year=<year>&result=<session_key>`;
-  replay links already identify sessions. No automatic notifications are sent.
-- Work in progress: `0002_push_preferences.sql`, device-owned preferences API,
-  conservative event-detection functions, and device-specific preference
-  controls have been added, but are not wired to a scheduler. The UI only
-  exposes the controls if the server advertises automatic alerts, which it
-  currently does not. `PUSH_PREFERENCES_ENABLED` is unset by default and must
-  not be enabled until migration, scheduler, and rollout are ready.
+- Fresh calendar discovery, D1-backed fan-out and delivery leases, queue
+  wake-ups, bounded retries and device preference rechecks are implemented.
+  The Schedule page opens results with `?year=<year>&result=<session_key>`.
+  The UI exposes alert controls only when the Worker advertises availability.
+  All automatic-alert switches remain off in the checked-in configuration.
+  Apply migrations and provision queue resources before enabling them.
 - The test push provider accepted a request; display on an actual iOS device
-  has not been confirmed. This is not a production-complete notification feature.
+  has not been confirmed. Automatic notifications have not been deployed or
+  verified against a real weekend; this is not a production-complete feature.
 - Event detectors now reject untagged qualifying starts, restarts preceded by
   an interruption, and classifications that do not cover the reported driver
   list. They have Singapore 2023 race-control timing tests using synthetic
   classification rows, but still need broader fixtures, checks for incomplete
-  driver lists and integration with fresh OpenF1 discovery.
+  driver lists and real-weekend validation.
 
 ## 1. Goal and scope
 
