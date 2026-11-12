@@ -9,6 +9,7 @@ import {
 } from "@/components/UI";
 import { TrackMapSettings } from "./TrackMapSettings";
 import { SettingsTransfer } from "./SettingsTransfer";
+import { PushNotificationsSettings } from "./PushNotificationsSettings";
 import {
   useSettings,
   type AppSettings,
@@ -556,7 +557,8 @@ export function SettingsBody({
               aria-labelledby="notifications-settings-tab"
               className="min-h-0 flex-1 overflow-y-auto overscroll-contain pr-1"
             >
-              <SectionHeader>Notifications</SectionHeader>
+              <PushNotificationsSettings />
+              <SectionHeader>Replay notifications</SectionHeader>
               <SettingRow
                 label="Enable notifications"
                 description="Show event toasts during playback"

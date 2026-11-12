@@ -8,7 +8,12 @@
     "dev": "wrangler dev",
     "deploy": "wrangler deploy",
     "type-check": "tsc --noEmit",
-    "kv:expire-legacy": "node scripts/expire-legacy-kv.mjs"
+    "kv:expire-legacy": "node scripts/expire-legacy-kv.mjs",
+    "push:keys": "node scripts/generate-push-keys.mjs",
+    "push:migrate": "wrangler d1 migrations apply NOTIFICATIONS --remote"
+  },
+  "dependencies": {
+    "@block65/webcrypto-web-push": "^2.0.0"
   },
   "devDependencies": {
     "@cloudflare/workers-types": "^5.20260808.1",

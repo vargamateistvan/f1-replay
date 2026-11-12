@@ -1,6 +1,6 @@
 # F1 Replay — Agent Documentation
 
-> Last updated: 2026-11-11
+> Last updated: 2026-11-12
 > The single source of truth for agents. Provides concise, agent-readable architecture notes, conventions, and guardrails. `docs/` holds mostly historical plans — see Section 12 before trusting one.
 
 ---
@@ -17,6 +17,7 @@
 
 | Add a user setting                                | `stores/settings.ts` (`AppSettings`, defaults, `migrateSettings`) + `components/SettingsModal` |
 | Settings import / export                         | `stores/settings.ts` (`exportSettings`, `parseSettingsImport`), `components/SettingsModal/SettingsTransfer.tsx`: validated versioned JSON, preference-only atomic merge; excludes onboarding and modal state |
+| Device push notifications                        | `lib/webPush.ts`, `hooks/usePushNotifications.ts`, `components/SettingsModal/PushNotificationsSettings.tsx`, `public/sw.js`, `proxy/src/notifications.ts`; opt-in test delivery only, no automated session alerts yet; provisioning in `proxy/README.md` |
 | Main replay page layout / wiring                  | `pages/RaceWeekend.tsx` (very large — grep, don't read whole)                                 |
 | Playback, seek, speed                             | `timeline/clock.ts` (`useTimeline`), `components/PlaybackBar`                                |
 | Car positions on the map                          | `hooks/useLocationChunks.ts` → `timeline/interpolate.ts` → `components/TrackMap`             |
@@ -151,6 +152,7 @@ src/
     useOpenF1LiveMqtt.ts — Live sessions: OpenF1 MQTT topics → `setQueryData` into the polling queries' cache
     useAudioProgress.ts — 0–1 progress of an <audio> element (radio clips)
     useReleaseDate.ts   — Shared GitHub latest-release date (footer and Home About section)
+    usePushNotifications.ts — Device push setup/reconciliation, permission on explicit gesture, test delivery and retryable unsubscribe; separate from replay toasts
     usePageSeo.ts       — Overrides route SEO defaults once a data-driven page (driver/team profile) has loaded
     queryKeys.ts        — Shared query-key builders (`lapsQueryKey`)
 
@@ -235,6 +237,7 @@ src/
     appVersion.ts       — VITE_APP_VERSION formatting, GitHub releases URLs
     idle.ts             — runWhenIdle(), loadScriptOnce()
     youtubePlayer.ts    — loadYouTubeApi(): lazy YouTube IFrame Player API (reports embed-blocked errors 101/150), retry after a script error
+    webPush.ts          — Browser capability/installation checks, separate local device credential, root service-worker registration and notification API client (`VITE_PUSH_API_BASE`)
     staleChunkReload.ts — After a deploy, old tabs 404 on removed hashed chunks: reloads once on `vite:preloadError` (sessionStorage cooldown `STALE_CHUNK_RELOAD_COOLDOWN_MS` stops loops); `ErrorBoundary` shows "Loading the latest version…" meanwhile
     motion.ts           — anime.js presets (fadeUp, modal, tab swap…), prefersReducedMotion()
 
@@ -249,6 +252,7 @@ proxy/                  — Cloudflare Worker: OpenF1 proxy + KV cache (own pack
 scripts/                — Node build/bake scripts: sitemap + route shells + SEO validation, circuit/georef/pit-lane bakes,
                           fetch-highlights.mjs (YouTube highlights), bake-world-map.mjs (schedule map land), warm-proxy-cache.mjs, resolve-release-version.mjs
 public/                 — Static assets: sounds/, models/f1-car.glb, og-cover.png/svg, CNAME
+                          manifest.webmanifest + app-icon-192.png/app-icon-512.png enable Home Screen installation; sw.js handles push/click only (no fetch interception or forced activation)
 seo-routes.json         — Route list for sitemap, shells and <head> meta
 .github/workflows/      — ci (validate SEO, tsc, lint, test, build on PRs), deploy (same checks + GitHub Pages on main), deploy-proxy (Worker),
                           versioning (tags + release notes), warm-cache (hourly on race weekends), update-circuits (weekly; commits to main + dispatches deploy),
@@ -606,6 +610,7 @@ Authentication: optional bearer token via `VITE_OPENF1_API_KEY` env var (`.env.l
 | Variable                                                                 | Purpose                                                          |
 | ------------------------------------------------------------------------ | ---------------------------------------------------------------- |
 | `VITE_OPENF1_API_BASE`                                                   | API base; unset = `api.openf1.org/v1`, production = the proxy    |
+| `VITE_PUSH_API_BASE`                                                     | Device notification Worker origin (no `/v1`), defaults to `https://proxy.f1replay.app`; backend remains disabled until provisioned |
 | `VITE_OPENF1_API_KEY`                                                    | Optional bearer token                                            |
 | `VITE_OPENF1_MQTT_WSS_URL` / `VITE_OPENF1_MQTT_USERNAME` / `VITE_OPENF1_MQTT_TOKEN` | Live MQTT push (optional)                             |
 | `VITE_MAPBOX_TOKEN`                                                      | Public Mapbox token; unset hides the 3D map                      |

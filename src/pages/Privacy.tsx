@@ -2,7 +2,7 @@ import { Link } from "react-router-dom";
 import { buttonClass } from "@/components/Button/buttonClass";
 
 export default function Privacy() {
-  const updatedOn = "2026-10-31";
+  const updatedOn = "2026-11-12";
 
   return (
     <section className="relative flex min-h-0 flex-1 flex-col bg-track md:overflow-y-auto md:overscroll-contain px-4 py-5 [-webkit-overflow-scrolling:touch] sm:px-6 sm:py-8">
@@ -31,7 +31,8 @@ export default function Privacy() {
           <p className="my-5 max-w-3xl text-sm leading-6 text-fg/90">
             F1 Replay uses analytics and session replay to understand site
             usage, improve the app, and investigate usability issues. This
-            policy summarizes the information these tools may process.
+            policy summarizes the information these tools and optional device
+            notifications may process.
           </p>
 
           <div className="divide-y divide-panel border-y border-panel">
@@ -55,6 +56,34 @@ export default function Privacy() {
               inputs; other visible page text may be captured. You can disable
               future recordings in Settings. The Amplitude project privacy
               settings may apply additional masking or override SDK settings.
+              </p>
+            </section>
+
+            <section className="border-l-2 border-transparent py-4 pl-4 sm:pl-5">
+              <h2 className="text-small font-black uppercase tracking-eyebrow text-fg">
+                Optional Device Notifications
+              </h2>
+              <p className="mt-2 text-sm leading-6 text-fg/80">
+                If you enable device notifications in Settings → Alerts, we store
+                your browser push endpoint, delivery encryption keys, a hashed
+                device-management credential, and subscription timestamps in
+                Cloudflare D1. A separate management credential stays in local
+                storage on this device and is not included in settings exports
+                or analytics events. Cloudflare and your browser&apos;s push
+                provider (such as Apple, Google, Mozilla or Microsoft) process
+                requests needed for delivery. Test notifications are currently
+                supported; automatic session alerts are not available yet.
+              </p>
+              <p className="mt-2 text-sm leading-6 text-fg/80">
+                You can unsubscribe and request deletion of the server subscription
+                using Disable on this device in Settings → Alerts. Partial
+                failures are shown with a retry action. Expired push endpoints
+                are deleted when detected during sending, and daily cleanup
+                removes subscriptions inactive for 180 days. Registration abuse
+                protection keeps a secret-salted hash of the network address
+                (not the raw address) in short-lived counters removed by daily
+                cleanup. You can also revoke notification permission in your
+                device or browser settings.
               </p>
             </section>
 

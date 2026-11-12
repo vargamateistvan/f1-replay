@@ -210,6 +210,9 @@ describe("Home page", () => {
     expect(within(install).getByText("Tap the Share button")).toBeInTheDocument();
     expect(within(install).getByText("Choose “Add to Home Screen”")).toBeInTheDocument();
     expect(within(install).getByText(/open it in Safari first/)).toBeInTheDocument();
+    fireEvent.click(within(install).getByRole("button", { name: "Device notification settings" }));
+    expect(useSettings.getState().isOpen).toBe(true);
+    expect(useSettings.getState().modalTab).toBe("notifications");
   });
 
   it("tracks feature clicks", () => {

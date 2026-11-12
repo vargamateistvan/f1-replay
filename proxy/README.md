@@ -2,6 +2,114 @@
 
 A Cloudflare Worker that proxies the [OpenF1 REST API](https://openf1.org/) and caches JSON responses in **Cloudflare KV**, eliminating browser-side rate-limit pressure (3 req/s, 30 req/min) and making historical sessions load instantly for every user.
 
+## Device notifications (phase 1)
+
+The Worker also supports opt-in encrypted Web Push **test notifications**.
+Automatic reminders, session-start detection, results alerts and queues are not
+implemented yet. `PUSH_ENABLED` defaults to `"false"`; no D1 resources are needed
+to continue deploying the existing proxy with notifications disabled.
+
+The frontend manifest allows Home Screen installation. The root service worker
+handles only push and notification clicks; it does not intercept requests,
+cache bundles, or force updates.
+
+### Provisioning
+
+Run these commands only in the intended Cloudflare account:
+
+```bash
+cd proxy
+yarn install --frozen-lockfile
+yarn wrangler d1 create f1-replay-notifications
+yarn push:keys
+```
+
+1. Uncomment the `NOTIFICATIONS` D1 binding in `wrangler.toml`, using the actual
+   database ID from the create command. Keep `PUSH_ENABLED = "false"`.
+2. Set `VAPID_PUBLIC_KEY` and a valid `VAPID_SUBJECT` contact (`mailto:` or HTTPS)
+   under `[vars]`. Store only the private key as a secret:
+   `yarn wrangler secret put VAPID_PRIVATE_KEY`. Never commit generated private keys.
+3. Configure `PUSH_ORIGINS` as a comma-separated exact origin allowlist.
+   The default is `https://f1replay.app`. Local development must explicitly add
+   its Vite origin, for example `http://localhost:5173`.
+4. Apply the schema: `yarn push:migrate` (remote), or
+   `yarn wrangler d1 migrations apply NOTIFICATIONS --local` for local tests.
+5. Uncomment the daily cron trigger. This is required for 180-day inactive
+   subscription retention and registration-counter cleanup, not session alerts.
+6. Deploy the backend before enabling frontend tests. Change
+   `PUSH_ENABLED = "true"` only after the database, schema, keys, origins and
+   cleanup trigger are configured, then redeploy.
+
+The Deploy Proxy workflow type-checks and runs D1-backed integration tests before
+deployment. Its manual `migrate_notifications` input applies migrations before
+deploying. Use that input (or apply migrations manually) for future schema changes;
+push-triggered deployments do not automatically migrate the database.
+
+The frontend defaults to `https://proxy.f1replay.app`. Set `VITE_PUSH_API_BASE`
+(a Worker origin without `/v1`) for local or alternative deployments. The Pages
+workflow accepts this through the repository variable of the same name.
+For local development use `http://localhost:8787`; ensure Wrangler supplies
+`CF-Connecting-IP`, which registration requires for throttling.
+
+### API and ownership
+
+| Route | Behavior |
+| --- | --- |
+| `GET /notifications/config` | Enabled state and public VAPID key; reports automatic alerts unavailable |
+| `POST /notifications/subscriptions` | Register/refresh this device's browser subscription |
+| `GET /notifications/subscription` | Reconcile subscription state and refresh last-seen timestamp |
+| `DELETE /notifications/subscription` | Delete this device's subscription, including while sending is disabled |
+| `POST /notifications/test` | Send a test, at most once per minute per device |
+
+All routes require an allowed `Origin`; management routes also require a
+high-entropy device bearer credential. The browser generates and persists it
+**before** registration, and D1 stores only its hash. Retrying registration
+cannot transfer an existing endpoint to another credential. A changed browser
+endpoint replaces the same device's previous endpoint.
+
+Device credentials, permission and subscription material are separate from
+portable settings and never exported. If local storage is lost while the
+browser subscription remains, disable it locally and enable again rather than
+trying to take ownership of an endpoint without its credential.
+
+Responses are `no-store` with notification-specific CORS; `/v1` public proxy
+CORS and caching are unchanged. Registration is limited to 10 attempts per
+minute per secret-salted network-address hash. Expired buckets are deleted by
+daily cleanup. Tests are atomically limited per device, with no automatic
+retry. Provider `404`/`410` removes the subscription; other provider/network
+failures surface explicitly. Outbound push destinations are restricted to
+supported Apple, Google, Mozilla and Microsoft HTTPS hosts, with redirects
+disabled. Provider response bodies, endpoint URLs and device keys are not logged.
+
+The maintained `@block65/webcrypto-web-push` v2 dependency uses `aes128gcm`
+encryption and RFC 8292 VAPID authorization required by Apple. Rotating VAPID
+keys requires existing devices to disable and re-enable their subscriptions;
+do not casually replace the private key.
+
+### Verification and rollback
+
+```bash
+# From the repository root, after installing both root and proxy dependencies:
+yarn --cwd proxy type-check
+yarn vitest run --config proxy/vitest.config.ts
+```
+
+Then verify on a real iPhone/iPad with iOS/iPadOS 16.4+:
+
+1. Add the site to the Home Screen and launch it from its icon.
+2. Open Settings -> Alerts -> Device notifications and explicitly enable.
+3. Send a test; verify delivery while the app is closed, including Lock Screen.
+4. Tap it and verify the Home page opens in the installed app.
+5. Disable notifications and confirm the server record is removed. Partial
+   deletion failures must remain retryable.
+
+An accepted push request is **not** proof that a device displayed it; OS
+settings and delivery delays apply. Real-device validation is still required.
+To pause delivery, set `PUSH_ENABLED = "false"` and redeploy. Keep the D1 binding
+and cleanup cron so existing users can still delete subscriptions and stale
+records are removed. A missing required binding/key with sending enabled
+produces an explicit 503 rather than silently pretending to be configured.
+
 ## How it works
 
 ```

@@ -57,6 +57,7 @@ jobs:
         env:
           VITE_APP_VERSION: ${{ steps.resolve-version.outputs.version }}
           VITE_OPENF1_API_BASE: ${{ secrets.VITE_OPENF1_API_BASE }}
+          VITE_PUSH_API_BASE: ${{ vars.VITE_PUSH_API_BASE }}
           VITE_GA_MEASUREMENT_ID: ${{ vars.VITE_GA_MEASUREMENT_ID || secrets.VITE_GA_MEASUREMENT_ID }}
           # Optional override; unset uses the built-in Amplitude project key.
           VITE_AMPLITUDE_API_KEY: ${{ vars.VITE_AMPLITUDE_API_KEY }}

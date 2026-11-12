@@ -6,6 +6,11 @@ on:
     paths:
       - "proxy/**"
   workflow_dispatch:
+    inputs:
+      migrate_notifications:
+        description: "Apply notification D1 migrations before deploying (requires configured NOTIFICATIONS binding)"
+        type: boolean
+        default: false
 
 jobs:
   deploy:
@@ -18,11 +23,31 @@ jobs:
         with:
           node-version: 24
           cache: yarn
-          cache-dependency-path: proxy/yarn.lock
+          cache-dependency-path: |
+            yarn.lock
+            proxy/yarn.lock
+
+      - name: Install test dependencies
+        run: yarn install --frozen-lockfile
 
       - name: Install proxy dependencies
         working-directory: proxy
         run: yarn install --frozen-lockfile
+
+      - name: Type-check Worker
+        working-directory: proxy
+        run: yarn type-check
+
+      - name: Test notifications
+        run: yarn vitest run --config proxy/vitest.config.ts
+
+      - name: Apply notification migrations
+        if: ${{ inputs.migrate_notifications }}
+        working-directory: proxy
+        run: yarn push:migrate
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
 
       - name: Deploy Worker
         working-directory: proxy

@@ -388,6 +388,14 @@ export default function Home() {
             <p className="mt-4 border-t border-panel pt-3 text-small leading-5 text-muted">
               If this page opened inside another app, open it in Safari first.
             </p>
+            <p className="mt-3 text-small leading-5 text-muted">
+              To try device notifications on iOS/iPadOS 16.4+, open the installed app,
+              then visit Settings → Alerts. Automatic session alerts are not available yet.
+            </p>
+            <button type="button" className={buttonClass("secondary", "sm", "mt-3")}
+              onClick={() => openModal("notifications")}>
+              Device notification settings
+            </button>
           </div>
         </section>
 

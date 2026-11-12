@@ -2,6 +2,13 @@
 # yarn lockfile v1
 
 
+"@block65/webcrypto-web-push@^2.0.0":
+  version "2.0.0"
+  resolved "https://registry.npmjs.org/@block65/webcrypto-web-push/-/webcrypto-web-push-2.0.0.tgz#81dc0f5ddf6762c49fb3fd81aa01e5e7cfdb413a"
+  integrity sha512-BMrw8hABq5krABWPy3zFJvBC73HeRkyT/GTZ2AD7wqzo9hd9vO56MstBqjGMIxIw3e4lbRUbYxgihCcfhoTI2g==
+  dependencies:
+    uint8array-extras "^1.5.0"
+
 "@cloudflare/kv-asset-handler@0.3.4":
   version "0.3.4"
   resolved "https://registry.yarnpkg.com/@cloudflare/kv-asset-handler/-/kv-asset-handler-0.3.4.tgz#5cc152847c8ae4d280ec5d7f4f6ba8c976b585c3"
@@ -613,6 +620,11 @@ ufo@^1.5.4:
   version "1.6.4"
   resolved "https://registry.yarnpkg.com/ufo/-/ufo-1.6.4.tgz#7a8fb875fcc6382d2c7d0b3692738b0500a92467"
   integrity sha512-JFNbkD1Svwe0KvGi8GOeLcP4kAWQ609twvCdcHxq1oSL8svv39ZuSvajcD8B+5D0eL4+s1Is2D/O6KN3qcTeRA==
+
+uint8array-extras@^1.5.0:
+  version "1.6.0"
+  resolved "https://registry.npmjs.org/uint8array-extras/-/uint8array-extras-1.6.0.tgz#ab895526255bddd698e75a02992ee73f1b112ebe"
+  integrity sha512-8iAasVS4wUx0gPLjH8Xtz2PeDzTSiy8QiLGu2DT3X5GU+egFEQhpnbtkehbAwjvDcxIERmCYcysiODFmE3Ud0Q==
 
 undici@^5.28.5:
   version "5.29.0"

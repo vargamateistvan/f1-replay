@@ -39,7 +39,9 @@
  * permissive CORS headers to every response.
  */
 
-export interface Env {
+import { handleNotifications, cleanNotificationSubscriptions, type NotificationEnv } from "./notifications";
+
+export interface Env extends NotificationEnv {
   CACHE: KVNamespace;
 
   /**
@@ -304,7 +306,14 @@ async function fetchFromOpenF1(openf1Url: string, env: Env): Promise<Response> {
 // ── Worker ───────────────────────────────────────────────────────────────────
 
 export default {
+  async scheduled(_event: ScheduledController, env: Env): Promise<void> {
+    await cleanNotificationSubscriptions(env);
+  },
+
   async fetch(request: Request, env: Env): Promise<Response> {
+    if (new URL(request.url).pathname.startsWith("/notifications/")) {
+      return handleNotifications(request, env);
+    }
     // ── CORS preflight ───────────────────────────────────────────────────────
 
     if (request.method === "OPTIONS") {

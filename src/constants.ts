@@ -14,6 +14,14 @@ export const YEARS = Array.from(
 ) as number[];
 export const DEFAULT_YEAR = YEARS[0];
 
+// Device Web Push (separate from replay toasts).
+export const PUSH_API_BASE =
+  (import.meta.env.VITE_PUSH_API_BASE as string | undefined) ||
+  "https://proxy.f1replay.app";
+export const PUSH_CREDENTIAL_STORAGE_KEY = "f1-replay-push-device";
+export const PUSH_CREDENTIAL_BYTES = 32;
+export const PUSH_REQUEST_TIMEOUT_MS = 15_000;
+
 // ── Playback ────────────────────────────────────────────────────────────────--
 export const SPEEDS = [1, 2, 4, 8, 16] as const;
 // Diameter of the playback scrubber's thumb (see index.css). Its centre stops

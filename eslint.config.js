@@ -47,6 +47,8 @@ export default [
         // Cloudflare Workers runtime globals (from @cloudflare/workers-types).
         // ESLint's no-undef doesn't read tsconfig types, so list them here.
         KVNamespace: "readonly",
+        D1Database: "readonly",
+        ScheduledController: "readonly",
         ExportedHandler: "readonly",
         HeadersInit: "readonly",
         Request: "readonly",

@@ -19,6 +19,22 @@ id = "ab5b437ce1b84e179ca6352bf30673b2"
 preview_id = "e4b5f4d660ae47d0ba187ed5b2b25f74"
 
 [vars]
+PUSH_ENABLED = "false"
 # Set OPENF1_API_KEY as a secret instead:
 #   wrangler secret put OPENF1_API_KEY
 # Leave this block here as documentation; secrets are not listed in wrangler.toml.
+
+# Opt-in device notification setup (see README.md before enabling):
+# VAPID_PUBLIC_KEY = "<public key from yarn push:keys>"
+# VAPID_SUBJECT = "mailto:security@f1replay.app"
+# PUSH_ORIGINS = "https://f1replay.app"
+# Store VAPID_PRIVATE_KEY with `wrangler secret put VAPID_PRIVATE_KEY`.
+#
+# [[d1_databases]]
+# binding = "NOTIFICATIONS"
+# database_name = "f1-replay-notifications"
+# database_id = "<id from wrangler d1 create f1-replay-notifications>"
+# migrations_dir = "migrations"
+#
+# [triggers]
+# crons = ["0 4 * * *"] # Daily retention cleanup, not session discovery.

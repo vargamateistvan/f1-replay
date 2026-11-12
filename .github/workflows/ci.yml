@@ -30,5 +30,11 @@ jobs:
       - name: Test
         run: yarn test
 
+      - name: Install Worker dependencies
+        run: yarn --cwd proxy install --frozen-lockfile
+
+      - name: Check Worker notifications
+        run: yarn --cwd proxy type-check && yarn vitest run --config proxy/vitest.config.ts
+
       - name: Build
         run: yarn build
