@@ -22,6 +22,20 @@ import {
   isCrossOriginFrameError,
   isIgnorableWindowError,
 } from "@/utils/ignorableErrors";
+import { legacyInstalledLaunchPath } from "@/utils/url";
+
+const standalone =
+  ("standalone" in navigator && navigator.standalone === true) ||
+  window.matchMedia?.("(display-mode: standalone)").matches === true;
+const installedLaunchPath = legacyInstalledLaunchPath(
+  window.location.pathname,
+  window.location.search,
+  window.location.hash,
+  standalone,
+);
+if (installedLaunchPath) {
+  window.history.replaceState(window.history.state, "", installedLaunchPath);
+}
 
 const sentryDsn =
   import.meta.env.VITE_SENTRY_DSN ||

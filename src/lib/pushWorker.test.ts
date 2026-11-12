@@ -31,7 +31,7 @@ function setup() {
 describe("push-only service worker", () => {
   it("ships an installable manifest with correctly sized PNG icons", () => {
     const manifest = JSON.parse(readFileSync(join(cwd(), "public/manifest.webmanifest"), "utf8"));
-    expect(manifest).toMatchObject({ id: "/", scope: "/", start_url: "/home", display: "standalone" });
+    expect(manifest).toMatchObject({ id: "/", scope: "/", start_url: "/?view=tracker&ttab=map", display: "standalone" });
     for (const size of [192, 512]) {
       expect(manifest.icons).toContainEqual({
         src: `/app-icon-${size}.png`, sizes: `${size}x${size}`, type: "image/png", purpose: "any",

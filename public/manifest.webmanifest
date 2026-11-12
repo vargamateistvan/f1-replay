@@ -3,7 +3,7 @@
   "name": "F1 Replay",
   "short_name": "F1 Replay",
   "description": "Formula 1 replays, live timing and telemetry.",
-  "start_url": "/home",
+  "start_url": "/?view=tracker&ttab=map",
   "scope": "/",
   "display": "standalone",
   "icons": [

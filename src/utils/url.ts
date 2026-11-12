@@ -42,6 +42,18 @@ export interface ReplayTarget {
 // `/` stays the replay page.
 export const HOME_PATH = "/home";
 
+// Older installations may still launch the former, unparameterized home URL.
+export function legacyInstalledLaunchPath(
+  pathname: string,
+  search: string,
+  hash: string,
+  standalone: boolean,
+): string | null {
+  return standalone && pathname === HOME_PATH && !search && !hash
+    ? "/?view=tracker&ttab=map"
+    : null;
+}
+
 // Replay page (tracker view) for one session — e.g. a results row on the
 // standings pages. Playback starts from the beginning (no ?t=).
 export function replayPath({ year, meetingKey, sessionKey, focus }: ReplayTarget): string {

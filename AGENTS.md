@@ -253,7 +253,7 @@ proxy/                  — Cloudflare Worker: OpenF1 proxy + KV cache (own pack
 scripts/                — Node build/bake scripts: sitemap + route shells + SEO validation, circuit/georef/pit-lane bakes,
                           fetch-highlights.mjs (YouTube highlights), bake-world-map.mjs (schedule map land), warm-proxy-cache.mjs, resolve-release-version.mjs
 public/                 — Static assets: sounds/, models/f1-car.glb, og-cover.png/svg, CNAME
-                          manifest.webmanifest + app-icon-192.png/app-icon-512.png enable Home Screen installation; sw.js handles push/click only (no fetch interception or forced activation)
+                          manifest.webmanifest + app-icon-192.png/app-icon-512.png enable Home Screen installation; launch opens the replay Track tab with Latest selection. Startup migrates only the old plain /home standalone launch; explicit links remain unchanged. sw.js handles push/click only (no fetch interception or forced activation)
 seo-routes.json         — Route list for sitemap, shells and <head> meta
 .github/workflows/      — ci (validate SEO, tsc, lint, test, build on PRs), deploy (same checks + GitHub Pages on main), deploy-proxy (Worker),
                           versioning (tags + release notes), warm-cache (hourly on race weekends), update-circuits (weekly; commits to main + dispatches deploy),

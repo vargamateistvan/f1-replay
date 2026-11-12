@@ -277,6 +277,24 @@ describe("Nav", () => {
     expect(next.get("session")).toBe("202");
   });
 
+  it("keeps the installed app track tab when selecting the latest session", async () => {
+    state.searchParams = new URLSearchParams("view=tracker&ttab=map");
+    state.meetingKey = null;
+    state.sessionKey = null;
+
+    render(<Nav />);
+
+    await waitFor(() => expect(state.setSearchParams).toHaveBeenCalled());
+    const [updater] = state.setSearchParams.mock.calls[0] as [
+      (params: URLSearchParams) => URLSearchParams,
+    ];
+    const next = updater(state.searchParams);
+    expect(next.get("view")).toBe("tracker");
+    expect(next.get("ttab")).toBe("map");
+    expect(next.get("meeting")).toBe("22");
+    expect(next.get("session")).toBe("202");
+  });
+
   it("does not auto-select when the URL already names a meeting or session", async () => {
     render(<Nav />);
     await new Promise((r) => setTimeout(r, 0));

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { replayPath, roundReplayPath, toSafeExternalUrl } from "@/utils/url";
+import { legacyInstalledLaunchPath, replayPath, roundReplayPath, toSafeExternalUrl } from "@/utils/url";
 
 describe("toSafeExternalUrl", () => {
   it("returns null for empty and invalid values", () => {
@@ -21,6 +21,21 @@ describe("toSafeExternalUrl", () => {
     expect(toSafeExternalUrl("http://example.com/audio.mp3")).toBe(
       "https://example.com/audio.mp3",
     );
+  });
+});
+
+describe("legacyInstalledLaunchPath", () => {
+  it("opens the track tab for an older standalone home launch", () => {
+    expect(legacyInstalledLaunchPath("/home", "", "", true))
+      .toBe("/?view=tracker&ttab=map");
+  });
+
+  it("preserves browser visits and explicit links", () => {
+    expect(legacyInstalledLaunchPath("/home", "", "", false)).toBeNull();
+    expect(legacyInstalledLaunchPath("/home", "?year=2024", "", true)).toBeNull();
+    expect(legacyInstalledLaunchPath("/home", "", "#home-install", true)).toBeNull();
+    expect(legacyInstalledLaunchPath("/", "?session=9472", "", true)).toBeNull();
+    expect(legacyInstalledLaunchPath("/schedule", "?result=9472", "", true)).toBeNull();
   });
 });
 
