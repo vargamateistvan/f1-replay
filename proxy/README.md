@@ -5,9 +5,9 @@ A Cloudflare Worker that proxies the [OpenF1 REST API](https://openf1.org/) and 
 ## Device notifications
 
 The Worker supports encrypted test pushes and implements opt-in automatic
-reminders, confirmed starts and results. The three automatic-alert switches in
-`wrangler.toml` are **off** until the migrations, queue and live-data access are
-configured and tested. Existing subscriptions do not opt in automatically.
+reminders, confirmed starts and results. The checked-in `wrangler.toml` enables
+automatic alerts and binds the required queues; create the queues and apply the
+migrations before deploying. Existing subscriptions do not opt in automatically.
 
 The frontend manifest allows Home Screen installation. The root service worker
 handles only push and notification clicks; it does not intercept requests,
@@ -43,10 +43,9 @@ yarn push:keys
    `PUSH_ENABLED = "true"` only after the database, schema, keys, origins and
    cleanup trigger are configured, then redeploy.
 
-The Deploy Proxy workflow type-checks and runs D1-backed integration tests before
-deployment. Its manual `migrate_notifications` input applies migrations before
-deploying. Use that input (or apply migrations manually) for future schema changes;
-push-triggered deployments do not automatically migrate the database.
+The Deploy Proxy workflow type-checks, runs D1-backed integration tests and
+applies pending notification migrations before every deployment, including
+push-triggered deployments. A migration failure stops deployment.
 
 ### Enabling automatic alerts
 
@@ -56,20 +55,18 @@ push-triggered deployments do not automatically migrate the database.
    current Cloudflare limits and charges before enabling.
 2. From `proxy/`, run `yarn push:migrate` to apply **all** pending migrations,
    including `0002_push_preferences.sql` and `0003_push_outbox.sql`, before
-   setting `PUSH_PREFERENCES_ENABLED`. The existing test push continues to work
-   while automatic switches remain off.
+   deploying the configuration with `PUSH_PREFERENCES_ENABLED = "true"`.
 3. Create queues with `yarn wrangler queues create f1-replay-push` and
-   `yarn wrangler queues create f1-replay-push-dead`; uncomment the producer and
-   consumer bindings in `wrangler.toml`. The second queue stores queue-message
+   `yarn wrangler queues create f1-replay-push-dead`. The producer and consumer
+   bindings are already configured in `wrangler.toml`. The second queue stores queue-message
    failures after the configured retries; failed provider deliveries are stored
    in D1 as `failed` until retention cleanup, not placed on the dead-letter queue.
 4. Configure server-side OpenF1 access if required:
    `yarn wrangler secret put OPENF1_API_KEY`. Live OpenF1 access may require a
    paid credential. Unauthorized or unavailable data is not treated as an
    event; alerts can be missed while data or the schedule is unavailable.
-5. Deploy with switches still false, then set `PUSH_PREFERENCES_ENABLED`,
-   `PUSH_DISCOVERY_ENABLED`, and `PUSH_DELIVERY_ENABLED` to `"true"` and
-   redeploy. The one-minute cron refreshes the schedule and wakes the queue.
+5. After creating the queues and applying migrations, deploy the Worker.
+   The one-minute cron refreshes the schedule and wakes the queue.
    Users must explicitly choose each alert type on each device.
 6. Observe Worker logs and the dead-letter queue; test on an installed iPhone
    through a controlled session before wider rollout. Do not log endpoints,

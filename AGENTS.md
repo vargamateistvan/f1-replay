@@ -17,7 +17,7 @@
 
 | Add a user setting                                | `stores/settings.ts` (`AppSettings`, defaults, `migrateSettings`) + `components/SettingsModal` |
 | Settings import / export                         | `stores/settings.ts` (`exportSettings`, `parseSettingsImport`), `components/SettingsModal/SettingsTransfer.tsx`: validated versioned JSON, preference-only atomic merge; excludes onboarding and modal state |
-| Device push notifications                        | `lib/webPush.ts`, `hooks/usePushNotifications.ts`, `components/SettingsModal/PushNotificationsSettings.tsx`, `public/sw.js`, `proxy/src/notifications.ts`, `proxy/src/pushDiscovery.ts`, `proxy/src/pushDelivery.ts`, `proxy/src/pushEvents.ts`; automatic alerts gated off until migrated, queue provisioned and validated; provisioning and limitations in `proxy/README.md` |
+| Device push notifications                        | `lib/webPush.ts`, `hooks/usePushNotifications.ts`, `components/SettingsModal/PushNotificationsSettings.tsx`, `public/sw.js`, `proxy/src/notifications.ts`, `proxy/src/pushDiscovery.ts`, `proxy/src/pushDelivery.ts`, `proxy/src/pushEvents.ts`; automatic alerts configured on, require migration and queue provisioning before deployment; setup and limitations in `proxy/README.md` |
 | Main replay page layout / wiring                  | `pages/RaceWeekend.tsx` (very large — grep, don't read whole)                                 |
 | Playback, seek, speed                             | `timeline/clock.ts` (`useTimeline`), `components/PlaybackBar`                                |
 | Car positions on the map                          | `hooks/useLocationChunks.ts` → `timeline/interpolate.ts` → `components/TrackMap`             |

@@ -1,6 +1,6 @@
 # Web Push notifications implementation plan
 
-Status: automatic alert pipeline implemented behind disabled switches; production rollout and device validation pending
+Status: automatic alert pipeline configured; production provisioning, rollout and automatic-alert validation pending
 Created: 2026-11-12
 
 ## Implementation progress
@@ -16,11 +16,11 @@ Created: 2026-11-12
   wake-ups, bounded retries and device preference rechecks are implemented.
   The Schedule page opens results with `?year=<year>&result=<session_key>`.
   The UI exposes alert controls only when the Worker advertises availability.
-  All automatic-alert switches remain off in the checked-in configuration.
-  Apply migrations and provision queue resources before enabling them.
-- The test push provider accepted a request; display on an actual iOS device
-  has not been confirmed. Automatic notifications have not been deployed or
-  verified against a real weekend; this is not a production-complete feature.
+  The checked-in configuration enables the automatic-alert switches; apply
+  migrations and provision queue resources before deploying it.
+- A test push was displayed on the user's device. Automatic notifications
+  have not been deployed or verified against a real weekend; this is not a
+  production-complete feature.
 - Event detectors now reject untagged qualifying starts, restarts preceded by
   an interruption, and classifications that do not cover the reported driver
   list. They have Singapore 2023 race-control timing tests using synthetic

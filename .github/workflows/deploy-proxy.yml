@@ -6,11 +6,6 @@ on:
     paths:
       - "proxy/**"
   workflow_dispatch:
-    inputs:
-      migrate_notifications:
-        description: "Apply notification D1 migrations before deploying (requires configured NOTIFICATIONS binding)"
-        type: boolean
-        default: false
 
 jobs:
   deploy:
@@ -42,7 +37,6 @@ jobs:
         run: yarn vitest run --config proxy/vitest.config.ts
 
       - name: Apply notification migrations
-        if: ${{ inputs.migrate_notifications }}
         working-directory: proxy
         run: yarn push:migrate
         env:
