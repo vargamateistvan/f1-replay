@@ -54,6 +54,8 @@ jobs:
         run: node scripts/bake-gps-circuits.mjs "$(date -u +%Y)"
 
       - name: Georeference circuits for the 3D map
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: node scripts/fetch-georef.mjs --latest
 
       - name: Bake missing pit lanes

@@ -16,6 +16,8 @@
  * similar length is tried and the closest fit wins, so new venues need no
  * code change once bacinger has them. `--latest` uses bacinger's newest
  * commit instead of the pinned one (the scheduled update job does this).
+ * Set GH_TOKEN (or GITHUB_TOKEN) to authenticate that GitHub API lookup and
+ * avoid the shared unauthenticated rate limit on CI runners.
  *
  * Commit the generated JSON — it is a static asset.
  */
@@ -53,10 +55,17 @@ const round = (v, digits) => Number(v.toFixed(digits));
 
 async function resolveCommit(latest) {
   if (!latest) return PINNED_BACINGER_COMMIT;
+  const token = process.env.GH_TOKEN || process.env.GITHUB_TOKEN;
   const res = await fetch("https://api.github.com/repos/bacinger/f1-circuits/commits/master", {
-    headers: { Accept: "application/vnd.github+json", "User-Agent": "f1-replay-bake" },
+    headers: {
+      Accept: "application/vnd.github+json",
+      "User-Agent": "f1-replay-bake",
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    },
   });
-  if (!res.ok) throw new Error(`HTTP ${res.status} resolving bacinger master`);
+  if (!res.ok) {
+    throw new Error(`HTTP ${res.status} resolving bacinger master: ${await res.text()}`);
+  }
   return (await res.json()).sha;
 }
 

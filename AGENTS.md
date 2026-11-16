@@ -1,6 +1,6 @@
 # F1 Replay — Agent Documentation
 
-> Last updated: 2026-11-12
+> Last updated: 2026-11-16
 > The single source of truth for agents. Provides concise, agent-readable architecture notes, conventions, and guardrails. `docs/` holds mostly historical plans — see Section 12 before trusting one.
 
 ---
@@ -463,6 +463,7 @@ Quick settings group map controls into Track, Cars, Weather (Weather & lighting 
 - Persisted `mapView3dKerbs` (default on) and `mapView3dRunoff` (default off) control surface visibility in full Track Map settings and 3D quick settings. They are independent of 2D kerbs and trackside barriers; toggling them does not recreate the map.
 - `trackSurface.ts` separates detected `cornerRuns` from `racingKerbRuns` (inside apex and outside entry/exit). `cornerRunoff` supplies tapered, variable-depth outside aprons to both the surface and `trackside.ts` barriers; these are geometry-based estimates, not surveyed boundaries. Street circuits retain walls without run-off.
 - Georef: each circuit's F1 frame is fitted (similarity + ICP) to a bacinger/f1-circuits trace at bake time (`scripts/fetch-georef.mjs` → `data/circuit-georef.json`); runtime projects with `f1ToLngLat` (Pitfall 13).
+- The georef `--latest` GitHub API lookup uses `GH_TOKEN` (or `GITHUB_TOKEN`); the circuit update workflow supplies its built-in token to avoid unauthenticated runner rate limits. Raw trace downloads remain unauthenticated.
 - `TrackMap3D.tsx` owns the map and a single RAF loop (cars, trail, camera); everything else is pure builders (`trackSurface.ts`, `trackOverlays.ts`, `carLayers.ts`, `cameraModes.ts`, `atmosphere.ts`).
 - Car updates use back-pressure (`carSync.ts`), never a timer; the camera aims at the instant actually on screen (`cameraTime`). `?debug=map3d` logs per-frame cost and car latency.
 - Settings are `mapView3d*` in `stores/settings.ts`. Each `new mapboxgl.Map` is a billed load — keep the map while the circuit is unchanged.

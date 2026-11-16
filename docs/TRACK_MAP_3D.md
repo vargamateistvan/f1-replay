@@ -7,6 +7,7 @@
 - The F1 frame is decimetres, roughly east/north, but each circuit is turned by up to ±2.5° — a fixed transform is 2–7× worse than a per-circuit fit.
 - The bake fits each centerline onto a bacinger/f1-circuits trace — picked automatically as the best quick fit among traces of similar length (±20 %) — via best cyclic shift × direction × Y-flip, then ICP. Default is a pinned bacinger commit; `--latest` (scheduled job) uses master, and the file is only rewritten when a fit changes. Fits over 6 m RMS / 25 m max are dropped (3D hidden for that circuit). Per-circuit fit quality is in `data/circuit-georef.json`.
 - Runtime: `[e, n] = scale·R(rotation)·[x, ±y] + t`, then a local equirectangular step to lng/lat. Map bearing for the broadcast view = baked `rotation` + frame rotation.
+- The `--latest` commit lookup authenticates to the GitHub API with `GH_TOKEN` (or `GITHUB_TOKEN`); the update workflow supplies its built-in token to avoid shared runner IP rate limits. Local runs can omit it, and pinned runs make no API lookup. The token is not sent to the raw trace download.
 
 ## Rendering (`components/TrackMap3D/`)
 
