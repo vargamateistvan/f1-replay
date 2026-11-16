@@ -1813,7 +1813,7 @@ export function LiveTiming({
   }
 
   return (
-    <div className="panel-scroll">
+    <div className="panel-scroll md:flex md:flex-col">
       {!dense && (
         <div className={timingStripClass + " px-2 py-2 sm:px-3"}>
           {hasSectorReference ? (
@@ -1883,12 +1883,12 @@ export function LiveTiming({
           )}
         </div>
       )}
-      <div className="overflow-x-auto">
+      <div className="overflow-x-auto md:min-h-0 md:flex-1">
         <table
           ref={tableRef}
-          className={`${fullWidthTable ? "w-full" : "w-max min-w-full"} ${tableMinWidthClass} border-collapse table-auto`}
+          className={`${fullWidthTable ? "w-full" : "w-max min-w-full"} ${tableMinWidthClass} border-collapse table-auto md:h-full`}
         >
-          <thead>
+          <thead className="md:h-0">
             <tr className={timingHeaderRowClass}>
               {columns.position && (
                 <th
