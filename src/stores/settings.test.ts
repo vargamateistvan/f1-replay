@@ -29,6 +29,8 @@ describe("settings transfer", () => {
     { notificationMaxVisible: 99 },
     { metricSystem: "other" },
     { mapViewMode: "4d" },
+    { scheduleViewMode: "list" },
+    { scheduleTimeMode: "utc" },
     { mapRingGapMode: "other" },
     { catchupSummaryDefaultFilters: [] },
     { catchupSummaryDefaultFilters: ["unknown"] },

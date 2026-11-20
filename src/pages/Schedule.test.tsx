@@ -3,6 +3,7 @@ import { fireEvent, render, screen, within } from "@testing-library/react";
 import { MemoryRouter, useLocation } from "react-router-dom";
 import Schedule from "./Schedule";
 import type { Meeting, Session } from "@/api/types";
+import { useSettings } from "@/stores/settings";
 
 const mockUseMeetings = vi.fn();
 const mockUseSeasonSessions = vi.fn();
@@ -98,6 +99,8 @@ function setup(path = "/schedule?year=2026") {
 
 describe("Schedule page", () => {
   beforeEach(() => {
+    useSettings.getState().setSetting("scheduleViewMode", "cards");
+    useSettings.getState().setSetting("scheduleTimeMode", "local");
     vi.useFakeTimers({ toFake: ["Date"] });
     vi.setSystemTime(NOW);
   });
@@ -291,6 +294,7 @@ describe("Schedule page", () => {
       view: "map",
       year: 2026,
     });
+
     expect(await screen.findByRole("group", { name: "Season map" })).toBeInTheDocument();
     const panel = screen.getByRole("complementary", { name: "Selected round" });
     expect(
@@ -300,6 +304,70 @@ describe("Schedule page", () => {
     expect(
       within(panel).getByRole("heading", { level: 2, name: "Japanese Grand Prix" }),
     ).toBeInTheDocument();
+  });
+
+  it("persists both layout choices across visits without a layout parameter", async () => {
+    let page = setup();
+    fireEvent.click(screen.getByRole("radio", { name: "Map" }));
+    expect(JSON.parse(localStorage.getItem("f1-replay-settings")!).state.scheduleViewMode).toBe("map");
+    page.unmount();
+    await useSettings.persist.rehydrate();
+
+    page = setup();
+    expect(screen.getByRole("radio", { name: "Map" })).toHaveAttribute("aria-checked", "true");
+    fireEvent.click(screen.getByRole("radio", { name: "Cards" }));
+    expect(JSON.parse(localStorage.getItem("f1-replay-settings")!).state.scheduleViewMode).toBe("cards");
+    page.unmount();
+    await useSettings.persist.rehydrate();
+
+    setup();
+    expect(screen.getByRole("radio", { name: "Cards" })).toHaveAttribute("aria-checked", "true");
+  });
+
+  it.each([
+    ["cards", "map", "Cards"],
+    ["map", "cards", "Map"],
+  ] as const)("honors explicit layout=%s over the saved %s view", (layout, saved, label) => {
+    useSettings.getState().setSetting("scheduleViewMode", saved);
+    setup(`/schedule?year=2026&layout=${layout}`);
+    expect(screen.getByRole("radio", { name: label })).toHaveAttribute("aria-checked", "true");
+  });
+
+  it("saves map view when opening a round from the upcoming strip", () => {
+    setup();
+    fireEvent.click(within(screen.getByRole("region", { name: "Up next" })).getByRole("button", { name: "Map" }));
+    expect(JSON.parse(localStorage.getItem("f1-replay-settings")!).state.scheduleViewMode).toBe("map");
+    expect(screen.getByLabelText("Current search")).toHaveTextContent("round=2");
+  });
+
+  it("persists both time choices across visits without a time parameter", async () => {
+    let page = setup();
+    fireEvent.click(screen.getByRole("radio", { name: "Track time" }));
+    expect(JSON.parse(localStorage.getItem("f1-replay-settings")!).state.scheduleTimeMode).toBe("track");
+    page.unmount();
+    await useSettings.persist.rehydrate();
+
+    page = setup();
+    expect(screen.getByRole("radio", { name: "Track time" })).toHaveAttribute("aria-checked", "true");
+    const row = screen.getByRole("link", { name: "Replay Race" }).parentElement!.parentElement!;
+    expect(within(row).getAllByText(/^(Track time|Your time)$/).map((el) => el.textContent))
+      .toEqual(["Track time", "Your time"]);
+    fireEvent.click(screen.getByRole("radio", { name: "Your time" }));
+    expect(JSON.parse(localStorage.getItem("f1-replay-settings")!).state.scheduleTimeMode).toBe("local");
+    page.unmount();
+    await useSettings.persist.rehydrate();
+
+    setup();
+    expect(screen.getByRole("radio", { name: "Your time" })).toHaveAttribute("aria-checked", "true");
+  });
+
+  it.each([
+    ["local", "track", "Your time"],
+    ["track", "local", "Track time"],
+  ] as const)("honors explicit time=%s over the saved %s time", (time, saved, label) => {
+    useSettings.getState().setSetting("scheduleTimeMode", saved);
+    setup(`/schedule?year=2026&time=${time}`);
+    expect(screen.getByRole("radio", { name: label })).toHaveAttribute("aria-checked", "true");
   });
 
   it("switches between your time and track time", () => {

@@ -7,6 +7,8 @@ export type MapViewMode = "2d" | "3d" | "ring";
 
 // All user-configurable preferences. These are persisted to localStorage.
 export interface AppSettings {
+  scheduleViewMode: "cards" | "map";
+  scheduleTimeMode: "local" | "track";
   // Notifications
   toastsEnabled: boolean;
   toastRadio: boolean;
@@ -194,6 +196,8 @@ interface SettingsStore extends AppSettings {
 }
 
 export const SETTINGS_DEFAULTS: AppSettings = {
+  scheduleViewMode: "cards",
+  scheduleTimeMode: "local",
   toastsEnabled: true,
   toastRadio: true,
   toastRadioAutoplay: false,
@@ -329,6 +333,8 @@ const SETTINGS_FILE_FORMAT = "f1-replay-settings";
 const SETTINGS_FILE_VERSION = 1;
 const LOCAL_ONLY_SETTINGS = new Set(["tourSeenVersion", "replayWelcomeSeen"]);
 const SETTING_CHOICES: Record<string, readonly unknown[]> = {
+  scheduleViewMode: ["cards", "map"],
+  scheduleTimeMode: ["local", "track"],
   mapViewMode: ["2d", "3d", "ring"],
   mapRingGapMode: ["interval", "leader", "focus"],
   metricSystem: ["metric", "imperial"],

@@ -35,6 +35,7 @@ import {
 import { replaceHistorySearchParams, replayPath, toSafeExternalUrl } from "@/utils/url";
 import { getSessionHighlight } from "@/data/sessionHighlights";
 import { trackEvent } from "@/lib/analytics";
+import { useSettings } from "@/stores/settings";
 
 // The world map (land outline, circuit positions) is its own chunk.
 const ScheduleMap = lazy(() =>
@@ -598,12 +599,15 @@ function NextRoundStrip({
 export default function Schedule() {
   const [yearParam] = useNumberParam("year", DEFAULT_YEAR);
   const year = yearParam ?? DEFAULT_YEAR;
-  const [timeParam, setTimeMode] = useStringParam<TimeMode>("time", "local");
-  const timeMode: TimeMode = TIME_MODES.includes(timeParam) ? timeParam : "local";
+  const savedTimeMode = useSettings((s) => s.scheduleTimeMode);
+  const [timeParam, setTimeMode] = useStringParam<TimeMode | "">("time", "");
+  const timeMode: TimeMode = timeParam === "local" || timeParam === "track" ? timeParam : savedTimeMode;
   // Own param names: `view` and `meeting` belong to the replay page and the
   // nav carries the query string between pages.
-  const [viewParam, setViewParam] = useStringParam<ViewMode>("layout", "cards");
-  const view: ViewMode = viewParam === "map" ? "map" : "cards";
+  const savedView = useSettings((s) => s.scheduleViewMode);
+  const setSetting = useSettings((s) => s.setSetting);
+  const [viewParam, setViewParam] = useStringParam<ViewMode | "">("layout", "");
+  const view: ViewMode = viewParam === "map" || viewParam === "cards" ? viewParam : savedView;
   const [meetingParam, setMeetingParam] = useNumberParam("round", null);
   const [resultParam, setResultParam] = useNumberParam("result", null);
   const now = useNow(SCHEDULE_CLOCK_TICK_MS);
@@ -680,6 +684,7 @@ export default function Schedule() {
   const [, setSearchParams] = useSearchParams();
   const showRoundOnMap = (meetingKey: number) => {
     trackEvent("schedule_view_changed", { view: "map", year });
+    setSetting("scheduleViewMode", "map");
     setSearchParams(
       (prev) => {
         const params = new URLSearchParams(prev);
@@ -694,6 +699,7 @@ export default function Schedule() {
   const changeView = (next: ViewMode) => {
     if (next === view) return;
     trackEvent("schedule_view_changed", { view: next, year });
+    setSetting("scheduleViewMode", next);
     setViewParam(next);
   };
   const renderRoundCard = (round: ScheduleRound) => (
@@ -754,7 +760,10 @@ export default function Schedule() {
                 type="button"
                 role="radio"
                 aria-checked={timeMode === mode}
-                onClick={() => setTimeMode(mode)}
+                onClick={() => {
+                  setSetting("scheduleTimeMode", mode);
+                  setTimeMode(mode);
+                }}
                 className={`px-2 py-1 text-caption font-bold uppercase tracking-wider transition-colors ${
                   timeMode === mode
                     ? "bg-f1red text-white"
