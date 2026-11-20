@@ -74,6 +74,8 @@ export const TRACK_SVG_PAD = 24;
 export const TRACK_SURFACE_KERB_WIDTH = 2;
 export const TRACK_SURFACE_KERB_EDGE_OFFSET = 9;
 export const TRACK_SURFACE_KERB_PATCH_LENGTH = 10;
+/** Maximum centreline gap between kerb patches on the same track edge (SVG units). */
+export const TRACK_SURFACE_KERB_JOIN_GAP = 6;
 export const TRACK_SURFACE_ASPHALT_WIDTH = 16;
 export const TRACK_SURFACE_KERB_DASH_LENGTH = 3;
 export const TRACK_SURFACE_KERB_OPACITY = 0.42;

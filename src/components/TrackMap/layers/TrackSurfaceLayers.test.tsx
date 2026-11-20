@@ -65,8 +65,12 @@ describe("TrackSurface", () => {
     );
     expect(redKerbs.every((layer) => layer.getAttribute("d") !== geom.pathData)).toBe(true);
     expect(new Set(redKerbs.map((layer) => layer.getAttribute("data-track-kerb-position")))).toEqual(
-      new Set(["entry", "apex", "exit"]),
+      new Set(["apex", "joined"]),
     );
+    // Each corner's outside entry/exit pair joins, but opposite edges and
+    // the long straights between corners remain separate.
+    expect(redKerbs).toHaveLength(8);
+    expect(redKerbs.filter((layer) => layer.getAttribute("data-track-kerb-position") === "joined")).toHaveLength(4);
     expect(redKerbs.some((layer) => layer.getAttribute("data-track-kerb-side") === "inside")).toBe(
       true,
     );
@@ -82,6 +86,40 @@ describe("TrackSurface", () => {
       </svg>,
     );
     expect(disabled.container.querySelector("[data-track-layer='kerbs-red']")).toBeNull();
+  });
+
+  it("joins nearby kerbs across the outline seam without changing the coverage", () => {
+    const points = Array.from({ length: 400 }, (_, i) => {
+      const side = Math.floor(i / 100);
+      const value = i % 100;
+      if (side === 0) return { x: value, y: 0 };
+      if (side === 1) return { x: 100, y: value };
+      if (side === 2) return { x: 100 - value, y: 100 };
+      return { x: 0, y: 100 - value };
+    });
+    const bounds = { minX: 0, minY: 0, maxX: 100, maxY: 100, width: 100, height: 100 };
+    const draw = (start: number) => (
+      <svg>
+        <TrackSurface
+          geom={buildTrackGeometry({ points: [...points.slice(start), ...points.slice(0, start)], bounds })}
+          gradientId="asphalt"
+          lightMode={false}
+          showKerbs
+        />
+      </svg>
+    );
+    const { container, rerender } = render(draw(0));
+    const endpoints = () => Array.from(
+      container.querySelectorAll("[data-track-layer='kerbs-red']"),
+      (path) => {
+        const samples = path.getAttribute("d")!.split(" ");
+        return [samples[0], samples.at(-1)].join(" ");
+      },
+    ).sort();
+    const atCorner = endpoints();
+    expect(atCorner).toHaveLength(8);
+    rerender(draw(50));
+    expect(endpoints()).toEqual(atCorner);
   });
 
   it("only draws sector ribbons for active flags", () => {

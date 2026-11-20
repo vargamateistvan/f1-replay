@@ -7,6 +7,7 @@ import {
   TRACK_SURFACE_ASPHALT_WIDTH,
   TRACK_SURFACE_KERB_EDGE_OFFSET,
   TRACK_SURFACE_KERB_PATCH_LENGTH,
+  TRACK_SURFACE_KERB_JOIN_GAP,
   TRACK_SURFACE_HIGHLIGHT_OPACITY,
   TRACK_SURFACE_KERB_DASH_LENGTH,
   TRACK_SURFACE_KERB_OPACITY,
@@ -165,8 +166,14 @@ export const TrackSurface = memo(function TrackSurface({
 
 interface KerbPatch {
   pathData: string;
-  position: "entry" | "apex" | "exit";
+  position: "entry" | "apex" | "exit" | "joined";
   side: "inside" | "outside";
+}
+
+interface KerbRange extends Omit<KerbPatch, "pathData"> {
+  start: number;
+  end: number;
+  edge: -1 | 1;
 }
 
 function cornerKerbPaths(
@@ -251,44 +258,83 @@ function cornerKerbPaths(
     { position: "exit" as const, distance: TRACK_SURFACE_CORNER_WINDOW_PX * 0.65 },
   ];
 
-  return corners.flatMap(({ index, direction }) =>
-    patchCenters.map(({ position, distance }) => {
+  const distances = [0];
+  for (let index = 0; index < count; index++) {
+    const current = get(index);
+    const next = get(index + 1);
+    distances.push(distances[index]! + Math.hypot(next.sx - current.sx, next.sy - current.sy));
+  }
+  const perimeter = distances[count]!;
+  if (perimeter === 0) return [];
+
+  const patches = corners.flatMap(({ index, direction }) =>
+    patchCenters.map(({ position, distance }): KerbRange => {
       const side: -1 | 1 =
         position === "apex" ? direction : direction === 1 ? -1 : 1;
-      const sideName = side === direction ? "inside" : "outside";
-      const pathData = offsetKerbPatch(
-        points,
-        index,
-        distance - patchHalfLength,
-        distance + patchHalfLength,
-        side,
-      );
-      return { pathData, position, side: sideName };
+      const start = ((distances[index]! + distance - patchHalfLength) % perimeter + perimeter) % perimeter;
+      return {
+        start,
+        end: start + TRACK_SURFACE_KERB_PATCH_LENGTH,
+        edge: side,
+        position,
+        side: side === direction ? "inside" : "outside",
+      };
     }),
   );
+
+  return ([-1, 1] as const).flatMap((edge) => {
+    const sorted = patches.filter((patch) => patch.edge === edge).sort((a, b) => a.start - b.start);
+    const merged: typeof sorted = [];
+    for (const patch of sorted) {
+      const previous = merged.at(-1);
+      if (previous && patch.start - previous.end <= TRACK_SURFACE_KERB_JOIN_GAP) {
+        previous.end = Math.max(previous.end, patch.end);
+        previous.position = "joined";
+      } else {
+        merged.push({ ...patch });
+      }
+    }
+
+    // The outline is a closed lap; join across its arbitrary start point too.
+    const first = merged[0];
+    const last = merged.at(-1);
+    if (
+      merged.length > 1 && first && last &&
+      first.start + perimeter - last.end <= TRACK_SURFACE_KERB_JOIN_GAP
+    ) {
+      last.end = Math.max(last.end, first.end + perimeter);
+      last.position = "joined";
+      merged.shift();
+    }
+    return merged.map(({ start, end, position, side }) => ({
+      position,
+      side,
+      pathData: offsetKerbPatch(points, start, end, edge, perimeter),
+    }));
+  });
 }
 
 function offsetKerbPatch(
   points: readonly { sx: number; sy: number }[],
-  centerIndex: number,
   startDistance: number,
   endDistance: number,
   side: -1 | 1,
+  perimeter: number,
 ): string {
   const count = points.length;
-  const sampleCount = 5;
+  const sampleCount = Math.max(5, Math.ceil((endDistance - startDistance) / TRACK_SURFACE_KERB_PATCH_LENGTH) * 4 + 1);
   const pathPoints = Array.from({ length: sampleCount }, (_, sampleIndex) => {
-    const distance =
-      startDistance + ((endDistance - startDistance) * sampleIndex) / (sampleCount - 1);
-    let remaining = Math.abs(distance);
-    const walk = distance < 0 ? -1 : 1;
-    let cursor = centerIndex;
+    const distance = (
+      startDistance + ((endDistance - startDistance) * sampleIndex) / (sampleCount - 1)
+    ) % perimeter;
+    let remaining = distance;
+    let cursor = 0;
     let current = points[cursor]!;
     let tangentX = 0;
     let tangentY = 0;
 
     for (let step = 0; step < count; step++) {
-      const next = points[(cursor + walk + count) % count]!;
+      const next = points[(cursor + 1) % count]!;
       const dx = next.sx - current.sx;
       const dy = next.sy - current.sy;
       const length = Math.hypot(dx, dy);
@@ -296,8 +342,8 @@ function offsetKerbPatch(
         const ratio = length === 0 ? 0 : remaining / length;
         const x = current.sx + dx * ratio;
         const y = current.sy + dy * ratio;
-        tangentX = (dx * walk) / (length || 1);
-        tangentY = (dy * walk) / (length || 1);
+        tangentX = dx / (length || 1);
+        tangentY = dy / (length || 1);
         const normalX = -tangentY * side;
         const normalY = tangentX * side;
         return {
@@ -307,7 +353,7 @@ function offsetKerbPatch(
       }
       remaining -= length;
       current = next;
-      cursor = (cursor + walk + count) % count;
+      cursor = (cursor + 1) % count;
     }
     return current;
   });

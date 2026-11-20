@@ -295,6 +295,8 @@ The 2D and ring views share the theme-aware SVG `MapBackground` layer: a subtle 
 
 The 2D map supports mouse-wheel zoom and horizontal right-drag rotation over the SVG; zoom shares the toolbar limits, persistence and analytics, and rotation uses the same fit/reset behaviour as the toolbar. Normal page scrolling remains available outside the map.
 
+Nearby 2D kerb patches on the same track edge join along the outline, including across its start/finish seam; `TRACK_SURFACE_KERB_JOIN_GAP` controls the maximum centreline gap in SVG units. Opposite edges and distant sections remain separate.
+
 Track-map settings show their live preview only when expanded; it scrolls with the settings and fetches preview data only while open.
 
 The 2D map's S1/S2 timing-gate markers use `mapShowSectorMarkers` (default on), available in Track Map settings and 2D quick settings; start/finish and direction markers remain always visible.
