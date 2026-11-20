@@ -112,6 +112,23 @@ describe("SessionSimulation", () => {
     }
   });
 
+  it.each([false, true])("colours the Home preview without cached drivers with reduced motion %s", (reducedMotion) => {
+    vi.mocked(useMediaQuery).mockReturnValue(reducedMotion);
+    const { container } = render(<SessionSimulation session={session} variant="preview" />);
+    const cars = [...container.querySelectorAll<SVGGElement>("[data-simulation-car]")];
+    expect(cars).toHaveLength(SESSION_SIMULATION_CARS);
+    expect(cars.every((car) => car.style.color !== "")).toBe(true);
+    expect(new Set(cars.map((car) => car.style.color)).size).toBeGreaterThan(1);
+  });
+
+  it("prefers cached team colours over the Home preview palette", () => {
+    vi.mocked(useCachedSimulationDrivers).mockReturnValue([driver("123456")]);
+    const { container } = render(<SessionSimulation session={session} variant="preview" />);
+    for (const car of container.querySelectorAll("[data-simulation-car]")) {
+      expect(car).toHaveStyle({ color: "#123456" });
+    }
+  });
+
   it("omits the simulation when circuit geometry is unavailable", () => {
     vi.mocked(useCircuitGeometry).mockReturnValue({ data: null, isPending: false });
     const { container } = render(<SessionSimulation session={undefined} />);

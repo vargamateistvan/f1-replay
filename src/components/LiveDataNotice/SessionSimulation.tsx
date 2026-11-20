@@ -9,6 +9,7 @@ import {
   SESSION_SIMULATION_CARS,
   SESSION_SIMULATION_LAP_SECONDS,
   SESSION_SIMULATION_LAP_STEP_SECONDS,
+  SESSION_SIMULATION_PREVIEW_COLORS,
   TRACK_SVG_H,
   TRACK_SVG_PAD,
   TRACK_SVG_W,
@@ -31,6 +32,8 @@ export function SessionSimulation({
     )],
     [drivers],
   );
+  const carColors = colors.length ? colors :
+    variant === "preview" ? SESSION_SIMULATION_PREVIEW_COLORS : colors;
   const reducedMotion = useMediaQuery("(prefers-reduced-motion: reduce)");
   const outline = useMemo(
     () => geometry
@@ -71,7 +74,7 @@ export function SessionSimulation({
               data-simulation-car=""
               className="text-muted"
               style={{
-                color: colors.length ? colors[index % colors.length] : undefined,
+                color: carColors.length ? carColors[index % carColors.length] : undefined,
                 ...(reducedMotion ? {
                   offsetPath: `path("${outline.path}")`,
                   offsetDistance: `${progress * 100}%`,
