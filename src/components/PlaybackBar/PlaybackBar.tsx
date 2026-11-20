@@ -2,6 +2,7 @@ import {
   memo,
   useCallback,
   useEffect,
+  useId,
   useRef,
   useState,
   type CSSProperties,
@@ -9,6 +10,7 @@ import {
 } from "react";
 import { createPortal } from "react-dom";
 import {
+  ChevronDown,
   Eye,
   EyeOff,
   FastForward,
@@ -140,7 +142,7 @@ const CHEQUERED_SWATCH_STYLE: CSSProperties = {
 };
 
 const JUMP_BTN =
-  "flex h-8 w-6 items-center justify-center text-xs bg-panel text-muted transition-colors shrink-0 hover:text-fg hover:bg-track sm:w-7 disabled:opacity-30 disabled:hover:bg-panel disabled:hover:text-muted";
+  "flex h-8 w-5 items-center justify-center text-xs bg-panel text-muted transition-colors shrink-0 hover:text-fg hover:bg-track sm:w-7 disabled:opacity-30 disabled:hover:bg-panel disabled:hover:text-muted";
 const CHIP_STRETCH =
   "h-7 shrink-0 px-3 flex items-center justify-center text-caption font-black uppercase tracking-widest bg-panel text-muted hover:text-fg hover:bg-track transition-colors sm:flex-none sm:px-3 disabled:opacity-30 disabled:hover:bg-panel disabled:hover:text-muted";
 
@@ -236,6 +238,8 @@ export function PlaybackBar({
   const setT = useTimeline((s) => s.setT);
   const setPlaying = useTimeline((s) => s.setPlaying);
   const [showMarkers, setShowMarkers] = useState(true);
+  const [showShortcuts, setShowShortcuts] = useState(false);
+  const shortcutsId = useId();
   const [timeInput, setTimeInput] = useState(() => fmtTime(t));
   const [isEditingTime, setIsEditingTime] = useState(false);
   const playPauseButtonRef = useRef<HTMLButtonElement | null>(null);
@@ -571,12 +575,12 @@ export function PlaybackBar({
           spellCheck={false}
           aria-label="Playback time"
           title="Type MM:SS or HH:MM:SS and press Enter"
-          className="h-7 w-14 shrink-0 border border-panel bg-panel px-1 text-right font-mono text-xs tabular-nums text-muted transition-colors focus:border-f1red focus:text-fg focus:outline-none sm:w-16"
+          className="h-7 w-0 min-w-0 max-w-16 flex-1 border border-panel bg-panel px-1 text-right font-mono text-xs tabular-nums text-muted transition-colors focus:border-f1red focus:text-fg focus:outline-none sm:w-16 sm:flex-none"
         />
 
         {/* Scrubber */}
         <div
-          className={`relative order-first w-full flex items-center sm:order-none sm:w-auto sm:flex-1 ${hasTrackStatus ? "h-8" : "h-4"}`}
+          className={`relative order-first w-full flex shrink-0 items-center sm:order-none sm:w-auto sm:flex-1 sm:shrink ${hasTrackStatus ? "h-8" : "h-4"}`}
           onMouseMove={onScrubberHover}
           onMouseLeave={() => setHoverPct(null)}
         >
@@ -756,7 +760,7 @@ export function PlaybackBar({
               showMarkers ? "Hide timeline markers" : "Show timeline markers"
             }
             aria-pressed={showMarkers}
-            className={`flex items-center gap-1 shrink-0 h-7 px-2 text-tiny font-black uppercase tracking-widest transition-colors border ${
+            className={`flex items-center gap-0.5 shrink-0 h-7 px-1 text-tiny font-black uppercase tracking-widest transition-colors border sm:gap-1 sm:px-2 ${
               showMarkers
                 ? "border-orange-line text-orange-fg bg-orange-tint hover:bg-orange/20"
                 : "border-panel text-muted bg-panel hover:text-fg"
@@ -795,10 +799,7 @@ export function PlaybackBar({
 
       {/* ── Event jump chips row ─────────────────────────────────── */}
       {showEventChips && (
-        <div
-          className="flex gap-1 overflow-x-auto pb-0.5 sm:flex-wrap"
-          style={{ touchAction: "pan-x pan-y" }}
-        >
+        <div className="flex flex-wrap gap-1 pb-0.5">
           {/* Countdown / qualifying phase chip — practice & qualifying only */}
           {countdownMs !== null && (
             <span className="flex items-center gap-1 shrink-0 px-2 h-7 bg-panel text-caption font-black tabular-nums uppercase tracking-widest">
@@ -816,118 +817,144 @@ export function PlaybackBar({
               </span>
             </span>
           )}
-          {(q2StartMs !== null || q3StartMs !== null) && (
-            <>
-              <button
-                onClick={() => trackJump("jump_q2", q2StartMs)}
-                disabled={q2StartMs === null || q2StartMs <= t}
-                className={CHIP_STRETCH}
-                aria-label="Forward to Q2"
-              >
-                Q2 ›
-              </button>
-              <button
-                onClick={() => trackJump("jump_q3", q3StartMs)}
-                disabled={q3StartMs === null || q3StartMs <= t}
-                className={CHIP_STRETCH}
-                aria-label="Forward to Q3"
-              >
-                Q3 ›
-              </button>
-            </>
+          {isMobileNavViewport && (
+            <button
+              type="button"
+              className={`${CHIP_STRETCH} gap-1`}
+              aria-expanded={showShortcuts}
+              aria-controls={shortcutsId}
+              onClick={() => setShowShortcuts((open) => !open)}
+            >
+              Event shortcuts
+              <ChevronDown
+                size={12}
+                aria-hidden="true"
+                className={showShortcuts ? "rotate-180" : undefined}
+              />
+            </button>
           )}
-          <button
-            onClick={(e) => {
-              animateMotion(e.currentTarget, pressMotion());
-              if (hasReplayCurrentAction) {
-                trackEvent("playback_incident_replay_current", {
-                  current_ms: Math.round(t),
-                });
-                onReplayCurrentIncident();
-              }
-            }}
-            disabled={!hasReplayCurrentAction}
-            className={CHIP_STRETCH}
-            aria-label="Replay current incident window"
+          <div
+            id={shortcutsId}
+            className={
+              isMobileNavViewport
+                ? (showShortcuts ? "flex w-full flex-wrap gap-1" : undefined)
+                : "contents"
+            }
+            hidden={isMobileNavViewport && !showShortcuts}
           >
-            Incident ⟳
-          </button>
-          <button
-            onClick={(e) => {
-              animateMotion(e.currentTarget, pressMotion());
-              if (hasReplayNextAction) {
-                trackEvent("playback_incident_replay_next", {
-                  current_ms: Math.round(t),
-                });
-                onReplayNextIncident();
-              }
-            }}
-            disabled={!hasReplayNextAction}
-            className={CHIP_STRETCH}
-            aria-label="Replay next incident window"
-          >
-            Incident ›
-          </button>
-          {incidentReplayHint && hasReplayNextAction && (
-            <span className="h-7 flex items-center px-2 text-tiny font-black uppercase tracking-widest bg-orange-tint text-orange-fg border border-orange-line shrink-0">
-              {incidentReplayHint}
-            </span>
-          )}
-          <button
-            onClick={(e) => {
-              animateMotion(e.currentTarget, pressMotion());
-              trackJump("next_pit", nextPit);
-            }}
-            disabled={nextPit === null}
-            className={CHIP_STRETCH}
-            aria-label="Jump to next pit stop"
-          >
-            Pit ›
-          </button>
-          <button
-            onClick={(e) => {
-              animateMotion(e.currentTarget, pressMotion());
-              trackJump("next_flag", nextFlag);
-            }}
-            disabled={nextFlag === null}
-            className={CHIP_STRETCH}
-            aria-label="Jump to next flag or safety car"
-          >
-            Flag ›
-          </button>
-          <button
-            onClick={(e) => {
-              animateMotion(e.currentTarget, pressMotion());
-              trackJump("next_safety_car", nextSafetyCar);
-            }}
-            disabled={nextSafetyCar === null}
-            className={CHIP_STRETCH}
-            aria-label="Jump to next SC (safety car)"
-          >
-            SC ›
-          </button>
-          <button
-            onClick={(e) => {
-              animateMotion(e.currentTarget, pressMotion());
-              trackJump("next_overtake", nextPass);
-            }}
-            disabled={nextPass === null}
-            className={CHIP_STRETCH}
-            aria-label="Jump to next pass (overtake)"
-          >
-            Pass ›
-          </button>
-          <button
-            onClick={(e) => {
-              animateMotion(e.currentTarget, pressMotion());
-              trackJump("next_radio", nextRadio);
-            }}
-            disabled={nextRadio === null}
-            className={CHIP_STRETCH}
-            aria-label="Jump to next radio message"
-          >
-            Radio ›
-          </button>
+            {(q2StartMs !== null || q3StartMs !== null) && (
+              <>
+                <button
+                  onClick={() => trackJump("jump_q2", q2StartMs)}
+                  disabled={q2StartMs === null || q2StartMs <= t}
+                  className={CHIP_STRETCH}
+                  aria-label="Forward to Q2"
+                >
+                  Q2 ›
+                </button>
+                <button
+                  onClick={() => trackJump("jump_q3", q3StartMs)}
+                  disabled={q3StartMs === null || q3StartMs <= t}
+                  className={CHIP_STRETCH}
+                  aria-label="Forward to Q3"
+                >
+                  Q3 ›
+                </button>
+              </>
+            )}
+            <button
+              onClick={(e) => {
+                animateMotion(e.currentTarget, pressMotion());
+                if (hasReplayCurrentAction) {
+                  trackEvent("playback_incident_replay_current", {
+                    current_ms: Math.round(t),
+                  });
+                  onReplayCurrentIncident();
+                }
+              }}
+              disabled={!hasReplayCurrentAction}
+              className={CHIP_STRETCH}
+              aria-label="Replay current incident window"
+            >
+              Incident ⟳
+            </button>
+            <button
+              onClick={(e) => {
+                animateMotion(e.currentTarget, pressMotion());
+                if (hasReplayNextAction) {
+                  trackEvent("playback_incident_replay_next", {
+                    current_ms: Math.round(t),
+                  });
+                  onReplayNextIncident();
+                }
+              }}
+              disabled={!hasReplayNextAction}
+              className={CHIP_STRETCH}
+              aria-label="Replay next incident window"
+            >
+              Incident ›
+            </button>
+            {incidentReplayHint && hasReplayNextAction && (
+              <span className="h-7 flex items-center px-2 text-tiny font-black uppercase tracking-widest bg-orange-tint text-orange-fg border border-orange-line shrink-0">
+                {incidentReplayHint}
+              </span>
+            )}
+            <button
+              onClick={(e) => {
+                animateMotion(e.currentTarget, pressMotion());
+                trackJump("next_pit", nextPit);
+              }}
+              disabled={nextPit === null}
+              className={CHIP_STRETCH}
+              aria-label="Jump to next pit stop"
+            >
+              Pit ›
+            </button>
+            <button
+              onClick={(e) => {
+                animateMotion(e.currentTarget, pressMotion());
+                trackJump("next_flag", nextFlag);
+              }}
+              disabled={nextFlag === null}
+              className={CHIP_STRETCH}
+              aria-label="Jump to next flag or safety car"
+            >
+              Flag ›
+            </button>
+            <button
+              onClick={(e) => {
+                animateMotion(e.currentTarget, pressMotion());
+                trackJump("next_safety_car", nextSafetyCar);
+              }}
+              disabled={nextSafetyCar === null}
+              className={CHIP_STRETCH}
+              aria-label="Jump to next SC (safety car)"
+            >
+              SC ›
+            </button>
+            <button
+              onClick={(e) => {
+                animateMotion(e.currentTarget, pressMotion());
+                trackJump("next_overtake", nextPass);
+              }}
+              disabled={nextPass === null}
+              className={CHIP_STRETCH}
+              aria-label="Jump to next pass (overtake)"
+            >
+              Pass ›
+            </button>
+            <button
+              onClick={(e) => {
+                animateMotion(e.currentTarget, pressMotion());
+                trackJump("next_radio", nextRadio);
+              }}
+              disabled={nextRadio === null}
+              className={CHIP_STRETCH}
+              aria-label="Jump to next radio message"
+            >
+              Radio ›
+            </button>
+          </div>
         </div>
       )}
     </div>

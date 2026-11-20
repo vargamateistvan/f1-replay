@@ -4,7 +4,7 @@ import { PlaybackBar } from "@/components/PlaybackBar";
 import { startLightsWindow } from "@/timeline/startLights";
 import { SCRUBBER_THUMB_PX } from "@/constants";
 
-const { timelineState, mockUseTimeline } = vi.hoisted(() => {
+const { timelineState, mockUseTimeline, mobileViewport } = vi.hoisted(() => {
   const timelineState = {
     t: 0,
     playing: false,
@@ -40,7 +40,7 @@ const { timelineState, mockUseTimeline } = vi.hoisted(() => {
     return () => {};
   });
 
-  return { timelineState, mockUseTimeline };
+  return { timelineState, mockUseTimeline, mobileViewport: vi.fn(() => false) };
 });
 
 vi.mock("@/timeline/clock", () => ({
@@ -48,13 +48,46 @@ vi.mock("@/timeline/clock", () => ({
 }));
 
 vi.mock("@/hooks/useMediaQuery", () => ({
-  useMediaQuery: () => false,
+  useMediaQuery: mobileViewport,
 }));
 
 describe("PlaybackBar marker interactions", () => {
   beforeEach(() => {
+    mobileViewport.mockReturnValue(false);
     timelineState.t = 0;
     timelineState.setT.mockClear();
+  });
+
+  it("keeps the countdown and marker toggle available while phone event shortcuts are collapsed", () => {
+    mobileViewport.mockReturnValue(true);
+    const replayIncident = vi.fn();
+    render(
+      <PlaybackBar
+        durationMs={120_000}
+        countdownMs={75_000}
+        raceStartMs={0}
+        canReplayNextIncident
+        onReplayNextIncident={replayIncident}
+      />,
+    );
+    const toggle = screen.getByRole("button", { name: "Event shortcuts" });
+    const markerToggle = screen.getByRole("button", { name: "Hide timeline markers" });
+    const incident = { name: "Replay next incident window" };
+    expect(screen.getByText("01:15")).toBeVisible();
+    expect(toggle).toHaveAttribute("aria-expanded", "false");
+    expect(screen.queryByRole("button", incident)).not.toBeInTheDocument();
+
+    fireEvent.click(markerToggle);
+    expect(screen.getByRole("button", { name: "Show timeline markers" })).toBeVisible();
+    expect(toggle).toHaveAttribute("aria-expanded", "false");
+
+    fireEvent.click(toggle);
+    expect(toggle).toHaveAttribute("aria-expanded", "true");
+    fireEvent.click(screen.getByRole("button", incident));
+    expect(replayIncident).toHaveBeenCalledOnce();
+
+    fireEvent.click(toggle);
+    expect(screen.queryByRole("button", incident)).not.toBeInTheDocument();
   });
 
   it("paints the full timeline and keeps status visible when markers are hidden", () => {
