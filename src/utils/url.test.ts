@@ -30,6 +30,11 @@ describe("legacyInstalledLaunchPath", () => {
       .toBe("/?view=tracker&ttab=map");
   });
 
+  it("opens the track tab after the host redirects a legacy launch to /home/", () => {
+    expect(legacyInstalledLaunchPath("/home/", "", "", true))
+      .toBe("/?view=tracker&ttab=map");
+  });
+
   it("preserves browser visits and explicit links", () => {
     expect(legacyInstalledLaunchPath("/home", "", "", false)).toBeNull();
     expect(legacyInstalledLaunchPath("/home", "?year=2024", "", true)).toBeNull();

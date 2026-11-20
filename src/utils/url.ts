@@ -42,14 +42,15 @@ export interface ReplayTarget {
 // `/` stays the replay page.
 export const HOME_PATH = "/home";
 
-// Older installations may still launch the former, unparameterized home URL.
+// GitHub Pages redirects the old /home launch URL to /home/.
 export function legacyInstalledLaunchPath(
   pathname: string,
   search: string,
   hash: string,
   standalone: boolean,
 ): string | null {
-  return standalone && pathname === HOME_PATH && !search && !hash
+  const isLegacyHome = pathname === HOME_PATH || pathname === `${HOME_PATH}/`;
+  return standalone && isLegacyHome && !search && !hash
     ? "/?view=tracker&ttab=map"
     : null;
 }
