@@ -47,7 +47,7 @@ describe("device notification settings", () => {
     expect(screen.getByRole("button", { name: "Enable device notifications" })).toBeDisabled();
   });
 
-  it("offers enable, test, disable and explicit failure retry actions", () => {
+  it("offers enable, disable and explicit failure retry actions without a test button", () => {
     const { rerender } = render(<PushNotificationsSettings />);
     fireEvent.click(screen.getByRole("button", { name: "Enable device notifications" }));
     expect(state.enable).toHaveBeenCalledOnce();
@@ -55,10 +55,9 @@ describe("device notification settings", () => {
     state.hasSubscription = true;
     state.error = "Temporary failure";
     rerender(<PushNotificationsSettings />);
-    fireEvent.click(screen.getByRole("button", { name: "Send test notification" }));
+    expect(screen.queryByRole("button", { name: "Send test notification" })).not.toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "Disable on this device" }));
     fireEvent.click(screen.getByRole("button", { name: "Retry notification setup" }));
-    expect(state.sendTest).toHaveBeenCalledOnce();
     expect(state.disable).toHaveBeenCalledOnce();
     expect(state.retry).toHaveBeenCalledOnce();
     expect(screen.getByRole("alert")).toHaveTextContent("Temporary failure");

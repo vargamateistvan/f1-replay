@@ -77,12 +77,6 @@ export function PushNotificationsSettings() {
                 Enable device notifications
               </button>
             )}
-            {push.enabled && push.config?.enabled && (
-              <button type="button" className={buttonClass("secondary", "sm")}
-                disabled={push.busy} onClick={push.sendTest}>
-                Send test notification
-              </button>
-            )}
             {(push.enabled || push.hasSubscription || push.hasCredential) && (
               <button type="button" className={buttonClass("secondary", "sm")}
                 disabled={push.busy} onClick={push.disable}>
