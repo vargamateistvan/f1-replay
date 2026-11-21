@@ -1,15 +1,18 @@
-import { render, screen } from "@testing-library/react";
+import { act, render, screen, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { useCircuitGeometry } from "@/hooks/useCircuitGeometry";
 import { useMediaQuery } from "@/hooks/useMediaQuery";
 import { useCachedSimulationDrivers } from "@/hooks/useSession";
-import { SESSION_SIMULATION_CARS } from "@/constants";
+import { SESSION_SIMULATION_CARS, SESSION_SIMULATION_SC_FIRST_DELAY_S } from "@/constants";
 import type { Driver } from "@/api/types";
 import { SessionSimulation } from "./SessionSimulation";
 
 vi.mock("@/hooks/useCircuitGeometry", () => ({ useCircuitGeometry: vi.fn() }));
 vi.mock("@/hooks/useMediaQuery", () => ({ useMediaQuery: vi.fn() }));
 vi.mock("@/hooks/useSession", () => ({ useCachedSimulationDrivers: vi.fn() }));
+vi.mock("@/data/pitLanes", () => ({
+  getPitLane: () => ({ x: [5, 50, 95], y: [-5, -5, -5] }),
+}));
 
 const session = {
   circuit_key: 65, year: 2026, circuit_short_name: "Mexico City",
@@ -39,26 +42,22 @@ describe("SessionSimulation", () => {
     const { container } = render(<SessionSimulation session={session} />);
     expect(useCircuitGeometry).toHaveBeenCalledWith(65, 2026);
     expect(screen.getByText("Mexico City · Simulation · Not live data")).toBeInTheDocument();
-    const animations = container.querySelectorAll("animateMotion");
-    expect(animations).toHaveLength(SESSION_SIMULATION_CARS);
-    expect(animations[0]).toHaveAttribute("repeatCount", "indefinite");
-    const cars = container.querySelectorAll("[data-simulation-car]");
+    const cars = [...container.querySelectorAll("[data-simulation-car]")];
     expect(cars).toHaveLength(SESSION_SIMULATION_CARS);
-    expect(new Set([...animations].map((animation) => animation.getAttribute("path"))).size).toBe(1);
-    expect(new Set([...animations].map((animation) => animation.getAttribute("begin"))).size)
+    expect(new Set(cars.map((car) => car.getAttribute("transform"))).size)
       .toBe(SESSION_SIMULATION_CARS);
-    for (const animation of animations) expect(animation).toHaveAttribute("rotate", "auto");
     expect(container.querySelector("svg")).toHaveAttribute("aria-hidden", "true");
   });
 
-  it("keeps a static track and cars when reduced motion is requested", () => {
+  it("keeps a static track and cars without a safety car when reduced motion is requested", async () => {
     vi.mocked(useMediaQuery).mockReturnValue(true);
+    const raf = vi.spyOn(window, "requestAnimationFrame");
     const { container } = render(<SessionSimulation session={session} />);
-    expect(container.querySelectorAll("animateMotion")).toHaveLength(0);
-    const cars = container.querySelectorAll<SVGGElement>("[data-simulation-car]");
-    expect(cars).toHaveLength(SESSION_SIMULATION_CARS);
-    expect(new Set([...cars].map((car) => car.style.offsetDistance)).size)
-      .toBe(SESSION_SIMULATION_CARS);
+    await act(async () => {});
+    expect(raf).not.toHaveBeenCalled();
+    expect(container.querySelectorAll("[data-simulation-car]")).toHaveLength(SESSION_SIMULATION_CARS);
+    expect(container.querySelector("[data-simulation-safety-car]")).toBeNull();
+    raf.mockRestore();
   });
 
   it("uses a stronger outline for the home preview without changing the background default", () => {
@@ -70,20 +69,51 @@ describe("SessionSimulation", () => {
     expect(container.querySelector("svg > path")).toHaveClass("stroke-line");
   });
 
-  it("mixes different speeds so a faster car catches the car ahead within one lap", () => {
-    const { container } = render(<SessionSimulation session={session} />);
-    const animations = [...container.querySelectorAll("animateMotion")];
-    const durations = animations.map((animation) =>
-      Number.parseFloat(animation.getAttribute("dur")!),
-    );
-    expect(durations.every((duration) => duration > 0)).toBe(true);
-    expect(new Set(durations).size).toBe(SESSION_SIMULATION_CARS);
-    const catchTimes = durations.slice(0, -1).flatMap((duration, index) => {
-      const closingSpeed = 1 / duration - 1 / durations[index + 1];
-      return closingSpeed > 0 ? [1 / SESSION_SIMULATION_CARS / closingSpeed] : [];
+  it("sends a safety car out of the pit lane and announces it", async () => {
+    vi.spyOn(Math, "random").mockReturnValue(0);
+    const frames: ((time: number) => void)[] = [];
+    vi.spyOn(window, "requestAnimationFrame").mockImplementation((cb) => frames.push(cb));
+    vi.spyOn(window, "cancelAnimationFrame").mockImplementation(() => {});
+    const { container } = render(<SessionSimulation session={session} variant="preview" />);
+    await waitFor(() => expect(container.querySelector("[data-simulation-pit-lane]")).not.toBeNull());
+    const safetyCar = container.querySelector<SVGGElement>("[data-simulation-safety-car]")!;
+    expect(safetyCar.style.display).toBe("none");
+    const run = (seconds: number) => act(() => {
+      for (let i = 0; i < seconds * 10; i++) {
+        const cb = frames.pop()!;
+        frames.length = 0;
+        cb(now);
+        now += 100;
+      }
     });
-    expect(catchTimes.length).toBeGreaterThan(1);
-    expect(Math.min(...catchTimes)).toBeLessThan(Math.min(...durations));
+    let now = 0;
+    run(SESSION_SIMULATION_SC_FIRST_DELAY_S[0] + 1);
+    expect(safetyCar.style.display).toBe("");
+    expect(screen.getByText("Safety car")).toBeInTheDocument();
+    vi.restoreAllMocks();
+  });
+  it.each([
+    [0.5, "yellow", "Yellow flag", "[data-simulation-yellow-zone]"],
+    [0.9, "red", "Red flag", "[data-simulation-red-flag]"],
+  ])("stages a random %s roll as a %s flag", async (roll, phase, label, overlay) => {
+    vi.spyOn(Math, "random").mockReturnValue(roll);
+    const frames: ((time: number) => void)[] = [];
+    vi.spyOn(window, "requestAnimationFrame").mockImplementation((cb) => frames.push(cb));
+    vi.spyOn(window, "cancelAnimationFrame").mockImplementation(() => {});
+    const { container } = render(<SessionSimulation session={session} variant="preview" />);
+    await waitFor(() => expect(container.querySelector("[data-simulation-pit-lane]")).not.toBeNull());
+    expect(container.querySelector(overlay)).toBeNull();
+    act(() => {
+      for (let now = 0; now <= (SESSION_SIMULATION_SC_FIRST_DELAY_S[1] + 1) * 1000; now += 100) {
+        const cb = frames.pop()!;
+        frames.length = 0;
+        cb(now);
+      }
+    });
+    expect(screen.getByText(label)).toHaveAttribute("data-simulation-flag-banner", phase);
+    expect(container.querySelector(overlay)).not.toBeNull();
+    expect(container.querySelector<SVGGElement>("[data-simulation-safety-car]")!.style.display).toBe("none");
+    vi.restoreAllMocks();
   });
 
   it.each([false, true])("uses team colours with reduced motion %s", (reducedMotion) => {

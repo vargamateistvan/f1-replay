@@ -131,7 +131,7 @@ describe("Home page", () => {
     expect(preview.useLatestMeeting).toHaveBeenCalledWith({ enabled: false });
     expect(preview.useCircuitGeometry).toHaveBeenCalledWith(2, 2025);
     expect(screen.getByText("Silverstone · Simulation · Not live data")).toBeInTheDocument();
-    expect(container.querySelectorAll("animateMotion")).toHaveLength(SESSION_SIMULATION_CARS);
+    expect(container.querySelectorAll("[data-simulation-car]")).toHaveLength(SESSION_SIMULATION_CARS);
   });
 
   it("uses the latest weekend when no meeting is selected, regardless of the season param", () => {
@@ -184,7 +184,7 @@ describe("Home page", () => {
     preview.geometry = null;
     const { container } = setup();
     expect(screen.getByText("Track outline unavailable for this weekend.")).toBeInTheDocument();
-    expect(container.querySelector("animateMotion")).not.toBeInTheDocument();
+    expect(container.querySelector("[data-simulation-car]")).not.toBeInTheDocument();
   });
 
   it("links every feature page, keeping the selected session", () => {

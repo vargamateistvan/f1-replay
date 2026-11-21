@@ -174,6 +174,30 @@ export const TRACK_PIT_EXIT_LIGHT_HEIGHT = 11;
 export const SESSION_SIMULATION_CARS = 12;
 export const SESSION_SIMULATION_LAP_SECONDS = 32;
 export const SESSION_SIMULATION_LAP_STEP_SECONDS = 1.2;
+/** Random safety-car periods in the synthetic simulation. */
+export const SESSION_SIMULATION_SC_LAP_FACTOR = 1.6;
+export const SESSION_SIMULATION_SC_FIRST_DELAY_S: readonly [number, number] = [8, 16];
+/** Green-flag running between simulated incidents. */
+export const SESSION_SIMULATION_SC_INTERVAL_S: readonly [number, number] = [25, 50];
+/** Relative likelihood of a safety car, local yellow flag or red flag. */
+export const SESSION_SIMULATION_INCIDENT_WEIGHTS = { "safety-car": 0.4, yellow: 0.4, red: 0.2 } as const;
+export const SESSION_SIMULATION_YELLOW_S: readonly [number, number] = [10, 18];
+/** Yellow-flag zone length as a fraction of the lap. */
+export const SESSION_SIMULATION_YELLOW_ZONE: readonly [number, number] = [0.08, 0.15];
+export const SESSION_SIMULATION_YELLOW_SPEED = 0.55;
+export const SESSION_SIMULATION_RED_S: readonly [number, number] = [8, 12];
+/** Braking to a stop under red / getting back up to pace, seconds. */
+export const SESSION_SIMULATION_RED_PACE_CHANGE_S = 2.5;
+export const SESSION_SIMULATION_SC_LAPS: readonly [number, number] = [2, 3];
+/** Safety-car pit-lane drive (each way), seconds. */
+export const SESSION_SIMULATION_SC_PIT_SECONDS = 3;
+/** Queue spacing behind the safety car, SVG units. */
+export const SESSION_SIMULATION_SC_QUEUE_GAP = 16;
+export const SESSION_SIMULATION_SC_MIN_QUEUE_SPEED = 0.6;
+/** Baked pit lanes whose ends are further than this (SVG units) from the outline are ignored. */
+export const SESSION_SIMULATION_PIT_MAX_OFFSET = 30;
+/** Longest simulated step per frame, so a background tab doesn't jump. */
+export const SESSION_SIMULATION_MAX_STEP_S = 0.1;
 /** Decorative Home preview colours when no cached team colours are available. */
 export const SESSION_SIMULATION_PREVIEW_COLORS: readonly string[] = [
   TOKEN_HEX.f1red,

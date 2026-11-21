@@ -18,6 +18,10 @@ export interface CircuitThumbnail {
   arrowPath: string;
   /** Start/finish tick across the track at the first centerline point. */
   startLine: { x1: number; y1: number; x2: number; y2: number };
+  /** Outline points in the fitted frame. */
+  points: { x: number; y: number }[];
+  /** Project another F1-frame point (e.g. a pit lane) into the fitted frame. */
+  project: (x: number, y: number) => { x: number; y: number };
 }
 
 type Geometry = Pick<CircuitGeometry, "x" | "y" | "corners" | "rotation" | "source">;
@@ -84,10 +88,13 @@ export function circuitThumbnail(
   const scale = Math.min((width - pad * 2) / spanX, (height - pad * 2) / spanY);
   const offX = (width - spanX * scale) / 2;
   const offY = (height - spanY * scale) / 2;
-  const pts = rotated.map((p) => ({
+  const fit = (p: { x: number; y: number }) => ({
     x: (p.x - minX) * scale + offX,
     y: (p.y - minY) * scale + offY,
-  }));
+  });
+  const pts = rotated.map(fit);
+  const project = (x: number, y: number) =>
+    fit({ x: x * cos + y * sin, y: x * sin - y * cos });
 
   const arrowEnd = Math.max(2, Math.round(n * arrowFraction));
   const a = pts[0]!;
@@ -101,5 +108,7 @@ export function circuitThumbnail(
     path: toPath(pts, true),
     arrowPath: toPath(pts.slice(0, arrowEnd + 1), false),
     startLine: { x1: a.x - nx, y1: a.y - ny, x2: a.x + nx, y2: a.y + ny },
+    points: pts,
+    project,
   };
 }
