@@ -156,8 +156,8 @@ describe("QuickTrackSettings", () => {
   it("updates shared persisted settings immediately without closing", () => {
     open();
     fireEvent.click(screen.getByRole("switch", { name: "Weather effects" }));
-    expect(useSettings.getState().mapWeatherEffectsEnabled).toBe(true);
-    expect(screen.getByRole("switch", { name: "Weather effects" })).toHaveAttribute("aria-checked", "true");
+    expect(useSettings.getState().mapWeatherEffectsEnabled).toBe(false);
+    expect(screen.getByRole("switch", { name: "Weather effects" })).toHaveAttribute("aria-checked", "false");
     fireEvent.click(screen.getByRole("switch", { name: "Driver labels" }));
     expect(useSettings.getState().mapShowDriverAcronym).toBe(false);
     expect(screen.getByRole("dialog")).toBeInTheDocument();
@@ -201,7 +201,7 @@ describe("QuickTrackSettings", () => {
     open("3d");
     fireEvent.click(screen.getByRole("switch", { name: "Weather effects" }));
     expect(useSettings.getState().mapView3dWeatherEffects).toBe(false);
-    expect(useSettings.getState().mapWeatherEffectsEnabled).toBe(false);
+    expect(useSettings.getState().mapWeatherEffectsEnabled).toBe(true);
     expect(screen.getByRole("switch", { name: "Terrain" })).toBeInTheDocument();
     expect(screen.queryByRole("switch", { name: "Compass" })).not.toBeInTheDocument();
   });
