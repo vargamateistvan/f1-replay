@@ -16,9 +16,9 @@ function open(view: "2d" | "ring" | "3d" = "2d", onOpenSettings?: () => void) {
 
 describe("QuickTrackSettings", () => {
   it.each([
-    ["2d", 16, "Weather"],
-    ["ring", 13, "Weather"],
-    ["3d", 18, "Weather & lighting"],
+    ["2d", 24, "Weather"],
+    ["ring", 18, "Weather"],
+    ["3d", 30, "Weather & lighting"],
   ] as const)("groups all %s controls by purpose", (view, count, weatherLabel) => {
     open(view);
     expect(screen.getAllByRole("switch")).toHaveLength(count);
@@ -204,6 +204,21 @@ describe("QuickTrackSettings", () => {
     expect(useSettings.getState().mapWeatherEffectsEnabled).toBe(true);
     expect(screen.getByRole("switch", { name: "Terrain" })).toBeInTheDocument();
     expect(screen.queryByRole("switch", { name: "Compass" })).not.toBeInTheDocument();
+  });
+
+  it("offers every view-relevant track setting, gating 3D flag colours on sector flags", () => {
+    const view2d = open("2d");
+    for (const name of ["Marshal sector heatmap", "Elevation heatmap", "Track controls", "Start light sounds", "Race leader badge"]) {
+      expect(screen.getByRole("switch", { name })).toBeInTheDocument();
+    }
+    fireEvent.click(screen.getByRole("switch", { name: "Track controls" }));
+    expect(useSettings.getState().mapShowTrackControls).toBe(true);
+    view2d.unmount();
+
+    useSettings.getState().setSetting("mapShowSectorFlags", false);
+    open("3d");
+    expect(screen.getByRole("switch", { name: "Trackside barriers" })).toBeInTheDocument();
+    expect(screen.getByRole("switch", { name: "Flag colours on track" })).toBeDisabled();
   });
 
   it("dismisses on Escape with focus restored and on outside pointer press", () => {

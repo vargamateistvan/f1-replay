@@ -301,7 +301,7 @@ Track-map settings show their live preview only when expanded; it scrolls with t
 
 The 2D map's S1/S2 timing-gate markers use `mapShowSectorMarkers` (default on), available in Track Map settings and 2D quick settings; start/finish and direction markers remain always visible.
 
-Quick settings group map controls into Track, Cars, Weather (Weather & lighting in 3D), and Overlays. Timing quick settings use Drivers & positions, Laps & gaps, Tyres & pits, and Telemetry; grouping preserves view-specific preferences and the combined Sectors toggle.
+Quick settings mirror every Track Map setting shown for the current view (plus Follow focused car), grouped into Track, Cars, Weather (Weather & lighting in 3D), Overlays and Sound; 3D flag colours stay disabled while sector flags are off. Timing quick settings use Drivers & positions, Laps & gaps, Tyres & pits, and Telemetry; grouping preserves view-specific preferences and the combined Sectors toggle.
 
 `derivePitLaneStatus` in `timeline/raceControl.ts` tracks last explicitly reported lane, entry and exit states at the playhead. The `mapShowPitLaneStatus` setting (off by default; "Pit exit light" in the Track quick-settings group in all map views) colours only the affected geometry without a status notification; the pit exit has one red/green start-light-style lamp and the entry a glowing dot. Unknown states stay neutral; reports may be stale when later updates are missing. The settings preview uses a labelled example.
 

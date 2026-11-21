@@ -19,15 +19,24 @@ const CAR_OPTIONS: readonly Option[] = [
   ["mapShowDriverAcronym", "Driver labels"],
   ["mapShowDriverNumberInside", "Driver numbers"],
   ["mapShowCompoundBadges", "Tyre badges"],
+  ["mapShowBattleRings", "DRS battle rings"],
   ["mapShowDriverHud", "Focused driver HUD"],
 ];
+const WEATHER_2D: OptionGroup = { label: "Weather", options: [
+  ["mapShowWeather", "Weather readings"],
+  ["mapWeatherEffectsEnabled", "Weather effects"],
+] };
+const SOUND: OptionGroup = { label: "Sound", options: [["mapStartLightsSound", "Start light sounds"]] };
 const VIEW_GROUPS: Record<MapViewMode, readonly OptionGroup[]> = {
   "2d": [
     { label: "Track", options: [
       ["mapShowSectorMarkers", "Sector markers"],
       ["mapShowSectorFlags", "Sector flags"],
+      ["mapShowSectorBox", "Sector status box"],
+      ["mapShowMarshalHeatmap", "Marshal sector heatmap"],
       ["mapShowCornerNumbers", "Corner numbers"],
       ["mapShowKerbs", "Track kerbs"],
+      ["mapShowElevation", "Elevation heatmap"],
       ["mapShowPitLaneStatus", "Pit exit light"],
     ] },
     { label: "Cars", options: [
@@ -35,15 +44,16 @@ const VIEW_GROUPS: Record<MapViewMode, readonly OptionGroup[]> = {
       ["mapFollowFocusedCar", "Follow focused car"],
       ["mapShowDriverHeatmap", "Driver heatmap"],
       ["mapShowPitRejoin", "Pit rejoin projection"],
+      ["mapShowRaceLeader", "Race leader badge"],
     ] },
-    { label: "Weather", options: [
-      ["mapShowWeather", "Weather readings"],
-      ["mapWeatherEffectsEnabled", "Weather effects"],
-    ] },
+    WEATHER_2D,
     { label: "Overlays", options: [
       ["mapShowCompass", "Compass"],
       ["mapShowClock", "Track clock"],
+      ["mapShowTrackControls", "Track controls"],
+      ["trackScreenshotPngEnabled", "PNG track snapshot"],
     ] },
+    SOUND,
   ],
   ring: [
     { label: "Track", options: [
@@ -51,40 +61,56 @@ const VIEW_GROUPS: Record<MapViewMode, readonly OptionGroup[]> = {
       ["mapRingReverse", "Anticlockwise"],
       ["mapShowPitLaneStatus", "Pit exit light"],
       ["mapShowSectorFlags", "Sector flags"],
+      ["mapShowSectorBox", "Sector status box"],
       ["mapShowCornerNumbers", "Corner numbers"],
     ] },
     { label: "Cars", options: [
       ...CAR_OPTIONS,
       ["mapRingShowPitWindowOutcomes", "Pit window outcomes"],
+      ["mapShowRaceLeader", "Race leader badge"],
     ] },
-    { label: "Weather", options: [
-      ["mapShowWeather", "Weather readings"],
-      ["mapWeatherEffectsEnabled", "Weather effects"],
+    WEATHER_2D,
+    { label: "Overlays", options: [
+      ["mapShowClock", "Track clock"],
+      ["trackScreenshotPngEnabled", "PNG track snapshot"],
     ] },
-    { label: "Overlays", options: [["mapShowClock", "Track clock"]] },
+    SOUND,
   ],
   "3d": [
     { label: "Track", options: [
       ["mapShowSectorFlags", "Sector flags"],
+      ["mapView3dFlagColors", "Flag colours on track"],
+      ["mapView3dSectorRibbon", "Sector condition ribbon"],
       ["mapShowCornerNumbers", "Corner numbers"],
       ["mapView3dKerbs", "Track kerbs"],
       ["mapView3dRunoff", "Run-off areas"],
+      ["mapShowElevation", "Elevation heatmap"],
+      ["mapView3dBuildings", "3D buildings and trees"],
+      ["mapView3dTrackside", "Trackside barriers"],
       ["mapView3dTerrain", "Terrain"],
       ["mapShowPitLaneStatus", "Pit exit light"],
     ] },
     { label: "Cars", options: [
       ...CAR_OPTIONS,
       ["mapView3dCarModels", "3D car models"],
+      ["mapView3dSpeedTrail", "Speed-coloured trail"],
+      ["mapView3dBattleGaps", "Battle gap ribbons"],
       ["mapFollowFocusedCar", "Follow focused car"],
       ["mapShowDriverHeatmap", "Driver heatmap"],
       ["mapShowPitRejoin", "Pit rejoin projection"],
+      ["mapShowRaceLeader", "Race leader badge"],
     ] },
     { label: "Weather & lighting", options: [
       ["mapShowWeather", "Weather readings"],
       ["mapView3dWeatherEffects", "Weather effects"],
       ["mapView3dSessionLighting", "Session lighting"],
     ] },
-    { label: "Overlays", options: [["mapShowClock", "Track clock"]] },
+    { label: "Overlays", options: [
+      ["mapShowClock", "Track clock"],
+      ["mapShowTrackControls", "Track controls"],
+      ["trackScreenshotPngEnabled", "PNG track snapshot"],
+    ] },
+    SOUND,
   ],
 };
 
@@ -268,7 +294,10 @@ export function QuickTrackSettings({
                     type="button"
                     role="switch"
                     aria-checked={checked}
-                    disabled={key === "trackerTimingCompactColumn" && !settings.trackerTimingTelemetry}
+                    disabled={
+                      (key === "trackerTimingCompactColumn" && !settings.trackerTimingTelemetry) ||
+                      (key === "mapView3dFlagColors" && !settings.mapShowSectorFlags)
+                    }
                     onClick={() => {
                       const enabled = !checked;
                       if (key === "mapFollowFocusedCar") trackEvent("trackmap_follow_toggled", { following: enabled, view });
