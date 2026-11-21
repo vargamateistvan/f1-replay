@@ -5,6 +5,7 @@ import { useMediaQuery } from "@/hooks/useMediaQuery";
 import { useCachedSimulationDrivers } from "@/hooks/useSession";
 import { SESSION_SIMULATION_CARS, SESSION_SIMULATION_SC_FIRST_DELAY_S } from "@/constants";
 import type { Driver } from "@/api/types";
+import { useSettings } from "@/stores/settings";
 import { SessionSimulation } from "./SessionSimulation";
 
 vi.mock("@/hooks/useCircuitGeometry", () => ({ useCircuitGeometry: vi.fn() }));
@@ -60,13 +61,28 @@ describe("SessionSimulation", () => {
     raf.mockRestore();
   });
 
-  it("uses a stronger outline for the home preview without changing the background default", () => {
+  it("draws the track like the 2D map and keeps the background variant faint", () => {
+    useSettings.setState({ mapShowKerbs: false, mapShowSectorMarkers: true });
+    const angles = Array.from({ length: 40 }, (_, i) => (i / 40) * Math.PI * 2);
+    vi.mocked(useCircuitGeometry).mockReturnValue({
+      isPending: false,
+      data: {
+        circuitKey: 65, circuitName: "Mexico City", year: 2026, rotation: 0,
+        x: angles.map((a) => Math.cos(a) * 100), y: angles.map((a) => Math.sin(a) * 60),
+        corners: [], marshalSectors: [], marshalLights: [],
+      },
+    } as unknown as ReturnType<typeof useCircuitGeometry>);
     const { container, rerender } = render(<SessionSimulation session={session} />);
     expect(container.querySelector("svg")).toHaveClass("opacity-40");
-    expect(container.querySelector("svg > path")).toHaveClass("stroke-panel");
+    expect(container.querySelector('[data-testid="map-background"]')).not.toBeNull();
+    expect(container.querySelector('[data-track-layer="asphalt"]')?.getAttribute("stroke")).toMatch(/^url\(#sim-asphalt-/);
+    expect(container.querySelector('[data-sector-marker="S1"]')).not.toBeNull();
+    expect(container.querySelector('[data-track-layer="kerbs-red"]')).toBeNull();
+    act(() => useSettings.setState({ mapShowKerbs: true, mapShowSectorMarkers: false }));
     rerender(<SessionSimulation session={session} variant="preview" />);
     expect(container.querySelector("svg")).toHaveClass("opacity-100");
-    expect(container.querySelector("svg > path")).toHaveClass("stroke-line");
+    expect(container.querySelector("[data-sector-marker]")).toBeNull();
+    expect(container.querySelector('[data-track-layer="kerbs-red"]')).not.toBeNull();
   });
 
   it("sends a safety car out of the pit lane and announces it", async () => {

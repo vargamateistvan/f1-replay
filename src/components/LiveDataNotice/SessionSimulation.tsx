@@ -4,6 +4,17 @@ import type { PitLanePath } from "@/data/pitLanes";
 import { useCircuitGeometry } from "@/hooks/useCircuitGeometry";
 import { useMediaQuery } from "@/hooks/useMediaQuery";
 import { useCachedSimulationDrivers } from "@/hooks/useSession";
+import { useSettings } from "@/stores/settings";
+import { MapBackground } from "../TrackMap/layers/MapBackground";
+import {
+  DirectionArrows,
+  SectorBoundaryMarkers,
+  StartFinishLine,
+  TrackSurface,
+  TrackSurfaceGradient,
+} from "../TrackMap/layers/TrackSurfaceLayers";
+import type { TrackGeometry } from "../TrackMap/trackGeometry";
+import { TOKEN_HEX, TOKEN_HEX_LIGHT } from "@/designTokens";
 import { circuitThumbnail } from "@/utils/circuitInfo";
 import { teamColor } from "@/utils/color";
 import {
@@ -27,6 +38,7 @@ import {
   SESSION_SIMULATION_YELLOW_S,
   SESSION_SIMULATION_YELLOW_SPEED,
   SESSION_SIMULATION_YELLOW_ZONE,
+  TRACK_SURFACE_ASPHALT_WIDTH,
   TRACK_SVG_H,
   TRACK_SVG_PAD,
   TRACK_SVG_W,
@@ -69,6 +81,26 @@ function zonePath(track: Polyline, zone: YellowZone): string {
     const p = pointAt(track, zone.start + (zone.length * i) / samples);
     return `${i ? "L" : "M"}${p.x.toFixed(1)} ${p.y.toFixed(1)}`;
   }).join("");
+}
+
+/** The simulation outline as the 2D map's track geometry, so its layers can draw it. */
+function outlineGeometry(path: string, points: readonly { x: number; y: number }[]): TrackGeometry {
+  const lengths = [0];
+  for (let i = 1; i < points.length; i++) {
+    lengths.push(lengths[i - 1]! + Math.hypot(points[i]!.x - points[i - 1]!.x, points[i]!.y - points[i - 1]!.y));
+  }
+  const total = lengths[lengths.length - 1] || 1;
+  const xs = points.map((p) => p.x);
+  const ys = points.map((p) => p.y);
+  const [minX, maxX, minY, maxY] = [Math.min(...xs), Math.max(...xs), Math.min(...ys), Math.max(...ys)];
+  return {
+    pathData: path,
+    bounds: { minX, maxX, minY, maxY, width: maxX - minX, height: maxY - minY },
+    innerW: TRACK_SVG_W - TRACK_SVG_PAD * 2,
+    innerH: TRACK_SVG_H - TRACK_SVG_PAD * 2,
+    svgPts: points.map((p) => ({ sx: p.x, sy: p.y })),
+    normArc: lengths.map((l) => l / total),
+  };
 }
 
 const carTransform = ({ x, y, angle }: PolylinePosition) =>
@@ -155,6 +187,11 @@ export function SessionSimulation({
     [geometry],
   );
   const track = useMemo(() => outline ? buildPolyline(outline.points, true) : null, [outline]);
+  const geom = useMemo(() => outline ? outlineGeometry(outline.path, outline.points) : null, [outline]);
+  const lightMode = useSettings((s) => s.lightMode);
+  const showKerbs = useSettings((s) => s.mapShowKerbs);
+  const showSectorMarkers = useSettings((s) => s.mapShowSectorMarkers);
+  const idSuffix = `${session?.circuit_key ?? "na"}-${variant}`;
 
   // Loaded on demand so the baked pit lanes stay out of the Home chunk.
   const circuitKey = session?.circuit_key;
@@ -224,7 +261,7 @@ export function SessionSimulation({
     };
   }, [track, config, pit, reducedMotion]);
 
-  if (!outline || !track) return null;
+  if (!outline || !track || !geom) return null;
   const banner = reducedMotion ? undefined : FLAG_BANNERS[incident.phase];
 
   return (
@@ -245,15 +282,32 @@ export function SessionSimulation({
         className={`h-full w-full ${variant === "preview" ? "opacity-100" : "opacity-40"}`}
         aria-hidden="true"
       >
-        <path
-          d={outline.path}
-          fill="none"
-          className={variant === "preview" ? "stroke-line" : "stroke-panel"}
-          strokeWidth={12}
-        />
-        <path d={outline.path} fill="none" className="stroke-line" strokeWidth={1} />
+        <defs>
+          <TrackSurfaceGradient id={`sim-asphalt-${idSuffix}`} lightMode={lightMode} />
+          <pattern id={`sim-checker-${idSuffix}`} width="4" height="4" patternUnits="userSpaceOnUse">
+            <rect x="0" y="0" width="4" height="4" fill={TOKEN_HEX.white} />
+            <rect x="0" y="0" width="2" height="2" fill={TOKEN_HEX_LIGHT.fg} />
+            <rect x="2" y="2" width="2" height="2" fill={TOKEN_HEX_LIGHT.fg} />
+          </pattern>
+        </defs>
+        <MapBackground view={{ x: 0, y: 0, w: TRACK_SVG_W, h: TRACK_SVG_H }} lightMode={lightMode} />
+        <g data-simulation-track="">
+          <TrackSurface geom={geom} gradientId={`sim-asphalt-${idSuffix}`} lightMode={lightMode} showKerbs={showKerbs} />
+        </g>
+        {pit && (
+          <path
+            data-simulation-pit-lane=""
+            d={pit.path}
+            fill="none"
+            stroke={lightMode ? TOKEN_HEX_LIGHT.fg : TOKEN_HEX.fg}
+            strokeOpacity={0.6}
+            strokeWidth={1.5}
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+        )}
         {!reducedMotion && incident.phase === "red" && (
-          <path data-simulation-red-flag="" d={outline.path} fill="none" className="stroke-red" strokeOpacity={0.45} strokeWidth={12} />
+          <path data-simulation-red-flag="" d={outline.path} fill="none" className="stroke-red" strokeOpacity={0.45} strokeWidth={TRACK_SURFACE_ASPHALT_WIDTH} />
         )}
         {!reducedMotion && incident.phase === "yellow" && incident.zone && (
           <path
@@ -262,14 +316,13 @@ export function SessionSimulation({
             fill="none"
             className="stroke-yellow"
             strokeOpacity={0.6}
-            strokeWidth={12}
+            strokeWidth={TRACK_SURFACE_ASPHALT_WIDTH}
             strokeLinecap="round"
           />
         )}
-        {pit && (
-          <path data-simulation-pit-lane="" d={pit.path} fill="none" className="stroke-panel" strokeWidth={4} />
-        )}
-        <line {...outline.startLine} className="stroke-fg" strokeWidth={2} />
+        <StartFinishLine geom={geom} patternId={`sim-checker-${idSuffix}`} lightMode={lightMode} />
+        {showSectorMarkers && <SectorBoundaryMarkers geom={geom} rotationDeg={0} lightMode={lightMode} />}
+        <DirectionArrows geom={geom} lightMode={lightMode} />
         {START_POSITIONS.map((pos, index) => (
           <g
             key={index}

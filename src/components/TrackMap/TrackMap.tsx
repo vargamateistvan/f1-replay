@@ -72,6 +72,7 @@ import {
   StartFinishLine,
   TrackConditionRibbon,
   TrackSurface,
+  TrackSurfaceGradient,
 } from "./layers/TrackSurfaceLayers";
 import {
   MarshalFlagSegments,
@@ -817,17 +818,7 @@ export function TrackMap({
         style={{ background: mapBackground }}
       >
         <defs>
-          <linearGradient
-            id={trackSurfaceGradientId}
-            x1="0%"
-            y1="0%"
-            x2="100%"
-            y2="100%"
-          >
-            <stop offset="0%" stopColor={lightMode ? "#eaf1ff" : "#303949"} />
-            <stop offset="52%" stopColor={lightMode ? "#cdd8ed" : "#202835"} />
-            <stop offset="100%" stopColor={lightMode ? "#aebad0" : "#141922"} />
-          </linearGradient>
+          <TrackSurfaceGradient id={trackSurfaceGradientId} lightMode={lightMode} />
           <pattern
             id={finishPatternId}
             width="4"

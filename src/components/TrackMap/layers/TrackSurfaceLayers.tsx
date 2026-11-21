@@ -93,6 +93,17 @@ export const TrackConditionRibbon = memo(function TrackConditionRibbon({
 /**
  * Track surface: asphalt bordered by a visible red-and-white kerb strip.
  */
+/** Asphalt fill shared by the 2D map and the session simulation. */
+export function TrackSurfaceGradient({ id, lightMode }: { id: string; lightMode: boolean }) {
+  return (
+    <linearGradient id={id} x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stopColor={lightMode ? "#eaf1ff" : "#303949"} />
+      <stop offset="52%" stopColor={lightMode ? "#cdd8ed" : "#202835"} />
+      <stop offset="100%" stopColor={lightMode ? "#aebad0" : "#141922"} />
+    </linearGradient>
+  );
+}
+
 export const TrackSurface = memo(function TrackSurface({
   geom,
   gradientId,
