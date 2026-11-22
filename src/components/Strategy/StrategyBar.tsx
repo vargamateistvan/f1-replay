@@ -161,8 +161,8 @@ export function StrategyBar({
   }
 
   return (
-    <div className="flex flex-col">
-      <div className="sticky top-0 z-30 bg-surface">
+    <div className="flex flex-col md:min-h-full">
+      <div className="sticky top-0 z-30 shrink-0 bg-surface">
         {/* Toolbar: legend + lap range */}
         <div className="flex items-center gap-2 border-b border-panel bg-track px-2 py-1.5 sm:px-3">
           <div className="flex min-w-0 flex-1 flex-wrap items-center gap-x-2.5 gap-y-1">
@@ -339,7 +339,7 @@ export function StrategyBar({
           </>
         );
 
-        const rowClass = `flex h-6 w-full items-center border-b border-panel text-left transition-colors ${
+        const rowClass = `flex h-6 w-full items-center border-b border-panel text-left transition-colors md:h-auto md:min-h-6 md:flex-1 ${
           focused ? "bg-panel/60 text-fg" : "text-fg/80"
         }`;
         const rowStyle = { boxShadow: `inset ${focused ? 4 : 2}px 0 0 ${color}` };

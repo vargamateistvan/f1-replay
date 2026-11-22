@@ -169,6 +169,8 @@ describe("StrategyBar", () => {
 
     const { rerender } = render(<StrategyBar {...props} />);
     expect(rowOrder()).toEqual(["VER", "LEC"]);
+    expect(screen.getByText("VER").parentElement).toHaveClass("h-6", "md:min-h-6", "md:flex-1");
+    expect(screen.getByText("VER").parentElement?.parentElement).toHaveClass("md:min-h-full");
 
     rerender(
       <StrategyBar
@@ -214,6 +216,7 @@ describe("StrategyBar", () => {
 
     const row = screen.getByRole("button", { name: "Unfocus VER" });
     expect(row).toHaveAttribute("aria-pressed", "true");
+    expect(row).toHaveClass("h-6", "md:min-h-6", "md:flex-1");
     fireEvent.click(row);
     expect(selected).toEqual([1]);
   });

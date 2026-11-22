@@ -3041,7 +3041,7 @@ export default function RaceWeekend() {
                     <div className={`${PANEL_TITLE} shrink-0`}>
                       Tyre Strategy
                     </div>
-                    <div className="min-h-0 overflow-y-auto md:panel-scroll [-webkit-overflow-scrolling:touch]">
+                    <div className="min-h-0 overflow-y-auto md:flex-1 md:panel-scroll [-webkit-overflow-scrolling:touch]">
                       <Suspense fallback={<PanelFallback />}>
                         <StrategyBar
                           stints={stints.data ?? []}
@@ -3188,7 +3188,7 @@ export default function RaceWeekend() {
                       <div className={`${PANEL_TITLE} shrink-0`}>
                         Tyre Strategy
                       </div>
-                      <div className="min-h-0 overflow-y-auto md:panel-scroll [-webkit-overflow-scrolling:touch]">
+                      <div className="min-h-0 overflow-y-auto md:flex-1 md:panel-scroll [-webkit-overflow-scrolling:touch]">
                         <Suspense fallback={<PanelFallback />}>
                           <StrategyBar
                             stints={stints.data ?? []}
