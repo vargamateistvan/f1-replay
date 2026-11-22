@@ -11,12 +11,49 @@ import {
   TRACK_SURFACE_KERB_OPACITY,
   TRACK_SURFACE_KERB_WIDTH,
 } from "@/constants";
-import { TOKEN_HEX } from "@/designTokens";
+import { TOKEN_HEX, TOKEN_HEX_LIGHT } from "@/designTokens";
+import { mapBackgroundColor } from "../trackMapFormat";
 import { buildTrackGeometry } from "../trackGeometry";
 import {
   TrackConditionRibbon,
   TrackSurface,
+  SectorBoundaryMarkers,
 } from "./TrackSurfaceLayers";
+
+describe("SectorBoundaryMarkers", () => {
+  it("keeps labels upright and readable in both themes without intercepting map gestures", () => {
+    const geom = buildTrackGeometry({
+      points: [
+        { x: 0, y: 0 }, { x: 50, y: 0 }, { x: 100, y: 0 },
+        { x: 100, y: 100 }, { x: 50, y: 100 }, { x: 0, y: 100 },
+      ],
+      bounds: { minX: 0, minY: 0, maxX: 100, maxY: 100, width: 100, height: 100 },
+    });
+    const draw = (lightMode: boolean) => (
+      <svg><SectorBoundaryMarkers geom={geom} rotationDeg={45} lightMode={lightMode} /></svg>
+    );
+    const { container, rerender } = render(draw(false));
+    const markers = Array.from(container.querySelectorAll("[data-sector-marker]"));
+    expect(markers.map((marker) => marker.textContent)).toEqual(["S1", "S2"]);
+    for (const marker of markers) {
+      expect(marker).toHaveAttribute("pointer-events", "none");
+      expect(marker.querySelector("rect")).toBeNull();
+      const line = marker.querySelector("[data-sector-gate-line]")!;
+      expect(line).not.toHaveAttribute("stroke-dasharray");
+      const length = Math.hypot(
+        Number(line.getAttribute("x2")) - Number(line.getAttribute("x1")),
+        Number(line.getAttribute("y2")) - Number(line.getAttribute("y1")),
+      );
+      expect(length).toBeGreaterThan(TRACK_SURFACE_ASPHALT_WIDTH);
+      expect(marker.querySelector("text")).toHaveAttribute("transform", expect.stringMatching(/^rotate\(-45/));
+      expect(marker.querySelector("text")).toHaveAttribute("stroke", mapBackgroundColor(false));
+      expect(marker.querySelector("text")).toHaveAttribute("fill", TOKEN_HEX.fg);
+    }
+    rerender(draw(true));
+    expect(container.querySelector("[data-sector-marker] text")).toHaveAttribute("stroke", mapBackgroundColor(true));
+    expect(container.querySelector("[data-sector-marker] text")).toHaveAttribute("fill", TOKEN_HEX_LIGHT.fg);
+  });
+});
 
 describe("TrackSurface", () => {
   it("renders alternating kerbs and asphalt in paint order without a green outline", () => {

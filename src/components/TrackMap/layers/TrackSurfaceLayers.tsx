@@ -12,11 +12,7 @@ import {
   TRACK_SURFACE_KERB_DASH_LENGTH,
   TRACK_SURFACE_KERB_OPACITY,
   TRACK_SURFACE_KERB_WIDTH,
-  TRACK_SECTOR_MARKER_BADGE_HEIGHT,
-  TRACK_SECTOR_MARKER_BADGE_OFFSET,
-  TRACK_SECTOR_MARKER_BADGE_WIDTH,
-  TRACK_SECTOR_MARKER_ACCENT_WIDTH,
-  TRACK_SECTOR_MARKER_CONNECTOR_START,
+  TRACK_SECTOR_MARKER_LABEL_OFFSET,
   TRACK_SECTOR_MARKER_TICK_OUTLINE_WIDTH,
   TRACK_SECTOR_MARKER_TICK_HALF,
   TRACK_SECTOR_MARKER_TICK_WIDTH,
@@ -448,16 +444,12 @@ export const SectorBoundaryMarkers = memo(function SectorBoundaryMarkers({
     const len = Math.hypot(dx, dy) || 1;
     const nx = -dy / len;
     const ny = dx / len;
-    const badgeX = point.sx + nx * TRACK_SECTOR_MARKER_BADGE_OFFSET;
-    const badgeY = point.sy + ny * TRACK_SECTOR_MARKER_BADGE_OFFSET;
-    const badgeLeft = badgeX - TRACK_SECTOR_MARKER_BADGE_WIDTH / 2;
-    const badgeTop = badgeY - TRACK_SECTOR_MARKER_BADGE_HEIGHT / 2;
-    const half = TRACK_SECTOR_MARKER_TICK_HALF;
-    const connectorEnd =
-      TRACK_SECTOR_MARKER_BADGE_OFFSET - TRACK_SECTOR_MARKER_BADGE_HEIGHT / 2;
-    const edgeX = point.sx + nx * connectorEnd;
-    const edgeY = point.sy + ny * connectorEnd;
-
+    const labelX = point.sx + nx * TRACK_SECTOR_MARKER_LABEL_OFFSET;
+    const labelY = point.sy + ny * TRACK_SECTOR_MARKER_LABEL_OFFSET;
+    const x1 = point.sx - nx * TRACK_SECTOR_MARKER_TICK_HALF;
+    const y1 = point.sy - ny * TRACK_SECTOR_MARKER_TICK_HALF;
+    const x2 = point.sx + nx * TRACK_SECTOR_MARKER_TICK_HALF;
+    const y2 = point.sy + ny * TRACK_SECTOR_MARKER_TICK_HALF;
     return (
       <g
         key={`sector-boundary-${label}`}
@@ -465,69 +457,36 @@ export const SectorBoundaryMarkers = memo(function SectorBoundaryMarkers({
         pointerEvents="none"
       >
         <line
-          x1={point.sx + nx * half}
-          y1={point.sy + ny * half}
-          x2={point.sx - nx * half}
-          y2={point.sy - ny * half}
+          x1={x1} y1={y1} x2={x2} y2={y2}
           stroke={mapBackgroundColor(lightMode)}
           strokeWidth={TRACK_SECTOR_MARKER_TICK_OUTLINE_WIDTH}
           strokeLinecap="round"
         />
         <line
-          x1={point.sx + nx * half}
-          y1={point.sy + ny * half}
-          x2={point.sx - nx * half}
-          y2={point.sy - ny * half}
-          stroke={TOKEN_HEX.f1red}
+          data-sector-gate-line=""
+          x1={x1} y1={y1} x2={x2} y2={y2}
+          stroke={lightMode ? TOKEN_HEX_LIGHT.fg : TOKEN_HEX.fg}
           strokeWidth={TRACK_SECTOR_MARKER_TICK_WIDTH}
           strokeLinecap="round"
-          opacity={0.72}
         />
-        <line
-          x1={point.sx + nx * TRACK_SECTOR_MARKER_CONNECTOR_START}
-          y1={point.sy + ny * TRACK_SECTOR_MARKER_CONNECTOR_START}
-          x2={edgeX}
-          y2={edgeY}
-          stroke={lightMode ? TOKEN_HEX_LIGHT.fg : TOKEN_HEX.fg}
-          strokeWidth={0.7}
-          opacity={0.45}
-        />
-        <g
-          transform={`rotate(${-rotationDeg.toFixed(1)} ${badgeX.toFixed(1)} ${badgeY.toFixed(1)})`}
+        <text
+          x={labelX}
+          y={labelY}
+          transform={`rotate(${-rotationDeg.toFixed(1)} ${labelX.toFixed(1)} ${labelY.toFixed(1)})`}
+          textAnchor="middle"
+          dominantBaseline="middle"
+          fontSize={5.5}
+          fill={lightMode ? TOKEN_HEX_LIGHT.fg : TOKEN_HEX.fg}
+          stroke={mapBackgroundColor(lightMode)}
+          strokeWidth={1.5}
+          strokeLinejoin="round"
+          paintOrder="stroke"
+          fontFamily="JetBrains Mono, monospace"
+          fontWeight="800"
+          letterSpacing="0.02em"
         >
-          <rect
-            x={badgeLeft}
-            y={badgeTop}
-            width={TRACK_SECTOR_MARKER_BADGE_WIDTH}
-            height={TRACK_SECTOR_MARKER_BADGE_HEIGHT}
-            fill={mapBackgroundColor(lightMode)}
-            fillOpacity={0.65}
-            stroke={lightMode ? TOKEN_HEX_LIGHT.fg : TOKEN_HEX.fg}
-            strokeOpacity={0.32}
-            strokeWidth={0.6}
-          />
-          <rect
-            x={badgeLeft}
-            y={badgeTop}
-            width={TRACK_SECTOR_MARKER_ACCENT_WIDTH}
-            height={TRACK_SECTOR_MARKER_BADGE_HEIGHT}
-            fill={TOKEN_HEX.f1red}
-            opacity={0.72}
-          />
-          <text
-            x={badgeX + 0.8}
-            y={badgeY}
-            textAnchor="middle"
-            dominantBaseline="middle"
-            fontSize={4.7}
-            fill={lightMode ? TOKEN_HEX_LIGHT.fg : TOKEN_HEX.fg}
-            fontFamily="Inter, sans-serif"
-            fontWeight="800"
-            letterSpacing="0.02em"
-          >
-            {label}
-          </text>
-        </g>
+          {label}
+        </text>
       </g>
     );
   };

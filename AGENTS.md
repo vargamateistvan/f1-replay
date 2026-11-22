@@ -299,7 +299,7 @@ Nearby 2D kerb patches on the same track edge join along the outline, including 
 
 Track-map settings show their live preview only when expanded; it scrolls with the settings and fetches preview data only while open.
 
-The 2D map's S1/S2 timing-gate markers use `mapShowSectorMarkers` (default on), available in Track Map settings and 2D quick settings; start/finish and direction markers remain always visible.
+The 2D map's S1/S2 timing-gate markers use `mapShowSectorMarkers` (default on), available in Track Map settings and 2D quick settings. Solid lines across the track and upright, unboxed theme-aware labels mark the gates; start/finish and direction markers remain always visible.
 
 Quick settings mirror every Track Map setting shown for the current view (plus Follow focused car), grouped into Track, Cars, Weather (Weather & lighting in 3D), Overlays and Sound; 3D flag colours stay disabled while sector flags are off. Timing quick settings use Drivers & positions, Laps & gaps, Tyres & pits, and Telemetry; grouping preserves view-specific preferences and the combined Sectors toggle.
 

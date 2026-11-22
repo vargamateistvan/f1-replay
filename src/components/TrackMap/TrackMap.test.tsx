@@ -221,7 +221,7 @@ describe("TrackMap sector flag state rendering", () => {
       "S1",
       "S2",
     ]);
-    expect(sectorMarkers.every((marker) => marker.querySelector("rect"))).toBe(true);
+    expect(sectorMarkers.every((marker) => !marker.querySelector("rect"))).toBe(true);
 
     follow.sectorMarkers = false;
     rerender(
