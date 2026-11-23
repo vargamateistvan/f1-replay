@@ -40,14 +40,19 @@ const DAY = 24 * HOUR;
 const NOW = Date.UTC(2026, 3, 10, 12);
 const iso = (ms: number) => new Date(ms).toISOString();
 
-const meeting = (key: number, name: string, startMs: number): Meeting =>
+const meeting = (
+  key: number,
+  name: string,
+  startMs: number,
+  countryFlag = "",
+): Meeting =>
   ({
     meeting_key: key,
     meeting_name: name,
     meeting_official_name: name,
     circuit_short_name: name.split(" ")[0],
     location: "Somewhere",
-    country_flag: "",
+    country_flag: countryFlag,
     date_start: iso(startMs),
     date_end: iso(startMs + 2 * DAY),
     gmt_offset: "03:00:00",
@@ -73,10 +78,14 @@ function LocationSearch() {
   return <output aria-label="Current search">{search}</output>;
 }
 
-function setup(path = "/schedule?year=2026", extraSessions: Session[] = []) {
+function setup(
+  path = "/schedule?year=2026",
+  extraSessions: Session[] = [],
+  countryFlag = "",
+) {
   mockUseMeetings.mockReturnValue({
     data: [
-      meeting(2, "Japanese Grand Prix", NOW + 5 * DAY),
+      meeting(2, "Japanese Grand Prix", NOW + 5 * DAY, countryFlag),
       meeting(1, "Bahrain Grand Prix", NOW - 7 * DAY),
     ],
     isPending: false,
@@ -180,6 +189,58 @@ describe("Schedule page", () => {
     expect(screen.getByLabelText("Current search")).toHaveTextContent(
       "layout=calendar&round=2",
     );
+  });
+
+  it("shows a safe country flag on the calendar event tile", () => {
+    setup(
+      "/schedule?year=2026&layout=calendar",
+      [],
+      "https://flags.example/japan.svg",
+    );
+    const tile = screen.getByRole("button", {
+      name: /Round 2 Japanese Grand Prix/,
+    });
+    expect(tile.querySelector("img")).toHaveAttribute(
+      "src",
+      "https://flags.example/japan.svg",
+    );
+    expect(tile.querySelector("img")).toHaveAttribute("alt", "");
+    expect(tile.querySelector("img")).toHaveAttribute("referrerpolicy", "no-referrer");
+  });
+
+  it("adds a tooltip only when a calendar race weekend name is truncated", () => {
+    const clientWidth = vi
+      .spyOn(HTMLElement.prototype, "clientWidth", "get")
+      .mockImplementation(function (this: HTMLElement) {
+        return this.hasAttribute("data-calendar-name") &&
+          this.textContent?.includes("Japanese")
+          ? 40
+          : 100;
+      });
+    const scrollWidth = vi
+      .spyOn(HTMLElement.prototype, "scrollWidth", "get")
+      .mockImplementation(function (this: HTMLElement) {
+        return this.hasAttribute("data-calendar-name") &&
+          this.textContent?.includes("Japanese")
+          ? 100
+          : 100;
+      });
+    try {
+      setup("/schedule?year=2026&layout=calendar");
+      const truncated = screen.getByRole("button", {
+        name: /Round 2 Japanese Grand Prix/,
+      });
+      expect(within(truncated).getByRole("tooltip")).toHaveTextContent(
+        "Japanese Grand Prix",
+      );
+      const fitting = screen.getByRole("button", {
+        name: /Round 1 Bahrain Grand Prix/,
+      });
+      expect(within(fitting).queryByRole("tooltip")).toBeNull();
+    } finally {
+      clientWidth.mockRestore();
+      scrollWidth.mockRestore();
+    }
   });
 
   it("shows each selected round session with its own actions", () => {

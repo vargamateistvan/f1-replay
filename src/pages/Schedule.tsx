@@ -73,6 +73,8 @@ const TIME_MODE_LABEL: Record<TimeMode, string> = {
 };
 
 const CHIP = "px-1.5 py-0.5 text-tiny font-black uppercase tracking-widest";
+const CALENDAR_TOOLTIP_CLASS =
+  "pointer-events-none absolute bottom-full left-1/2 z-20 mb-2 w-max max-w-[180px] -translate-x-1/2 whitespace-normal break-words rounded-sm border border-panel bg-sunken px-2 py-1 text-center text-caption font-black uppercase tracking-wider text-fg shadow-[0_8px_20px_rgba(0,0,0,0.45)] light:shadow-[0_8px_20px_rgba(15,23,42,0.18)] opacity-0 transition-opacity group-hover:opacity-100 group-focus-visible:opacity-100";
 
 function LiveDot() {
   return (
@@ -524,6 +526,39 @@ function CalendarTrack({ round, year }: { round: ScheduleRound; year: number }) 
   );
 }
 
+function TruncatedName({ name }: { name: string }) {
+  const nameRef = useRef<HTMLSpanElement>(null);
+  const [isTruncated, setIsTruncated] = useState(false);
+
+  useEffect(() => {
+    const element = nameRef.current;
+    if (!element) return;
+
+    const updateOverflow = () => setIsTruncated(element.scrollWidth > element.clientWidth);
+    updateOverflow();
+    const observer = new ResizeObserver(updateOverflow);
+    observer.observe(element);
+    return () => observer.disconnect();
+  }, [name]);
+
+  return (
+    <>
+      <span
+        ref={nameRef}
+        data-calendar-name
+        className="truncate text-caption font-black uppercase tracking-wider"
+      >
+        {name}
+      </span>
+      {isTruncated && (
+        <span role="tooltip" className={CALENDAR_TOOLTIP_CLASS}>
+          {name}
+        </span>
+      )}
+    </>
+  );
+}
+
 function CalendarRound({
   round,
   year,
@@ -542,6 +577,7 @@ function CalendarRound({
     round.meeting.date_end,
     round.meeting.gmt_offset,
   );
+  const flagUrl = toSafeExternalUrl(round.meeting.country_flag);
   const next = round.isNext || round.status === "live";
   const number = round.round === null ? (round.isTesting ? "T" : "—") : `R ${round.round}`;
   return (
@@ -551,7 +587,7 @@ function CalendarRound({
       aria-pressed={selected}
       aria-label={`${roundKicker(round)} ${round.meeting.meeting_name}, ${date.month} ${date.days}`}
       onClick={onSelect}
-      className={`relative flex min-h-32 w-full flex-col gap-1 border p-2 text-left transition-colors ${
+      className={`group relative flex min-h-32 w-full flex-col gap-1 border p-2 text-left transition-colors ${
         selected
           ? "border-f1red bg-surface"
           : next
@@ -570,8 +606,17 @@ function CalendarRound({
         ) : null}
       </span>
       <CalendarTrack round={round} year={year} />
-      <span className="truncate text-caption font-black uppercase tracking-wider">
-        {round.meeting.meeting_name}
+      <span className="flex min-w-0 items-center gap-1">
+        {flagUrl && (
+          <img
+            src={flagUrl}
+            alt=""
+            className="h-3 w-5 shrink-0 border border-fg/20 object-cover"
+            loading="lazy"
+            referrerPolicy="no-referrer"
+          />
+        )}
+        <TruncatedName name={round.meeting.meeting_name} />
       </span>
       <span className="font-mono text-micro font-bold uppercase tracking-widest text-muted">
         {date.month} {date.days}
