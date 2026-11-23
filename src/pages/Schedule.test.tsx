@@ -270,6 +270,7 @@ describe("Schedule page", () => {
     const selected = screen.getByRole("region", { name: "Selected round" });
     const closeButton = within(selected).getByRole("button", { name: "Hide sessions" });
     expect(closeButton).toHaveAttribute("aria-expanded", "true");
+    expect(closeButton.querySelector("svg")).not.toHaveClass("rotate-180");
     expect(within(selected).getByRole("link", { name: "Replay Race" })).toBeInTheDocument();
     expect(
       within(selected).getByRole("button", { name: "Qualifying result" }),
@@ -278,6 +279,7 @@ describe("Schedule page", () => {
     fireEvent.click(closeButton);
     const openButton = within(selected).getByRole("button", { name: "Show sessions" });
     expect(openButton).toHaveAttribute("aria-expanded", "false");
+    expect(openButton.querySelector("svg")).toHaveClass("rotate-180");
     expect(within(selected).getByRole("link", { name: "Replay Race" })).toBeInTheDocument();
     expect(
       within(selected).getByRole("button", { name: "Race result" }),
@@ -290,9 +292,9 @@ describe("Schedule page", () => {
     ).toBeNull();
 
     fireEvent.click(openButton);
-    expect(
-      within(selected).getByRole("button", { name: "Hide sessions" }),
-    ).toHaveAttribute("aria-expanded", "true");
+    const reopenedButton = within(selected).getByRole("button", { name: "Hide sessions" });
+    expect(reopenedButton).toHaveAttribute("aria-expanded", "true");
+    expect(reopenedButton.querySelector("svg")).not.toHaveClass("rotate-180");
     expect(within(selected).getByRole("link", { name: "Replay Race" })).toBeInTheDocument();
     expect(
       within(selected).getByRole("button", { name: "Qualifying result" }),

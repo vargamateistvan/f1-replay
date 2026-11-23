@@ -682,7 +682,7 @@ function CalendarRoundDetails({
         >
           <ChevronDown
             aria-hidden="true"
-            className={`h-3 w-3 transition-transform ${sessionsOpen ? "rotate-180" : ""}`}
+            className={`h-3 w-3 transition-transform ${sessionsOpen ? "" : "rotate-180"}`}
           />
           {sessionsOpen ? "Hide sessions" : "Show sessions"}
         </button>
