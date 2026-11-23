@@ -244,7 +244,7 @@ function RadioRow({
   return (
     <CommentaryRow
       ms={ms}
-      badge={{ label: "Radio", className: "bg-blue text-black" }}
+      badge={{ label: "Radio", className: "bg-blue text-blue-on" }}
       accent={teamColor(driver?.team_colour)}
       upcoming={ms > sessionTimeMs}
       title={

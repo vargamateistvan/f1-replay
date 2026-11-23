@@ -118,7 +118,7 @@ export function WeatherPanel({
           </button>
         )}
         {isRaining && (
-          <span className="inline-flex items-center gap-1 bg-blue text-black text-tiny font-black uppercase tracking-widest px-1.5 py-0.5 rounded-sm">
+          <span className="inline-flex items-center gap-1 bg-blue text-blue-on text-tiny font-black uppercase tracking-widest px-1.5 py-0.5 rounded-sm">
             <CloudRain size={10} strokeWidth={2.4} aria-hidden="true" />
             Rain
           </span>

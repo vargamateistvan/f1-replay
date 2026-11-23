@@ -198,7 +198,7 @@ export function PitFeed({
                 <CommentaryRow
                   key={`${entry.driver_number}-${entry.lap_number}-${entry.date}-${idx}`}
                   ms={ms}
-                  badge={{ label: "Pit", className: "bg-orange text-black" }}
+                  badge={{ label: "Pit", className: "bg-orange text-orange-on" }}
                   accent={color}
                   upcoming={ms > sessionTimeMs}
                   title={
@@ -287,7 +287,7 @@ function PitBattleLine({
     battle.attackerAheadAfter === null
       ? "bg-fg/10 text-fg/80"
       : battle.attackerAheadAfter
-        ? "bg-teal text-black"
+        ? "bg-teal text-teal-on"
         : "bg-fg/20 text-fg";
   return (
     <span className={`${COMMENTARY_META_CLASS} mt-1.5`}>

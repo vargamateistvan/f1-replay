@@ -35,13 +35,14 @@ export const NEUTRAL_COLORS = {
   line: { dark: "63 63 75", light: "180 182 200" },
   /** Secondary text. */
   muted: { dark: "163 163 163", light: "106 106 120" },
-  /** Tertiary text: column headers, footnotes. */
-  faint: { dark: "99 99 105", light: "120 122 138" },
+  /** Tertiary text: column headers, footnotes; remains readable on track and surface. */
+  faint: { dark: "145 145 153", light: "100 100 114" },
 } satisfies Record<string, ThemeColor>;
 
 /**
- * Semantic hues. Each tone has four slots:
+ * Semantic hues. Each tone has five slots:
  * - `DEFAULT`: solid fills (sector bars, badges) and F1 timing text;
+ * - `on`: readable text on the solid `DEFAULT` fill;
  * - `fg`: readable text in that hue on the page or on its `tint`;
  * - `line`: border of a tinted chip;
  * - `tint`: background of a tinted chip or row highlight.
@@ -50,6 +51,7 @@ export const TONE_COLORS = {
   /** Session best (F1 purple). */
   purple: {
     DEFAULT: { dark: "155 89 245", light: "143 76 240" },
+    on: { dark: "0 0 0", light: "255 255 255" },
     fg: { dark: "220 195 255", light: "100 40 168" },
     line: { dark: "99 64 122", light: "148 98 188" },
     tint: { dark: "42 27 63", light: "234 226 245" },
@@ -57,6 +59,7 @@ export const TONE_COLORS = {
   /** Personal best, gains, valid, green flag. */
   green: {
     DEFAULT: { dark: "57 181 74", light: "46 158 69" },
+    on: { dark: "0 0 0", light: "0 0 0" },
     fg: { dark: "63 211 90", light: "20 120 60" },
     line: { dark: "39 109 51", light: "62 158 90" },
     tint: { dark: "17 36 25", light: "204 236 213" },
@@ -64,6 +67,7 @@ export const TONE_COLORS = {
   /** Yellow flag, slower lap, losses. */
   yellow: {
     DEFAULT: { dark: "245 212 0", light: "224 180 0" },
+    on: { dark: "0 0 0", light: "0 0 0" },
     fg: { dark: "245 212 0", light: "130 110 0" },
     line: { dark: "126 116 34", light: "160 148 40" },
     tint: { dark: "42 36 15", light: "248 242 204" },
@@ -71,6 +75,7 @@ export const TONE_COLORS = {
   /** Safety car, pit stops, warnings. */
   orange: {
     DEFAULT: { dark: "245 166 35", light: "230 140 20" },
+    on: { dark: "0 0 0", light: "0 0 0" },
     fg: { dark: "245 166 35", light: "160 100 10" },
     line: { dark: "135 93 24", light: "168 120 40" },
     tint: { dark: "45 31 14", light: "250 238 208" },
@@ -78,6 +83,7 @@ export const TONE_COLORS = {
   /** Errors, retirements, braking, deleted laps. */
   red: {
     DEFAULT: { dark: "255 82 82", light: "214 40 60" },
+    on: { dark: "0 0 0", light: "255 255 255" },
     fg: { dark: "255 138 138", light: "180 30 50" },
     line: { dark: "122 45 56", light: "190 80 100" },
     tint: { dark: "42 18 23", light: "250 215 220" },
@@ -85,6 +91,7 @@ export const TONE_COLORS = {
   /** Information, references, rain, team radio. */
   blue: {
     DEFAULT: { dark: "77 166 255", light: "40 120 210" },
+    on: { dark: "0 0 0", light: "0 0 0" },
     fg: { dark: "155 201 255", light: "30 100 190" },
     line: { dark: "56 91 138", light: "100 144 204" },
     tint: { dark: "23 36 55", light: "207 224 246" },
@@ -92,11 +99,12 @@ export const TONE_COLORS = {
   /** Pit lane (toasts, pit feed). */
   teal: {
     DEFAULT: { dark: "20 184 166", light: "13 148 136" },
+    on: { dark: "0 0 0", light: "0 0 0" },
     fg: { dark: "94 234 212", light: "15 118 110" },
     line: { dark: "17 94 89", light: "94 180 170" },
     tint: { dark: "15 38 38", light: "208 240 236" },
   },
-} satisfies Record<string, Record<"DEFAULT" | "fg" | "line" | "tint", ThemeColor>>;
+} satisfies Record<string, Record<"DEFAULT" | "on" | "fg" | "line" | "tint", ThemeColor>>;
 
 /** Brand red. The fill is identical in both modes; `fg` is its text tint. */
 export const BRAND_COLORS = {
@@ -175,6 +183,7 @@ const toHex = (channels: string): string =>
 export const TOKEN_HEX = {
   fg: toHex(NEUTRAL_COLORS.fg.dark),
   track: toHex(NEUTRAL_COLORS.track.dark),
+  line: toHex(NEUTRAL_COLORS.line.dark),
   white: toHex("255 255 255"),
   purple: toHex(TONE_COLORS.purple.DEFAULT.dark),
   green: toHex(TONE_COLORS.green.DEFAULT.dark),

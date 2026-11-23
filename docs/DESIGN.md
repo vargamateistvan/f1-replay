@@ -43,10 +43,11 @@ Every token has a dark and a light value; components never branch on the theme.
 | `panel` | `#2a2a35` | Inputs, chips, selected rows, default border |
 | `line` | `#3f3f4b` | Strong borders, separators, inactive bars |
 | `muted` | `#a3a3a3` | Secondary text |
-| `faint` | `#636369` | Column headers, footnotes |
+| `faint` | `#919199` | Column headers, footnotes (readable on track, surface and controls) |
 
-Tones carry meaning and come in four slots — `DEFAULT` (fills, timing text), `-fg` (text), `-line`
-(chip border), `-tint` (chip / row background):
+Tones carry meaning and come in five slots — `DEFAULT` (fills, timing text), `-on` (text on a solid
+fill, contrast-safe in both themes), `-fg` (text on the page or a tint), `-line` (chip border),
+`-tint` (chip / row background):
 
 | Tone | Meaning |
 |---|---|
@@ -58,8 +59,9 @@ Tones carry meaning and come in four slots — `DEFAULT` (fills, timing text), `
 | `blue` | Info, references, rain, team radio, pit-lane minisector |
 | `teal` | Pit-lane events (undercut) |
 
-A tinted status chip is `border border-orange-line bg-orange-tint text-orange-fg`. `text-white` /
-`text-black` are only for text on a solid fill (`bg-f1red text-white`, `bg-yellow text-black`).
+A tinted status chip is `border border-orange-line bg-orange-tint text-orange-fg`; a solid semantic
+badge is `bg-orange text-orange-on`. Use `text-white` / `text-black` only with fixed-colour fills
+such as `bg-f1red text-white`.
 Canvas, chart and Mapbox colours use `TOKEN_HEX` or the maps in `constants.ts` (`COMPOUND_COLORS`,
 `FLAG_COLORS`). Team colours are applied inline via `teamColor()` — not in the theme.
 
@@ -226,11 +228,11 @@ Remove `rounded` or use `rounded-none`.
 
 | Badge | Style |
 |---|---|
-| PIT | `bg-orange text-black text-tiny font-black uppercase tracking-widest px-1.5 py-0.5` |
+| PIT | `bg-orange text-orange-on text-tiny font-black uppercase tracking-widest px-1.5 py-0.5` |
 | LIVE | `bg-f1red text-white text-caption font-black uppercase tracking-widest px-1.5 py-0.5` + pulsing dot |
-| SC | `bg-orange text-black …` |
+| SC | `bg-orange text-orange-on …` |
 | RED FLAG | `bg-f1red text-white …` |
-| Session best | `bg-purple text-white …` |
+| Session best | `bg-purple text-purple-on …` |
 | Status (tinted) | `border border-<tone>-line bg-<tone>-tint text-<tone>-fg …` |
 
 No `rounded` on badges; sharp rectangle chips.
@@ -321,8 +323,8 @@ F1.com uses tight, consistent 4px-based spacing. Recommended Tailwind tokens:
 
 ### 5.3 Borders & Shadows
 
-- Use borders (`border-panel`) not shadows for panel separation
-- No `shadow-*` classes anywhere — flat design
+- Use borders (`border-panel`) for panel separation; reserve shadows for overlays, dialogs and
+  popovers where elevation helps distinguish them from surrounding content.
 - Track map: `border border-panel` only
 
 ---

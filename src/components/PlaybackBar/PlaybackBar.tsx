@@ -713,7 +713,7 @@ export function PlaybackBar({
                     ms,
                     label: `${phase} start`,
                     ariaLabel: `Jump to ${phase} start at ${fmtTime(ms)}`,
-                    swatchClassName: "bg-green text-black",
+                    swatchClassName: "bg-green text-green-on",
                     badgeText: phase,
                     targetMs: ms,
                   }),

@@ -302,9 +302,9 @@ function pedalPhase(throttle: number, brake: number): PedalPhase {
 
 // Same solid-fill badge vocabulary as the DRS / status badges in the tower.
 const PEDAL_PHASE_BADGE: Record<PedalPhase, string> = {
-  brake: "bg-red text-white",
-  full: "bg-green text-black",
-  lift: "bg-orange text-black",
+  brake: "bg-red text-red-on",
+  full: "bg-green text-green-on",
+  lift: "bg-orange text-orange-on",
   partial: "bg-panel text-muted",
 };
 
@@ -426,7 +426,7 @@ function GearChip({ gear, sizeClass }: { gear: number; sizeClass: string }) {
 
 function drsBadgeClass(open: boolean): string {
   return open
-    ? "bg-green text-black shadow-[0_0_6px_rgba(57,215,67,0.6)]"
+    ? "bg-green text-green-on shadow-[0_0_6px_rgb(var(--color-green)/0.6)]"
     : "border border-panel text-muted";
 }
 
@@ -1840,7 +1840,7 @@ export function LiveTiming({
                           : `${label} not set yet`
                       }
                     >
-                      <span className="bg-purple px-1.5 py-0.5 text-tiny font-black uppercase tracking-widest text-white">
+                      <span className="bg-purple px-1.5 py-0.5 text-tiny font-black uppercase tracking-widest text-purple-on">
                         {label}
                       </span>
                       {best ? (
@@ -1867,7 +1867,7 @@ export function LiveTiming({
             </>
           ) : (
             <div className="flex items-center gap-2 rounded-sm border border-panel bg-track px-2 py-2">
-              <span className="bg-purple px-1.5 py-0.5 text-tiny font-black uppercase tracking-widest text-white shrink-0">
+              <span className="bg-purple px-1.5 py-0.5 text-tiny font-black uppercase tracking-widest text-purple-on shrink-0">
                 Sectors
               </span>
               <div className="min-w-0">
@@ -2217,7 +2217,7 @@ export function LiveTiming({
               } else if (retired) {
                 statusContent = (
                   <span
-                    className={`hidden min-[390px]:inline-flex bg-red-tint text-red font-black uppercase tracking-widest ${statusBadgeClass}`}
+                    className={`hidden min-[390px]:inline-flex bg-red-tint text-red-fg font-black uppercase tracking-widest ${statusBadgeClass}`}
                   >
                     RET
                   </span>
@@ -2246,7 +2246,7 @@ export function LiveTiming({
               } else if (inPit) {
                 statusContent = (
                   <span
-                    className={`bg-orange text-black font-black uppercase tracking-widest ${statusBadgeClass}`}
+                    className={`bg-orange text-orange-on font-black uppercase tracking-widest ${statusBadgeClass}`}
                   >
                     PIT
                   </span>
@@ -2406,7 +2406,7 @@ export function LiveTiming({
                               label="!"
                               tooltip={investigationTitle}
                               ariaLabel="Under investigation"
-                              badgeClassName={`bg-orange text-black font-black uppercase tracking-widest cursor-help ${statusBadgeClass}`}
+                              badgeClassName={`bg-orange text-orange-on font-black uppercase tracking-widest cursor-help ${statusBadgeClass}`}
                               tooltipAccentClassName="bg-orange"
                             />
                           )}
@@ -2415,7 +2415,7 @@ export function LiveTiming({
                               label="!"
                               tooltip={penaltyTitle}
                               ariaLabel="Penalty issued"
-                              badgeClassName={`bg-red text-white font-black uppercase tracking-widest cursor-help ${statusBadgeClass}`}
+                              badgeClassName={`bg-red text-red-on font-black uppercase tracking-widest cursor-help ${statusBadgeClass}`}
                               tooltipAccentClassName="bg-red"
                             />
                           )}

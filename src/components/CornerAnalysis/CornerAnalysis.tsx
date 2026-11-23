@@ -329,7 +329,7 @@ function CornerAnalysisImpl({
                             y={isGain ? STRIP_H / 2 - h : STRIP_H / 2}
                             width={Math.max(0.5, w - inset * 2)}
                             height={h}
-                            fill={isGain ? TOKEN_HEX.greenFg : "#ff5c70"}
+                            fill={isGain ? TOKEN_HEX.greenFg : TOKEN_HEX.redFg}
                             opacity={0.85}
                           />
                         )}
@@ -341,7 +341,7 @@ function CornerAnalysisImpl({
                     x2={STRIP_W}
                     y1={STRIP_H / 2}
                     y2={STRIP_H / 2}
-                    stroke="#4a4a5d"
+                    stroke={TOKEN_HEX.line}
                     strokeWidth={1}
                     vectorEffect="non-scaling-stroke"
                   />

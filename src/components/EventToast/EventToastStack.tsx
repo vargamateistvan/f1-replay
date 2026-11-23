@@ -57,13 +57,13 @@ function playToastCue(kind: ActiveToast["event"]["kind"]) {
 
 /** Toast header per flag: fill + text classes. */
 const FLAG_HEADERS: Record<string, { className: string; label: string }> = {
-  YELLOW: { className: "bg-yellow text-black", label: "YELLOW" },
-  DOUBLE_YELLOW: { className: "bg-yellow text-black", label: "DBL YELLOW" },
+  YELLOW: { className: "bg-yellow text-yellow-on", label: "YELLOW" },
+  DOUBLE_YELLOW: { className: "bg-yellow text-yellow-on", label: "DBL YELLOW" },
   RED: { className: "bg-f1red text-white", label: "RED FLAG" },
-  SAFETY_CAR: { className: "bg-orange text-black", label: "SAFETY CAR" },
-  VIRTUAL_SC: { className: "bg-orange text-black", label: "VIRTUAL SC" },
+  SAFETY_CAR: { className: "bg-orange text-orange-on", label: "SAFETY CAR" },
+  VIRTUAL_SC: { className: "bg-orange text-orange-on", label: "VIRTUAL SC" },
   CHEQUERED: { className: "bg-white text-black", label: "CHEQUERED" },
-  BLUE: { className: "bg-blue text-black", label: "BLUE FLAG" },
+  BLUE: { className: "bg-blue text-blue-on", label: "BLUE FLAG" },
 };
 
 export function EventToastStack({
@@ -642,13 +642,13 @@ function FastestLapToast({
   return (
     <div className="pointer-events-auto rounded-sm shadow-xl overflow-hidden w-full border border-purple bg-purple-tint/70 backdrop-blur-sm">
       <div className="flex items-center gap-2 bg-purple px-2.5 py-1 md:px-3 md:py-1">
-        <span className="text-caption font-black uppercase tracking-widest text-white">
+        <span className="text-caption font-black uppercase tracking-widest text-purple-on">
           Fastest Lap
         </span>
-        <span className="text-tiny font-mono text-white/80">L{p.lapNumber}</span>
+        <span className="text-tiny font-mono text-purple-on">L{p.lapNumber}</span>
         <button
           onClick={() => onDismiss(at.event.id)}
-          className="ml-auto flex items-center justify-center w-5 h-5 text-xs text-white/70 hover:text-white transition-colors"
+          className="ml-auto flex items-center justify-center w-5 h-5 text-xs text-purple-on hover:bg-black/10"
           style={{ touchAction: "manipulation" }}
           aria-label="Dismiss"
         >

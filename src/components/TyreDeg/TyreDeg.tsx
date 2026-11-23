@@ -36,7 +36,7 @@ const DRIVER_DASHES = ["", "6 3", "2 3", "10 3 2 3"];
 /** Degradation that fills the table's bar (s/lap). */
 const DEG_BAR_FULL = 0.15;
 
-const DEG_COLORS = { gentle: "#22c55e", moderate: TOKEN_HEX.orange, heavy: TOKEN_HEX.f1red };
+const DEG_COLORS = { gentle: TOKEN_HEX.green, moderate: TOKEN_HEX.orange, heavy: TOKEN_HEX.f1red };
 
 interface Props {
   readonly drivers: Driver[];

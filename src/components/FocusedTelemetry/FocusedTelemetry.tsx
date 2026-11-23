@@ -280,7 +280,7 @@ const SHIFT_LIGHT_CLASS: Record<ShiftLightTone, string> = {
 };
 
 const DRS_CLASS: Record<DrsState, string> = {
-  open: "bg-green text-black shadow-[0_0_8px_rgba(57,215,67,0.6)]",
+  open: "bg-green text-green-on shadow-[0_0_8px_rgb(var(--color-green)/0.6)]",
   eligible: "border border-green-line bg-green-tint text-green-fg",
   off: "border border-panel text-faint",
 };

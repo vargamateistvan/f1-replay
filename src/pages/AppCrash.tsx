@@ -18,7 +18,7 @@ export default function AppCrash({
 
       <div className="relative z-10 flex w-full max-w-xl flex-col border border-panel bg-surface">
         {/* Same strip as the in-session Safety Car flag banner. */}
-        <div className="flex h-7 items-center justify-center bg-orange px-4 text-black">
+        <div className="flex h-7 items-center justify-center bg-orange px-4 text-orange-on">
           <span className="text-xs font-black uppercase tracking-spaced">
             Application Error
           </span>
