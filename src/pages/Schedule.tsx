@@ -1,8 +1,18 @@
-import { Suspense, lazy, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import {
+  Suspense,
+  lazy,
+  useCallback,
+  useEffect,
+  useId,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import {
   ArrowDown,
   CalendarDays,
+  ChevronDown,
   Clapperboard,
   Earth,
   LayoutGrid,
@@ -641,27 +651,65 @@ function CalendarRoundDetails({
   onShowHighlights: (session: Session) => void;
 }) {
   const { meeting } = round;
+  const [sessionsOpen, setSessionsOpen] = useState(true);
+  const sessionsId = useId();
+  const mainEventSessions = round.sessions.filter(({ session }) => isMainEvent(session));
   return (
     <section
       aria-label="Selected round"
       className="flex shrink-0 flex-col items-start gap-2 border-t border-panel bg-surface px-3 py-2.5 sm:px-4"
     >
-      <div className="w-full min-w-0">
-        <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
-          <h2 className="text-sm font-black uppercase tracking-wider text-fg sm:truncate">
-            {roundKicker(round)} {meeting.meeting_name}
-          </h2>
-          <span className="font-mono text-tiny font-bold uppercase tracking-wider text-muted">
-            {fmt.range(meeting.date_start, meeting.date_end, meeting.gmt_offset)}
-          </span>
+      <div className="flex w-full min-w-0 items-start justify-between gap-2">
+        <div className="min-w-0">
+          <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
+            <h2 className="text-sm font-black uppercase tracking-wider text-fg sm:truncate">
+              {roundKicker(round)} {meeting.meeting_name}
+            </h2>
+            <span className="font-mono text-tiny font-bold uppercase tracking-wider text-muted">
+              {fmt.range(meeting.date_start, meeting.date_end, meeting.gmt_offset)}
+            </span>
+          </div>
+          <p className="mt-0.5 truncate text-small text-muted">
+            {meeting.circuit_short_name} · {meeting.location}
+          </p>
         </div>
-        <p className="mt-0.5 truncate text-small text-muted">
-          {meeting.circuit_short_name} · {meeting.location}
-        </p>
+        <button
+          type="button"
+          aria-controls={sessionsId}
+          aria-expanded={sessionsOpen}
+          onClick={() => setSessionsOpen((open) => !open)}
+          className={buttonClass("quiet", "sm", "h-8 shrink-0")}
+        >
+          <ChevronDown
+            aria-hidden="true"
+            className={`h-3 w-3 transition-transform ${sessionsOpen ? "rotate-180" : ""}`}
+          />
+          {sessionsOpen ? "Hide sessions" : "Show sessions"}
+        </button>
       </div>
-      {round.sessions.length > 0 ? (
+      {!sessionsOpen && (
         <div className="w-full divide-y divide-panel/60">
-          {round.sessions.map((item) => (
+          {mainEventSessions.length > 0 ? (
+            mainEventSessions.map((item) => (
+              <SessionRow
+                key={item.session.session_key}
+                item={item}
+                year={year}
+                timeFormats={timeFormats}
+                onShowResult={onShowResult}
+                onShowHighlights={onShowHighlights}
+              />
+            ))
+          ) : (
+            <p className="text-small uppercase tracking-wider text-muted">
+              No race results available
+            </p>
+          )}
+        </div>
+      )}
+      <div id={sessionsId} hidden={!sessionsOpen} className="w-full divide-y divide-panel/60">
+        {round.sessions.length > 0 ? (
+          round.sessions.map((item) => (
             <SessionRow
               key={item.session.session_key}
               item={item}
@@ -670,13 +718,13 @@ function CalendarRoundDetails({
               onShowResult={onShowResult}
               onShowHighlights={onShowHighlights}
             />
-          ))}
-        </div>
-      ) : (
-        <p className="text-small uppercase tracking-wider text-muted">
-          {round.status === "cancelled" ? "Event cancelled" : "Session times TBC"}
-        </p>
-      )}
+          ))
+        ) : (
+          <p className="text-small uppercase tracking-wider text-muted">
+            {round.status === "cancelled" ? "Event cancelled" : "Session times TBC"}
+          </p>
+        )}
+      </div>
     </section>
   );
 }
@@ -733,6 +781,7 @@ function CalendarView({
       </div>
       {selectedRound && (
         <CalendarRoundDetails
+          key={selectedRound.meeting.meeting_key}
           round={selectedRound}
           year={year}
           fmt={fmt}

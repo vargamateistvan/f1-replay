@@ -262,6 +262,43 @@ describe("Schedule page", () => {
     ).toBeInTheDocument();
   });
 
+  it("allows selected round sessions to be hidden and shown again", () => {
+    setup("/schedule?year=2026&layout=calendar", [
+      session(11, 1, "Qualifying", NOW - 6 * DAY),
+      session(12, 1, "Practice 2", NOW - 7 * DAY),
+    ]);
+    const selected = screen.getByRole("region", { name: "Selected round" });
+    const closeButton = within(selected).getByRole("button", { name: "Hide sessions" });
+    expect(closeButton).toHaveAttribute("aria-expanded", "true");
+    expect(within(selected).getByRole("link", { name: "Replay Race" })).toBeInTheDocument();
+    expect(
+      within(selected).getByRole("button", { name: "Qualifying result" }),
+    ).toBeInTheDocument();
+
+    fireEvent.click(closeButton);
+    const openButton = within(selected).getByRole("button", { name: "Show sessions" });
+    expect(openButton).toHaveAttribute("aria-expanded", "false");
+    expect(within(selected).getByRole("link", { name: "Replay Race" })).toBeInTheDocument();
+    expect(
+      within(selected).getByRole("button", { name: "Race result" }),
+    ).toBeInTheDocument();
+    expect(
+      within(selected).queryByRole("button", { name: "Qualifying result" }),
+    ).toBeNull();
+    expect(
+      within(selected).queryByRole("button", { name: "Practice 2 result" }),
+    ).toBeNull();
+
+    fireEvent.click(openButton);
+    expect(
+      within(selected).getByRole("button", { name: "Hide sessions" }),
+    ).toHaveAttribute("aria-expanded", "true");
+    expect(within(selected).getByRole("link", { name: "Replay Race" })).toBeInTheDocument();
+    expect(
+      within(selected).getByRole("button", { name: "Qualifying result" }),
+    ).toBeInTheDocument();
+  });
+
   it("shows each round's dates as a day range and month", () => {
     const { container } = setup();
     const card = container.querySelector('[data-meeting-key="2"]') as HTMLElement;
