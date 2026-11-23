@@ -11,7 +11,11 @@ vi.mock("recharts", () => {
     ScatterChart: Box,
     Scatter: ({ data }: { data: unknown[] }) => <div data-testid="scatter">{data.length}</div>,
     XAxis: Box,
-    YAxis: Box,
+    YAxis: ({ tickFormatter }: { tickFormatter?: (value: number) => string }) => (
+      <div data-testid="y-axis">
+        {[59.999, 90.123].map((value) => tickFormatter?.(value)).join("|")}
+      </div>
+    ),
     CartesianGrid: Box,
     Tooltip: Box,
     ReferenceLine: Box,
@@ -92,6 +96,11 @@ describe("TyreDeg", () => {
     // Median of +0.100 and +0.050; LEC has the gentler stint.
     expect(screen.getByText("+0.075")).toBeTruthy();
     expect(screen.getByText("Best", { exact: false }).textContent).toContain("LEC");
+  });
+
+  it("formats lap-time axis ticks as minutes, seconds, and milliseconds", () => {
+    renderDeg(60 * 60_000);
+    expect(screen.getByTestId("y-axis").textContent).toBe("59.999|1:30.123");
   });
 
   it("orders rows by race position when known", () => {

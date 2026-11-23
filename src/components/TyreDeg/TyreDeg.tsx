@@ -244,8 +244,8 @@ export function TyreDeg({
               dataKey="lapS"
               name="Lap time"
               domain={["auto", "auto"]}
-              width={40}
-              tickFormatter={(v: number) => v.toFixed(1)}
+              width={56}
+              tickFormatter={formatLapTime}
               tick={{ fill: TOKEN_HEX.faint, fontSize: 10 }}
               axisLine={false}
               tickLine={false}
