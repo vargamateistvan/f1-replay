@@ -584,28 +584,24 @@ function CalendarRoundDetails({
   round,
   year,
   fmt,
+  timeFormats,
   onShowResult,
   onShowHighlights,
 }: {
   round: ScheduleRound;
   year: number;
   fmt: TimeFormatter;
+  timeFormats: SessionTimeFormat[];
   onShowResult: (session: Session) => void;
   onShowHighlights: (session: Session) => void;
 }) {
   const { meeting } = round;
-  const mainSession =
-    round.sessions.find(({ session }) => isMainEvent(session))?.session ??
-    round.sessions[0]?.session;
-  const mainStatus = round.sessions.find(({ session }) => session === mainSession)?.status;
-  const canReplay = mainSession && (mainStatus === "completed" || mainStatus === "live");
-  const highlight = mainSession && getSessionHighlight(mainSession.session_key);
   return (
     <section
       aria-label="Selected round"
-      className="flex shrink-0 flex-col items-start gap-2 border-t border-panel bg-surface px-3 py-2.5 sm:flex-row sm:items-center sm:justify-between sm:px-4"
+      className="flex shrink-0 flex-col items-start gap-2 border-t border-panel bg-surface px-3 py-2.5 sm:px-4"
     >
-      <div className="min-w-0 flex-1">
+      <div className="w-full min-w-0">
         <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
           <h2 className="text-sm font-black uppercase tracking-wider text-fg sm:truncate">
             {roundKicker(round)} {meeting.meeting_name}
@@ -618,43 +614,24 @@ function CalendarRoundDetails({
           {meeting.circuit_short_name} · {meeting.location}
         </p>
       </div>
-      <div className="flex flex-wrap items-center gap-1.5">
-        {canReplay && mainSession && (
-          <Link
-            to={replayPath({
-              year,
-              meetingKey: mainSession.meeting_key,
-              sessionKey: mainSession.session_key,
-            })}
-            className={buttonClass("primary", "sm")}
-          >
-            <Play aria-hidden="true" className="h-3 w-3" />
-            Replay
-          </Link>
-        )}
-        {mainSession && mainStatus === "completed" && (
-          <button
-            type="button"
-            onClick={() => onShowResult(mainSession)}
-            aria-label={`${mainSession.session_name} result`}
-            className={buttonClass("quiet", "sm")}
-          >
-            <ListOrdered aria-hidden="true" className="h-3 w-3" />
-            Result
-          </button>
-        )}
-        {mainSession && highlight && (
-          <button
-            type="button"
-            onClick={() => onShowHighlights(mainSession)}
-            aria-label={`${mainSession.session_name} highlights`}
-            className={buttonClass("quiet", "sm")}
-          >
-            <Clapperboard aria-hidden="true" className="h-3 w-3" />
-            Highlights
-          </button>
-        )}
-      </div>
+      {round.sessions.length > 0 ? (
+        <div className="w-full divide-y divide-panel/60">
+          {round.sessions.map((item) => (
+            <SessionRow
+              key={item.session.session_key}
+              item={item}
+              year={year}
+              timeFormats={timeFormats}
+              onShowResult={onShowResult}
+              onShowHighlights={onShowHighlights}
+            />
+          ))}
+        </div>
+      ) : (
+        <p className="text-small uppercase tracking-wider text-muted">
+          {round.status === "cancelled" ? "Event cancelled" : "Session times TBC"}
+        </p>
+      )}
     </section>
   );
 }
@@ -664,6 +641,7 @@ function CalendarView({
   selectedRound,
   year,
   fmt,
+  timeFormats,
   onSelect,
   onShowResult,
   onShowHighlights,
@@ -672,6 +650,7 @@ function CalendarView({
   selectedRound: ScheduleRound | null;
   year: number;
   fmt: TimeFormatter;
+  timeFormats: SessionTimeFormat[];
   onSelect: (meetingKey: number) => void;
   onShowResult: (session: Session) => void;
   onShowHighlights: (session: Session) => void;
@@ -712,6 +691,7 @@ function CalendarView({
           round={selectedRound}
           year={year}
           fmt={fmt}
+          timeFormats={timeFormats}
           onShowResult={onShowResult}
           onShowHighlights={onShowHighlights}
         />
@@ -1123,6 +1103,7 @@ export default function Schedule() {
               selectedRound={calendarSelectedRound}
               year={year}
               fmt={fmt}
+              timeFormats={timeFormats}
               onSelect={setMeetingParam}
               onShowResult={showResult}
               onShowHighlights={showHighlights}

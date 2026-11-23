@@ -73,7 +73,7 @@ function LocationSearch() {
   return <output aria-label="Current search">{search}</output>;
 }
 
-function setup(path = "/schedule?year=2026") {
+function setup(path = "/schedule?year=2026", extraSessions: Session[] = []) {
   mockUseMeetings.mockReturnValue({
     data: [
       meeting(2, "Japanese Grand Prix", NOW + 5 * DAY),
@@ -86,6 +86,7 @@ function setup(path = "/schedule?year=2026") {
     data: [
       session(10, 1, "Race", NOW - 5 * DAY),
       session(20, 2, "Practice 1", NOW + 5 * DAY),
+      ...extraSessions,
     ],
     isPending: false,
   });
@@ -179,6 +180,25 @@ describe("Schedule page", () => {
     expect(screen.getByLabelText("Current search")).toHaveTextContent(
       "layout=calendar&round=2",
     );
+  });
+
+  it("shows each selected round session with its own actions", () => {
+    setup("/schedule?year=2026&layout=calendar", [
+      session(11, 1, "Qualifying", NOW - 6 * DAY),
+      session(12, 1, "Practice 2", NOW - 7 * DAY),
+    ]);
+    const selected = screen.getByRole("region", { name: "Selected round" });
+
+    expect(within(selected).getByText("Race")).toBeInTheDocument();
+    expect(within(selected).getByText("Qualifying")).toBeInTheDocument();
+    expect(within(selected).getByText("Practice 2")).toBeInTheDocument();
+    expect(within(selected).getAllByRole("link", { name: /Replay/ })).toHaveLength(3);
+    expect(
+      within(selected).getByRole("button", { name: "Qualifying result" }),
+    ).toBeInTheDocument();
+    expect(
+      within(selected).getByRole("button", { name: "Practice 2 result" }),
+    ).toBeInTheDocument();
   });
 
   it("shows each round's dates as a day range and month", () => {
