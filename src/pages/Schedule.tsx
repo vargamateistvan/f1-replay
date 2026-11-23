@@ -2,6 +2,7 @@ import { Suspense, lazy, useCallback, useEffect, useMemo, useRef, useState } fro
 import { Link, useSearchParams } from "react-router-dom";
 import {
   ArrowDown,
+  CalendarDays,
   Clapperboard,
   Earth,
   LayoutGrid,
@@ -36,16 +37,25 @@ import { replaceHistorySearchParams, replayPath, toSafeExternalUrl } from "@/uti
 import { getSessionHighlight } from "@/data/sessionHighlights";
 import { trackEvent } from "@/lib/analytics";
 import { useSettings } from "@/stores/settings";
+import { useCircuitGeometry } from "@/hooks/useCircuitGeometry";
+import {
+  SCHEDULE_OUTLINE_ARROW_FRACTION,
+  SCHEDULE_OUTLINE_H,
+  SCHEDULE_OUTLINE_PAD,
+  SCHEDULE_OUTLINE_W,
+} from "@/constants";
+import { circuitThumbnail } from "@/utils/circuitInfo";
 
 // The world map (land outline, circuit positions) is its own chunk.
 const ScheduleMap = lazy(() =>
   import("@/components/ScheduleMap").then((m) => ({ default: m.ScheduleMap })),
 );
 
-type ViewMode = "cards" | "map";
+type ViewMode = "cards" | "map" | "calendar";
 const VIEW_MODES: { mode: ViewMode; label: string; Icon: typeof LayoutGrid }[] = [
   { mode: "cards", label: "Cards", Icon: LayoutGrid },
   { mode: "map", label: "Map", Icon: Earth },
+  { mode: "calendar", label: "Calendar", Icon: CalendarDays },
 ];
 const MAP_PLACEHOLDER = (
   <div
@@ -434,6 +444,282 @@ function RoundCard({
   );
 }
 
+interface CalendarMonth {
+  key: number;
+  label: string;
+  rounds: ScheduleRound[];
+}
+
+function buildCalendarMonths(rounds: ScheduleRound[]): CalendarMonth[] {
+  if (rounds.length === 0) return [];
+  const monthIndex = (round: ScheduleRound) => {
+    const date = new Date(round.meeting.date_start);
+    return date.getUTCFullYear() * 12 + date.getUTCMonth();
+  };
+  const firstMonth = Math.min(...rounds.map(monthIndex));
+  const lastMonth = Math.max(...rounds.map(monthIndex));
+  const byMonth = new Map<number, ScheduleRound[]>();
+  for (const round of rounds) {
+    const key = monthIndex(round);
+    const monthRounds = byMonth.get(key) ?? [];
+    monthRounds.push(round);
+    byMonth.set(key, monthRounds);
+  }
+  return Array.from({ length: lastMonth - firstMonth + 1 }, (_, offset) => {
+    const key = firstMonth + offset;
+    const date = new Date(Date.UTC(Math.floor(key / 12), key % 12, 1));
+    return {
+      key,
+      label: new Intl.DateTimeFormat(undefined, {
+        month: "long",
+        timeZone: "UTC",
+      })
+        .format(date)
+        .toUpperCase(),
+      rounds: byMonth.get(key) ?? [],
+    };
+  });
+}
+
+function CalendarTrack({ round, year }: { round: ScheduleRound; year: number }) {
+  const { data: geometry } = useCircuitGeometry(round.meeting.circuit_key, year);
+  const thumbnail = useMemo(
+    () =>
+      geometry
+        ? circuitThumbnail(
+            geometry,
+            SCHEDULE_OUTLINE_W,
+            SCHEDULE_OUTLINE_H,
+            SCHEDULE_OUTLINE_PAD,
+            SCHEDULE_OUTLINE_ARROW_FRACTION,
+          )
+        : null,
+    [geometry],
+  );
+  return (
+    <div aria-hidden="true" className="flex h-12 items-center justify-center text-fg/70">
+      {thumbnail ? (
+        <svg
+          viewBox={`0 0 ${SCHEDULE_OUTLINE_W} ${SCHEDULE_OUTLINE_H}`}
+          className="h-full w-full"
+        >
+          <path
+            d={thumbnail.path}
+            fill="none"
+            stroke="currentColor"
+            strokeWidth={2}
+            strokeLinejoin="round"
+          />
+          <line
+            {...thumbnail.startLine}
+            stroke="currentColor"
+            strokeWidth={2}
+            strokeLinecap="round"
+          />
+        </svg>
+      ) : (
+        <span className="h-8 w-full rounded-sm bg-panel/30" />
+      )}
+    </div>
+  );
+}
+
+function CalendarRound({
+  round,
+  year,
+  fmt,
+  selected,
+  onSelect,
+}: {
+  round: ScheduleRound;
+  year: number;
+  fmt: TimeFormatter;
+  selected: boolean;
+  onSelect: () => void;
+}) {
+  const date = fmt.block(
+    round.meeting.date_start,
+    round.meeting.date_end,
+    round.meeting.gmt_offset,
+  );
+  const next = round.isNext || round.status === "live";
+  const number = round.round === null ? (round.isTesting ? "T" : "—") : `R ${round.round}`;
+  return (
+    <button
+      type="button"
+      data-calendar-round={round.meeting.meeting_key}
+      aria-pressed={selected}
+      aria-label={`${roundKicker(round)} ${round.meeting.meeting_name}, ${date.month} ${date.days}`}
+      onClick={onSelect}
+      className={`relative flex min-h-32 w-full flex-col gap-1 border p-2 text-left transition-colors ${
+        selected
+          ? "border-f1red bg-surface"
+          : next
+            ? "border-f1red/70 bg-surface/70 hover:bg-surface"
+            : "border-panel/60 bg-track/40 hover:border-fg/40 hover:bg-surface/70"
+      } ${round.status === "completed" || round.status === "cancelled" ? "text-muted" : "text-fg"}`}
+    >
+      <span className="flex items-center justify-between gap-1">
+        <span className="font-mono text-compact font-bold tabular-nums">{number}</span>
+        {round.status === "cancelled" ? (
+          <span className={`${CHIP} bg-panel text-muted`}>Cancelled</span>
+        ) : round.status === "live" ? (
+          <span className={`${CHIP} bg-f1red text-white`}>Live</span>
+        ) : round.isNext ? (
+          <span className={`${CHIP} bg-panel text-fg`}>Next</span>
+        ) : null}
+      </span>
+      <CalendarTrack round={round} year={year} />
+      <span className="truncate text-caption font-black uppercase tracking-wider">
+        {round.meeting.meeting_name}
+      </span>
+      <span className="font-mono text-micro font-bold uppercase tracking-widest text-muted">
+        {date.month} {date.days}
+      </span>
+    </button>
+  );
+}
+
+function CalendarRoundDetails({
+  round,
+  year,
+  fmt,
+  onShowResult,
+  onShowHighlights,
+}: {
+  round: ScheduleRound;
+  year: number;
+  fmt: TimeFormatter;
+  onShowResult: (session: Session) => void;
+  onShowHighlights: (session: Session) => void;
+}) {
+  const { meeting } = round;
+  const mainSession =
+    round.sessions.find(({ session }) => isMainEvent(session))?.session ??
+    round.sessions[0]?.session;
+  const mainStatus = round.sessions.find(({ session }) => session === mainSession)?.status;
+  const canReplay = mainSession && (mainStatus === "completed" || mainStatus === "live");
+  const highlight = mainSession && getSessionHighlight(mainSession.session_key);
+  return (
+    <section
+      aria-label="Selected round"
+      className="flex shrink-0 flex-col items-start gap-2 border-t border-panel bg-surface px-3 py-2.5 sm:flex-row sm:items-center sm:justify-between sm:px-4"
+    >
+      <div className="min-w-0 flex-1">
+        <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
+          <h2 className="text-sm font-black uppercase tracking-wider text-fg sm:truncate">
+            {roundKicker(round)} {meeting.meeting_name}
+          </h2>
+          <span className="font-mono text-tiny font-bold uppercase tracking-wider text-muted">
+            {fmt.range(meeting.date_start, meeting.date_end, meeting.gmt_offset)}
+          </span>
+        </div>
+        <p className="mt-0.5 truncate text-small text-muted">
+          {meeting.circuit_short_name} · {meeting.location}
+        </p>
+      </div>
+      <div className="flex flex-wrap items-center gap-1.5">
+        {canReplay && mainSession && (
+          <Link
+            to={replayPath({
+              year,
+              meetingKey: mainSession.meeting_key,
+              sessionKey: mainSession.session_key,
+            })}
+            className={buttonClass("primary", "sm")}
+          >
+            <Play aria-hidden="true" className="h-3 w-3" />
+            Replay
+          </Link>
+        )}
+        {mainSession && mainStatus === "completed" && (
+          <button
+            type="button"
+            onClick={() => onShowResult(mainSession)}
+            aria-label={`${mainSession.session_name} result`}
+            className={buttonClass("quiet", "sm")}
+          >
+            <ListOrdered aria-hidden="true" className="h-3 w-3" />
+            Result
+          </button>
+        )}
+        {mainSession && highlight && (
+          <button
+            type="button"
+            onClick={() => onShowHighlights(mainSession)}
+            aria-label={`${mainSession.session_name} highlights`}
+            className={buttonClass("quiet", "sm")}
+          >
+            <Clapperboard aria-hidden="true" className="h-3 w-3" />
+            Highlights
+          </button>
+        )}
+      </div>
+    </section>
+  );
+}
+
+function CalendarView({
+  months,
+  selectedRound,
+  year,
+  fmt,
+  onSelect,
+  onShowResult,
+  onShowHighlights,
+}: {
+  months: CalendarMonth[];
+  selectedRound: ScheduleRound | null;
+  year: number;
+  fmt: TimeFormatter;
+  onSelect: (meetingKey: number) => void;
+  onShowResult: (session: Session) => void;
+  onShowHighlights: (session: Session) => void;
+}) {
+  return (
+    <div className="flex min-h-0 flex-1 flex-col">
+      <div className="min-h-0 flex-1 overflow-auto">
+        <div className="grid w-full min-w-[48rem] grid-flow-col auto-cols-[minmax(7rem,1fr)] border-b border-panel">
+          {months.map((month) => (
+            <section
+              key={month.key}
+              aria-label={month.label}
+              className="min-w-0 border-r border-panel/60 first:border-l"
+            >
+              <h2 className="sticky top-0 z-10 border-b border-panel bg-track px-2 py-2 text-caption font-black uppercase tracking-wider text-muted">
+                {month.label}
+              </h2>
+              <div className="flex min-h-56 flex-col gap-1.5 p-1.5">
+                {month.rounds.map((round) => (
+                  <CalendarRound
+                    key={round.meeting.meeting_key}
+                    round={round}
+                    year={year}
+                    fmt={fmt}
+                    selected={
+                      selectedRound?.meeting.meeting_key === round.meeting.meeting_key
+                    }
+                    onSelect={() => onSelect(round.meeting.meeting_key)}
+                  />
+                ))}
+              </div>
+            </section>
+          ))}
+        </div>
+      </div>
+      {selectedRound && (
+        <CalendarRoundDetails
+          round={selectedRound}
+          year={year}
+          fmt={fmt}
+          onShowResult={onShowResult}
+          onShowHighlights={onShowHighlights}
+        />
+      )}
+    </div>
+  );
+}
+
 // One segment per numbered round: completed red, the live/next round white.
 function SeasonProgress({ rounds }: { rounds: ScheduleRound[] }) {
   const numbered = rounds.filter((r) => r.round !== null);
@@ -492,6 +778,7 @@ function NextRoundStrip({
   year,
   onShowCard,
   onShowOnMap,
+  onShowCalendar,
 }: {
   round: ScheduleRound;
   nextSession: Session | null;
@@ -500,6 +787,7 @@ function NextRoundStrip({
   year: number;
   onShowCard: () => void;
   onShowOnMap: () => void;
+  onShowCalendar: () => void;
 }) {
   const { meeting } = round;
   const flagUrl = toSafeExternalUrl(meeting.country_flag);
@@ -591,6 +879,10 @@ function NextRoundStrip({
           <Earth aria-hidden="true" className="h-3 w-3" />
           Map
         </button>
+        <button type="button" onClick={onShowCalendar} className={buttonClass("quiet", "sm", "h-8")}>
+          <CalendarDays aria-hidden="true" className="h-3 w-3" />
+          Calendar
+        </button>
       </div>
     </section>
   );
@@ -607,11 +899,15 @@ export default function Schedule() {
   const savedView = useSettings((s) => s.scheduleViewMode);
   const setSetting = useSettings((s) => s.setSetting);
   const [viewParam, setViewParam] = useStringParam<ViewMode | "">("layout", "");
-  const view: ViewMode = viewParam === "map" || viewParam === "cards" ? viewParam : savedView;
+  const view: ViewMode =
+    viewParam === "map" || viewParam === "cards" || viewParam === "calendar"
+      ? viewParam
+      : savedView;
   const [meetingParam, setMeetingParam] = useNumberParam("round", null);
   const [resultParam, setResultParam] = useNumberParam("result", null);
   const now = useNow(SCHEDULE_CLOCK_TICK_MS);
   const listRef = useRef<HTMLDivElement>(null);
+  const calendarRef = useRef<HTMLDivElement>(null);
   const [resultSession, setResultSession] = useState<Session | null>(null);
   const [highlightsSession, setHighlightsSession] = useState<Session | null>(null);
   const highlight = getSessionHighlight(highlightsSession?.session_key);
@@ -643,6 +939,10 @@ export default function Schedule() {
     () => buildSeasonSchedule(meetingsQ.data ?? [], sessionsQ.data ?? [], now),
     [meetingsQ.data, sessionsQ.data, now],
   );
+  const calendarMonths = useMemo(
+    () => buildCalendarMonths(schedule.rounds),
+    [schedule.rounds],
+  );
   const fmt = useMemo(() => makeFormatter(timeMode), [timeMode]);
   const timeFormats = useMemo(
     () => [timeMode, ...TIME_MODES.filter((mode) => mode !== timeMode)].map(
@@ -663,6 +963,13 @@ export default function Schedule() {
   const focusKey = isLoading
     ? null
     : (scheduleFocusRound(schedule.rounds)?.meeting.meeting_key ?? null);
+  const mapSelectedKey = schedule.rounds.some((r) => r.meeting.meeting_key === meetingParam)
+    ? meetingParam
+    : focusKey;
+  const calendarSelectedRound =
+    schedule.rounds.find((r) => r.meeting.meeting_key === meetingParam) ??
+    schedule.rounds.find((r) => r.meeting.meeting_key === focusKey) ??
+    null;
 
   // Open on the current (or latest) race weekend, once per season — not on
   // every clock tick, so it never fights the user's own scrolling.
@@ -674,21 +981,23 @@ export default function Schedule() {
     card?.scrollIntoView?.({ block: "start" });
   }, [focusKey, year, view]);
 
-  // Map view: the round from ?round= (a meeting key) when it belongs to this season, else
-  // the same round the card list opens on.
-  const mapSelectedKey = schedule.rounds.some((r) => r.meeting.meeting_key === meetingParam)
-    ? meetingParam
-    : focusKey;
+  useEffect(() => {
+    if (view !== "calendar" || calendarSelectedRound === null) return;
+    calendarRef.current
+      ?.querySelector(`[data-calendar-round="${calendarSelectedRound.meeting.meeting_key}"]`)
+      ?.scrollIntoView?.({ block: "nearest", inline: "nearest" });
+  }, [calendarSelectedRound, view]);
+
   // Layout and round change together in one URL update; two separate
   // setters would each start from the same params and drop the other.
   const [, setSearchParams] = useSearchParams();
-  const showRoundOnMap = (meetingKey: number) => {
-    trackEvent("schedule_view_changed", { view: "map", year });
-    setSetting("scheduleViewMode", "map");
+  const showRoundInLayout = (layout: "map" | "calendar", meetingKey: number) => {
+    trackEvent("schedule_view_changed", { view: layout, year });
+    setSetting("scheduleViewMode", layout);
     setSearchParams(
       (prev) => {
         const params = new URLSearchParams(prev);
-        params.set("layout", "map");
+        params.set("layout", layout);
         params.set("round", String(meetingKey));
         replaceHistorySearchParams(params);
         return params;
@@ -696,6 +1005,9 @@ export default function Schedule() {
       { replace: true },
     );
   };
+  const showRoundOnMap = (meetingKey: number) => showRoundInLayout("map", meetingKey);
+  const showRoundOnCalendar = (meetingKey: number) =>
+    showRoundInLayout("calendar", meetingKey);
   const changeView = (next: ViewMode) => {
     if (next === view) return;
     trackEvent("schedule_view_changed", { view: next, year });
@@ -799,6 +1111,24 @@ export default function Schedule() {
             />
           </Suspense>
         )
+      ) : view === "calendar" ? (
+        <div ref={calendarRef} className="flex min-h-0 flex-1 flex-col">
+          {isLoading ? (
+            <div role="status" className="flex-1 animate-pulse bg-sunken p-4 text-small text-muted">
+              Loading calendar…
+            </div>
+          ) : (
+            <CalendarView
+              months={calendarMonths}
+              selectedRound={calendarSelectedRound}
+              year={year}
+              fmt={fmt}
+              onSelect={setMeetingParam}
+              onShowResult={showResult}
+              onShowHighlights={showHighlights}
+            />
+          )}
+        </div>
       ) : (
         <>
           {nextRound && (
@@ -817,6 +1147,10 @@ export default function Schedule() {
               onShowOnMap={() => {
                 trackEvent("schedule_next_round_action", { action: "map" });
                 showRoundOnMap(nextRound.meeting.meeting_key);
+              }}
+              onShowCalendar={() => {
+                trackEvent("schedule_next_round_action", { action: "calendar" });
+                showRoundOnCalendar(nextRound.meeting.meeting_key);
               }}
             />
           )}

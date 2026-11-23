@@ -1,6 +1,6 @@
 # F1 Replay — Agent Documentation
 
-> Last updated: 2026-11-22
+> Last updated: 2026-11-23
 > The single source of truth for agents. Provides concise, agent-readable architecture notes, conventions, and guardrails. `docs/` holds mostly historical plans — see Section 12 before trusting one.
 
 ---
@@ -37,7 +37,7 @@
 | Tyre degradation / race pace                      | `utils/racePace.ts` (clean laps, per-stint fit), `components/TyreDeg` (tracker tab `deg`)    |
 | Undercut / overcut                                | `utils/undercut.ts` (`detectPitBattles`), shown in `PitFeed` rows + `undercut` toast         |
 | Season schedule / calendar                        | `pages/Schedule.tsx` (`/schedule`), `utils/schedule.ts` (`buildSeasonSchedule`), `useSeasonSessions` in `hooks/useSession.ts`; per-card track outline + facts in `components/CircuitSummary` (`utils/circuitInfo.ts`); completed sessions' Result button or `?result=<session_key>&year=<year>` opens `FinalClassificationDialog` |
-| Schedule world map                                | `components/ScheduleMap` (lazy chunk, `?layout=map&round=<meeting_key>` on `/schedule`), `utils/worldMap.ts` (projection, camera, clustering), `data/circuitLocations.ts` (from georef origins), `data/worldLand.ts` (`scripts/bake-world-map.mjs`); tuning in `SCHEDULE_MAP_*` constants. Cards/Map and Your time/Track time selections persist as `scheduleViewMode` / `scheduleTimeMode` in settings; explicit `layout` / `time` links override the saved preferences |
+| Schedule calendar / world map                    | `pages/Schedule.tsx` (`?layout=calendar`) for the month-column race calendar; `components/ScheduleMap` (`?layout=map&round=<meeting_key>`, lazy chunk), `utils/worldMap.ts` (projection, camera, clustering), `data/circuitLocations.ts` (from georef origins), `data/worldLand.ts` (`scripts/bake-world-map.mjs`); tuning in `SCHEDULE_MAP_*` constants. Cards/Map/Calendar and Your time/Track time selections persist as `scheduleViewMode` / `scheduleTimeMode` in settings; explicit `layout` / `time` links override the saved preferences |
 | Session highlight videos                          | `scripts/fetch-highlights.mjs` → `data/session-highlights.json` (`utils/highlights.ts` title matching), `data/sessionHighlights.ts`, `components/HighlightsDialog` (opened from `pages/Schedule.tsx` session rows), `lib/youtubePlayer.ts`, `.github/workflows/update-highlights.yml`. FOM blocks most embeds, so the dialog's thumbnail + YouTube link fallback is the common path |
 | Standings / profiles                              | `hooks/useStandings.ts`, `utils/standings.ts`, `utils/championship.ts`, `pages/Standings.tsx` (top three in `components/StandingsPodium`, title banner in `components/TitleOutlook`) |
 | Telemetry comparison                              | `pages/Telemetry.tsx`, `components/TelemetryChart`, `components/CornerAnalysis`, `utils/telemetry.ts` |
@@ -219,7 +219,7 @@ src/
     RaceWeekend.tsx     — Main page: track map + leaderboard + timeline
     Telemetry.tsx       — Lap telemetry comparison page
     Standings.tsx       — Season championship standings page
-    Schedule.tsx        — /schedule — season calendar (DESIGN.md look: segmented season progress bar in the picker bar, "Up next" strip with day/hour/minute countdown tiles, cards with a date block, red top strip on the next/live round, red marker on race/sprint rows): round cards, session times (your time and track time side by side in a separate column; ?time= selects which appears first and the round date timezone), replay links for started sessions, Result button (completed sessions) → `FinalClassificationDialog`, highlights button (completed sessions with a baked video) → `HighlightsDialog`, next round + countdown. Cards / Map toggle (`?layout=map`, selected round in `?round=`; not `view`/`meeting`, which the nav carries to the replay page) lazy-loads `ScheduleMap`
+    Schedule.tsx        — /schedule — season calendar (DESIGN.md look: segmented season progress bar in the picker bar, "Up next" strip with day/hour/minute countdown tiles, cards with a date block, red top strip on the next/live round, red marker on race/sprint rows): round cards, session times (your time and track time side by side in a separate column; ?time= selects which appears first and the round date timezone), replay links for started sessions, Result button (completed sessions) → `FinalClassificationDialog`, highlights button (completed sessions with a baked video) → `HighlightsDialog`, next round + countdown. Cards / Map / Calendar toggle (`?layout=calendar` for month columns; `?layout=map` plus selected round in `?round=`; not `view`/`meeting`, which the nav carries to the replay page) lazy-loads `ScheduleMap`
     DriverProfile.tsx   — /standings/driver/:driverNumber — one driver's season (keeps ?year/&session)
     ConstructorProfile.tsx — /standings/team/:teamName (canonical name, `constructorPath()`) — one team's season
     Settings.tsx        — Redirect to settings modal

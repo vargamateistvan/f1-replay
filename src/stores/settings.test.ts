@@ -21,6 +21,9 @@ describe("settings transfer", () => {
   it("accepts partial exports without resetting absent preferences", () => {
     const patch = parseSettingsImport(file({ lightMode: true }));
     expect(patch).toEqual({ lightMode: true });
+    expect(parseSettingsImport(file({ scheduleViewMode: "calendar" }))).toEqual({
+      scheduleViewMode: "calendar",
+    });
   });
 
   it.each([

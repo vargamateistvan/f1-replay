@@ -142,6 +142,45 @@ describe("Schedule page", () => {
     ).toBeInTheDocument();
   });
 
+  it("opens the next round in the calendar from the strip", () => {
+    setup();
+    const strip = screen.getByRole("region", { name: "Up next" });
+    fireEvent.click(within(strip).getByRole("button", { name: "Calendar" }));
+    expect(screen.getByRole("radio", { name: "Calendar" })).toHaveAttribute(
+      "aria-checked",
+      "true",
+    );
+    expect(mockTrackEvent).toHaveBeenCalledWith("schedule_next_round_action", {
+      action: "calendar",
+    });
+    expect(screen.getByLabelText("Current search")).toHaveTextContent(
+      "layout=calendar&round=2",
+    );
+  });
+
+  it("groups races by month and updates the selected round in the URL", () => {
+    setup();
+    fireEvent.click(screen.getByRole("radio", { name: "Calendar" }));
+    const april = screen.getByRole("region", { name: "APRIL" });
+    const bahrain = within(april).getByRole("button", {
+      name: /Round 1 Bahrain Grand Prix/,
+    });
+    const japan = within(april).getByRole("button", {
+      name: /Round 2 Japanese Grand Prix/,
+    });
+    expect(bahrain).toHaveAttribute("aria-pressed", "true");
+    expect(japan).toHaveAttribute("aria-pressed", "false");
+
+    fireEvent.click(japan);
+    expect(japan).toHaveAttribute("aria-pressed", "true");
+    expect(
+      screen.getByRole("region", { name: "Selected round" }),
+    ).toHaveTextContent("Round 2 Japanese Grand Prix");
+    expect(screen.getByLabelText("Current search")).toHaveTextContent(
+      "layout=calendar&round=2",
+    );
+  });
+
   it("shows each round's dates as a day range and month", () => {
     const { container } = setup();
     const card = container.querySelector('[data-meeting-key="2"]') as HTMLElement;
@@ -324,9 +363,27 @@ describe("Schedule page", () => {
     expect(screen.getByRole("radio", { name: "Cards" })).toHaveAttribute("aria-checked", "true");
   });
 
+  it("persists the calendar layout across visits", async () => {
+    let page = setup();
+    fireEvent.click(screen.getByRole("radio", { name: "Calendar" }));
+    expect(JSON.parse(localStorage.getItem("f1-replay-settings")!).state.scheduleViewMode).toBe(
+      "calendar",
+    );
+    page.unmount();
+    await useSettings.persist.rehydrate();
+
+    setup();
+    expect(screen.getByRole("radio", { name: "Calendar" })).toHaveAttribute(
+      "aria-checked",
+      "true",
+    );
+  });
+
   it.each([
     ["cards", "map", "Cards"],
     ["map", "cards", "Map"],
+    ["calendar", "map", "Calendar"],
+    ["map", "calendar", "Map"],
   ] as const)("honors explicit layout=%s over the saved %s view", (layout, saved, label) => {
     useSettings.getState().setSetting("scheduleViewMode", saved);
     setup(`/schedule?year=2026&layout=${layout}`);
