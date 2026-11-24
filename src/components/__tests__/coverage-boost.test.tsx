@@ -127,6 +127,7 @@ vi.mock("recharts", () => {
 
 vi.mock("uplot", () => {
   class UPlotMock {
+    static pxRatio = 1;
     bbox = { left: 0, width: 200 };
     scales = { x: { min: 0, max: 100 } };
     hooks: { setScale?: Array<() => void> } = {};
@@ -1473,7 +1474,6 @@ describe("component coverage boost", () => {
   });
 
   it("covers TelemetryChart no-data and interactive controls", () => {
-    const onHoverX = vi.fn();
     const { container, rerender } = render(
       <TelemetryChart title="Speed" xData={[]} series={[]} height={160} />,
     );
@@ -1488,7 +1488,6 @@ describe("component coverage boost", () => {
           { label: "VER", color: "#e8002d", data: [100, 150, 140, 130] },
         ]}
         interactiveControls
-        onHoverX={onHoverX}
       />,
     );
 
@@ -1500,11 +1499,6 @@ describe("component coverage boost", () => {
 
     const controls = screen.getByText("Zoom").closest("div");
     const chartArea = controls?.nextElementSibling as HTMLElement;
-    fireEvent.mouseMove(chartArea, { clientX: 50, clientY: 10 });
-    fireEvent.mouseLeave(chartArea);
-
-    expect(onHoverX).toHaveBeenCalled();
-    expect(onHoverX).toHaveBeenLastCalledWith(null);
     expect(uPlotState.instances.length).toBeGreaterThan(0);
     expect(uPlotState.instances[0]!.setScaleCalls.length).toBeGreaterThan(0);
 

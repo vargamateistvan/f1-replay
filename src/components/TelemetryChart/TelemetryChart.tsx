@@ -19,8 +19,8 @@ let nextChartInstanceId = 1;
 function readPlotBounds(plot: uPlot): { left: number; width: number } {
   const bbox = (plot as { bbox?: { left?: number; width?: number } }).bbox;
   return {
-    left: Number.isFinite(bbox?.left) ? bbox!.left! : 0,
-    width: Number.isFinite(bbox?.width) ? bbox!.width! : 0,
+    left: Number.isFinite(bbox?.left) ? bbox!.left! / uPlot.pxRatio : 0,
+    width: Number.isFinite(bbox?.width) ? bbox!.width! / uPlot.pxRatio : 0,
   };
 }
 
@@ -491,42 +491,6 @@ function TelemetryChartImpl({
       window.removeEventListener(X_SYNC_EVENT, onSync);
     };
   }, []);
-
-  // Fallback hover tracking for test environments that do not emit uPlot
-  // cursor hooks from synthetic pointer events.
-  useEffect(() => {
-    const el = chartAreaRef.current;
-    if (!el || !onHoverX) return;
-
-    const onMouseMove = (event: MouseEvent) => {
-      const plot = plotRef.current;
-      const range = readXScale();
-      if (!plot || !range) return;
-
-      const { left: plotLeft, width: plotWidth } = readPlotBounds(plot);
-      if (!Number.isFinite(plotWidth) || plotWidth <= 0) return;
-
-      const rect = (containerRef.current ?? el).getBoundingClientRect();
-      const localX = event.clientX - rect.left;
-      const relX = localX - plotLeft;
-      const clampedRelX = Math.max(0, Math.min(plotWidth, relX));
-      const ratio = clampedRelX / plotWidth;
-      const x = range.min + (range.max - range.min) * ratio;
-
-      onHoverX(Number.isFinite(x) ? x : null);
-    };
-
-    const onMouseLeave = () => {
-      onHoverX(null);
-    };
-
-    el.addEventListener("mousemove", onMouseMove);
-    el.addEventListener("mouseleave", onMouseLeave);
-    return () => {
-      el.removeEventListener("mousemove", onMouseMove);
-      el.removeEventListener("mouseleave", onMouseLeave);
-    };
-  }, [onHoverX]);
 
   // Resize observer
   useEffect(() => {

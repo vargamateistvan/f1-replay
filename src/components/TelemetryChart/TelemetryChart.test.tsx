@@ -1,19 +1,22 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { fireEvent, render, screen } from "@testing-library/react";
+import { act, fireEvent, render, screen } from "@testing-library/react";
 import { TelemetryChart } from "@/components/TelemetryChart/TelemetryChart";
 
 const uPlotState = vi.hoisted(() => ({
   instances: [] as Array<{
     scales: { x: { min: number; max: number } };
     setScaleCalls: Array<{ min: number; max: number }>;
+    setCursorIndex: (idx: number | null) => void;
   }>,
 }));
 
 vi.mock("uplot", () => {
   class UPlotMock {
-    bbox = { left: 0, width: 200 };
+    static pxRatio = 2;
+    bbox = { left: 80, width: 400 };
     scales = { x: { min: 0, max: 100 } };
-    hooks: { setScale?: Array<() => void> } = {};
+    cursor: { idx: number | null } = { idx: null };
+    hooks: { setScale?: Array<() => void>; setCursor?: Array<(plot: UPlotMock) => void> } = {};
     setScaleCalls: Array<{ min: number; max: number }> = [];
 
     constructor(_opts: unknown, data: unknown[]) {
@@ -31,6 +34,11 @@ vi.mock("uplot", () => {
     }
 
     setSize() {}
+
+    setCursorIndex(idx: number | null) {
+      this.cursor.idx = idx;
+      for (const hook of this.hooks.setCursor ?? []) hook(this);
+    }
 
     destroy() {}
   }
@@ -75,8 +83,9 @@ describe("TelemetryChart", () => {
 
     const controls = screen.getByText("Zoom").closest("div");
     const chartArea = controls?.nextElementSibling as HTMLElement;
-    fireEvent.mouseMove(chartArea, { clientX: 50, clientY: 10 });
-    fireEvent.mouseLeave(chartArea);
+    act(() => uPlotState.instances[0]!.setCursorIndex(1));
+    expect(onHoverX).toHaveBeenLastCalledWith(50);
+    act(() => uPlotState.instances[0]!.setCursorIndex(null));
 
     expect(onHoverX).toHaveBeenCalled();
     expect(onHoverX).toHaveBeenLastCalledWith(null);
@@ -86,6 +95,28 @@ describe("TelemetryChart", () => {
 
     fireEvent.doubleClick(chartArea);
     expect(container).toBeTruthy();
+  });
+
+  it("uses the plot cursor for hover and CSS pixels for corner markers on high-density displays", () => {
+    const onHoverX = vi.fn();
+    render(
+      <TelemetryChart
+        title="Delta"
+        xData={[0, 50, 100]}
+        series={[{ label: "Delta", color: "#e8002d", data: [0, 1, 2] }]}
+        onHoverX={onHoverX}
+        cornerMarkers={[{ label: "1", distance: 50 }]}
+        showCornerAxis
+      />,
+    );
+
+    expect(screen.getByText("1")).toHaveStyle({ left: "140px" });
+    act(() => uPlotState.instances[0]!.setCursorIndex(1));
+    const chartArea = screen.getByText("1").parentElement!.previousElementSibling!;
+    fireEvent.mouseMove(chartArea, { clientX: 140 });
+    expect(onHoverX).toHaveBeenLastCalledWith(50);
+    act(() => uPlotState.instances[0]!.setCursorIndex(null));
+    expect(onHoverX).toHaveBeenLastCalledWith(null);
   });
 
   it("syncs x zoom between chart instances", () => {
