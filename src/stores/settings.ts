@@ -9,6 +9,7 @@ export type MapViewMode = "2d" | "3d" | "ring";
 export interface AppSettings {
   scheduleViewMode: "cards" | "map" | "calendar";
   scheduleTimeMode: "local" | "track";
+  scheduleSessionsOpen: boolean;
   // Notifications
   toastsEnabled: boolean;
   toastRadio: boolean;
@@ -198,6 +199,7 @@ interface SettingsStore extends AppSettings {
 export const SETTINGS_DEFAULTS: AppSettings = {
   scheduleViewMode: "cards",
   scheduleTimeMode: "local",
+  scheduleSessionsOpen: true,
   toastsEnabled: true,
   toastRadio: true,
   toastRadioAutoplay: false,

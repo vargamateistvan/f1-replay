@@ -651,7 +651,8 @@ function CalendarRoundDetails({
   onShowHighlights: (session: Session) => void;
 }) {
   const { meeting } = round;
-  const [sessionsOpen, setSessionsOpen] = useState(true);
+  const sessionsOpen = useSettings((s) => s.scheduleSessionsOpen);
+  const setSetting = useSettings((s) => s.setSetting);
   const sessionsId = useId();
   const mainEventSessions = round.sessions.filter(({ session }) => isMainEvent(session));
   return (
@@ -677,7 +678,7 @@ function CalendarRoundDetails({
           type="button"
           aria-controls={sessionsId}
           aria-expanded={sessionsOpen}
-          onClick={() => setSessionsOpen((open) => !open)}
+          onClick={() => setSetting("scheduleSessionsOpen", !sessionsOpen)}
           className={buttonClass("quiet", "sm", "h-8 shrink-0")}
         >
           <ChevronDown

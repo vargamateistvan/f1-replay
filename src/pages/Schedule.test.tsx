@@ -111,6 +111,7 @@ describe("Schedule page", () => {
   beforeEach(() => {
     useSettings.getState().setSetting("scheduleViewMode", "cards");
     useSettings.getState().setSetting("scheduleTimeMode", "local");
+    useSettings.getState().setSetting("scheduleSessionsOpen", true);
     vi.useFakeTimers({ toFake: ["Date"] });
     vi.setSystemTime(NOW);
   });
@@ -299,6 +300,39 @@ describe("Schedule page", () => {
     expect(
       within(selected).getByRole("button", { name: "Qualifying result" }),
     ).toBeInTheDocument();
+  });
+
+  it("remembers session visibility across round changes and visits", async () => {
+    let page = setup("/schedule?year=2026&layout=calendar");
+    fireEvent.click(screen.getByRole("button", { name: "Hide sessions" }));
+    expect(
+      JSON.parse(localStorage.getItem("f1-replay-settings")!).state.scheduleSessionsOpen,
+    ).toBe(false);
+
+    fireEvent.click(screen.getByRole("button", { name: /Round 2 Japanese Grand Prix/ }));
+    expect(screen.getByRole("button", { name: "Show sessions" })).toHaveAttribute(
+      "aria-expanded", "false",
+    );
+    page.unmount();
+    const savedSettings = localStorage.getItem("f1-replay-settings")!;
+    useSettings.setState({ scheduleSessionsOpen: true });
+    localStorage.setItem("f1-replay-settings", savedSettings);
+    await useSettings.persist.rehydrate();
+
+    page = setup("/schedule?year=2026&layout=calendar");
+    expect(screen.getByRole("button", { name: "Show sessions" })).toHaveAttribute(
+      "aria-expanded", "false",
+    );
+    fireEvent.click(screen.getByRole("button", { name: "Show sessions" }));
+    expect(
+      JSON.parse(localStorage.getItem("f1-replay-settings")!).state.scheduleSessionsOpen,
+    ).toBe(true);
+    page.unmount();
+    await useSettings.persist.rehydrate();
+    setup("/schedule?year=2026&layout=calendar");
+    expect(screen.getByRole("button", { name: "Hide sessions" })).toHaveAttribute(
+      "aria-expanded", "true",
+    );
   });
 
   it("shows each round's dates as a day range and month", () => {

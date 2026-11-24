@@ -58,6 +58,10 @@ gate to avoid automatic billed loads in docs. Public assets are served by Storyb
 strategy, classifications and profiles; `.storybook/RouterPreview.tsx` isolates
 profile links with a memory router. None of these stories fetch session data.
 
+The Schedule Calendar's Show/Hide sessions preference persists in localStorage
+as `scheduleSessionsOpen` (default open) across visits and round selections.
+Collapsed panels retain race/sprint rows.
+
 Tests sit next to the module (`foo.ts` → `foo.test.ts`); broad smoke/coverage tests are in `components/__tests__/`.
 
 The replay tracker defaults to Track on phones and Timing on desktop when `ttab` is absent; explicit tab selections stay in the URL across viewports.
