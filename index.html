@@ -55,17 +55,49 @@
       letter-spacing: .12em;
       text-transform: uppercase;
     }
-    .app-loading__lights { display: flex; gap: 8px; margin-top: 28px; }
+    .app-loading__lights {
+      display: flex;
+      gap: 10px;
+      margin-top: 28px;
+      padding: 10px 12px;
+      border: 1px solid rgb(var(--color-line));
+      border-radius: 2px;
+      background: rgb(var(--color-sunken));
+    }
     .app-loading__lights span {
-      width: 8px;
-      height: 8px;
+      width: 14px;
+      height: 14px;
       border-radius: 50%;
       background: rgb(var(--color-f1red));
-      animation: loading-lights 1.6s ease-in-out infinite alternate;
+      box-shadow: 0 0 8px rgb(var(--color-f1red) / .6);
+      animation: loading-light-one 4s steps(1, end) infinite;
     }
-    @keyframes loading-lights { from { opacity: .25; } to { opacity: 1; } }
+    .app-loading__lights span:nth-child(2) { animation-name: loading-light-two; }
+    .app-loading__lights span:nth-child(3) { animation-name: loading-light-three; }
+    .app-loading__lights span:nth-child(4) { animation-name: loading-light-four; }
+    .app-loading__lights span:nth-child(5) { animation-name: loading-light-five; }
+    @keyframes loading-light-one {
+      0%, 80%, 100% { opacity: .16; }
+      10% { opacity: 1; }
+    }
+    @keyframes loading-light-two {
+      0%, 80%, 100% { opacity: .16; }
+      20% { opacity: 1; }
+    }
+    @keyframes loading-light-three {
+      0%, 80%, 100% { opacity: .16; }
+      30% { opacity: 1; }
+    }
+    @keyframes loading-light-four {
+      0%, 80%, 100% { opacity: .16; }
+      40% { opacity: 1; }
+    }
+    @keyframes loading-light-five {
+      0%, 80%, 100% { opacity: .16; }
+      50% { opacity: 1; }
+    }
     @media (prefers-reduced-motion: reduce) {
-      .app-loading__lights span { animation: none; }
+      .app-loading__lights span:nth-child(n) { animation: none; }
     }
     .shell-summary {
       position: absolute;

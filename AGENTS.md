@@ -107,7 +107,7 @@ Qualifying playback markers prefer phase-tagged `SESSION STARTED` messages; pre-
 
 ## 3. Repository Layout
 
-Initial loading UI lives in `index.html` (inline critical styles and saved-theme restoration); `vite.config.ts` injects colours from `designTokens.ts` before first paint. The route Suspense fallback in `routes.tsx` reuses its `app-loading` styles. Keep it independent of app JavaScript/fonts and honour reduced motion.
+Initial loading UI lives in `index.html` (inline critical styles and saved-theme restoration); `vite.config.ts` injects colours from `designTokens.ts` before first paint. The route Suspense fallback in `routes.tsx` reuses its `app-loading` styles. Five start lamps illuminate in sequence, hold, then extinguish together in a repeating cycle; reduced motion shows static lamps. Keep it independent of app JavaScript/fonts and honour reduced motion.
 
 ```
 src/
