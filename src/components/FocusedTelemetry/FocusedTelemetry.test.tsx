@@ -198,6 +198,7 @@ describe("FocusedTelemetry", () => {
     expect(
       screen.getByText(/Speed \(km\/h\) · L10 vs L10/),
     ).toBeInTheDocument();
+    expect(screen.getByText("LEC ahead (+)")).toBeInTheDocument();
     fireEvent.click(
       screen.getByRole("button", { name: "Clear comparison driver" }),
     );

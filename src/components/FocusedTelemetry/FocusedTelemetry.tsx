@@ -241,9 +241,10 @@ export function FocusedTelemetry({
             series={compareTelemetry.throttle}
           />
           <TelemetryChart
-            title={`${driver?.name_acronym ?? "A"} ahead (+)`}
+            title={`${compareDriver?.name_acronym ?? "B"} ahead (+)`}
             xData={compareTelemetry.xData}
             height={180}
+            deltaReferenceColor={color}
             series={compareTelemetry.delta}
           />
         </div>

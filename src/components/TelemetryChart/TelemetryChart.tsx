@@ -1,4 +1,4 @@
-import { memo, useEffect, useRef, useState } from "react";
+import { memo, useEffect, useMemo, useRef, useState } from "react";
 import uPlot from "uplot";
 import "uplot/dist/uPlot.min.css";
 import { ErrorMessage } from "@/components/ErrorMessage";
@@ -12,6 +12,7 @@ import {
   type CornerSpeedClass,
   type CornerZone,
 } from "@/utils/corners";
+import { TOKEN_HEX } from "@/designTokens";
 import { X_SYNC_EVENT, X_SYNC_GROUP } from "./sync";
 
 let nextChartInstanceId = 1;
@@ -113,6 +114,8 @@ interface Props {
   readonly height?: number;
   readonly interactiveControls?: boolean;
   readonly onHoverX?: (x: number | null) => void;
+  /** Enables delta shading: positive values favor each series, negative the reference. */
+  readonly deltaReferenceColor?: string;
 }
 
 const CORNER_SPEED_CLASS_ORDER: CornerSpeedClass[] = ["low", "medium", "high"];
@@ -203,6 +206,7 @@ function TelemetryChartImpl({
   height = 180,
   interactiveControls = false,
   onHoverX,
+  deltaReferenceColor,
   legendUnit,
   legendDecimals,
   distanceUnit = "m",
@@ -226,7 +230,20 @@ function TelemetryChartImpl({
     max: number;
   } | null>(null);
   const [plotBounds, setPlotBounds] = useState({ left: 0, width: 0 });
-  const showSeriesChips = series.length > 0;
+  const chartSeries = useMemo(() => {
+    if (!deltaReferenceColor) return series;
+    const used = new Set([deltaReferenceColor.toLowerCase()]);
+    const fallback = [TOKEN_HEX.f1red, TOKEN_HEX.blue, TOKEN_HEX.green, TOKEN_HEX.orange];
+    return series.map((line) => {
+      const color = used.has(line.color.toLowerCase())
+        ? fallback.find((candidate) => !used.has(candidate.toLowerCase()))
+        : line.color;
+      if (!color) throw new Error("Not enough distinct delta chart colors");
+      used.add(color.toLowerCase());
+      return color === line.color ? line : { ...line, color };
+    });
+  }, [series, deltaReferenceColor]);
+  const showSeriesChips = chartSeries.length > 0;
 
   const broadcastScale = (min: number, max: number) => {
     if (typeof window === "undefined") return;
@@ -318,11 +335,15 @@ function TelemetryChartImpl({
         sync: { key: "telemetry" },
         drag: { x: true, y: false, setScale: true },
       },
+      legend: deltaReferenceColor
+        ? { markers: { fill: (_u, index) => chartSeries[index - 1]!.color } }
+        : undefined,
       scales: {
         x: { time: false },
         y: {
-          range:
-            yMin !== undefined && yMax !== undefined ? [yMin, yMax] : undefined,
+          range: deltaReferenceColor
+            ? (_u, min, max) => uPlot.rangeNum(Math.min(min, 0), Math.max(max, 0), 0.1, true)
+            : yMin !== undefined && yMax !== undefined ? [yMin, yMax] : undefined,
         },
       },
       axes: [
@@ -359,11 +380,23 @@ function TelemetryChartImpl({
             return `${formatted} ${distanceUnit}`;
           },
         },
-        ...series.map((s) => ({
+        ...chartSeries.map((s) => ({
           label: s.label,
           stroke: s.color,
           width: s.width ?? 1.8,
-          fill: s.fill,
+          fill: deltaReferenceColor
+            ? (u: uPlot) => {
+                const { top, height } = u.bbox;
+                const zero = Math.max(0, Math.min(1, (u.valToPos(0, s.scale ?? "y", true) - top) / height));
+                const gradient = u.ctx.createLinearGradient(0, top, 0, top + height);
+                gradient.addColorStop(0, `${s.color}33`);
+                gradient.addColorStop(zero, `${s.color}33`);
+                gradient.addColorStop(zero, `${deltaReferenceColor}33`);
+                gradient.addColorStop(1, `${deltaReferenceColor}33`);
+                return gradient;
+              }
+            : s.fill,
+          fillTo: deltaReferenceColor ? 0 : undefined,
           points: { show: s.points ?? false },
           scale: s.scale ?? "y",
           value: (_u: uPlot, rawValue: number | null) => {
@@ -382,11 +415,29 @@ function TelemetryChartImpl({
           },
         })),
       ],
+      hooks: deltaReferenceColor
+        ? {
+            drawAxes: [(u) => {
+              const { left, width, top, height } = u.bbox;
+              const y = u.valToPos(0, "y", true);
+              if (!Number.isFinite(y) || y < top || y > top + height) return;
+              u.ctx.save();
+              u.ctx.strokeStyle = TOKEN_HEX.fg;
+              u.ctx.globalAlpha = 0.7;
+              u.ctx.lineWidth = uPlot.pxRatio;
+              u.ctx.beginPath();
+              u.ctx.moveTo(left, y);
+              u.ctx.lineTo(left + width, y);
+              u.ctx.stroke();
+              u.ctx.restore();
+            }],
+          }
+        : undefined,
     };
 
     const data: uPlot.AlignedData = [
       new Float64Array(xData),
-      ...series.map((s) => new Float64Array(s.data)),
+      ...chartSeries.map((s) => new Float64Array(s.data)),
     ];
 
     const full = {
@@ -449,7 +500,7 @@ function TelemetryChartImpl({
     };
   }, [
     xData,
-    series,
+    chartSeries,
     height,
     title,
     yMin,
@@ -460,6 +511,7 @@ function TelemetryChartImpl({
     distanceUnit,
     distanceScale,
     theme.grid,
+    deltaReferenceColor,
   ]);
 
   // Keep x-axis zoom/pan synchronized across telemetry charts.
@@ -596,7 +648,7 @@ function TelemetryChartImpl({
 
           {showSeriesChips && (
             <div className="ml-2 hidden items-center gap-1 lg:flex">
-              {series.map((line, idx) => (
+              {chartSeries.map((line, idx) => (
                 <span
                   key={`${line.label}-${idx}`}
                   className="inline-flex items-center gap-1 rounded-sm border border-panel/90 bg-track/80 px-1.5 py-0.5 text-tiny font-bold uppercase tracking-widest text-fg/85"
@@ -624,7 +676,7 @@ function TelemetryChartImpl({
 
       {!interactiveControls && showSeriesChips && (
         <div className="flex flex-wrap items-center gap-1 border-b border-panel/80 bg-black/15 px-2 py-1.5">
-          {series.map((line, idx) => (
+          {chartSeries.map((line, idx) => (
             <span
               key={`${line.label}-${idx}`}
               className="inline-flex items-center gap-1 rounded-sm border border-panel/90 bg-track/80 px-1.5 py-0.5 text-tiny font-bold uppercase tracking-widest text-fg/85"

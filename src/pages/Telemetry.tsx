@@ -2419,7 +2419,11 @@ export default function Telemetry() {
                   <div className={PANEL_TITLE}>
                     Delta vs {acr(driverA, "A")}
                     <span className="ml-2 font-normal normal-case tracking-normal text-muted">
-                      (+ = ahead of {acr(driverA, "A")})
+                      (+ = compared driver ahead; − = {acr(driverA, "A")} ahead)
+                    </span>
+                    <span className="ml-2 inline-flex items-center gap-1">
+                      <span className="h-1.5 w-3 rounded-full" style={{ backgroundColor: colorFor(driverA, 0) }} />
+                      {acr(driverA, "A")} reference
                     </span>
                   </div>
                   <TelemetryChart
@@ -2434,6 +2438,7 @@ export default function Telemetry() {
                     legendUnit="s"
                     distanceUnit={distanceUnit}
                     distanceScale={distanceScale}
+                    deltaReferenceColor={colorFor(driverA, 0)}
                     series={deltaSeries}
                   />
                 </div>

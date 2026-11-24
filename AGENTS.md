@@ -1,6 +1,6 @@
 # F1 Replay — Agent Documentation
 
-> Last updated: 2026-11-23
+> Last updated: 2026-11-24
 > The single source of truth for agents. Provides concise, agent-readable architecture notes, conventions, and guardrails. `docs/` holds mostly historical plans — see Section 12 before trusting one.
 
 ---
@@ -315,7 +315,7 @@ Quick settings mirror every Track Map setting shown for the current view (plus F
 | `RaceControl`                                     | Race control message feed                                                                |
 | `TeamRadio`                                       | Audio player for team radio clips                                                        |
 | `RadioAudio`                                      | Shared radio `<audio>`: plays `public/sounds/radio-intro.mp3` chime, then the clip       |
-| `TelemetryChart`                                  | uPlot-based telemetry overlay (speed/throttle/brake/RPM/gear)                            |
+| `TelemetryChart`                                  | uPlot-based telemetry overlay (speed/throttle/brake/RPM/gear); delta charts highlight zero and shade each comparison toward the leading driver's color, with distinct fallback colors for teammates |
 | `GapChart`                                        | Tracker tab `gap`: gap to leader per lap (time axis fallback), leader at the top; Y axis fits the plotted gaps (`GAP_CHART_*`, capped), "Top 10" filter, retired cars dashed and ending in an × at their last sample (no end label), Elapsed/All (future laps veiled), focused/hovered line emphasised, `RaceChart` end labels + tooltip |
 | `CornerAnalysis`                                  | Telemetry page: per-corner speeds/brake/throttle + time gained/lost per lap segment      |
 | `LapChart`                                        | Tracker tab `chart`: position-by-lap chart, Elapsed/All (future laps veiled), focused/hovered line emphasised, `RaceChart` end labels (running order) + tooltip |

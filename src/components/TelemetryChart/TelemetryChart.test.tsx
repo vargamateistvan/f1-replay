@@ -1,25 +1,33 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { act, fireEvent, render, screen } from "@testing-library/react";
+import type uPlot from "uplot";
 import { TelemetryChart } from "@/components/TelemetryChart/TelemetryChart";
+import { TOKEN_HEX } from "@/designTokens";
 
 const uPlotState = vi.hoisted(() => ({
   instances: [] as Array<{
     scales: { x: { min: number; max: number } };
     setScaleCalls: Array<{ min: number; max: number }>;
     setCursorIndex: (idx: number | null) => void;
+    options: uPlot.Options;
   }>,
 }));
 
 vi.mock("uplot", () => {
   class UPlotMock {
     static pxRatio = 2;
+    static rangeNum(min: number, max: number) {
+      return [min, max];
+    }
     bbox = { left: 80, width: 400 };
     scales = { x: { min: 0, max: 100 } };
     cursor: { idx: number | null } = { idx: null };
     hooks: { setScale?: Array<() => void>; setCursor?: Array<(plot: UPlotMock) => void> } = {};
     setScaleCalls: Array<{ min: number; max: number }> = [];
+    options: uPlot.Options;
 
-    constructor(_opts: unknown, data: unknown[]) {
+    constructor(opts: uPlot.Options, data: unknown[]) {
+      this.options = opts;
       const x = (data[0] as Float64Array | number[]) ?? [];
       const min = Number((x as ArrayLike<number>)[0] ?? 0);
       const max = Number((x as ArrayLike<number>)[x.length - 1] ?? 100);
@@ -117,6 +125,86 @@ describe("TelemetryChart", () => {
     expect(onHoverX).toHaveBeenLastCalledWith(50);
     act(() => uPlotState.instances[0]!.setCursorIndex(null));
     expect(onHoverX).toHaveBeenLastCalledWith(null);
+  });
+
+  it("shades each delta comparison by the leading driver and highlights zero", () => {
+    render(
+      <TelemetryChart
+        title="Delta"
+        xData={[0, 50, 100]}
+        series={[
+          { label: "B", color: "#123456", data: [0, 1, -1] },
+          { label: "C", color: "#654321", data: [0, -1, 1] },
+        ]}
+        deltaReferenceColor="#abcdef"
+      />,
+    );
+
+    const options = uPlotState.instances[0]!.options;
+    const legendFill = options.legend?.markers?.fill;
+    expect(typeof legendFill).toBe("function");
+    if (typeof legendFill !== "function") throw new Error("Missing legend color");
+    expect(legendFill({} as uPlot, 1)).toBe("#123456");
+    const addColorStop = vi.fn();
+    const ctx = {
+      createLinearGradient: vi.fn(() => ({ addColorStop })),
+      save: vi.fn(),
+      restore: vi.fn(),
+      beginPath: vi.fn(),
+      moveTo: vi.fn(),
+      lineTo: vi.fn(),
+      stroke: vi.fn(),
+    };
+    const plot = {
+      bbox: { left: 80, top: 20, width: 400, height: 200 },
+      ctx,
+      valToPos: vi.fn(() => 120),
+    } as unknown as uPlot;
+    const range = options.scales!.y!.range;
+    expect(typeof range).toBe("function");
+    if (typeof range !== "function") throw new Error("Missing delta range");
+    expect(range(plot, 1, 2, "y")).toEqual([0, 2]);
+    expect(range(plot, -2, -1, "y")).toEqual([-2, 0]);
+
+    for (const [index, color] of [[1, "#12345633"], [2, "#65432133"]] as const) {
+      addColorStop.mockClear();
+      const fill = options.series[index]!.fill;
+      expect(typeof fill).toBe("function");
+      if (typeof fill !== "function") throw new Error("Missing delta fill");
+      fill(plot, index);
+      expect(addColorStop.mock.calls).toEqual([
+        [0, color],
+        [0.5, color],
+        [0.5, "#abcdef33"],
+        [1, "#abcdef33"],
+      ]);
+      expect(options.series[index]!.fillTo).toBe(0);
+    }
+
+    options.hooks!.drawAxes![0]!(plot);
+    expect(ctx.moveTo).toHaveBeenCalledWith(80, 120);
+    expect(ctx.lineTo).toHaveBeenCalledWith(480, 120);
+    expect(ctx.stroke).toHaveBeenCalledOnce();
+  });
+
+  it("uses distinct delta colors when drivers share a team color", () => {
+    render(
+      <TelemetryChart
+        title="Delta"
+        xData={[0, 100]}
+        series={[
+          { label: "B", color: "#ABCDEF", data: [0, 1] },
+          { label: "C", color: "#abcdef", data: [0, -1] },
+        ]}
+        deltaReferenceColor="#abcdef"
+      />,
+    );
+
+    const options = uPlotState.instances[0]!.options;
+    expect(options.series[1]!.stroke).toBe(TOKEN_HEX.f1red);
+    expect(options.series[2]!.stroke).toBe(TOKEN_HEX.blue);
+    expect(screen.getByTitle("B series").querySelector("span"))
+      .toHaveStyle({ backgroundColor: TOKEN_HEX.f1red });
   });
 
   it("syncs x zoom between chart instances", () => {
