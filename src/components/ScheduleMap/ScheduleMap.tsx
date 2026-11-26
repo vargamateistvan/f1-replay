@@ -230,22 +230,21 @@ export function ScheduleMap({
     [located],
   );
 
-  // Fit the season once the map has a size (again if the circuits arrive
-  // later); afterwards a resize keeps centre and zoom, re-clamped.
-  const fittedWithPoints = useRef(false);
-  const hasPoints = located.length > 0;
+  // Open on the whole map; afterwards a resize keeps centre and zoom, re-clamped.
   useEffect(() => {
     if (aspect === 0) return;
-    if (!cameraRef.current || (hasPoints && !fittedWithPoints.current)) {
-      fittedWithPoints.current = hasPoints;
-      setCamera(fitSeason());
+    if (!cameraRef.current) {
+      setCamera(
+        fitCamera([], aspect, BOUNDS, {
+          padPx: SCHEDULE_MAP_FIT_PAD_PX,
+          widthPx: sizeRef.current.width,
+          minW: SCHEDULE_MAP_MIN_VIEW_DEG,
+        }),
+      );
     } else {
       setCamera(cameraRef.current);
     }
-    // fitSeason changes on every schedule clock tick; only aspect and the
-    // arrival of circuits should refit.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [aspect, hasPoints, setCamera]);
+  }, [aspect, setCamera]);
 
   const view = camera && aspect ? cameraViewBox(camera, aspect) : null;
 

@@ -1,6 +1,6 @@
 # F1 Replay — Agent Documentation
 
-> Last updated: 2026-11-24
+> Last updated: 2026-11-26
 > The single source of truth for agents. Provides concise, agent-readable architecture notes, conventions, and guardrails. `docs/` holds mostly historical plans — see Section 12 before trusting one.
 
 ---
@@ -60,7 +60,8 @@ profile links with a memory router. None of these stories fetch session data.
 
 The Schedule Calendar's Show/Hide sessions preference persists in localStorage
 as `scheduleSessionsOpen` (default open) across visits and round selections.
-Collapsed panels retain race/sprint rows.
+Collapsed panels retain race/sprint rows. The Up next strip appears in every
+schedule layout.
 
 Tests sit next to the module (`foo.ts` → `foo.test.ts`); broad smoke/coverage tests are in `components/__tests__/`.
 
@@ -349,7 +350,7 @@ Quick settings mirror every Track Map setting shown for the current view (plus F
 | `Weather`                                         | Weather icon/badge overlay                                                               |
 | `HighlightsDialog`                                | Session highlights from the FORMULA 1 YouTube channel (Schedule session rows): tries the privacy-enhanced player (`youtube-nocookie.com` via `lib/youtubePlayer.ts`); on a player error (FOM blocks most embeds), a script failure or `HIGHLIGHTS_PLAYER_TIMEOUT_MS` it shows the thumbnail + "Watch on YouTube" and tracks `highlights_player_fallback`. While the player is up, the footer also links to YouTube |
 | `CircuitSummary`                                  | Schedule card strip: baked-geometry track outline (start/finish tick, red direction arrow) + length (unit setting), turns, direction, circuit type, pit loss (normal · SC). Geometry loads per card via `useCircuitGeometry` |
-| `ScheduleMap`                                     | Schedule page Map layout: SVG world map (baked land, graticule), one marker per round (round number; next/live red, completed muted), screen-space clusters (click zooms in, or lists co-located rounds such as testing + GP), season route arcs (completed solid, remaining red dashed), drag pan, desktop wheel zoom, +/−/fit buttons, "Current weekend" button (selects the live/next round and zooms to `SCHEDULE_MAP_FOCUS_VIEW_DEG`), legend + season travel distance below the map, selected round's card (rendered by the page) in a side panel with prev/next. Side by side from `lg`, stacked below |
+| `ScheduleMap`                                     | Schedule page Map layout: SVG world map (baked land, graticule), initially showing the whole world, one marker per round (round number; next/live red, completed muted), screen-space clusters (click zooms in, or lists co-located rounds such as testing + GP), season route arcs (completed solid, remaining red dashed), drag pan, desktop wheel zoom, +/−/fit buttons, "Current weekend" button (selects the live/next round and zooms to `SCHEDULE_MAP_FOCUS_VIEW_DEG`), legend + season travel distance below the map, selected round's card (rendered by the page) in a side panel with prev/next. Side by side from `lg`, stacked below |
 | `StandingsPodium`                                 | Standings Drivers/Constructors tabs: top-three cards above the table (medal position in `podium-*` tokens, team-colour top bar, headshot for drivers, points + gap to leader, profile link) |
 | `PointsProgression` (`PointsProgressionChart`)    | Cumulative championship points per round (Standings → Progression)                       |
 | `TitleOutlook` (`TitleOutlookBanner`)             | "N drivers in contention / X clinched" summary above the standings tables                |

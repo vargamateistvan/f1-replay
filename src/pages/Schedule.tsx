@@ -8,9 +8,8 @@ import {
   useRef,
   useState,
 } from "react";
-import { Link, useSearchParams } from "react-router-dom";
+import { Link } from "react-router-dom";
 import {
-  ArrowDown,
   CalendarDays,
   ChevronDown,
   Clapperboard,
@@ -43,7 +42,7 @@ import {
   type ScheduleRound,
   type ScheduleSession,
 } from "@/utils/schedule";
-import { replaceHistorySearchParams, replayPath, toSafeExternalUrl } from "@/utils/url";
+import { replayPath, toSafeExternalUrl } from "@/utils/url";
 import { getSessionHighlight } from "@/data/sessionHighlights";
 import { trackEvent } from "@/lib/analytics";
 import { useSettings } from "@/stores/settings";
@@ -843,7 +842,7 @@ function CountdownTile({ value, label }: { value: number; label: string }) {
   );
 }
 
-// The live or next round, pinned above the cards with a countdown to its
+// The live or next round, pinned above each layout with a countdown to its
 // next session.
 function NextRoundStrip({
   round,
@@ -851,18 +850,12 @@ function NextRoundStrip({
   now,
   fmt,
   year,
-  onShowCard,
-  onShowOnMap,
-  onShowCalendar,
 }: {
   round: ScheduleRound;
   nextSession: Session | null;
   now: number;
   fmt: TimeFormatter;
   year: number;
-  onShowCard: () => void;
-  onShowOnMap: () => void;
-  onShowCalendar: () => void;
 }) {
   const { meeting } = round;
   const flagUrl = toSafeExternalUrl(meeting.country_flag);
@@ -945,20 +938,6 @@ function NextRoundStrip({
         </div>
       )}
 
-      <div className="flex gap-1.5">
-        <button type="button" onClick={onShowCard} className={buttonClass("quiet", "sm", "h-8")}>
-          <ArrowDown aria-hidden="true" className="h-3 w-3" />
-          Session times
-        </button>
-        <button type="button" onClick={onShowOnMap} className={buttonClass("quiet", "sm", "h-8")}>
-          <Earth aria-hidden="true" className="h-3 w-3" />
-          Map
-        </button>
-        <button type="button" onClick={onShowCalendar} className={buttonClass("quiet", "sm", "h-8")}>
-          <CalendarDays aria-hidden="true" className="h-3 w-3" />
-          Calendar
-        </button>
-      </div>
     </section>
   );
 }
@@ -1063,26 +1042,6 @@ export default function Schedule() {
       ?.scrollIntoView?.({ block: "nearest", inline: "nearest" });
   }, [calendarSelectedRound, view]);
 
-  // Layout and round change together in one URL update; two separate
-  // setters would each start from the same params and drop the other.
-  const [, setSearchParams] = useSearchParams();
-  const showRoundInLayout = (layout: "map" | "calendar", meetingKey: number) => {
-    trackEvent("schedule_view_changed", { view: layout, year });
-    setSetting("scheduleViewMode", layout);
-    setSearchParams(
-      (prev) => {
-        const params = new URLSearchParams(prev);
-        params.set("layout", layout);
-        params.set("round", String(meetingKey));
-        replaceHistorySearchParams(params);
-        return params;
-      },
-      { replace: true },
-    );
-  };
-  const showRoundOnMap = (meetingKey: number) => showRoundInLayout("map", meetingKey);
-  const showRoundOnCalendar = (meetingKey: number) =>
-    showRoundInLayout("calendar", meetingKey);
   const changeView = (next: ViewMode) => {
     if (next === view) return;
     trackEvent("schedule_view_changed", { view: next, year });
@@ -1164,6 +1123,16 @@ export default function Schedule() {
         </div>
       </div>
 
+      {!isError && nextRound && (
+        <NextRoundStrip
+          round={nextRound}
+          nextSession={nextSession}
+          now={now}
+          fmt={fmt}
+          year={year}
+        />
+      )}
+
       {isError ? (
         <div className="flex-1">
           <ErrorMessage message="Failed to load the season calendar" />
@@ -1206,30 +1175,6 @@ export default function Schedule() {
           )}
         </div>
       ) : (
-        <>
-          {nextRound && (
-            <NextRoundStrip
-              round={nextRound}
-              nextSession={nextSession}
-              now={now}
-              fmt={fmt}
-              year={year}
-              onShowCard={() => {
-                trackEvent("schedule_next_round_action", { action: "session_times" });
-                listRef.current
-                  ?.querySelector(`[data-meeting-key="${nextRound.meeting.meeting_key}"]`)
-                  ?.scrollIntoView?.({ block: "start", behavior: "smooth" });
-              }}
-              onShowOnMap={() => {
-                trackEvent("schedule_next_round_action", { action: "map" });
-                showRoundOnMap(nextRound.meeting.meeting_key);
-              }}
-              onShowCalendar={() => {
-                trackEvent("schedule_next_round_action", { action: "calendar" });
-                showRoundOnCalendar(nextRound.meeting.meeting_key);
-              }}
-            />
-          )}
           <div ref={listRef} className="md:min-h-0 md:flex-1 md:overflow-auto">
             <div className="grid gap-3 p-3 sm:p-4 md:grid-cols-2 xl:grid-cols-3">
               {schedule.rounds.map((round) => (
@@ -1247,7 +1192,6 @@ export default function Schedule() {
               ))}
             </div>
           </div>
-        </>
       )}
 
       {displayedResult && (

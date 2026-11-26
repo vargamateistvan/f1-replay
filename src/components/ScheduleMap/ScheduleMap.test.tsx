@@ -95,6 +95,23 @@ describe("ScheduleMap", () => {
     expect(screen.getByText("Season travel")).toBeInTheDocument();
   });
 
+  it("opens on the whole world even when all rounds are close together", () => {
+    const { container } = render(
+      <ScheduleMap
+        rounds={ROUNDS.filter((round) => round.meeting.meeting_key === 4)}
+        selectedKey={4}
+        onSelect={vi.fn()}
+        renderRound={(round) => <h2>{round.meeting.meeting_name}</h2>}
+      />,
+    );
+    const [x, y, width, height] = container.querySelector("svg")!
+      .getAttribute("viewBox")!.split(" ").map(Number);
+    expect(x).toBeLessThanOrEqual(0);
+    expect(x + width).toBeGreaterThanOrEqual(360);
+    expect(y).toBeLessThanOrEqual(15);
+    expect(y + height).toBeGreaterThanOrEqual(146);
+  });
+
   it("selects a round from its marker and shows its card", () => {
     const { onSelect } = setup();
     const marker = screen.getByRole("button", { name: /Round 2: Australian/ });
@@ -170,6 +187,7 @@ describe("ScheduleMap", () => {
 
   it("zooms with the buttons and returns to the whole season", () => {
     const { container } = setup();
+    fireEvent.click(screen.getByRole("button", { name: "Show the whole season" }));
     const season = viewBoxWidth(container);
     fireEvent.click(screen.getByRole("button", { name: "Zoom in" }));
     expect(viewBoxWidth(container)).toBeLessThan(season);

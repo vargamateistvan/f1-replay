@@ -139,35 +139,18 @@ describe("Schedule page", () => {
     expect(within(strip).getByText("05")).toBeInTheDocument();
   });
 
-  it("opens the next round on the map from the strip", async () => {
-    setup();
-    const strip = screen.getByRole("region", { name: "Up next" });
-    fireEvent.click(within(strip).getByRole("button", { name: "Map" }));
-    expect(screen.getByRole("radio", { name: "Map" })).toHaveAttribute("aria-checked", "true");
-    expect(mockTrackEvent).toHaveBeenCalledWith("schedule_next_round_action", {
-      action: "map",
-    });
-    const panel = await screen.findByRole("complementary", { name: "Selected round" });
-    expect(
-      within(panel).getByRole("heading", { level: 2, name: "Japanese Grand Prix" }),
-    ).toBeInTheDocument();
-  });
-
-  it("opens the next round in the calendar from the strip", () => {
-    setup();
-    const strip = screen.getByRole("region", { name: "Up next" });
-    fireEvent.click(within(strip).getByRole("button", { name: "Calendar" }));
-    expect(screen.getByRole("radio", { name: "Calendar" })).toHaveAttribute(
-      "aria-checked",
-      "true",
-    );
-    expect(mockTrackEvent).toHaveBeenCalledWith("schedule_next_round_action", {
-      action: "calendar",
-    });
-    expect(screen.getByLabelText("Current search")).toHaveTextContent(
-      "layout=calendar&round=2",
-    );
-  });
+  it.each(["cards", "map", "calendar"] as const)(
+    "shows the next round banner in the %s layout",
+    (layout) => {
+      setup(`/schedule?year=2026&layout=${layout}`);
+      const strip = screen.getByRole("region", { name: "Up next" });
+      expect(strip).toHaveTextContent("Japanese Grand Prix");
+      expect(within(strip).getByRole("timer")).toHaveAccessibleName("Practice 1 in 5d 0h");
+      expect(within(strip).queryByRole("button", { name: "Session times" })).toBeNull();
+      expect(within(strip).queryByRole("button", { name: "Map" })).toBeNull();
+      expect(within(strip).queryByRole("button", { name: "Calendar" })).toBeNull();
+    },
+  );
 
   it("groups races by month and updates the selected round in the URL", () => {
     setup();
@@ -542,13 +525,6 @@ describe("Schedule page", () => {
     useSettings.getState().setSetting("scheduleViewMode", saved);
     setup(`/schedule?year=2026&layout=${layout}`);
     expect(screen.getByRole("radio", { name: label })).toHaveAttribute("aria-checked", "true");
-  });
-
-  it("saves map view when opening a round from the upcoming strip", () => {
-    setup();
-    fireEvent.click(within(screen.getByRole("region", { name: "Up next" })).getByRole("button", { name: "Map" }));
-    expect(JSON.parse(localStorage.getItem("f1-replay-settings")!).state.scheduleViewMode).toBe("map");
-    expect(screen.getByLabelText("Current search")).toHaveTextContent("round=2");
   });
 
   it("persists both time choices across visits without a time parameter", async () => {
