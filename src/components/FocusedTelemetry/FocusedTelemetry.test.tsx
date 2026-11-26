@@ -35,7 +35,11 @@ vi.mock("@/hooks/useCarDataForLap", () => ({
 }));
 
 vi.mock("@/components/TelemetryChart/TelemetryChart", () => ({
-  TelemetryChart: ({ title }: { title: string }) => <div>{title}</div>,
+  TelemetryChart: ({ title, series, deltaReferenceColor }: {
+    title: string;
+    series: Array<{ color: string }>;
+    deltaReferenceColor?: string;
+  }) => <div data-colors={series.map((item) => item.color).join(",")} data-reference-color={deltaReferenceColor}>{title}</div>,
 }));
 
 const driverA: Driver = {
@@ -203,5 +207,48 @@ describe("FocusedTelemetry", () => {
       screen.getByRole("button", { name: "Clear comparison driver" }),
     );
     expect(onClearCompare).toHaveBeenCalled();
+  });
+
+  it("uses the same secondary team color for every comparison chart", () => {
+    state.lapData = [
+      { distM: 0, timeS: 0, speed: 200, throttle: 50 },
+      { distM: 100, timeS: 2, speed: 210, throttle: 60 },
+    ];
+    state.compareLapData = [
+      { distM: 0, timeS: 0, speed: 198, throttle: 48 },
+      { distM: 100, timeS: 3, speed: 208, throttle: 58 },
+    ];
+
+    const { rerender } = render(
+      <FocusedTelemetry
+        sessionKey={1}
+        driver={driverA}
+        compareDriver={{ ...driverB, team_colour: driverA.team_colour }}
+        sessionStartMs={0}
+        driverLap={10}
+        compareDriverLap={10}
+        onClear={vi.fn()}
+      />,
+    );
+    const speed = screen.getByText(/Speed \(km\/h\) · L10 vs L10/);
+    const throttle = screen.getByText("Throttle");
+    const delta = screen.getByText("LEC ahead (+)");
+    expect(speed).toHaveAttribute("data-colors", "#3671C6,#a5bfe5");
+    expect(throttle).toHaveAttribute("data-colors", "#3671C6,#a5bfe5");
+    expect(delta).toHaveAttribute("data-colors", "#a5bfe5");
+    expect(delta).toHaveAttribute("data-reference-color", "#3671C6");
+
+    rerender(
+      <FocusedTelemetry
+        sessionKey={1}
+        driver={driverA}
+        compareDriver={driverB}
+        sessionStartMs={0}
+        driverLap={10}
+        compareDriverLap={10}
+        onClear={vi.fn()}
+      />,
+    );
+    expect(screen.getByText("LEC ahead (+)")).toHaveAttribute("data-colors", "#E8002D");
   });
 });

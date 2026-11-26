@@ -2,7 +2,6 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { act, fireEvent, render, screen } from "@testing-library/react";
 import type uPlot from "uplot";
 import { TelemetryChart } from "@/components/TelemetryChart/TelemetryChart";
-import { TOKEN_HEX } from "@/designTokens";
 
 const uPlotState = vi.hoisted(() => ({
   instances: [] as Array<{
@@ -185,26 +184,6 @@ describe("TelemetryChart", () => {
     expect(ctx.moveTo).toHaveBeenCalledWith(80, 120);
     expect(ctx.lineTo).toHaveBeenCalledWith(480, 120);
     expect(ctx.stroke).toHaveBeenCalledOnce();
-  });
-
-  it("uses distinct delta colors when drivers share a team color", () => {
-    render(
-      <TelemetryChart
-        title="Delta"
-        xData={[0, 100]}
-        series={[
-          { label: "B", color: "#ABCDEF", data: [0, 1] },
-          { label: "C", color: "#abcdef", data: [0, -1] },
-        ]}
-        deltaReferenceColor="#abcdef"
-      />,
-    );
-
-    const options = uPlotState.instances[0]!.options;
-    expect(options.series[1]!.stroke).toBe(TOKEN_HEX.f1red);
-    expect(options.series[2]!.stroke).toBe(TOKEN_HEX.blue);
-    expect(screen.getByTitle("B series").querySelector("span"))
-      .toHaveStyle({ backgroundColor: TOKEN_HEX.f1red });
   });
 
   it("syncs x zoom between chart instances", () => {

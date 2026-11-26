@@ -26,7 +26,7 @@ import {
 import { useDrivers, useLaps, useSessions, useStints, useWeather } from "@/hooks/useSession";
 import { useNumberParam, useStringParam } from "@/hooks/useSearchParamState";
 import { TELEMETRY_CORNER_ZONE_SETTINGS, useSettings } from "@/stores/settings";
-import { teamColor } from "@/utils/color";
+import { teamColor, telemetryComparisonColors } from "@/utils/color";
 import { computeDelta, resampleToAxis, smooth } from "@/utils/telemetry";
 import {
   shortDistanceUnitLabel,
@@ -519,13 +519,17 @@ export default function Telemetry() {
     [driverByNumber],
   );
 
-  const colorFor = useCallback(
-    (num: number | null, i: number) =>
-      teamColor(
-        num !== null ? driverByNumber.get(num)?.team_colour : undefined,
-        SLOT_COLORS[i],
+  const comparisonColors = useMemo(
+    () => telemetryComparisonColors(
+      [driverA, driverB, driverC].map((num, i) =>
+        num === null ? null : teamColor(driverByNumber.get(num)?.team_colour, SLOT_COLORS[i]),
       ),
-    [driverByNumber],
+    ),
+    [driverA, driverB, driverC, driverByNumber],
+  );
+  const colorFor = useCallback(
+    (_num: number | null, i: number) => comparisonColors[i] ?? SLOT_COLORS[i]!,
+    [comparisonColors],
   );
 
   type SlotKey = "a" | "b" | "c";
@@ -1222,7 +1226,6 @@ export default function Telemetry() {
       });
 
     return out;
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
     dataA.data,
     dataBResampled,
@@ -1230,7 +1233,8 @@ export default function Telemetry() {
     driverA,
     driverB,
     driverC,
-    driverByNumber,
+    acr,
+    colorFor,
   ]);
 
   const series = useCallback(
@@ -1295,14 +1299,14 @@ export default function Telemetry() {
       });
 
     return out;
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
     dataA.data,
     dataBResampled,
     dataCResampled,
     driverB,
     driverC,
-    driverByNumber,
+    acr,
+    colorFor,
   ]);
 
   const finishDeltaB = useMemo(() => {
@@ -1402,7 +1406,6 @@ export default function Telemetry() {
     });
 
     return rows;
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
     driverA,
     driverB,
@@ -1411,7 +1414,8 @@ export default function Telemetry() {
     selectedLapB,
     selectedLapC,
     lapLookup,
-    driverByNumber,
+    acr,
+    colorFor,
     stints.data,
   ]);
 

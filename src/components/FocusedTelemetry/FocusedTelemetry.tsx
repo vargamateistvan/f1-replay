@@ -7,7 +7,7 @@ import { useCarDataForLap } from "@/hooks/useCarDataForLap";
 import { chunkIndexFor } from "@/hooks/useLocationChunks";
 import { TelemetryChart } from "@/components/TelemetryChart/TelemetryChart";
 import { resampleToAxis, computeDelta, smooth } from "@/utils/telemetry";
-import { teamColor } from "@/utils/color";
+import { teamColor, telemetryComparisonColors } from "@/utils/color";
 import { lastAtOrBefore } from "@/utils/sortedTime";
 import { useSettings } from "@/stores/settings";
 import { speedUnitLabel, toDisplaySpeed } from "@/utils/units";
@@ -110,7 +110,8 @@ export function FocusedTelemetry({
   );
 
   const color = teamColor(driver?.team_colour, "#ffffff");
-  const compareColor = teamColor(compareDriver?.team_colour, TOKEN_HEX.blue);
+  const compareTeamColor = teamColor(compareDriver?.team_colour, TOKEN_HEX.blue);
+  const compareColor = telemetryComparisonColors([color, compareTeamColor])[1]!;
 
   const compareTelemetry = useMemo(() => {
     if (!lapData.data?.length || !compareLapData.data?.length || !compareDriver)

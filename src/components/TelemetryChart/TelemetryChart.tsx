@@ -1,4 +1,4 @@
-import { memo, useEffect, useMemo, useRef, useState } from "react";
+import { memo, useEffect, useRef, useState } from "react";
 import uPlot from "uplot";
 import "uplot/dist/uPlot.min.css";
 import { ErrorMessage } from "@/components/ErrorMessage";
@@ -230,20 +230,7 @@ function TelemetryChartImpl({
     max: number;
   } | null>(null);
   const [plotBounds, setPlotBounds] = useState({ left: 0, width: 0 });
-  const chartSeries = useMemo(() => {
-    if (!deltaReferenceColor) return series;
-    const used = new Set([deltaReferenceColor.toLowerCase()]);
-    const fallback = [TOKEN_HEX.f1red, TOKEN_HEX.blue, TOKEN_HEX.green, TOKEN_HEX.orange];
-    return series.map((line) => {
-      const color = used.has(line.color.toLowerCase())
-        ? fallback.find((candidate) => !used.has(candidate.toLowerCase()))
-        : line.color;
-      if (!color) throw new Error("Not enough distinct delta chart colors");
-      used.add(color.toLowerCase());
-      return color === line.color ? line : { ...line, color };
-    });
-  }, [series, deltaReferenceColor]);
-  const showSeriesChips = chartSeries.length > 0;
+  const showSeriesChips = series.length > 0;
 
   const broadcastScale = (min: number, max: number) => {
     if (typeof window === "undefined") return;
@@ -336,7 +323,7 @@ function TelemetryChartImpl({
         drag: { x: true, y: false, setScale: true },
       },
       legend: deltaReferenceColor
-        ? { markers: { fill: (_u, index) => chartSeries[index - 1]!.color } }
+        ? { markers: { fill: (_u, index) => series[index - 1]!.color } }
         : undefined,
       scales: {
         x: { time: false },
@@ -380,7 +367,7 @@ function TelemetryChartImpl({
             return `${formatted} ${distanceUnit}`;
           },
         },
-        ...chartSeries.map((s) => ({
+        ...series.map((s) => ({
           label: s.label,
           stroke: s.color,
           width: s.width ?? 1.8,
@@ -437,7 +424,7 @@ function TelemetryChartImpl({
 
     const data: uPlot.AlignedData = [
       new Float64Array(xData),
-      ...chartSeries.map((s) => new Float64Array(s.data)),
+      ...series.map((s) => new Float64Array(s.data)),
     ];
 
     const full = {
@@ -500,7 +487,7 @@ function TelemetryChartImpl({
     };
   }, [
     xData,
-    chartSeries,
+    series,
     height,
     title,
     yMin,
@@ -648,7 +635,7 @@ function TelemetryChartImpl({
 
           {showSeriesChips && (
             <div className="ml-2 hidden items-center gap-1 lg:flex">
-              {chartSeries.map((line, idx) => (
+              {series.map((line, idx) => (
                 <span
                   key={`${line.label}-${idx}`}
                   className="inline-flex items-center gap-1 rounded-sm border border-panel/90 bg-track/80 px-1.5 py-0.5 text-tiny font-bold uppercase tracking-widest text-fg/85"
@@ -676,7 +663,7 @@ function TelemetryChartImpl({
 
       {!interactiveControls && showSeriesChips && (
         <div className="flex flex-wrap items-center gap-1 border-b border-panel/80 bg-black/15 px-2 py-1.5">
-          {chartSeries.map((line, idx) => (
+          {series.map((line, idx) => (
             <span
               key={`${line.label}-${idx}`}
               className="inline-flex items-center gap-1 rounded-sm border border-panel/90 bg-track/80 px-1.5 py-0.5 text-tiny font-bold uppercase tracking-widest text-fg/85"

@@ -816,6 +816,8 @@ export const TELEMETRY_SHIFT_LIGHTS = 15;
 export const TELEMETRY_SHIFT_LIGHTS_MIN_RPM = 8_500;
 /** Span of recent speed history drawn in the HUD speed trace. */
 export const TELEMETRY_TRACE_WINDOW_MS = 15_000;
+/** Mix amounts for distinguishing repeated team colours in telemetry comparisons. */
+export const TELEMETRY_TEAM_COLOR_MIX = [0.55, 0.75] as const;
 /** OpenF1 car_data `drs` value meaning "eligible / detected" (≥ 10 is open). */
 export const DRS_ELIGIBLE_VALUE = 8;
 /** OpenF1 car_data `drs` value from which the flap is open. */
