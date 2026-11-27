@@ -91,6 +91,7 @@ export interface AppSettings {
   timingShowMinisectors: boolean;
   timingRaceControlHistoryEnabled: boolean;
   timingPitHistoryEnabled: boolean;
+  timingDriverHistoryEnabled: boolean;
   // Driver Tracker
   trackerTimingTelemetry: boolean;
   trackerTimingCompactColumn: boolean;
@@ -258,6 +259,7 @@ export const SETTINGS_DEFAULTS: AppSettings = {
   timingShowMinisectors: true,
   timingRaceControlHistoryEnabled: true,
   timingPitHistoryEnabled: true,
+  timingDriverHistoryEnabled: true,
   trackerTimingTelemetry: true,
   trackerTimingCompactColumn: true,
   trackerTimingMobileCarData: false,

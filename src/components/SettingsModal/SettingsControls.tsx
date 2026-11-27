@@ -621,6 +621,12 @@ export function SettingsBody({
                 checked={settings.timingPitHistoryEnabled}
                 onChange={toggle("timingPitHistoryEnabled")}
               />
+              <SettingRow
+                label="Driver event history dialog"
+                description="Show race control, pits, overtakes, radio and best laps from driver names"
+                checked={settings.timingDriverHistoryEnabled}
+                onChange={toggle("timingDriverHistoryEnabled")}
+              />
               {!isMobileViewport && (
                 <SettingRow
                   label="Timing box live telemetry"

@@ -38,6 +38,7 @@ interface Props {
   readonly phaseLookup?: (ms: number) => number | null;
   readonly onJump?: (ms: number) => void;
   readonly compact?: boolean;
+  readonly showLapHeaders?: boolean;
 }
 
 type VisiblePitEntry = {
@@ -65,6 +66,7 @@ export function PitFeed({
   phaseLookup = () => null,
   onJump,
   compact = false,
+  showLapHeaders = true,
 }: Props) {
   const showCsvExportButtons = useSettings((s) => s.showCsvExportButtons);
   const [renderLimit, setRenderLimit] = useState(120);
@@ -182,9 +184,11 @@ export function PitFeed({
           key={`${group.lapNumber ?? "session"}-${groupIndex}`}
           className={COMMENTARY_GROUP_CLASS}
         >
-          <div className={COMMENTARY_GROUP_HEADER_CLASS}>
-            {commentaryGroupLabel(sessionType, group.lapNumber)}
-          </div>
+          {showLapHeaders && (
+            <div className={COMMENTARY_GROUP_HEADER_CLASS}>
+              {commentaryGroupLabel(sessionType, group.lapNumber)}
+            </div>
+          )}
           <div className={COMMENTARY_GROUP_ITEMS_CLASS}>
             {group.entries.map(({ entry, dateMs }, idx) => {
               const driver = driverByNumber.get(entry.driver_number);
@@ -275,7 +279,7 @@ export function PitFeed({
   );
 }
 
-function PitBattleLine({
+export function PitBattleLine({
   battle,
   driverByNumber,
 }: {

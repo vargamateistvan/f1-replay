@@ -28,9 +28,24 @@ const drivers: Driver[] = [
   },
 ] as unknown as Driver[];
 
+function historyLap(lapNumber: number, seconds: number, driverNumber = 1): Lap {
+  return {
+    driver_number: driverNumber, lap_number: lapNumber,
+    date_start: new Date(Date.parse("2024-01-01T00:00:00Z") + seconds * 1000).toISOString(),
+    lap_duration: null, is_pit_out_lap: false, meeting_key: 1, session_key: 1,
+    duration_sector_1: null, duration_sector_2: null, duration_sector_3: null,
+    segments_sector_1: null, segments_sector_2: null, segments_sector_3: null,
+    i1_speed: null, i2_speed: null, st_speed: null,
+  };
+}
+
 describe("LiveTiming", () => {
   beforeEach(() => {
-    useSettings.setState({ metricSystem: "metric", timingPitHistoryEnabled: true });
+    useSettings.setState({
+      metricSystem: "metric",
+      timingPitHistoryEnabled: true,
+      timingDriverHistoryEnabled: true,
+    });
   });
 
   it("covers loading and empty states", () => {
@@ -69,6 +84,127 @@ describe("LiveTiming", () => {
 
     expect(screen.getAllByText("VER").length).toBeGreaterThan(0);
     expect(screen.getAllByText("LEC").length).toBeGreaterThan(0);
+  });
+
+  it("shows elapsed driver events on hover and preserves click selection", () => {
+    const onSelectDriver = vi.fn();
+    const date = "2024-01-01T00:01:00Z";
+    render(
+      <LiveTiming
+        drivers={drivers} positions={[]} intervals={[]} laps={[historyLap(10, 0)]}
+        sessionStartMs={Date.parse("2024-01-01T00:00:00Z")}
+        sessionTimeMs={120_000}
+        onSelectDriver={onSelectDriver}
+        pits={[{
+          date, driver_number: 1, lap_number: 10, meeting_key: 1,
+          session_key: 1, stop_duration: 2.4, lane_duration: 23, pit_duration: null,
+        }]}
+        overtakes={[{
+          date, overtaking_driver_number: 1, overtaken_driver_number: 16,
+          position: 1, meeting_key: 1, session_key: 1,
+        }, {
+          date, overtaking_driver_number: 16, overtaken_driver_number: 1,
+          position: 1, meeting_key: 1, session_key: 1,
+        }]}
+        raceControl={[{
+          date, message: "CAR 1 (VER) INCIDENT NOTED",
+          driver_number: 1, category: "Other", flag: null, lap_number: 10,
+          meeting_key: 1, session_key: 1, scope: null, sector: null, qualifying_phase: null,
+        }]}
+        radios={[{
+          date, driver_number: 1, meeting_key: 1, session_key: 1,
+          recording_url: "https://example.com/radio.mp3",
+        }, {
+          date: "2024-01-01T00:03:00Z", driver_number: 1, meeting_key: 1, session_key: 1,
+          recording_url: "https://example.com/future.mp3",
+        }]}
+      />,
+    );
+    const trigger = screen.getByRole("button", { name: "Driver VER: show events" });
+    fireEvent.mouseEnter(trigger);
+    const dialog = screen.getByRole("dialog", { name: "Events for VER" });
+    expect(within(dialog).getByText("CAR 1 (VER) INCIDENT NOTED")).toBeInTheDocument();
+    expect(within(dialog).getByText("Lap 10")).toBeInTheDocument();
+    expect(within(dialog).getByText("Overtook")).toBeInTheDocument();
+    expect(within(dialog).getByText("Passed by")).toBeInTheDocument();
+    expect(within(dialog).getAllByRole("button", { name: /Play team radio/ })).toHaveLength(1);
+    expect(dialog.querySelector("audio")).toBeNull();
+    fireEvent.click(within(dialog).getByRole("button", { name: /Play team radio/ }));
+    expect(dialog.querySelector("audio")).toHaveAttribute("src", "https://example.com/radio.mp3");
+    fireEvent.error(dialog.querySelector("audio")!);
+    expect(within(dialog).getByText("Recording unavailable")).toBeInTheDocument();
+    fireEvent.click(trigger);
+    expect(onSelectDriver).toHaveBeenCalledExactlyOnceWith(1);
+    fireEvent.keyDown(document, { key: "Escape" });
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    fireEvent.focus(trigger);
+    expect(screen.getByRole("dialog", { name: "Events for VER" })).toBeInTheDocument();
+    fireEvent.pointerDown(document.body);
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+  });
+
+  it.each([
+    [87.453, "1:27:453"],
+    [59.9996, "1:00:000"],
+    [8.007, "0:08:007"],
+  ])("formats driver-event lap time %s as %s", (duration, formatted) => {
+    render(
+      <LiveTiming
+        drivers={drivers} positions={[]} intervals={[]} pits={[]}
+        laps={[{ ...historyLap(1, 0), lap_duration: duration }]}
+        sessionStartMs={Date.parse("2024-01-01T00:00:00Z")} sessionTimeMs={120_000}
+      />,
+    );
+    fireEvent.mouseEnter(screen.getByRole("button", { name: "Driver VER: show events" }));
+    const dialog = screen.getByRole("dialog", { name: "Events for VER" });
+    expect(within(dialog).getByText(`Lap 1 · ${formatted}`)).toBeInTheDocument();
+  });
+
+  it("disables driver history without disabling driver selection", () => {
+    useSettings.setState({ timingDriverHistoryEnabled: false });
+    const onSelectDriver = vi.fn();
+    render(
+      <LiveTiming
+        drivers={drivers} positions={[]} intervals={[]} laps={[]} pits={[]}
+        sessionStartMs={Date.parse("2024-01-01T00:00:00Z")}
+        sessionTimeMs={120_000} onSelectDriver={onSelectDriver}
+      />,
+    );
+    expect(screen.queryByRole("button", { name: /show events/ })).not.toBeInTheDocument();
+    fireEvent.click(screen.getAllByText("VER")[0]);
+    expect(onSelectDriver).toHaveBeenCalledExactlyOnceWith(1);
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+  });
+
+  it("groups driver events by lap with one divider per group and a Session fallback", () => {
+    render(
+      <LiveTiming
+        drivers={drivers} positions={[]} intervals={[]}
+        laps={[historyLap(10, 10), historyLap(11, 90), historyLap(20, 0, 16)]}
+        sessionStartMs={Date.parse("2024-01-01T00:00:00Z")} sessionTimeMs={120_000}
+        pits={[{
+          date: "2024-01-01T00:01:00Z", driver_number: 1, lap_number: 10,
+          meeting_key: 1, session_key: 1, stop_duration: 2.4,
+          lane_duration: 23, pit_duration: null,
+        }]}
+        radios={[5, 70, 95, 180].map((seconds) => ({
+          date: new Date(Date.parse("2024-01-01T00:00:00Z") + seconds * 1000).toISOString(),
+          driver_number: 1, meeting_key: 1, session_key: 1,
+          recording_url: "https://example.com/radio.mp3",
+        }))}
+      />,
+    );
+    fireEvent.mouseEnter(screen.getByRole("button", { name: "Driver VER: show events" }));
+    const dialog = screen.getByRole("dialog", { name: "Events for VER" });
+    const lap11 = within(dialog).getByText("Lap 11");
+    const lap10 = within(dialog).getByText("Lap 10");
+    const session = within(dialog).getByText("Session");
+    expect(lap11.compareDocumentPosition(lap10) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(lap10.compareDocumentPosition(session) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(within(lap10.parentElement!).getAllByText("Team radio")).toHaveLength(1);
+    expect(within(lap10.parentElement!).getByText("Stop 2.4")).toBeInTheDocument();
+    expect(within(dialog).queryByText("Lap 20")).not.toBeInTheDocument();
+    expect(within(dialog).getAllByText("Team radio")).toHaveLength(3);
   });
 
   it.each(["Pit count", "Tyres"])(

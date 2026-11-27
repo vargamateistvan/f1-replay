@@ -69,6 +69,10 @@ The replay tracker defaults to Track on phones and Timing on desktop when `ttab`
 
 Settings → Timing includes independent race-control and pit/tyre history dialog toggles (`timingRaceControlHistoryEnabled` / `timingPitHistoryEnabled`), both persisted and on by default. Disabling race-control history preserves the ticker's seek action; disabling pit history restores plain timing cells.
 
+The driver-column dialog uses `timingDriverHistoryEnabled` (Settings → Timing, default on). `LiveTiming/TimingHistoryPopover.tsx` shares portalled hover/focus/tap behavior between `DriverPitHistory` and `DriverEventHistory`; driver clicks still select the driver. `utils/driverEvents.ts` combines driver-specific race control, pits, overtakes, radio and completed personal/session-best laps at the playhead, excluding deleted laps and future events. Radio playback uses `RadioAudio` and stops on dismissal. `extractInvolvedDriverNumbers` is shared with timing penalty markers.
+
+Driver event histories use sticky commentary-style lap dividers; radio and overtake laps are inferred from the hovered driver's lap starts, with "Session" for unknown laps. Embedded pit rows omit their own lap headers to avoid duplicates. Lap durations use `m:ss:mmm` (unpadded minutes, two-digit seconds, three-digit milliseconds).
+
 Pit-history dialogs receive the same playhead-limited undercut/overcut battles as the elapsed pit commentary feed, even when that tab is closed or commentary is in All mode. Verdicts stay pending until resolved at the playhead.
 
 Quick-settings dismissal uses outside pointer presses and focus entering an outside control, not blur alone: iOS can clear focus without a new focus target before delivering a button tap.

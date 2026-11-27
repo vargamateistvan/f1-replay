@@ -11,6 +11,8 @@ import type {
   StartingGrid,
   Stint,
   CarData,
+  Overtake,
+  TeamRadio,
 } from "@/api/types";
 import { teamColor } from "@/utils/color";
 import { laneDuration } from "@/utils/pit";
@@ -51,6 +53,8 @@ import { lastAtOrBefore, upperBoundByValue } from "@/utils/sortedTime";
 import { SectorBar, type SectorTier } from "./SectorBar";
 import { TyreBadge } from "./TyreBadge";
 import { DriverPitHistory } from "./DriverPitHistory";
+import { DriverEventHistory } from "./DriverEventHistory";
+import { extractInvolvedDriverNumbers } from "@/utils/driverEvents";
 import { DriverHeadshot } from "@/components/DriverHeadshot";
 import { TOKEN_HEX } from "@/designTokens";
 import type { PitBattle } from "@/utils/undercut";
@@ -61,6 +65,8 @@ interface Props {
   readonly intervals: Interval[];
   readonly pits: Pit[];
   readonly pitBattles?: PitBattle[];
+  readonly overtakes?: Overtake[];
+  readonly radios?: TeamRadio[];
   readonly laps: Lap[];
   readonly raceControl?: RaceControl[];
   readonly stints?: Stint[];
@@ -587,25 +593,14 @@ interface PenaltyMarkerState {
 
 type TimingCellTrend = "green" | "red";
 
-function extractInvolvedDriverNumbers(description: string): number[] {
-  const sections = [...description.matchAll(/\bCARS?\b([^\-.]*)/gi)];
-  if (sections.length === 0) return [];
-  const found = new Set<number>();
-  for (const section of sections) {
-    const matches = section[1]?.match(/\b\d{1,3}\b/g) ?? [];
-    for (const value of matches) {
-      found.add(Number(value));
-    }
-  }
-  return [...found];
-}
-
 export function LiveTiming({
   drivers,
   positions,
   intervals,
   pits,
   pitBattles,
+  overtakes = [],
+  radios = [],
   laps,
   raceControl = [],
   stints,
@@ -2312,97 +2307,113 @@ export function LiveTiming({
                     <td
                       className={`${mobileDriverColumnClass} ${dense ? driverCellCompactClass : driverCellClass} align-middle`}
                     >
-                      <div>
-                        <span className="flex items-center gap-1 sm:gap-1">
-                          <DriverHeadshot
-                            driver={driver}
-                            accent={color}
-                            size={dense ? "xxs" : "xs"}
-                          />
-                          {/* Team colour bar */}
-                          <span
-                            className={`w-[2px] ${dense ? "h-3" : "h-4"} shrink-0 rounded-sm`}
-                            style={{ background: color }}
-                          />
-                          {/* Surname in CAPS */}
-                          <span
-                            className={`min-w-0 truncate font-bold ${dense ? "text-tiny min-[390px]:text-caption" : "text-caption min-[390px]:text-small"} tracking-wider min-[390px]:tracking-wider uppercase ${disabledColor ? "text-fg/50" : "text-fg"}`}
-                          >
-                            {showFullLastName ? (
-                              <>
-                                <span className="sm:hidden">
-                                  {mobileDriverLabel}
-                                </span>
-                                <span className="hidden sm:inline">
-                                  {driverLabel}
-                                </span>
-                              </>
-                            ) : (
-                              driverLabel
-                            )}
-                          </span>
-                        </span>
-
-                        {showTelemetry &&
-                          (!dense || showDenseMobileTelemetry) && (
-                            <div
-                              className={`grid grid-cols-2 gap-x-1.5 gap-y-0.5 font-mono tabular-nums sm:hidden ${dense ? "mt-0.5 text-micro leading-3.5" : "mt-1 text-tiny leading-4"}`}
+                      <DriverEventHistory
+                        driverNumber={num}
+                        drivers={drivers}
+                        raceControl={raceControl}
+                        pits={pits}
+                        pitBattles={pitBattles}
+                        stints={stints ?? []}
+                        laps={laps}
+                        overtakes={overtakes}
+                        radios={radios}
+                        sessionStartMs={sessionStartMs}
+                        sessionTimeMs={sessionTimeMs}
+                        lapStartCutoffMs={untimedFromAbs - sessionStartMs}
+                        onSelectDriver={onSelectDriver}
+                      >
+                        <span className="block min-w-0">
+                          <span className="flex items-center gap-1 sm:gap-1">
+                            <DriverHeadshot
+                              driver={driver}
+                              accent={color}
+                              size={dense ? "xxs" : "xs"}
+                            />
+                            {/* Team colour bar */}
+                            <span
+                              className={`w-[2px] ${dense ? "h-3" : "h-4"} shrink-0 rounded-sm`}
+                              style={{ background: color }}
+                            />
+                            {/* Surname in CAPS */}
+                            <span
+                              className={`min-w-0 truncate font-bold ${dense ? "text-tiny min-[390px]:text-caption" : "text-caption min-[390px]:text-small"} tracking-wider min-[390px]:tracking-wider uppercase ${disabledColor ? "text-fg/50" : "text-fg"}`}
                             >
-                              {columns.speed && (
-                                <span className="inline-flex min-w-0 items-center gap-1 text-blue-fg">
-                                  <span className="text-blue-fg/70">
-                                    {speedUnitCompact}
+                              {showFullLastName ? (
+                                <>
+                                  <span className="sm:hidden">
+                                    {mobileDriverLabel}
                                   </span>
-                                  <span className="w-[3ch] text-right">
-                                    {speedDisplay}
+                                  <span className="hidden sm:inline">
+                                    {driverLabel}
                                   </span>
-                                </span>
+                                </>
+                              ) : (
+                                driverLabel
                               )}
-                              {columns.rpm && (
-                                <span className="inline-flex min-w-0 items-center gap-1 text-purple-fg">
-                                  <span className="text-purple-fg/70">RPM</span>
-                                  <span className="w-[5ch] text-right">
-                                    {rpmDisplay}
+                            </span>
+                          </span>
+
+                          {showTelemetry &&
+                            (!dense || showDenseMobileTelemetry) && (
+                              <span
+                                className={`grid grid-cols-2 gap-x-1.5 gap-y-0.5 font-mono tabular-nums sm:hidden ${dense ? "mt-0.5 text-micro leading-3.5" : "mt-1 text-tiny leading-4"}`}
+                              >
+                                {columns.speed && (
+                                  <span className="inline-flex min-w-0 items-center gap-1 text-blue-fg">
+                                    <span className="text-blue-fg/70">
+                                      {speedUnitCompact}
+                                    </span>
+                                    <span className="w-[3ch] text-right">
+                                      {speedDisplay}
+                                    </span>
                                   </span>
-                                </span>
-                              )}
-                              {columns.gear && (
-                                <span className="inline-flex min-w-0 items-center gap-1 text-yellow-fg">
-                                  <span className="text-yellow-fg/70">G</span>
-                                  <span className="w-[3ch] text-right">
-                                    {gearDisplay}
+                                )}
+                                {columns.rpm && (
+                                  <span className="inline-flex min-w-0 items-center gap-1 text-purple-fg">
+                                    <span className="text-purple-fg/70">RPM</span>
+                                    <span className="w-[5ch] text-right">
+                                      {rpmDisplay}
+                                    </span>
                                   </span>
-                                </span>
-                              )}
-                              {showDrs && columns.drs && (
-                                <span
-                                  className={`inline-flex min-w-0 items-center gap-1 ${car && (car.drs ?? 0) >= 10 ? "text-green-fg" : "text-muted"}`}
-                                >
-                                  <span className="text-muted/80">DRS</span>
-                                  <span className="w-[3ch] text-right">
-                                    {drsDisplay}
+                                )}
+                                {columns.gear && (
+                                  <span className="inline-flex min-w-0 items-center gap-1 text-yellow-fg">
+                                    <span className="text-yellow-fg/70">G</span>
+                                    <span className="w-[3ch] text-right">
+                                      {gearDisplay}
+                                    </span>
                                   </span>
-                                </span>
-                              )}
-                              {columns.thrBrk && (
-                                <span className="col-span-2 grid min-w-0 grid-cols-2 gap-x-1.5">
-                                  <MobilePedalMeter
-                                    label="T"
-                                    value={car ? car.throttle : null}
-                                    color={TOKEN_HEX.green}
-                                    labelClassName="text-green-fg"
-                                  />
-                                  <MobilePedalMeter
-                                    label="B"
-                                    value={car ? car.brake : null}
-                                    color={TOKEN_HEX.red}
-                                    labelClassName="text-red-fg"
-                                  />
-                                </span>
-                              )}
-                            </div>
-                          )}
-                      </div>
+                                )}
+                                {showDrs && columns.drs && (
+                                  <span
+                                    className={`inline-flex min-w-0 items-center gap-1 ${car && (car.drs ?? 0) >= 10 ? "text-green-fg" : "text-muted"}`}
+                                  >
+                                    <span className="text-muted/80">DRS</span>
+                                    <span className="w-[3ch] text-right">
+                                      {drsDisplay}
+                                    </span>
+                                  </span>
+                                )}
+                                {columns.thrBrk && (
+                                  <span className="col-span-2 grid min-w-0 grid-cols-2 gap-x-1.5">
+                                    <MobilePedalMeter
+                                      label="T"
+                                      value={car ? car.throttle : null}
+                                      color={TOKEN_HEX.green}
+                                      labelClassName="text-green-fg"
+                                    />
+                                    <MobilePedalMeter
+                                      label="B"
+                                      value={car ? car.brake : null}
+                                      color={TOKEN_HEX.red}
+                                      labelClassName="text-red-fg"
+                                    />
+                                  </span>
+                                )}
+                              </span>
+                            )}
+                        </span>
+                      </DriverEventHistory>
                     </td>
                   )}
 

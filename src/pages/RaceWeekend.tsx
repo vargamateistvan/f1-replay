@@ -353,6 +353,7 @@ export default function RaceWeekend() {
   const navigate = useNavigate();
   const openSettingsModal = useSettings((s) => s.openModal);
   const timingPitHistoryEnabled = useSettings((s) => s.timingPitHistoryEnabled);
+  const timingDriverHistoryEnabled = useSettings((s) => s.timingDriverHistoryEnabled);
   // Phones use the full-page settings route (like the bottom nav); desktop
   // opens the modal over the replay.
   const openSettingsTab = useCallback(
@@ -1010,10 +1011,10 @@ export default function RaceWeekend() {
   const showAllCommentary = commentaryTimeMode === "all";
   const showsPitFeed = activeCommentaryTab === "pits";
   const elapsedPitBattles = useMemo(
-    () => timingPitHistoryEnabled || (showsPitFeed && !showAllCommentary)
+    () => timingPitHistoryEnabled || timingDriverHistoryEnabled || (showsPitFeed && !showAllCommentary)
       ? pitBattlesFor(tSlow)
       : NO_PIT_BATTLES,
-    [timingPitHistoryEnabled, showsPitFeed, showAllCommentary, pitBattlesFor, tSlow],
+    [timingPitHistoryEnabled, timingDriverHistoryEnabled, showsPitFeed, showAllCommentary, pitBattlesFor, tSlow],
   );
   const feedPitBattles = useMemo(
     () =>
@@ -2301,6 +2302,8 @@ export default function RaceWeekend() {
 
   const timingTower = (
     <LiveTiming
+      overtakes={overtakes.data}
+      radios={teamRadio.data}
       pitBattles={elapsedPitBattles}
       drivers={drivers.data ?? []}
       positions={positions.data ?? []}
@@ -2370,6 +2373,8 @@ export default function RaceWeekend() {
   // Leaderboard view gets the same tower plus live car-data columns.
   const leaderboardTower = (
     <LiveTiming
+      overtakes={overtakes.data}
+      radios={teamRadio.data}
       pitBattles={elapsedPitBattles}
       drivers={drivers.data ?? []}
       positions={positions.data ?? []}

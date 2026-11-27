@@ -173,7 +173,7 @@ dimension** instead of relying on the built-in App version report:
 - `settings_changed`
   - Params: `setting_key`, `setting_value`
   - Trigger: setting mutation from controls
-  - Timing history dialogs use `timingRaceControlHistoryEnabled` and `timingPitHistoryEnabled` (both default on).
+  - Timing history dialogs use `timingRaceControlHistoryEnabled`, `timingPitHistoryEnabled` and `timingDriverHistoryEnabled` (all default on).
 - `settings_reset_defaults`
   - Params: none
   - Trigger: reset-to-defaults button

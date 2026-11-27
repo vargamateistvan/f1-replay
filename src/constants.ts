@@ -838,9 +838,9 @@ export const QUERY_PERSIST_GC_INTERVAL_MS = 24 * 60 * 60 * 1000;
 // ── Race control ticker (session info bar) ────────────────────────────────────
 /** A race control message counts as "new" (pulse dot, entrance flash) for this long. */
 export const RC_TICKER_FRESH_MS = 30_000;
-/** Grace period when moving from a timing cell into its pit-history panel. */
-export const PIT_HISTORY_CLOSE_DELAY_MS = 150;
-export const PIT_HISTORY_VIEWPORT_PAD = 12;
+/** Grace period when moving from a timing cell into its history panel. */
+export const TIMING_HISTORY_CLOSE_DELAY_MS = 150;
+export const TIMING_HISTORY_VIEWPORT_PAD = 12;
 
 // ── Event toasts ──────────────────────────────────────────────────────────────
 /** A forward jump (session ms) larger than this clears the toast queue instead of replaying it. */

@@ -77,7 +77,7 @@ describe("sector marker setting", () => {
 });
 
 describe("timing history settings", () => {
-  it.each(["timingRaceControlHistoryEnabled", "timingPitHistoryEnabled"] as const)(
+  it.each(["timingRaceControlHistoryEnabled", "timingPitHistoryEnabled", "timingDriverHistoryEnabled"] as const)(
     "defaults %s on for existing users and preserves a saved opt-out",
     async (key) => {
       useSettings.getState().reset();

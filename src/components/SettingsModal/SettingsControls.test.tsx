@@ -49,6 +49,7 @@ vi.mock("@/stores/settings", () => ({
     timingShowMinisectors: true,
     timingRaceControlHistoryEnabled: true,
     timingPitHistoryEnabled: true,
+    timingDriverHistoryEnabled: true,
     trackerTimingTelemetry: true,
     trackerTimingCompactColumn: false,
     trackerTimingMobileCarData: true,
@@ -439,6 +440,7 @@ describe("SettingsControls", () => {
     for (const [label, key] of [
       ["Race control history dialog", "timingRaceControlHistoryEnabled"],
       ["Pit stop history dialog", "timingPitHistoryEnabled"],
+      ["Driver event history dialog", "timingDriverHistoryEnabled"],
     ]) {
       const row = screen.getByText(label).parentElement!.parentElement!;
       const toggle = within(row).getByRole("switch");
