@@ -96,7 +96,7 @@ export function CommentaryRow({
         />
       )}
       <span className={`flex shrink-0 flex-col items-start gap-1 ${compact ? "min-w-14" : "min-w-[4.75rem]"}`}>
-        <span className={compact ? "whitespace-nowrap font-mono text-caption leading-4 tabular-nums text-fg/60" : COMMENTARY_TIME_CLASS}>
+        <span className={compact ? "whitespace-nowrap font-mono text-tiny leading-3 tabular-nums text-fg/60" : COMMENTARY_TIME_CLASS}>
           {formatSessionElapsedTime(Math.max(0, ms))}
         </span>
         <span
@@ -116,7 +116,7 @@ export function CommentaryRow({
         {meta && (
           <span
             data-commentary-meta=""
-            className={compact ? "mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-1 font-mono text-tiny leading-4 tabular-nums text-muted" : COMMENTARY_META_CLASS}
+            className={compact ? "mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-1 font-mono text-tiny leading-3 tabular-nums text-muted" : COMMENTARY_META_CLASS}
           >
             {meta}
           </span>
@@ -170,9 +170,9 @@ const TITLE_CLASS_BY_LINES = {
 } as const;
 
 const COMPACT_TITLE_CLASS_BY_LINES = {
-  1: "truncate text-small font-semibold leading-4 text-fg/90",
-  2: "line-clamp-2 text-small font-semibold leading-4 text-fg/90",
-  all: "text-small font-semibold leading-4 text-fg/90",
+  1: "truncate text-caption font-semibold leading-3 text-fg/90",
+  2: "line-clamp-2 text-caption font-semibold leading-3 text-fg/90",
+  all: "text-caption font-semibold leading-3 text-fg/90",
 } as const;
 
 /** Team-coloured driver code, optionally followed by the muted full name. */

@@ -207,25 +207,25 @@ export function RaceControlTicker({
           id={panelId}
           role="dialog"
           aria-label="Recent race control messages"
-          className="absolute right-0 top-full z-popover w-80 max-w-[92vw] overflow-hidden rounded-sm border border-panel bg-surface shadow-2xl"
+          className="absolute right-0 top-full z-popover w-[min(420px,92vw)] overflow-hidden rounded-sm border border-panel bg-surface shadow-2xl"
         >
-          <div className="flex items-center justify-between gap-2 bg-f1red px-3 py-1 text-white">
-            <span className="text-caption font-black uppercase tracking-spaced">
+          <div className="flex h-6 items-center justify-between gap-2 bg-f1red px-2 text-white">
+            <span className="text-tiny font-black uppercase tracking-caps">
               Race Control
             </span>
-            <span className="ml-auto font-mono text-caption uppercase tracking-wider">
+            <span className="ml-auto font-mono text-tiny uppercase tracking-wider">
               {recentEvents.length} messages
             </span>
             <button
               type="button"
               onClick={closePanel}
               aria-label="Close recent messages"
-              className="flex h-7 w-7 shrink-0 items-center justify-center border border-white/30 transition-colors hover:bg-white/15 focus-visible:outline focus-visible:outline-2 focus-visible:outline-white"
+              className="flex h-5 w-5 shrink-0 items-center justify-center border border-white/30 transition-colors hover:bg-white/15 focus-visible:outline focus-visible:outline-2 focus-visible:outline-white"
             >
-              <X size={14} aria-hidden="true" />
+              <X size={12} aria-hidden="true" />
             </button>
           </div>
-          <div className="max-h-[min(16rem,45dvh)] divide-y divide-panel overflow-y-auto overscroll-contain">
+          <div className="max-h-[min(24rem,60dvh)] divide-y divide-panel overflow-y-auto overscroll-contain">
             {recentEvents.map((recentEvent, index) => {
               const recentBadge = raceControlEventBadge(recentEvent);
               const eventDriver = drivers.find(

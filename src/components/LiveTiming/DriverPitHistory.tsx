@@ -153,18 +153,18 @@ export function DriverPitHistory({
           role="dialog"
           aria-label={`Pit stops for ${driverLabel}`}
           style={position}
-          className="fixed z-popover w-80 max-w-[92vw] overflow-hidden rounded-sm border border-panel bg-surface text-left shadow-2xl"
+          className="fixed z-popover w-[min(420px,92vw)] overflow-hidden rounded-sm border border-panel bg-surface text-left shadow-2xl"
           onMouseEnter={cancelClose}
           onMouseLeave={scheduleClose}
           onFocusCapture={cancelClose}
           onBlurCapture={(event) => handleBlur(event.relatedTarget)}
           onClick={(event) => event.stopPropagation()}
         >
-          <div className="flex items-center justify-between gap-2 bg-f1red px-3 py-1 text-white">
-            <span className="text-caption font-black uppercase tracking-spaced">
+          <div className="flex h-6 items-center justify-between gap-2 bg-f1red px-2 text-white">
+            <span className="text-tiny font-black uppercase tracking-caps">
               Pit stops
             </span>
-            <span className="ml-auto font-mono text-caption uppercase tracking-wider">
+            <span className="ml-auto font-mono text-tiny uppercase tracking-wider">
               {driverLabel}
             </span>
             <button
@@ -174,12 +174,12 @@ export function DriverPitHistory({
                 setOpen(false);
               }}
               aria-label="Close pit stops"
-              className="flex h-7 w-7 shrink-0 items-center justify-center border border-white/30 transition-colors hover:bg-white/15 focus-visible:outline focus-visible:outline-2 focus-visible:outline-white"
+              className="flex h-5 w-5 shrink-0 items-center justify-center border border-white/30 transition-colors hover:bg-white/15 focus-visible:outline focus-visible:outline-2 focus-visible:outline-white"
             >
-              <X size={14} aria-hidden="true" />
+              <X size={12} aria-hidden="true" />
             </button>
           </div>
-          <div className="max-h-[min(16rem,45dvh)] overflow-y-auto overscroll-contain pt-2">
+          <div className="max-h-[min(24rem,60dvh)] overflow-y-auto overscroll-contain pt-2">
             <PitFeed
               compact
               entries={pits.filter((pit) => pit.driver_number === driverNumber)}
