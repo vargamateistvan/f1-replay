@@ -453,7 +453,7 @@ describe("TrackRing", () => {
     });
     expect(screen.getByText("21/52")).toBeInTheDocument();
     expect(screen.getByText("LEAD")).toBeInTheDocument();
-    expect(screen.getByText("+1.2")).toBeInTheDocument();
+    expect(screen.getByText("+1.234")).toBeInTheDocument();
     expect(screen.queryByText("gap to the car ahead")).not.toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "Show gap to the leader" }));
     expect(ring.setSetting).toHaveBeenCalledWith("mapRingGapMode", "leader");
@@ -476,8 +476,8 @@ describe("TrackRing", () => {
     expect(driverInfo).toHaveTextContent("P2");
     expect(driverInfo).toHaveTextContent("LEC");
     expect(driverInfo).toHaveTextContent("#16");
-    expect(driverInfo).toHaveTextContent("AHEAD+1.2s");
-    expect(driverInfo).toHaveTextContent("BEHIND+0.8s");
+    expect(driverInfo).toHaveTextContent("AHEAD+1.234");
+    expect(driverInfo).toHaveTextContent("BEHIND+0.840");
     expect(driverInfo).toHaveTextContent("MEDIUM · 12L");
     expect(driverInfo.querySelectorAll("rect")).toHaveLength(2);
   });
@@ -628,7 +628,7 @@ describe("TrackRing", () => {
         [16, { interval: 1.234, gap_to_leader: 1.234 }],
       ]),
     });
-    expect(screen.getByText("−1.2")).toBeInTheDocument();
+    expect(screen.getByText("−1.234")).toBeInTheDocument();
     expect(screen.queryByText("gap to LEC")).not.toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "Show gap to the car ahead" }));
     expect(ring.setSetting).toHaveBeenCalledWith("mapRingGapMode", "interval");
@@ -655,7 +655,7 @@ describe("TrackRing", () => {
         [16, { interval: 1.234, gap_to_leader: 1.234 }],
       ]),
     });
-    expect(screen.getByText("+1.2")).toBeInTheDocument();
+    expect(screen.getByText("+1.234")).toBeInTheDocument();
     expect(screen.queryByText("gap to the car ahead")).not.toBeInTheDocument();
   });
 
@@ -713,7 +713,7 @@ describe("TrackRing", () => {
     expect(screen.queryByTestId("ring-gap-measure")).not.toBeInTheDocument();
     fireEvent.pointerEnter(screen.getByText("LEC"));
     // VER halfway through the lap in time, LEC at 35 %: 15 % of 60 s.
-    expect(screen.getByTestId("ring-gap-measure")).toHaveTextContent("9.0 s");
+    expect(screen.getByTestId("ring-gap-measure")).toHaveTextContent("9.000");
     fireEvent.pointerLeave(screen.getByText("LEC"));
     expect(screen.queryByTestId("ring-gap-measure")).not.toBeInTheDocument();
   });

@@ -487,7 +487,7 @@ function appendTimingGap(label: string, primary: number | string | null, seconda
     typeof primary === "string" && /LAP/i.test(primary) ? secondary : primary,
   );
   if (timing === null || timing <= 0) return label;
-  return `${label} · +${timing.toFixed(1)}s`;
+  return `${label} · +${timing.toFixed(3)}`;
 }
 
 function leaderGapOf(row: GapToLeader, isLeader: boolean | undefined): { s: number } | { laps: number } | null {
@@ -506,7 +506,7 @@ function leaderGapOf(row: GapToLeader, isLeader: boolean | undefined): { s: numb
 }
 
 /**
- * Gap text relative to the focused car: "+3.3" behind it, "−5.2" ahead of it,
+ * Gap text relative to the focused car: "+3.300" behind it, "−5.200" ahead of it,
  * "+1L" for a car a lap down on it. Null for the focused car itself or without
  * usable timing.
  */
@@ -524,14 +524,14 @@ export function formatFocusGap(
   }
   if ("laps" in focus) return `−${focus.laps}L`;
   const diff = rival.s - focus.s;
-  if (Math.abs(diff) < 0.05) return "0.0";
-  return `${diff > 0 ? "+" : "−"}${Math.abs(diff).toFixed(1)}`;
+  if (Math.abs(diff) < 0.0005) return "0.000";
+  return `${diff > 0 ? "+" : "−"}${Math.abs(diff).toFixed(3)}`;
 }
 
 export type RingGapMode = "interval" | "leader";
 
 /**
- * Gap text under a ring label: "+1.2" s, "+1L" for lapped cars, "LEAD" for
+ * Gap text under a ring label: "+1.200", "+1L" for lapped cars, "LEAD" for
  * the leader, or null without usable timing. With `leaderNumber` only that
  * car is the leader; other cars reading 0 s (stale rows during a pit cycle)
  * show their interval, or nothing.
@@ -553,7 +553,7 @@ export function formatRingGap(
     return appendTimingGap(lapGapLabel(value), value, secondary);
   }
   const s = parseIntervalSeconds(value);
-  return s === null || s <= 0 ? null : `+${s.toFixed(1)}`;
+  return s === null || s <= 0 ? null : `+${s.toFixed(3)}`;
 }
 
 /** Lap time as m:ss.sss. */

@@ -236,8 +236,8 @@ describe("ring scale", () => {
 describe("formatRingGap", () => {
   it("labels the leader, gaps and lapped cars", () => {
     expect(formatRingGap({ interval: null, gap_to_leader: null }, "interval")).toBe("LEAD");
-    expect(formatRingGap({ interval: 0.84, gap_to_leader: 12.31 }, "interval")).toBe("+0.8");
-    expect(formatRingGap({ interval: 0.84, gap_to_leader: 12.31 }, "leader")).toBe("+12.3");
+    expect(formatRingGap({ interval: 0.84, gap_to_leader: 12.31 }, "interval")).toBe("+0.840");
+    expect(formatRingGap({ interval: 0.84, gap_to_leader: 12.31 }, "leader")).toBe("+12.310");
     expect(formatRingGap({ interval: "+1 LAP", gap_to_leader: "+2 LAPS" }, "leader")).toBe("+2L");
     expect(formatRingGap({ interval: "+1 LAP", gap_to_leader: "+1 LAP" }, "interval")).toBe("+1L");
     expect(formatRingGap(undefined, "interval")).toBeNull();
@@ -245,7 +245,7 @@ describe("formatRingGap", () => {
 
   it("trusts the known leader over cars reading 0 s", () => {
     const stale = { interval: 4.2, gap_to_leader: 0 };
-    expect(formatRingGap(stale, "interval", false)).toBe("+4.2");
+    expect(formatRingGap(stale, "interval", false)).toBe("+4.200");
     expect(formatRingGap(stale, "leader", false)).toBeNull();
     expect(formatRingGap({ interval: null, gap_to_leader: null }, "interval", true)).toBe("LEAD");
   });
@@ -300,15 +300,16 @@ describe("formatFocusGap", () => {
   const row = (gap: number | string | null) => ({ gap_to_leader: gap });
 
   it("signs the gap relative to the focused car", () => {
-    expect(formatFocusGap(row(15.5), row(12.2))).toBe("+3.3");
-    expect(formatFocusGap(row(7), row(12.2))).toBe("−5.2");
-    expect(formatFocusGap(row(12.21), row(12.2))).toBe("0.0");
+    expect(formatFocusGap(row(15.5), row(12.2))).toBe("+3.300");
+    expect(formatFocusGap(row(7), row(12.2))).toBe("−5.200");
+    expect(formatFocusGap(row(12.21), row(12.2))).toBe("+0.010");
+    expect(formatFocusGap(row(12.2001), row(12.2))).toBe("0.000");
   });
 
   it("treats the leader as zero and handles lapped cars", () => {
-    expect(formatFocusGap(row(null), row(4), { rowIsLeader: true, focusIsLeader: false })).toBe("−4.0");
+    expect(formatFocusGap(row(null), row(4), { rowIsLeader: true, focusIsLeader: false })).toBe("−4.000");
     expect(formatFocusGap(row(0), row(4), { rowIsLeader: false, focusIsLeader: false })).toBeNull();
-    expect(formatFocusGap({ ...row("+1 LAP"), interval: "+0.8" }, row(4))).toBe("+1L · +0.8s");
+    expect(formatFocusGap({ ...row("+1 LAP"), interval: "+0.8" }, row(4))).toBe("+1L · +0.800");
     expect(formatFocusGap(row(4), row("+2 LAPS"))).toBe("−2L");
     expect(formatFocusGap(row("+1 LAP"), row("+1 LAP"))).toBeNull();
     expect(formatFocusGap(undefined, row(4))).toBeNull();
@@ -318,10 +319,10 @@ describe("formatFocusGap", () => {
 describe("formatRingGap", () => {
   it("keeps the lap deficit and adds a numeric timing gap when available", () => {
     expect(formatRingGap({ interval: "+1 LAP", gap_to_leader: "+47.2" }, "interval", false)).toBe(
-      "+1L · +47.2s",
+      "+1L · +47.200",
     );
     expect(formatRingGap({ interval: "+0.8", gap_to_leader: "+1 LAP" }, "leader", false)).toBe(
-      "+1L · +0.8s",
+      "+1L · +0.800",
     );
   });
 

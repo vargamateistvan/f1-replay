@@ -38,8 +38,7 @@ const FONT = "Inter, sans-serif";
 
 function formatCenterGap(gap: string | null): string {
   if (gap === "LEAD") return "LEADER";
-  if (!gap) return "—";
-  return gap.endsWith("s") ? gap : `${gap}s`;
+  return gap ?? "—";
 }
 
 interface RingFrame {
@@ -715,7 +714,7 @@ export function RingPitWindow({
   );
 }
 
-/** On-track time between two cars: an arc just inside the ring and a "4.0 s" bubble. */
+/** On-track time between two cars: an arc just inside the ring and a "4.000" bubble. */
 export function RingGapMeasure({
   cx,
   cy,
@@ -732,7 +731,7 @@ export function RingGapMeasure({
   const mid = fromTimeFraction(scale, wrapFraction(fromTf + delta / 2));
   const bubble = ringPoint(cx, cy, r - 34, mid);
   const fg = lightMode ? "#111318" : "#ffffff";
-  const text = `${(gapMs / 1000).toFixed(1)} s`;
+  const text = (gapMs / 1000).toFixed(3);
   const w = text.length * 5 + 10;
   return (
     <g pointerEvents="none" data-testid="ring-gap-measure">
