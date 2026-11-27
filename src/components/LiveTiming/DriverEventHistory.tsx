@@ -1,5 +1,4 @@
 import { useMemo, useState, type ReactNode } from "react";
-import { Play, Square } from "lucide-react";
 import type { Driver, Lap, Overtake, Pit, RaceControl, Stint, TeamRadio } from "@/api/types";
 import { CommentaryDriver, CommentaryRow } from "@/components/CommentaryPanels/CommentaryRow";
 import {
@@ -11,8 +10,10 @@ import {
 } from "@/components/CommentaryPanels/commentaryList";
 import { raceControlEventAccent, raceControlEventBadge } from "@/components/RaceControl/eventStyle";
 import { PitBattleLine, PitFeed } from "@/components/Pits/PitFeed";
-import { RadioAudio } from "@/components/RadioAudio";
+import { RadioPlayback } from "@/components/RadioAudio";
+import { Chip } from "@/components/UI";
 import { useSettings } from "@/stores/settings";
+import { DRIVER_HISTORY_EVENT_FILTERS } from "@/constants";
 import { buildDriverEvents, type DriverEvent } from "@/utils/driverEvents";
 import { buildLapLookup, lapNumberAtMs } from "@/utils/lapLookup";
 import { teamColor } from "@/utils/color";
@@ -64,9 +65,23 @@ function DriverEvents({
 }: Props) {
   const [playing, setPlaying] = useState<string | null>(null);
   const [failedRadio, setFailedRadio] = useState<string | null>(null);
+  const defaultFilters = useSettings((s) => s.timingDriverHistoryDefaultFilters);
+  const [activeKinds, setActiveKinds] = useState(
+    () => new Set<DriverEvent["kind"]>(defaultFilters),
+  );
   const events = useMemo(() => buildDriverEvents({
     driverNumber, raceControl, pits, overtakes, radios, laps, pitBattles, sessionStartMs, sessionTimeMs, lapStartCutoffMs,
   }), [driverNumber, raceControl, pits, overtakes, radios, laps, pitBattles, sessionStartMs, sessionTimeMs, lapStartCutoffMs]);
+  const counts: Partial<Record<DriverEvent["kind"], number>> = {};
+  for (const event of events) {
+    const kind = event.kind === "pit_battle" ? "pit" : event.kind;
+    counts[kind] = (counts[kind] ?? 0) + 1;
+  }
+  const presentFilters = DRIVER_HISTORY_EVENT_FILTERS.filter((filter) => counts[filter.kind]);
+  const visibleEvents = useMemo(
+    () => events.filter((event) => activeKinds.has(event.kind === "pit_battle" ? "pit" : event.kind)),
+    [events, activeKinds],
+  );
   const driverMap = useMemo(() => new Map(drivers.map((entry) => [entry.driver_number, entry])), [drivers]);
   const lapGroups = useMemo(() => {
     const lookup = buildLapLookup(
@@ -74,7 +89,7 @@ function DriverEvents({
       sessionStartMs,
     );
     const groups: { lapNumber: number | null; events: DriverEvent[] }[] = [];
-    for (const event of events) {
+    for (const event of visibleEvents) {
       let lapNumber: number | null;
       switch (event.kind) {
         case "pit":
@@ -98,9 +113,23 @@ function DriverEvents({
       }
     }
     return groups;
-  }, [events, laps, driverNumber, sessionStartMs]);
+  }, [visibleEvents, laps, driverNumber, sessionStartMs]);
   const color = teamColor(driverMap.get(driverNumber)?.team_colour);
   if (!events.length) return <p className={COMMENTARY_EMPTY_CLASS}>No driver events yet</p>;
+
+  function toggleKind(kind: DriverEvent["kind"]) {
+    if (
+      activeKinds.has(kind) &&
+      presentFilters.filter((filter) => activeKinds.has(filter.kind)).length === 1
+    ) return;
+    setActiveKinds((previous) => {
+      const next = new Set(previous);
+      if (next.has(kind)) next.delete(kind);
+      else next.add(kind);
+      return next;
+    });
+    if (kind === "radio") setPlaying(null);
+  }
 
   function renderEvent(event: DriverEvent) {
         switch (event.kind) {
@@ -168,30 +197,22 @@ function DriverEvents({
                 title="Team radio"
                 meta={!url || failedRadio === event.id ? "Recording unavailable" : undefined}
                 actions={
-                  <button
-                    type="button" disabled={!url}
-                    aria-label={`${isPlaying ? "Stop" : "Play"} team radio at ${event.entry.date}`}
-                    onClick={() => {
+                  <RadioPlayback
+                    src={url}
+                    playing={isPlaying}
+                    ariaLabel={`${isPlaying ? "Stop" : "Play"} team radio at ${event.entry.date}`}
+                    onToggle={() => {
                       setFailedRadio(null);
                       setPlaying(isPlaying ? null : event.id);
                     }}
-                    className="flex h-6 w-6 items-center justify-center rounded-sm border border-panel text-muted hover:text-fg disabled:opacity-40"
-                  >
-                    {isPlaying ? <Square size={12} /> : <Play size={12} />}
-                  </button>
-                }
-              >
-                {url && isPlaying && (
-                  <RadioAudio
-                    src={url}
                     onEnded={() => setPlaying(null)}
                     onError={() => {
                       setFailedRadio(event.id);
                       setPlaying(null);
                     }}
                   />
-                )}
-              </CommentaryRow>
+                }
+              />
             );
           }
 
@@ -200,6 +221,24 @@ function DriverEvents({
 
   return (
     <div className="space-y-2 px-2 pb-2 normal-case tracking-normal">
+      <div
+        role="group"
+        aria-label="Filter driver events"
+        className="flex flex-wrap gap-1.5 border-b border-panel pb-2"
+      >
+        {presentFilters.map((filter) => (
+          <Chip
+            key={filter.kind}
+            label={`${filter.label} (${counts[filter.kind]})`}
+            tone={filter.tone}
+            active={activeKinds.has(filter.kind)}
+            onToggle={() => toggleKind(filter.kind)}
+          />
+        ))}
+      </div>
+      {visibleEvents.length === 0 && (
+        <p className={COMMENTARY_EMPTY_CLASS}>No events match the selected filters</p>
+      )}
       {lapGroups.map((group, index) => (
         <div key={`${group.lapNumber ?? "session"}-${index}`} className={COMMENTARY_GROUP_CLASS}>
           <div className={COMMENTARY_GROUP_HEADER_CLASS}>

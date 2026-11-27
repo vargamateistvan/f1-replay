@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { act, fireEvent, render, screen, within } from "@testing-library/react";
 import { LiveTiming } from "@/components/LiveTiming/LiveTiming";
-import { useSettings } from "@/stores/settings";
+import { SETTINGS_DEFAULTS, useSettings } from "@/stores/settings";
 import type {
   CarData,
   Driver,
@@ -45,6 +45,7 @@ describe("LiveTiming", () => {
       metricSystem: "metric",
       timingPitHistoryEnabled: true,
       timingDriverHistoryEnabled: true,
+      timingDriverHistoryDefaultFilters: [...SETTINGS_DEFAULTS.timingDriverHistoryDefaultFilters],
     });
   });
 
@@ -123,6 +124,10 @@ describe("LiveTiming", () => {
     const trigger = screen.getByRole("button", { name: "Driver VER: show events" });
     fireEvent.mouseEnter(trigger);
     const dialog = screen.getByRole("dialog", { name: "Events for VER" });
+    const overtakesFilter = within(dialog).getByRole("button", { name: "Overtakes (2)" });
+    expect(overtakesFilter).toHaveAttribute("aria-pressed", "false");
+    expect(within(dialog).queryByText("Overtook")).not.toBeInTheDocument();
+    fireEvent.click(overtakesFilter);
     expect(within(dialog).getByText("CAR 1 (VER) INCIDENT NOTED")).toBeInTheDocument();
     expect(within(dialog).getByText("Lap 10")).toBeInTheDocument();
     expect(within(dialog).getByText("Overtook")).toBeInTheDocument();
@@ -131,8 +136,34 @@ describe("LiveTiming", () => {
     expect(dialog.querySelector("audio")).toBeNull();
     fireEvent.click(within(dialog).getByRole("button", { name: /Play team radio/ }));
     expect(dialog.querySelector("audio")).toHaveAttribute("src", "https://example.com/radio.mp3");
+    const stopButton = within(dialog).getByRole("button", { name: /Stop team radio/ });
+    expect(stopButton).toHaveTextContent("Stop");
+    expect(stopButton).toHaveClass("w-[64px]");
+    Object.defineProperty(dialog.querySelector("audio"), "duration", { configurable: true, value: 10 });
+    dialog.querySelector("audio")!.currentTime = 5;
+    fireEvent.timeUpdate(dialog.querySelector("audio")!);
+    expect(stopButton.querySelector("[data-progress]")).toHaveAttribute("data-progress", "50");
     fireEvent.error(dialog.querySelector("audio")!);
     expect(within(dialog).getByText("Recording unavailable")).toBeInTheDocument();
+    const filters = within(dialog).getByRole("group", { name: "Filter driver events" });
+    expect(within(filters).getByRole("button", { name: "Overtakes (2)" })).toHaveAttribute("aria-pressed", "true");
+    const raceControlFilter = within(filters).getByRole("button", { name: "Race control (1)" });
+    fireEvent.click(raceControlFilter);
+    expect(raceControlFilter).toHaveAttribute("aria-pressed", "false");
+    expect(within(dialog).queryByText("CAR 1 (VER) INCIDENT NOTED")).not.toBeInTheDocument();
+    expect(within(dialog).getByText("Overtook")).toBeInTheDocument();
+    fireEvent.click(raceControlFilter);
+    expect(within(dialog).getByText("CAR 1 (VER) INCIDENT NOTED")).toBeInTheDocument();
+    fireEvent.click(within(dialog).getByRole("button", { name: /Play team radio/ }));
+    expect(dialog.querySelector("audio")).not.toBeNull();
+    const radioFilter = within(filters).getByRole("button", { name: "Radio (1)" });
+    fireEvent.click(radioFilter);
+    expect(dialog.querySelector("audio")).toBeNull();
+    expect(within(dialog).queryByText("Team radio")).not.toBeInTheDocument();
+    fireEvent.click(radioFilter);
+    expect(dialog.querySelector("audio")).toBeNull();
+    expect(within(dialog).getByRole("button", { name: /Play team radio/ })).toBeInTheDocument();
+    expect(onSelectDriver).not.toHaveBeenCalled();
     fireEvent.click(trigger);
     expect(onSelectDriver).toHaveBeenCalledExactlyOnceWith(1);
     fireEvent.keyDown(document, { key: "Escape" });
@@ -158,6 +189,81 @@ describe("LiveTiming", () => {
     fireEvent.mouseEnter(screen.getByRole("button", { name: "Driver VER: show events" }));
     const dialog = screen.getByRole("dialog", { name: "Events for VER" });
     expect(within(dialog).getByText(`Lap 1 · ${formatted}`)).toBeInTheDocument();
+  });
+
+  it("filters out empty lap groups and keeps the final available event type selected", () => {
+    render(
+      <LiveTiming
+        drivers={drivers} positions={[]} intervals={[]} pits={[]}
+        laps={[{ ...historyLap(1, 0), lap_duration: 60 }, historyLap(2, 70)]}
+        sessionStartMs={Date.parse("2024-01-01T00:00:00Z")} sessionTimeMs={120_000}
+        radios={[{
+          date: "2024-01-01T00:01:35Z", driver_number: 1,
+          meeting_key: 1, session_key: 1, recording_url: "https://example.com/radio.mp3",
+        }]}
+      />,
+    );
+    fireEvent.mouseEnter(screen.getByRole("button", { name: "Driver VER: show events" }));
+    const dialog = screen.getByRole("dialog", { name: "Events for VER" });
+    const bestLaps = within(dialog).getByRole("button", { name: "Best laps (1)" });
+    const radio = within(dialog).getByRole("button", { name: "Radio (1)" });
+    fireEvent.click(bestLaps);
+    expect(within(dialog).queryByText("Lap 1")).not.toBeInTheDocument();
+    expect(within(dialog).getByText("Lap 2")).toBeInTheDocument();
+    fireEvent.click(radio);
+    expect(radio).toHaveAttribute("aria-pressed", "true");
+    expect(within(dialog).getByText("Team radio")).toBeInTheDocument();
+    fireEvent.click(bestLaps);
+    expect(within(dialog).getByText("Lap 1")).toBeInTheDocument();
+  });
+
+  it("starts each dialog from saved event choices without persisting local filter toggles", () => {
+    useSettings.setState({ timingDriverHistoryDefaultFilters: ["overtake"] });
+    render(
+      <LiveTiming
+        drivers={drivers} positions={[]} intervals={[]} pits={[]} laps={[]}
+        sessionStartMs={Date.parse("2024-01-01T00:00:00Z")} sessionTimeMs={120_000}
+        overtakes={[{
+          date: "2024-01-01T00:01:00Z", overtaking_driver_number: 1,
+          overtaken_driver_number: 16, position: 1, meeting_key: 1, session_key: 1,
+        }]}
+        radios={[{
+          date: "2024-01-01T00:01:00Z", driver_number: 1,
+          meeting_key: 1, session_key: 1, recording_url: "https://example.com/radio.mp3",
+        }]}
+      />,
+    );
+    const trigger = screen.getByRole("button", { name: "Driver VER: show events" });
+    fireEvent.mouseEnter(trigger);
+    let dialog = screen.getByRole("dialog", { name: "Events for VER" });
+    expect(within(dialog).getByText("Overtook")).toBeInTheDocument();
+    expect(within(dialog).queryByText("Team radio")).not.toBeInTheDocument();
+    fireEvent.click(within(dialog).getByRole("button", { name: "Radio (1)" }));
+    expect(within(dialog).getByText("Team radio")).toBeInTheDocument();
+    expect(useSettings.getState().timingDriverHistoryDefaultFilters).toEqual(["overtake"]);
+    fireEvent.click(within(dialog).getByRole("button", { name: "Close driver events" }));
+    fireEvent.mouseEnter(trigger);
+    dialog = screen.getByRole("dialog", { name: "Events for VER" });
+    expect(within(dialog).queryByText("Team radio")).not.toBeInTheDocument();
+  });
+
+  it("keeps excluded events hidden when none of the default categories have events", () => {
+    render(
+      <LiveTiming
+        drivers={drivers} positions={[]} intervals={[]} pits={[]} laps={[]}
+        sessionStartMs={Date.parse("2024-01-01T00:00:00Z")} sessionTimeMs={120_000}
+        overtakes={[{
+          date: "2024-01-01T00:01:00Z", overtaking_driver_number: 1,
+          overtaken_driver_number: 16, position: 1, meeting_key: 1, session_key: 1,
+        }]}
+      />,
+    );
+    fireEvent.mouseEnter(screen.getByRole("button", { name: "Driver VER: show events" }));
+    const dialog = screen.getByRole("dialog", { name: "Events for VER" });
+    expect(within(dialog).getByText("No events match the selected filters")).toBeInTheDocument();
+    expect(within(dialog).queryByText("Overtook")).not.toBeInTheDocument();
+    fireEvent.click(within(dialog).getByRole("button", { name: "Overtakes (1)" }));
+    expect(within(dialog).getByText("Overtook")).toBeInTheDocument();
   });
 
   it("disables driver history without disabling driver selection", () => {

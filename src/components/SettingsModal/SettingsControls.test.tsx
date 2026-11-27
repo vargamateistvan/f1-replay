@@ -50,6 +50,7 @@ vi.mock("@/stores/settings", () => ({
     timingRaceControlHistoryEnabled: true,
     timingPitHistoryEnabled: true,
     timingDriverHistoryEnabled: true,
+    timingDriverHistoryDefaultFilters: ["race_control", "pit", "lap", "radio"],
     trackerTimingTelemetry: true,
     trackerTimingCompactColumn: false,
     trackerTimingMobileCarData: true,
@@ -448,6 +449,24 @@ describe("SettingsControls", () => {
       fireEvent.click(toggle);
       expect(state.setSetting).toHaveBeenCalledWith(key, false);
     }
+  });
+
+  it("offers the requested driver-event defaults and lets users change them", () => {
+    render(<SettingsBody initialTab="timing" />);
+    const section = screen.getByText("Default driver events").parentElement!;
+    for (const label of ["Race control", "Pits", "Best laps", "Radio"]) {
+      expect(within(section).getByRole("button", { name: label })).toHaveAttribute("aria-pressed", "true");
+    }
+    const overtakes = within(section).getByRole("button", { name: "Overtakes" });
+    expect(overtakes).toHaveAttribute("aria-pressed", "false");
+    fireEvent.click(overtakes);
+    expect(state.setSetting).toHaveBeenCalledWith(
+      "timingDriverHistoryDefaultFilters", ["race_control", "pit", "lap", "radio", "overtake"],
+    );
+    fireEvent.click(within(section).getByRole("button", { name: "Race control" }));
+    expect(state.setSetting).toHaveBeenCalledWith(
+      "timingDriverHistoryDefaultFilters", ["pit", "lap", "radio"],
+    );
   });
 
   it("uses red chips for selected desktop timing columns", () => {

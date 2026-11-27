@@ -20,6 +20,7 @@ import { trackEvent } from "@/lib/analytics";
 import {
   CORNER_HIGH_SPEED_KMH,
   CORNER_LOW_SPEED_KMH,
+  DRIVER_HISTORY_EVENT_FILTERS,
   SPEEDS,
 } from "@/constants";
 import { animateMotion, pressMotion } from "@/lib/motion";
@@ -627,6 +628,34 @@ export function SettingsBody({
                 checked={settings.timingDriverHistoryEnabled}
                 onChange={toggle("timingDriverHistoryEnabled")}
               />
+              {settings.timingDriverHistoryEnabled && (
+                <ChipField
+                  label="Default driver events"
+                  description="Event types selected when opening a driver's history"
+                  muted
+                >
+                  {DRIVER_HISTORY_EVENT_FILTERS.map(({ kind, label, tone }) => {
+                    const current = settings.timingDriverHistoryDefaultFilters;
+                    const active = current.includes(kind);
+                    return (
+                      <Chip
+                        key={kind}
+                        label={label}
+                        tone={tone}
+                        active={active}
+                        onToggle={() => {
+                          const next = active
+                            ? current.filter((value) => value !== kind)
+                            : [...current, kind];
+                          if (next.length > 0) {
+                            updateSetting("timingDriverHistoryDefaultFilters", next);
+                          }
+                        }}
+                      />
+                    );
+                  })}
+                </ChipField>
+              )}
               {!isMobileViewport && (
                 <SettingRow
                   label="Timing box live telemetry"

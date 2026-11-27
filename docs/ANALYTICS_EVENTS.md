@@ -174,6 +174,7 @@ dimension** instead of relying on the built-in App version report:
   - Params: `setting_key`, `setting_value`
   - Trigger: setting mutation from controls
   - Timing history dialogs use `timingRaceControlHistoryEnabled`, `timingPitHistoryEnabled` and `timingDriverHistoryEnabled` (all default on).
+  - `timingDriverHistoryDefaultFilters` selects the driver dialog's default event types (comma-separated); race control, pits, best laps and radio are on by default, overtakes off.
 - `settings_reset_defaults`
   - Params: none
   - Trigger: reset-to-defaults button

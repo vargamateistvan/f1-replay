@@ -1,7 +1,7 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import type { CornerSpeedClass } from "@/utils/corners";
-import { SPEEDS } from "@/constants";
+import { DRIVER_HISTORY_EVENT_FILTERS, SPEEDS, type DriverHistoryEventKind } from "@/constants";
 
 export type MapViewMode = "2d" | "3d" | "ring";
 
@@ -92,6 +92,7 @@ export interface AppSettings {
   timingRaceControlHistoryEnabled: boolean;
   timingPitHistoryEnabled: boolean;
   timingDriverHistoryEnabled: boolean;
+  timingDriverHistoryDefaultFilters: DriverHistoryEventKind[];
   // Driver Tracker
   trackerTimingTelemetry: boolean;
   trackerTimingCompactColumn: boolean;
@@ -260,6 +261,7 @@ export const SETTINGS_DEFAULTS: AppSettings = {
   timingRaceControlHistoryEnabled: true,
   timingPitHistoryEnabled: true,
   timingDriverHistoryEnabled: true,
+  timingDriverHistoryDefaultFilters: ["race_control", "pit", "lap", "radio"],
   trackerTimingTelemetry: true,
   trackerTimingCompactColumn: true,
   trackerTimingMobileCarData: false,
@@ -378,10 +380,13 @@ export function parseSettingsImport(text: string): Partial<AppSettings> {
     }
     const fallback = SETTINGS_DEFAULTS[key as keyof AppSettings];
     const choices = SETTING_CHOICES[key];
+    const arrayChoices: readonly string[] = key === "timingDriverHistoryDefaultFilters"
+      ? DRIVER_HISTORY_EVENT_FILTERS.map((filter) => filter.kind)
+      : CATCHUP_FILTERS;
     const valid = choices
       ? choices.includes(value)
       : Array.isArray(fallback)
-        ? Array.isArray(value) && value.length > 0 && value.every((item) => typeof item === "string" && CATCHUP_FILTERS.includes(item))
+        ? Array.isArray(value) && value.length > 0 && value.every((item) => typeof item === "string" && arrayChoices.includes(item))
         : typeof value === typeof fallback;
     if (!valid) throw new Error(`Invalid value for ${key}.`);
   }

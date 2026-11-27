@@ -73,6 +73,10 @@ The driver-column dialog uses `timingDriverHistoryEnabled` (Settings → Timing,
 
 Driver event histories use sticky commentary-style lap dividers; radio and overtake laps are inferred from the hovered driver's lap starts, with "Session" for unknown laps. Embedded pit rows omit their own lap headers to avoid duplicates. Lap durations use `m:ss:mmm` (unpadded minutes, two-digit seconds, three-digit milliseconds).
 
+Driver-event dialogs have catch-up-style counted `Chip` filters for race control, pits (including undercut/overcut battles), overtakes, best laps and radio. Settings → Timing → Default driver events persists `timingDriverHistoryDefaultFilters`: race control, pits, best laps and radio default on, overtakes off. Options are shared via `DRIVER_HISTORY_EVENT_FILTERS` in `constants.ts`. Dialog filters start from these saved choices on opening; local toggles do not overwrite them. At least one available type stays selected when toggling; if no saved types have events, the dialog shows an explicit filtered-empty state. Filtering removes empty lap groups, and hiding radio stops its playback.
+
+`RadioAudio/RadioPlayback.tsx` provides the shared Play/Stop button, progress fill and `RadioAudio` lifecycle for Team Radio, catch-up summaries and driver-event dialogs.
+
 Pit-history dialogs receive the same playhead-limited undercut/overcut battles as the elapsed pit commentary feed, even when that tab is closed or commentary is in All mode. Verdicts stay pending until resolved at the playhead.
 
 Quick-settings dismissal uses outside pointer presses and focus entering an outside control, not blur alone: iOS can clear focus without a new focus target before delivering a button tap.

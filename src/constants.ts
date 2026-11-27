@@ -841,6 +841,14 @@ export const RC_TICKER_FRESH_MS = 30_000;
 /** Grace period when moving from a timing cell into its history panel. */
 export const TIMING_HISTORY_CLOSE_DELAY_MS = 150;
 export const TIMING_HISTORY_VIEWPORT_PAD = 12;
+export const DRIVER_HISTORY_EVENT_FILTERS = [
+  { kind: "race_control", label: "Race control", tone: "orange" },
+  { kind: "pit", label: "Pits", tone: "blue" },
+  { kind: "overtake", label: "Overtakes", tone: "green" },
+  { kind: "lap", label: "Best laps", tone: "purple" },
+  { kind: "radio", label: "Radio", tone: "neutral" },
+] as const;
+export type DriverHistoryEventKind = (typeof DRIVER_HISTORY_EVENT_FILTERS)[number]["kind"];
 
 // ── Event toasts ──────────────────────────────────────────────────────────────
 /** A forward jump (session ms) larger than this clears the toast queue instead of replaying it. */

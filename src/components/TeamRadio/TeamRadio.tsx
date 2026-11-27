@@ -1,15 +1,13 @@
 import { useEffect, useMemo, useState } from "react";
-import { Play, Square } from "lucide-react";
 import type { TeamRadio as TeamRadioEntry, Driver, Lap } from "@/api/types";
 import { downloadEndpointCsv } from "@/api/client";
 import { useSettings } from "@/stores/settings";
-import { useAudioProgress } from "@/hooks/useAudioProgress";
 import { teamColor } from "@/utils/color";
 import { buildLapLookup, lapNumberAtMs } from "@/utils/lapLookup";
 import { upperBoundByValue } from "@/utils/sortedTime";
 import { isPracticeSession } from "@/utils/session";
 import { toSafeExternalUrl } from "@/utils/url";
-import { RadioAudio } from "@/components/RadioAudio";
+import { RadioPlayback } from "@/components/RadioAudio";
 import {
   COMMENTARY_BUTTON_CLASS,
   COMMENTARY_EMPTY_CLASS,
@@ -238,7 +236,6 @@ function RadioRow({
   const recordingUrl = toSafeExternalUrl(e.recording_url);
   const hasAudio = Boolean(recordingUrl);
   const isPlaying = recordingUrl !== null && playing === recordingUrl;
-  const { progress, audioRef, onTimeUpdate } = useAudioProgress(isPlaying);
   const ms = entryMs - sessionStartMs;
 
   return (
@@ -258,47 +255,12 @@ function RadioRow({
       jumpLabel={`team radio for ${driver?.name_acronym ?? e.driver_number}`}
       onJump={onJump}
       actions={
-        <>
-          <button
-            type="button"
-            onClick={() => recordingUrl && onPlay(recordingUrl)}
-            disabled={!hasAudio}
-            aria-label={isPlaying ? "Stop" : "Play"}
-            className={`${COMMENTARY_BUTTON_CLASS} relative w-[64px] overflow-hidden ${
-              isPlaying ? "border-f1red text-fg" : ""
-            }`}
-          >
-            {isPlaying && (
-              <span
-                aria-hidden="true"
-                className="absolute inset-y-0 left-0 bg-f1red transition-[width] duration-150 ease-linear"
-                style={{ width: `${progress * 100}%` }}
-                data-progress={Math.round(progress * 100)}
-              />
-            )}
-            <span className="relative flex items-center gap-1.5">
-              {isPlaying ? (
-                <>
-                  <Square size={11} strokeWidth={2.4} aria-hidden="true" /> Stop
-                </>
-              ) : (
-                <>
-                  <Play size={11} strokeWidth={2.4} aria-hidden="true" /> Play
-                </>
-              )}
-            </span>
-          </button>
-          {isPlaying && recordingUrl && (
-            <RadioAudio
-              key={recordingUrl}
-              audioRef={audioRef}
-              src={recordingUrl}
-              onTimeUpdate={onTimeUpdate}
-              onEnded={onEnded}
-              onError={onEnded}
-            />
-          )}
-        </>
+        <RadioPlayback
+          src={recordingUrl}
+          playing={isPlaying}
+          onToggle={() => recordingUrl && onPlay(recordingUrl)}
+          onEnded={onEnded}
+        />
       }
     />
   );

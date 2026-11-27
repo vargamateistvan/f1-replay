@@ -1,7 +1,6 @@
 import { useEffect, useId, useState } from "react";
 import { createPortal } from "react-dom";
 import type { CatchupSummary as CatchupSummaryData } from "@/hooks/useCatchupSummary";
-import { Play, Square } from "lucide-react";
 import type { Driver } from "@/api/types";
 import type {
   OvertakePayload,
@@ -18,12 +17,11 @@ import { formatPitDuration } from "@/utils/pit";
 import { formatBattleGain, pitBattleHeadline } from "@/utils/undercut";
 import { useSettings } from "@/stores/settings";
 import { toSafeExternalUrl } from "@/utils/url";
-import { RadioAudio } from "@/components/RadioAudio";
+import { RadioPlayback } from "@/components/RadioAudio";
 import { DialogHeader } from "@/components/DialogHeader";
 import { Chip } from "@/components/UI";
 import { TyreChange } from "@/components/TyreChange/TyreChange";
 import {
-  COMMENTARY_BUTTON_CLASS,
   formatSessionElapsedTime,
 } from "@/components/CommentaryPanels/commentaryList";
 import {
@@ -31,7 +29,6 @@ import {
   CommentaryRow,
   type CommentaryBadge,
 } from "@/components/CommentaryPanels/CommentaryRow";
-import { useAudioProgress } from "@/hooks/useAudioProgress";
 import { TOKEN_HEX } from "@/designTokens";
 import { buttonClass } from "@/components/Button/buttonClass";
 
@@ -366,9 +363,7 @@ function CatchupRadioRow({
   const style = KIND_STYLES.radio;
   const p = ev.payload as RadioPayload;
   const recordingUrl = toSafeExternalUrl(p.recordingUrl);
-  const hasAudio = Boolean(recordingUrl);
   const isPlaying = recordingUrl !== null && playingUrl === recordingUrl;
-  const { progress, audioRef, onTimeUpdate } = useAudioProgress(isPlaying);
 
   return (
     <CommentaryRow
@@ -385,47 +380,12 @@ function CatchupRadioRow({
         typeof p.lapNumber === "number" ? <LapTag lap={p.lapNumber} /> : undefined
       }
       actions={
-        <>
-          <button
-            type="button"
-            onClick={() => recordingUrl && onToggleRadio(recordingUrl)}
-            disabled={!hasAudio}
-            aria-label={isPlaying ? "Stop" : "Play"}
-            className={`${COMMENTARY_BUTTON_CLASS} relative w-[64px] overflow-hidden ${
-              isPlaying ? "border-f1red text-fg" : ""
-            }`}
-          >
-            {isPlaying && (
-              <span
-                aria-hidden="true"
-                className="absolute inset-y-0 left-0 bg-f1red transition-[width] duration-150 ease-linear"
-                style={{ width: `${progress * 100}%` }}
-                data-progress={Math.round(progress * 100)}
-              />
-            )}
-            <span className="relative flex items-center gap-1.5">
-              {isPlaying ? (
-                <>
-                  <Square size={11} strokeWidth={2.4} aria-hidden="true" /> Stop
-                </>
-              ) : (
-                <>
-                  <Play size={11} strokeWidth={2.4} aria-hidden="true" /> Play
-                </>
-              )}
-            </span>
-          </button>
-          {isPlaying && recordingUrl && (
-            <RadioAudio
-              key={recordingUrl}
-              audioRef={audioRef}
-              src={recordingUrl}
-              onTimeUpdate={onTimeUpdate}
-              onEnded={() => onToggleRadio(recordingUrl)}
-              onError={() => onToggleRadio(recordingUrl)}
-            />
-          )}
-        </>
+        <RadioPlayback
+          src={recordingUrl}
+          playing={isPlaying}
+          onToggle={() => recordingUrl && onToggleRadio(recordingUrl)}
+          onEnded={() => recordingUrl && onToggleRadio(recordingUrl)}
+        />
       }
     />
   );

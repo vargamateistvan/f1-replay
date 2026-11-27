@@ -38,6 +38,10 @@ describe("settings transfer", () => {
     { catchupSummaryDefaultFilters: [] },
     { catchupSummaryDefaultFilters: ["unknown"] },
     { catchupSummaryDefaultFilters: [2] },
+    { catchupSummaryDefaultFilters: ["race_control"] },
+    { timingDriverHistoryDefaultFilters: [] },
+    { timingDriverHistoryDefaultFilters: ["flag"] },
+    { timingDriverHistoryDefaultFilters: [2] },
     { isOpen: true },
     { tourSeenVersion: 3 },
     { replayWelcomeSeen: true },
@@ -77,6 +81,21 @@ describe("sector marker setting", () => {
 });
 
 describe("timing history settings", () => {
+  it("defaults driver events for existing users and persists, transfers and resets custom choices", async () => {
+    const defaults = ["race_control", "pit", "lap", "radio"];
+    useSettings.getState().reset();
+    localStorage.setItem("f1-replay-settings", JSON.stringify({ state: {}, version: 2 }));
+    await useSettings.persist.rehydrate();
+    expect(useSettings.getState().timingDriverHistoryDefaultFilters).toEqual(defaults);
+    useSettings.getState().setSetting("timingDriverHistoryDefaultFilters", ["overtake"]);
+    await useSettings.persist.rehydrate();
+    expect(useSettings.getState().timingDriverHistoryDefaultFilters).toEqual(["overtake"]);
+    expect(parseSettingsImport(exportSettings(useSettings.getState())).timingDriverHistoryDefaultFilters)
+      .toEqual(["overtake"]);
+    useSettings.getState().reset();
+    expect(useSettings.getState().timingDriverHistoryDefaultFilters).toEqual(defaults);
+  });
+
   it.each(["timingRaceControlHistoryEnabled", "timingPitHistoryEnabled", "timingDriverHistoryEnabled"] as const)(
     "defaults %s on for existing users and preserves a saved opt-out",
     async (key) => {
