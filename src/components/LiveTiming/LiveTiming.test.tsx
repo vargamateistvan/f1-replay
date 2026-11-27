@@ -532,6 +532,15 @@ describe("LiveTiming", () => {
         "Under investigation: Car 1 under investigation for track limits",
       ),
     ).toBeInTheDocument();
+    expect(within(screen.getByRole("tooltip")).getByText("Under investigation"))
+      .toBeInTheDocument();
+    fireEvent.mouseLeave(investigationBadge);
+    expect(screen.queryByRole("tooltip")).not.toBeInTheDocument();
+    fireEvent.mouseEnter(screen.getByLabelText("Penalty issued"));
+    expect(within(screen.getByRole("tooltip")).getByText("Penalty issued"))
+      .toBeInTheDocument();
+    expect(within(screen.getByRole("tooltip")).getByText("Penalty issued: Car 16 time penalty 5 seconds"))
+      .toBeInTheDocument();
     expect(screen.getAllByText(/SPD|KMH|MPH/).length).toBeGreaterThan(0);
     fireEvent.click(screen.getAllByText("LEC")[0]!);
     expect(onSelectDriver).toHaveBeenCalledWith(16);

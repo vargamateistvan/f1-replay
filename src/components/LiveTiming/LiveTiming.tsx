@@ -52,7 +52,6 @@ import { SectorBar, type SectorTier } from "./SectorBar";
 import { TyreBadge } from "./TyreBadge";
 import { DriverPitHistory } from "./DriverPitHistory";
 import { DriverHeadshot } from "@/components/DriverHeadshot";
-import { TooltipCard } from "@/components/TooltipCard/TooltipCard";
 import { TOKEN_HEX } from "@/designTokens";
 import type { PitBattle } from "@/utils/undercut";
 
@@ -261,13 +260,24 @@ function StatusBadgeTooltip({
       {open &&
         typeof document !== "undefined" &&
         createPortal(
-          <TooltipCard
-            title="Status"
-            text={tooltip}
-            accentClassName={tooltipAccentClassName}
-            className="pointer-events-none fixed z-tooltip w-56 max-w-[calc(100vw-2rem)]"
+          <span
+            role="tooltip"
+            className="pointer-events-none fixed z-tooltip w-56 max-w-[calc(100vw-2rem)] overflow-hidden rounded-sm border border-panel bg-surface text-left shadow-2xl"
             style={{ top: position.top, left: position.left }}
-          />,
+          >
+            <span className="flex h-6 items-center bg-f1red px-2 text-tiny font-black uppercase tracking-caps text-white">
+              {ariaLabel}
+            </span>
+            <span className="relative block px-3 py-2">
+              <span
+                aria-hidden="true"
+                className={`absolute inset-y-0 left-0 w-0.5 ${tooltipAccentClassName ?? "bg-f1red"}`}
+              />
+              <span className="block whitespace-normal break-words text-caption font-semibold normal-case leading-3 tracking-normal text-fg/90">
+                {tooltip}
+              </span>
+            </span>
+          </span>,
           document.body,
         )}
     </span>
