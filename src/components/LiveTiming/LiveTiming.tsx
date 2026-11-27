@@ -54,12 +54,14 @@ import { DriverPitHistory } from "./DriverPitHistory";
 import { DriverHeadshot } from "@/components/DriverHeadshot";
 import { TooltipCard } from "@/components/TooltipCard/TooltipCard";
 import { TOKEN_HEX } from "@/designTokens";
+import type { PitBattle } from "@/utils/undercut";
 
 interface Props {
   readonly drivers: Driver[];
   readonly positions: Position[];
   readonly intervals: Interval[];
   readonly pits: Pit[];
+  readonly pitBattles?: PitBattle[];
   readonly laps: Lap[];
   readonly raceControl?: RaceControl[];
   readonly stints?: Stint[];
@@ -593,6 +595,7 @@ export function LiveTiming({
   positions,
   intervals,
   pits,
+  pitBattles,
   laps,
   raceControl = [],
   stints,
@@ -2550,6 +2553,8 @@ export function LiveTiming({
                     >
                       <DriverPitHistory
                         driver={driver}
+                        drivers={drivers}
+                        pitBattles={pitBattles}
                         driverNumber={num}
                         pits={pits}
                         stints={stints ?? []}
@@ -2578,6 +2583,8 @@ export function LiveTiming({
                     >
                       <DriverPitHistory
                         driver={driver}
+                        drivers={drivers}
+                        pitBattles={pitBattles}
                         driverNumber={num}
                         pits={pits}
                         stints={stints ?? []}

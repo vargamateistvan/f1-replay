@@ -15,9 +15,12 @@ import {
 } from "@/constants";
 import { PitFeed } from "@/components/Pits/PitFeed";
 import { useSettings } from "@/stores/settings";
+import type { PitBattle } from "@/utils/undercut";
 
 export function DriverPitHistory({
   driver,
+  drivers,
+  pitBattles,
   driverNumber,
   pits,
   stints,
@@ -27,6 +30,8 @@ export function DriverPitHistory({
   children,
 }: {
   driver?: Driver;
+  drivers: Driver[];
+  pitBattles?: PitBattle[];
   driverNumber: number;
   pits: Pit[];
   stints: Stint[];
@@ -183,8 +188,9 @@ export function DriverPitHistory({
             <PitFeed
               compact
               entries={pits.filter((pit) => pit.driver_number === driverNumber)}
+              pitBattles={pitBattles}
               stints={stints}
-              drivers={driver ? [driver] : []}
+              drivers={drivers}
               sessionTimeMs={sessionTimeMs}
               sessionStartMs={sessionStartMs}
             />

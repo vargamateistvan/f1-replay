@@ -92,6 +92,22 @@ describe("LiveTiming", () => {
           positions={[]}
           intervals={[]}
           laps={[]}
+          pitBattles={[{
+            id: "battle-1-16-10",
+            kind: label === "Pit count" ? "undercut" : "overcut",
+            attacker: 1,
+            defender: 16,
+            firstStopper: 1,
+            firstStopLap: 10,
+            firstStopMs: 60_000,
+            attackerDeficitS: 1.5,
+            rivalStopLap: null,
+            status: "pending",
+            attackerAheadAfter: null,
+            attackerGainS: null,
+            resolvedMs: null,
+            neutralised: false,
+          }]}
           pits={[
             pit,
             { ...pit, driver_number: 16, lap_number: 11 },
@@ -125,6 +141,10 @@ describe("LiveTiming", () => {
       expect(within(dialog).getByText("Stint 2 · L11–30")).toBeInTheDocument();
       expect(within(dialog).queryByText("Lap 11")).not.toBeInTheDocument();
       expect(within(dialog).queryByText("Lap 20")).not.toBeInTheDocument();
+      expect(within(dialog).getByText(label === "Pit count" ? "Undercut on" : "Overcut on"))
+        .toBeInTheDocument();
+      expect(within(dialog).getByText("LEC still out")).toBeInTheDocument();
+      expect(within(dialog).getByText("LEC")).toHaveStyle({ color: "#E8002D" });
       fireEvent.click(within(dialog).getByRole("button", { name: "Close pit stops" }));
       expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
       expect(onSelectDriver).not.toHaveBeenCalled();
