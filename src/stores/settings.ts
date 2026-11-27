@@ -89,6 +89,8 @@ export interface AppSettings {
   // Leaderboard
   leaderboardTelemetry: boolean;
   timingShowMinisectors: boolean;
+  timingRaceControlHistoryEnabled: boolean;
+  timingPitHistoryEnabled: boolean;
   // Driver Tracker
   trackerTimingTelemetry: boolean;
   trackerTimingCompactColumn: boolean;
@@ -254,6 +256,8 @@ export const SETTINGS_DEFAULTS: AppSettings = {
   mapView3dBattleGaps: false,
   leaderboardTelemetry: true,
   timingShowMinisectors: true,
+  timingRaceControlHistoryEnabled: true,
+  timingPitHistoryEnabled: true,
   trackerTimingTelemetry: true,
   trackerTimingCompactColumn: true,
   trackerTimingMobileCarData: false,

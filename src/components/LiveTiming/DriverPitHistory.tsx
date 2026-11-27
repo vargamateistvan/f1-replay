@@ -14,6 +14,7 @@ import {
   PIT_HISTORY_VIEWPORT_PAD,
 } from "@/constants";
 import { PitFeed } from "@/components/Pits/PitFeed";
+import { useSettings } from "@/stores/settings";
 
 export function DriverPitHistory({
   driver,
@@ -34,7 +35,9 @@ export function DriverPitHistory({
   label: string;
   children: ReactNode;
 }) {
-  const [open, setOpen] = useState(false);
+  const historyEnabled = useSettings((s) => s.timingPitHistoryEnabled);
+  const [requestedOpen, setOpen] = useState(false);
+  const open = historyEnabled && requestedOpen;
   const [position, setPosition] = useState({ top: 0, left: 0 });
   const anchorRef = useRef<HTMLButtonElement>(null);
   const panelRef = useRef<HTMLDivElement>(null);
@@ -119,6 +122,8 @@ export function DriverPitHistory({
       scheduleClose();
     }
   }
+
+  if (!historyEnabled) return <>{children}</>;
 
   return (
     <>

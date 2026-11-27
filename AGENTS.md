@@ -67,6 +67,8 @@ Tests sit next to the module (`foo.ts` → `foo.test.ts`); broad smoke/coverage 
 
 The replay tracker defaults to Track on phones and Timing on desktop when `ttab` is absent; explicit tab selections stay in the URL across viewports.
 
+Settings → Timing includes independent race-control and pit/tyre history dialog toggles (`timingRaceControlHistoryEnabled` / `timingPitHistoryEnabled`), both persisted and on by default. Disabling race-control history preserves the ticker's seek action; disabling pit history restores plain timing cells.
+
 Quick-settings dismissal uses outside pointer presses and focus entering an outside control, not blur alone: iOS can clear focus without a new focus target before delivering a button tap.
 
 Qualifying playback markers prefer phase-tagged `SESSION STARTED` messages; pre-session race-control rows must not become negative phase starts. Tagged flags and text announcements remain fallbacks only when an actual phase start is unavailable.

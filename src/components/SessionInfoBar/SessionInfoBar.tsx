@@ -6,7 +6,6 @@ import {
   normalizeRaceControl,
   type NormalizedRaceControlEvent,
 } from "@/timeline/raceControl";
-import { RC_TICKER_RECENT_COUNT } from "@/constants";
 import { RaceControlTicker } from "./RaceControlTicker";
 
 interface Props {
@@ -46,7 +45,6 @@ function deriveLatestMessage(
     sameTimeCount = last !== null && e.ms === last.ms ? sameTimeCount + 1 : 0;
     last = e;
     recentEvents.push(e);
-    if (recentEvents.length > RC_TICKER_RECENT_COUNT) recentEvents.shift();
   }
   return last
     ? { event: last, sameTimeCount, recentEvents: recentEvents.reverse() }

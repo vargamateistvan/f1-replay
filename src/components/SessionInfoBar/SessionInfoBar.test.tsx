@@ -11,20 +11,21 @@ import type { Driver, Lap, RaceControl } from "@/api/types";
 
 const state = vi.hoisted(() => ({
   lightMode: false,
+  timingRaceControlHistoryEnabled: true,
 }));
 
 vi.mock("@/stores/settings", () => ({
   useSettings: (
-    selector: ((s: { lightMode: boolean }) => unknown) | undefined,
+    selector: ((s: typeof state) => unknown) | undefined,
   ) => {
-    const store = { lightMode: state.lightMode };
-    return selector ? selector(store) : store;
+    return selector ? selector(state) : state;
   },
 }));
 
 describe("SessionInfoBar", () => {
   beforeEach(() => {
     state.lightMode = false;
+    state.timingRaceControlHistoryEnabled = true;
   });
 
   it("covers formation lap, jump dialog and callbacks", async () => {
@@ -322,6 +323,9 @@ describe("SessionInfoBar", () => {
       .closest("[data-commentary-row]");
     expect(penaltyRow).toHaveClass("bg-red/[0.08]");
     expect(within(dialog).queryByText("RED FLAG")).not.toBeInTheDocument();
+    expect(within(dialog).getByText("Lap 4")).toBeInTheDocument();
+    expect(within(dialog).getByText("Lap 3")).toBeInTheDocument();
+    expect(within(dialog).queryByText("Lap 9")).not.toBeInTheDocument();
   });
 
   it("shows recent race control messages when the ticker is hovered", () => {
@@ -372,7 +376,33 @@ describe("SessionInfoBar", () => {
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
   });
 
-  it("shows the latest twenty elapsed messages, newest first", () => {
+  it("disables race control history without disabling replay from the ticker", () => {
+    state.timingRaceControlHistoryEnabled = false;
+    const onJumpToSessionTime = vi.fn();
+    render(
+      <SessionInfoBar
+        laps={[]}
+        raceControl={[{
+          date: "2024-01-01T00:00:10Z",
+          message: "GREEN FLAG",
+          flag: "GREEN",
+        }] as RaceControl[]}
+        sessionStartMs={Date.parse("2024-01-01T00:00:00Z")}
+        sessionTimeMs={20_000}
+        onJumpToSessionTime={onJumpToSessionTime}
+      />,
+    );
+    const ticker = screen.getByRole("button", {
+      name: "Replay from race control message: GREEN FLAG",
+    });
+    fireEvent.mouseEnter(ticker);
+    fireEvent.focus(ticker);
+    fireEvent.click(ticker);
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    expect(onJumpToSessionTime).toHaveBeenCalledWith(10_000);
+  });
+
+  it("shows all elapsed messages without a limit, newest first", () => {
     const sessionStartMs = Date.parse("2024-01-01T00:00:00.000Z");
     const raceControl = Array.from({ length: 25 }, (_, index) => ({
       date: new Date(sessionStartMs + index * 1000).toISOString(),
@@ -394,7 +424,9 @@ describe("SessionInfoBar", () => {
     }));
     const dialog = screen.getByRole("dialog");
     expect(within(dialog).getAllByText(/^Control message /).map((row) => row.textContent))
-      .toEqual(Array.from({ length: 20 }, (_, index) => `Control message ${22 - index}`));
+      .toEqual(Array.from({ length: 23 }, (_, index) => `Control message ${22 - index}`));
+    expect(within(dialog).getByText("23 messages")).toBeInTheDocument();
+    expect(within(dialog).getAllByText("Session")).toHaveLength(1);
   });
 
   it("shows message age and same-instant count, and replays from the message on click", () => {

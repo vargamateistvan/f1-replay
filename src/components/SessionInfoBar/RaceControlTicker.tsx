@@ -1,10 +1,14 @@
-import { useId, useState, type FocusEvent } from "react";
+import { Fragment, useId, useState, type FocusEvent } from "react";
 import { RotateCcw, X } from "lucide-react";
 import type { Driver } from "@/api/types";
 import { RC_TICKER_FRESH_MS } from "@/constants";
 import { teamColor } from "@/utils/color";
 import type { NormalizedRaceControlEvent } from "@/timeline/raceControl";
-import { COMMENTARY_BADGE_CLASS } from "@/components/CommentaryPanels/commentaryList";
+import {
+  COMMENTARY_BADGE_CLASS,
+  COMMENTARY_GROUP_HEADER_CLASS,
+  commentaryGroupLabel,
+} from "@/components/CommentaryPanels/commentaryList";
 import {
   CommentaryDriver,
   CommentaryRow,
@@ -14,6 +18,7 @@ import {
   raceControlEventBadge,
 } from "@/components/RaceControl/eventStyle";
 import { TOKEN_HEX } from "@/designTokens";
+import { useSettings } from "@/stores/settings";
 
 interface Props {
   event: NormalizedRaceControlEvent;
@@ -46,11 +51,12 @@ export function RaceControlTicker({
   onJumpToSessionTime,
   className: extraClassName = "",
 }: Readonly<Props>) {
+  const historyEnabled = useSettings((s) => s.timingRaceControlHistoryEnabled);
   const [isHovered, setIsHovered] = useState(false);
   const [isFocused, setIsFocused] = useState(false);
   const [isDismissed, setIsDismissed] = useState(false);
   const panelId = useId();
-  const isOpen = !isDismissed && (isHovered || isFocused);
+  const isOpen = historyEnabled && !isDismissed && (isHovered || isFocused);
   const badge = raceControlEventBadge(event);
   const accent = raceControlEventAccent(event, driver?.team_colour);
   const ageMs = sessionTimeMs - event.ms;
@@ -185,8 +191,8 @@ export function RaceControlTicker({
           className={`${className} text-left uppercase transition-colors hover:bg-fg/[0.04] focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-inset focus-visible:ring-f1red`}
           title={`${event.description} — click to replay from here`}
           aria-label={`Replay from race control message: ${event.description}`}
-          aria-haspopup="dialog"
-          aria-expanded={isOpen}
+          aria-haspopup={historyEnabled ? "dialog" : undefined}
+          aria-expanded={historyEnabled ? isOpen : undefined}
           aria-controls={isOpen ? panelId : undefined}
         >
           {content}
@@ -220,35 +226,43 @@ export function RaceControlTicker({
             </button>
           </div>
           <div className="max-h-[min(16rem,45dvh)] divide-y divide-panel overflow-y-auto overscroll-contain">
-            {recentEvents.map((recentEvent) => {
+            {recentEvents.map((recentEvent, index) => {
               const recentBadge = raceControlEventBadge(recentEvent);
               const eventDriver = drivers.find(
                 (candidate) => candidate.driver_number === recentEvent.driverNumber,
               );
               const recentAccent = raceControlEventAccent(recentEvent, eventDriver?.team_colour);
+              const startsLap = index === 0 ||
+                (recentEvents[index - 1].lapNumber ?? null) !== (recentEvent.lapNumber ?? null);
               return (
-                <CommentaryRow
-                  key={recentEvent.id}
-                  compact
-                  ms={recentEvent.ms}
-                  badge={recentBadge}
-                  accent={recentAccent}
-                  titleLines={2}
-                  className={`normal-case tracking-normal ${recentEvent.kind === "penalty" ? "bg-red/[0.08] hover:bg-red/[0.12]" : ""}`}
-                  title={
-                    <>
-                      {eventDriver && (
-                        <span className="mr-1.5">
-                          <CommentaryDriver
-                            driver={eventDriver}
-                            driverNumber={eventDriver.driver_number}
-                          />
-                        </span>
-                      )}
-                      <span>{recentEvent.description}</span>
-                    </>
-                  }
-                />
+                <Fragment key={recentEvent.id}>
+                  {startsLap && (
+                    <div className={COMMENTARY_GROUP_HEADER_CLASS}>
+                      {commentaryGroupLabel(undefined, recentEvent.lapNumber ?? null)}
+                    </div>
+                  )}
+                  <CommentaryRow
+                    compact
+                    ms={recentEvent.ms}
+                    badge={recentBadge}
+                    accent={recentAccent}
+                    titleLines={2}
+                    className={`normal-case tracking-normal ${recentEvent.kind === "penalty" ? "bg-red/[0.08] hover:bg-red/[0.12]" : ""}`}
+                    title={
+                      <>
+                        {eventDriver && (
+                          <span className="mr-1.5">
+                            <CommentaryDriver
+                              driver={eventDriver}
+                              driverNumber={eventDriver.driver_number}
+                            />
+                          </span>
+                        )}
+                        <span>{recentEvent.description}</span>
+                      </>
+                    }
+                  />
+                </Fragment>
               );
             })}
           </div>

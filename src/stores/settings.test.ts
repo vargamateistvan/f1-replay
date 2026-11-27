@@ -76,6 +76,24 @@ describe("sector marker setting", () => {
   });
 });
 
+describe("timing history settings", () => {
+  it.each(["timingRaceControlHistoryEnabled", "timingPitHistoryEnabled"] as const)(
+    "defaults %s on for existing users and preserves a saved opt-out",
+    async (key) => {
+      useSettings.getState().reset();
+      localStorage.setItem("f1-replay-settings", JSON.stringify({ state: {}, version: 2 }));
+      await useSettings.persist.rehydrate();
+      expect(useSettings.getState()[key]).toBe(true);
+      useSettings.getState().setSetting(key, false);
+      await useSettings.persist.rehydrate();
+      expect(useSettings.getState()[key]).toBe(false);
+      expect(parseSettingsImport(exportSettings(useSettings.getState()))[key]).toBe(false);
+      useSettings.getState().reset();
+      expect(useSettings.getState()[key]).toBe(true);
+    },
+  );
+});
+
 describe("track kerb setting", () => {
   it("defaults to off, persists explicit opt-in, and resets to off", async () => {
     expect(SETTINGS_DEFAULTS.mapShowKerbs).toBe(false);

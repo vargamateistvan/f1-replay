@@ -30,7 +30,7 @@ const drivers: Driver[] = [
 
 describe("LiveTiming", () => {
   beforeEach(() => {
-    useSettings.setState({ metricSystem: "metric" });
+    useSettings.setState({ metricSystem: "metric", timingPitHistoryEnabled: true });
   });
 
   it("covers loading and empty states", () => {
@@ -153,6 +153,26 @@ describe("LiveTiming", () => {
     expect(screen.getByText("No pit stops yet - scrub forward")).toBeInTheDocument();
     fireEvent.pointerDown(document.body);
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+  });
+
+  it("disables pit and tyre history while keeping cell contents visible", () => {
+    useSettings.setState({ timingPitHistoryEnabled: false });
+    render(
+      <LiveTiming
+        drivers={drivers}
+        positions={[]}
+        intervals={[]}
+        laps={[]}
+        pits={[]}
+        sessionTimeMs={0}
+        sessionStartMs={Date.parse("2024-01-01T00:00:00Z")}
+        columnVisibility={{ tyre: true, pit: true }}
+      />,
+    );
+    expect(screen.queryByRole("button", { name: /show pit stops/ })).not.toBeInTheDocument();
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    expect(screen.getAllByText("0").length).toBeGreaterThan(0);
+    useSettings.setState({ timingPitHistoryEnabled: true });
   });
 
   it("does not display a post-finish lap beyond the race total", () => {

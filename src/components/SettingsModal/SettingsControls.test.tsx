@@ -47,6 +47,8 @@ vi.mock("@/stores/settings", () => ({
     toastFastestLap: true,
     leaderboardTelemetry: true,
     timingShowMinisectors: true,
+    timingRaceControlHistoryEnabled: true,
+    timingPitHistoryEnabled: true,
     trackerTimingTelemetry: true,
     trackerTimingCompactColumn: false,
     trackerTimingMobileCarData: true,
@@ -430,6 +432,20 @@ describe("SettingsControls", () => {
       "timingMobileShowBestLap",
       false,
     );
+  });
+
+  it("offers independent enabled history dialog toggles in Timing settings", () => {
+    render(<SettingsBody initialTab="timing" />);
+    for (const [label, key] of [
+      ["Race control history dialog", "timingRaceControlHistoryEnabled"],
+      ["Pit stop history dialog", "timingPitHistoryEnabled"],
+    ]) {
+      const row = screen.getByText(label).parentElement!.parentElement!;
+      const toggle = within(row).getByRole("switch");
+      expect(toggle).toHaveAttribute("aria-checked", "true");
+      fireEvent.click(toggle);
+      expect(state.setSetting).toHaveBeenCalledWith(key, false);
+    }
   });
 
   it("uses red chips for selected desktop timing columns", () => {

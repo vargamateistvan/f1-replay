@@ -609,6 +609,18 @@ export function SettingsBody({
                 checked={settings.timingShowMinisectors}
                 onChange={toggle("timingShowMinisectors")}
               />
+              <SettingRow
+                label="Race control history dialog"
+                description="Show message history when hovering or focusing the race control row"
+                checked={settings.timingRaceControlHistoryEnabled}
+                onChange={toggle("timingRaceControlHistoryEnabled")}
+              />
+              <SettingRow
+                label="Pit stop history dialog"
+                description="Show driver pit stops from the pit count and tyre cells"
+                checked={settings.timingPitHistoryEnabled}
+                onChange={toggle("timingPitHistoryEnabled")}
+              />
               {!isMobileViewport && (
                 <SettingRow
                   label="Timing box live telemetry"
