@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { act, fireEvent, render, screen } from "@testing-library/react";
+import { act, fireEvent, render, screen, within } from "@testing-library/react";
 import { LiveTiming } from "@/components/LiveTiming/LiveTiming";
 import { useSettings } from "@/stores/settings";
 import type {
@@ -69,6 +69,90 @@ describe("LiveTiming", () => {
 
     expect(screen.getAllByText("VER").length).toBeGreaterThan(0);
     expect(screen.getAllByText("LEC").length).toBeGreaterThan(0);
+  });
+
+  it.each(["Pit count", "Tyres"])(
+    "shows only the driver's elapsed pit stops from the %s cell",
+    (label) => {
+      const sessionStartMs = Date.parse("2024-01-01T00:00:00Z");
+      const pit: Pit = {
+        date: "2024-01-01T00:01:00Z",
+        driver_number: 1,
+        lap_number: 10,
+        meeting_key: 1,
+        session_key: 1,
+        stop_duration: 2.4,
+        lane_duration: 23.5,
+        pit_duration: null,
+      };
+      const onSelectDriver = vi.fn();
+      render(
+        <LiveTiming
+          drivers={drivers}
+          positions={[]}
+          intervals={[]}
+          laps={[]}
+          pits={[
+            pit,
+            { ...pit, driver_number: 16, lap_number: 11 },
+            { ...pit, date: "2024-01-01T00:03:00Z", lap_number: 20 },
+          ]}
+          stints={[{
+            compound: "HARD",
+            driver_number: 1,
+            lap_start: 11,
+            lap_end: 30,
+            stint_number: 2,
+            tyre_age_at_start: 0,
+            meeting_key: 1,
+            session_key: 1,
+          }]}
+          sessionTimeMs={120_000}
+          sessionStartMs={sessionStartMs}
+          columnVisibility={{ tyre: true, pit: true }}
+          onSelectDriver={onSelectDriver}
+        />,
+      );
+
+      const trigger = screen.getByRole("button", {
+        name: `${label} for VER: show pit stops`,
+      });
+      fireEvent.mouseEnter(trigger);
+      const dialog = screen.getByRole("dialog", { name: "Pit stops for VER" });
+      expect(within(dialog).getByText("Lap 10")).toBeInTheDocument();
+      expect(within(dialog).getByText("Stop 2.4")).toBeInTheDocument();
+      expect(within(dialog).getByText("Lane 23.5")).toBeInTheDocument();
+      expect(within(dialog).getByText("Stint 2 · L11–30")).toBeInTheDocument();
+      expect(within(dialog).queryByText("Lap 11")).not.toBeInTheDocument();
+      expect(within(dialog).queryByText("Lap 20")).not.toBeInTheDocument();
+      fireEvent.click(within(dialog).getByRole("button", { name: "Close pit stops" }));
+      expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+      expect(onSelectDriver).not.toHaveBeenCalled();
+
+      fireEvent.focus(trigger);
+      expect(screen.getByRole("dialog", { name: "Pit stops for VER" })).toBeInTheDocument();
+      fireEvent.keyDown(document, { key: "Escape" });
+      expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    },
+  );
+
+  it("shows an empty pit history and dismisses it on an outside press", () => {
+    render(
+      <LiveTiming
+        drivers={drivers}
+        positions={[]}
+        intervals={[]}
+        laps={[]}
+        pits={[]}
+        sessionTimeMs={0}
+        sessionStartMs={Date.parse("2024-01-01T00:00:00Z")}
+        columnVisibility={{ pit: true }}
+      />,
+    );
+    fireEvent.click(screen.getByRole("button", { name: "Pit count for VER: show pit stops" }));
+    expect(screen.getByText("No pit stops yet - scrub forward")).toBeInTheDocument();
+    fireEvent.pointerDown(document.body);
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
   });
 
   it("does not display a post-finish lap beyond the race total", () => {

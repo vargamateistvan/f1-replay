@@ -50,6 +50,7 @@ import {
 import { lastAtOrBefore, upperBoundByValue } from "@/utils/sortedTime";
 import { SectorBar, type SectorTier } from "./SectorBar";
 import { TyreBadge } from "./TyreBadge";
+import { DriverPitHistory } from "./DriverPitHistory";
 import { DriverHeadshot } from "@/components/DriverHeadshot";
 import { TooltipCard } from "@/components/TooltipCard/TooltipCard";
 import { TOKEN_HEX } from "@/designTokens";
@@ -2547,16 +2548,26 @@ export function LiveTiming({
                     <td
                       className={`${mobileTyreColumnClass} ${rowCellPad} align-middle px-1 sm:px-1.5`}
                     >
-                      <TyreBadge
-                        stints={stints ?? []}
+                      <DriverPitHistory
+                        driver={driver}
                         driverNumber={num}
-                        currentLap={currentLap}
-                        startCompound={
-                          wideSectors
-                            ? (startCompoundMap.get(num) ?? null)
-                            : null
-                        }
-                      />
+                        pits={pits}
+                        stints={stints ?? []}
+                        sessionTimeMs={sessionTimeMs}
+                        sessionStartMs={sessionStartMs}
+                        label="Tyres"
+                      >
+                        <TyreBadge
+                          stints={stints ?? []}
+                          driverNumber={num}
+                          currentLap={currentLap}
+                          startCompound={
+                            wideSectors
+                              ? (startCompoundMap.get(num) ?? null)
+                              : null
+                          }
+                        />
+                      </DriverPitHistory>
                     </td>
                   )}
 
@@ -2565,7 +2576,17 @@ export function LiveTiming({
                     <td
                       className={`${mobilePitCountColumnClass} ${rowCellPad} align-middle px-1 text-center font-mono ${dense ? "text-caption" : "text-small min-[390px]:text-compact"} tabular-nums text-muted sm:px-1.5`}
                     >
-                      {pitCountMap.get(num) ?? 0}
+                      <DriverPitHistory
+                        driver={driver}
+                        driverNumber={num}
+                        pits={pits}
+                        stints={stints ?? []}
+                        sessionTimeMs={sessionTimeMs}
+                        sessionStartMs={sessionStartMs}
+                        label="Pit count"
+                      >
+                        {pitCountMap.get(num) ?? 0}
+                      </DriverPitHistory>
                     </td>
                   )}
 

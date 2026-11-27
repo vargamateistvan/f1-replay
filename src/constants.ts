@@ -840,6 +840,9 @@ export const QUERY_PERSIST_GC_INTERVAL_MS = 24 * 60 * 60 * 1000;
 export const RC_TICKER_FRESH_MS = 30_000;
 /** Number of latest messages shown by the race control ticker popover. */
 export const RC_TICKER_RECENT_COUNT = 20;
+/** Grace period when moving from a timing cell into its pit-history panel. */
+export const PIT_HISTORY_CLOSE_DELAY_MS = 150;
+export const PIT_HISTORY_VIEWPORT_PAD = 12;
 
 // ── Event toasts ──────────────────────────────────────────────────────────────
 /** A forward jump (session ms) larger than this clears the toast queue instead of replaying it. */
