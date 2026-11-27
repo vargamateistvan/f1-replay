@@ -209,6 +209,7 @@ describe("TrackMap sector flag state rendering", () => {
     );
 
     expect(container.querySelector('line[stroke="url(#finish-checker-1)"]')).not.toBeNull();
+    expect(container.querySelector('path[d="M-3.4,-1.5 L2.8,0 L-3.4,1.5"]')).toBeNull();
     const labels = Array.from(container.querySelectorAll("text")).map(
       (label) => label.textContent,
     );

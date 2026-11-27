@@ -66,7 +66,6 @@ import {
 import { buildStatusBadges, type ActiveTrackVehicles } from "./statusBadges";
 import { exportTrackSnapshot } from "./exportSnapshot";
 import {
-  DirectionArrows,
   SectorBoundaryMarkers,
   SectorClipPaths,
   StartFinishLine,
@@ -964,8 +963,6 @@ export function TrackMap({
               lightMode={lightMode}
             />
           )}
-          <DirectionArrows geom={trackGeometry} lightMode={lightMode} />
-
           {pitWindow && focusedPos && (
             <PitWindowMarkers
               geom={trackGeometry}
