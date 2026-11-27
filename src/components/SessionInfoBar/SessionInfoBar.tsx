@@ -6,6 +6,7 @@ import {
   normalizeRaceControl,
   type NormalizedRaceControlEvent,
 } from "@/timeline/raceControl";
+import { RC_TICKER_RECENT_COUNT } from "@/constants";
 import { RaceControlTicker } from "./RaceControlTicker";
 
 interface Props {
@@ -32,15 +33,24 @@ interface Props {
 function deriveLatestMessage(
   events: NormalizedRaceControlEvent[],
   sessionTimeMs: number,
-): { event: NormalizedRaceControlEvent; sameTimeCount: number } | null {
+): {
+  event: NormalizedRaceControlEvent;
+  sameTimeCount: number;
+  recentEvents: NormalizedRaceControlEvent[];
+} | null {
   let last: NormalizedRaceControlEvent | null = null;
   let sameTimeCount = 0;
+  const recentEvents: NormalizedRaceControlEvent[] = [];
   for (const e of events) {
     if (e.ms > sessionTimeMs) break;
     sameTimeCount = last !== null && e.ms === last.ms ? sameTimeCount + 1 : 0;
     last = e;
+    recentEvents.push(e);
+    if (recentEvents.length > RC_TICKER_RECENT_COUNT) recentEvents.shift();
   }
-  return last ? { event: last, sameTimeCount } : null;
+  return last
+    ? { event: last, sameTimeCount, recentEvents: recentEvents.reverse() }
+    : null;
 }
 
 /** Ticker for the latest race control message at the playhead (nothing before the first one). */
@@ -77,6 +87,7 @@ export function LatestRaceControlTicker({
       key={latestMsg.event.id}
       event={latestMsg.event}
       sameTimeCount={latestMsg.sameTimeCount}
+      recentEvents={latestMsg.recentEvents}
       driver={driver}
       sessionTimeMs={sessionTimeMs}
       onJumpToSessionTime={onJumpToSessionTime}

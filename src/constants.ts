@@ -838,6 +838,8 @@ export const QUERY_PERSIST_GC_INTERVAL_MS = 24 * 60 * 60 * 1000;
 // ── Race control ticker (session info bar) ────────────────────────────────────
 /** A race control message counts as "new" (pulse dot, entrance flash) for this long. */
 export const RC_TICKER_FRESH_MS = 30_000;
+/** Number of latest messages shown by the race control ticker popover. */
+export const RC_TICKER_RECENT_COUNT = 20;
 
 // ── Event toasts ──────────────────────────────────────────────────────────────
 /** A forward jump (session ms) larger than this clears the toast queue instead of replaying it. */

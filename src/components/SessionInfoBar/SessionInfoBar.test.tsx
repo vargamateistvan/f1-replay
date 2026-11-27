@@ -1,5 +1,11 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import {
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+  within,
+} from "@testing-library/react";
 import { SessionInfoBar } from "@/components/SessionInfoBar";
 import type { Driver, Lap, RaceControl } from "@/api/types";
 
@@ -306,6 +312,79 @@ describe("SessionInfoBar", () => {
     expect(screen.getByText("L4")).toBeInTheDocument();
     expect(screen.getByText("Penalty")).toHaveClass("bg-red-tint");
     expect(screen.getByText("HAM")).toHaveStyle({ color: "#E8002D" });
+  });
+
+  it("shows recent race control messages when the ticker is hovered", () => {
+    const sessionStartMs = Date.parse("2024-01-01T00:00:00.000Z");
+    render(
+      <SessionInfoBar
+        laps={[] as Lap[]}
+        raceControl={
+          [
+            {
+              date: "2024-01-01T00:00:10.000Z",
+              flag: "YELLOW",
+              message: "YELLOW IN SECTOR 1",
+            },
+            {
+              date: "2024-01-01T00:00:20.000Z",
+              flag: "GREEN",
+              message: "GREEN FLAG",
+            },
+            {
+              date: "2024-01-01T00:00:40.000Z",
+              flag: "RED",
+              message: "FUTURE RED FLAG",
+            },
+          ] as RaceControl[]
+        }
+        sessionTimeMs={30_000}
+        sessionStartMs={sessionStartMs}
+        onJumpToSessionTime={vi.fn()}
+      />,
+    );
+
+    const ticker = screen.getByRole("button", {
+      name: "Replay from race control message: GREEN FLAG",
+    });
+    fireEvent.mouseEnter(ticker);
+
+    const dialog = screen.getByRole("dialog", {
+      name: "Recent race control messages",
+    });
+    expect(ticker).toHaveAttribute("aria-expanded", "true");
+    expect(within(dialog).getByText("GREEN FLAG")).toBeInTheDocument();
+    expect(within(dialog).getByText("YELLOW IN SECTOR 1")).toBeInTheDocument();
+    expect(within(dialog).queryByText("FUTURE RED FLAG")).not.toBeInTheDocument();
+    expect(within(dialog).queryByText("Recent messages")).not.toBeInTheDocument();
+    expect(within(dialog).queryByText("At the current playhead")).not.toBeInTheDocument();
+    fireEvent.click(within(dialog).getByRole("button", { name: "Close recent messages" }));
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+  });
+
+  it("shows the latest twenty elapsed messages, newest first", () => {
+    const sessionStartMs = Date.parse("2024-01-01T00:00:00.000Z");
+    const raceControl = Array.from({ length: 25 }, (_, index) => ({
+      date: new Date(sessionStartMs + index * 1000).toISOString(),
+      message: `Control message ${index}`,
+      flag: null,
+    })) as RaceControl[];
+    render(
+      <SessionInfoBar
+        laps={[]}
+        raceControl={raceControl}
+        sessionTimeMs={22_000}
+        sessionStartMs={sessionStartMs}
+        onJumpToSessionTime={vi.fn()}
+      />,
+    );
+
+    fireEvent.mouseEnter(screen.getByRole("button", {
+      name: "Replay from race control message: Control message 22",
+    }));
+    const dialog = screen.getByRole("dialog");
+    expect(within(dialog).getAllByText(/^Control message /).map((row) => row.textContent))
+      .toEqual(Array.from({ length: 20 }, (_, index) => `Control message ${22 - index}`));
   });
 
   it("shows message age and same-instant count, and replays from the message on click", () => {
