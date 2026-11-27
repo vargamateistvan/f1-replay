@@ -4,10 +4,11 @@ import type { Driver } from "@/api/types";
 import { RC_TICKER_FRESH_MS } from "@/constants";
 import { teamColor } from "@/utils/color";
 import type { NormalizedRaceControlEvent } from "@/timeline/raceControl";
+import { COMMENTARY_BADGE_CLASS } from "@/components/CommentaryPanels/commentaryList";
 import {
-  COMMENTARY_BADGE_CLASS,
-  formatSessionElapsedTime,
-} from "@/components/CommentaryPanels/commentaryList";
+  CommentaryDriver,
+  CommentaryRow,
+} from "@/components/CommentaryPanels/CommentaryRow";
 import {
   raceControlEventAccent,
   raceControlEventBadge,
@@ -17,6 +18,7 @@ import { TOKEN_HEX } from "@/designTokens";
 interface Props {
   event: NormalizedRaceControlEvent;
   recentEvents: NormalizedRaceControlEvent[];
+  drivers: Driver[];
   /** Other messages issued at the same instant (shown as "+N"). */
   sameTimeCount?: number;
   driver?: Driver;
@@ -37,6 +39,7 @@ function fmtAge(ms: number): string {
 export function RaceControlTicker({
   event,
   recentEvents,
+  drivers,
   sameTimeCount = 0,
   driver,
   sessionTimeMs,
@@ -198,9 +201,9 @@ export function RaceControlTicker({
           id={panelId}
           role="dialog"
           aria-label="Recent race control messages"
-          className="absolute right-0 top-full z-popover w-[min(420px,92vw)] overflow-hidden rounded-sm border border-panel bg-surface shadow-2xl"
+          className="absolute right-0 top-full z-popover w-80 max-w-[92vw] overflow-hidden rounded-sm border border-panel bg-surface shadow-2xl"
         >
-          <div className="flex items-center justify-between gap-3 bg-f1red px-4 py-1 text-white sm:px-5">
+          <div className="flex items-center justify-between gap-2 bg-f1red px-3 py-1 text-white">
             <span className="text-caption font-black uppercase tracking-spaced">
               Race Control
             </span>
@@ -216,43 +219,36 @@ export function RaceControlTicker({
               <X size={14} aria-hidden="true" />
             </button>
           </div>
-          <div className="max-h-[min(24rem,60dvh)] divide-y divide-panel overflow-y-auto overscroll-contain">
+          <div className="max-h-[min(16rem,45dvh)] divide-y divide-panel overflow-y-auto overscroll-contain">
             {recentEvents.map((recentEvent) => {
               const recentBadge = raceControlEventBadge(recentEvent);
-              const recentAccent = raceControlEventAccent(recentEvent);
+              const eventDriver = drivers.find(
+                (candidate) => candidate.driver_number === recentEvent.driverNumber,
+              );
+              const recentAccent = raceControlEventAccent(recentEvent, eventDriver?.team_colour);
               return (
-                <div
+                <CommentaryRow
                   key={recentEvent.id}
-                  className="relative flex min-w-0 items-start gap-2 px-3 py-2"
-                >
-                  {recentAccent && (
-                    <span
-                      aria-hidden="true"
-                      className="absolute inset-y-0 left-0 w-0.5"
-                      style={recentAccent}
-                    />
-                  )}
-                  <time
-                    dateTime={recentEvent.date}
-                    className="shrink-0 font-mono text-small leading-4 tabular-nums text-fg/60"
-                  >
-                    {formatSessionElapsedTime(Math.max(0, recentEvent.ms))}
-                  </time>
-                  {recentEvent.lapNumber !== null && (
-                    <span className="shrink-0 text-small text-muted">
-                      L{recentEvent.lapNumber}
-                    </span>
-                  )}
-                  <span
-                    className={`${COMMENTARY_BADGE_CLASS} ${recentBadge.className}`}
-                    style={recentBadge.style}
-                  >
-                    {recentBadge.label}
-                  </span>
-                  <span className="min-w-0 text-small leading-4 normal-case tracking-normal text-fg/90">
-                    {recentEvent.description}
-                  </span>
-                </div>
+                  compact
+                  ms={recentEvent.ms}
+                  badge={recentBadge}
+                  accent={recentAccent}
+                  titleLines={2}
+                  className={`normal-case tracking-normal ${recentEvent.kind === "penalty" ? "bg-red/[0.08] hover:bg-red/[0.12]" : ""}`}
+                  title={
+                    <>
+                      {eventDriver && (
+                        <span className="mr-1.5">
+                          <CommentaryDriver
+                            driver={eventDriver}
+                            driverNumber={eventDriver.driver_number}
+                          />
+                        </span>
+                      )}
+                      <span>{recentEvent.description}</span>
+                    </>
+                  }
+                />
               );
             })}
           </div>

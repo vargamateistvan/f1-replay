@@ -88,6 +88,7 @@ export function LatestRaceControlTicker({
       event={latestMsg.event}
       sameTimeCount={latestMsg.sameTimeCount}
       recentEvents={latestMsg.recentEvents}
+      drivers={drivers}
       driver={driver}
       sessionTimeMs={sessionTimeMs}
       onJumpToSessionTime={onJumpToSessionTime}

@@ -50,6 +50,7 @@ type Props = Readonly<{
   active?: boolean;
   /** Title lines before truncating: 2 for long RC messages, "all" to never clip. */
   titleLines?: 1 | 2 | "all";
+  compact?: boolean;
   className?: string;
 }>;
 
@@ -69,12 +70,15 @@ export function CommentaryRow({
   upcoming = false,
   active = false,
   titleLines = 1,
+  compact = false,
   className = "",
 }: Props) {
   const accentStyle =
     typeof accent === "string" ? { backgroundColor: accent } : accent;
   const rowClass = [
-    COMMENTARY_ROW_CLASS,
+    compact
+      ? "group/commentary relative flex items-start gap-2 py-1.5 pl-3 pr-2 text-left transition-colors hover:bg-fg/[0.04]"
+      : COMMENTARY_ROW_CLASS,
     rowClickable ? "w-full cursor-pointer" : "",
     active ? "bg-fg/[0.04]" : "",
     upcoming ? "opacity-50" : "",
@@ -91,8 +95,8 @@ export function CommentaryRow({
           style={accentStyle}
         />
       )}
-      <span className="flex min-w-[4.75rem] shrink-0 flex-col items-start gap-1">
-        <span className={COMMENTARY_TIME_CLASS}>
+      <span className={`flex shrink-0 flex-col items-start gap-1 ${compact ? "min-w-14" : "min-w-[4.75rem]"}`}>
+        <span className={compact ? "whitespace-nowrap font-mono text-caption leading-4 tabular-nums text-fg/60" : COMMENTARY_TIME_CLASS}>
           {formatSessionElapsedTime(Math.max(0, ms))}
         </span>
         <span
@@ -105,12 +109,15 @@ export function CommentaryRow({
       </span>
       <span className="block min-w-0 flex-1">
         <span
-          className={`${TITLE_CLASS_BY_LINES[titleLines]} block`}
+          className={`${compact ? COMPACT_TITLE_CLASS_BY_LINES[titleLines] : TITLE_CLASS_BY_LINES[titleLines]} block`}
         >
           {title}
         </span>
         {meta && (
-          <span data-commentary-meta="" className={COMMENTARY_META_CLASS}>
+          <span
+            data-commentary-meta=""
+            className={compact ? "mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-1 font-mono text-tiny leading-4 tabular-nums text-muted" : COMMENTARY_META_CLASS}
+          >
             {meta}
           </span>
         )}
@@ -160,6 +167,12 @@ const TITLE_CLASS_BY_LINES = {
   1: COMMENTARY_TITLE_CLASS,
   2: "line-clamp-2 text-compact font-semibold leading-4 text-fg/90",
   all: "text-compact font-semibold leading-4 text-fg/90",
+} as const;
+
+const COMPACT_TITLE_CLASS_BY_LINES = {
+  1: "truncate text-small font-semibold leading-4 text-fg/90",
+  2: "line-clamp-2 text-small font-semibold leading-4 text-fg/90",
+  all: "text-small font-semibold leading-4 text-fg/90",
 } as const;
 
 /** Team-coloured driver code, optionally followed by the muted full name. */

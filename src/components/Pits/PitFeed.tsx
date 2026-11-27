@@ -37,6 +37,7 @@ interface Props {
   readonly showAllItems?: boolean;
   readonly phaseLookup?: (ms: number) => number | null;
   readonly onJump?: (ms: number) => void;
+  readonly compact?: boolean;
 }
 
 type VisiblePitEntry = {
@@ -63,6 +64,7 @@ export function PitFeed({
   showAllItems = false,
   phaseLookup = () => null,
   onJump,
+  compact = false,
 }: Props) {
   const showCsvExportButtons = useSettings((s) => s.showCsvExportButtons);
   const [renderLimit, setRenderLimit] = useState(120);
@@ -197,6 +199,7 @@ export function PitFeed({
               return (
                 <CommentaryRow
                   key={`${entry.driver_number}-${entry.lap_number}-${entry.date}-${idx}`}
+                  compact={compact}
                   ms={ms}
                   badge={{ label: "Pit", className: "bg-orange text-orange-on" }}
                   accent={color}

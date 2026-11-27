@@ -148,14 +148,14 @@ export function DriverPitHistory({
           role="dialog"
           aria-label={`Pit stops for ${driverLabel}`}
           style={position}
-          className="fixed z-popover w-[min(420px,92vw)] overflow-hidden rounded-sm border border-panel bg-surface text-left shadow-2xl"
+          className="fixed z-popover w-80 max-w-[92vw] overflow-hidden rounded-sm border border-panel bg-surface text-left shadow-2xl"
           onMouseEnter={cancelClose}
           onMouseLeave={scheduleClose}
           onFocusCapture={cancelClose}
           onBlurCapture={(event) => handleBlur(event.relatedTarget)}
           onClick={(event) => event.stopPropagation()}
         >
-          <div className="flex items-center justify-between gap-3 bg-f1red px-4 py-1 text-white sm:px-5">
+          <div className="flex items-center justify-between gap-2 bg-f1red px-3 py-1 text-white">
             <span className="text-caption font-black uppercase tracking-spaced">
               Pit stops
             </span>
@@ -174,8 +174,9 @@ export function DriverPitHistory({
               <X size={14} aria-hidden="true" />
             </button>
           </div>
-          <div className="max-h-[min(24rem,60dvh)] overflow-y-auto overscroll-contain pt-2">
+          <div className="max-h-[min(16rem,45dvh)] overflow-y-auto overscroll-contain pt-2">
             <PitFeed
+              compact
               entries={pits.filter((pit) => pit.driver_number === driverNumber)}
               stints={stints}
               drivers={driver ? [driver] : []}

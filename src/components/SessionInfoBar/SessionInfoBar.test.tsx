@@ -312,6 +312,16 @@ describe("SessionInfoBar", () => {
     expect(screen.getByText("L4")).toBeInTheDocument();
     expect(screen.getByText("Penalty")).toHaveClass("bg-red-tint");
     expect(screen.getByText("HAM")).toHaveStyle({ color: "#E8002D" });
+
+    fireEvent.mouseEnter(screen.getByText("5 SECOND TIME PENALTY FOR CAR 44 (HAM)"));
+    const dialog = screen.getByRole("dialog", { name: "Recent race control messages" });
+    expect(within(dialog).getByText("HAM")).toHaveStyle({ color: "#E8002D" });
+    expect(within(dialog).getByText("Penalty")).toHaveClass("bg-red-tint");
+    const penaltyRow = within(dialog)
+      .getByText("5 SECOND TIME PENALTY FOR CAR 44 (HAM)")
+      .closest("[data-commentary-row]");
+    expect(penaltyRow).toHaveClass("bg-red/[0.08]");
+    expect(within(dialog).queryByText("RED FLAG")).not.toBeInTheDocument();
   });
 
   it("shows recent race control messages when the ticker is hovered", () => {
