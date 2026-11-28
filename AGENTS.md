@@ -69,6 +69,8 @@ The replay tracker defaults to Track on phones and Timing on desktop when `ttab`
 
 The desktop race-control strip stays beside the session info tiles and fills the remaining width. On phones it remains below the tracker tabs, beside the Timing quick-settings button where applicable.
 
+Focused-driver telemetry uses compact desktop spacing and a flexible speed trace to keep RPM and pedals on the same line where the pane fits; very narrow panes can still wrap rather than clip controls. Phones retain the compact two-row grid; comparison drivers remain on separate rows.
+
 Settings → Timing includes independent race-control and pit/tyre history dialog toggles (`timingRaceControlHistoryEnabled` / `timingPitHistoryEnabled`), both persisted and on by default. Disabling race-control history preserves the ticker's seek action; disabling pit history restores plain timing cells.
 
 The driver-column dialog uses `timingDriverHistoryEnabled` (Settings → Timing, default on). `LiveTiming/TimingHistoryPopover.tsx` shares portalled hover/focus/tap behavior between `DriverPitHistory` and `DriverEventHistory`; driver clicks still select the driver. `utils/driverEvents.ts` combines driver-specific race control, pits, overtakes, radio and completed personal/session-best laps at the playhead, excluding deleted laps and future events. Radio playback uses `RadioAudio` and stops on dismissal. `extractInvolvedDriverNumbers` is shared with timing penalty markers.

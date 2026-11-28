@@ -329,13 +329,13 @@ function DriverHud({
 
   return (
     <div
-      className="grid min-w-0 grid-cols-[minmax(0,1fr)_auto_auto] items-center gap-x-2 gap-y-2 rounded-sm border-l-[3px] py-1.5 pl-2 pr-2 sm:flex sm:flex-wrap sm:gap-x-4"
+      className="grid min-w-0 grid-cols-[minmax(0,1fr)_auto_auto] items-center gap-x-2 gap-y-2 rounded-sm border-l-[3px] py-1.5 pl-2 pr-2 sm:flex sm:flex-wrap sm:gap-x-2"
       style={{
         borderLeftColor: color,
         background: `linear-gradient(90deg, ${color}2e, ${color}0a 45%, transparent 80%)`,
       }}
     >
-      <div className="contents sm:flex sm:items-center sm:gap-3">
+      <div className="contents sm:flex sm:shrink-0 sm:items-center sm:gap-2">
         <DriverIdentity driver={driver} color={color} lap={lap} />
         {sample && (
           <>
@@ -349,7 +349,7 @@ function DriverHud({
 
       {sample ? (
         <div className="col-span-3 flex min-w-0 items-center justify-between gap-2 sm:contents">
-          <div className="min-w-0">
+          <div className="min-w-0 sm:shrink-0">
             <ShiftLights rpm={sample.rpm} />
           </div>
           <Pedals throttle={sample.throttle} brake={sample.brake} />
@@ -380,7 +380,7 @@ function DriverIdentity({
   lap: number | null;
 }) {
   return (
-    <span className="flex w-[6.5rem] shrink-0 items-center gap-2">
+    <span className="flex w-[6.5rem] shrink-0 items-center gap-2 sm:w-auto">
       <DriverHeadshot driver={driver ?? undefined} accent={color} size="sm" />
       <span className="flex min-w-0 flex-col gap-1 leading-none">
         <span
@@ -431,7 +431,7 @@ function SpeedTraceSparkline({
     <svg
       viewBox={`0 0 ${TRACE_W} ${TRACE_H}`}
       preserveAspectRatio="none"
-      className="hidden h-8 w-28 shrink-0 overflow-visible rounded-sm bg-sunken sm:block xl:w-44"
+      className="hidden h-8 w-28 min-w-0 overflow-visible rounded-sm bg-sunken sm:block sm:flex-1 sm:max-w-44"
       aria-hidden="true"
       data-testid="focused-speed-trace"
     >
