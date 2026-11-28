@@ -258,7 +258,6 @@ export function SessionInfoBar({
 
   return (
     <div className="shrink-0 flex flex-col border-b border-panel bg-track text-caption font-bold uppercase tracking-widest sm:flex-row sm:items-stretch">
-      {/* Mobile: tiles scroll sideways and the race control ticker gets its own row below */}
       <div className="flex min-w-0 items-stretch overflow-x-auto">
         {/* Left tile: qualifying action in quali; countdown in timed practice; lap counter in race */}
         {showQualiEliminationTile ? (

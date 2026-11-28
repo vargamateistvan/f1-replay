@@ -266,6 +266,33 @@ describe("SessionInfoBar", () => {
     expect(screen.queryByText("Lap")).not.toBeInTheDocument();
   });
 
+  it.each([false, true])("fills the available race-control width with replay action %s", (interactive) => {
+    const { container } = render(
+      <SessionInfoBar
+        laps={[]}
+        raceControl={[{
+          date: "2024-01-01T00:00:10Z",
+          message: "GREEN FLAG", category: "Flag", flag: "GREEN",
+          driver_number: null, lap_number: 1, qualifying_phase: null,
+          meeting_key: 1, session_key: 1, scope: "Track", sector: null,
+        }]}
+        sessionTimeMs={30_000}
+        sessionStartMs={Date.parse("2024-01-01T00:00:00Z")}
+        onJumpToSessionTime={interactive ? vi.fn() : undefined}
+      />,
+    );
+    const infoBar = container.firstElementChild;
+    expect(infoBar).toHaveClass("flex-col");
+    expect(infoBar).toHaveClass("sm:flex-row", "sm:items-stretch");
+    const strip = interactive
+      ? screen.getByRole("button", { name: "Replay from race control message: GREEN FLAG" })
+      : screen.getByText("GREEN FLAG").closest("[title='GREEN FLAG']");
+    expect(strip).toHaveClass("w-full", "min-w-0", "border-t");
+    expect(strip).toHaveClass("sm:border-t-0");
+    expect(strip?.parentElement).toHaveClass("w-full");
+    expect(strip?.parentElement?.parentElement).toBe(infoBar);
+  });
+
   it("styles the latest race control message like the commentary feed", () => {
     const sessionStartMs = Date.parse("2024-01-01T00:00:00.000Z");
 

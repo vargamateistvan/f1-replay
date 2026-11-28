@@ -1,6 +1,6 @@
 # F1 Replay — Agent Documentation
 
-> Last updated: 2026-11-27
+> Last updated: 2026-11-28
 > The single source of truth for agents. Provides concise, agent-readable architecture notes, conventions, and guardrails. `docs/` holds mostly historical plans — see Section 12 before trusting one.
 
 ---
@@ -66,6 +66,8 @@ schedule layout.
 Tests sit next to the module (`foo.ts` → `foo.test.ts`); broad smoke/coverage tests are in `components/__tests__/`.
 
 The replay tracker defaults to Track on phones and Timing on desktop when `ttab` is absent; explicit tab selections stay in the URL across viewports.
+
+The desktop race-control strip stays beside the session info tiles and fills the remaining width. On phones it remains below the tracker tabs, beside the Timing quick-settings button where applicable.
 
 Settings → Timing includes independent race-control and pit/tyre history dialog toggles (`timingRaceControlHistoryEnabled` / `timingPitHistoryEnabled`), both persisted and on by default. Disabling race-control history preserves the ticker's seek action; disabling pit history restores plain timing cells.
 

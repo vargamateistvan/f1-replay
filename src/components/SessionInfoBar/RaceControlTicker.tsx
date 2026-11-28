@@ -174,11 +174,11 @@ export function RaceControlTicker({
     </>
   );
 
-  const className = `group relative flex min-w-0 flex-1 items-center gap-2 overflow-hidden border-t border-panel py-2 pl-4 pr-3 sm:border-t-0 ${extraClassName}`;
+  const className = `group relative flex w-full min-w-0 items-center gap-2 overflow-hidden border-t border-panel py-2 pl-4 pr-3 sm:border-t-0 ${extraClassName}`;
 
   return (
     <div
-      className="relative min-w-0 flex-1"
+      className="relative w-full min-w-0 flex-1"
       onMouseEnter={openPanelFromHover}
       onMouseLeave={() => setIsHovered(false)}
       onFocusCapture={openPanelFromFocus}
