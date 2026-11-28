@@ -1,4 +1,5 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import type { ReactNode } from "react";
 import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -16,13 +17,29 @@ import * as media from "@/hooks/useMediaQuery";
 import RaceWeekend from "./RaceWeekend";
 
 vi.mock("@/components/TrackMap/TrackMap", () => ({
-  TrackMap: ({ pitLaneStatus }: { pitLaneStatus?: { exit: string } | null }) => (
-    <div data-pit-status={pitLaneStatus?.exit ?? "none"}>Track preview</div>
+  TrackMap: ({ pitLaneStatus, showFocusedHud, focusedTelemetryOverlay }: {
+    pitLaneStatus?: { exit: string } | null;
+    showFocusedHud?: boolean;
+    focusedTelemetryOverlay?: ReactNode;
+  }) => (
+    <div data-pit-status={pitLaneStatus?.exit ?? "none"}>
+      Track preview
+      {focusedTelemetryOverlay && <div data-testid="map-telemetry-overlay">{focusedTelemetryOverlay}</div>}
+      {showFocusedHud && <span>Map overlay telemetry</span>}
+    </div>
   ),
 }));
 vi.mock("@/components/TrackRing/TrackRing", () => ({
-  TrackRing: ({ lapLabel }: { lapLabel?: string | null }) => (
-    <div data-testid="ring-lap-counter">{lapLabel}</div>
+  TrackRing: ({ lapLabel, showFocusedHud, focusedTelemetryOverlay }: {
+    lapLabel?: string | null;
+    showFocusedHud?: boolean;
+    focusedTelemetryOverlay?: ReactNode;
+  }) => (
+    <div data-testid="ring-lap-counter">
+      {lapLabel}
+      {focusedTelemetryOverlay && <div data-testid="map-telemetry-overlay">{focusedTelemetryOverlay}</div>}
+      {showFocusedHud && <span>Map overlay telemetry</span>}
+    </div>
   ),
 }));
 vi.mock("@/components/LiveTiming/LiveTiming", () => ({
@@ -31,9 +48,11 @@ vi.mock("@/components/LiveTiming/LiveTiming", () => ({
 vi.mock("@/components/FocusedTelemetry/FocusedTelemetry", () => ({
   FocusedTelemetry: ({
     driver,
+    layout,
   }: {
     driver: { name_acronym: string } | null;
-  }) => <div data-testid="focused-telemetry">{driver?.name_acronym}</div>,
+    layout?: string;
+  }) => <div data-testid="focused-telemetry" data-layout={layout}>{driver?.name_acronym}</div>,
 }));
 vi.mock("@/components/TrackMap3D/availability", () => ({
   isMap3dAvailable: () => false,
@@ -327,9 +346,13 @@ describe("progressive replay startup", () => {
     unmount();
   });
 
-  it("shows one selected-driver HUD on the phone map when its setting is enabled", async () => {
-    vi.spyOn(media, "useMediaQuery").mockReturnValue(true);
-    useSettings.setState({ mapShowDriverHud: true });
+  it.each([
+    [true, "2d"],
+    [false, "2d"],
+    [false, "ring"],
+  ] as const)("shows one selected-driver HUD in the map pane for compact=%s and mode=%s", async (compact, mode) => {
+    vi.spyOn(media, "useMediaQuery").mockReturnValue(compact);
+    useSettings.setState({ mapShowDriverHud: true, mapViewMode: mode });
     const driver: Driver = {
       driver_number: 44,
       broadcast_name: "L HAMILTON",
@@ -351,7 +374,29 @@ describe("progressive replay startup", () => {
     );
 
     expect(await screen.findAllByTestId("focused-telemetry")).toHaveLength(1);
-    expect(screen.getByTestId("focused-telemetry")).toHaveTextContent("HAM");
+    const hud = screen.getByTestId("focused-telemetry");
+    expect(hud).toHaveTextContent("HAM");
+    expect(hud).toHaveAttribute("data-layout", compact ? "panel" : "widget");
+    if (!compact) expect(screen.getByTestId("map-telemetry-overlay")).toContainElement(hud);
+    else expect(screen.queryByTestId("map-telemetry-overlay")).not.toBeInTheDocument();
+    const mapViews = mode === "ring"
+      ? screen.getAllByTestId("ring-lap-counter")
+      : screen.getAllByText("Track preview");
+    expect(mapViews.some((map) => map.parentElement?.parentElement?.contains(hud))).toBe(true);
+    expect(screen.queryByText("Map overlay telemetry")).not.toBeInTheDocument();
+    act(() => useSettings.getState().setSetting("mapShowDriverHud", false));
+    expect(screen.queryByTestId("focused-telemetry")).not.toBeInTheDocument();
+    unmount();
+  });
+
+  it("does not keep selected-driver telemetry below the phone timing table", async () => {
+    vi.spyOn(media, "useMediaQuery").mockReturnValue(true);
+    useSettings.setState({ mapShowDriverHud: true });
+    const { unmount } = renderReplay(
+      "/?year=2024&meeting=456&session=123&focus=44&ttab=timing",
+    );
+    await screen.findAllByText("Timing panel");
+    expect(screen.queryByTestId("focused-telemetry")).not.toBeInTheDocument();
     unmount();
   });
 

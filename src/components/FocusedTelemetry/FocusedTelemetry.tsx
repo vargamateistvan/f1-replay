@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import { X } from "lucide-react";
+import { Gauge, X } from "lucide-react";
 import type { CarData, Driver } from "@/api/types";
 import { useCoarseTime } from "@/hooks/useCoarseTime";
 import { useCarDataWindow } from "@/hooks/useCarDataWindow";
@@ -41,6 +41,7 @@ interface Props {
    * (leaderboard telemetry columns) — reuse it instead of per-driver requests. */
   readonly sharedAllDriverWindow?: boolean;
   readonly telemetryEnabled?: boolean;
+  readonly layout?: "panel" | "widget";
   readonly onClear: () => void;
   readonly onClearCompare?: () => void;
 }
@@ -56,6 +57,7 @@ export function FocusedTelemetry({
   compareDriverLap = null,
   sharedAllDriverWindow = false,
   telemetryEnabled = true,
+  layout = "panel",
   onClear,
   onClearCompare,
 }: Props) {
@@ -110,7 +112,10 @@ export function FocusedTelemetry({
   );
 
   const color = teamColor(driver?.team_colour, "#ffffff");
-  const compareTeamColor = teamColor(compareDriver?.team_colour, TOKEN_HEX.blue);
+  const compareTeamColor = teamColor(
+    compareDriver?.team_colour,
+    TOKEN_HEX.blue,
+  );
   const compareColor = telemetryComparisonColors([color, compareTeamColor])[1]!;
 
   const compareTelemetry = useMemo(() => {
@@ -168,10 +173,55 @@ export function FocusedTelemetry({
 
   const speedUnit = speedUnitLabel(metricSystem);
   const speedChartMax = metricSystem === "imperial" ? 240 : 380;
+  const widget = layout === "widget";
+  const clearControls = (
+    <div
+      className={
+        widget
+          ? "flex items-center gap-2"
+          : "flex shrink-0 flex-col items-end gap-2 pt-1"
+      }
+    >
+      <button
+        onClick={onClear}
+        className={`${widget ? "flex h-5 w-5" : "hidden h-6 w-6 sm:flex"} items-center justify-center rounded-sm border border-panel text-muted transition-colors hover:border-line hover:text-fg`}
+        aria-label="Clear focus"
+        title="Clear focus"
+      >
+        <X size={12} strokeWidth={2.5} aria-hidden />
+      </button>
+      {compareDriver && onClearCompare && (
+        <button
+          onClick={onClearCompare}
+          className="text-tiny font-black uppercase tracking-widest text-muted hover:text-fg"
+          aria-label="Clear comparison driver"
+          title="Clear comparison driver"
+        >
+          Clear compare
+        </button>
+      )}
+    </div>
+  );
 
   return (
-    <div className="shrink-0 border-t border-panel bg-track px-3 py-2 text-xs">
-      <div className="flex items-start gap-3">
+    <div
+      className={
+        widget
+          ? "pointer-events-auto w-72 max-w-full overflow-hidden rounded-sm border border-panel border-l-2 bg-surface/70 text-caption text-fg shadow-sm backdrop-blur-sm"
+          : "shrink-0 border-t border-panel bg-track px-3 py-2 text-xs"
+      }
+      style={widget ? { borderLeftColor: color } : undefined}
+    >
+      {widget && (
+        <div className="flex items-center justify-between gap-1.5 border-b border-panel px-2 py-0.5">
+          <span className="flex items-center gap-1.5 text-caption font-black uppercase tracking-caps text-fg/80">
+            <Gauge size={12} aria-hidden />
+            Driver telemetry
+          </span>
+          {clearControls}
+        </div>
+      )}
+      <div className={widget ? "px-2 py-1" : "flex items-start gap-3"}>
         <div className="flex min-w-0 flex-1 flex-col gap-1.5">
           <DriverHud
             driver={driver}
@@ -181,6 +231,7 @@ export function FocusedTelemetry({
             samples={samples}
             t={t}
             metricSystem={metricSystem}
+            widget={widget}
             emptyLabel={
               compareDriver
                 ? "No live sample"
@@ -196,35 +247,23 @@ export function FocusedTelemetry({
               samples={compareSamples}
               t={t}
               metricSystem={metricSystem}
+              widget={widget}
               emptyLabel="No live sample"
             />
           )}
         </div>
 
-        <div className="flex shrink-0 flex-col items-end gap-2 pt-1">
-          <button
-            onClick={onClear}
-            className="hidden h-6 w-6 items-center justify-center rounded-sm border border-panel text-muted transition-colors hover:border-line hover:text-fg sm:flex"
-            aria-label="Clear focus"
-            title="Clear focus"
-          >
-            <X size={12} strokeWidth={2.5} aria-hidden />
-          </button>
-          {compareDriver && onClearCompare && (
-            <button
-              onClick={onClearCompare}
-              className="text-tiny font-black uppercase tracking-widest text-muted hover:text-fg"
-              aria-label="Clear comparison driver"
-              title="Clear comparison driver"
-            >
-              Clear compare
-            </button>
-          )}
-        </div>
+        {!widget && clearControls}
       </div>
 
       {compareTelemetry && (
-        <div className="mt-3 grid gap-2 lg:grid-cols-3">
+        <div
+          className={
+            widget
+              ? "grid gap-2 border-t border-panel p-2"
+              : "mt-3 grid gap-2 lg:grid-cols-3"
+          }
+        >
           <TelemetryChart
             title={`Speed (${speedUnit}) · L${driverLap ?? "—"} vs L${compareDriverLap ?? "—"}`}
             xData={compareTelemetry.xData}
@@ -302,6 +341,7 @@ function DriverHud({
   t,
   metricSystem,
   emptyLabel,
+  widget,
 }: {
   driver: Driver | null;
   color: string;
@@ -311,6 +351,7 @@ function DriverHud({
   t: number;
   metricSystem: "metric" | "imperial";
   emptyLabel: string;
+  widget: boolean;
 }) {
   const trace = useMemo(
     () =>
@@ -326,45 +367,95 @@ function DriverHud({
         : null,
     [sample, samples, t],
   );
+  const readouts = sample && (
+    <div
+      className={
+        widget
+          ? "flex shrink-0 flex-col items-start gap-1.5"
+          : "col-span-3 flex min-w-0 items-center justify-between gap-2 sm:contents"
+      }
+    >
+      <div className="min-w-0 sm:shrink-0">
+        <ShiftLights rpm={sample.rpm} widget={widget} />
+      </div>
+      <Pedals throttle={sample.throttle} brake={sample.brake} widget={widget} />
+      <DrsBadge drs={sample.drs} />
+    </div>
+  );
 
   return (
     <div
-      className="grid min-w-0 grid-cols-[minmax(0,1fr)_auto_auto] items-center gap-x-2 gap-y-2 rounded-sm border-l-[3px] py-1.5 pl-2 pr-2 sm:flex sm:flex-wrap sm:gap-x-2"
-      style={{
-        borderLeftColor: color,
-        background: `linear-gradient(90deg, ${color}2e, ${color}0a 45%, transparent 80%)`,
-      }}
+      className={
+        widget
+          ? "grid min-w-0 grid-cols-[minmax(0,1fr)_auto_auto] items-center gap-x-2 gap-y-1.5 py-1"
+          : "grid min-w-0 grid-cols-[minmax(0,1fr)_auto_auto] items-center gap-x-2 gap-y-2 rounded-sm border-l-[3px] py-1.5 pl-2 pr-2 sm:flex sm:flex-wrap sm:gap-x-2"
+      }
+      style={
+        widget
+          ? undefined
+          : {
+              borderLeftColor: color,
+              background: `linear-gradient(90deg, ${color}2e, ${color}0a 45%, transparent 80%)`,
+            }
+      }
     >
-      <div className="contents sm:flex sm:shrink-0 sm:items-center sm:gap-2">
-        <DriverIdentity driver={driver} color={color} lap={lap} />
+      <div
+        className={
+          widget
+            ? "contents"
+            : "contents sm:flex sm:shrink-0 sm:items-center sm:gap-2"
+        }
+      >
+        <DriverIdentity
+          driver={driver}
+          color={color}
+          lap={lap}
+          widget={widget}
+        />
         {sample && (
           <>
-            <SpeedReadout speed={sample.speed} metricSystem={metricSystem} />
-            <GearBox gear={sample.n_gear} />
+            <SpeedReadout
+              speed={sample.speed}
+              metricSystem={metricSystem}
+              widget={widget}
+            />
+            <GearBox gear={sample.n_gear} widget={widget} />
           </>
         )}
       </div>
 
-      {sample && trace && <SpeedTraceSparkline trace={trace} color={color} />}
-
       {sample ? (
-        <div className="col-span-3 flex min-w-0 items-center justify-between gap-2 sm:contents">
-          <div className="min-w-0 sm:shrink-0">
-            <ShiftLights rpm={sample.rpm} />
+        widget ? (
+          <div className="col-span-3 flex min-w-0 items-stretch gap-2">
+            {trace && (
+              <SpeedTraceSparkline trace={trace} color={color} widget />
+            )}
+            {readouts}
           </div>
-          <Pedals throttle={sample.throttle} brake={sample.brake} />
-          <DrsBadge drs={sample.drs} />
-        </div>
+        ) : (
+          <>
+            {trace && (
+              <SpeedTraceSparkline trace={trace} color={color} widget={false} />
+            )}
+            {readouts}
+          </>
+        )
       ) : (
-        <span className="col-span-3 text-muted sm:col-auto">{emptyLabel}</span>
+        <span
+          className={`col-span-3 text-muted ${widget ? "text-caption" : "sm:col-auto"}`}
+        >
+          {emptyLabel}
+        </span>
       )}
     </div>
   );
 }
 
-function HudLabel({ children }: { children: string }) {
+function HudLabel({ children, widget }: { children: string; widget: boolean }) {
   return (
-    <span className="text-micro font-bold uppercase leading-none tracking-widest text-muted">
+    <span
+      className={`font-bold uppercase leading-none tracking-widest text-muted ${widget ? "text-tiny" : "text-micro"}`}
+    >
       {children}
     </span>
   );
@@ -374,17 +465,21 @@ function DriverIdentity({
   driver,
   color,
   lap,
+  widget,
 }: {
   driver: Driver | null;
   color: string;
   lap: number | null;
+  widget: boolean;
 }) {
   return (
-    <span className="flex w-[6.5rem] shrink-0 items-center gap-2 sm:w-auto">
+    <span
+      className={`flex shrink-0 items-center gap-2 ${widget ? "min-w-0" : "w-[6.5rem] sm:w-auto"}`}
+    >
       <DriverHeadshot driver={driver ?? undefined} accent={color} size="sm" />
       <span className="flex min-w-0 flex-col gap-1 leading-none">
         <span
-          className="truncate text-sm font-black tracking-wider"
+          className={`truncate font-black tracking-wider ${widget ? "text-caption" : "text-sm"}`}
           style={{ color }}
         >
           {driver?.name_acronym ?? "—"}
@@ -401,15 +496,19 @@ function DriverIdentity({
 function SpeedReadout({
   speed,
   metricSystem,
+  widget,
 }: {
   speed: number;
   metricSystem: "metric" | "imperial";
+  widget: boolean;
 }) {
   return (
     <span className="flex shrink-0 flex-col gap-1">
-      <HudLabel>Speed</HudLabel>
+      <HudLabel widget={widget}>Speed</HudLabel>
       <span className="flex items-baseline gap-1 leading-none">
-        <span className="inline-block w-[3ch] text-right font-mono text-stat font-black tabular-nums text-fg">
+        <span
+          className={`inline-block w-[3ch] text-right font-mono font-black tabular-nums text-fg ${widget ? "text-compact" : "text-stat"}`}
+        >
           {Math.round(toDisplaySpeed(speed, metricSystem))}
         </span>
         <span className="text-tiny font-semibold text-muted">
@@ -423,15 +522,21 @@ function SpeedReadout({
 function SpeedTraceSparkline({
   trace,
   color,
+  widget,
 }: {
   trace: SpeedTrace;
   color: string;
+  widget: boolean;
 }) {
   return (
     <svg
       viewBox={`0 0 ${TRACE_W} ${TRACE_H}`}
       preserveAspectRatio="none"
-      className="hidden h-8 w-28 min-w-0 overflow-visible rounded-sm bg-sunken sm:block sm:flex-1 sm:max-w-44"
+      className={
+        widget
+          ? "h-12 min-w-0 flex-1 self-stretch rounded-sm bg-sunken"
+          : "hidden h-8 w-28 min-w-0 overflow-visible rounded-sm bg-sunken sm:block sm:flex-1 sm:max-w-44"
+      }
       aria-hidden="true"
       data-testid="focused-speed-trace"
     >
@@ -462,13 +567,13 @@ function SpeedTraceSparkline({
   );
 }
 
-function GearBox({ gear }: { gear: number }) {
+function GearBox({ gear, widget }: { gear: number; widget: boolean }) {
   const neutral = gear === 0;
   return (
     <span className="flex shrink-0 flex-col items-center gap-1">
-      <HudLabel>Gear</HudLabel>
+      <HudLabel widget={widget}>Gear</HudLabel>
       <span
-        className={`flex h-7 w-7 items-center justify-center rounded-sm border font-mono text-lg font-black leading-none tabular-nums ${
+        className={`flex ${widget ? "h-5 w-5 text-compact" : "h-7 w-7 text-lg"} items-center justify-center rounded-sm border font-mono font-black leading-none tabular-nums ${
           neutral
             ? "border-orange-line bg-orange-tint text-orange-fg"
             : "border-line bg-panel text-fg"
@@ -481,15 +586,17 @@ function GearBox({ gear }: { gear: number }) {
   );
 }
 
-function ShiftLights({ rpm }: { rpm: number }) {
+function ShiftLights({ rpm, widget }: { rpm: number; widget: boolean }) {
   const rounded = Math.max(0, Math.round(rpm));
   const lit = shiftLightsLit(rounded);
   const atShift = lit === TELEMETRY_SHIFT_LIGHTS;
   return (
     <span className="flex shrink-0 flex-col gap-1">
       <span className="flex items-baseline justify-between gap-2">
-        <HudLabel>RPM</HudLabel>
-        <span className="font-mono text-compact font-bold leading-none tabular-nums text-fg">
+        <HudLabel widget={widget}>RPM</HudLabel>
+        <span
+          className={`font-mono font-bold leading-none tabular-nums text-fg ${widget ? "text-caption" : "text-compact"}`}
+        >
           {rounded}
         </span>
       </span>
@@ -515,11 +622,24 @@ function ShiftLights({ rpm }: { rpm: number }) {
   );
 }
 
-function Pedals({ throttle, brake }: { throttle: number; brake: number }) {
+function Pedals({
+  throttle,
+  brake,
+  widget,
+}: {
+  throttle: number;
+  brake: number;
+  widget: boolean;
+}) {
   return (
     <span className="flex shrink-0 flex-col gap-1">
-      <PedalBar label="Thr" value={throttle} barClass="bg-green" />
-      <PedalBar label="Brk" value={brake} barClass="bg-red" />
+      <PedalBar
+        label="Thr"
+        value={throttle}
+        barClass="bg-green"
+        widget={widget}
+      />
+      <PedalBar label="Brk" value={brake} barClass="bg-red" widget={widget} />
     </span>
   );
 }
@@ -528,15 +648,19 @@ function PedalBar({
   label,
   value,
   barClass,
+  widget,
 }: {
   label: string;
   value: number;
   barClass: string;
+  widget: boolean;
 }) {
   const pct = Math.max(0, Math.min(100, Math.round(value)));
   return (
     <span className="flex items-center gap-1.5">
-      <span className="w-6 text-micro font-bold uppercase leading-none tracking-widest text-muted">
+      <span
+        className={`w-6 font-bold uppercase leading-none tracking-widest text-muted ${widget ? "text-tiny" : "text-micro"}`}
+      >
         {label}
       </span>
       <span className="h-1.5 w-16 overflow-hidden rounded-sm bg-panel sm:w-20">
@@ -545,7 +669,9 @@ function PedalBar({
           style={{ width: `${pct}%` }}
         />
       </span>
-      <span className="w-[3ch] text-right font-mono text-tiny leading-none tabular-nums text-fg/80">
+      <span
+        className={`w-[3ch] text-right font-mono leading-none tabular-nums text-fg/80 ${widget ? "text-caption" : "text-tiny"}`}
+      >
         {pct}
       </span>
     </span>

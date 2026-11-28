@@ -84,7 +84,7 @@ describe("FocusedTelemetry", () => {
     expect(onClear).toHaveBeenCalled();
   });
 
-  it("renders the HUD readouts for the focused driver", () => {
+  it.each(["panel", "widget"] as const)("renders the HUD readouts in the %s layout", (layout) => {
     state.windowData = [
       {
         date: "2024-01-01T00:00:05.000Z",
@@ -108,6 +108,7 @@ describe("FocusedTelemetry", () => {
 
     render(
       <FocusedTelemetry
+        layout={layout}
         sessionKey={1}
         driver={driverA}
         sessionStartMs={Date.parse("2024-01-01T00:00:00.000Z")}
@@ -122,6 +123,10 @@ describe("FocusedTelemetry", () => {
     expect(screen.getByTitle(/^DRS open/)).toBeInTheDocument();
     expect(screen.getByText(/#1 · L23/)).toBeInTheDocument();
     expect(screen.getByTestId("focused-speed-trace")).toBeInTheDocument();
+    if (layout === "widget") {
+      expect(screen.getByText("Driver telemetry")).toBeInTheDocument();
+      expect(screen.getByRole("button", { name: "Clear focus" })).not.toHaveClass("hidden");
+    }
   });
 
   it("hides the DRS badge when the session has no DRS data", () => {
@@ -150,7 +155,7 @@ describe("FocusedTelemetry", () => {
     expect(screen.queryByText("DRS")).not.toBeInTheDocument();
   });
 
-  it("renders compare controls and telemetry charts", () => {
+  it.each(["panel", "widget"] as const)("renders compare controls and telemetry charts in %s layout", (layout) => {
     const onClearCompare = vi.fn();
     state.windowData = [
       {
@@ -185,6 +190,7 @@ describe("FocusedTelemetry", () => {
 
     render(
       <FocusedTelemetry
+        layout={layout}
         sessionKey={1}
         driver={driverA}
         compareDriver={driverB}

@@ -413,7 +413,7 @@ export function TrackMapSettings({
         {row(
           "mapShowDriverHud",
           "Focused driver HUD",
-          "Speed, gear and throttle for the selected driver. On phones it appears below the map",
+          "Selected-driver speed, gear, RPM, throttle and brake in a map widget. On phones it appears below the map",
         )}
         {!isRing &&
           row(

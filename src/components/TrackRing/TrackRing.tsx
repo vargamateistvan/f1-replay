@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { ArrowLeftRight, CircleHelp } from "lucide-react";
 import type { Driver, Interval, Lap, Location, Pit, Stint, Weather } from "@/api/types";
 import { teamColor } from "@/utils/color";
@@ -125,6 +125,7 @@ interface Props {
   readonly safetyCarSirenOn?: boolean;
   readonly showSectorBox?: boolean;
   readonly showFocusedHud?: boolean;
+  readonly focusedTelemetryOverlay?: ReactNode;
   /** True when the all-driver car_data window is already being fetched. */
   readonly sharedAllDriverWindow?: boolean;
   readonly telemetryEnabled?: boolean;
@@ -185,6 +186,7 @@ export function TrackRing({
   safetyCarSirenOn = false,
   showSectorBox = true,
   showFocusedHud = true,
+  focusedTelemetryOverlay,
   sharedAllDriverWindow = false,
   telemetryEnabled = true,
   raceLeader = null,
@@ -889,8 +891,9 @@ export function TrackRing({
       </div>
 
       {focusDriver !== null &&
-        ((showFocusedHud && hudData) || pitRejoinPanel) && (
-          <div className="absolute top-2 left-2 pointer-events-none flex flex-col gap-1">
+        (focusedTelemetryOverlay || (showFocusedHud && hudData) || pitRejoinPanel) && (
+          <div className="absolute top-2 left-2 z-20 max-w-[calc(100%-1rem)] max-h-[calc(100%-1rem)] overflow-y-auto pointer-events-none flex flex-col gap-1">
+            {focusedTelemetryOverlay}
             {showFocusedHud && hudData && (
               <FocusedDriverHud
                 sample={hudData}

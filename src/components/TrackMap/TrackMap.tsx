@@ -1,4 +1,4 @@
-import { useMemo, useState, useEffect, useRef, useCallback } from "react";
+import { useMemo, useState, useEffect, useRef, useCallback, type ReactNode } from "react";
 import { ErrorMessage } from "@/components/ErrorMessage";
 import { RainLayer } from "./layers/RainLayer";
 import { useCarDataForLap } from "@/hooks/useCarDataForLap";
@@ -149,6 +149,7 @@ interface Props {
   readonly showTrackControls?: boolean;
   readonly showCompass?: boolean;
   readonly showFocusedHud?: boolean;
+  readonly focusedTelemetryOverlay?: ReactNode;
   /** True when the all-driver car_data window is already being fetched
    * (leaderboard telemetry columns) — reuse it for the HUD instead of
    * per-driver requests. */
@@ -202,6 +203,7 @@ export function TrackMap({
   showTrackControls = true,
   showCompass = true,
   showFocusedHud = true,
+  focusedTelemetryOverlay,
   raceLeader = null,
   lightsOutMs = null,
   sharedAllDriverWindow = false,
@@ -1059,8 +1061,9 @@ export function TrackMap({
       </div>
 
       {/* Top-left: focused-driver HUD + pit rejoin projection */}
-      {((showFocusedHud && hudData) || (pitWindow && focusedPos)) && focusDriver !== null && (
-        <div className="absolute top-2 left-2 pointer-events-none flex flex-col gap-1">
+      {(focusedTelemetryOverlay || (showFocusedHud && hudData) || (pitWindow && focusedPos)) && focusDriver !== null && (
+        <div className="absolute top-2 left-2 z-20 max-w-[calc(100%-1rem)] max-h-[calc(100%-1rem)] overflow-y-auto pointer-events-none flex flex-col gap-1">
+          {focusedTelemetryOverlay}
           {showFocusedHud && hudData && (
             <FocusedDriverHud
               sample={hudData}

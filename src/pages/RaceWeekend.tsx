@@ -2441,9 +2441,10 @@ export default function RaceWeekend() {
 
   const focusedTelemetryPanel =
     focusDriver === null ? null : (
-      <div className="shrink-0 border-t border-panel">
+      <div className={isCompactViewport ? "shrink-0 border-t border-panel" : "min-w-0"}>
         <Suspense fallback={<PanelFallback />}>
           <FocusedTelemetry
+            layout={isCompactViewport ? "panel" : "widget"}
             sessionKey={sessionKey}
             driver={
               drivers.data?.find((d) => d.driver_number === focusDriver) ?? null
@@ -2489,7 +2490,8 @@ export default function RaceWeekend() {
         neutralised={raceNeutralised}
         positionByDriver={ringPositions}
         battlingDrivers={mapShowBattleRings ? battlingDrivers : undefined}
-        showFocusedHud={mapShowDriverHud && !isCompactViewport}
+        showFocusedHud={false}
+        focusedTelemetryOverlay={!isCompactViewport && mapShowDriverHud ? focusedTelemetryPanel : undefined}
         sharedAllDriverWindow={telemetryEnabled}
         telemetryEnabled={secondaryEnabled}
         trackFlagState={mapShowSectorFlags ? trackFlagState : null}
@@ -2531,7 +2533,8 @@ export default function RaceWeekend() {
         pulseDrivers={pulseDrivers}
         activeCompounds={mapShowCompoundBadges ? activeCompounds : undefined}
         safetyCarSirenOn={safetyCarSirenOn}
-        showFocusedHud={mapShowDriverHud && !isCompactViewport}
+        showFocusedHud={false}
+        focusedTelemetryOverlay={!isCompactViewport && mapShowDriverHud ? focusedTelemetryPanel : undefined}
         sharedAllDriverWindow={telemetryEnabled}
         telemetryEnabled={secondaryEnabled}
         trackFlagState={mapShowSectorFlags ? trackFlagState : null}
@@ -2574,7 +2577,8 @@ export default function RaceWeekend() {
         activeCompounds={mapShowCompoundBadges ? activeCompounds : undefined}
         battlingDrivers={mapShowBattleRings ? battlingDrivers : undefined}
         focusDriverLap={focusDriverLap}
-        showFocusedHud={mapShowDriverHud && !isCompactViewport}
+        showFocusedHud={false}
+        focusedTelemetryOverlay={!isCompactViewport && mapShowDriverHud ? focusedTelemetryPanel : undefined}
         pitRejoinGaps={pitRejoinGaps}
         leaderNumber={isRaceSession ? currentLeaderNumber : null}
         sharedAllDriverWindow={telemetryEnabled}
@@ -3017,8 +3021,6 @@ export default function RaceWeekend() {
                         timingTower
                       )}
                     </div>
-                    {/* Focused telemetry */}
-                    {isCompactViewport && focusedTelemetryPanel}
                   </>
                 )}
 
@@ -3032,7 +3034,7 @@ export default function RaceWeekend() {
                         <ErrorMessage message="Failed to load driver data" />
                       ) : (
                         <Suspense fallback={<PanelFallback />}>
-                          {trackMap}
+                          {isCompactViewport && trackMap}
                         </Suspense>
                       )}
                       {(isLoadingSessionData || location.isPending) && (
@@ -3280,9 +3282,6 @@ export default function RaceWeekend() {
                     </div>
                   )}
                 </div>
-
-                {/* Focused driver telemetry */}
-                {!isCompactViewport && focusedTelemetryPanel}
               </div>
 
               <ResizeHandle
@@ -3304,7 +3303,9 @@ export default function RaceWeekend() {
                   {drivers.isError ? (
                     <ErrorMessage message="Failed to load driver data" />
                   ) : (
-                    <Suspense fallback={<PanelFallback />}>{trackMap}</Suspense>
+                    <Suspense fallback={<PanelFallback />}>
+                      {!isCompactViewport && trackMap}
+                    </Suspense>
                   )}
                   {(isLoadingSessionData || location.isPending) && (
                     <span className="absolute top-2 right-2 text-f1red text-caption">

@@ -343,6 +343,7 @@ interface Props {
   /** Current race leader; stale 0 s gaps on other cars are ignored. */
   readonly leaderNumber?: number | null;
   readonly showFocusedHud?: boolean;
+  readonly focusedTelemetryOverlay?: ReactNode;
   readonly sharedAllDriverWindow?: boolean;
   readonly telemetryEnabled?: boolean;
   readonly raceLeader?: Driver | null;
@@ -394,6 +395,7 @@ export function TrackMap3D({
   pitRejoinGaps = null,
   leaderNumber = null,
   showFocusedHud = true,
+  focusedTelemetryOverlay,
   sharedAllDriverWindow = false,
   telemetryEnabled = true,
   raceLeader = null,
@@ -1889,8 +1891,8 @@ export function TrackMap3D({
         )}
       </div>
 
-      {(directorCaption || (showFocusedHud && hudData) || pitRejoin) && (
-        <div className="absolute top-2 left-2 z-20 pointer-events-none flex flex-col gap-1">
+      {(directorCaption || focusedTelemetryOverlay || (showFocusedHud && hudData) || pitRejoin) && (
+        <div className="absolute top-2 left-2 z-20 max-w-[calc(100%-1rem)] max-h-[calc(100%-1rem)] overflow-y-auto pointer-events-none flex flex-col gap-1">
           {directorCaption && (
             <div
               className="self-start flex items-center gap-1.5 px-2 py-1 text-caption font-black uppercase tracking-widest text-fg border border-panel"
@@ -1902,6 +1904,7 @@ export function TrackMap3D({
               <span>{directorCaption}</span>
             </div>
           )}
+          {focusedTelemetryOverlay}
           {focusDriver !== null && showFocusedHud && hudData && (
             <FocusedDriverHud
               sample={hudData}
