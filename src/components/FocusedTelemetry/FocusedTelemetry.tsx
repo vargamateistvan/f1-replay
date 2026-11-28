@@ -428,6 +428,14 @@ function DriverHud({
             widget={widget}
           />
         )}
+        {!showIdentity && (
+          <span className="flex min-w-0 items-center gap-1.5">
+            <DriverHeadshot driver={driver ?? undefined} accent={color} size="sm" />
+            <span className="truncate text-caption font-black tracking-wider" style={{ color }}>
+              {driver?.name_acronym ?? "—"}
+            </span>
+          </span>
+        )}
         {sample && (
           <>
             <SpeedReadout

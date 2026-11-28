@@ -155,7 +155,7 @@ describe("FocusedTelemetry", () => {
     expect(screen.queryByText("DRS")).not.toBeInTheDocument();
   });
 
-  it.each([false, true])("keeps ring telemetry compact without repeating identity, expanded=%s", (expanded) => {
+  it.each([false, true])("shows the ring driver photo and acronym, expanded=%s", (expanded) => {
     state.windowData = [{
       date: "2024-01-01T00:00:05.000Z", speed: 250, n_gear: 6,
       rpm: 11000, throttle: 95, brake: 0, drs: null,
@@ -164,15 +164,21 @@ describe("FocusedTelemetry", () => {
       rpm: 11500, throttle: 100, brake: 0, drs: null,
     }];
     render(
-      <FocusedTelemetry layout="ring" expandedRing={expanded} sessionKey={1} driver={driverA}
+      <FocusedTelemetry layout="ring" expandedRing={expanded} sessionKey={1}
+        driver={{ ...driverA, headshot_url: "https://example.test/ver.png" }}
         sessionStartMs={Date.parse("2024-01-01T00:00:00.000Z")} onClear={vi.fn()} />,
     );
     expect(screen.getByText("280")).toBeInTheDocument();
     expect(screen.getByTitle("Gear 7")).toBeInTheDocument();
     expect(screen.getByRole("img", { name: "11500 rpm" })).toBeInTheDocument();
     expect(screen.getByTestId("focused-speed-trace")).toBeInTheDocument();
-    expect(screen.queryByText("VER")).not.toBeInTheDocument();
+    expect(screen.getByText("VER")).toBeInTheDocument();
     expect(screen.queryByText("Driver telemetry")).not.toBeInTheDocument();
+    const photo = screen.getByRole("img", { name: "Max Verstappen" });
+    expect(photo).toHaveAttribute("src", "https://example.test/ver.png");
+    fireEvent.error(photo);
+    expect(screen.queryByRole("img", { name: "Max Verstappen" })).not.toBeInTheDocument();
+    expect(screen.getAllByText("VER").some((element) => element.getAttribute("aria-hidden") === "true")).toBe(true);
   });
 
   it.each(["panel", "widget"] as const)("renders compare controls and telemetry charts in %s layout", (layout) => {
