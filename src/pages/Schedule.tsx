@@ -833,8 +833,8 @@ function SeasonProgress({ rounds }: { rounds: ScheduleRound[] }) {
 
 function CountdownTile({ value, label }: { value: number; label: string }) {
   return (
-    <div className="flex min-w-11 flex-col items-center border border-panel bg-track px-1.5 py-1">
-      <span className="font-mono text-lg font-bold leading-tight tabular-nums text-fg">
+    <div className="flex min-w-9 flex-col items-center border border-panel bg-track px-1 py-0.5 sm:min-w-11 sm:px-1.5 sm:py-1">
+      <span className="font-mono text-base font-bold leading-tight tabular-nums text-fg sm:text-lg">
         {String(value).padStart(2, "0")}
       </span>
       <span className="text-micro font-bold uppercase tracking-widest text-muted">{label}</span>
@@ -866,14 +866,14 @@ function NextRoundStrip({
   return (
     <section
       aria-label={live ? "Live weekend" : "Up next"}
-      className="flex shrink-0 flex-wrap items-center gap-x-5 gap-y-3 border-b border-l-4 border-panel border-l-f1red bg-surface px-3 py-3 sm:px-4"
+      className="flex shrink-0 flex-wrap items-center gap-x-3 gap-y-2 border-b border-l-4 border-panel border-l-f1red bg-surface px-2 py-2 sm:gap-x-5 sm:gap-y-3 sm:px-4 sm:py-3"
     >
-      <div className="flex w-full min-w-0 items-center gap-3 lg:w-auto lg:flex-1">
+      <div className="flex w-full min-w-0 items-center gap-2 sm:gap-3 lg:w-auto lg:flex-1">
         {flagUrl && (
           <img
             src={flagUrl}
             alt=""
-            className="h-6 w-9 shrink-0 border border-fg/20 object-cover"
+            className="h-5 w-7 shrink-0 border border-fg/20 object-cover sm:h-6 sm:w-9"
             referrerPolicy="no-referrer"
           />
         )}
@@ -890,10 +890,10 @@ function NextRoundStrip({
               </span>
             )}
           </div>
-          <p className="mt-1 truncate text-lg font-black uppercase leading-tight tracking-wider text-fg sm:text-xl">
+          <p className="mt-0.5 truncate text-base font-black uppercase leading-tight tracking-wider text-fg sm:mt-1 sm:text-xl">
             {meeting.meeting_name}
           </p>
-          <p className="truncate text-small text-muted">
+          <p className="truncate text-tiny text-muted sm:text-small">
             {meeting.circuit_short_name} ·{" "}
             <span className="font-mono tabular-nums text-fg/85">
               {fmt.range(meeting.date_start, meeting.date_end, meeting.gmt_offset)}
@@ -903,14 +903,17 @@ function NextRoundStrip({
       </div>
 
       {nextSession && (
-        <div className="flex items-center gap-3">
-          <div className="text-right">
-            <div className="text-tiny font-bold uppercase tracking-widest text-muted">
-              {sessionLive ? "On track now" : "Starts in"}
-            </div>
-            <div className="text-small font-black uppercase tracking-wider text-fg">
+        <div className="flex w-full items-center justify-between gap-2 sm:gap-3 lg:w-auto lg:justify-start">
+          <div className="flex min-w-0 items-baseline gap-1.5 sm:flex-col-reverse sm:items-end sm:gap-0">
+            <span className="text-small font-black uppercase tracking-wider text-fg">
               {nextSession.session_name}
-            </div>
+            </span>
+            <span aria-hidden="true" className="text-muted sm:hidden">
+              ·
+            </span>
+            <span className="text-tiny font-bold uppercase tracking-widest text-muted">
+              {sessionLive ? "On track now" : "Starts in"}
+            </span>
           </div>
           {sessionLive ? (
             <Link

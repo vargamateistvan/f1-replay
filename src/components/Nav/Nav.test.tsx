@@ -519,6 +519,32 @@ describe("Nav", () => {
     expect(resetTimeline).not.toHaveBeenCalled();
   });
 
+  it("retries auto-selection when returning from Home after a pending bootstrap was canceled", async () => {
+    state.meetingKey = null;
+    state.sessionKey = null;
+    state.searchParams = new URLSearchParams("year=2025");
+    let finish!: () => void;
+    state.latestGate = new Promise<void>((resolve) => {
+      finish = resolve;
+    });
+
+    const { rerender } = render(<Nav />);
+    state.pathname = "/home";
+    rerender(<Nav />);
+    state.pathname = "/";
+    rerender(<Nav />);
+
+    await act(async () => {
+      finish();
+    });
+
+    await waitFor(() => expect(state.setSearchParams).toHaveBeenCalledOnce());
+    const [updater] = state.setSearchParams.mock.calls[0] as [
+      (params: URLSearchParams) => URLSearchParams,
+    ];
+    expect(updater(state.searchParams).get("session")).toBe("202");
+  });
+
   it("keeps the picker closed until the navbar event is clicked", () => {
     render(<Nav />);
     const trigger = screen.getByRole("button", {

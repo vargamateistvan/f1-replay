@@ -211,13 +211,21 @@ export function Nav() {
   const authFailed = authError !== undefined;
   const queryClient = useQueryClient();
   const [isSelectingLatest, setIsSelectingLatest] = useState(false);
+  const isSelectingLatestRef = useRef(false);
   const latestSelectionRequest = useRef(0);
 
   useEffect(() => {
     return () => {
       latestSelectionRequest.current += 1;
+      isSelectingLatestRef.current = false;
     };
   }, [year, meetingKey, sessionKey, location.pathname]);
+
+  function cancelLatestSelection() {
+    latestSelectionRequest.current += 1;
+    isSelectingLatestRef.current = false;
+    setIsSelectingLatest(false);
+  }
 
   const selectedMeeting = meetings.data?.find(
     (m) => m.meeting_key === meetingKey,
@@ -437,7 +445,7 @@ export function Nav() {
 
   function onYear(y: number) {
     if (Number.isNaN(y) || !Number.isFinite(y)) return;
-    latestSelectionRequest.current += 1;
+    cancelLatestSelection();
     setSelectLatestSessionOnLoad(false);
     resetPlaybackToStart();
     trackEvent("nav_year_changed", { year: y });
@@ -457,7 +465,7 @@ export function Nav() {
 
   function onMeeting(k: number) {
     if (Number.isNaN(k) || !Number.isFinite(k)) return;
-    latestSelectionRequest.current += 1;
+    cancelLatestSelection();
     resetPlaybackToStart();
     trackEvent("nav_meeting_changed", { meeting_key: k });
     setSearchParams(
@@ -476,7 +484,7 @@ export function Nav() {
 
   function onMeetingSelect(raw: string) {
     if (raw === "") {
-      latestSelectionRequest.current += 1;
+      cancelLatestSelection();
       setSelectLatestSessionOnLoad(false);
       resetPlaybackToStart();
       setSearchParams(
@@ -497,7 +505,7 @@ export function Nav() {
   }
 
   function onSessionSelect(raw: string) {
-    latestSelectionRequest.current += 1;
+    cancelLatestSelection();
     setSelectLatestSessionOnLoad(false);
     if (raw === "") {
       resetPlaybackToStart();
@@ -533,8 +541,9 @@ export function Nav() {
   // stale by a cache), so they are treated as candidates, never as the answer.
   const selectLatestEvent = useCallback(
     async (source: "auto" | "manual" = "auto") => {
-      if (isSelectingLatest) return;
+      if (isSelectingLatestRef.current) return;
       const request = ++latestSelectionRequest.current;
+      isSelectingLatestRef.current = true;
       setSelectLatestSessionOnLoad(false);
       setIsSelectingLatest(true);
       try {
@@ -673,10 +682,13 @@ export function Nav() {
         // sessions-loaded effect pick one once useSessions() resolves.
         setSelectLatestSessionOnLoad(targetSession === null);
       } finally {
-        setIsSelectingLatest(false);
+        if (request === latestSelectionRequest.current) {
+          isSelectingLatestRef.current = false;
+          setIsSelectingLatest(false);
+        }
       }
     },
-    [isSelectingLatest, queryClient, currentCalendarYear, setSearchParams],
+    [queryClient, currentCalendarYear, setSearchParams],
   );
 
   // First app load behavior: mimic pressing "Latest" automatically when
@@ -690,7 +702,13 @@ export function Nav() {
   const skipLatestBootstrap =
     isSeasonPath(location.pathname) || location.pathname === HOME_PATH;
   useEffect(() => {
-    if (autoLatestBootstrappedRef.current || skipLatestBootstrap) return;
+    if (skipLatestBootstrap) {
+      autoLatestBootstrappedRef.current = false;
+      isSelectingLatestRef.current = false;
+      setIsSelectingLatest(false);
+      return;
+    }
+    if (autoLatestBootstrappedRef.current) return;
     autoLatestBootstrappedRef.current = true;
     if (meetingKey !== null || sessionKey !== null) return;
     void selectLatestEvent("auto");

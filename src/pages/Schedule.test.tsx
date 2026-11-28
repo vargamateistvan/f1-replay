@@ -133,8 +133,13 @@ describe("Schedule page", () => {
   it("pins the next round above the cards with a countdown to its next session", () => {
     setup();
     const strip = screen.getByRole("region", { name: "Up next" });
+    expect(strip).toHaveClass("py-2", "sm:py-3");
     expect(strip).toHaveTextContent("Japanese Grand Prix");
     expect(strip).toHaveTextContent("Round 2");
+    expect(within(strip).getByText("Practice 1").parentElement).toHaveClass(
+      "items-baseline",
+      "sm:flex-col-reverse",
+    );
     expect(within(strip).getByRole("timer")).toHaveAccessibleName("Practice 1 in 5d 0h");
     expect(within(strip).getByText("05")).toBeInTheDocument();
   });
