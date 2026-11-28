@@ -221,7 +221,7 @@ export function FocusedTelemetry({
           {clearControls}
         </div>
       )}
-      <div className={widget ? "px-2 py-1" : "flex items-start gap-3"}>
+      <div className={widget ? "px-2 py-0.5" : "flex items-start gap-3"}>
         <div className="flex min-w-0 flex-1 flex-col gap-1.5">
           <DriverHud
             driver={driver}
@@ -371,7 +371,7 @@ function DriverHud({
     <div
       className={
         widget
-          ? "flex shrink-0 flex-col items-start gap-1.5"
+          ? "flex shrink-0 flex-col items-start gap-1"
           : "col-span-3 flex min-w-0 items-center justify-between gap-2 sm:contents"
       }
     >
@@ -387,7 +387,7 @@ function DriverHud({
     <div
       className={
         widget
-          ? "grid min-w-0 grid-cols-[minmax(0,1fr)_auto_auto] items-center gap-x-2 gap-y-1.5 py-1"
+          ? "grid min-w-0 grid-cols-[minmax(0,1fr)_auto_auto] items-center gap-x-2 gap-y-1 py-0.5"
           : "grid min-w-0 grid-cols-[minmax(0,1fr)_auto_auto] items-center gap-x-2 gap-y-2 rounded-sm border-l-[3px] py-1.5 pl-2 pr-2 sm:flex sm:flex-wrap sm:gap-x-2"
       }
       style={
@@ -534,7 +534,7 @@ function SpeedTraceSparkline({
       preserveAspectRatio="none"
       className={
         widget
-          ? "h-12 min-w-0 flex-1 self-stretch rounded-sm bg-sunken"
+          ? "h-10 min-w-0 flex-1 self-stretch rounded-sm bg-sunken"
           : "hidden h-8 w-28 min-w-0 overflow-visible rounded-sm bg-sunken sm:block sm:flex-1 sm:max-w-44"
       }
       aria-hidden="true"
@@ -591,7 +591,7 @@ function ShiftLights({ rpm, widget }: { rpm: number; widget: boolean }) {
   const lit = shiftLightsLit(rounded);
   const atShift = lit === TELEMETRY_SHIFT_LIGHTS;
   return (
-    <span className="flex shrink-0 flex-col gap-1">
+    <span className={`flex shrink-0 flex-col ${widget ? "gap-0.5" : "gap-1"}`}>
       <span className="flex items-baseline justify-between gap-2">
         <HudLabel widget={widget}>RPM</HudLabel>
         <span
@@ -632,7 +632,7 @@ function Pedals({
   widget: boolean;
 }) {
   return (
-    <span className="flex shrink-0 flex-col gap-1">
+    <span className={`flex shrink-0 flex-col ${widget ? "gap-0.5" : "gap-1"}`}>
       <PedalBar
         label="Thr"
         value={throttle}
