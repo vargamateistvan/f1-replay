@@ -242,6 +242,16 @@ export const RING_SVG_H = 400;
 export const RING_BACKGROUND_OFFSETS = [20, 40] as const;
 /** Radius of the track ring (SVG units). */
 export const RING_RADIUS = 128;
+export const RING_CENTER_TELEMETRY_WIDTH = 144;
+export const RING_CENTER_TELEMETRY_HEIGHT = 45;
+export const RING_CENTER_TELEMETRY_Y = 25;
+export const RING_CENTER_TELEMETRY_SCALE = 0.5;
+export const RING_CENTER_TELEMETRY_SHIFT = 16;
+export const RING_CENTER_FOCUS_SHIFT = 15;
+export const RING_CENTER_GUIDANCE_SHIFT = 41;
+export const RING_CENTER_EXPANDED_TELEMETRY_HEIGHT = 60;
+export const RING_CENTER_EXPANDED_TELEMETRY_Y = 10;
+export const RING_CENTER_EXPANDED_FOCUS_SHIFT = 46;
 /** Place cardinal labels on the outer guide ring. */
 export const RING_CARDINAL_LABEL_RADIUS =
   RING_RADIUS + Math.max(...RING_BACKGROUND_OFFSETS);

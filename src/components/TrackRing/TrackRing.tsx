@@ -339,6 +339,7 @@ export function TrackRing({
     if (!svg || !model) return;
 
     const onWheel = (event: WheelEvent) => {
+      if (event.target instanceof Element && event.target.closest("[data-ring-telemetry]")) return;
       if (event.deltaY === 0 || !Number.isFinite(event.deltaY)) return;
       event.preventDefault();
       const pixels =
@@ -665,7 +666,7 @@ export function TrackRing({
           gapBehind: focusGapBehind,
           compound: focusTyre?.compound ?? null,
           tyreAge: focusTyre?.age ?? null,
-          speed: focusHud,
+          speed: focusedTelemetryOverlay ? null : focusHud,
         };
   const centerWeather =
     focusDriver === null && weatherOverlay
@@ -766,6 +767,7 @@ export function TrackRing({
             status={status}
             reference={reference}
             focusInfo={focusInfo}
+            telemetry={focusedTelemetryOverlay}
             weather={centerWeather}
             tyreGuidance={tyreGuidance}
             lightMode={lightMode}
@@ -891,9 +893,8 @@ export function TrackRing({
       </div>
 
       {focusDriver !== null &&
-        (focusedTelemetryOverlay || (showFocusedHud && hudData) || pitRejoinPanel) && (
+        ((showFocusedHud && hudData) || pitRejoinPanel) && (
           <div className="absolute top-2 left-2 z-20 max-w-[calc(100%-1rem)] max-h-[calc(100%-1rem)] overflow-y-auto pointer-events-none flex flex-col gap-1">
-            {focusedTelemetryOverlay}
             {showFocusedHud && hudData && (
               <FocusedDriverHud
                 sample={hudData}

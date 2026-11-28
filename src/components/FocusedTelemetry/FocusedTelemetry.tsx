@@ -41,7 +41,8 @@ interface Props {
    * (leaderboard telemetry columns) — reuse it instead of per-driver requests. */
   readonly sharedAllDriverWindow?: boolean;
   readonly telemetryEnabled?: boolean;
-  readonly layout?: "panel" | "widget";
+  readonly layout?: "panel" | "widget" | "ring";
+  readonly expandedRing?: boolean;
   readonly onClear: () => void;
   readonly onClearCompare?: () => void;
 }
@@ -58,6 +59,7 @@ export function FocusedTelemetry({
   sharedAllDriverWindow = false,
   telemetryEnabled = true,
   layout = "panel",
+  expandedRing = false,
   onClear,
   onClearCompare,
 }: Props) {
@@ -173,7 +175,8 @@ export function FocusedTelemetry({
 
   const speedUnit = speedUnitLabel(metricSystem);
   const speedChartMax = metricSystem === "imperial" ? 240 : 380;
-  const widget = layout === "widget";
+  const widget = layout !== "panel";
+  const ring = layout === "ring";
   const clearControls = (
     <div
       className={
@@ -206,13 +209,15 @@ export function FocusedTelemetry({
   return (
     <div
       className={
-        widget
+        ring
+          ? "pointer-events-auto w-72 max-w-full rounded-sm bg-panel text-caption text-fg"
+          : widget
           ? "pointer-events-auto w-72 max-w-full overflow-hidden rounded-sm border border-panel border-l-2 bg-surface/70 text-caption text-fg shadow-sm backdrop-blur-sm"
           : "shrink-0 border-t border-panel bg-track px-3 py-2 text-xs"
       }
-      style={widget ? { borderLeftColor: color } : undefined}
+      style={widget && !ring ? { borderLeftColor: color } : undefined}
     >
-      {widget && (
+      {widget && !ring && (
         <div className="flex items-center justify-between gap-1.5 border-b border-panel px-2 py-0.5">
           <span className="flex items-center gap-1.5 text-caption font-black uppercase tracking-caps text-fg/80">
             <Gauge size={12} aria-hidden />
@@ -232,6 +237,8 @@ export function FocusedTelemetry({
             t={t}
             metricSystem={metricSystem}
             widget={widget}
+            showIdentity={!ring}
+            expandedTrace={ring && expandedRing}
             emptyLabel={
               compareDriver
                 ? "No live sample"
@@ -248,12 +255,15 @@ export function FocusedTelemetry({
               t={t}
               metricSystem={metricSystem}
               widget={widget}
+              showIdentity
+              expandedTrace={ring && expandedRing}
               emptyLabel="No live sample"
             />
           )}
         </div>
 
         {!widget && clearControls}
+        {ring && compareDriver && clearControls}
       </div>
 
       {compareTelemetry && (
@@ -342,6 +352,8 @@ function DriverHud({
   metricSystem,
   emptyLabel,
   widget,
+  showIdentity,
+  expandedTrace,
 }: {
   driver: Driver | null;
   color: string;
@@ -352,6 +364,8 @@ function DriverHud({
   metricSystem: "metric" | "imperial";
   emptyLabel: string;
   widget: boolean;
+  showIdentity: boolean;
+  expandedTrace: boolean;
 }) {
   const trace = useMemo(
     () =>
@@ -406,12 +420,14 @@ function DriverHud({
             : "contents sm:flex sm:shrink-0 sm:items-center sm:gap-2"
         }
       >
-        <DriverIdentity
-          driver={driver}
-          color={color}
-          lap={lap}
-          widget={widget}
-        />
+        {showIdentity && (
+          <DriverIdentity
+            driver={driver}
+            color={color}
+            lap={lap}
+            widget={widget}
+          />
+        )}
         {sample && (
           <>
             <SpeedReadout
@@ -428,7 +444,7 @@ function DriverHud({
         widget ? (
           <div className="col-span-3 flex min-w-0 items-stretch gap-2">
             {trace && (
-              <SpeedTraceSparkline trace={trace} color={color} widget />
+              <SpeedTraceSparkline trace={trace} color={color} widget expanded={expandedTrace} />
             )}
             {readouts}
           </div>
@@ -523,10 +539,12 @@ function SpeedTraceSparkline({
   trace,
   color,
   widget,
+  expanded = false,
 }: {
   trace: SpeedTrace;
   color: string;
   widget: boolean;
+  expanded?: boolean;
 }) {
   return (
     <svg
@@ -534,7 +552,7 @@ function SpeedTraceSparkline({
       preserveAspectRatio="none"
       className={
         widget
-          ? "h-10 min-w-0 flex-1 self-stretch rounded-sm bg-sunken"
+          ? `${expanded ? "h-16" : "h-10"} min-w-0 flex-1 self-stretch rounded-sm bg-sunken`
           : "hidden h-8 w-28 min-w-0 overflow-visible rounded-sm bg-sunken sm:block sm:flex-1 sm:max-w-44"
       }
       aria-hidden="true"

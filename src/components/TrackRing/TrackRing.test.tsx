@@ -4,6 +4,10 @@ import { fireEvent, render, screen } from "@testing-library/react";
 import type { Driver, Lap, Location, Stint, Weather } from "@/api/types";
 import {
   RING_CARDINAL_LABEL_RADIUS,
+  RING_CENTER_GUIDANCE_SHIFT,
+  RING_CENTER_TELEMETRY_HEIGHT,
+  RING_CENTER_TELEMETRY_SHIFT,
+  RING_PIT_RADIUS,
   RING_RADIUS,
   RING_SVG_H,
   RING_SVG_W,
@@ -480,6 +484,44 @@ describe("TrackRing", () => {
     expect(driverInfo).toHaveTextContent("BEHIND+0.840");
     expect(driverInfo).toHaveTextContent("MEDIUM · 12L");
     expect(driverInfo.querySelectorAll("rect")).toHaveLength(2);
+  });
+
+  it.each([false, true])("embeds selected-driver telemetry in the dashboard with expanded=%s", (expanded) => {
+    const { rerender } = renderRing({
+      focusDriver: 16,
+      showFocusedHud: false,
+      focusedTelemetryOverlay: <div>Selected telemetry readouts</div>,
+      focusCompound: { compound: "MEDIUM", age: 12 },
+      lapLabel: expanded ? null : "21/52",
+      weatherOverlay: {
+        date: new Date(START).toISOString(), rainfall: 0, humidity: 70,
+        air_temperature: 20, track_temperature: 30, pressure: 1000,
+        wind_direction: 0, wind_speed: 0, session_key: 1, meeting_key: 1,
+      },
+    });
+    const telemetry = screen.getByTestId("ring-center-telemetry");
+    expect(screen.getByTestId("ring-center-dashboard")).toContainElement(telemetry);
+    expect(telemetry).toHaveTextContent("Selected telemetry readouts");
+    expect(screen.getAllByText("Selected telemetry readouts")).toHaveLength(1);
+    expect(screen.getByTestId("ring-focused-driver-info")).toHaveTextContent("MEDIUM · 12L");
+    if (expanded) expect(screen.queryByText("LAP")).not.toBeInTheDocument();
+    else expect(screen.getByText("LAP")).toBeInTheDocument();
+    const footer = screen.getByTestId("ring-center-tyre-guidance");
+    for (const label of Array.from(footer.querySelectorAll("text"))) {
+      const x = Number(label.getAttribute("x")) - RING_SVG_W / 2;
+      const y = Number(label.getAttribute("y")) - RING_SVG_H / 2 +
+        RING_CENTER_TELEMETRY_HEIGHT - RING_CENTER_GUIDANCE_SHIFT - RING_CENTER_TELEMETRY_SHIFT;
+      if (label.getAttribute("x") !== null) {
+        expect(Math.hypot(x, y)).toBeLessThan(RING_PIT_RADIUS);
+      }
+    }
+    const zoom = screen.getByTestId("ring-zoom-layer").getAttribute("transform");
+    fireEvent.wheel(screen.getByText("Selected telemetry readouts"), { deltaY: 100 });
+    expect(screen.getByTestId("ring-zoom-layer")).toHaveAttribute("transform", zoom);
+    rerender(
+      <TrackRing sessionKey={1} drivers={drivers} locationData={[]} sessionStartMs={START} showFocusedHud={false} />,
+    );
+    expect(screen.queryByTestId("ring-center-telemetry")).not.toBeInTheDocument();
   });
 
   it("shows compact weather details in the centre only when no driver is focused", () => {

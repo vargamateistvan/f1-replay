@@ -1,4 +1,4 @@
-import { memo } from "react";
+import { memo, type ReactNode } from "react";
 import { CloudRain, CloudSun, Wind } from "lucide-react";
 import type { Driver, Stint } from "@/api/types";
 import {
@@ -9,6 +9,16 @@ import {
   PIT_MARKER_COLOR,
   PIT_WINDOW_COLOR,
   RING_CARDINAL_LABEL_RADIUS,
+  RING_CENTER_TELEMETRY_WIDTH,
+  RING_CENTER_TELEMETRY_HEIGHT,
+  RING_CENTER_TELEMETRY_Y,
+  RING_CENTER_TELEMETRY_SCALE,
+  RING_CENTER_TELEMETRY_SHIFT,
+  RING_CENTER_FOCUS_SHIFT,
+  RING_CENTER_GUIDANCE_SHIFT,
+  RING_CENTER_EXPANDED_TELEMETRY_HEIGHT,
+  RING_CENTER_EXPANDED_TELEMETRY_Y,
+  RING_CENTER_EXPANDED_FOCUS_SHIFT,
   SAFETY_CAR_NUMBERS,
   TRACK_PIT_CAR_SCALE,
 } from "@/constants";
@@ -347,6 +357,7 @@ export function RingCenter({
   status,
   reference,
   focusInfo = null,
+  telemetry = null,
   weather = null,
   tyreGuidance = null,
   lightMode,
@@ -356,6 +367,7 @@ export function RingCenter({
   lapLabel: string | null;
   status: RingStatus | null;
   reference: { title: string };
+  telemetry?: ReactNode;
   focusInfo?: {
     number: number;
     acronym: string;
@@ -383,9 +395,18 @@ export function RingCenter({
   const fg = "rgb(var(--color-fg))";
   const muted = "rgb(var(--color-muted))";
   const chipW = status ? Math.max(34, status.label.length * 5.4 + 12) : 0;
+  const expanded = !!telemetry && !lapLabel;
+  const telemetryHeight = expanded ? RING_CENTER_EXPANDED_TELEMETRY_HEIGHT : RING_CENTER_TELEMETRY_HEIGHT;
+  const telemetryY = expanded ? RING_CENTER_EXPANDED_TELEMETRY_Y : RING_CENTER_TELEMETRY_Y;
+  const focusShift = expanded ? RING_CENTER_EXPANDED_FOCUS_SHIFT : RING_CENTER_FOCUS_SHIFT;
   return (
-    <g fontFamily={FONT} pointerEvents="none" data-testid="ring-center-dashboard">
-      <text
+    <g
+      fontFamily={FONT}
+      pointerEvents="none"
+      data-testid="ring-center-dashboard"
+      transform={telemetry ? `translate(0 ${-RING_CENTER_TELEMETRY_SHIFT})` : undefined}
+    >
+      {!expanded && <text
         x={cx}
         y={cy - 62}
         textAnchor="middle"
@@ -396,12 +417,12 @@ export function RingCenter({
         dominantBaseline="middle"
       >
         LAP
-      </text>
+      </text>}
       {lapLabel && (
         <text
           data-testid="ring-lap-label"
           x={cx}
-          y={cy - 44}
+          y={cy - (telemetry ? 46 : 44)}
           textAnchor="middle"
           fontSize={20}
           fontWeight="900"
@@ -413,10 +434,10 @@ export function RingCenter({
       )}
       {status && (
         <g>
-          <rect x={cx - chipW / 2} y={cy - 28} width={chipW} height={12} rx={3} fill={status.color} />
+          <rect x={cx - chipW / 2} y={cy - (expanded ? 70 : telemetry ? 36 : 28)} width={chipW} height={12} rx={3} fill={status.color} />
           <text
             x={cx}
-            y={cy - 22}
+            y={cy - (expanded ? 64 : telemetry ? 30 : 22)}
             textAnchor="middle"
             fontSize={6}
             fontWeight="900"
@@ -430,7 +451,7 @@ export function RingCenter({
       )}
       <text
         x={cx}
-        y={cy - 11}
+        y={cy - (expanded ? 51 : telemetry ? 19 : 11)}
         textAnchor="middle"
         fontSize={5.5}
         fill={muted}
@@ -439,15 +460,15 @@ export function RingCenter({
         {reference.title}
       </text>
       <line
-        x1={cx - 72}
-        y1={cy - 4}
-        x2={cx + 72}
-        y2={cy - 4}
+        x1={cx - (expanded ? 67 : 72)}
+        y1={cy - (expanded ? 45 : telemetry ? 13 : 4)}
+        x2={cx + (expanded ? 67 : 72)}
+        y2={cy - (expanded ? 45 : telemetry ? 13 : 4)}
         stroke="rgb(var(--color-surface))"
         strokeWidth={0.6}
       />
       {focusInfo ? (
-        <g data-testid="ring-focused-driver-info" aria-label={`Focused driver ${focusInfo.acronym}`}>
+        <g data-testid="ring-focused-driver-info" aria-label={`Focused driver ${focusInfo.acronym}`} transform={telemetry ? `translate(0 ${-focusShift})` : undefined}>
           <text x={cx - 67} y={cy + 8} textAnchor="start" fontSize={9} dominantBaseline="middle">
             <tspan fill={focusInfo.color} fontWeight="900">
               {focusInfo.position == null ? "P—" : `P${focusInfo.position}`}
@@ -460,22 +481,22 @@ export function RingCenter({
             #{focusInfo.number}
           </text>
           <g aria-label="Focused driver gaps">
-            <rect x={cx - 72} y={cy + 17} width={69} height={28} rx={3} fill="rgb(var(--color-panel))" />
-            <rect x={cx + 3} y={cy + 17} width={69} height={28} rx={3} fill="rgb(var(--color-panel))" />
-            <text x={cx - 64} y={cy + 25} textAnchor="start" fontSize={4.5} fill={muted} letterSpacing="0.1em" dominantBaseline="middle">
+            <rect x={cx - (expanded ? 75 : 67)} y={cy + 17} width={expanded ? 72 : 64} height={expanded ? 22 : telemetry ? 16 : 22} rx={3} fill="rgb(var(--color-panel))" />
+            <rect x={cx + 3} y={cy + 17} width={expanded ? 72 : 64} height={expanded ? 22 : telemetry ? 16 : 22} rx={3} fill="rgb(var(--color-panel))" />
+            <text x={cx - (expanded ? 67 : 59)} y={cy + 23} textAnchor="start" fontSize={4.5} fill={muted} letterSpacing="0.1em" dominantBaseline="middle">
               AHEAD
             </text>
-            <text x={cx - 64} y={cy + 38} textAnchor="start" fontSize={7} fill={fg} fontWeight="800" dominantBaseline="middle">
+            <text x={cx - (expanded ? 67 : 59)} y={cy + (expanded ? 32 : telemetry ? 29 : 32)} textAnchor="start" fontSize={7} fill={fg} fontWeight="800" dominantBaseline="middle">
               {formatCenterGap(focusInfo.gapAhead)}
             </text>
-            <text x={cx + 11} y={cy + 25} textAnchor="start" fontSize={4.5} fill={muted} letterSpacing="0.1em" dominantBaseline="middle">
+            <text x={cx + 11} y={cy + 23} textAnchor="start" fontSize={4.5} fill={muted} letterSpacing="0.1em" dominantBaseline="middle">
               BEHIND
             </text>
-            <text x={cx + 11} y={cy + 38} textAnchor="start" fontSize={7} fill={fg} fontWeight="800" dominantBaseline="middle">
+            <text x={cx + 11} y={cy + (expanded ? 32 : telemetry ? 29 : 32)} textAnchor="start" fontSize={7} fill={fg} fontWeight="800" dominantBaseline="middle">
               {formatCenterGap(focusInfo.gapBehind)}
             </text>
           </g>
-          <text x={cx} y={cy + 54} textAnchor="middle" fontSize={5.5} dominantBaseline="middle">
+          <text x={cx} y={cy + (expanded ? 48 : telemetry ? 36 : 48)} textAnchor="middle" fontSize={5.5} dominantBaseline="middle">
             <tspan fill={focusInfo.compound ? COMPOUND_COLORS[focusInfo.compound] : muted} fontWeight="800">
               {focusInfo.compound
                 ? `${focusInfo.compound} · ${focusInfo.tyreAge == null ? "—" : `${focusInfo.tyreAge}L`}`
@@ -545,16 +566,32 @@ export function RingCenter({
           </g>
         </g>
       ) : null}
+      {focusInfo && telemetry && (
+        <g transform={`translate(${cx - RING_CENTER_TELEMETRY_WIDTH / 2} ${cy + telemetryY}) scale(${RING_CENTER_TELEMETRY_SCALE})`}>
+          <foreignObject
+            data-testid="ring-center-telemetry"
+            data-ring-telemetry
+            width={RING_CENTER_TELEMETRY_WIDTH / RING_CENTER_TELEMETRY_SCALE}
+            height={telemetryHeight / RING_CENTER_TELEMETRY_SCALE}
+            pointerEvents="auto"
+          >
+            <div className="h-full overflow-y-auto">
+              {telemetry}
+            </div>
+          </foreignObject>
+        </g>
+      )}
       {tyreGuidance && (
         <g
           data-testid="ring-center-tyre-guidance"
           aria-label="Tyre recommendation and fastest clean lap compound"
+          transform={telemetry ? `translate(0 ${RING_CENTER_TELEMETRY_HEIGHT - RING_CENTER_GUIDANCE_SHIFT})` : undefined}
         >
           <line
             x1={cx - 72}
-            y1={cy + 62}
+            y1={cy + (telemetry ? 67 : 62)}
             x2={cx + 72}
-            y2={cy + 62}
+            y2={cy + (telemetry ? 67 : 62)}
             stroke="rgb(var(--color-surface))"
             strokeWidth={0.5}
           />

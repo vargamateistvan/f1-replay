@@ -348,6 +348,7 @@ describe("progressive replay startup", () => {
 
   it.each([
     [true, "2d"],
+    [true, "ring"],
     [false, "2d"],
     [false, "ring"],
   ] as const)("shows one selected-driver HUD in the map pane for compact=%s and mode=%s", async (compact, mode) => {
@@ -376,8 +377,8 @@ describe("progressive replay startup", () => {
     expect(await screen.findAllByTestId("focused-telemetry")).toHaveLength(1);
     const hud = screen.getByTestId("focused-telemetry");
     expect(hud).toHaveTextContent("HAM");
-    expect(hud).toHaveAttribute("data-layout", compact ? "panel" : "widget");
-    if (!compact) expect(screen.getByTestId("map-telemetry-overlay")).toContainElement(hud);
+    expect(hud).toHaveAttribute("data-layout", mode === "ring" ? "ring" : compact ? "panel" : "widget");
+    if (!compact || mode === "ring") expect(screen.getByTestId("map-telemetry-overlay")).toContainElement(hud);
     else expect(screen.queryByTestId("map-telemetry-overlay")).not.toBeInTheDocument();
     const mapViews = mode === "ring"
       ? screen.getAllByTestId("ring-lap-counter")

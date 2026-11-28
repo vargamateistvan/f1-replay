@@ -2444,7 +2444,8 @@ export default function RaceWeekend() {
       <div className={isCompactViewport ? "shrink-0 border-t border-panel" : "min-w-0"}>
         <Suspense fallback={<PanelFallback />}>
           <FocusedTelemetry
-            layout={isCompactViewport ? "panel" : "widget"}
+            layout={mapViewMode === "ring" ? "ring" : isCompactViewport ? "panel" : "widget"}
+            expandedRing={!isRaceSession || !commentaryLapLabel || commentaryLapLabel === "—"}
             sessionKey={sessionKey}
             driver={
               drivers.data?.find((d) => d.driver_number === focusDriver) ?? null
@@ -2491,7 +2492,7 @@ export default function RaceWeekend() {
         positionByDriver={ringPositions}
         battlingDrivers={mapShowBattleRings ? battlingDrivers : undefined}
         showFocusedHud={false}
-        focusedTelemetryOverlay={!isCompactViewport && mapShowDriverHud ? focusedTelemetryPanel : undefined}
+        focusedTelemetryOverlay={mapShowDriverHud ? focusedTelemetryPanel : undefined}
         sharedAllDriverWindow={telemetryEnabled}
         telemetryEnabled={secondaryEnabled}
         trackFlagState={mapShowSectorFlags ? trackFlagState : null}
@@ -3044,6 +3045,7 @@ export default function RaceWeekend() {
                       )}
                     </div>
                     {isCompactViewport &&
+                      mapViewMode !== "ring" &&
                       mapShowDriverHud &&
                       focusedTelemetryPanel}
                   </div>

@@ -155,6 +155,26 @@ describe("FocusedTelemetry", () => {
     expect(screen.queryByText("DRS")).not.toBeInTheDocument();
   });
 
+  it.each([false, true])("keeps ring telemetry compact without repeating identity, expanded=%s", (expanded) => {
+    state.windowData = [{
+      date: "2024-01-01T00:00:05.000Z", speed: 250, n_gear: 6,
+      rpm: 11000, throttle: 95, brake: 0, drs: null,
+    }, {
+      date: "2024-01-01T00:00:10.000Z", speed: 280, n_gear: 7,
+      rpm: 11500, throttle: 100, brake: 0, drs: null,
+    }];
+    render(
+      <FocusedTelemetry layout="ring" expandedRing={expanded} sessionKey={1} driver={driverA}
+        sessionStartMs={Date.parse("2024-01-01T00:00:00.000Z")} onClear={vi.fn()} />,
+    );
+    expect(screen.getByText("280")).toBeInTheDocument();
+    expect(screen.getByTitle("Gear 7")).toBeInTheDocument();
+    expect(screen.getByRole("img", { name: "11500 rpm" })).toBeInTheDocument();
+    expect(screen.getByTestId("focused-speed-trace")).toBeInTheDocument();
+    expect(screen.queryByText("VER")).not.toBeInTheDocument();
+    expect(screen.queryByText("Driver telemetry")).not.toBeInTheDocument();
+  });
+
   it.each(["panel", "widget"] as const)("renders compare controls and telemetry charts in %s layout", (layout) => {
     const onClearCompare = vi.fn();
     state.windowData = [
