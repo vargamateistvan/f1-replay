@@ -8,7 +8,6 @@ import { buildIndex } from "@/timeline/interpolate";
 import { lngLatToEnu } from "@/utils/georef";
 import {
   buildArcPolyline,
-  buildDirectionArrows,
   buildArcLine,
   buildHotspotPoints,
   gradientFromSegments,
@@ -53,15 +52,6 @@ describe("track markup", () => {
     const { ticks, labels } = buildSectorMarkers(monaco, geo, arc);
     expect(ticks.features.map((f) => f.properties.label)).toEqual(["S1", "S2"]);
     expect(labels.features).toHaveLength(2);
-  });
-
-  it("spreads ten race-direction chevrons around the lap", () => {
-    const arrows = buildDirectionArrows(monaco, geo).features;
-    expect(arrows).toHaveLength(10);
-    for (const a of arrows) {
-      expect(a.properties.bearing).toBeGreaterThanOrEqual(0);
-      expect(a.properties.bearing).toBeLessThan(360);
-    }
   });
 });
 

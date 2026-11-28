@@ -13,9 +13,7 @@ import type { CircuitGeometry } from "@/data/circuitGeometryTypes";
 import type { CircuitGeoref } from "@/utils/georef";
 import { groundWidthExpression, type FeatureCollection, type LineFeature, type PointFeature } from "./mapFeatures";
 import {
-  buildDirectionArrows,
   buildSectorMarkers,
-  drawChevron,
   buildArcLine,
   drawPitGhost,
   trailGradient,
@@ -34,8 +32,6 @@ export const SRC_GAP_RIBBONS = "map3d-gap-ribbons";
 export const SRC_GAP_LABELS = "map3d-gap-labels";
 const SRC_SECTOR_TICKS = "map3d-sector-ticks";
 const SRC_SECTOR_LABELS = "map3d-sector-labels";
-const SRC_ARROWS = "map3d-arrows";
-const IMG_CHEVRON = "map3d-chevron";
 const IMG_GHOST_PREFIX = "map3d-ghost-";
 
 const OVERLAY_LAYERS = {
@@ -96,7 +92,6 @@ export interface OverlayContext {
 export function addOverlayLayers(map: MapboxMap, ctx: OverlayContext): void {
   const { geom, geo, arc, lightMode, scale } = ctx;
   const lat = geo.originLat;
-  const ink = lightMode ? "#303647" : "#d8deee";
 
   // One centerline per overlay kind, coloured by a line-gradient (lineMetrics
   // enables line-progress).
@@ -113,9 +108,6 @@ export function addOverlayLayers(map: MapboxMap, ctx: OverlayContext): void {
   const sectors = buildSectorMarkers(geom, geo, arc, ctx.sectorBoundaries);
   map.addSource(SRC_SECTOR_TICKS, { type: "geojson", data: sectors.ticks });
   map.addSource(SRC_SECTOR_LABELS, { type: "geojson", data: sectors.labels });
-  map.addSource(SRC_ARROWS, { type: "geojson", data: buildDirectionArrows(geom, geo) });
-
-  addCanvasImage(map, IMG_CHEVRON, 8 * scale, (c, unit) => drawChevron(c, unit, ink), scale);
 
   const segment = (id: string, widthM: number, minPx: number, opacity = 1) =>
     map.addLayer(
@@ -289,21 +281,6 @@ export function addOverlayLayers(map: MapboxMap, ctx: OverlayContext): void {
       "text-halo-color": "rgba(0,0,0,0.45)",
       "text-halo-width": 0.8,
     },
-  });
-  markup({
-    id: "map3d-arrows",
-    type: "symbol",
-    source: SRC_ARROWS,
-    layout: {
-      "icon-image": IMG_CHEVRON,
-      "icon-rotate": ["get", "bearing"],
-      // Lie flat on the road and turn with it, like painted arrows.
-      "icon-rotation-alignment": "map",
-      "icon-pitch-alignment": "map",
-      "icon-allow-overlap": true,
-      "icon-ignore-placement": true,
-    },
-    paint: { "icon-opacity": 0.62, "icon-emissive-strength": 1 },
   });
   markup({
     id: "map3d-pit-ghost",

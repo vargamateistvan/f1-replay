@@ -1,7 +1,7 @@
 /**
  * Track markup and telemetry overlays for the 3D map, mirroring the 2D map's
- * standard track detail (start/finish line, S1/S2 ticks, direction chevrons, speed
- * heat, lap delta, elevation, braking hotspots, pit rejoin ghost).
+ * standard track detail (start/finish line, S1/S2 ticks, speed heat, lap
+ * delta, elevation, braking hotspots, pit rejoin ghost).
  *
  * Per-segment telemetry reuses the 2D builders in `trackGeometry.ts`: they
  * only need ordered points plus normalized arc length, so we hand them the
@@ -35,7 +35,6 @@ import type {
 
 /** Half-length of the start/finish and sector ticks, in metres. */
 const TICK_HALF_M = 9;
-const ARROW_COUNT = 10;
 
 /**
  * The centerline as an `ArcPolyline` for the 2D overlay builders: `sx`/`sy`
@@ -122,28 +121,6 @@ export function buildSectorMarkers(
   };
 }
 
-/** Ten chevrons evenly along the lap; `bearing` is the race direction. */
-export function buildDirectionArrows(
-  geom: CircuitGeometry,
-  geo: CircuitGeoref,
-): FeatureCollection<PointFeature> {
-  const n = geom.x.length;
-  const features: PointFeature[] = [];
-  if (n < 12) return { type: "FeatureCollection", features };
-  for (let k = 0; k < ARROW_COUNT; k++) {
-    const i = Math.floor((k / ARROW_COUNT) * (n - 1));
-    const a = f1ToEnu(geo, geom.x[i]!, geom.y[i]!);
-    const b = f1ToEnu(geo, geom.x[(i + 1) % n]!, geom.y[(i + 1) % n]!);
-    const bearing = ((Math.atan2(b.x - a.x, b.y - a.y) * 180) / Math.PI + 360) % 360;
-    features.push({
-      type: "Feature",
-      properties: { bearing },
-      geometry: { type: "Point", coordinates: f1ToLngLat(geo, geom.x[i]!, geom.y[i]!) },
-    });
-  }
-  return { type: "FeatureCollection", features };
-}
-
 /** The centerline (lng/lat) as one open line, for gradient-coloured overlays. */
 export function buildArcLine(arc: ArcPolyline): LineFeature {
   return {
@@ -219,29 +196,6 @@ export function buildHotspotPoints(
       geometry: { type: "Point", coordinates: [h.x, h.y] },
     })),
   };
-}
-
-/** Canvas chevron matching the 2D direction arrow, pointing up (north). */
-export function drawChevron(
-  ctx: CanvasRenderingContext2D,
-  unit: number,
-  color: string,
-): void {
-  const c = 4 * unit;
-  ctx.save();
-  ctx.translate(c, c);
-  // 2D path "M-3.4,-1.5 L2.8,0 L-3.4,1.5" points along +x; rotate to point up.
-  ctx.rotate(-Math.PI / 2);
-  ctx.beginPath();
-  ctx.moveTo(-3.4 * unit, -1.5 * unit);
-  ctx.lineTo(2.8 * unit, 0);
-  ctx.lineTo(-3.4 * unit, 1.5 * unit);
-  ctx.strokeStyle = color;
-  ctx.lineWidth = 0.9 * unit;
-  ctx.lineCap = "round";
-  ctx.lineJoin = "round";
-  ctx.stroke();
-  ctx.restore();
 }
 
 /**
